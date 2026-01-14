@@ -1,0 +1,524 @@
+# Topological Sort (Топологическая сортировка)
+
+## Описание шаблона
+
+Шаблон **Topological Sort** используется для нахождения линейного порядка элементов в ориентированном ациклическом графе (DAG), где каждое ребро представляет зависимость. Если элемент A зависит от элемента B, то B должен появиться перед A в топологическом порядке.
+
+### Исторический контекст
+
+Топологическая сортировка была разработана в контексте планирования задач и компиляции программ, где нужно определить порядок выполнения операций с учетом зависимостей. Алгоритм Кана был предложен в 1962 году, а DFS-подход является классическим применением обхода в глубину.
+
+### Основная идея
+
+Ключевое наблюдение: в DAG всегда есть хотя бы одна вершина без входящих ребер (источник). Обрабатывая источники и удаляя их из графа, мы получаем новые источники, что позволяет построить линейный порядок.
+
+## Когда применять
+
+Используйте этот шаблон, когда:
+- Работаете с ориентированным ациклическим графом (DAG)
+- Нужно определить порядок выполнения задач с зависимостями
+- Требуется найти линейный порядок элементов с учетом зависимостей
+- Задача связана с планированием или последовательностью выполнения
+- Нужно проверить, можно ли выполнить все задачи (нет циклов)
+
+## Алгоритм/Подход
+
+### Алгоритм Кана (Kahn's Algorithm):
+
+1. **Инициализация**: 
+   - Подсчитайте входящие степени (in-degree) для каждой вершины
+   - Добавьте все вершины с in-degree = 0 в очередь
+2. **Обработка**:
+   - Извлеките вершину из очереди
+   - Добавьте её в результат
+   - Уменьшите in-degree всех соседних вершин на 1
+   - Если in-degree вершины стал 0, добавьте её в очередь
+3. **Проверка**: Если размер результата != количеству вершин, есть цикл
+
+### DFS подход:
+
+1. Используйте DFS для обхода графа
+2. Когда вершина полностью обработана (все потомки посещены), добавляйте её в стек
+3. Разверните стек для получения топологического порядка
+
+## Визуализация
+
+### Пример графа зависимостей:
+
+```
+Задачи: A -> B -> D
+        A -> C -> D
+        B -> C
+
+Граф:
+    A
+   / \
+  B   C
+   \ /
+    D
+
+In-degrees:
+A: 0, B: 1, C: 2, D: 2
+
+Шаг 1: Очередь = [A], Результат = []
+        Обрабатываем A: уменьшаем in-degree B и C
+        B: 0, C: 1, D: 2
+        Очередь = [B]
+
+Шаг 2: Обрабатываем B: уменьшаем in-degree C и D
+        C: 0, D: 1
+        Очередь = [C]
+
+Шаг 3: Обрабатываем C: уменьшаем in-degree D
+        D: 0
+        Очередь = [D]
+
+Шаг 4: Обрабатываем D
+        Очередь = []
+
+Результат: [A, B, C, D]
+```
+
+## Математическое обоснование
+
+### Почему алгоритм работает?
+
+**Теорема**: В любом DAG существует хотя бы одна топологическая сортировка.
+
+**Доказательство** (алгоритм Кана):
+1. **Существование источника**: В DAG всегда есть вершина с in-degree = 0 (иначе был бы цикл)
+2. **Индуктивный шаг**: Предположим, мы обработали k вершин в правильном порядке
+   - После удаления этих вершин, оставшийся граф также является DAG
+   - В нем есть источник (вершина с in-degree = 0)
+   - Обрабатываем этот источник
+   - Порядок остается корректным
+
+**Почему сложность O(V + E)?**
+
+- Построение графа и подсчет in-degree: O(V + E)
+- Каждая вершина обрабатывается один раз: O(V)
+- Каждое ребро рассматривается один раз: O(E)
+- Итого: O(V + E)
+
+## Временная и пространственная сложность
+
+### Детальный анализ:
+
+**Алгоритм Кана**:
+- **Временная сложность**: O(V + E)
+  - Построение графа: O(E)
+  - Подсчет in-degree: O(V)
+  - Обработка вершин: O(V)
+  - Обновление in-degree: O(E)
+- **Пространственная сложность**: O(V + E)
+  - Граф: O(V + E)
+  - Очередь: O(V)
+  - In-degree массив: O(V)
+
+**DFS подход**:
+- **Временная сложность**: O(V + E)
+- **Пространственная сложность**: O(V + E) для графа + O(V) для стека
+
+### Сравнение подходов:
+
+| Подход | Преимущества | Недостатки |
+|--------|--------------|------------|
+| Алгоритм Кана | Интуитивный, легко понять | Требует подсчет in-degree |
+| DFS | Компактный код | Менее интуитивный |
+
+## Типичные ошибки
+
+1. **Неправильный подсчет in-degree**: Убедитесь, что считаете входящие, а не исходящие ребра
+2. **Забывание проверки циклов**: Если результат содержит меньше V вершин, есть цикл
+3. **Неправильное обновление in-degree**: Уменьшайте in-degree только для соседних вершин
+
+## Практические советы
+
+1. Используйте алгоритм Кана для интуитивности, DFS для компактности
+2. Всегда проверяйте наличие циклов после выполнения
+3. Для задач с весами используйте модифицированный алгоритм
+
+## Аллокации памяти и управление памятью
+
+### Теория аллокаций в Rust и Go
+
+#### Rust: Topological Sort
+
+В Rust для Topological Sort:
+- **Граф**: `Vec<Vec<usize>>` - O(V + E) памяти
+- **In-degree массив**: `Vec<usize>` - O(V) памяти
+- **Очередь**: `VecDeque<usize>` - O(V) в худшем случае
+- **Результат**: `Vec<usize>` - O(V) памяти
+
+#### Go: Topological Sort
+
+В Go:
+- **Граф**: `[][]int` - O(V + E) в куче
+- **In-degree массив**: `[]int` - O(V) в куче
+- **Очередь**: `[]int` - O(V) в худшем случае
+- **Результат**: `[]int` - O(V) в куче
+
+### Анализ аллокаций для Topological Sort
+
+#### Алгоритм Кана:
+
+**Rust**:
+```rust
+// Аллокации:
+// - graph: Vec<Vec<usize>> - O(V + E) памяти
+// - in_degree: Vec<usize> - O(V) памяти
+// - queue: VecDeque<usize> - O(V) в худшем случае
+// - result: Vec<usize> - O(V) памяти
+// Итого: O(V + E) памяти
+```
+
+**Go**:
+```go
+// Аллокации:
+// - graph: [][]int - O(V + E) в куче
+// - inDegree: []int - O(V) в куче
+// - queue: []int - O(V) в худшем случае
+// - result: []int - O(V) в куче
+// Итого: O(V + E) памяти
+```
+
+### Оптимизация памяти
+
+#### Rust оптимизации:
+
+1. **Предварительное выделение графа**:
+```rust
+// ✅ Предварительное выделение
+let mut graph = vec![Vec::new(); num_courses];
+```
+
+2. **Предварительное выделение in-degree**:
+```rust
+// ✅ Предварительное выделение
+let mut in_degree = vec![0; num_courses];
+```
+
+#### Go оптимизации:
+
+1. **Предварительное выделение графа**:
+```go
+// ✅ Предварительное выделение
+graph := make([][]int, numCourses)
+```
+
+2. **Предварительное выделение in-degree**:
+```go
+// ✅ Предварительное выделение
+inDegree := make([]int, numCourses)
+```
+
+### Сравнение Rust vs Go
+
+| Аспект | Rust | Go |
+|--------|------|-----|
+| Граф | `Vec<Vec<usize>>` | [][]int |
+| Память | O(V + E) | O(V + E) |
+| Производительность | Предсказуемая | Может быть паузы GC |
+
+## Оптимизация производительности
+
+### Общие техники
+
+1. **Предварительное выделение структур данных**
+2. **Минимизация операций с очередью**
+3. **Эффективные операции с графом**
+
+### Специфичные оптимизации для Topological Sort
+
+#### 1. Оптимизация алгоритма Кана:
+
+**Rust**:
+```rust
+// ✅ Оптимизированная версия
+pub fn topological_sort_optimized(num_courses: i32, prerequisites: Vec<Vec<i32>>) -> Vec<i32> {
+    let n = num_courses as usize;
+    let mut graph = vec![Vec::new(); n];
+    let mut in_degree = vec![0; n];
+    
+    for edge in &prerequisites {
+        graph[edge[1] as usize].push(edge[0] as usize);
+        in_degree[edge[0] as usize] += 1;
+    }
+    
+    let mut queue = VecDeque::with_capacity(n);
+    for i in 0..n {
+        if in_degree[i] == 0 {
+            queue.push_back(i);
+        }
+    }
+    
+    let mut result = Vec::with_capacity(n);
+    while let Some(course) = queue.pop_front() {
+        result.push(course as i32);
+        for &next in &graph[course] {
+            in_degree[next] -= 1;
+            if in_degree[next] == 0 {
+                queue.push_back(next);
+            }
+        }
+    }
+    
+    result
+}
+```
+
+**Go**:
+```go
+// ✅ Оптимизированная версия
+func topologicalSortOptimized(numCourses int, prerequisites [][]int) []int {
+    graph := make([][]int, numCourses)
+    inDegree := make([]int, numCourses)
+    
+    for _, edge := range prerequisites {
+        graph[edge[1]] = append(graph[edge[1]], edge[0])
+        inDegree[edge[0]]++
+    }
+    
+    queue := make([]int, 0, numCourses)
+    for i := 0; i < numCourses; i++ {
+        if inDegree[i] == 0 {
+            queue = append(queue, i)
+        }
+    }
+    
+    result := make([]int, 0, numCourses)
+    for len(queue) > 0 {
+        course := queue[0]
+        queue = queue[1:]
+        result = append(result, course)
+        
+        for _, next := range graph[course] {
+            inDegree[next]--
+            if inDegree[next] == 0 {
+                queue = append(queue, next)
+            }
+        }
+    }
+    
+    return result
+}
+```
+
+### Оптимизация для Rust
+
+1. **Использование `VecDeque`**:
+```rust
+// ✅ Эффективная очередь
+use std::collections::VecDeque;
+let mut queue = VecDeque::with_capacity(n);
+```
+
+2. **Предварительное выделение**:
+```rust
+// ✅ Предварительное выделение
+let mut graph = vec![Vec::new(); n];
+```
+
+### Оптимизация для Go
+
+1. **Предварительное выделение слайсов**:
+```go
+// ✅ Предварительное выделение
+graph := make([][]int, numCourses)
+queue := make([]int, 0, numCourses)
+```
+
+2. **Эффективные операции**:
+```go
+// ✅ Использование слайсов для очереди
+queue = queue[1:]  // Удаление первого элемента
+```
+
+## Профилирование
+
+### Инструменты профилирования
+
+См. раздел "Профилирование" в [Sliding Window](./sliding-window/README.md#профилирование) для общих инструментов.
+
+### Как профилировать Topological Sort
+
+#### Rust пример:
+
+```rust
+// benches/topological_sort_bench.rs
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn bench_topological_sort(c: &mut Criterion) {
+    let prerequisites = create_test_prerequisites(1000, 5000);
+    
+    c.bench_function("topological_sort_1000", |b| {
+        b.iter(|| topological_sort_optimized(black_box(1000), black_box(prerequisites.clone())))
+    });
+}
+
+criterion_group!(benches, bench_topological_sort);
+criterion_main!(benches);
+```
+
+#### Go пример:
+
+```go
+func BenchmarkTopologicalSort(b *testing.B) {
+    prerequisites := createTestPrerequisites(1000, 5000)
+    
+    b.ResetTimer()
+    for i := 0; i < b.N; i++ {
+        topologicalSortOptimized(1000, prerequisites)
+    }
+}
+```
+
+### Примеры профилирования
+
+**Анализ производительности**:
+- Topological Sort: O(V + E) по времени
+- O(V + E) памяти для графа
+- O(V) памяти для очереди и результата
+
+**Типичные узкие места**:
+- Построение графа
+- Операции с очередью
+- Обновление in-degree
+
+## Тестирование
+
+### Стратегии тестирования
+
+1. **Базовые тесты**: Простые графы
+2. **Граничные случаи**: Пустой граф, один узел, циклы
+3. **Стресс-тесты**: Большие графы
+
+### Примеры тестов для Topological Sort
+
+#### Rust тесты:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_topological_sort_basic() {
+        let prerequisites = vec![vec![1, 0], vec![2, 0], vec![3, 1], vec![3, 2]];
+        let result = topological_sort_optimized(4, prerequisites);
+        assert_eq!(result.len(), 4);
+    }
+
+    #[test]
+    fn test_topological_sort_empty() {
+        let prerequisites = vec![];
+        let result = topological_sort_optimized(2, prerequisites);
+        assert_eq!(result.len(), 2);
+    }
+}
+```
+
+#### Go тесты:
+
+```go
+func TestTopologicalSort(t *testing.T) {
+    tests := []struct {
+        name         string
+        numCourses   int
+        prerequisites [][]int
+        want         int
+    }{
+        {"basic", 4, [][]int{{1, 0}, {2, 0}, {3, 1}, {3, 2}}, 4},
+        {"empty", 2, [][]int{}, 2},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            result := topologicalSortOptimized(tt.numCourses, tt.prerequisites)
+            if len(result) != tt.want {
+                t.Errorf("topologicalSortOptimized() = %v, want %v", len(result), tt.want)
+            }
+        })
+    }
+}
+```
+
+### Запуск тестов
+
+#### Rust:
+```bash
+cargo test
+cargo test -- --nocapture
+cargo bench
+```
+
+#### Go:
+```bash
+go test -v
+go test -bench=. -benchmem
+```
+
+### Бенчмарки
+
+#### Rust:
+```rust
+use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+
+fn topological_sort_benchmark(c: &mut Criterion) {
+    let sizes = vec![100, 1000, 10000];
+    
+    let mut group = c.benchmark_group("topological_sort");
+    for size in sizes {
+        let prerequisites = create_test_prerequisites(size, size * 2);
+        group.bench_with_input(
+            BenchmarkId::from_parameter(size),
+            &prerequisites,
+            |b, prerequisites| {
+                b.iter(|| topological_sort_optimized(black_box(size), black_box(prerequisites.clone())));
+            },
+        );
+    }
+    group.finish();
+}
+```
+
+#### Go:
+```go
+func BenchmarkTopologicalSortSizes(b *testing.B) {
+    sizes := []int{100, 1000, 10000}
+    
+    for _, size := range sizes {
+        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
+            prerequisites := createTestPrerequisites(size, size*2)
+            b.ResetTimer()
+            for i := 0; i < b.N; i++ {
+                topologicalSortOptimized(size, prerequisites)
+            }
+        })
+    }
+}
+```
+
+## Примеры кода
+
+См. файлы:
+- [Rust примеры](./rust/examples.rs)
+- [Go примеры](./go/examples.go)
+
+## Примеры задач на LeetCode
+
+### Средние:
+- [Course Schedule](https://leetcode.com/problems/course-schedule/) - Расписание курсов
+- [Course Schedule II](https://leetcode.com/problems/course-schedule-ii/) - Расписание курсов II
+- [Alien Dictionary](https://leetcode.com/problems/alien-dictionary/) - Словарь инопланетян
+
+### Сложные:
+- [Minimum Height Trees](https://leetcode.com/problems/minimum-height-trees/) - Деревья минимальной высоты
+- [Sequence Reconstruction](https://leetcode.com/problems/sequence-reconstruction/) - Реконструкция последовательности
+
+## Примеры кода
+
+См. файлы:
+- [Rust примеры](./rust/examples.rs)
+- [Go примеры](./go/examples.go)
+

@@ -1,0 +1,2438 @@
+<!DOCTYPE HTML>
+<html lang="ru" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Sliding Window (Скользящее окно) - Алгоритмические шаблоны для решения задач на собеседованиях</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-9de7afef.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Алгоритмические шаблоны для решения задач на собеседованиях</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="sliding-window-скользящее-окно"><a class="header" href="#sliding-window-скользящее-окно">Sliding Window (Скользящее окно)</a></h1>
+<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
+<p>Шаблон <strong>Sliding Window</strong> (также известный как “метод двух указателей с окном”) — это техника оптимизации, используемая для выполнения операций с подмассивами или подстроками фиксированного или переменного размера в массиве или строке.</p>
+<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
+<p>Идея скользящего окна восходит к задачам обработки сигналов и анализа временных рядов, где нужно было вычислять статистики (среднее, максимум, минимум) для последовательных интервалов данных. В программировании этот паттерн стал популярен благодаря своей эффективности: вместо пересчета всех элементов заново для каждого окна, мы переиспользуем вычисления предыдущего окна.</p>
+<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
+<p>Ключевое преимущество скользящего окна — <strong>инкрементальное обновление</strong>: при переходе от одного окна к следующему мы добавляем один новый элемент и удаляем один старый, вместо полного пересчета всех элементов окна. Это позволяет снизить временную сложность с O(n×k) до O(n), где n — размер массива, а k — размер окна.</p>
+<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
+<p>Используйте этот шаблон, когда:</p>
+<ul>
+<li>Входные данные представляют собой линейную структуру данных (массив, связанный список, строка)</li>
+<li>Нужно найти самую длинную/короткую подстроку, подмассив или желаемое значение</li>
+<li>Задача связана с подмассивами или подстроками фиксированного размера</li>
+<li>Можно оптимизировать решение, избегая повторных вычислений</li>
+</ul>
+<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
+<h3 id="базовый-подход-с-псевдокодом"><a class="header" href="#базовый-подход-с-псевдокодом">Базовый подход с псевдокодом:</a></h3>
+<h4 id="фиксированное-окно"><a class="header" href="#фиксированное-окно">Фиксированное окно:</a></h4>
+<pre><code class="language-pseudocode">function slidingWindowFixed(arr, k):
+    // Шаг 1: Инициализация
+    windowSum = 0
+    maxSum = -∞
+    
+    // Шаг 2: Вычисление суммы первого окна
+    for i = 0 to k-1:
+        windowSum += arr[i]
+    maxSum = windowSum
+    
+    // Шаг 3: Скольжение окна
+    for i = k to n-1:
+        // Добавляем новый элемент справа
+        windowSum += arr[i]
+        // Удаляем старый элемент слева
+        windowSum -= arr[i - k]
+        // Обновляем результат
+        maxSum = max(maxSum, windowSum)
+    
+    return maxSum
+</code></pre>
+<h4 id="переменное-окно-расширяющеесясжимающееся"><a class="header" href="#переменное-окно-расширяющеесясжимающееся">Переменное окно (расширяющееся/сжимающееся):</a></h4>
+<pre><code class="language-pseudocode">function slidingWindowVariable(arr, condition):
+    left = 0
+    maxLen = 0
+    
+    for right = 0 to n-1:
+        // Расширяем окно: добавляем arr[right]
+        add arr[right] to window
+        
+        // Сжимаем окно пока условие не выполняется
+        while condition not satisfied:
+            remove arr[left] from window
+            left++
+        
+        // Обновляем результат
+        maxLen = max(maxLen, right - left + 1)
+    
+    return maxLen
+</code></pre>
+<h3 id="детальный-разбор-шагов"><a class="header" href="#детальный-разбор-шагов">Детальный разбор шагов:</a></h3>
+<ol>
+<li>
+<p><strong>Инициализация</strong>:</p>
+<ul>
+<li>Для фиксированного окна: вычисляем начальное значение окна (первые k элементов)</li>
+<li>Для переменного окна: устанавливаем <code>left = 0</code>, <code>right = 0</code>, инициализируем структуры данных для отслеживания состояния окна (например, HashMap для подсчета символов)</li>
+</ul>
+</li>
+<li>
+<p><strong>Расширение окна</strong>:</p>
+<ul>
+<li>Добавляем элемент <code>arr[right]</code> в окно</li>
+<li>Обновляем метрики окна (сумма, количество уникальных элементов и т.д.)</li>
+</ul>
+</li>
+<li>
+<p><strong>Скольжение/Сжатие</strong>:</p>
+<ul>
+<li>Для фиксированного окна: автоматически удаляем <code>arr[left]</code> при добавлении <code>arr[right]</code></li>
+<li>Для переменного окна: проверяем условие и сжимаем окно слева, если необходимо</li>
+</ul>
+</li>
+<li>
+<p><strong>Обновление результата</strong>:</p>
+<ul>
+<li>На каждом шаге проверяем, является ли текущее окно лучшим решением</li>
+<li>Сохраняем оптимальное значение</li>
+</ul>
+</li>
+</ol>
+<h3 id="типы-окон"><a class="header" href="#типы-окон">Типы окон:</a></h3>
+<ul>
+<li><strong>Фиксированное окно</strong>: Размер окна остается постоянным (k элементов). Используется когда нужно найти оптимальное значение для подмассива фиксированного размера.</li>
+<li><strong>Переменное окно</strong>: Размер окна изменяется в зависимости от условий. Используется для поиска максимального/минимального подмассива, удовлетворяющего условию.</li>
+</ul>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<h3 id="фиксированное-окно-размера-k3-максимальная-сумма"><a class="header" href="#фиксированное-окно-размера-k3-максимальная-сумма">Фиксированное окно размера K=3 (максимальная сумма):</a></h3>
+<pre><code>Исходный массив: [1, 2, 3, 4, 5, 6], k = 3
+
+Инициализация:
+windowSum = 1 + 2 + 3 = 6
+maxSum = 6
+
+Шаг 1: [1, 2, 3] 4, 5, 6
+        ↑  ↑  ↑
+        left=0, right=2
+        windowSum = 6, maxSum = 6
+
+Шаг 2: 1 [2, 3, 4] 5, 6
+           ↑  ↑  ↑
+        left=1, right=3
+        windowSum = 6 - 1 + 4 = 9, maxSum = 9
+
+Шаг 3: 1, 2 [3, 4, 5] 6
+              ↑  ↑  ↑
+        left=2, right=4
+        windowSum = 9 - 2 + 5 = 12, maxSum = 12
+
+Шаг 4: 1, 2, 3 [4, 5, 6]
+                 ↑  ↑  ↑
+        left=3, right=5
+        windowSum = 12 - 3 + 6 = 15, maxSum = 15
+
+Результат: maxSum = 15
+</code></pre>
+<h3 id="переменное-окно-поиск-максимальной-подстроки-без-повторяющихся-символов"><a class="header" href="#переменное-окно-поиск-максимальной-подстроки-без-повторяющихся-символов">Переменное окно (поиск максимальной подстроки без повторяющихся символов):</a></h3>
+<pre><code>Строка: "abcabcbb"
+
+Шаг 1: [a] b c a b c b b
+        ↑  ↑
+        left=0, right=0, chars={a}, len=1, maxLen=1
+
+Шаг 2: [a b] c a b c b b
+        ↑     ↑
+        left=0, right=1, chars={a,b}, len=2, maxLen=2
+
+Шаг 3: [a b c] a b c b b
+        ↑        ↑
+        left=0, right=2, chars={a,b,c}, len=3, maxLen=3
+
+Шаг 4: [a b c a] b c b b  ← дубликат 'a'!
+        ↑         ↑
+        left=0, right=3, chars={a,b,c,a} - НЕДОПУСТИМО
+        Сжимаем: left=1, chars={b,c,a}, len=3, maxLen=3
+
+Шаг 5: a [b c a b] c b b  ← дубликат 'b'!
+             ↑     ↑
+        left=1, right=4, chars={b,c,a,b} - НЕДОПУСТИМО
+        Сжимаем: left=2, chars={c,a,b}, len=3, maxLen=3
+
+Шаг 6: a b [c a b c] b b  ← дубликат 'c'!
+              ↑       ↑
+        left=2, right=5, сжимаем до left=3
+        chars={a,b,c}, len=3, maxLen=3
+
+Шаг 7: a b c [a b c b] b  ← дубликат 'b'!
+                 ↑     ↑
+        left=3, right=6, сжимаем до left=5
+        chars={c,b}, len=2, maxLen=3
+
+Шаг 8: a b c a b [c b b]  ← дубликат 'b'!
+                    ↑   ↑
+        left=5, right=7, сжимаем до left=7
+        chars={b}, len=1, maxLen=3
+
+Результат: maxLen = 3 (подстрока "abc")
+</code></pre>
+<h3 id="переменное-окно-минимум-подстроки-содержащей-все-символы-из-t"><a class="header" href="#переменное-окно-минимум-подстроки-содержащей-все-символы-из-t">Переменное окно (минимум подстроки, содержащей все символы из t):</a></h3>
+<pre><code>s = "ADOBECODEBANC", t = "ABC"
+
+Шаг 1: [A D O B E C] O D E B A N C
+        ↑           ↑
+        left=0, right=5
+        Найдены все символы: A, B, C
+        Длина = 6, minLen = 6
+
+Шаг 2: A [D O B E C O] D E B A N C
+           ↑           ↑
+        left=1, right=6
+        Все еще содержит A, B, C
+        Длина = 6, minLen = 6
+
+Шаг 3: A D [O B E C O D] E B A N C
+             ↑           ↑
+        left=2, right=7
+        Все еще содержит A, B, C
+        Длина = 6, minLen = 6
+
+... продолжаем сжимать ...
+
+Шаг N: A D O B E C O D E B [A N C]
+                                ↑ ↑
+        left=10, right=12
+        Содержит A, C, но не B
+        Расширяем...
+
+Финальный результат: "BANC" (длина 4)
+</code></pre>
+<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
+<p><strong>Инвариант скользящего окна</strong>: На каждом шаге i окно содержит элементы от <code>left</code> до <code>right</code> включительно, и все элементы внутри окна удовлетворяют условию задачи (или окно имеет фиксированный размер k).</p>
+<p><strong>Доказательство корректности для фиксированного окна</strong>:</p>
+<ul>
+<li>Базовый случай: Первое окно [0..k-1] корректно вычислено</li>
+<li>Индуктивный шаг: Предположим, окно [i-k..i-1] корректно. При переходе к [i-k+1..i]:
+<ul>
+<li>Удаляем arr[i-k] (старый левый элемент)</li>
+<li>Добавляем arr[i] (новый правый элемент)</li>
+<li>Сумма обновляется: <code>newSum = oldSum - arr[i-k] + arr[i]</code></li>
+<li>Это эквивалентно полному пересчету, но за O(1) вместо O(k)</li>
+</ul>
+</li>
+</ul>
+<p><strong>Доказательство корректности для переменного окна</strong>:</p>
+<ul>
+<li><strong>Монотонность</strong>: Если окно [left..right] не удовлетворяет условию, то любое окно [left’..right], где left’ &lt; left, также не будет удовлетворять (для монотонных условий)</li>
+<li><strong>Оптимальность</strong>: Мы расширяем окно до максимально возможного размера перед сжатием, гарантируя, что не пропустим оптимальное решение</li>
+</ul>
+<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
+<p><strong>Фиксированное окно</strong>:</p>
+<ul>
+<li><strong>Временная сложность</strong>: O(n)
+<ul>
+<li>Инициализация первого окна: O(k)</li>
+<li>Скольжение: (n-k) итераций × O(1) операций = O(n-k) = O(n)</li>
+<li>Итого: O(k) + O(n) = O(n)</li>
+</ul>
+</li>
+<li><strong>Пространственная сложность</strong>: O(1)
+<ul>
+<li>Используем только константное количество переменных (windowSum, maxSum, индексы)</li>
+</ul>
+</li>
+</ul>
+<p><strong>Переменное окно</strong>:</p>
+<ul>
+<li><strong>Временная сложность</strong>: O(n)
+<ul>
+<li>Каждый элемент добавляется максимум один раз (right увеличивается)</li>
+<li>Каждый элемент удаляется максимум один раз (left увеличивается)</li>
+<li>Всего: n добавлений + n удалений = O(n) операций</li>
+</ul>
+</li>
+<li><strong>Пространственная сложность</strong>: O(k), где k — максимальный размер окна
+<ul>
+<li>HashMap/Set для отслеживания элементов в окне: O(k) в худшем случае</li>
+<li>В среднем может быть O(min(k, |алфавит|)) для строк</li>
+</ul>
+</li>
+</ul>
+<h3 id="сравнение-с-наивным-подходом"><a class="header" href="#сравнение-с-наивным-подходом">Сравнение с наивным подходом:</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Подход</th><th>Временная сложность</th><th>Пространственная сложность</th></tr>
+</thead>
+<tbody>
+<tr><td>Наивный (пересчет для каждого окна)</td><td>O(n×k)</td><td>O(1)</td></tr>
+<tr><td>Скользящее окно</td><td>O(n)</td><td>O(k)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Для k &lt;&lt; n выигрыш значительный: O(n×k) → O(n)</p>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/maximum-average-subarray-i/">Maximum Average Subarray I</a> - Максимальная средняя подмассива размера K</li>
+<li><a href="https://leetcode.com/problems/maximum-subarray/">Maximum Sum Subarray of Size K</a> - Максимальная сумма подмассива размера K</li>
+<li><a href="https://leetcode.com/problems/best-time-to-buy-and-sell-stock/">Best Time to Buy and Sell Stock</a> - Лучшее время для покупки и продажи акций</li>
+</ul>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/longest-substring-without-repeating-characters/">Longest Substring Without Repeating Characters</a> - Самая длинная подстрока без повторяющихся символов</li>
+<li><a href="https://leetcode.com/problems/longest-substring-with-at-most-k-distinct-characters/">Longest Substring with At Most K Distinct Characters</a> - Самая длинная подстрока с максимум K различными символами</li>
+<li><a href="https://leetcode.com/problems/fruit-into-baskets/">Fruit Into Baskets</a> - Фрукты в корзины</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/minimum-window-substring/">Minimum Window Substring</a> - Минимальное окно подстроки</li>
+<li><a href="https://leetcode.com/problems/substring-with-concatenation-of-all-words/">Substring with Concatenation of All Words</a> - Подстрока с конкатенацией всех слов</li>
+<li><a href="https://leetcode.com/problems/sliding-window-maximum/">Sliding Window Maximum</a> - Максимум скользящего окна</li>
+</ul>
+<h2 id="сравнение-с-альтернативными-подходами"><a class="header" href="#сравнение-с-альтернативными-подходами">Сравнение с альтернативными подходами</a></h2>
+<h3 id="1-наивный-подход-перебор-всех-подмассивов"><a class="header" href="#1-наивный-подход-перебор-всех-подмассивов">1. Наивный подход (перебор всех подмассивов):</a></h3>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// O(n²) для всех подмассивов × O(k) для вычисления = O(n²×k)
+for i := 0; i &lt; n; i++ {
+    for j := i; j &lt; n; j++ {
+        subarray := arr[i:j+1]
+        if condition(subarray) {
+            updateResult()
+        }
+    }
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// O(n²) для всех подмассивов × O(k) для вычисления = O(n²×k)
+for i in 0..n {
+    for j in i..n {
+        let subarray = &amp;arr[i..=j];
+        if condition(subarray) {
+            update_result();
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Недостатки</strong>:</p>
+<ul>
+<li>Временная сложность O(n²) или O(n²×k)</li>
+<li>Много повторных вычислений</li>
+</ul>
+<p><strong>Когда использовать</strong>: Только если нужны ВСЕ подмассивы, а не оптимальный</p>
+<h3 id="2-динамическое-программирование"><a class="header" href="#2-динамическое-программирование">2. Динамическое программирование:</a></h3>
+<p>Для некоторых задач скользящее окно можно заменить DP, но:</p>
+<ul>
+<li><strong>Скользящее окно</strong>: O(n) время, O(k) память</li>
+<li><strong>DP</strong>: O(n) время, O(n) память (для таблицы состояний)</li>
+</ul>
+<p><strong>Вывод</strong>: Скользящее окно эффективнее по памяти для задач с локальными зависимостями</p>
+<h3 id="3-префиксные-суммы"><a class="header" href="#3-префиксные-суммы">3. Префиксные суммы:</a></h3>
+<p>Для задач на сумму подмассива можно использовать префиксные суммы:</p>
+<ul>
+<li>Префиксные суммы: O(n) предобработка + O(1) запрос</li>
+<li>Скользящее окно: O(n) общее время</li>
+</ul>
+<p><strong>Когда использовать префиксные суммы</strong>: Если нужны запросы к случайным подмассивам
+<strong>Когда использовать скользящее окно</strong>: Если нужно найти оптимальный подмассив</p>
+<h2 id="типичные-ошибки-и-подводные-камни"><a class="header" href="#типичные-ошибки-и-подводные-камни">Типичные ошибки и подводные камни</a></h2>
+<h3 id="1-неправильная-инициализация-окна"><a class="header" href="#1-неправильная-инициализация-окна">1. Неправильная инициализация окна</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">left, right := 0, 0
+maxLen := 0
+// Пропускаем инициализацию первого окна
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut left = 0;
+let mut right = 0;
+let mut max_len = 0;
+// Пропускаем инициализацию первого окна
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">left, right := 0, 0
+maxLen := 0
+// Инициализируем структуры данных для окна
+window := make(map[byte]int)
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut left = 0;
+let mut right = 0;
+let mut max_len = 0;
+// Инициализируем структуры данных для окна
+let mut window = HashMap::new();
+<span class="boring">}</span></code></pre>
+<h3 id="2-забывание-обновлять-результат-при-сжатии-окна"><a class="header" href="#2-забывание-обновлять-результат-при-сжатии-окна">2. Забывание обновлять результат при сжатии окна</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">for conditionNotSatisfied() {
+    shrinkWindow()
+    // Забыли обновить maxLen здесь!
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>while condition_not_satisfied() {
+    shrink_window();
+    // Забыли обновить max_len здесь!
+}
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">for conditionNotSatisfied() {
+    shrinkWindow()
+    if right-left+1 &gt; maxLen {
+        maxLen = right - left + 1  // Обновляем после сжатия
+    }
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>while condition_not_satisfied() {
+    shrink_window();
+    max_len = max_len.max(right - left + 1);  // Обновляем после сжатия
+}
+<span class="boring">}</span></code></pre>
+<h3 id="3-неправильное-управление-границами"><a class="header" href="#3-неправильное-управление-границами">3. Неправильное управление границами</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">for right := 0; right &lt; n; right++ {
+    addToWindow(arr[right])
+    for condition() {
+        removeFromWindow(arr[left])
+        left++
+    }
+    // Обновляем результат ДО проверки условия
+    if right-left+1 &gt; maxLen {
+        maxLen = right - left + 1
+    }
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>for right in 0..n {
+    add_to_window(arr[right]);
+    while condition() {
+        remove_from_window(arr[left]);
+        left += 1;
+    }
+    // Обновляем результат ДО проверки условия
+    max_len = max_len.max(right - left + 1);
+}
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">for right := 0; right &lt; n; right++ {
+    addToWindow(arr[right])
+    for conditionNotSatisfied() {
+        removeFromWindow(arr[left])
+        left++
+    }
+    // Обновляем результат ПОСЛЕ того, как условие выполнено
+    if right-left+1 &gt; maxLen {
+        maxLen = right - left + 1
+    }
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>for right in 0..n {
+    add_to_window(arr[right]);
+    while condition_not_satisfied() {
+        remove_from_window(arr[left]);
+        left += 1;
+    }
+    // Обновляем результат ПОСЛЕ того, как условие выполнено
+    max_len = max_len.max(right - left + 1);
+}
+<span class="boring">}</span></code></pre>
+<h3 id="4-off-by-one-ошибки"><a class="header" href="#4-off-by-one-ошибки">4. Off-by-one ошибки</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">windowSize := right - left  // Не включает right!
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let window_size = right - left;  // Не включает right!
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">windowSize := right - left + 1  // Включает оба конца
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let window_size = right - left + 1;  // Включает оба конца
+<span class="boring">}</span></code></pre>
+<h3 id="5-неэффективное-обновление-структур-данных"><a class="header" href="#5-неэффективное-обновление-структур-данных">5. Неэффективное обновление структур данных</a></h3>
+<p>❌ <strong>Неправильно</strong> (пересчет всей суммы):</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">for right := k; right &lt; n; right++ {
+    windowSum := 0
+    for i := left; i &lt;= right; i++ {
+        windowSum += arr[i]  // O(k) операция!
+    }
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>for right in k..n {
+    let window_sum: i32 = arr[left..=right].iter().sum();  // O(k) операция!
+}
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong> (инкрементальное обновление):</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">windowSum += arr[right] - arr[left]
+left++
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>window_sum += arr[right] - arr[left];
+left += 1;
+<span class="boring">}</span></code></pre>
+<h2 id="практические-советы-по-применению"><a class="header" href="#практические-советы-по-применению">Практические советы по применению</a></h2>
+<ol>
+<li>
+<p><strong>Определите тип окна</strong>:</p>
+<ul>
+<li>Фиксированное → используйте простой цикл с индексами</li>
+<li>Переменное → используйте два указателя left/right</li>
+</ul>
+</li>
+<li>
+<p><strong>Выберите правильную структуру данных</strong>:</p>
+<ul>
+<li>Для подсчета уникальных элементов → HashMap/Set</li>
+<li>Для отслеживания минимума/максимума → Deque (для O(1) операций)</li>
+<li>Для простых сумм → переменная</li>
+</ul>
+</li>
+<li>
+<p><strong>Порядок операций важен</strong>:</p>
+<ul>
+<li>Сначала расширяйте окно (right++)</li>
+<li>Затем проверяйте условие</li>
+<li>Потом сжимайте при необходимости (left++)</li>
+<li>Наконец обновляйте результат</li>
+</ul>
+</li>
+<li>
+<p><strong>Обработка граничных случаев</strong>:</p>
+<ul>
+<li>Пустой массив</li>
+<li>Массив меньше размера окна</li>
+<li>Все элементы одинаковые</li>
+<li>Нет решения (окно никогда не удовлетворяет условию)</li>
+</ul>
+</li>
+<li>
+<p><strong>Оптимизация для больших данных</strong>:</p>
+<ul>
+<li>Используйте Deque вместо списка для O(1) операций с обоих концов</li>
+<li>Избегайте создания новых подмассивов/подстрок</li>
+<li>Используйте индексы вместо срезов</li>
+</ul>
+</li>
+</ol>
+<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
+<h3 id="используемые-структуры-данных-в-sliding-window"><a class="header" href="#используемые-структуры-данных-в-sliding-window">Используемые структуры данных в Sliding Window</a></h3>
+<p>В шаблоне Sliding Window используются следующие структуры данных:</p>
+<ul>
+<li><strong><code>Vec&lt;T&gt;</code> (Rust) / Slice (Go)</strong>: Для хранения результатов и работы с массивами</li>
+<li><strong><code>HashMap&lt;K, V&gt;</code> (Rust) / Map (Go)</strong>: Для подсчета частоты символов/элементов в переменном окне</li>
+<li><strong><code>VecDeque&lt;T&gt;</code> (Rust)</strong>: Для эффективных операций с обоих концов (sliding window maximum)</li>
+</ul>
+<h3 id="vect-rust--slice-go"><a class="header" href="#vect-rust--slice-go"><code>Vec&lt;T&gt;</code> (Rust) / Slice (Go)</a></h3>
+<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
+<p><strong>Rust <code>Vec&lt;T&gt;</code></strong>:</p>
+<pre><code>В памяти `Vec&lt;T&gt;` хранится как структура из трех полей:
+┌─────────────────────────────────────────┐
+│ ptr: *mut T    │ Указатель на данные    │
+│ len: usize     │ Текущее количество     │
+│ capacity: usize│ Выделенная емкость    │
+└─────────────────────────────────────────┘
+         │
+         ▼
+    [данные в куче]
+    [T][T][T][T]...[T]
+</code></pre>
+<p><strong>Важные детали</strong>:</p>
+<ul>
+<li><code>ptr</code> - указатель на начало данных в куче</li>
+<li><code>len</code> - текущее количество элементов (может быть меньше capacity)</li>
+<li><code>capacity</code> - выделенная емкость (всегда &gt;= len)</li>
+<li>Данные хранятся в <strong>непрерывном блоке памяти</strong> (contiguous memory), что обеспечивает cache-friendly доступ</li>
+</ul>
+<p><strong>Go Slice</strong>:</p>
+<pre><code>В памяти slice хранится как структура из трех полей:
+┌─────────────────────────────────────────┐
+│ ptr: *T      │ Указатель на данные      │
+│ len: int     │ Текущая длина            │
+│ cap: int     │ Емкость                  │
+└─────────────────────────────────────────┘
+         │
+         ▼
+    [данные в куче]
+    [T][T][T][T]...[T]
+</code></pre>
+<p><strong>Важные детали</strong>:</p>
+<ul>
+<li>Slice - это <strong>дескриптор</strong> массива, а не сам массив</li>
+<li>Slice не владеет данными, он ссылается на базовый массив</li>
+<li>Несколько слайсов могут ссылаться на один массив</li>
+<li>При append, если cap недостаточен, создается новый массив</li>
+</ul>
+<h4 id="что-такое-дескриптор-descriptor"><a class="header" href="#что-такое-дескриптор-descriptor">Что такое дескриптор (Descriptor)?</a></h4>
+<p><strong>Дескриптор</strong> - это структура данных, которая содержит <strong>метаинформацию</strong> о другом объекте, но не владеет самими данными. В контексте Go слайсов:</p>
+<pre><code>Дескриптор слайса:
+┌─────────────────────────────────────────┐
+│ Slice Descriptor (24 байта на 64-bit)   │
+│ ┌─────────────┐                        │
+│ │ ptr: *T     │ Указатель на данные    │ ← НЕ владеет данными
+│ │ len: int    │ Текущая длина          │ ← Метаинформация
+│ │ cap: int    │ Емкость                │ ← Метаинформация
+│ └─────────────┘                        │
+└─────────────────────────────────────────┘
+         │
+         │ (ссылается на)
+         ▼
+    [Базовый массив в куче]
+    [T][T][T][T]...[T]
+    ↑
+    │ (владеет данными)
+    └─ Базовый массив
+</code></pre>
+<p><strong>Ключевые особенности дескриптора</strong>:</p>
+<ol>
+<li>
+<p><strong>Не владеет данными</strong>: Дескриптор содержит только указатель на данные, но не владеет ими. Данные могут быть частью другого массива или слайса.</p>
+</li>
+<li>
+<p><strong>Легковесный</strong>: Дескриптор - это небольшая структура (24 байта), которая может быть на стеке. Копирование дескриптора - это копирование только 24 байт, а не всех данных.</p>
+</li>
+<li>
+<p><strong>Множественные ссылки</strong>: Несколько дескрипторов могут ссылаться на один и тот же базовый массив:</p>
+</li>
+</ol>
+<pre><code class="language-go">arr := []int{1, 2, 3, 4, 5}
+slice1 := arr[0:3]  // Дескриптор 1: [1, 2, 3]
+slice2 := arr[2:5]  // Дескриптор 2: [3, 4, 5]
+// Оба дескриптора ссылаются на один массив arr
+</code></pre>
+<ol start="4">
+<li><strong>Изменения видны всем</strong>: Поскольку дескрипторы ссылаются на одни данные, изменения через один дескриптор видны через другие:</li>
+</ol>
+<pre><code class="language-go">arr := []int{1, 2, 3, 4, 5}
+slice1 := arr[1:4]  // [2, 3, 4]
+slice2 := arr[2:5]  // [3, 4, 5]
+slice1[0] = 99      // Изменяем через slice1
+// arr теперь: [1, 99, 3, 4, 5]
+// slice2[0] теперь тоже 99, так как ссылается на те же данные
+</code></pre>
+<ol start="5">
+<li><strong>Создание среза - O(1)</strong>: Создание нового слайса из существующего - это просто создание нового дескриптора, данные не копируются:</li>
+</ol>
+<pre><code class="language-go">arr := make([]int, 1000)  // Большой массив
+slice := arr[100:200]      // O(1) - только создание дескриптора
+// Данные не копируются, slice ссылается на arr
+</code></pre>
+<p><strong>Почему это важно</strong>:</p>
+<ul>
+<li><strong>Эффективность</strong>: Создание подмассивов не требует копирования данных</li>
+<li><strong>Экономия памяти</strong>: Несколько слайсов могут использовать одни данные</li>
+<li><strong>Производительность</strong>: Операции со слайсами быстрые, так как работают только с дескриптором</li>
+</ul>
+<p><strong>Сравнение с Rust Vec</strong>:</p>
+<ul>
+<li><strong>Rust <code>Vec&lt;T&gt;</code></strong>: Владеет данными. Копирование Vec копирует все данные (если не используется <code>Rc</code>/<code>Arc</code>)</li>
+<li><strong>Go Slice</strong>: Дескриптор. Копирование слайса копирует только дескриптор (24 байта), данные не копируются</li>
+</ul>
+<p><strong>Примечание о <code>Rc</code> и <code>Arc</code></strong>:</p>
+<ul>
+<li><strong><code>Rc&lt;T&gt;</code></strong> (Reference Counted): Умный указатель с подсчетом ссылок для одного потока. Позволяет нескольким владельцам одного значения. Используется когда нужно разделить владение данными в одном потоке.</li>
+<li><strong><code>Arc&lt;T&gt;</code></strong> (Atomically Reference Counted): То же самое, но для многопоточности. Используется когда нужно разделить владение данными между потоками.</li>
+<li>Эти типы позволяют избежать копирования больших структур данных, разделяя владение через подсчет ссылок.</li>
+</ul>
+<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>Vec&lt;T&gt; (Rust)</th><th>Slice (Go)</th><th>Объяснение</th></tr>
+</thead>
+<tbody>
+<tr><td>Доступ по индексу</td><td>O(1)</td><td>O(1)</td><td>Прямой доступ по адресу <code>ptr + index * size_of(T)</code></td></tr>
+<tr><td>Push/Append</td><td>O(1) амортизированная</td><td>O(1) амортизированная</td><td>При переполнении: O(n) для reallocation</td></tr>
+<tr><td>Pop</td><td>O(1)</td><td>O(1)</td><td>Просто уменьшение len</td></tr>
+<tr><td>Insert в середину</td><td>O(n)</td><td>O(n)</td><td>Нужно сдвинуть элементы</td></tr>
+<tr><td>Remove из середины</td><td>O(n)</td><td>O(n)</td><td>Нужно сдвинуть элементы</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Почему append амортизированная O(1)?</strong></p>
+<p>При росте Vec/slice происходит <strong>геометрическое увеличение</strong> capacity (обычно в 2 раза):</p>
+<ul>
+<li>Первый reallocation: копируем 1 элемент</li>
+<li>Второй: копируем 2 элемента</li>
+<li>Третий: копируем 4 элемента</li>
+<li>…</li>
+</ul>
+<p>Суммарная стоимость: 1 + 2 + 4 + … + n/2 = O(n), но это происходит за n операций, поэтому <strong>амортизированная</strong> стоимость = O(n)/n = O(1)</p>
+<h4 id="когда-использовать"><a class="header" href="#когда-использовать">Когда использовать:</a></h4>
+<p><strong>Используйте Vec/Slice когда</strong>:</p>
+<ul>
+<li>Нужен динамический массив</li>
+<li>Частые операции добавления в конец</li>
+<li>Нужен произвольный доступ по индексу</li>
+<li>Данные должны быть в непрерывной памяти (cache-friendly)</li>
+</ul>
+<p><strong>Не используйте когда</strong>:</p>
+<ul>
+<li>Нужны частые вставки/удаления в середину (используйте LinkedList)</li>
+<li>Нужны операции с обоих концов (используйте VecDeque/Deque)</li>
+</ul>
+<h3 id="hashmapk-v-rust--map-go"><a class="header" href="#hashmapk-v-rust--map-go">HashMap&lt;K, V&gt; (Rust) / Map (Go)</a></h3>
+<h4 id="как-хранится-в-памяти-1"><a class="header" href="#как-хранится-в-памяти-1">Как хранится в памяти:</a></h4>
+<p><strong>Rust HashMap&lt;K, V&gt;</strong>:</p>
+<p>Использует хеш-таблицу с <strong>open addressing</strong> (линейное пробирование):</p>
+<pre><code>┌─────────────────────────────────────────┐
+│ buckets: Vec&amp;lt;Option&amp;lt;(K, V)&amp;gt;&amp;gt;            │
+│ load_factor: f64                        │
+│ hash_builder: RandomState               │
+└─────────────────────────────────────────┘
+         │
+         ▼
+    [bucket][bucket][bucket]...[bucket]
+    ┌──────┐┌──────┐┌──────┐
+    │K₁,V₁ ││K₂,V₂ ││      │ (пустой)
+    └──────┘└──────┘└──────┘
+</code></pre>
+<p><strong>Процесс вставки</strong>:</p>
+<ol>
+<li>Вычисляется хеш ключа: <code>hash = hash_function(key)</code></li>
+<li>Индекс bucket: <code>index = hash % buckets.len()</code></li>
+<li>Если bucket занят (collision), ищется следующий свободный (linear probing)</li>
+<li>При load_factor &gt; 0.75 происходит rehashing (увеличение buckets в 2 раза)</li>
+</ol>
+<p><strong>Go Map[K]V</strong>:</p>
+<p>Использует хеш-таблицу с <strong>buckets</strong> и <strong>overflow buckets</strong>:</p>
+<pre><code>┌─────────────────────────────────────────┐
+│ buckets: []bucket (массив bucket'ов)    │
+│ count: int (количество элементов)       │
+│ flags: uint8                            │
+└─────────────────────────────────────────┘
+         │
+         ▼
+    [bucket][bucket][bucket]...[bucket]
+    ┌──────────────┐
+    │ tophash[8]   │ Массив хешей
+    │ keys[8]      │ Массив ключей
+    │ values[8]    │ Массив значений
+    │ overflow *   │ Ссылка на overflow bucket
+    └──────────────┘
+</code></pre>
+<p><strong>Процесс вставки</strong>:</p>
+<ol>
+<li>Вычисляется хеш: <code>hash = hash_function(key)</code></li>
+<li>Выбирается bucket: <code>bucket_index = hash &amp; (len(buckets) - 1)</code></li>
+<li>Ищется место в bucket (до 8 элементов) или overflow bucket</li>
+<li>При переполнении создается overflow bucket (chaining)</li>
+<li>При load_factor &gt; 6.5 происходит рост (увеличение buckets)</li>
+</ol>
+<h4 id="хеширование"><a class="header" href="#хеширование">Хеширование:</a></h4>
+<p><strong>Как работает хеш-функция</strong>:</p>
+<p><strong>Rust</strong>: Использует SipHash (защита от DoS атак через hash collision)</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Упрощенный пример
+fn hash(key: &amp;str) -&gt; u64 {
+    let mut hash = 0;
+    for byte in key.bytes() {
+        hash = hash.wrapping_mul(31).wrapping_add(byte as u64);
+    }
+    hash
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>: Использует быструю хеш-функцию (может быть уязвима к DoS)</p>
+<pre><code class="language-go">// Упрощенный пример
+func hash(key string) uint64 {
+    h := uint64(0)
+    for _, b := range []byte(key) {
+        h = h*31 + uint64(b)
+    }
+    return h
+}
+</code></pre>
+<p><strong>Разрешение коллизий</strong>:</p>
+<ul>
+<li><strong>Rust</strong>: Open addressing (linear probing) - ищет следующий свободный bucket</li>
+<li><strong>Go</strong>: Chaining с buckets - каждый bucket может содержать до 8 элементов, затем overflow buckets</li>
+</ul>
+<p><strong>Почему важно понимать коллизии</strong>:</p>
+<ul>
+<li>При большом количестве коллизий сложность деградирует до O(n)</li>
+<li>DoS атаки через специально подобранные ключи с одинаковым хешем</li>
+<li>Rust защищен от этого (SipHash), Go - частично</li>
+</ul>
+<h4 id="оптимизация"><a class="header" href="#оптимизация">Оптимизация:</a></h4>
+<p><strong>Предварительное выделение</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Rust: избегаем множественных rehashing
+let mut map = HashMap::with_capacity(expected_size);
+<span class="boring">}</span></code></pre>
+<pre><code class="language-go">// Go: избегаем роста map
+m := make(map[string]int, expectedSize)
+</code></pre>
+<p><strong>Избежание лишних аллокаций</strong>:</p>
+<ul>
+<li>Используйте <code>entry</code> API в Rust для проверки и вставки за одну операцию</li>
+<li>В Go проверяйте существование перед вставкой, если нужно</li>
+</ul>
+<h3 id="vecdequet-rust"><a class="header" href="#vecdequet-rust"><code>VecDeque&lt;T&gt;</code> (Rust)</a></h3>
+<h4 id="как-хранится-в-памяти-2"><a class="header" href="#как-хранится-в-памяти-2">Как хранится в памяти:</a></h4>
+<p><code>VecDeque</code> использует <strong>кольцевой буфер</strong> (ring buffer):</p>
+<p><strong>Что такое кольцевой буфер (Ring Buffer)?</strong></p>
+<p><strong>Кольцевой буфер</strong> — это структура данных, которая использует массив фиксированного размера, но логически “заворачивает” индексы, создавая эффект бесконечного массива. Когда индекс достигает конца массива, он “переходит” в начало.</p>
+<pre><code>┌─────────────────────────────────────────┐
+│ head: usize  │ Индекс начала            │
+│ tail: usize  │ Индекс конца             │
+│ buf: Vec&amp;lt;T&amp;gt;  │ Буфер данных             │
+└─────────────────────────────────────────┘
+         │
+         ▼
+    [ ][ ][X][X][X][X][ ][ ]
+         ▲        ▲
+       head      tail
+</code></pre>
+<p><strong>Как работает кольцевой буфер</strong>:</p>
+<ul>
+<li>Данные хранятся в обычном Vec, но индексы “заворачиваются” (wrap-around)</li>
+<li><code>push_front</code>: уменьшаем head (с учетом wrap-around: если head == 0, переходим в конец массива)</li>
+<li><code>push_back</code>: увеличиваем tail (с учетом wrap-around: если tail == capacity, переходим в начало)</li>
+<li>Когда head == tail, буфер полон или пуст (нужно отслеживать отдельно через счетчик элементов)</li>
+<li>При переполнении происходит reallocation с копированием всех элементов</li>
+</ul>
+<p><strong>Пример wrap-around</strong>:</p>
+<pre><code>Буфер размером 8: [ ][ ][X][X][X][X][ ][ ]
+                         ↑        ↑
+                       head=2   tail=6
+
+push_front: head = (head - 1 + 8) % 8 = 1
+push_back: tail = (tail + 1) % 8 = 7
+
+Когда head достигает 0 и нужно уменьшить:
+head = (0 - 1 + 8) % 8 = 7 (переход в конец)
+</code></pre>
+<p><strong>Почему O(1) операции с обоих концов?</strong></p>
+<ul>
+<li><code>push_front/pop_front</code>: просто изменение индекса head</li>
+<li><code>push_back/pop_back</code>: просто изменение индекса tail</li>
+<li>Нет необходимости сдвигать элементы (в отличие от Vec)</li>
+</ul>
+<p><strong>Что такое Deque (Double-Ended Queue)?</strong></p>
+<p><strong>Deque (двусторонняя очередь)</strong> — это структура данных, которая позволяет эффективно добавлять и удалять элементы с обоих концов (начала и конца).</p>
+<p><strong>Основные операции</strong>:</p>
+<ul>
+<li><strong>push_front/pop_front</strong>: Операции с началом (O(1) амортизированная)</li>
+<li><strong>push_back/pop_back</strong>: Операции с концом (O(1) амортизированная)</li>
+<li><strong>Доступ по индексу</strong>: O(1), но медленнее чем у Vec из-за вычисления индекса с учетом wrap-around</li>
+</ul>
+<p><strong>Отличие от Queue и Stack</strong>:</p>
+<ul>
+<li><strong>Queue (Очередь)</strong>: Только push_back и pop_front (FIFO - First In, First Out)</li>
+<li><strong>Stack (Стек)</strong>: Только push и pop с одного конца (LIFO - Last In, First Out)</li>
+<li><strong>Deque</strong>: Операции с обоих концов, более гибкая структура</li>
+</ul>
+<h4 id="когда-использовать-vecdeque"><a class="header" href="#когда-использовать-vecdeque">Когда использовать VecDeque:</a></h4>
+<p><strong>Используйте VecDeque когда</strong>:</p>
+<ul>
+<li>Нужны операции с обоих концов (deque)</li>
+<li>Реализуете очередь (queue) — можно использовать как очередь</li>
+<li>Sliding window maximum/minimum — нужно удалять с начала и добавлять в конец</li>
+</ul>
+<p><strong>Не используйте когда</strong>:</p>
+<ul>
+<li>Нужны только операции с одним концом (используйте Vec - проще и быстрее)</li>
+<li>Нужен частый произвольный доступ по индексу (VecDeque медленнее из-за вычисления индекса)</li>
+</ul>
+<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
+<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
+<h4 id="что-это-такое"><a class="header" href="#что-это-такое">Что это такое:</a></h4>
+<p><strong>Escape Analysis</strong> - это статический анализ компилятора Go, который определяет, должна ли переменная быть аллоцирована в куче или может остаться на стеке.</p>
+<p><strong>Зачем это нужно</strong>:</p>
+<ul>
+<li>Переменные на стеке быстрее (нет аллокации/освобождения)</li>
+<li>Переменные в куче требуют работы GC</li>
+<li>Escape Analysis минимизирует аллокации в куче</li>
+</ul>
+<h4 id="как-работает"><a class="header" href="#как-работает">Как работает:</a></h4>
+<p><strong>Алгоритм Escape Analysis</strong>:</p>
+<ol>
+<li><strong>Анализ использования переменной</strong>: Компилятор отслеживает все места, где используется переменная</li>
+<li><strong>Определение “побега”</strong>: Если переменная “убегает” из функции, она должна быть в куче</li>
+<li><strong>Принятие решения</strong>: Если переменная остается локальной, она может быть на стеке</li>
+</ol>
+<p><strong>Когда переменная “убегает” (escape)</strong>:</p>
+<ol>
+<li><strong>Возврат указателя на локальную переменную</strong>:</li>
+</ol>
+<pre><code class="language-go">func escapeExample() *int {
+    x := 42  // escape: x убегает из функции
+    return &amp;x
+}
+</code></pre>
+<ol start="2">
+<li><strong>Сохранение в глобальную переменную</strong>:</li>
+</ol>
+<pre><code class="language-go">var global *int
+
+func escapeExample() {
+    x := 42
+    global = &amp;x  // escape: x убегает в глобальную область
+}
+</code></pre>
+<ol start="3">
+<li><strong>Передача в функцию, которая сохраняет указатель</strong>:</li>
+</ol>
+<pre><code class="language-go">func store(ptr *int) {
+    saved = ptr  // если saved - глобальная, то escape
+}
+
+func example() {
+    x := 42
+    store(&amp;x)  // escape, если store сохраняет указатель
+}
+</code></pre>
+<ol start="4">
+<li><strong>Интерфейсы</strong>:</li>
+</ol>
+<pre><code class="language-go">func example() {
+    x := 42
+    var i interface{} = x  // escape: интерфейсы всегда в куче
+}
+</code></pre>
+<ol start="5">
+<li><strong>Слайсы с неизвестным размером</strong>:</li>
+</ol>
+<pre><code class="language-go">func example() {
+    s := make([]int, 100)  // может escape, если размер большой
+    return s
+}
+</code></pre>
+<h4 id="как-проверить"><a class="header" href="#как-проверить">Как проверить:</a></h4>
+<p>Используйте флаг компилятора <code>-m</code>:</p>
+<pre><code class="language-bash">go build -gcflags=-m main.go
+</code></pre>
+<p><strong>Вывод</strong>:</p>
+<pre><code>./main.go:10:6: can inline example
+./main.go:10:6: moved to heap: x
+./main.go:15:6: x escapes to heap
+</code></pre>
+<p><strong>Интерпретация</strong>:</p>
+<ul>
+<li><code>moved to heap: x</code> - переменная x аллоцируется в куче</li>
+<li><code>x escapes to heap</code> - переменная x “убегает” в кучу</li>
+<li><code>can inline</code> - функция может быть встроена</li>
+</ul>
+<h4 id="оптимизация-как-избежать-escape"><a class="header" href="#оптимизация-как-избежать-escape">Оптимизация: как избежать escape</a></h4>
+<p><strong>Пример 1: Возврат значения вместо указателя</strong></p>
+<pre><code class="language-go">// ❌ Плохо: escape в кучу
+func bad() *int {
+    x := 42
+    return &amp;x  // escape!
+}
+
+// ✅ Хорошо: значение на стеке
+func good() int {
+    x := 42
+    return x  // не escape
+}
+</code></pre>
+<p><strong>Пример 2: Предварительное выделение слайса</strong></p>
+<pre><code class="language-go">// ❌ Плохо: может escape
+func bad() []int {
+    s := []int{}  // может escape
+    return s
+}
+
+// ✅ Хорошо: явное указание размера
+func good() []int {
+    s := make([]int, 0, 10)  // меньше вероятность escape
+    return s
+}
+</code></pre>
+<p><strong>Пример 3: Избежание интерфейсов в горячих путях</strong></p>
+<pre><code class="language-go">// ❌ Плохо: интерфейс всегда escape
+func bad() {
+    var i interface{} = 42  // escape в кучу
+}
+
+// ✅ Хорошо: конкретный тип
+func good() {
+    i := 42  // на стеке
+}
+</code></pre>
+<h3 id="borrow-checker-rust"><a class="header" href="#borrow-checker-rust">Borrow Checker (Rust)</a></h3>
+<h4 id="что-это-такое-1"><a class="header" href="#что-это-такое-1">Что это такое:</a></h4>
+<p><strong>Borrow Checker</strong> - это система проверки заимствований в Rust, которая гарантирует безопасность памяти на этапе компиляции без runtime overhead.</p>
+<p><strong>Зачем это нужно</strong>:</p>
+<ul>
+<li>Предотвращает use-after-free</li>
+<li>Предотвращает data races</li>
+<li>Гарантирует безопасность памяти без GC</li>
+<li>Zero-cost абстракция (нет runtime overhead)</li>
+</ul>
+<h4 id="правила-заимствований"><a class="header" href="#правила-заимствований">Правила заимствований:</a></h4>
+<p><strong>Правило 1: Множественные immutable borrows</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let x = 5;
+let r1 = &amp;x;  // OK
+let r2 = &amp;x;  // OK - можно иметь много immutable borrows
+let r3 = &amp;x;  // OK
+// x все еще доступен
+<span class="boring">}</span></code></pre>
+<p><strong>Правило 2: Один mutable borrow</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut x = 5;
+let r1 = &amp;mut x;  // OK
+// let r2 = &amp;mut x;  // ERROR: нельзя два mutable borrows
+// let r3 = &amp;x;      // ERROR: нельзя одновременно mutable и immutable
+<span class="boring">}</span></code></pre>
+<p><strong>Правило 3: Нельзя одновременно mutable и immutable</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut x = 5;
+let r1 = &amp;x;      // immutable borrow
+// let r2 = &amp;mut x;  // ERROR: нельзя mutable borrow пока есть immutable
+<span class="boring">}</span></code></pre>
+<p><strong>Правило 4: Borrow не может пережить владельца</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let r;
+{
+    let x = 5;
+    r = &amp;x;  // ERROR: x живет меньше, чем r
+}
+// r больше не валиден
+<span class="boring">}</span></code></pre>
+<h4 id="lifetime"><a class="header" href="#lifetime">Lifetime:</a></h4>
+<p><strong>Что такое lifetime</strong>:</p>
+<p>Lifetime - это область видимости, в которой ссылка валидна. Компилятор Rust использует lifetime для проверки, что ссылки не используются после освобождения данных.</p>
+<p><strong>Явное указание lifetime</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;'a str) -&gt; &amp;'a str {
+    if x.len() &gt; y.len() {
+        x
+    } else {
+        y
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>’a</strong> означает: “lifetime a” - обе ссылки и возвращаемое значение имеют одинаковый lifetime.</p>
+<p><strong>Почему это важно</strong>:</p>
+<ul>
+<li>Компилятор проверяет, что возвращаемая ссылка живет достаточно долго</li>
+<li>Предотвращает dangling references</li>
+<li>Гарантирует безопасность на этапе компиляции</li>
+</ul>
+<h4 id="примеры-и-решения"><a class="header" href="#примеры-и-решения">Примеры и решения:</a></h4>
+<p><strong>Проблема 1: Изменение во время итерации</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Не компилируется
+let mut vec = vec![1, 2, 3];
+for item in &amp;vec {
+    vec.push(4);  // ERROR: нельзя изменять во время borrow
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Решение</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Используем индексы
+let mut vec = vec![1, 2, 3];
+let len = vec.len();
+for i in 0..len {
+    vec.push(4);  // OK: нет активного borrow
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Проблема 2: Возврат ссылки на локальную переменную</strong></p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Не компилируется
+fn bad() -&gt; &amp;str {
+    let s = String::from("hello");
+    &amp;s  // ERROR: s освобождается в конце функции
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Решение</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Возвращаем владение
+fn good() -&gt; String {
+    let s = String::from("hello");
+    s  // OK: передаем владение
+}
+<span class="boring">}</span></code></pre>
+<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
+<h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
+<p><strong>Алгоритм Mark-and-Sweep</strong>:</p>
+<ol>
+<li><strong>Mark (Маркировка)</strong>: GC проходит по всем достижимым объектам и помечает их как “живые”</li>
+<li><strong>Sweep (Очистка)</strong>: Все не помеченные объекты освобождаются</li>
+</ol>
+<p><strong>Триколорная маркировка</strong>:</p>
+<p>Go использует триколорную маркировку для concurrent GC:</p>
+<pre><code>Белый (White): Не посещенные объекты (кандидаты на удаление)
+Серый (Gray):  Посещенные, но их потомки еще не обработаны
+Черный (Black): Посещенные и все потомки обработаны
+</code></pre>
+<p><strong>Процесс</strong>:</p>
+<ol>
+<li>Все объекты начинают как белые</li>
+<li>Корневые объекты (глобальные переменные, стек) помечаются серыми</li>
+<li>GC обрабатывает серые объекты, помечая их потомков серыми, а сами объекты - черными</li>
+<li>После обработки всех серых, белые объекты удаляются</li>
+</ol>
+<p><strong>Concurrent GC</strong>:</p>
+<ul>
+<li>GC работает параллельно с программой (не останавливает выполнение полностью)</li>
+<li>Использует write barriers для отслеживания изменений во время GC</li>
+<li>Минимизирует STW (Stop The World) паузы</li>
+</ul>
+<h4 id="когда-запускается"><a class="header" href="#когда-запускается">Когда запускается:</a></h4>
+<p><strong>Триггеры GC</strong>:</p>
+<ol>
+<li>
+<p><strong>По достижению порога памяти</strong>:</p>
+<ul>
+<li>По умолчанию: когда выделенная память в 2 раза больше предыдущего GC</li>
+<li>Можно настроить через <code>GOGC</code> (например, <code>GOGC=100</code> означает запуск при 100% роста)</li>
+</ul>
+</li>
+<li>
+<p><strong>Принудительный вызов</strong>:</p>
+</li>
+</ol>
+<pre><code class="language-go">runtime.GC()  // Принудительный запуск GC
+</code></pre>
+<ol start="3">
+<li><strong>Недостаток памяти</strong>:
+<ul>
+<li>Если система испытывает нехватку памяти</li>
+</ul>
+</li>
+</ol>
+<h4 id="оптимизация-gc"><a class="header" href="#оптимизация-gc">Оптимизация GC:</a></h4>
+<p><strong>Минимизация аллокаций</strong>:</p>
+<pre><code class="language-go">// ❌ Плохо: много аллокаций
+func bad() {
+    for i := 0; i &lt; 1000; i++ {
+        s := make([]int, 100)  // 1000 аллокаций
+        // ...
+    }
+}
+
+// ✅ Хорошо: переиспользование
+func good() {
+    s := make([]int, 100)  // одна аллокация
+    for i := 0; i &lt; 1000; i++ {
+        s = s[:0]  // очистка без аллокации
+        // ...
+    }
+}
+</code></pre>
+<p><strong>Настройка GOGC</strong>:</p>
+<pre><code class="language-bash">GOGC=50 go run main.go   # Более агрессивный GC (меньше памяти, больше пауз)
+GOGC=200 go run main.go  # Менее агрессивный GC (больше памяти, меньше пауз)
+</code></pre>
+<p><strong>Использование sync.Pool</strong>:</p>
+<pre><code class="language-go">var pool = sync.Pool{
+    New: func() interface{} {
+        return make([]byte, 0, 1024)
+    },
+}
+
+func example() {
+    buf := pool.Get().([]byte)
+    defer pool.Put(buf)
+    // использование buf
+}
+</code></pre>
+<h3 id="ownership-и-move-semantics-rust"><a class="header" href="#ownership-и-move-semantics-rust">Ownership и Move Semantics (Rust)</a></h3>
+<h4 id="концепция-владения"><a class="header" href="#концепция-владения">Концепция владения:</a></h4>
+<p><strong>Ownership (Владение)</strong> - это система управления памятью в Rust, где каждое значение имеет одного владельца.</p>
+<p><strong>Правила владения</strong>:</p>
+<ol>
+<li>Каждое значение имеет одного владельца</li>
+<li>Когда владелец выходит из области видимости, значение освобождается</li>
+<li>Владение можно передавать (move) или заимствовать (borrow)</li>
+</ol>
+<p><strong>Пример</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let s1 = String::from("hello");  // s1 владеет строкой
+let s2 = s1;  // владение перемещается в s2
+// println!("{}", s1);  // ERROR: s1 больше не владеет
+<span class="boring">}</span></code></pre>
+<h4 id="move-vs-copy"><a class="header" href="#move-vs-copy">Move vs Copy:</a></h4>
+<p><strong>Move (Перемещение)</strong>:</p>
+<ul>
+<li>Происходит для типов, которые не реализуют <code>Copy</code> trait</li>
+<li>Владение передается, старое значение становится невалидным</li>
+<li>Примеры: <code>String</code>, <code>Vec</code>, <code>HashMap</code></li>
+</ul>
+<p><strong>Copy (Копирование)</strong>:</p>
+<ul>
+<li>Происходит для типов, реализующих <code>Copy</code> trait</li>
+<li>Значение копируется, оба остаются валидными</li>
+<li>Примеры: <code>i32</code>, <code>bool</code>, <code>char</code>, ссылки</li>
+</ul>
+<p><strong>Пример</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Copy: примитивные типы
+let x = 5;
+let y = x;  // копирование
+println!("{}", x);  // OK: x все еще валиден
+
+// Move: сложные типы
+let s1 = String::from("hello");
+let s2 = s1;  // перемещение
+// println!("{}", s1);  // ERROR: s1 больше не валиден
+<span class="boring">}</span></code></pre>
+<h4 id="raii-resource-acquisition-is-initialization"><a class="header" href="#raii-resource-acquisition-is-initialization">RAII (Resource Acquisition Is Initialization):</a></h4>
+<p><strong>RAII</strong> - паттерн, где ресурсы (память, файлы, сокеты) привязаны к времени жизни объекта.</p>
+<p><strong>Как это работает в Rust</strong>:</p>
+<ul>
+<li>Ресурс выделяется при создании объекта</li>
+<li>Ресурс освобождается при уничтожении объекта (вызов <code>Drop</code> trait)</li>
+<li>Гарантирует освобождение ресурсов даже при панике</li>
+</ul>
+<p><strong>Пример</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct File {
+    handle: *mut c_void,
+}
+
+impl Drop for File {
+    fn drop(&amp;mut self) {
+        // Закрытие файла при выходе из области видимости
+        close_file(self.handle);
+    }
+}
+
+{
+    let file = File::open("test.txt");
+    // использование file
+}  // file.drop() вызывается автоматически здесь
+<span class="boring">}</span></code></pre>
+<p><strong>Почему это важно</strong>:</p>
+<ul>
+<li>Нет утечек памяти</li>
+<li>Нет необходимости вручную освобождать ресурсы</li>
+<li>Безопасность гарантируется компилятором</li>
+</ul>
+<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
+<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
+<h4 id="rust-владение-и-аллокации"><a class="header" href="#rust-владение-и-аллокации">Rust: Владение и аллокации</a></h4>
+<p>В Rust управление памятью основано на системе владения (ownership):</p>
+<ul>
+<li><strong>Стек</strong>: Примитивные типы (<code>i32</code>, <code>bool</code>, ссылки) хранятся на стеке</li>
+<li><strong>Куча</strong>: Динамические структуры (<code>Vec</code>, <code>String</code>, <code>HashMap</code>) аллоцируются в куче</li>
+<li><strong>Владение</strong>: Каждое значение имеет одного владельца, который отвечает за освобождение памяти</li>
+<li><strong>Borrow checker</strong>: Проверяет заимствования на этапе компиляции</li>
+</ul>
+<p><strong>Аллокации в Rust</strong>:</p>
+<ul>
+<li><code>Vec::new()</code> - создает пустой вектор (не аллоцирует память сразу)</li>
+<li><code>Vec::with_capacity(n)</code> - предварительно аллоцирует память для n элементов</li>
+<li><code>String::from()</code> - аллоцирует память в куче для строки</li>
+<li><code>HashMap::new()</code> - создает пустую хеш-таблицу</li>
+</ul>
+<h4 id="go-сборщик-мусора-и-escape-analysis"><a class="header" href="#go-сборщик-мусора-и-escape-analysis">Go: Сборщик мусора и escape analysis</a></h4>
+<p>В Go управление памятью автоматическое:</p>
+<ul>
+<li><strong>Стек</strong>: Локальные переменные, примитивы, небольшие структуры</li>
+<li><strong>Куча</strong>: Большие структуры, слайсы с динамическим размером, интерфейсы</li>
+<li><strong>Garbage Collector (GC)</strong>: Автоматически освобождает неиспользуемую память</li>
+<li><strong>Escape Analysis</strong>: Компилятор определяет, должна ли переменная быть в куче</li>
+</ul>
+<p><strong>Аллокации в Go</strong>:</p>
+<ul>
+<li><code>make([]T, len, cap)</code> - создает слайс с предварительно выделенной емкостью</li>
+<li><code>map[string]int{}</code> - создает мапу (аллоцируется в куче)</li>
+<li><code>new(T)</code> - аллоцирует память и возвращает указатель</li>
+<li><code>&amp;struct{...}</code> - может привести к escape в кучу</li>
+</ul>
+<h3 id="анализ-аллокаций-для-sliding-window"><a class="header" href="#анализ-аллокаций-для-sliding-window">Анализ аллокаций для Sliding Window</a></h3>
+<h4 id="фиксированное-окно-1"><a class="header" href="#фиксированное-окно-1">Фиксированное окно:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Аллокации:
+// - windowSum: i32 (стек) - O(1)
+// - maxSum: i32 (стек) - O(1)
+// - Индексы: usize (стек) - O(1)
+// Итого: O(1) памяти, никаких аллокаций в куче
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// Аллокации:
+// - windowSum: int (стек) - O(1)
+// - maxSum: int (стек) - O(1)
+// - Индексы: int (стек) - O(1)
+// Итого: O(1) памяти, никаких аллокаций в куче
+</code></pre>
+<h4 id="переменное-окно"><a class="header" href="#переменное-окно">Переменное окно:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Аллокации:
+// - HashMap для подсчета символов: O(k), где k - размер алфавита
+// - left, right: usize (стек) - O(1)
+// Итого: O(k) памяти в худшем случае
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// Аллокации:
+// - map[rune]int для подсчета: O(k) в куче
+// - left, right: int (стек) - O(1)
+// Итого: O(k) памяти, map аллоцируется в куче
+</code></pre>
+<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
+<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
+<ol>
+<li><strong>Предварительное выделение HashMap</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Плохо: HashMap растет динамически
+let mut char_count = HashMap::new();
+
+// ✅ Хорошо: Предварительное выделение
+let mut char_count = HashMap::with_capacity(26); // для ASCII
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Избежание клонирования</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Плохо: клонирование строки
+let substring = s[left..right].to_string();
+
+// ✅ Хорошо: использование срезов
+let substring = &amp;s[left..right];
+<span class="boring">}</span></code></pre>
+<ol start="3">
+<li><strong>Переиспользование структур</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Переиспользование HashMap вместо создания новой
+char_count.clear(); // вместо HashMap::new()
+<span class="boring">}</span></code></pre>
+<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
+<ol>
+<li><strong>Предварительное выделение слайсов</strong>:</li>
+</ol>
+<pre><code class="language-go">// ❌ Плохо: слайс растет динамически
+result := []int{}
+
+// ✅ Хорошо: предварительное выделение
+result := make([]int, 0, expectedSize)
+</code></pre>
+<ol start="2">
+<li><strong>Избежание escape в кучу</strong>:</li>
+</ol>
+<pre><code class="language-go">// Используйте указатели только когда необходимо
+// Компилятор Go оптимизирует, но лучше быть явным
+</code></pre>
+<ol start="3">
+<li><strong>Переиспользование map</strong>:</li>
+</ol>
+<pre><code class="language-go">// Очистка map вместо создания новой
+for k := range charCount {
+    delete(charCount, k)
+}
+</code></pre>
+<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Управление памятью</td><td>Владение, компилятор</td><td>GC, runtime</td></tr>
+<tr><td>Аллокации HashMap</td><td>Явные, контролируемые</td><td>Автоматические</td></tr>
+<tr><td>Производительность</td><td>Предсказуемая, без пауз GC</td><td>Может быть паузы GC</td></tr>
+<tr><td>Сложность</td><td>Выше (borrow checker)</td><td>Ниже (автоматическое)</td></tr>
+<tr><td>Оптимизация</td><td>На этапе компиляции</td><td>Runtime оптимизации</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Когда использовать Rust</strong>: Когда нужна предсказуемая производительность и контроль над памятью
+<strong>Когда использовать Go</strong>: Когда важна простота разработки и приемлемы небольшие паузы GC</p>
+<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
+<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
+<ol>
+<li>
+<p><strong>Избежание ненужных аллокаций</strong>:</p>
+<ul>
+<li>Используйте предварительное выделение памяти</li>
+<li>Переиспользуйте структуры данных</li>
+<li>Избегайте создания временных объектов в циклах</li>
+</ul>
+</li>
+<li>
+<p><strong>Кэширование вычислений</strong>:</p>
+<ul>
+<li>Сохраняйте результаты дорогих операций</li>
+<li>Используйте lookup таблицы для часто используемых значений</li>
+</ul>
+</li>
+<li>
+<p><strong>Оптимизация циклов</strong>:</p>
+<ul>
+<li>Минимизируйте операции внутри циклов</li>
+<li>Используйте итераторы вместо индексов (в Rust)</li>
+<li>Избегайте проверок условий в горячих путях</li>
+</ul>
+</li>
+</ol>
+<h3 id="специфичные-оптимизации-для-sliding-window"><a class="header" href="#специфичные-оптимизации-для-sliding-window">Специфичные оптимизации для Sliding Window</a></h3>
+<h4 id="1-оптимизация-для-фиксированного-окна"><a class="header" href="#1-оптимизация-для-фиксированного-окна">1. Оптимизация для фиксированного окна:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Оптимизированная версия
+pub fn max_sum_optimized(arr: &amp;[i32], k: usize) -&gt; i32 {
+    if arr.len() &lt; k { return 0; }
+    
+    // Используем итераторы для лучшей оптимизации
+    let mut window_sum: i32 = arr.iter().take(k).sum();
+    let mut max_sum = window_sum;
+    
+    for i in k..arr.len() {
+        window_sum += arr[i] - arr[i - k];
+        max_sum = max_sum.max(window_sum);
+    }
+    
+    max_sum
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// ✅ Оптимизированная версия
+func maxSumOptimized(arr []int, k int) int {
+    if len(arr) &lt; k { return 0 }
+    
+    windowSum := 0
+    for i := 0; i &lt; k; i++ {
+        windowSum += arr[i]
+    }
+    maxSum := windowSum
+    
+    for i := k; i &lt; len(arr); i++ {
+        windowSum += arr[i] - arr[i-k]
+        if windowSum &gt; maxSum {
+            maxSum = windowSum
+        }
+    }
+    
+    return maxSum
+}
+</code></pre>
+<h4 id="2-оптимизация-для-переменного-окна"><a class="header" href="#2-оптимизация-для-переменного-окна">2. Оптимизация для переменного окна:</a></h4>
+<p><strong>Использование VecDeque для минимума/максимума</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::collections::VecDeque;
+
+// Для задачи "Sliding Window Maximum"
+// Используем VecDeque для O(1) операций с обоих концов
+let mut deque = VecDeque::with_capacity(k);
+<span class="boring">}</span></code></pre>
+<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
+<ol>
+<li><strong>Использование <code>Vec::with_capacity()</code></strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Предварительное выделение памяти
+let mut result = Vec::with_capacity(n);
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Избежание <code>clone()</code></strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Плохо
+let copy = data.clone();
+
+// ✅ Хорошо: использование ссылок
+let reference = &amp;data;
+<span class="boring">}</span></code></pre>
+<ol start="3">
+<li><strong>Использование <code>&amp;str</code> вместо <code>String</code></strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Для входных данных используйте &amp;str
+fn process(s: &amp;str) { ... }
+<span class="boring">}</span></code></pre>
+<ol start="4">
+<li><strong>Zero-cost abstractions</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Итераторы компилируются в эффективный код
+arr.iter().filter(|&amp;x| x &gt; 0).sum()
+<span class="boring">}</span></code></pre>
+<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
+<ol>
+<li><strong>Предварительное выделение слайсов</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Предварительное выделение
+result := make([]int, 0, n)
+</code></pre>
+<ol start="2">
+<li><strong>Избежание escape в кучу</strong>:</li>
+</ol>
+<pre><code class="language-go">// Используйте значения вместо указателей когда возможно
+// Компилятор оптимизирует, но лучше быть явным
+</code></pre>
+<ol start="3">
+<li><strong>Использование <code>sync.Pool</code> для переиспользования</strong>:</li>
+</ol>
+<pre><code class="language-go">var bufferPool = sync.Pool{
+    New: func() interface{} {
+        return make([]byte, 0, 1024)
+    },
+}
+</code></pre>
+<ol start="4">
+<li><strong>Оптимизация сборщика мусора</strong>:</li>
+</ol>
+<pre><code class="language-go">// Минимизируйте аллокации в горячих путях
+// Используйте переиспользование объектов
+</code></pre>
+<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
+<h3 id="что-такое-профилирование-и-зачем-оно-нужно"><a class="header" href="#что-такое-профилирование-и-зачем-оно-нужно">Что такое профилирование и зачем оно нужно?</a></h3>
+<p><strong>Профилирование</strong> — это процесс измерения производительности программы для выявления узких мест (bottlenecks) и оптимизации кода.</p>
+<p><strong>Основные цели профилирования:</strong></p>
+<ol>
+<li>
+<p><strong>Выявление узких мест</strong>: Определение частей кода, которые занимают больше всего времени или памяти. Это помогает понять, где именно программа “тормозит” и на что стоит обратить внимание при оптимизации.</p>
+</li>
+<li>
+<p><strong>Оптимизация производительности</strong>: Понимание, где можно улучшить код для повышения скорости. Профилирование показывает реальные данные о том, какие функции или операции являются самыми затратными.</p>
+</li>
+<li>
+<p><strong>Анализ использования памяти</strong>: Выявление утечек памяти и неэффективного использования ресурсов. Особенно важно для долгоживущих приложений и серверов.</p>
+</li>
+<li>
+<p><strong>Валидация оптимизаций</strong>: Проверка, действительно ли оптимизации улучшили производительность. Часто интуиция может быть обманчивой, и только профилирование показывает реальный эффект.</p>
+</li>
+</ol>
+<p><strong>Когда использовать профилирование:</strong></p>
+<ul>
+<li>После написания рабочего решения, когда нужно его оптимизировать</li>
+<li>При подозрении на проблемы с производительностью</li>
+<li>Для сравнения разных подходов и алгоритмов</li>
+<li>Перед деплоем критичных по производительности компонентов</li>
+<li>При работе с большими объемами данных</li>
+</ul>
+<p><strong>Важно помнить:</strong></p>
+<ul>
+<li><strong>Профилирование должно проводиться на репрезентативных данных</strong>: Результаты на маленьких тестовых данных могут не отражать реальную производительность на продакшн-данных.</li>
+<li><strong>Результаты могут различаться в зависимости от окружения</strong>: Производительность может зависеть от процессора, памяти, операционной системы и других факторов.</li>
+<li><strong>Не оптимизируйте преждевременно</strong>: Сначала измерьте, затем оптимизируйте. Оптимизация без профилирования часто приводит к усложнению кода без реальной пользы.</li>
+<li><strong>Профилирование добавляет overhead</strong>: Инструменты профилирования сами потребляют ресурсы, поэтому результаты могут немного отличаться от реальной работы без профилирования.</li>
+</ul>
+<p><strong>Типы профилирования:</strong></p>
+<ul>
+<li><strong>CPU профилирование</strong>: Измеряет, сколько времени тратится на выполнение различных функций и операций</li>
+<li><strong>Memory профилирование</strong>: Анализирует использование памяти, выявляет утечки и неэффективные аллокации</li>
+<li><strong>I/O профилирование</strong>: Измеряет операции ввода-вывода (чтение/запись файлов, сетевые запросы)</li>
+</ul>
+<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
+<h4 id="rust-инструменты"><a class="header" href="#rust-инструменты">Rust инструменты:</a></h4>
+<ol>
+<li><strong><code>cargo bench</code></strong> - встроенные бенчмарки:</li>
+</ol>
+<pre><code class="language-toml"># Cargo.toml
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+</code></pre>
+<ol start="2">
+<li><strong><code>cargo-flamegraph</code></strong> - визуализация производительности:</li>
+</ol>
+<pre><code class="language-bash">cargo install flamegraph
+cargo flamegraph --bench sliding_window
+</code></pre>
+<ol start="3">
+<li><strong><code>perf</code></strong> - системный профилировщик Linux:</li>
+</ol>
+<pre><code class="language-bash">perf record --call-graph dwarf ./target/release/benchmark
+perf report
+</code></pre>
+<ol start="4">
+<li><strong><code>valgrind</code></strong> - анализ памяти:</li>
+</ol>
+<pre><code class="language-bash">valgrind --tool=massif ./target/release/benchmark
+</code></pre>
+<h4 id="go-инструменты"><a class="header" href="#go-инструменты">Go инструменты:</a></h4>
+<ol>
+<li><strong><code>go test -bench</code></strong> - бенчмарки:</li>
+</ol>
+<pre><code class="language-go">func BenchmarkSlidingWindow(b *testing.B) {
+    arr := generateTestData(1000)
+    for i := 0; i &lt; b.N; i++ {
+        maxSumSubarray(arr, 10)
+    }
+}
+</code></pre>
+<ol start="2">
+<li><strong><code>go tool pprof</code></strong> - профилирование CPU и памяти:</li>
+</ol>
+<pre><code class="language-bash">go test -cpuprofile=cpu.prof -memprofile=mem.prof -bench=.
+go tool pprof cpu.prof
+</code></pre>
+<ol start="3">
+<li><strong><code>go test -memprofile</code></strong> - профиль памяти:</li>
+</ol>
+<pre><code class="language-bash">go test -memprofile=mem.prof -bench=.
+go tool pprof mem.prof
+</code></pre>
+<h3 id="как-профилировать-sliding-window"><a class="header" href="#как-профилировать-sliding-window">Как профилировать Sliding Window</a></h3>
+<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// benches/sliding_window_bench.rs
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use sliding_window::max_sum_subarray_fixed_k;
+
+fn bench_sliding_window(c: &amp;mut Criterion) {
+    let arr: Vec&amp;lt;i32&amp;gt; = (0..10000).collect();
+    
+    c.bench_function("sliding_window_k_100", |b| {
+        b.iter(|| max_sum_subarray_fixed_k(black_box(&amp;arr), 100))
+    });
+}
+
+criterion_group!(benches, bench_sliding_window);
+criterion_main!(benches);
+<span class="boring">}</span></code></pre>
+<p><strong>Запуск</strong>:</p>
+<pre><code class="language-bash">cargo bench
+</code></pre>
+<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
+<pre><code class="language-go">// sliding_window_test.go
+func BenchmarkMaxSumSubarray(b *testing.B) {
+    arr := make([]int, 10000)
+    for i := range arr {
+        arr[i] = i
+    }
+    
+    b.ResetTimer()
+    for i := 0; i &lt; b.N; i++ {
+        maxSumSubarrayFixedK(arr, 100)
+    }
+}
+</code></pre>
+<p><strong>Запуск</strong>:</p>
+<pre><code class="language-bash">go test -bench=. -benchmem
+</code></pre>
+<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
+<h4 id="анализ-производительности-фиксированного-окна"><a class="header" href="#анализ-производительности-фиксированного-окна">Анализ производительности фиксированного окна:</a></h4>
+<p><strong>Rust вывод <code>cargo bench</code></strong>:</p>
+<pre><code>sliding_window_k_100    time:   [1.2345 µs 1.2456 µs 1.2567 µs]
+                        change: [-2.3456% +0.1234% +2.5678%] (p = 0.95)
+</code></pre>
+<p><strong>Go вывод <code>go test -bench</code></strong>:</p>
+<pre><code>BenchmarkMaxSumSubarray-8    1000000    1234 ns/op    0 B/op    0 allocs/op
+</code></pre>
+<p><strong>Интерпретация</strong>:</p>
+<ul>
+<li><code>1234 ns/op</code> - среднее время на операцию</li>
+<li><code>0 B/op</code> - нет аллокаций в куче</li>
+<li><code>0 allocs/op</code> - нет вызовов аллокатора</li>
+</ul>
+<h4 id="анализ-памяти-переменного-окна"><a class="header" href="#анализ-памяти-переменного-окна">Анализ памяти переменного окна:</a></h4>
+<p><strong>Rust с valgrind</strong>:</p>
+<pre><code>HEAP SUMMARY:
+    total heap usage: 1 allocs, 1 frees, 1,024 bytes allocated
+</code></pre>
+<p><strong>Go с pprof</strong>:</p>
+<pre><code>(pprof) top
+      flat  flat%   sum%        cum   cum%
+    50.00% 50.00% 50.00%     50.00% 50.00%  main.makeMap
+</code></pre>
+<h3 id="интерпретация-результатов"><a class="header" href="#интерпретация-результатов">Интерпретация результатов</a></h3>
+<ol>
+<li><strong>Время выполнения</strong>: Сравнивайте с наивным подходом</li>
+<li><strong>Аллокации</strong>: Идеально - 0 аллокаций в горячем пути</li>
+<li><strong>Использование памяти</strong>: Минимизируйте пиковое использование</li>
+<li><strong>Узкие места</strong>: Ищите функции, занимающие &gt;10% времени</li>
+</ol>
+<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
+<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
+<ol>
+<li><strong>Unit-тесты</strong>: Тестирование отдельных функций</li>
+<li><strong>Граничные случаи</strong>: Пустые данные, один элемент, максимальные значения</li>
+<li><strong>Стресс-тесты</strong>: Большие объемы данных</li>
+<li><strong>Property-based тестирование</strong>: Автоматическая генерация тестовых данных</li>
+</ol>
+<h3 id="примеры-тестов-для-sliding-window"><a class="header" href="#примеры-тестов-для-sliding-window">Примеры тестов для Sliding Window</a></h3>
+<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_max_sum_fixed_k_basic() {
+        let arr = vec![2, 1, 5, 1, 3, 2];
+        assert_eq!(max_sum_subarray_fixed_k(&amp;arr, 3), 9);
+    }
+
+    #[test]
+    fn test_max_sum_fixed_k_empty() {
+        let arr = vec![];
+        assert_eq!(max_sum_subarray_fixed_k(&amp;arr, 3), 0);
+    }
+
+    #[test]
+    fn test_max_sum_fixed_k_single_element() {
+        let arr = vec![5];
+        assert_eq!(max_sum_subarray_fixed_k(&amp;arr, 1), 5);
+    }
+
+    #[test]
+    fn test_longest_substring_no_repeats() {
+        assert_eq!(longest_substring_no_repeats("abcabcbb"), 3);
+        assert_eq!(longest_substring_no_repeats("bbbbb"), 1);
+        assert_eq!(longest_substring_no_repeats("pwwkew"), 3);
+    }
+
+    // Property-based тест с proptest
+    #[cfg(feature = "proptest")]
+    proptest! {
+        #[test]
+        fn test_max_sum_property(arr in prop::collection::vec(-1000i32..1000, 1..1000)) {
+            let k = (arr.len() / 2).max(1);
+            let result = max_sum_subarray_fixed_k(&amp;arr, k);
+            // Свойство: результат должен быть &gt;= любого элемента
+            assert!(result &gt;= *arr.iter().max().unwrap());
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
+<pre><code class="language-go">func TestMaxSumSubarrayFixedK(t *testing.T) {
+    tests := []struct {
+        name string
+        arr  []int
+        k    int
+        want int
+    }{
+        {"basic", []int{2, 1, 5, 1, 3, 2}, 3, 9},
+        {"empty", []int{}, 3, 0},
+        {"single", []int{5}, 1, 5},
+        {"all_negative", []int{-1, -2, -3}, 2, -3},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            if got := maxSumSubarrayFixedK(tt.arr, tt.k); got != tt.want {
+                t.Errorf("maxSumSubarrayFixedK() = %v, want %v", got, tt.want)
+            }
+        })
+    }
+}
+
+func TestLongestSubstringNoRepeats(t *testing.T) {
+    tests := []struct {
+        s    string
+        want int
+    }{
+        {"abcabcbb", 3},
+        {"bbbbb", 1},
+        {"pwwkew", 3},
+        {"", 0},
+        {"a", 1},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.s, func(t *testing.T) {
+            if got := longestSubstringNoRepeats(tt.s); got != tt.want {
+                t.Errorf("longestSubstringNoRepeats() = %v, want %v", got, tt.want)
+            }
+        })
+    }
+}
+</code></pre>
+<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
+<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
+<pre><code class="language-bash"># Запуск всех тестов
+cargo test
+
+# Запуск с выводом
+cargo test -- --nocapture
+
+# Запуск конкретного теста
+cargo test test_max_sum_fixed_k_basic
+
+# Запуск бенчмарков
+cargo bench
+</code></pre>
+<h4 id="go"><a class="header" href="#go">Go:</a></h4>
+<pre><code class="language-bash"># Запуск всех тестов
+go test
+
+# Запуск с выводом
+go test -v
+
+# Запуск конкретного теста
+go test -run TestMaxSumSubarrayFixedK
+
+# Запуск бенчмарков
+go test -bench=. -benchmem
+
+# Запуск с профилированием
+go test -bench=. -cpuprofile=cpu.prof -memprofile=mem.prof
+</code></pre>
+<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
+<h4 id="rust-бенчмарк-с-criterion"><a class="header" href="#rust-бенчмарк-с-criterion">Rust бенчмарк с criterion:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+
+fn sliding_window_benchmark(c: &amp;mut Criterion) {
+    let sizes = vec![100, 1000, 10000, 100000];
+    
+    let mut group = c.benchmark_group("sliding_window");
+    for size in sizes {
+        let arr: Vec&amp;lt;i32&amp;gt; = (0..size).collect();
+        group.bench_with_input(
+            BenchmarkId::from_parameter(size),
+            &amp;arr,
+            |b, arr| {
+                b.iter(|| max_sum_subarray_fixed_k(black_box(arr), 10));
+            },
+        );
+    }
+    group.finish();
+}
+
+criterion_group!(benches, sliding_window_benchmark);
+criterion_main!(benches);
+<span class="boring">}</span></code></pre>
+<h4 id="go-бенчмарк"><a class="header" href="#go-бенчмарк">Go бенчмарк:</a></h4>
+<pre><code class="language-go">func BenchmarkSlidingWindowSizes(b *testing.B) {
+    sizes := []int{100, 1000, 10000, 100000}
+    
+    for _, size := range sizes {
+        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
+            arr := make([]int, size)
+            for i := range arr {
+                arr[i] = i
+            }
+            b.ResetTimer()
+            for i := 0; i &lt; b.N; i++ {
+                maxSumSubarrayFixedK(arr, 10)
+            }
+        })
+    }
+}
+</code></pre>
+<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
+<h3 id="rust-1"><a class="header" href="#rust-1">Rust</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Примеры использования шаблона Sliding Window на Rust
+
+/// Пример 1: Максимальная сумма подмассива фиксированного размера K
+/// 
+/// Задача: Найти максимальную сумму подмассива размера K
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn max_sum_subarray_fixed_k(arr: &amp;[i32], k: usize) -&gt; i32 {
+    if arr.len() &lt; k {
+        return 0;
+    }
+
+    // Вычисляем сумму первого окна
+    let mut window_sum: i32 = arr[0..k].iter().sum();
+    let mut max_sum = window_sum;
+
+    // Скользим окном по массиву
+    for i in k..arr.len() {
+        // Добавляем новый элемент и удаляем старый
+        window_sum += arr[i] - arr[i - k];
+        max_sum = max_sum.max(window_sum);
+    }
+
+    max_sum
+}
+
+/// Пример 2: Самая длинная подстрока без повторяющихся символов
+/// 
+/// Задача: Найти длину самой длинной подстроки без повторяющихся символов
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(min(n, m)), где m - размер алфавита
+pub fn longest_substring_no_repeats(s: &amp;str) -&gt; usize {
+    use std::collections::HashMap;
+    
+    let chars: Vec&amp;lt;char&amp;gt; = s.chars().collect();
+    let mut char_index = HashMap::new();
+    let mut max_len = 0;
+    let mut start = 0;
+
+    for (end, &amp;ch) in chars.iter().enumerate() {
+        // Если символ уже встречался в текущем окне, сдвигаем начало
+        if let Some(&amp;prev_index) = char_index.get(&amp;ch) {
+            if prev_index &gt;= start {
+                start = prev_index + 1;
+            }
+        }
+
+        char_index.insert(ch, end);
+        max_len = max_len.max(end - start + 1);
+    }
+
+    max_len
+}
+
+/// Пример 3: Самая длинная подстрока с максимум K различными символами
+/// 
+/// Задача: Найти длину самой длинной подстроки с максимум K различными символами
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(k)
+pub fn longest_substring_k_distinct(s: &amp;str, k: usize) -&gt; usize {
+    use std::collections::HashMap;
+    
+    let chars: Vec&amp;lt;char&amp;gt; = s.chars().collect();
+    let mut char_count = HashMap::new();
+    let mut max_len = 0;
+    let mut start = 0;
+
+    for (end, &amp;ch) in chars.iter().enumerate() {
+        // Добавляем текущий символ в окно
+        *char_count.entry(ch).or_insert(0) += 1;
+
+        // Если количество различных символов превышает K, сжимаем окно
+        while char_count.len() &gt; k {
+            let start_char = chars[start];
+            if let Some(count) = char_count.get_mut(&amp;start_char) {
+                *count -= 1;
+                if *count == 0 {
+                    char_count.remove(&amp;start_char);
+                }
+            }
+            start += 1;
+        }
+
+        max_len = max_len.max(end - start + 1);
+    }
+
+    max_len
+}
+
+/// Пример 4: Минимальное окно подстроки (сложная задача)
+/// 
+/// Задача: Найти минимальную подстроку, содержащую все символы из строки t
+/// Временная сложность: O(|s| + |t|)
+/// Пространственная сложность: O(|s| + |t|)
+pub fn min_window_substring(s: &amp;str, t: &amp;str) -&gt; String {
+    use std::collections::HashMap;
+    
+    if s.is_empty() || t.is_empty() || s.len() &lt; t.len() {
+        return String::new();
+    }
+
+    let s_chars: Vec&amp;lt;char&amp;gt; = s.chars().collect();
+    let t_chars: Vec&amp;lt;char&amp;gt; = t.chars().collect();
+
+    // Подсчитываем частоту символов в t
+    let mut required = HashMap::new();
+    for &amp;ch in &amp;t_chars {
+        *required.entry(ch).or_insert(0) += 1;
+    }
+
+    let required_len = required.len();
+    let mut window_counts = HashMap::new();
+    let mut formed = 0;
+
+    let mut left = 0;
+    let mut right = 0;
+    let mut min_len = usize::MAX;
+    let mut min_left = 0;
+
+    while right &lt; s_chars.len() {
+        // Добавляем символ справа в окно
+        let ch = s_chars[right];
+        *window_counts.entry(ch).or_insert(0) += 1;
+
+        // Проверяем, соответствует ли частота символа требуемой
+        if required.contains_key(&amp;ch) 
+            &amp;&amp; window_counts.get(&amp;ch) == required.get(&amp;ch) {
+            formed += 1;
+        }
+
+        // Пытаемся сжать окно слева
+        while left &lt;= right &amp;&amp; formed == required_len {
+            let ch = s_chars[left];
+
+            // Обновляем минимальное окно
+            if right - left + 1 &lt; min_len {
+                min_len = right - left + 1;
+                min_left = left;
+            }
+
+            // Удаляем символ слева из окна
+            if let Some(count) = window_counts.get_mut(&amp;ch) {
+                *count -= 1;
+            }
+
+            if required.contains_key(&amp;ch) 
+                &amp;&amp; window_counts.get(&amp;ch) &lt; required.get(&amp;ch) {
+                formed -= 1;
+            }
+
+            left += 1;
+        }
+
+        right += 1;
+    }
+
+    if min_len == usize::MAX {
+        String::new()
+    } else {
+        s_chars[min_left..min_left + min_len].iter().collect()
+    }
+}
+<span class="boring">}</span></code></pre>
+<h3 id="go-1"><a class="header" href="#go-1">Go</a></h3>
+<pre><code class="language-go">package main
+
+import (
+	"fmt"
+)
+
+// Пример 1: Максимальная сумма подмассива фиксированного размера K
+//
+// Задача: Найти максимальную сумму подмассива размера K
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func maxSumSubarrayFixedK(arr []int, k int) int {
+	if len(arr) &lt; k {
+		return 0
+	}
+
+	// Вычисляем сумму первого окна
+	windowSum := 0
+	for i := 0; i &lt; k; i++ {
+		windowSum += arr[i]
+	}
+	maxSum := windowSum
+
+	// Скользим окном по массиву
+	for i := k; i &lt; len(arr); i++ {
+		// Добавляем новый элемент и удаляем старый
+		windowSum += arr[i] - arr[i-k]
+		if windowSum &gt; maxSum {
+			maxSum = windowSum
+		}
+	}
+
+	return maxSum
+}
+
+// Пример 2: Самая длинная подстрока без повторяющихся символов
+//
+// Задача: Найти длину самой длинной подстроки без повторяющихся символов
+// Временная сложность: O(n)
+// Пространственная сложность: O(min(n, m)), где m - размер алфавита
+func longestSubstringNoRepeats(s string) int {
+	charIndex := make(map[rune]int)
+	maxLen := 0
+	start := 0
+
+	for end, ch := range s {
+		// Если символ уже встречался в текущем окне, сдвигаем начало
+		if prevIndex, exists := charIndex[ch]; exists &amp;&amp; prevIndex &gt;= start {
+			start = prevIndex + 1
+		}
+
+		charIndex[ch] = end
+		currentLen := end - start + 1
+		if currentLen &gt; maxLen {
+			maxLen = currentLen
+		}
+	}
+
+	return maxLen
+}
+
+// Пример 3: Самая длинная подстрока с максимум K различными символами
+//
+// Задача: Найти длину самой длинной подстроки с максимум K различными символами
+// Временная сложность: O(n)
+// Пространственная сложность: O(k)
+func longestSubstringKDistinct(s string, k int) int {
+	charCount := make(map[rune]int)
+	maxLen := 0
+	start := 0
+
+	for end, ch := range s {
+		// Добавляем текущий символ в окно
+		charCount[ch]++
+
+		// Если количество различных символов превышает K, сжимаем окно
+		for len(charCount) &gt; k {
+			startChar := rune(s[start])
+			charCount[startChar]--
+			if charCount[startChar] == 0 {
+				delete(charCount, startChar)
+			}
+			start++
+		}
+
+		currentLen := end - start + 1
+		if currentLen &gt; maxLen {
+			maxLen = currentLen
+		}
+	}
+
+	return maxLen
+}
+
+// Пример 4: Минимальное окно подстроки (сложная задача)
+//
+// Задача: Найти минимальную подстроку, содержащую все символы из строки t
+// Временная сложность: O(|s| + |t|)
+// Пространственная сложность: O(|s| + |t|)
+func minWindowSubstring(s, t string) string {
+	if len(s) == 0 || len(t) == 0 || len(s) &lt; len(t) {
+		return ""
+	}
+
+	// Подсчитываем частоту символов в t
+	required := make(map[rune]int)
+	for _, ch := range t {
+		required[ch]++
+	}
+
+	requiredLen := len(required)
+	windowCounts := make(map[rune]int)
+	formed := 0
+
+	left := 0
+	minLen := len(s) + 1
+	minLeft := 0
+
+	for right, ch := range s {
+		// Добавляем символ справа в окно
+		windowCounts[ch]++
+
+		// Проверяем, соответствует ли частота символа требуемой
+		if count, exists := required[ch]; exists &amp;&amp; windowCounts[ch] == count {
+			formed++
+		}
+
+		// Пытаемся сжать окно слева
+		for left &lt;= right &amp;&amp; formed == requiredLen {
+			leftChar := rune(s[left])
+
+			// Обновляем минимальное окно
+			if right-left+1 &lt; minLen {
+				minLen = right - left + 1
+				minLeft = left
+			}
+
+			// Удаляем символ слева из окна
+			windowCounts[leftChar]--
+			if count, exists := required[leftChar]; exists &amp;&amp; windowCounts[leftChar] &lt; count {
+				formed--
+			}
+
+			left++
+		}
+	}
+
+	if minLen == len(s)+1 {
+		return ""
+	}
+	return s[minLeft : minLeft+minLen]
+}
+</code></pre>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
+<ul>
+<li><a href="https://www.educative.io/courses/grokking-the-coding-interview">Grokking the Coding Interview: Sliding Window Pattern</a> - Интерактивный курс</li>
+<li><a href="https://leetcode.com/tag/sliding-window/">LeetCode Sliding Window Problems</a> - Коллекция задач</li>
+<li><a href="https://en.wikipedia.org/wiki/Sliding_window_protocol">Wikipedia: Sliding Window Protocol</a> - Исторический контекст</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="two-pointers.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="two-pointers.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace-2a3cd908.js"></script>
+        <script src="mode-rust-2c9d5c9a.js"></script>
+        <script src="editor-16ca416c.js"></script>
+        <script src="theme-dawn-4493f9c8.js"></script>
+        <script src="theme-tomorrow_night-9dbe62a9.js"></script>
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

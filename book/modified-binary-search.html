@@ -1,0 +1,1211 @@
+<!DOCTYPE HTML>
+<html lang="ru" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Modified Binary Search (Модифицированный бинарный поиск) - Алгоритмические шаблоны для решения задач на собеседованиях</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-9de7afef.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Алгоритмические шаблоны для решения задач на собеседованиях</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="modified-binary-search-модифицированный-бинарный-поиск"><a class="header" href="#modified-binary-search-модифицированный-бинарный-поиск">Modified Binary Search (Модифицированный бинарный поиск)</a></h1>
+<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
+<p>Шаблон <strong>Modified Binary Search</strong> расширяет классический бинарный поиск для работы с различными условиями поиска. Вместо простого поиска точного значения, мы ищем первое/последнее вхождение, границы диапазона, или элемент в повернутом/неотсортированном массиве.</p>
+<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
+<p>Бинарный поиск был разработан в 1940-х годах и является одним из самых эффективных алгоритмов поиска. Модифицированные версии расширяют его применение на задачи поиска границ, повернутых массивов и других структур данных.</p>
+<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
+<p>Ключевое наблюдение: бинарный поиск работает не только для точного совпадения, но и для любых монотонных предикатов. Изменяя условие обновления границ и условие завершения, мы можем решать различные задачи поиска.</p>
+<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
+<p>Используйте этот шаблон, когда:</p>
+<ul>
+<li>Массив отсортирован (или частично отсортирован)</li>
+<li>Нужно найти первое или последнее вхождение элемента</li>
+<li>Требуется найти границы диапазона значений</li>
+<li>Массив повернут или имеет особую структуру</li>
+<li>Нужно найти элемент в 2D матрице или другом пространстве поиска</li>
+<li>Задача связана с поиском в отсортированных данных с условиями</li>
+</ul>
+<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
+<h3 id="базовый-модифицированный-бинарный-поиск"><a class="header" href="#базовый-модифицированный-бинарный-поиск">Базовый модифицированный бинарный поиск:</a></h3>
+<ol>
+<li><strong>Инициализация</strong>: <code>left = 0</code>, <code>right = n - 1</code></li>
+<li><strong>Цикл</strong>: Пока <code>left &lt;= right</code>:
+<ul>
+<li>Вычислить <code>mid = left + (right - left) / 2</code></li>
+<li>Проверить условие для <code>mid</code></li>
+<li>Обновить <code>left</code> или <code>right</code> в зависимости от условия</li>
+</ul>
+</li>
+<li><strong>Возврат</strong>: Вернуть результат в зависимости от задачи</li>
+</ol>
+<h3 id="варианты-условий"><a class="header" href="#варианты-условий">Варианты условий:</a></h3>
+<ul>
+<li><strong>Первое вхождение</strong>: Продолжать поиск влево при равенстве</li>
+<li><strong>Последнее вхождение</strong>: Продолжать поиск вправо при равенстве</li>
+<li><strong>Повернутый массив</strong>: Проверять, какая часть отсортирована</li>
+</ul>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<h3 id="поиск-первого-вхождения"><a class="header" href="#поиск-первого-вхождения">Поиск первого вхождения:</a></h3>
+<pre><code>Массив: [1, 2, 2, 2, 3, 4, 5], target = 2
+
+Шаг 1: left=0, right=6, mid=3, arr[3]=2
+        [1, 2, 2, 2, 3, 4, 5]
+         ↑        ↑        ↑
+        left    mid     right
+        Найдено 2, но продолжаем влево для первого вхождения
+        right = mid - 1 = 2
+
+Шаг 2: left=0, right=2, mid=1, arr[1]=2
+        [1, 2, 2, 2, 3, 4, 5]
+         ↑  ↑  ↑
+        left mid right
+        Найдено 2, продолжаем влево
+        right = mid - 1 = 0
+
+Шаг 3: left=0, right=0, mid=0, arr[0]=1
+        [1, 2, 2, 2, 3, 4, 5]
+         ↑
+        left=right=mid
+        arr[0] != 2, left = mid + 1 = 1
+
+Результат: left = 1 (первое вхождение 2)
+</code></pre>
+<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
+<p><strong>Инвариант бинарного поиска</strong>: На каждом шаге интервал [left, right] содержит решение (если оно существует), и размер интервала уменьшается вдвое.</p>
+<p><strong>Доказательство корректности</strong>:</p>
+<ol>
+<li><strong>Базовый случай</strong>: Исходный интервал [0, n-1] содержит решение</li>
+<li><strong>Индуктивный шаг</strong>: Предположим, интервал [left, right] содержит решение
+<ul>
+<li>Вычисляем mid</li>
+<li>По условию монотонности, можем исключить половину интервала</li>
+<li>Новый интервал также содержит решение</li>
+<li>Размер интервала уменьшается вдвое</li>
+</ul>
+</li>
+</ol>
+<p><strong>Почему сложность O(log n)?</strong></p>
+<p>На каждом шаге размер интервала уменьшается вдвое. Максимальное количество шагов = log₂(n) → O(log n).</p>
+<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
+<ul>
+<li><strong>Временная сложность</strong>: O(log n)
+<ul>
+<li>На каждом шаге интервал уменьшается вдвое</li>
+<li>Максимум log₂(n) шагов</li>
+<li>Операции на каждом шаге: O(1)</li>
+<li>Итого: O(log n)</li>
+</ul>
+</li>
+<li><strong>Пространственная сложность</strong>: O(1)
+<ul>
+<li>Только переменные для границ</li>
+</ul>
+</li>
+</ul>
+<h3 id="сравнение-с-линейным-поиском"><a class="header" href="#сравнение-с-линейным-поиском">Сравнение с линейным поиском:</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Подход</th><th>Время</th><th>Применимость</th></tr>
+</thead>
+<tbody>
+<tr><td>Линейный поиск</td><td>O(n)</td><td>Любые данные</td></tr>
+<tr><td>Бинарный поиск</td><td>O(log n)</td><td>Отсортированные данные</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Выигрыш</strong>: O(n) → O(log n) - экспоненциальное улучшение!</p>
+<h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Переполнение при вычислении mid</strong>: Используйте <code>left + (right - left) / 2</code> вместо <code>(left + right) / 2</code></li>
+<li><strong>Неправильное условие завершения</strong>: <code>left &lt;= right</code> vs <code>left &lt; right</code> зависит от задачи</li>
+<li><strong>Неправильное обновление границ</strong>: <code>left = mid + 1</code> vs <code>left = mid</code> зависит от условия</li>
+</ol>
+<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
+<ol>
+<li>Всегда используйте формулу <code>mid = left + (right - left) / 2</code> для избежания переполнения</li>
+<li>Определите предикат перед написанием кода</li>
+<li>Тестируйте на граничных случаях: пустой массив, один элемент, элемент не найден</li>
+</ol>
+<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
+<h3 id="используемые-структуры-данных-в-modified-binary-search"><a class="header" href="#используемые-структуры-данных-в-modified-binary-search">Используемые структуры данных в Modified Binary Search</a></h3>
+<p>В шаблоне Modified Binary Search используются следующие структуры данных:</p>
+<ul>
+<li>****: Отсортированный массив для поиска</li>
+<li><strong>Индексы</strong>: left, right, mid для навигации (хранятся на стеке)</li>
+</ul>
+<h3 id="rust--slice-go"><a class="header" href="#rust--slice-go">(Rust) / Slice (Go)</a></h3>
+<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
+<p><strong>Rust Vec&lt;T&gt;</strong>:</p>
+<pre><code>Отсортированный массив:
+┌─────────────────────────────────────────┐
+│ Vec&amp;lt;i32&amp;gt;                                 │
+│ ┌─────────────┐                         │
+│ │ ptr: *mut i32│ Указатель на данные    │
+│ │ len: usize  │ Количество элементов    │
+│ └─────────────┘                         │
+└─────────────────────────────────────────┘
+         │
+         ▼
+    [1][3][5][7][9][11][13]
+    0  1  2  3  4  5   6
+</code></pre>
+<p><strong>Важные детали</strong>:</p>
+<ul>
+<li>Массив должен быть отсортирован</li>
+<li>Доступ по индексу O(1)</li>
+<li>Непрерывная память (cache-friendly)</li>
+<li>Binary search использует индексы, не создает новых структур</li>
+</ul>
+<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>Сложность</th><th>Объяснение</th></tr>
+</thead>
+<tbody>
+<tr><td>Binary search</td><td>O(log n)</td><td>Каждый шаг уменьшает пространство поиска в 2 раза</td></tr>
+<tr><td>Доступ по индексу</td><td>O(1)</td><td>Прямой доступ к памяти</td></tr>
+<tr><td>Сравнение элементов</td><td>O(1)</td><td>Простое сравнение значений</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Почему Binary Search эффективен</strong>:</p>
+<ul>
+<li>O(log n) время вместо O(n) линейного поиска</li>
+<li>O(1) дополнительная память (только индексы)</li>
+<li>Cache-friendly доступ к памяти</li>
+</ul>
+<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
+<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
+<p><strong>Для Modified Binary Search</strong>:</p>
+<ul>
+<li>Входной массив может быть на стеке (если небольшой) или в куче</li>
+<li>Индексы left, right, mid - на стеке</li>
+<li>Результаты могут escape</li>
+</ul>
+<h3 id="borrow-checker-rust"><a class="header" href="#borrow-checker-rust">Borrow Checker (Rust)</a></h3>
+<p><strong>Типичный паттерн</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn binary_search(arr: &amp;[i32], target: i32) -&gt; Option&amp;lt;usize&amp;gt; {
+    let mut left = 0;
+    let mut right = arr.len();
+    // arr - immutable borrow
+    // left, right - на стеке
+    // ...
+}
+<span class="boring">}</span></code></pre>
+<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
+<p><strong>Для Modified Binary Search</strong>:</p>
+<ul>
+<li>In-place поиск, не создает новых структур</li>
+<li>Минимальное влияние на GC</li>
+<li>Только индексы на стеке</li>
+</ul>
+<h3 id="ownership-и-move-semantics-rust"><a class="header" href="#ownership-и-move-semantics-rust">Ownership и Move Semantics (Rust)</a></h3>
+<p><strong>Концепция владения</strong>:</p>
+<ul>
+<li>Входные данные: <code>&amp;[T]</code> (заимствование)</li>
+<li>Не берем владение, только читаем</li>
+<li>Нет необходимости в новом Vec</li>
+</ul>
+<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
+<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
+<h4 id="rust-бинарный-поиск"><a class="header" href="#rust-бинарный-поиск">Rust: Бинарный поиск</a></h4>
+<p>В Rust для Modified Binary Search:</p>
+<ul>
+<li><strong>Индексы</strong>: <code>usize</code> на стеке - O(1)</li>
+<li><strong>Входные данные</strong>: <code>&amp;[i32]</code> - ссылка, не аллоцирует</li>
+<li><strong>Результат</strong>: <code>Option&amp;lt;usize&amp;gt;</code> - на стеке, O(1)</li>
+</ul>
+<h4 id="go-бинарный-поиск"><a class="header" href="#go-бинарный-поиск">Go: Бинарный поиск</a></h4>
+<p>В Go:</p>
+<ul>
+<li><strong>Индексы</strong>: <code>int</code> на стеке - O(1)</li>
+<li><strong>Входные данные</strong>: <code>[]int</code> - уже в куче</li>
+<li><strong>Результат</strong>: <code>int</code> и <code>bool</code> - на стеке, O(1)</li>
+</ul>
+<h3 id="анализ-аллокаций-для-modified-binary-search"><a class="header" href="#анализ-аллокаций-для-modified-binary-search">Анализ аллокаций для Modified Binary Search</a></h3>
+<h4 id="базовый-подход"><a class="header" href="#базовый-подход">Базовый подход:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Аллокации:
+// - left, right, mid: usize (стек) - O(1)
+// - Результат: Option&amp;lt;usize&amp;gt; (стек) - O(1)
+// Итого: O(1) памяти, никаких аллокаций в куче
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// Аллокации:
+// - left, right, mid: int (стек) - O(1)
+// - Результат: int, bool (стек) - O(1)
+// Итого: O(1) памяти, никаких аллокаций в куче
+</code></pre>
+<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
+<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
+<ol>
+<li><strong>Использование ссылок</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Используем ссылки вместо владения
+fn binary_search(arr: &amp;[i32], target: i32) -&gt; Option&amp;lt;usize&amp;gt; {
+    // ...
+}
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Избежание клонирования</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Работаем с индексами, не клонируем элементы
+let mid = left + (right - left) / 2;
+<span class="boring">}</span></code></pre>
+<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
+<ol>
+<li><strong>Работа с индексами</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Работаем с индексами, не создаем новые слайсы
+mid := left + (right-left)/2
+</code></pre>
+<ol start="2">
+<li><strong>Избежание аллокаций</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Все операции на стеке
+left, right := 0, len(arr)-1
+</code></pre>
+<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Память</td><td>O(1) константная</td><td>O(1) константная</td></tr>
+<tr><td>Индексы</td><td>usize на стеке</td><td>int на стеке</td></tr>
+<tr><td>Производительность</td><td>Предсказуемая</td><td>Предсказуемая</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
+<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
+<ol>
+<li><strong>Избежание переполнения</strong>: Используйте <code>left + (right - left) / 2</code></li>
+<li><strong>Минимизация проверок</strong>: Оптимизируйте условия</li>
+<li><strong>Ранние выходы</strong>: Когда возможно</li>
+</ol>
+<h3 id="специфичные-оптимизации-для-modified-binary-search"><a class="header" href="#специфичные-оптимизации-для-modified-binary-search">Специфичные оптимизации для Modified Binary Search</a></h3>
+<h4 id="1-оптимизация-бинарного-поиска"><a class="header" href="#1-оптимизация-бинарного-поиска">1. Оптимизация бинарного поиска:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Оптимизированная версия
+pub fn binary_search_optimized(arr: &amp;[i32], target: i32) -&gt; Option&amp;lt;usize&amp;gt; {
+    let mut left = 0;
+    let mut right = arr.len().saturating_sub(1);
+    
+    while left &lt;= right {
+        let mid = left + (right - left) / 2;  // Избегаем переполнения
+        match arr[mid].cmp(&amp;target) {
+            std::cmp::Ordering::Equal =&gt; return Some(mid),
+            std::cmp::Ordering::Less =&gt; left = mid + 1,
+            std::cmp::Ordering::Greater =&gt; right = mid - 1,
+        }
+    }
+    None
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// ✅ Оптимизированная версия
+func binarySearchOptimized(arr []int, target int) (int, bool) {
+    left, right := 0, len(arr)-1
+    
+    for left &lt;= right {
+        mid := left + (right-left)/2  // Избегаем переполнения
+        switch {
+        case arr[mid] == target:
+            return mid, true
+        case arr[mid] &lt; target:
+            left = mid + 1
+        default:
+            right = mid - 1
+        }
+    }
+    return 0, false
+}
+</code></pre>
+<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
+<ol>
+<li><strong>Использование <code>cmp</code></strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Более эффективное сравнение
+match arr[mid].cmp(&amp;target) {
+    Ordering::Equal =&gt; return Some(mid),
+    // ...
+}
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Избежание bounds checking</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Компилятор Rust оптимизирует проверки границ
+<span class="boring">}</span></code></pre>
+<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
+<ol>
+<li><strong>Использование switch</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Эффективный switch
+switch {
+case arr[mid] == target:
+    return mid, true
+// ...
+}
+</code></pre>
+<ol start="2">
+<li><strong>Минимизация проверок</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Простые проверки
+for left &lt;= right {
+    // ...
+}
+</code></pre>
+<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
+<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
+<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
+<h3 id="как-профилировать-modified-binary-search"><a class="header" href="#как-профилировать-modified-binary-search">Как профилировать Modified Binary Search</a></h3>
+<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// benches/binary_search_bench.rs
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn bench_binary_search(c: &amp;mut Criterion) {
+    let arr: Vec&amp;lt;i32&amp;gt; = (0..1000000).collect();
+    
+    c.bench_function("binary_search_1M", |b| {
+        b.iter(|| binary_search_optimized(black_box(&amp;arr), 500000))
+    });
+}
+
+criterion_group!(benches, bench_binary_search);
+criterion_main!(benches);
+<span class="boring">}</span></code></pre>
+<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
+<pre><code class="language-go">func BenchmarkBinarySearch(b *testing.B) {
+    arr := make([]int, 1000000)
+    for i := range arr {
+        arr[i] = i
+    }
+    
+    b.ResetTimer()
+    for i := 0; i &lt; b.N; i++ {
+        binarySearchOptimized(arr, 500000)
+    }
+}
+</code></pre>
+<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
+<p><strong>Анализ производительности</strong>:</p>
+<ul>
+<li>Binary Search: O(log n) по времени</li>
+<li>O(1) дополнительной памяти</li>
+<li>Минимальные аллокации (только индексы)</li>
+</ul>
+<p><strong>Типичные узкие места</strong>:</p>
+<ul>
+<li>Доступ к элементам массива</li>
+<li>Сравнения</li>
+<li>Условные операторы</li>
+</ul>
+<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
+<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
+<ol>
+<li><strong>Базовые тесты</strong>: Простые случаи поиска</li>
+<li><strong>Граничные случаи</strong>: Пустой массив, один элемент, элемент не найден</li>
+<li><strong>Стресс-тесты</strong>: Большие массивы</li>
+</ol>
+<h3 id="примеры-тестов-для-modified-binary-search"><a class="header" href="#примеры-тестов-для-modified-binary-search">Примеры тестов для Modified Binary Search</a></h3>
+<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_binary_search_basic() {
+        let arr = vec![1, 2, 3, 4, 5];
+        assert_eq!(binary_search_optimized(&amp;arr, 3), Some(2));
+    }
+
+    #[test]
+    fn test_binary_search_not_found() {
+        let arr = vec![1, 2, 3, 4, 5];
+        assert_eq!(binary_search_optimized(&amp;arr, 6), None);
+    }
+
+    #[test]
+    fn test_binary_search_empty() {
+        let arr = vec![];
+        assert_eq!(binary_search_optimized(&amp;arr, 1), None);
+    }
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
+<pre><code class="language-go">func TestBinarySearch(t *testing.T) {
+    tests := []struct {
+        name   string
+        arr    []int
+        target int
+        want   bool
+    }{
+        {"basic", []int{1, 2, 3, 4, 5}, 3, true},
+        {"not_found", []int{1, 2, 3, 4, 5}, 6, false},
+        {"empty", []int{}, 1, false},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            _, got := binarySearchOptimized(tt.arr, tt.target)
+            if got != tt.want {
+                t.Errorf("binarySearchOptimized() = %v, want %v", got, tt.want)
+            }
+        })
+    }
+}
+</code></pre>
+<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
+<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
+<pre><code class="language-bash">cargo test
+cargo test -- --nocapture
+cargo bench
+</code></pre>
+<h4 id="go"><a class="header" href="#go">Go:</a></h4>
+<pre><code class="language-bash">go test -v
+go test -bench=. -benchmem
+</code></pre>
+<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
+<h4 id="rust-1"><a class="header" href="#rust-1">Rust:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+
+fn binary_search_benchmark(c: &amp;mut Criterion) {
+    let sizes = vec![1000, 100000, 10000000];
+    
+    let mut group = c.benchmark_group("binary_search");
+    for size in sizes {
+        let arr: Vec&amp;lt;i32&amp;gt; = (0..size).collect();
+        group.bench_with_input(
+            BenchmarkId::from_parameter(size),
+            &amp;arr,
+            |b, arr| {
+                b.iter(|| binary_search_optimized(black_box(arr), size as i32 / 2));
+            },
+        );
+    }
+    group.finish();
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
+<pre><code class="language-go">func BenchmarkBinarySearchSizes(b *testing.B) {
+    sizes := []int{1000, 100000, 10000000}
+    
+    for _, size := range sizes {
+        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
+            arr := make([]int, size)
+            for i := range arr {
+                arr[i] = i
+            }
+            b.ResetTimer()
+            for i := 0; i &lt; b.N; i++ {
+                binarySearchOptimized(arr, size/2)
+            }
+        })
+    }
+}
+</code></pre>
+<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
+<h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Примеры использования шаблона Modified Binary Search на Rust
+
+/// Пример 1: Классический бинарный поиск
+/// 
+/// Задача: Найти индекс элемента target в отсортированном массиве
+/// Временная сложность: O(log n)
+/// Пространственная сложность: O(1)
+pub fn binary_search(nums: Vec&amp;lt;i32&amp;gt;, target: i32) -&gt; i32 {
+    let mut left = 0;
+    let mut right = nums.len() as i32 - 1;
+
+    while left &lt;= right {
+        let mid = left + (right - left) / 2;
+        let mid_val = nums[mid as usize];
+
+        if mid_val == target {
+            return mid;
+        } else if mid_val &lt; target {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    -1
+}
+
+/// Пример 2: Поиск первого вхождения элемента
+/// 
+/// Задача: Найти индекс первого вхождения target в отсортированном массиве
+/// Временная сложность: O(log n)
+/// Пространственная сложность: O(1)
+pub fn search_first(nums: Vec&amp;lt;i32&amp;gt;, target: i32) -&gt; i32 {
+    let mut left = 0;
+    let mut right = nums.len() as i32 - 1;
+    let mut result = -1;
+
+    while left &lt;= right {
+        let mid = left + (right - left) / 2;
+        let mid_val = nums[mid as usize];
+
+        if mid_val == target {
+            result = mid;
+            right = mid - 1; // Продолжаем искать влево
+        } else if mid_val &lt; target {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    result
+}
+
+/// Пример 3: Поиск последнего вхождения элемента
+/// 
+/// Задача: Найти индекс последнего вхождения target в отсортированном массиве
+/// Временная сложность: O(log n)
+/// Пространственная сложность: O(1)
+pub fn search_last(nums: Vec&amp;lt;i32&amp;gt;, target: i32) -&gt; i32 {
+    let mut left = 0;
+    let mut right = nums.len() as i32 - 1;
+    let mut result = -1;
+
+    while left &lt;= right {
+        let mid = left + (right - left) / 2;
+        let mid_val = nums[mid as usize];
+
+        if mid_val == target {
+            result = mid;
+            left = mid + 1; // Продолжаем искать вправо
+        } else if mid_val &lt; target {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    result
+}
+
+/// Пример 4: Поиск в повернутом отсортированном массиве
+/// 
+/// Задача: Найти target в массиве, который был повернут
+/// Временная сложность: O(log n)
+/// Пространственная сложность: O(1)
+pub fn search_rotated(nums: Vec&amp;lt;i32&amp;gt;, target: i32) -&gt; i32 {
+    let mut left = 0;
+    let mut right = nums.len() as i32 - 1;
+
+    while left &lt;= right {
+        let mid = left + (right - left) / 2;
+        let mid_val = nums[mid as usize];
+
+        if mid_val == target {
+            return mid;
+        }
+
+        // Определяем, какая часть отсортирована
+        if nums[left as usize] &lt;= mid_val {
+            // Левая часть отсортирована
+            if nums[left as usize] &lt;= target &amp;&amp; target &lt; mid_val {
+                right = mid - 1;
+            } else {
+                left = mid + 1;
+            }
+        } else {
+            // Правая часть отсортирована
+            if mid_val &lt; target &amp;&amp; target &lt;= nums[right as usize] {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+    }
+
+    -1
+}
+
+/// Пример 5: Поиск минимума в повернутом массиве
+/// 
+/// Задача: Найти минимальный элемент в повернутом отсортированном массиве
+/// Временная сложность: O(log n)
+/// Пространственная сложность: O(1)
+pub fn find_min_rotated(nums: Vec&amp;lt;i32&amp;gt;) -&gt; i32 {
+    let mut left = 0;
+    let mut right = nums.len() as i32 - 1;
+
+    while left &lt; right {
+        let mid = left + (right - left) / 2;
+        let mid_val = nums[mid as usize];
+        let right_val = nums[right as usize];
+
+        if mid_val &gt; right_val {
+            // Минимум в правой части
+            left = mid + 1;
+        } else {
+            // Минимум в левой части (включая mid)
+            right = mid;
+        }
+    }
+
+    nums[left as usize]
+}
+
+/// Пример 6: Поиск в 2D матрице
+/// 
+/// Задача: Найти target в отсортированной 2D матрице
+/// Временная сложность: O(log(m×n))
+/// Пространственная сложность: O(1)
+pub fn search_matrix(matrix: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;, target: i32) -&gt; bool {
+    if matrix.is_empty() || matrix[0].is_empty() {
+        return false;
+    }
+
+    let rows = matrix.len();
+    let cols = matrix[0].len();
+    let mut left = 0;
+    let mut right = (rows * cols) as i32 - 1;
+
+    while left &lt;= right {
+        let mid = left + (right - left) / 2;
+        let row = (mid / cols as i32) as usize;
+        let col = (mid % cols as i32) as usize;
+        let mid_val = matrix[row][col];
+
+        if mid_val == target {
+            return true;
+        } else if mid_val &lt; target {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    false
+}
+
+/// Пример 7: Поиск вставки элемента
+/// 
+/// Задача: Найти индекс, куда нужно вставить target в отсортированном массиве
+/// Временная сложность: O(log n)
+/// Пространственная сложность: O(1)
+pub fn search_insert(nums: Vec&amp;lt;i32&amp;gt;, target: i32) -&gt; i32 {
+    let mut left = 0;
+    let mut right = nums.len() as i32 - 1;
+
+    while left &lt;= right {
+        let mid = left + (right - left) / 2;
+        let mid_val = nums[mid as usize];
+
+        if mid_val == target {
+            return mid;
+        } else if mid_val &lt; target {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    left
+}
+<span class="boring">}</span></code></pre>
+<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
+<pre><code class="language-go">package main
+
+import (
+	"fmt"
+)
+
+// Пример 1: Классический бинарный поиск
+//
+// Задача: Найти индекс элемента target в отсортированном массиве
+// Временная сложность: O(log n)
+// Пространственная сложность: O(1)
+func binarySearch(nums []int, target int) int {
+	left := 0
+	right := len(nums) - 1
+
+	for left &lt;= right {
+		mid := left + (right-left)/2
+		midVal := nums[mid]
+
+		if midVal == target {
+			return mid
+		} else if midVal &lt; target {
+			left = mid + 1
+		} else {
+			right = mid - 1
+		}
+	}
+
+	return -1
+}
+
+// Пример 2: Поиск первого вхождения элемента
+//
+// Задача: Найти индекс первого вхождения target в отсортированном массиве
+// Временная сложность: O(log n)
+// Пространственная сложность: O(1)
+func searchFirst(nums []int, target int) int {
+	left := 0
+	right := len(nums) - 1
+	result := -1
+
+	for left &lt;= right {
+		mid := left + (right-left)/2
+		midVal := nums[mid]
+
+		if midVal == target {
+			result = mid
+			right = mid - 1 // Продолжаем искать влево
+		} else if midVal &lt; target {
+			left = mid + 1
+		} else {
+			right = mid - 1
+		}
+	}
+
+	return result
+}
+
+// Пример 3: Поиск последнего вхождения элемента
+//
+// Задача: Найти индекс последнего вхождения target в отсортированном массиве
+// Временная сложность: O(log n)
+// Пространственная сложность: O(1)
+func searchLast(nums []int, target int) int {
+	left := 0
+	right := len(nums) - 1
+	result := -1
+
+	for left &lt;= right {
+		mid := left + (right-left)/2
+		midVal := nums[mid]
+
+		if midVal == target {
+			result = mid
+			left = mid + 1 // Продолжаем искать вправо
+		} else if midVal &lt; target {
+			left = mid + 1
+		} else {
+			right = mid - 1
+		}
+	}
+
+	return result
+}
+
+// Пример 4: Поиск в повернутом отсортированном массиве
+//
+// Задача: Найти target в массиве, который был повернут
+// Временная сложность: O(log n)
+// Пространственная сложность: O(1)
+func searchRotated(nums []int, target int) int {
+	left := 0
+	right := len(nums) - 1
+
+	for left &lt;= right {
+		mid := left + (right-left)/2
+		midVal := nums[mid]
+
+		if midVal == target {
+			return mid
+		}
+
+		// Определяем, какая часть отсортирована
+		if nums[left] &lt;= midVal {
+			// Левая часть отсортирована
+			if nums[left] &lt;= target &amp;&amp; target &lt; midVal {
+				right = mid - 1
+			} else {
+				left = mid + 1
+			}
+		} else {
+			// Правая часть отсортирована
+			if midVal &lt; target &amp;&amp; target &lt;= nums[right] {
+				left = mid + 1
+			} else {
+				right = mid - 1
+			}
+		}
+	}
+
+	return -1
+}
+
+// Пример 5: Поиск минимума в повернутом массиве
+//
+// Задача: Найти минимальный элемент в повернутом отсортированном массиве
+// Временная сложность: O(log n)
+// Пространственная сложность: O(1)
+func findMinRotated(nums []int) int {
+	left := 0
+	right := len(nums) - 1
+
+	for left &lt; right {
+		mid := left + (right-left)/2
+		midVal := nums[mid]
+		rightVal := nums[right]
+
+		if midVal &gt; rightVal {
+			// Минимум в правой части
+			left = mid + 1
+		} else {
+			// Минимум в левой части (включая mid)
+			right = mid
+		}
+	}
+
+	return nums[left]
+}
+
+// Пример 6: Поиск в 2D матрице
+//
+// Задача: Найти target в отсортированной 2D матрице
+// Временная сложность: O(log(m×n))
+// Пространственная сложность: O(1)
+func searchMatrix(matrix [][]int, target int) bool {
+	if len(matrix) == 0 || len(matrix[0]) == 0 {
+		return false
+	}
+
+	rows := len(matrix)
+	cols := len(matrix[0])
+	left := 0
+	right := rows*cols - 1
+
+	for left &lt;= right {
+		mid := left + (right-left)/2
+		row := mid / cols
+		col := mid % cols
+		midVal := matrix[row][col]
+
+		if midVal == target {
+			return true
+		} else if midVal &lt; target {
+			left = mid + 1
+		} else {
+			right = mid - 1
+		}
+	}
+
+	return false
+}
+
+// Пример 7: Поиск вставки элемента
+//
+// Задача: Найти индекс, куда нужно вставить target в отсортированном массиве
+// Временная сложность: O(log n)
+// Пространственная сложность: O(1)
+func searchInsert(nums []int, target int) int {
+	left := 0
+	right := len(nums) - 1
+
+	for left &lt;= right {
+		mid := left + (right-left)/2
+		midVal := nums[mid]
+
+		if midVal == target {
+			return mid
+		} else if midVal &lt; target {
+			left = mid + 1
+		} else {
+			right = mid - 1
+		}
+	}
+
+	return left
+}
+</code></pre>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/binary-search/">Binary Search</a> - Бинарный поиск</li>
+<li><a href="https://leetcode.com/problems/first-bad-version/">First Bad Version</a> - Первая плохая версия</li>
+</ul>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/search-in-rotated-sorted-array/">Search in Rotated Sorted Array</a> - Поиск в повернутом массиве</li>
+<li><a href="https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/">Find First and Last Position of Element in Sorted Array</a> - Первая и последняя позиция</li>
+<li><a href="https://leetcode.com/problems/search-a-2d-matrix/">Search a 2D Matrix</a> - Поиск в 2D матрице</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/">Find Minimum in Rotated Sorted Array</a> - Минимум в повернутом массиве</li>
+<li><a href="https://leetcode.com/problems/median-of-two-sorted-arrays/">Median of Two Sorted Arrays</a> - Медиана двух отсортированных массивов</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="subsets.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="top-k-elements.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="subsets.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="top-k-elements.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace-2a3cd908.js"></script>
+        <script src="mode-rust-2c9d5c9a.js"></script>
+        <script src="editor-16ca416c.js"></script>
+        <script src="theme-dawn-4493f9c8.js"></script>
+        <script src="theme-tomorrow_night-9dbe62a9.js"></script>
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,1171 @@
+<!DOCTYPE HTML>
+<html lang="ru" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Reverse Linked List (Разворот связанного списка) - Алгоритмические шаблоны для решения задач на собеседованиях</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-9de7afef.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Алгоритмические шаблоны для решения задач на собеседованиях</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="reverse-linked-list-разворот-связанного-списка"><a class="header" href="#reverse-linked-list-разворот-связанного-списка">Reverse Linked List (Разворот связанного списка)</a></h1>
+<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
+<p>Шаблон <strong>Reverse Linked List</strong> используется для инвертирования связанного списка на месте (in-place), то есть без использования дополнительной памяти для создания нового списка. Этот подход эффективен и часто используется как основа для более сложных задач с связанными списками.</p>
+<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
+<p>Разворот связанного списка — одна из классических задач в информатике, часто используемая для демонстрации работы с указателями и понимания структуры данных. Алгоритм является фундаментальным для многих операций со списками.</p>
+<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
+<p>Ключевое наблюдение: для разворота списка нужно изменить направление каждого указателя <code>next</code>. Это можно сделать итеративно, сохраняя ссылки на предыдущий, текущий и следующий узлы, или рекурсивно, используя стек вызовов.</p>
+<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
+<p>Используйте этот шаблон, когда:</p>
+<ul>
+<li>Нужно развернуть связанный список полностью или частично</li>
+<li>Требуется обработать элементы списка в обратном порядке</li>
+<li>Работаете с задачами, связанными с палиндромами в списках</li>
+<li>Нужно развернуть подсписок или группу узлов</li>
+<li>Задача требует манипуляций с указателями в связанных структурах</li>
+</ul>
+<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
+<h3 id="итеративный-подход"><a class="header" href="#итеративный-подход">Итеративный подход:</a></h3>
+<ol>
+<li><strong>Инициализация</strong>: Создайте три указателя:
+<ul>
+<li><code>prev = None</code> (предыдущий узел)</li>
+<li><code>curr = head</code> (текущий узел)</li>
+<li><code>next = None</code> (следующий узел)</li>
+</ul>
+</li>
+<li><strong>Итерация</strong>: Пока <code>curr != None</code>:
+<ul>
+<li>Сохраните следующий узел: <code>next = curr.next</code></li>
+<li>Разверните указатель: <code>curr.next = prev</code></li>
+<li>Переместите указатели: <code>prev = curr</code>, <code>curr = next</code></li>
+</ul>
+</li>
+<li><strong>Возврат</strong>: Верните <code>prev</code> как новую голову списка</li>
+</ol>
+<h3 id="рекурсивный-подход"><a class="header" href="#рекурсивный-подход">Рекурсивный подход:</a></h3>
+<ol>
+<li>Базовый случай: если <code>head == None</code> или <code>head.next == None</code>, верните <code>head</code></li>
+<li>Рекурсивно разверните остальную часть списка</li>
+<li>Установите <code>head.next.next = head</code> и <code>head.next = None</code></li>
+<li>Верните новую голову</li>
+</ol>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<h3 id="итеративный-разворот"><a class="header" href="#итеративный-разворот">Итеративный разворот:</a></h3>
+<pre><code>Исходный список: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; None
+
+Шаг 1: prev=None, curr=1, next=None
+        prev    curr
+        None &lt;- 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; None
+
+Шаг 2: prev=1, curr=2, next=2
+              prev  curr
+        None &lt;- 1 &lt;- 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; None
+
+Шаг 3: prev=2, curr=3, next=3
+                    prev  curr
+        None &lt;- 1 &lt;- 2 &lt;- 3 -&gt; 4 -&gt; 5 -&gt; None
+
+Шаг 4: prev=3, curr=4, next=4
+                          prev  curr
+        None &lt;- 1 &lt;- 2 &lt;- 3 &lt;- 4 -&gt; 5 -&gt; None
+
+Шаг 5: prev=4, curr=5, next=5
+                                prev  curr
+        None &lt;- 1 &lt;- 2 &lt;- 3 &lt;- 4 &lt;- 5 -&gt; None
+
+Шаг 6: prev=5, curr=None
+                                      prev
+        None &lt;- 1 &lt;- 2 &lt;- 3 &lt;- 4 &lt;- 5
+
+Результат: 5 -&gt; 4 -&gt; 3 -&gt; 2 -&gt; 1 -&gt; None
+</code></pre>
+<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
+<p><strong>Инвариант</strong>: После обработки k узлов, первые k узлов развернуты и образуют корректный список, указывающий в обратном направлении.</p>
+<p><strong>Доказательство корректности</strong>:</p>
+<ol>
+<li><strong>Базовый случай</strong>: После обработки 0 узлов, список пуст (корректно)</li>
+<li><strong>Индуктивный шаг</strong>: Предположим, первые k узлов развернуты корректно
+<ul>
+<li>Обрабатываем (k+1)-й узел</li>
+<li>Меняем его указатель на предыдущий узел</li>
+<li>Первые k+1 узлов теперь развернуты корректно</li>
+</ul>
+</li>
+</ol>
+<p><strong>Почему сложность O(n)?</strong></p>
+<p>Каждый узел посещается ровно один раз, и для каждого узла выполняется константное количество операций → O(n).</p>
+<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
+<p><strong>Итеративный подход</strong>:</p>
+<ul>
+<li><strong>Временная сложность</strong>: O(n) - один проход по списку</li>
+<li><strong>Пространственная сложность</strong>: O(1) - только три указателя</li>
+</ul>
+<p><strong>Рекурсивный подход</strong>:</p>
+<ul>
+<li><strong>Временная сложность</strong>: O(n) - один проход по списку</li>
+<li><strong>Пространственная сложность</strong>: O(n) - глубина рекурсии равна длине списка</li>
+</ul>
+<h3 id="сравнение-подходов"><a class="header" href="#сравнение-подходов">Сравнение подходов:</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Подход</th><th>Время</th><th>Память</th><th>Преимущества</th></tr>
+</thead>
+<tbody>
+<tr><td>Итеративный</td><td>O(n)</td><td>O(1)</td><td>Эффективен по памяти</td></tr>
+<tr><td>Рекурсивный</td><td>O(n)</td><td>O(n)</td><td>Более элегантный код</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Потеря ссылки на следующий узел</strong>: Всегда сохраняйте <code>next</code> перед изменением <code>curr.next</code></li>
+<li><strong>Неправильный возврат</strong>: Возвращайте <code>prev</code>, а не <code>curr</code> (curr будет None)</li>
+<li><strong>Обработка пустого списка</strong>: Проверяйте <code>head == None</code> перед началом</li>
+</ol>
+<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
+<ol>
+<li>Используйте итеративный подход для больших списков (избегайте переполнения стека)</li>
+<li>Рекурсивный подход более читаемый для небольших списков</li>
+<li>Всегда тестируйте на пустом списке и списке из одного элемента</li>
+</ol>
+<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
+<h3 id="используемые-структуры-данных-в-reverse-linked-list"><a class="header" href="#используемые-структуры-данных-в-reverse-linked-list">Используемые структуры данных в Reverse Linked List</a></h3>
+<p>В шаблоне Reverse Linked List используются следующие структуры данных:</p>
+<ul>
+<li><strong>LinkedList Node</strong>: Узлы связанного списка (Box&lt;T&gt; в Rust, указатели в Go)</li>
+<li><strong>Указатели</strong>: Для навигации по списку (prev, curr, next)</li>
+</ul>
+<h3 id="linkedlist-node-узел-связанного-списка"><a class="header" href="#linkedlist-node-узел-связанного-списка">LinkedList Node (Узел связанного списка)</a></h3>
+<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
+<p><strong>Rust (Box&lt;T&gt;)</strong>:</p>
+<pre><code>Узел списка:
+┌─────────────────────────────────────────┐
+│ Box&amp;lt;ListNode&amp;gt;                            │
+│ ┌─────────────┐                         │
+│ │ val: i32    │ Значение                │
+│ │ next: Option│ Указатель на следующий  │
+│ │   &lt;Box&amp;lt;...&amp;gt;&gt;│                         │
+│ └─────────────┘                         │
+└─────────────────────────────────────────┘
+</code></pre>
+<p><strong>Go (указатели)</strong>:</p>
+<pre><code>Узел списка:
+┌─────────────────────────────────────────┐
+│ &amp;ListNode                                │
+│ ┌─────────────┐                         │
+│ │ Val: int    │ Значение                │
+│ │ Next: *ListNode│ Указатель            │
+│ └─────────────┘                         │
+└─────────────────────────────────────────┘
+</code></pre>
+<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>Сложность</th><th>Объяснение</th></tr>
+</thead>
+<tbody>
+<tr><td>Итеративный разворот</td><td>O(n)</td><td>Проход по всем узлам один раз</td></tr>
+<tr><td>Рекурсивный разворот</td><td>O(n)</td><td>Рекурсивный вызов для каждого узла</td></tr>
+<tr><td>Изменение указателя</td><td>O(1)</td><td>Простое присваивание</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Почему Reverse эффективен</strong>:</p>
+<ul>
+<li>In-place операция: не создаем новые узлы</li>
+<li>O(1) дополнительная память (только указатели)</li>
+<li>O(n) время: один проход по списку</li>
+</ul>
+<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
+<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
+<p><strong>Для Reverse Linked List</strong>:</p>
+<ul>
+<li>Узлы списка всегда в куче</li>
+<li>Указатели prev, curr, next - на стеке</li>
+<li>Результат может escape, если возвращается</li>
+</ul>
+<h3 id="borrow-checker-rust"><a class="header" href="#borrow-checker-rust">Borrow Checker (Rust)</a></h3>
+<p><strong>Типичный паттерн</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn reverse_list(head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    let mut prev = None;
+    let mut curr = head;
+    while let Some(mut node) = curr {
+        let next = node.next.take();
+        node.next = prev;
+        prev = Some(node);
+        curr = next;
+    }
+    prev
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Важно</strong>: Используем <code>take()</code> для временного владения узлом.</p>
+<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
+<p><strong>Для Reverse Linked List</strong>:</p>
+<ul>
+<li>Узлы в куче управляются GC</li>
+<li>In-place разворот не создает новых узлов</li>
+<li>Минимальное влияние на GC</li>
+</ul>
+<h3 id="ownership-и-move-semantics-rust"><a class="header" href="#ownership-и-move-semantics-rust">Ownership и Move Semantics (Rust)</a></h3>
+<p><strong>Концепция владения</strong>:</p>
+<ul>
+<li>Каждый <code>Box&amp;lt;ListNode&amp;gt;</code> владеет следующим узлом</li>
+<li>При развороте передаем владение между указателями</li>
+<li>RAII гарантирует освобождение памяти</li>
+</ul>
+<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
+<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
+<h4 id="rust-in-place-разворот"><a class="header" href="#rust-in-place-разворот">Rust: In-place разворот</a></h4>
+<p>В Rust для Reverse Linked List:</p>
+<ul>
+<li><strong>Итеративный подход</strong>: Только указатели на стеке - O(1)</li>
+<li><strong>Рекурсивный подход</strong>: Стек вызовов - O(n)</li>
+<li><strong>Узлы</strong>: Уже аллоцированы, только меняем указатели</li>
+</ul>
+<h4 id="go-in-place-разворот"><a class="header" href="#go-in-place-разворот">Go: In-place разворот</a></h4>
+<p>В Go:</p>
+<ul>
+<li><strong>Итеративный подход</strong>: Только указатели на стеке - O(1)</li>
+<li><strong>Рекурсивный подход</strong>: Стек вызовов - O(n)</li>
+<li><strong>Узлы</strong>: Уже в куче, только меняем указатели</li>
+</ul>
+<h3 id="анализ-аллокаций-для-reverse-linked-list"><a class="header" href="#анализ-аллокаций-для-reverse-linked-list">Анализ аллокаций для Reverse Linked List</a></h3>
+<h4 id="итеративный-подход-1"><a class="header" href="#итеративный-подход-1">Итеративный подход:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Аллокации:
+// - prev, curr, next: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; (указатели) - O(1)
+// - Никаких новых узлов не создается
+// Итого: O(1) памяти, только указатели
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// Аллокации:
+// - prev, curr, next: *ListNode (указатели) - O(1)
+// - Никаких новых узлов не создается
+// Итого: O(1) памяти, только указатели
+</code></pre>
+<h4 id="рекурсивный-подход-1"><a class="header" href="#рекурсивный-подход-1">Рекурсивный подход:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Аллокации:
+// - Стек вызовов: O(n) для глубины рекурсии
+// Итого: O(n) памяти для стека
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// Аллокации:
+// - Стек вызовов: O(n) для глубины рекурсии
+// Итого: O(n) памяти для стека
+</code></pre>
+<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
+<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
+<ol>
+<li><strong>Использование итеративного подхода</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ O(1) памяти вместо O(n)
+pub fn reverse_list_iterative(head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    let mut prev = None;
+    let mut curr = head;
+    
+    while let Some(mut node) = curr {
+        let next = node.next.take();
+        node.next = prev;
+        prev = Some(node);
+        curr = next;
+    }
+    prev
+}
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Избежание клонирования</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Используем take() вместо clone()
+let next = node.next.take();
+<span class="boring">}</span></code></pre>
+<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
+<ol>
+<li><strong>Использование итеративного подхода</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ O(1) памяти вместо O(n)
+func reverseListIterative(head *ListNode) *ListNode {
+    var prev *ListNode
+    curr := head
+    
+    for curr != nil {
+        next := curr.Next
+        curr.Next = prev
+        prev = curr
+        curr = next
+    }
+    return prev
+}
+</code></pre>
+<ol start="2">
+<li><strong>Избежание создания новых узлов</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Модифицируем существующие узлы
+curr.Next = prev
+</code></pre>
+<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Итеративный</td><td>O(1) память</td><td>O(1) память</td></tr>
+<tr><td>Рекурсивный</td><td>O(n) стек</td><td>O(n) стек</td></tr>
+<tr><td>Узлы</td><td>Box в куче</td><td>Указатели в куче</td></tr>
+<tr><td>Производительность</td><td>Предсказуемая</td><td>Предсказуемая</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
+<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
+<ol>
+<li>
+<p><strong>Использование итеративного подхода</strong>:</p>
+<ul>
+<li>Избегайте переполнения стека</li>
+<li>Лучшая производительность</li>
+</ul>
+</li>
+<li>
+<p><strong>Минимизация операций</strong>:</p>
+<ul>
+<li>Сохраняйте next перед изменением</li>
+<li>Избегайте лишних проверок</li>
+</ul>
+</li>
+</ol>
+<h3 id="специфичные-оптимизации-для-reverse-linked-list"><a class="header" href="#специфичные-оптимизации-для-reverse-linked-list">Специфичные оптимизации для Reverse Linked List</a></h3>
+<h4 id="1-оптимизация-итеративного-подхода"><a class="header" href="#1-оптимизация-итеративного-подхода">1. Оптимизация итеративного подхода:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Оптимизированная версия
+pub fn reverse_list_optimized(head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    let mut prev = None;
+    let mut curr = head;
+    
+    while let Some(mut node) = curr {
+        curr = node.next.take();
+        node.next = prev;
+        prev = Some(node);
+    }
+    prev
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// ✅ Оптимизированная версия
+func reverseListOptimized(head *ListNode) *ListNode {
+    var prev *ListNode
+    curr := head
+    
+    for curr != nil {
+        next := curr.Next
+        curr.Next = prev
+        prev, curr = curr, next
+    }
+    return prev
+}
+</code></pre>
+<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
+<ol>
+<li><strong>Использование <code>take()</code></strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Эффективное перемещение владения
+curr = node.next.take();
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Избежание лишних проверок</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Pattern matching оптимизирован компилятором
+while let Some(mut node) = curr {
+    // ...
+}
+<span class="boring">}</span></code></pre>
+<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
+<ol>
+<li><strong>Множественное присваивание</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Эффективный swap
+prev, curr = curr, next
+</code></pre>
+<ol start="2">
+<li><strong>Минимизация проверок</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Простая проверка nil
+for curr != nil {
+    // ...
+}
+</code></pre>
+<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
+<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
+<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
+<h3 id="как-профилировать-reverse-linked-list"><a class="header" href="#как-профилировать-reverse-linked-list">Как профилировать Reverse Linked List</a></h3>
+<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// benches/reverse_list_bench.rs
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn bench_reverse_list(c: &amp;mut Criterion) {
+    let list = create_list(1000);
+    
+    c.bench_function("reverse_1000", |b| {
+        b.iter(|| reverse_list_optimized(black_box(list.clone())))
+    });
+}
+
+criterion_group!(benches, bench_reverse_list);
+criterion_main!(benches);
+<span class="boring">}</span></code></pre>
+<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
+<pre><code class="language-go">func BenchmarkReverseList(b *testing.B) {
+    list := createList(1000)
+    
+    b.ResetTimer()
+    for i := 0; i &lt; b.N; i++ {
+        reverseListOptimized(list)
+    }
+}
+</code></pre>
+<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
+<p><strong>Анализ производительности</strong>:</p>
+<ul>
+<li>Итеративный: O(n) по времени, O(1) памяти</li>
+<li>Рекурсивный: O(n) по времени, O(n) памяти</li>
+<li>Минимальные аллокации (только указатели)</li>
+</ul>
+<p><strong>Типичные узлые места</strong>:</p>
+<ul>
+<li>Доступ к полям узлов</li>
+<li>Изменение указателей</li>
+<li>Проверки на nil/None</li>
+</ul>
+<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
+<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
+<ol>
+<li><strong>Базовые тесты</strong>: Простые случаи разворота</li>
+<li><strong>Граничные случаи</strong>: Пустой список, один элемент</li>
+<li><strong>Стресс-тесты</strong>: Большие списки</li>
+</ol>
+<h3 id="примеры-тестов-для-reverse-linked-list"><a class="header" href="#примеры-тестов-для-reverse-linked-list">Примеры тестов для Reverse Linked List</a></h3>
+<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_reverse_basic() {
+        let list = create_list(vec![1, 2, 3, 4, 5]);
+        let reversed = reverse_list_optimized(list);
+        assert_eq!(list_to_vec(reversed), vec![5, 4, 3, 2, 1]);
+    }
+
+    #[test]
+    fn test_reverse_empty() {
+        let list = None;
+        let reversed = reverse_list_optimized(list);
+        assert_eq!(list_to_vec(reversed), vec![]);
+    }
+
+    #[test]
+    fn test_reverse_single() {
+        let list = create_list(vec![1]);
+        let reversed = reverse_list_optimized(list);
+        assert_eq!(list_to_vec(reversed), vec![1]);
+    }
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
+<pre><code class="language-go">func TestReverseList(t *testing.T) {
+    tests := []struct {
+        name string
+        list *ListNode
+        want []int
+    }{
+        {"basic", createList([]int{1, 2, 3, 4, 5}), []int{5, 4, 3, 2, 1}},
+        {"empty", nil, []int{}},
+        {"single", createList([]int{1}), []int{1}},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            result := reverseListOptimized(tt.list)
+            if !reflect.DeepEqual(listToVec(result), tt.want) {
+                t.Errorf("reverseListOptimized() = %v, want %v", listToVec(result), tt.want)
+            }
+        })
+    }
+}
+</code></pre>
+<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
+<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
+<pre><code class="language-bash">cargo test
+cargo test -- --nocapture
+cargo bench
+</code></pre>
+<h4 id="go"><a class="header" href="#go">Go:</a></h4>
+<pre><code class="language-bash">go test -v
+go test -bench=. -benchmem
+</code></pre>
+<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
+<h4 id="rust-1"><a class="header" href="#rust-1">Rust:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+
+fn reverse_list_benchmark(c: &amp;mut Criterion) {
+    let sizes = vec![100, 1000, 10000, 100000];
+    
+    let mut group = c.benchmark_group("reverse_list");
+    for size in sizes {
+        let list = create_list(size);
+        group.bench_with_input(
+            BenchmarkId::from_parameter(size),
+            &amp;list,
+            |b, list| {
+                b.iter(|| reverse_list_optimized(black_box(list.clone())));
+            },
+        );
+    }
+    group.finish();
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
+<pre><code class="language-go">func BenchmarkReverseListSizes(b *testing.B) {
+    sizes := []int{100, 1000, 10000, 100000}
+    
+    for _, size := range sizes {
+        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
+            list := createList(size)
+            b.ResetTimer()
+            for i := 0; i &lt; b.N; i++ {
+                reverseListOptimized(list)
+            }
+        })
+    }
+}
+</code></pre>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/reverse-linked-list/">Reverse Linked List</a> - Разворот связанного списка</li>
+<li><a href="https://leetcode.com/problems/reverse-string/">Reverse String</a> - Разворот строки (аналогичный подход)</li>
+</ul>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/reverse-linked-list-ii/">Reverse Linked List II</a> - Разворот части списка</li>
+<li><a href="https://leetcode.com/problems/reverse-nodes-in-k-group/">Reverse Nodes in k-Group</a> - Разворот узлов группами по K</li>
+<li><a href="https://leetcode.com/problems/swap-nodes-in-pairs/">Swap Nodes in Pairs</a> - Обмен узлами парами</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/reverse-nodes-in-even-length-groups/">Reverse Nodes in Even Length Groups</a> - Разворот узлов в группах четной длины</li>
+</ul>
+<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
+<h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Примеры использования шаблона Reverse Linked List на Rust
+
+// Определение узла связанного списка
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct ListNode {
+    pub val: i32,
+    pub next: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;,
+}
+
+impl ListNode {
+    #[inline]
+    pub fn new(val: i32) -&gt; Self {
+        ListNode { next: None, val }
+    }
+}
+
+/// Пример 1: Итеративный разворот связанного списка
+/// 
+/// Задача: Развернуть связанный список итеративно
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn reverse_list_iterative(mut head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    let mut prev = None;
+    let mut curr = head;
+
+    while let Some(mut node) = curr {
+        let next = node.next.take();
+        node.next = prev;
+        prev = Some(node);
+        curr = next;
+    }
+
+    prev
+}
+
+/// Пример 2: Рекурсивный разворот связанного списка
+/// 
+/// Задача: Развернуть связанный список рекурсивно
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(n) из-за стека вызовов
+pub fn reverse_list_recursive(head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    fn reverse(
+        prev: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;,
+        curr: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;,
+    ) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+        match curr {
+            None =&gt; prev,
+            Some(mut node) =&gt; {
+                let next = node.next.take();
+                node.next = prev;
+                reverse(Some(node), next)
+            }
+        }
+    }
+
+    reverse(None, head)
+}
+
+/// Пример 3: Разворот части списка (от позиции left до right)
+/// 
+/// Задача: Развернуть узлы списка от позиции left до right
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn reverse_between(
+    head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;,
+    left: i32,
+    right: i32,
+) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    if left == right {
+        return head;
+    }
+
+    let mut dummy = Box::new(ListNode { val: 0, next: head });
+    let mut prev = &amp;mut dummy;
+
+    // Переходим к узлу перед left
+    for _ in 1..left {
+        prev = prev.next.as_mut().unwrap();
+    }
+
+    // Разворачиваем часть списка
+    let mut curr = prev.next.take();
+    let mut next = None;
+
+    for _ in 0..=right - left {
+        if let Some(mut node) = curr {
+            let temp = node.next.take();
+            node.next = next;
+            next = Some(node);
+            curr = temp;
+        }
+    }
+
+    // Соединяем части
+    prev.next = next;
+    while prev.next.is_some() {
+        prev = prev.next.as_mut().unwrap();
+    }
+    prev.next = curr;
+
+    dummy.next
+}
+
+/// Пример 4: Разворот узлов группами по K
+/// 
+/// Задача: Развернуть узлы списка группами по K элементов
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn reverse_k_group(head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;, k: i32) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    let mut curr = head.as_ref();
+    let mut count = 0;
+
+    // Проверяем, достаточно ли узлов для группы
+    while curr.is_some() &amp;&amp; count &lt; k {
+        curr = curr.unwrap().next.as_ref();
+        count += 1;
+    }
+
+    // Если достаточно узлов, разворачиваем
+    if count == k {
+        // Рекурсивно обрабатываем остальную часть
+        curr = head.as_ref();
+        for _ in 0..k {
+            curr = curr.unwrap().next.as_ref();
+        }
+
+        let mut reversed_rest = reverse_k_group(
+            curr.cloned(),
+            k,
+        );
+
+        // Разворачиваем текущую группу
+        let mut curr_head = head;
+        while reversed_rest.is_some() {
+            let mut next = curr_head.as_mut().unwrap().next.take();
+            curr_head.as_mut().unwrap().next = reversed_rest;
+            reversed_rest = next;
+            curr_head = curr_head.unwrap().next;
+        }
+
+        curr_head
+    } else {
+        // Недостаточно узлов, возвращаем как есть
+        head
+    }
+}
+
+/// Пример 5: Обмен узлами парами
+/// 
+/// Задача: Обменять каждые два соседних узла
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn swap_pairs(head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    let mut dummy = Box::new(ListNode { val: 0, next: head });
+    let mut prev = &amp;mut dummy;
+
+    while prev.next.is_some() &amp;&amp; prev.next.as_ref().unwrap().next.is_some() {
+        let mut first = prev.next.take().unwrap();
+        let mut second = first.next.take().unwrap();
+        let next = second.next.take();
+
+        first.next = next;
+        second.next = Some(first);
+        prev.next = Some(second);
+
+        prev = prev.next.as_mut().unwrap().next.as_mut().unwrap();
+    }
+
+    dummy.next
+}
+
+/// Пример 6: Разворот связанного списка (упрощенная версия)
+/// 
+/// Задача: Развернуть весь список (базовая версия)
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn reverse_list(head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    reverse_list_iterative(head)
+}
+<span class="boring">}</span></code></pre>
+<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
+<pre><code class="language-go">package main
+
+import (
+	"fmt"
+)
+
+// Определение узла связанного списка
+type ListNode struct {
+	Val  int
+	Next *ListNode
+}
+
+// Пример 1: Итеративный разворот связанного списка
+//
+// Задача: Развернуть связанный список итеративно
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func reverseListIterative(head *ListNode) *ListNode {
+	var prev *ListNode
+	curr := head
+
+	for curr != nil {
+		next := curr.Next
+		curr.Next = prev
+		prev = curr
+		curr = next
+	}
+
+	return prev
+}
+
+// Пример 2: Рекурсивный разворот связанного списка
+//
+// Задача: Развернуть связанный список рекурсивно
+// Временная сложность: O(n)
+// Пространственная сложность: O(n) из-за стека вызовов
+func reverseListRecursive(head *ListNode) *ListNode {
+	if head == nil || head.Next == nil {
+		return head
+	}
+
+	// Рекурсивно разворачиваем остальную часть
+	reversed := reverseListRecursive(head.Next)
+
+	// Разворачиваем текущий узел
+	head.Next.Next = head
+	head.Next = nil
+
+	return reversed
+}
+
+// Пример 3: Разворот части списка (от позиции left до right)
+//
+// Задача: Развернуть узлы списка от позиции left до right
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func reverseBetween(head *ListNode, left, right int) *ListNode {
+	if left == right {
+		return head
+	}
+
+	dummy := &amp;ListNode{Val: 0, Next: head}
+	prev := dummy
+
+	// Переходим к узлу перед left
+	for i := 1; i &lt; left; i++ {
+		prev = prev.Next
+	}
+
+	// Разворачиваем часть списка
+	curr := prev.Next
+	var next *ListNode
+
+	for i := 0; i &lt;= right-left; i++ {
+		temp := curr.Next
+		curr.Next = next
+		next = curr
+		curr = temp
+	}
+
+	// Соединяем части
+	prev.Next.Next = curr
+	prev.Next = next
+
+	return dummy.Next
+}
+
+// Пример 4: Разворот узлов группами по K
+//
+// Задача: Развернуть узлы списка группами по K элементов
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func reverseKGroup(head *ListNode, k int) *ListNode {
+	curr := head
+	count := 0
+
+	// Проверяем, достаточно ли узлов для группы
+	for curr != nil &amp;&amp; count &lt; k {
+		curr = curr.Next
+		count++
+	}
+
+	// Если достаточно узлов, разворачиваем
+	if count == k {
+		// Рекурсивно обрабатываем остальную часть
+		curr = reverseKGroup(curr, k)
+
+		// Разворачиваем текущую группу
+		for count &gt; 0 {
+			next := head.Next
+			head.Next = curr
+			curr = head
+			head = next
+			count--
+		}
+
+		head = curr
+	}
+
+	return head
+}
+
+// Пример 5: Обмен узлами парами
+//
+// Задача: Обменять каждые два соседних узла
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func swapPairs(head *ListNode) *ListNode {
+	dummy := &amp;ListNode{Val: 0, Next: head}
+	prev := dummy
+
+	for prev.Next != nil &amp;&amp; prev.Next.Next != nil {
+		first := prev.Next
+		second := first.Next
+
+		first.Next = second.Next
+		second.Next = first
+		prev.Next = second
+
+		prev = first
+	}
+
+	return dummy.Next
+}
+
+// Пример 6: Разворот связанного списка (упрощенная версия)
+//
+// Задача: Развернуть весь список (базовая версия)
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func reverseList(head *ListNode) *ListNode {
+	return reverseListIterative(head)
+}
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="cyclic-sort.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="tree-bfs.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="cyclic-sort.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="tree-bfs.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace-2a3cd908.js"></script>
+        <script src="mode-rust-2c9d5c9a.js"></script>
+        <script src="editor-16ca416c.js"></script>
+        <script src="theme-dawn-4493f9c8.js"></script>
+        <script src="theme-tomorrow_night-9dbe62a9.js"></script>
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

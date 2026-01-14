@@ -1,0 +1,27 @@
+[book]
+title = "Алгоритмические шаблоны для решения задач на собеседованиях"
+description = "Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go"
+authors = ["Algorithm Study Guide"]
+language = "ru"
+src = "src"
+
+[build]
+build-dir = "book"
+create-missing = true
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"
+git-repository-url = ""
+edit-url-template = ""
+git-repository-icon = "fa-github"
+mathjax-support = true
+additional-css = []
+additional-js = []
+no-section-label = false
+playground = { editable = true, copyable = true, copy-js = true, line-numbers = false, runnable = true }
+search = { enable = true, limit-results = 30, teaser-word-count = 30, use-boolean-and = true, boost-title = 2, boost-hierarchy = 1, boost-paragraph = 1, expand = true, heading-split-level = 3 }
+
+[preprocessor.links]
+
+[preprocessor.index]

@@ -1,0 +1,1351 @@
+<!DOCTYPE HTML>
+<html lang="ru" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Tree BFS (Обход дерева в ширину) - Алгоритмические шаблоны для решения задач на собеседованиях</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-9de7afef.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Алгоритмические шаблоны для решения задач на собеседованиях</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="tree-bfs-обход-дерева-в-ширину"><a class="header" href="#tree-bfs-обход-дерева-в-ширину">Tree BFS (Обход дерева в ширину)</a></h1>
+<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
+<p>Шаблон <strong>Tree BFS</strong> (Breadth-First Search) используется для обхода дерева уровень за уровнем. Алгоритм использует очередь для хранения узлов текущего уровня перед переходом к следующему уровню. Этот подход особенно полезен для задач, требующих обработки узлов по уровням.</p>
+<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
+<p>BFS был разработан в контексте поиска в графах и деревьях. Алгоритм гарантирует, что все узлы на уровне k будут обработаны перед узлами уровня k+1, что делает его идеальным для задач, связанных с уровнями дерева или кратчайшими путями.</p>
+<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
+<p>Ключевое наблюдение: используя очередь (FIFO), мы обрабатываем узлы в порядке их добавления, что естественным образом обеспечивает обход уровень за уровнем. Каждый уровень полностью обрабатывается перед переходом к следующему.</p>
+<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
+<p>Используйте этот шаблон, когда:</p>
+<ul>
+<li>Нужно обработать узлы дерева уровень за уровнем</li>
+<li>Требуется найти кратчайший путь в дереве</li>
+<li>Нужно найти все узлы на определенном уровне</li>
+<li>Задача связана с уровнями дерева или его шириной</li>
+<li>Требуется обход дерева в порядке уровней</li>
+</ul>
+<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
+<h3 id="базовый-алгоритм"><a class="header" href="#базовый-алгоритм">Базовый алгоритм:</a></h3>
+<ol>
+<li><strong>Инициализация</strong>: Создайте очередь и добавьте корневой узел</li>
+<li><strong>Итерация</strong>: Пока очередь не пуста:
+<ul>
+<li>Определите размер текущего уровня</li>
+<li>Обработайте все узлы текущего уровня</li>
+<li>Для каждого узла добавьте его дочерние узлы в очередь</li>
+</ul>
+</li>
+<li><strong>Завершение</strong>: Когда очередь пуста, обход завершен</li>
+</ol>
+<h3 id="структура"><a class="header" href="#структура">Структура:</a></h3>
+<p><strong>Что такое Queue (Очередь)?</strong></p>
+<p><strong>Queue (Очередь)</strong> — это структура данных типа FIFO (First In, First Out — первый пришел, первый ушел). Элементы добавляются в конец и извлекаются из начала.</p>
+<p><strong>Основные операции</strong>:</p>
+<ul>
+<li><strong>Enqueue (добавление)</strong>: Добавить элемент в конец очереди</li>
+<li><strong>Dequeue (извлечение)</strong>: Удалить элемент из начала очереди</li>
+<li><strong>Peek (просмотр)</strong>: Посмотреть элемент в начале без удаления</li>
+</ul>
+<p><strong>Почему Queue используется для BFS?</strong></p>
+<ul>
+<li>BFS обрабатывает узлы уровень за уровнем</li>
+<li>Узлы добавляются в очередь по порядку их обнаружения</li>
+<li>Извлечение из начала очереди гарантирует обработку узлов в правильном порядке (сначала узлы уровня k, затем уровня k+1)</li>
+</ul>
+<pre><code>Используйте очередь (Queue) для хранения узлов:
+- Добавляйте узлы в конец очереди (enqueue)
+- Извлекайте узлы из начала очереди (dequeue)
+- Это обеспечивает обход уровень за уровнем
+</code></pre>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<h3 id="обход-дерева-в-ширину"><a class="header" href="#обход-дерева-в-ширину">Обход дерева в ширину:</a></h3>
+<pre><code>        1
+       / \
+      2   3
+     / \   \
+    4   5   6
+
+Уровень 0: [1]
+           Обрабатываем: 1
+           Добавляем: 2, 3
+           
+Уровень 1: [2, 3]
+           Обрабатываем: 2, 3
+           Добавляем: 4, 5, 6
+           
+Уровень 2: [4, 5, 6]
+           Обрабатываем: 4, 5, 6
+           Нет дочерних узлов
+           
+Порядок обхода: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; 6
+</code></pre>
+<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
+<p><strong>Инвариант</strong>: На каждом шаге очередь содержит все узлы текущего уровня, отсортированные слева направо.</p>
+<p><strong>Доказательство корректности</strong>:</p>
+<ol>
+<li><strong>Базовый случай</strong>: Очередь содержит только корень (уровень 0) - корректно</li>
+<li><strong>Индуктивный шаг</strong>: Предположим, очередь содержит узлы уровня k в правильном порядке
+<ul>
+<li>Обрабатываем все узлы уровня k</li>
+<li>Добавляем их дочерние узлы (уровень k+1) в очередь</li>
+<li>Порядок добавления сохраняет порядок слева направо</li>
+<li>Очередь теперь содержит узлы уровня k+1 в правильном порядке</li>
+</ul>
+</li>
+</ol>
+<p><strong>Почему сложность O(n)?</strong></p>
+<p>Каждый узел добавляется в очередь ровно один раз и извлекается ровно один раз. Для каждого узла выполняется константное количество операций → O(n).</p>
+<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
+<ul>
+<li><strong>Временная сложность</strong>: O(n)
+<ul>
+<li>Каждый узел посещается ровно один раз</li>
+<li>Операции с очередью: O(1) для добавления/удаления</li>
+<li>Итого: O(n)</li>
+</ul>
+</li>
+<li><strong>Пространственная сложность</strong>: O(w), где w - максимальная ширина дерева
+<ul>
+<li>В худшем случае (полное бинарное дерево): w = n/2</li>
+<li>В лучшем случае (линейное дерево): w = 1</li>
+</ul>
+</li>
+</ul>
+<h3 id="сравнение-с-dfs"><a class="header" href="#сравнение-с-dfs">Сравнение с DFS:</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>BFS</th><th>DFS</th></tr>
+</thead>
+<tbody>
+<tr><td>Порядок обхода</td><td>Уровень за уровнем</td><td>Глубина за глубиной</td></tr>
+<tr><td>Память</td><td>O(w) - ширина</td><td>O(h) - высота</td></tr>
+<tr><td>Применение</td><td>Кратчайший путь, уровни</td><td>Обход, поиск</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Забывание проверки на пустой корень</strong>: Всегда проверяйте <code>root == None</code></li>
+<li><strong>Неправильное определение уровня</strong>: Используйте размер очереди для определения границ уровня</li>
+<li><strong>Добавление None в очередь</strong>: Проверяйте дочерние узлы перед добавлением</li>
+</ol>
+<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
+<ol>
+<li>Используйте размер очереди для обработки уровня за уровнем</li>
+<li>Для зигзагообразного обхода переворачивайте уровень при необходимости</li>
+<li>Для задач на кратчайший путь BFS предпочтительнее DFS</li>
+</ol>
+<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
+<h3 id="используемые-структуры-данных-в-tree-bfs"><a class="header" href="#используемые-структуры-данных-в-tree-bfs">Используемые структуры данных в Tree BFS</a></h3>
+<p>В шаблоне Tree BFS используются следующие структуры данных:</p>
+<ul>
+<li><strong>TreeNode</strong>: Узлы дерева (Box&lt;T&gt; в Rust, указатели в Go)</li>
+<li>****: Очередь для BFS обхода</li>
+</ul>
+<h3 id="treenode-узел-дерева"><a class="header" href="#treenode-узел-дерева">TreeNode (Узел дерева)</a></h3>
+<p><strong>Что такое бинарное дерево (Binary Tree)?</strong></p>
+<p><strong>Бинарное дерево</strong> — это иерархическая структура данных, где каждый узел имеет максимум два потомка (левый и правый). Дерево начинается с корневого узла и может быть пустым.</p>
+<p><strong>Основные характеристики</strong>:</p>
+<ul>
+<li><strong>Корневой узел</strong>: Самый верхний узел дерева</li>
+<li><strong>Листья</strong>: Узлы без потомков</li>
+<li><strong>Высота</strong>: Максимальное расстояние от корня до листа</li>
+<li><strong>Уровень</strong>: Расстояние от корня (корень на уровне 0)</li>
+</ul>
+<p><strong>Структура узла (TreeNode)</strong>:</p>
+<ul>
+<li><strong>val</strong>: Значение узла (данные)</li>
+<li><strong>left</strong>: Указатель на левого потомка (или None/nil)</li>
+<li><strong>right</strong>: Указатель на правого потомка (или None/nil)</li>
+</ul>
+<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
+<p><strong>Rust (Box&lt;T&gt;)</strong>:</p>
+<pre><code>Узел дерева:
+┌─────────────────────────────────────────┐
+│ Box&amp;lt;TreeNode&amp;gt;                            │
+│ ┌─────────────┐                         │
+│ │ val: i32    │ Значение                │
+│ │ left: Option│ Левый потомок           │
+│ │ right: Option│ Правый потомок         │
+│ └─────────────┘                         │
+└─────────────────────────────────────────┘
+</code></pre>
+<p><strong>Go (указатели)</strong>:</p>
+<pre><code>Узел дерева:
+┌─────────────────────────────────────────┐
+│ *TreeNode                                │
+│ ┌─────────────┐                         │
+│ │ Val: int    │ Значение                │
+│ │ Left: *TreeNode│ Левый потомок        │
+│ │ Right: *TreeNode│ Правый потомок      │
+│ └─────────────┘                         │
+└─────────────────────────────────────────┘
+</code></pre>
+<h3 id="vecdequet-rust--queue-go"><a class="header" href="#vecdequet-rust--queue-go"><code>VecDeque&lt;T&gt;</code> (Rust) / Queue (Go)</a></h3>
+<h4 id="как-хранится-в-памяти-1"><a class="header" href="#как-хранится-в-памяти-1">Как хранится в памяти:</a></h4>
+<p><strong>Rust <code>VecDeque&lt;T&gt;</code></strong>:</p>
+<pre><code>Кольцевой буфер:
+┌─────────────────────────────────────────┐
+│ VecDeque&lt;Option&amp;lt;Box&amp;lt;TreeNode&amp;gt;&amp;gt;&gt;         │
+│ ┌─────────────┐                         │
+│ │ head: usize │ Индекс начала           │
+│ │ tail: usize │ Индекс конца            │
+│ │ buf: Vec&amp;lt;T&amp;gt; │ Буфер данных            │
+│ └─────────────┘                         │
+└─────────────────────────────────────────┘
+</code></pre>
+<p><strong>Go Queue (через slice)</strong>:</p>
+<pre><code class="language-go">type Queue []*TreeNode
+// Используется как очередь через append и [1:]
+</code></pre>
+<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>VecDeque</th><th>Queue (slice)</th><th>Объяснение</th></tr>
+</thead>
+<tbody>
+<tr><td>Enqueue (push_back)</td><td>O(1) амортизированная</td><td>O(1) амортизированная</td><td>Добавление в конец</td></tr>
+<tr><td>Dequeue (pop_front)</td><td>O(1)</td><td>O(1)</td><td>Удаление из начала</td></tr>
+<tr><td>Размер</td><td>O(1)</td><td>O(1)</td><td>Простое вычисление</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Почему VecDeque эффективен для BFS</strong>:</p>
+<ul>
+<li>O(1) операции с обоих концов</li>
+<li>Непрерывная память (cache-friendly)</li>
+<li>Эффективнее чем LinkedList для очереди</li>
+</ul>
+<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
+<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
+<p><strong>Для Tree BFS</strong>:</p>
+<ul>
+<li>Узлы дерева в куче</li>
+<li>Очередь может escape, если возвращается</li>
+<li>Указатели на узлы - на стеке</li>
+</ul>
+<h3 id="borrow-checker-rust"><a class="header" href="#borrow-checker-rust">Borrow Checker (Rust)</a></h3>
+<p><strong>Типичный паттерн</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn bfs(root: Option&amp;lt;Box&amp;lt;TreeNode&amp;gt;&amp;gt;) -&gt; Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; {
+    let mut queue = VecDeque::new();
+    queue.push_back(root);
+    // ...
+}
+<span class="boring">}</span></code></pre>
+<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
+<p><strong>Для Tree BFS</strong>:</p>
+<ul>
+<li>Узлы дерева в куче</li>
+<li>Очередь также в куче</li>
+<li>Минимизация размера очереди критична</li>
+</ul>
+<h3 id="ownership-и-move-semantics-rust"><a class="header" href="#ownership-и-move-semantics-rust">Ownership и Move Semantics (Rust)</a></h3>
+<p><strong>Концепция владения</strong>:</p>
+<ul>
+<li>Каждый <code>Box&amp;lt;TreeNode&amp;gt;</code> владеет потомками</li>
+<li>При добавлении в очередь передаем владение</li>
+<li>RAII гарантирует освобождение</li>
+</ul>
+<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
+<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
+<h4 id="rust-очередь-для-bfs"><a class="header" href="#rust-очередь-для-bfs">Rust: Очередь для BFS</a></h4>
+<p>В Rust для Tree BFS:</p>
+<ul>
+<li><strong>Очередь</strong>: <code>VecDeque&amp;lt;TreeNode&amp;gt;</code> - аллоцируется в куче, O(w) где w - ширина дерева</li>
+<li><strong>Результат</strong>: <code>Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;</code> - O(n) для всех значений</li>
+<li><strong>Указатели</strong>: <code>&amp;TreeNode</code> - ссылки, не аллоцируют</li>
+</ul>
+<h4 id="go-очередь-для-bfs"><a class="header" href="#go-очередь-для-bfs">Go: Очередь для BFS</a></h4>
+<p>В Go:</p>
+<ul>
+<li><strong>Очередь</strong>: <code>[]*TreeNode</code> - слайс в куче, O(w)</li>
+<li><strong>Результат</strong>: <code>[][]int</code> - O(n) в куче</li>
+<li><strong>Указатели</strong>: <code>*TreeNode</code> - указатели, не аллоцируют</li>
+</ul>
+<h3 id="анализ-аллокаций-для-tree-bfs"><a class="header" href="#анализ-аллокаций-для-tree-bfs">Анализ аллокаций для Tree BFS</a></h3>
+<h4 id="базовый-обход"><a class="header" href="#базовый-обход">Базовый обход:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Аллокации:
+// - queue: VecDeque - O(w) где w - максимальная ширина уровня
+// - result: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; - O(n) для всех значений
+// Итого: O(n) памяти в худшем случае (полное дерево)
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// Аллокации:
+// - queue: []*TreeNode - O(w) в куче
+// - result: [][]int - O(n) в куче
+// Итого: O(n) памяти в худшем случае
+</code></pre>
+<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
+<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
+<ol>
+<li><strong>Предварительное выделение очереди</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Предварительное выделение
+let mut queue = VecDeque::with_capacity(max_width);
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Переиспользование векторов</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Переиспользование level вектора
+let mut level = Vec::with_capacity(queue.len());
+<span class="boring">}</span></code></pre>
+<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
+<ol>
+<li><strong>Предварительное выделение</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Предварительное выделение
+queue := make([]*TreeNode, 0, maxWidth)
+</code></pre>
+<ol start="2">
+<li><strong>Переиспользование слайсов</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Переиспользование level слайса
+level := make([]int, 0, len(queue))
+</code></pre>
+<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Очередь</td><td>VecDeque в куче</td><td>Слайс в куче</td></tr>
+<tr><td>Результат</td><td><code>Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;</code></td><td>[][]int</td></tr>
+<tr><td>Память</td><td>O(n) в худшем случае</td><td>O(n) в худшем случае</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
+<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
+<ol>
+<li><strong>Предварительное выделение структур данных</strong></li>
+<li><strong>Минимизация аллокаций в циклах</strong></li>
+<li><strong>Использование размера очереди для батчинга</strong></li>
+</ol>
+<h3 id="специфичные-оптимизации-для-tree-bfs"><a class="header" href="#специфичные-оптимизации-для-tree-bfs">Специфичные оптимизации для Tree BFS</a></h3>
+<h4 id="1-оптимизация-обхода"><a class="header" href="#1-оптимизация-обхода">1. Оптимизация обхода:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Оптимизированная версия
+pub fn level_order_optimized(root: Option&amp;lt;Rc&amp;lt;RefCell&amp;lt;TreeNode&amp;gt;&amp;gt;&amp;gt;) -&gt; Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; {
+    let mut result = Vec::new();
+    if root.is_none() { return result; }
+    
+    let mut queue = VecDeque::with_capacity(100);
+    queue.push_back(root.unwrap());
+    
+    while !queue.is_empty() {
+        let level_size = queue.len();
+        let mut level = Vec::with_capacity(level_size);
+        
+        for _ in 0..level_size {
+            let node = queue.pop_front().unwrap();
+            let node_ref = node.borrow();
+            level.push(node_ref.val);
+            
+            if let Some(left) = &amp;node_ref.left {
+                queue.push_back(left.clone());
+            }
+            if let Some(right) = &amp;node_ref.right {
+                queue.push_back(right.clone());
+            }
+        }
+        result.push(level);
+    }
+    result
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// ✅ Оптимизированная версия
+func levelOrderOptimized(root *TreeNode) [][]int {
+    if root == nil { return [][]int{} }
+    
+    result := make([][]int, 0)
+    queue := make([]*TreeNode, 0, 100)
+    queue = append(queue, root)
+    
+    for len(queue) &gt; 0 {
+        levelSize := len(queue)
+        level := make([]int, 0, levelSize)
+        
+        for i := 0; i &lt; levelSize; i++ {
+            node := queue[0]
+            queue = queue[1:]
+            level = append(level, node.Val)
+            
+            if node.Left != nil {
+                queue = append(queue, node.Left)
+            }
+            if node.Right != nil {
+                queue = append(queue, node.Right)
+            }
+        }
+        result = append(result, level)
+    }
+    return result
+}
+</code></pre>
+<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
+<ol>
+<li><strong>Использование <code>VecDeque</code></strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Эффективная очередь с O(1) операциями
+use std::collections::VecDeque;
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Предварительное выделение</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Предварительное выделение
+let mut queue = VecDeque::with_capacity(max_width);
+<span class="boring">}</span></code></pre>
+<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
+<ol>
+<li><strong>Предварительное выделение слайсов</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Предварительное выделение
+queue := make([]*TreeNode, 0, maxWidth)
+</code></pre>
+<ol start="2">
+<li><strong>Батчинг по уровням</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Обработка уровня целиком
+levelSize := len(queue)
+for i := 0; i &lt; levelSize; i++ {
+    // ...
+}
+</code></pre>
+<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
+<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
+<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
+<h3 id="как-профилировать-tree-bfs"><a class="header" href="#как-профилировать-tree-bfs">Как профилировать Tree BFS</a></h3>
+<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// benches/tree_bfs_bench.rs
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn bench_level_order(c: &amp;mut Criterion) {
+    let tree = create_test_tree(1000);
+    
+    c.bench_function("level_order_1000", |b| {
+        b.iter(|| level_order_optimized(black_box(tree.clone())))
+    });
+}
+
+criterion_group!(benches, bench_level_order);
+criterion_main!(benches);
+<span class="boring">}</span></code></pre>
+<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
+<pre><code class="language-go">func BenchmarkLevelOrder(b *testing.B) {
+    tree := createTestTree(1000)
+    
+    b.ResetTimer()
+    for i := 0; i &lt; b.N; i++ {
+        levelOrderOptimized(tree)
+    }
+}
+</code></pre>
+<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
+<p><strong>Анализ производительности</strong>:</p>
+<ul>
+<li>Tree BFS: O(n) по времени, O(w) для очереди, O(n) для результата</li>
+<li>Ширина дерева определяет размер очереди</li>
+</ul>
+<p><strong>Типичные узкие места</strong>:</p>
+<ul>
+<li>Операции с очередью</li>
+<li>Создание векторов для уровней</li>
+<li>Клонирование узлов (в Rust)</li>
+</ul>
+<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
+<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
+<ol>
+<li><strong>Базовые тесты</strong>: Простые деревья</li>
+<li><strong>Граничные случаи</strong>: Пустое дерево, один узел, вырожденное дерево</li>
+<li><strong>Стресс-тесты</strong>: Большие деревья</li>
+</ol>
+<h3 id="примеры-тестов-для-tree-bfs"><a class="header" href="#примеры-тестов-для-tree-bfs">Примеры тестов для Tree BFS</a></h3>
+<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_level_order_basic() {
+        let tree = create_tree(vec![Some(3), Some(9), Some(20), None, None, Some(15), Some(7)]);
+        let result = level_order_optimized(tree);
+        assert_eq!(result, vec![vec![3], vec![9, 20], vec![15, 7]]);
+    }
+
+    #[test]
+    fn test_level_order_empty() {
+        let tree = None;
+        let result = level_order_optimized(tree);
+        assert_eq!(result, Vec::&lt;Vec&amp;lt;i32&amp;gt;&gt;::new());
+    }
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
+<pre><code class="language-go">func TestLevelOrder(t *testing.T) {
+    tests := []struct {
+        name string
+        tree *TreeNode
+        want [][]int
+    }{
+        {"basic", createTree([]int{3, 9, 20, -1, -1, 15, 7}), [][]int{{3}, {9, 20}, {15, 7}}},
+        {"empty", nil, [][]int{}},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            result := levelOrderOptimized(tt.tree)
+            if !reflect.DeepEqual(result, tt.want) {
+                t.Errorf("levelOrderOptimized() = %v, want %v", result, tt.want)
+            }
+        })
+    }
+}
+</code></pre>
+<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
+<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
+<pre><code class="language-bash">cargo test
+cargo test -- --nocapture
+cargo bench
+</code></pre>
+<h4 id="go"><a class="header" href="#go">Go:</a></h4>
+<pre><code class="language-bash">go test -v
+go test -bench=. -benchmem
+</code></pre>
+<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
+<h4 id="rust-1"><a class="header" href="#rust-1">Rust:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+
+fn tree_bfs_benchmark(c: &amp;mut Criterion) {
+    let sizes = vec![100, 1000, 10000];
+    
+    let mut group = c.benchmark_group("tree_bfs");
+    for size in sizes {
+        let tree = create_test_tree(size);
+        group.bench_with_input(
+            BenchmarkId::from_parameter(size),
+            &amp;tree,
+            |b, tree| {
+                b.iter(|| level_order_optimized(black_box(tree.clone())));
+            },
+        );
+    }
+    group.finish();
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
+<pre><code class="language-go">func BenchmarkTreeBFSSizes(b *testing.B) {
+    sizes := []int{100, 1000, 10000}
+    
+    for _, size := range sizes {
+        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
+            tree := createTestTree(size)
+            b.ResetTimer()
+            for i := 0; i &lt; b.N; i++ {
+                levelOrderOptimized(tree)
+            }
+        })
+    }
+}
+</code></pre>
+<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
+<h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Примеры использования шаблона Tree BFS на Rust
+
+use std::collections::VecDeque;
+use std::rc::Rc;
+use std::cell::RefCell;
+
+// Определение узла бинарного дерева
+#[derive(Debug, PartialEq, Eq)]
+pub struct TreeNode {
+    pub val: i32,
+    pub left: Option&amp;lt;Rc&amp;lt;RefCell&amp;lt;TreeNode&amp;gt;&amp;gt;&amp;gt;,
+    pub right: Option&amp;lt;Rc&amp;lt;RefCell&amp;lt;TreeNode&amp;gt;&amp;gt;&amp;gt;,
+}
+
+impl TreeNode {
+    #[inline]
+    pub fn new(val: i32) -&gt; Self {
+        TreeNode {
+            val,
+            left: None,
+            right: None,
+        }
+    }
+}
+
+/// Пример 1: Обход дерева по уровням
+/// 
+/// Задача: Вернуть значения узлов, сгруппированные по уровням
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(n)
+pub fn level_order(root: Option&amp;lt;Rc&amp;lt;RefCell&amp;lt;TreeNode&amp;gt;&amp;gt;&amp;gt;) -&gt; Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; {
+    let mut result = Vec::new();
+    
+    if root.is_none() {
+        return result;
+    }
+
+    let mut queue = VecDeque::new();
+    queue.push_back(root.unwrap());
+
+    while !queue.is_empty() {
+        let level_size = queue.len();
+        let mut current_level = Vec::new();
+
+        for _ in 0..level_size {
+            let node = queue.pop_front().unwrap();
+            let node_ref = node.borrow();
+            
+            current_level.push(node_ref.val);
+
+            if let Some(left) = &amp;node_ref.left {
+                queue.push_back(left.clone());
+            }
+            if let Some(right) = &amp;node_ref.right {
+                queue.push_back(right.clone());
+            }
+        }
+
+        result.push(current_level);
+    }
+
+    result
+}
+
+/// Пример 2: Среднее значение каждого уровня
+/// 
+/// Задача: Вычислить среднее значение узлов на каждом уровне
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(n)
+pub fn average_of_levels(root: Option&amp;lt;Rc&amp;lt;RefCell&amp;lt;TreeNode&amp;gt;&amp;gt;&amp;gt;) -&gt; Vec&amp;lt;f64&amp;gt; {
+    let mut result = Vec::new();
+    
+    if root.is_none() {
+        return result;
+    }
+
+    let mut queue = VecDeque::new();
+    queue.push_back(root.unwrap());
+
+    while !queue.is_empty() {
+        let level_size = queue.len();
+        let mut sum = 0i64;
+
+        for _ in 0..level_size {
+            let node = queue.pop_front().unwrap();
+            let node_ref = node.borrow();
+            
+            sum += node_ref.val as i64;
+
+            if let Some(left) = &amp;node_ref.left {
+                queue.push_back(left.clone());
+            }
+            if let Some(right) = &amp;node_ref.right {
+                queue.push_back(right.clone());
+            }
+        }
+
+        result.push(sum as f64 / level_size as f64);
+    }
+
+    result
+}
+
+/// Пример 3: Вид дерева справа
+/// 
+/// Задача: Вернуть значения узлов, видимых справа на каждом уровне
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(n)
+pub fn right_side_view(root: Option&amp;lt;Rc&amp;lt;RefCell&amp;lt;TreeNode&amp;gt;&amp;gt;&amp;gt;) -&gt; Vec&amp;lt;i32&amp;gt; {
+    let mut result = Vec::new();
+    
+    if root.is_none() {
+        return result;
+    }
+
+    let mut queue = VecDeque::new();
+    queue.push_back(root.unwrap());
+
+    while !queue.is_empty() {
+        let level_size = queue.len();
+        let mut rightmost = 0;
+
+        for i in 0..level_size {
+            let node = queue.pop_front().unwrap();
+            let node_ref = node.borrow();
+            
+            rightmost = node_ref.val;
+
+            if let Some(left) = &amp;node_ref.left {
+                queue.push_back(left.clone());
+            }
+            if let Some(right) = &amp;node_ref.right {
+                queue.push_back(right.clone());
+            }
+        }
+
+        result.push(rightmost);
+    }
+
+    result
+}
+
+/// Пример 4: Зигзагообразный обход дерева
+/// 
+/// Задача: Обойти дерево зигзагообразно (слева направо, затем справа налево)
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(n)
+pub fn zigzag_level_order(root: Option&amp;lt;Rc&amp;lt;RefCell&amp;lt;TreeNode&amp;gt;&amp;gt;&amp;gt;) -&gt; Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; {
+    let mut result = Vec::new();
+    
+    if root.is_none() {
+        return result;
+    }
+
+    let mut queue = VecDeque::new();
+    queue.push_back(root.unwrap());
+    let mut left_to_right = true;
+
+    while !queue.is_empty() {
+        let level_size = queue.len();
+        let mut current_level = Vec::new();
+
+        for _ in 0..level_size {
+            let node = queue.pop_front().unwrap();
+            let node_ref = node.borrow();
+            
+            current_level.push(node_ref.val);
+
+            if let Some(left) = &amp;node_ref.left {
+                queue.push_back(left.clone());
+            }
+            if let Some(right) = &amp;node_ref.right {
+                queue.push_back(right.clone());
+            }
+        }
+
+        if !left_to_right {
+            current_level.reverse();
+        }
+
+        result.push(current_level);
+        left_to_right = !left_to_right;
+    }
+
+    result
+}
+
+/// Пример 5: Максимальная глубина дерева (BFS подход)
+/// 
+/// Задача: Найти максимальную глубину бинарного дерева
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(n)
+pub fn max_depth_bfs(root: Option&amp;lt;Rc&amp;lt;RefCell&amp;lt;TreeNode&amp;gt;&amp;gt;&amp;gt;) -&gt; i32 {
+    if root.is_none() {
+        return 0;
+    }
+
+    let mut queue = VecDeque::new();
+    queue.push_back(root.unwrap());
+    let mut depth = 0;
+
+    while !queue.is_empty() {
+        let level_size = queue.len();
+        depth += 1;
+
+        for _ in 0..level_size {
+            let node = queue.pop_front().unwrap();
+            let node_ref = node.borrow();
+
+            if let Some(left) = &amp;node_ref.left {
+                queue.push_back(left.clone());
+            }
+            if let Some(right) = &amp;node_ref.right {
+                queue.push_back(right.clone());
+            }
+        }
+    }
+
+    depth
+}
+
+/// Пример 6: Минимальная глубина дерева
+/// 
+/// Задача: Найти минимальную глубину дерева (до ближайшего листа)
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(n)
+pub fn min_depth(root: Option&amp;lt;Rc&amp;lt;RefCell&amp;lt;TreeNode&amp;gt;&amp;gt;&amp;gt;) -&gt; i32 {
+    if root.is_none() {
+        return 0;
+    }
+
+    let mut queue = VecDeque::new();
+    queue.push_back(root.unwrap());
+    let mut depth = 0;
+
+    while !queue.is_empty() {
+        let level_size = queue.len();
+        depth += 1;
+
+        for _ in 0..level_size {
+            let node = queue.pop_front().unwrap();
+            let node_ref = node.borrow();
+
+            // Если это лист, возвращаем текущую глубину
+            if node_ref.left.is_none() &amp;&amp; node_ref.right.is_none() {
+                return depth;
+            }
+
+            if let Some(left) = &amp;node_ref.left {
+                queue.push_back(left.clone());
+            }
+            if let Some(right) = &amp;node_ref.right {
+                queue.push_back(right.clone());
+            }
+        }
+    }
+
+    depth
+}
+<span class="boring">}</span></code></pre>
+<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
+<pre><code class="language-go">package main
+
+import (
+	"fmt"
+)
+
+// Определение узла бинарного дерева
+type TreeNode struct {
+	Val   int
+	Left  *TreeNode
+	Right *TreeNode
+}
+
+// Пример 1: Обход дерева по уровням
+//
+// Задача: Вернуть значения узлов, сгруппированные по уровням
+// Временная сложность: O(n)
+// Пространственная сложность: O(n)
+func levelOrder(root *TreeNode) [][]int {
+	var result [][]int
+
+	if root == nil {
+		return result
+	}
+
+	queue := []*TreeNode{root}
+
+	for len(queue) &gt; 0 {
+		levelSize := len(queue)
+		var currentLevel []int
+
+		for i := 0; i &lt; levelSize; i++ {
+			node := queue[0]
+			queue = queue[1:]
+
+			currentLevel = append(currentLevel, node.Val)
+
+			if node.Left != nil {
+				queue = append(queue, node.Left)
+			}
+			if node.Right != nil {
+				queue = append(queue, node.Right)
+			}
+		}
+
+		result = append(result, currentLevel)
+	}
+
+	return result
+}
+
+// Пример 2: Среднее значение каждого уровня
+//
+// Задача: Вычислить среднее значение узлов на каждом уровне
+// Временная сложность: O(n)
+// Пространственная сложность: O(n)
+func averageOfLevels(root *TreeNode) []float64 {
+	var result []float64
+
+	if root == nil {
+		return result
+	}
+
+	queue := []*TreeNode{root}
+
+	for len(queue) &gt; 0 {
+		levelSize := len(queue)
+		sum := 0
+
+		for i := 0; i &lt; levelSize; i++ {
+			node := queue[0]
+			queue = queue[1:]
+
+			sum += node.Val
+
+			if node.Left != nil {
+				queue = append(queue, node.Left)
+			}
+			if node.Right != nil {
+				queue = append(queue, node.Right)
+			}
+		}
+
+		result = append(result, float64(sum)/float64(levelSize))
+	}
+
+	return result
+}
+
+// Пример 3: Вид дерева справа
+//
+// Задача: Вернуть значения узлов, видимых справа на каждом уровне
+// Временная сложность: O(n)
+// Пространственная сложность: O(n)
+func rightSideView(root *TreeNode) []int {
+	var result []int
+
+	if root == nil {
+		return result
+	}
+
+	queue := []*TreeNode{root}
+
+	for len(queue) &gt; 0 {
+		levelSize := len(queue)
+		var rightmost int
+
+		for i := 0; i &lt; levelSize; i++ {
+			node := queue[0]
+			queue = queue[1:]
+
+			rightmost = node.Val
+
+			if node.Left != nil {
+				queue = append(queue, node.Left)
+			}
+			if node.Right != nil {
+				queue = append(queue, node.Right)
+			}
+		}
+
+		result = append(result, rightmost)
+	}
+
+	return result
+}
+
+// Пример 4: Зигзагообразный обход дерева
+//
+// Задача: Обойти дерево зигзагообразно (слева направо, затем справа налево)
+// Временная сложность: O(n)
+// Пространственная сложность: O(n)
+func zigzagLevelOrder(root *TreeNode) [][]int {
+	var result [][]int
+
+	if root == nil {
+		return result
+	}
+
+	queue := []*TreeNode{root}
+	leftToRight := true
+
+	for len(queue) &gt; 0 {
+		levelSize := len(queue)
+		var currentLevel []int
+
+		for i := 0; i &lt; levelSize; i++ {
+			node := queue[0]
+			queue = queue[1:]
+
+			currentLevel = append(currentLevel, node.Val)
+
+			if node.Left != nil {
+				queue = append(queue, node.Left)
+			}
+			if node.Right != nil {
+				queue = append(queue, node.Right)
+			}
+		}
+
+		if !leftToRight {
+			// Разворачиваем уровень
+			for i, j := 0, len(currentLevel)-1; i &lt; j; i, j = i+1, j-1 {
+				currentLevel[i], currentLevel[j] = currentLevel[j], currentLevel[i]
+			}
+		}
+
+		result = append(result, currentLevel)
+		leftToRight = !leftToRight
+	}
+
+	return result
+}
+
+// Пример 5: Максимальная глубина дерева (BFS подход)
+//
+// Задача: Найти максимальную глубину бинарного дерева
+// Временная сложность: O(n)
+// Пространственная сложность: O(n)
+func maxDepthBFS(root *TreeNode) int {
+	if root == nil {
+		return 0
+	}
+
+	queue := []*TreeNode{root}
+	depth := 0
+
+	for len(queue) &gt; 0 {
+		levelSize := len(queue)
+		depth++
+
+		for i := 0; i &lt; levelSize; i++ {
+			node := queue[0]
+			queue = queue[1:]
+
+			if node.Left != nil {
+				queue = append(queue, node.Left)
+			}
+			if node.Right != nil {
+				queue = append(queue, node.Right)
+			}
+		}
+	}
+
+	return depth
+}
+
+// Пример 6: Минимальная глубина дерева
+//
+// Задача: Найти минимальную глубину дерева (до ближайшего листа)
+// Временная сложность: O(n)
+// Пространственная сложность: O(n)
+func minDepth(root *TreeNode) int {
+	if root == nil {
+		return 0
+	}
+
+	queue := []*TreeNode{root}
+	depth := 0
+
+	for len(queue) &gt; 0 {
+		levelSize := len(queue)
+		depth++
+
+		for i := 0; i &lt; levelSize; i++ {
+			node := queue[0]
+			queue = queue[1:]
+
+			// Если это лист, возвращаем текущую глубину
+			if node.Left == nil &amp;&amp; node.Right == nil {
+				return depth
+			}
+
+			if node.Left != nil {
+				queue = append(queue, node.Left)
+			}
+			if node.Right != nil {
+				queue = append(queue, node.Right)
+			}
+		}
+	}
+
+	return depth
+}
+</code></pre>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/binary-tree-level-order-traversal/">Binary Tree Level Order Traversal</a> - Обход дерева по уровням</li>
+<li><a href="https://leetcode.com/problems/average-of-levels-in-binary-tree/">Average of Levels in Binary Tree</a> - Среднее значение уровней</li>
+<li><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/">Maximum Depth of Binary Tree</a> - Максимальная глубина дерева</li>
+</ul>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/binary-tree-zigzag-level-order-traversal/">Binary Tree Zigzag Level Order Traversal</a> - Зигзагообразный обход</li>
+<li><a href="https://leetcode.com/problems/binary-tree-right-side-view/">Right Side View</a> - Вид справа</li>
+<li><a href="https://leetcode.com/problems/cousins-in-binary-tree/">Cousins in Binary Tree</a> - Двоюродные братья в дереве</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/serialize-and-deserialize-binary-tree/">Serialize and Deserialize Binary Tree</a> - Сериализация дерева</li>
+<li><a href="https://leetcode.com/problems/binary-tree-maximum-path-sum/">Binary Tree Maximum Path Sum</a> - Максимальная сумма пути</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="reverse-linked-list.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="tree-dfs.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="reverse-linked-list.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="tree-dfs.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace-2a3cd908.js"></script>
+        <script src="mode-rust-2c9d5c9a.js"></script>
+        <script src="editor-16ca416c.js"></script>
+        <script src="theme-dawn-4493f9c8.js"></script>
+        <script src="theme-tomorrow_night-9dbe62a9.js"></script>
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,709 @@
+<!DOCTYPE HTML>
+<html lang="ru" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Subsets (Подмножества) - Алгоритмические шаблоны для решения задач на собеседованиях</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-2586a648.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-45dd08a9.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Алгоритмические шаблоны для решения задач на собеседованиях</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="subsets-подмножества"><a class="header" href="#subsets-подмножества">Subsets (Подмножества)</a></h1>
+<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
+<p>Шаблон <strong>Subsets</strong> используется для генерации всех возможных подмножеств заданного множества. Этот подход основан на рекурсии и backtracking, где мы решаем, включать или не включать каждый элемент в текущее подмножество.</p>
+<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
+<p>Генерация всех подмножеств множества - классическая задача комбинаторики. Для множества из n элементов существует 2^n подмножеств (включая пустое множество). Алгоритм основан на принципе включения-исключения и является фундаментальным для многих задач перебора.</p>
+<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
+<p>Ключевое наблюдение: для каждого элемента у нас есть два выбора - включить его в подмножество или не включать. Это создает бинарное дерево решений с 2^n листьями, каждый из которых представляет одно подмножество.</p>
+<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
+<p>Используйте этот шаблон, когда:</p>
+<ul>
+<li>Нужно сгенерировать все возможные подмножества множества</li>
+<li>Требуется найти все комбинации элементов</li>
+<li>Задача связана с перебором всех возможных вариантов</li>
+<li>Нужно решить задачу методом “включить/исключить” для каждого элемента</li>
+<li>Требуется найти подмножества с определенными свойствами</li>
+</ul>
+<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
+<h3 id="рекурсивный-подход"><a class="header" href="#рекурсивный-подход">Рекурсивный подход:</a></h3>
+<ol>
+<li><strong>Базовый случай</strong>: Если достигнут конец массива, добавить текущее подмножество в результат</li>
+<li><strong>Рекурсия</strong>: Для каждого элемента:
+<ul>
+<li>Включить элемент в подмножество и рекурсивно обработать следующий</li>
+<li>Исключить элемент и рекурсивно обработать следующий</li>
+</ul>
+</li>
+<li><strong>Backtracking</strong>: После обработки удалить элемент из текущего подмножества</li>
+</ol>
+<h3 id="итеративный-подход"><a class="header" href="#итеративный-подход">Итеративный подход:</a></h3>
+<p>Начать с пустого подмножества и для каждого элемента добавлять его ко всем существующим подмножествам.</p>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<h3 id="генерация-подмножеств-для-1-2-3"><a class="header" href="#генерация-подмножеств-для-1-2-3">Генерация подмножеств для [1, 2, 3]:</a></h3>
+<pre><code>Рекурсивное дерево:
+
+                    []
+                  /    \
+               [1]      []
+              /  \     /  \
+          [1,2] [1]  [2]  []
+          /  \   / \  / \  / \
+    [1,2,3][1,2][1,3][1][2,3][2][3][]
+
+Результат: [[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]
+</code></pre>
+<h3 id="итеративный-подход-1"><a class="header" href="#итеративный-подход-1">Итеративный подход:</a></h3>
+<pre><code>Шаг 1: [[]]
+Шаг 2: [[], [1]]                    (добавляем 1)
+Шаг 3: [[], [1], [2], [1,2]]        (добавляем 2)
+Шаг 4: [[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]  (добавляем 3)
+</code></pre>
+<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
+<p><strong>Инвариант</strong>: После обработки k элементов, текущее подмножество содержит решение для первых k элементов, и мы генерируем все возможные комбинации включения/исключения оставшихся элементов.</p>
+<p><strong>Доказательство корректности</strong> (индукция по n):</p>
+<ol>
+<li><strong>Базовый случай</strong>: Для пустого множества генерируется только пустое подмножество - корректно</li>
+<li><strong>Индуктивный шаг</strong>: Предположим, алгоритм корректно генерирует подмножества для n-1 элементов
+<ul>
+<li>Для n-го элемента: либо включаем, либо не включаем</li>
+<li>В каждом случае рекурсивно генерируем подмножества для оставшихся n-1 элементов</li>
+<li>По индукции получаем все 2^n подмножеств</li>
+</ul>
+</li>
+</ol>
+<p><strong>Почему сложность O(2^n × n)?</strong></p>
+<ul>
+<li>Генерируется 2^n подмножеств</li>
+<li>Каждое подмножество требует O(n) времени для копирования</li>
+<li>Итого: O(2^n × n)</li>
+</ul>
+<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
+<ul>
+<li><strong>Временная сложность</strong>: O(2^n × n)
+<ul>
+<li>Рекурсивное дерево имеет 2^n листьев</li>
+<li>Каждый путь от корня до листа имеет длину n</li>
+<li>Копирование каждого подмножества: O(n)</li>
+<li>Итого: O(2^n × n)</li>
+</ul>
+</li>
+<li><strong>Пространственная сложность</strong>: O(2^n × n)
+<ul>
+<li>Результирующий список: O(2^n × n)</li>
+<li>Рекурсивный стек: O(n) - глубина рекурсии</li>
+</ul>
+</li>
+</ul>
+<h3 id="оптимизации"><a class="header" href="#оптимизации">Оптимизации:</a></h3>
+<ul>
+<li><strong>Итеративный подход</strong>: Может быть более эффективным по памяти (не хранит весь стек)</li>
+<li><strong>Backtracking</strong>: Использует один массив и изменяет его, избегая копирования</li>
+</ul>
+<h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Забывание backtracking</strong>: Удаляйте элемент после рекурсивного вызова</li>
+<li><strong>Неправильный порядок операций</strong>: Сначала включайте, затем исключайте</li>
+<li><strong>Модификация исходного массива</strong>: Используйте копии при необходимости</li>
+</ol>
+<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
+<ol>
+<li>Используйте backtracking для экономии памяти</li>
+<li>Для больших n рассмотрите итеративный подход</li>
+<li>Обрабатывайте дубликаты специально (пропускайте одинаковые элементы)</li>
+</ol>
+<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
+<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
+<h4 id="rust-генерация-подмножеств"><a class="header" href="#rust-генерация-подмножеств">Rust: Генерация подмножеств</a></h4>
+<p>В Rust для Subsets:</p>
+<ul>
+<li><strong>Backtracking</strong>: Стек вызовов - O(n) для глубины рекурсии</li>
+<li><strong>Результат</strong>: <code>Vec&lt;Vec&lt;i32&gt;&gt;</code> - O(2^n * n) в худшем случае</li>
+<li><strong>Текущий путь</strong>: <code>Vec&lt;i32&gt;</code> - O(n) для каждого пути</li>
+</ul>
+<h4 id="go-генерация-подмножеств"><a class="header" href="#go-генерация-подмножеств">Go: Генерация подмножеств</a></h4>
+<p>В Go:</p>
+<ul>
+<li><strong>Backtracking</strong>: Стек вызовов - O(n)</li>
+<li><strong>Результат</strong>: <code>[][]int</code> - O(2^n * n) в куче</li>
+<li><strong>Текущий путь</strong>: <code>[]int</code> - O(n) для каждого пути</li>
+</ul>
+<h3 id="анализ-аллокаций-для-subsets"><a class="header" href="#анализ-аллокаций-для-subsets">Анализ аллокаций для Subsets</a></h3>
+<h4 id="рекурсивный-подход-1"><a class="header" href="#рекурсивный-подход-1">Рекурсивный подход:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Аллокации:
+// - Стек вызовов: O(n) для глубины рекурсии
+// - result: Vec&lt;Vec&lt;i32&gt;&gt; - O(2^n * n) в худшем случае
+// - current: Vec&lt;i32&gt; - O(n) для каждого пути
+// Итого: O(2^n * n) памяти в худшем случае
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// Аллокации:
+// - Стек вызовов: O(n)
+// - result: [][]int - O(2^n * n) в куче
+// - current: []int - O(n) для каждого пути
+// Итого: O(2^n * n) памяти в худшем случае
+</code></pre>
+<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
+<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
+<ol>
+<li><strong>Использование backtracking</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Переиспользование current вектора
+fn backtrack(nums: &amp;[i32], start: usize, current: &amp;mut Vec&lt;i32&gt;, result: &amp;mut Vec&lt;Vec&lt;i32&gt;&gt;) {
+    result.push(current.clone());
+    for i in start..nums.len() {
+        current.push(nums[i]);
+        backtrack(nums, i + 1, current, result);
+        current.pop();  // Backtrack
+    }
+}
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Предварительное выделение результата</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Предварительное выделение
+let mut result = Vec::with_capacity(1 &lt;&lt; nums.len());
+<span class="boring">}</span></code></pre>
+<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
+<ol>
+<li><strong>Использование backtracking</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Переиспользование current слайса
+func backtrack(nums []int, start int, current []int, result *[][]int) {
+    *result = append(*result, append([]int{}, current...))
+    for i := start; i &lt; len(nums); i++ {
+        current = append(current, nums[i])
+        backtrack(nums, i+1, current, result)
+        current = current[:len(current)-1]  // Backtrack
+    }
+}
+</code></pre>
+<ol start="2">
+<li><strong>Предварительное выделение результата</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Предварительное выделение
+result := make([][]int, 0, 1&lt;&lt;len(nums))
+</code></pre>
+<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Backtracking</td><td>O(n) стек</td><td>O(n) стек</td></tr>
+<tr><td>Результат</td><td>O(2^n * n)</td><td>O(2^n * n)</td></tr>
+<tr><td>Производительность</td><td>Предсказуемая</td><td>Может быть паузы GC</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
+<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
+<ol>
+<li><strong>Использование backtracking</strong> для экономии памяти</li>
+<li><strong>Предварительное выделение</strong> результата</li>
+<li><strong>Минимизация клонирования</strong> путей</li>
+</ol>
+<h3 id="специфичные-оптимизации-для-subsets"><a class="header" href="#специфичные-оптимизации-для-subsets">Специфичные оптимизации для Subsets</a></h3>
+<h4 id="1-оптимизация-backtracking"><a class="header" href="#1-оптимизация-backtracking">1. Оптимизация backtracking:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Оптимизированная версия
+pub fn subsets_optimized(nums: Vec&lt;i32&gt;) -&gt; Vec&lt;Vec&lt;i32&gt;&gt; {
+    let mut result = Vec::with_capacity(1 &lt;&lt; nums.len());
+    let mut current = Vec::new();
+    backtrack(&amp;nums, 0, &amp;mut current, &amp;mut result);
+    result
+}
+
+fn backtrack(nums: &amp;[i32], start: usize, current: &amp;mut Vec&lt;i32&gt;, result: &amp;mut Vec&lt;Vec&lt;i32&gt;&gt;) {
+    result.push(current.clone());
+    for i in start..nums.len() {
+        current.push(nums[i]);
+        backtrack(nums, i + 1, current, result);
+        current.pop();
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// ✅ Оптимизированная версия
+func subsetsOptimized(nums []int) [][]int {
+    result := make([][]int, 0, 1&lt;&lt;len(nums))
+    current := make([]int, 0)
+    backtrack(nums, 0, current, &amp;result)
+    return result
+}
+
+func backtrack(nums []int, start int, current []int, result *[][]int) {
+    *result = append(*result, append([]int{}, current...))
+    for i := start; i &lt; len(nums); i++ {
+        current = append(current, nums[i])
+        backtrack(nums, i+1, current, result)
+        current = current[:len(current)-1]
+    }
+}
+</code></pre>
+<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
+<ol>
+<li><strong>Минимизация клонирования</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Клонируем только при добавлении в результат
+result.push(current.clone());
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Предварительное выделение</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Предварительное выделение
+let mut result = Vec::with_capacity(1 &lt;&lt; nums.len());
+<span class="boring">}</span></code></pre>
+<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
+<ol>
+<li><strong>Переиспользование слайса</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Backtrack с уменьшением размера
+current = current[:len(current)-1]
+</code></pre>
+<ol start="2">
+<li><strong>Предварительное выделение</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Предварительное выделение
+result := make([][]int, 0, 1&lt;&lt;len(nums))
+</code></pre>
+<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
+<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
+<p>См. раздел “Профилирование” в <a href="./sliding-window/README.html#профилирование">Sliding Window</a> для общих инструментов.</p>
+<h3 id="как-профилировать-subsets"><a class="header" href="#как-профилировать-subsets">Как профилировать Subsets</a></h3>
+<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// benches/subsets_bench.rs
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn bench_subsets(c: &amp;mut Criterion) {
+    let nums: Vec&lt;i32&gt; = (0..10).collect();
+    
+    c.bench_function("subsets_10", |b| {
+        b.iter(|| subsets_optimized(black_box(nums.clone())))
+    });
+}
+
+criterion_group!(benches, bench_subsets);
+criterion_main!(benches);
+<span class="boring">}</span></code></pre>
+<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
+<pre><code class="language-go">func BenchmarkSubsets(b *testing.B) {
+    nums := make([]int, 10)
+    for i := range nums {
+        nums[i] = i
+    }
+    
+    b.ResetTimer()
+    for i := 0; i &lt; b.N; i++ {
+        subsetsOptimized(nums)
+    }
+}
+</code></pre>
+<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
+<p><strong>Анализ производительности</strong>:</p>
+<ul>
+<li>Subsets: O(2^n * n) по времени и памяти</li>
+<li>Экспоненциальная сложность для больших n</li>
+<li>Backtracking экономит память по сравнению с итеративным подходом</li>
+</ul>
+<p><strong>Типичные узкие места</strong>:</p>
+<ul>
+<li>Клонирование путей</li>
+<li>Операции с векторами/слайсами</li>
+<li>Рекурсивные вызовы</li>
+</ul>
+<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
+<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
+<ol>
+<li><strong>Базовые тесты</strong>: Простые массивы</li>
+<li><strong>Граничные случаи</strong>: Пустой массив, один элемент</li>
+<li><strong>Стресс-тесты</strong>: Большие массивы (осторожно с экспоненциальной сложностью)</li>
+</ol>
+<h3 id="примеры-тестов-для-subsets"><a class="header" href="#примеры-тестов-для-subsets">Примеры тестов для Subsets</a></h3>
+<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_subsets_basic() {
+        let nums = vec![1, 2, 3];
+        let result = subsets_optimized(nums);
+        assert_eq!(result.len(), 8);  // 2^3 = 8
+    }
+
+    #[test]
+    fn test_subsets_empty() {
+        let nums = vec![];
+        let result = subsets_optimized(nums);
+        assert_eq!(result, vec![vec![]]);
+    }
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
+<pre><code class="language-go">func TestSubsets(t *testing.T) {
+    tests := []struct {
+        name string
+        nums []int
+        want int
+    }{
+        {"basic", []int{1, 2, 3}, 8},  // 2^3 = 8
+        {"empty", []int{}, 1},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            result := subsetsOptimized(tt.nums)
+            if len(result) != tt.want {
+                t.Errorf("subsetsOptimized() = %v, want %v", len(result), tt.want)
+            }
+        })
+    }
+}
+</code></pre>
+<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
+<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
+<pre><code class="language-bash">cargo test
+cargo test -- --nocapture
+cargo bench
+</code></pre>
+<h4 id="go"><a class="header" href="#go">Go:</a></h4>
+<pre><code class="language-bash">go test -v
+go test -bench=. -benchmem
+</code></pre>
+<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
+<h4 id="rust-1"><a class="header" href="#rust-1">Rust:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+
+fn subsets_benchmark(c: &amp;mut Criterion) {
+    let sizes = vec![5, 10, 15];
+    
+    let mut group = c.benchmark_group("subsets");
+    for size in sizes {
+        let nums: Vec&lt;i32&gt; = (0..size).collect();
+        group.bench_with_input(
+            BenchmarkId::from_parameter(size),
+            &amp;nums,
+            |b, nums| {
+                b.iter(|| subsets_optimized(black_box(nums.clone())));
+            },
+        );
+    }
+    group.finish();
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
+<pre><code class="language-go">func BenchmarkSubsetsSizes(b *testing.B) {
+    sizes := []int{5, 10, 15}
+    
+    for _, size := range sizes {
+        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
+            nums := make([]int, size)
+            for i := range nums {
+                nums[i] = i
+            }
+            b.ResetTimer()
+            for i := 0; i &lt; b.N; i++ {
+                subsetsOptimized(nums)
+            }
+        })
+    }
+}
+</code></pre>
+<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
+<p>См. файлы:</p>
+<ul>
+<li><a href="./rust/examples.rs">Rust примеры</a></li>
+<li><a href="./go/examples.go">Go примеры</a></li>
+</ul>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/subsets/">Subsets</a> - Все подмножества</li>
+<li><a href="https://leetcode.com/problems/subsets-ii/">Subsets II</a> - Подмножества с дубликатами</li>
+</ul>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/combination-sum/">Combination Sum</a> - Сумма комбинаций</li>
+<li><a href="https://leetcode.com/problems/permutations/">Permutations</a> - Перестановки</li>
+<li><a href="https://leetcode.com/problems/letter-combinations-of-a-phone-number/">Letter Combinations of a Phone Number</a> - Комбинации букв телефона</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/word-search-ii/">Word Search II</a> - Поиск слов II</li>
+<li><a href="https://leetcode.com/problems/n-queens/">N-Queens</a> - N ферзей</li>
+</ul>
+<h2 id="примеры-кода-1"><a class="header" href="#примеры-кода-1">Примеры кода</a></h2>
+<p>См. файлы:</p>
+<ul>
+<li><a href="./rust/examples.rs">Rust примеры</a></li>
+<li><a href="./go/examples.go">Go примеры</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../two-heaps/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../../modified-binary-search/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../two-heaps/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../../modified-binary-search/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace-2a3cd908.js"></script>
+        <script src="../mode-rust-2c9d5c9a.js"></script>
+        <script src="../editor-16ca416c.js"></script>
+        <script src="../theme-dawn-4493f9c8.js"></script>
+        <script src="../theme-tomorrow_night-9dbe62a9.js"></script>
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

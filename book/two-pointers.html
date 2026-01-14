@@ -1,0 +1,2088 @@
+<!DOCTYPE HTML>
+<html lang="ru" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Two Pointers (Два указателя) - Алгоритмические шаблоны для решения задач на собеседованиях</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-9de7afef.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Алгоритмические шаблоны для решения задач на собеседованиях</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="two-pointers-два-указателя"><a class="header" href="#two-pointers-два-указателя">Two Pointers (Два указателя)</a></h1>
+<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
+<p>Шаблон <strong>Two Pointers</strong> (также известный как “метод двух указателей” или “two-pointer technique”) — это мощная техника оптимизации, использующая два указателя, которые перемещаются по структуре данных в тандеме, пока один или оба указателя не достигнут определенного условия.</p>
+<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
+<p>Техника двух указателей восходит к классическим алгоритмам поиска в отсортированных массивах. Она является естественным развитием идеи бинарного поиска и стала фундаментальным инструментом в конкурентном программировании и технических интервью.</p>
+<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
+<p>Ключевое преимущество метода двух указателей — <strong>сокращение пространства поиска</strong>: вместо проверки всех возможных пар элементов (O(n²)), мы используем свойства отсортированности или монотонности данных для исключения больших областей пространства поиска за один шаг. Это позволяет снизить временную сложность до O(n).</p>
+<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
+<p>Используйте этот шаблон, когда:</p>
+<ul>
+<li>Работаете с отсортированными массивами или связанными списками</li>
+<li>Нужно найти набор элементов (пары, тройки и т.д.), удовлетворяющих определенным ограничениям</li>
+<li>Элементы в массиве представляют собой пару, тройку или подмассив</li>
+<li>Можно использовать два указателя, движущихся навстречу друг другу или в одном направлении</li>
+<li>Хотите избежать вложенных циклов и улучшить временную сложность</li>
+</ul>
+<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
+<h3 id="основные-варианты"><a class="header" href="#основные-варианты">Основные варианты:</a></h3>
+<ol>
+<li><strong>Встречные указатели (Opposite Ends)</strong>: Два указателя начинаются с противоположных концов массива и движутся навстречу друг другу</li>
+<li><strong>Быстрый и медленный (Fast &amp; Slow)</strong>: Два указателя движутся в одном направлении с разной скоростью (обычно 1 и 2 шага)</li>
+<li><strong>Оба в одном направлении (Same Direction)</strong>: Два указателя начинаются с одного конца и движутся в одном направлении</li>
+</ol>
+<h3 id="детальный-алгоритм-для-встречных-указателей"><a class="header" href="#детальный-алгоритм-для-встречных-указателей">Детальный алгоритм для встречных указателей:</a></h3>
+<h4 id="псевдокод"><a class="header" href="#псевдокод">Псевдокод:</a></h4>
+<pre><code class="language-pseudocode">function twoPointersOpposite(arr, target):
+    left = 0
+    right = arr.length - 1
+    
+    while left &lt; right:
+        currentSum = arr[left] + arr[right]
+        
+        if currentSum == target:
+            return (left, right)
+        else if currentSum &lt; target:
+            // Сумма слишком мала, нужно увеличить
+            // Все пары с arr[left] и меньшими правыми элементами
+            // также будут меньше target, поэтому можно их пропустить
+            left++
+        else:
+            // Сумма слишком велика, нужно уменьшить
+            // Все пары с arr[right] и большими левыми элементами
+            // также будут больше target, поэтому можно их пропустить
+            right--
+    
+    return null  // Пара не найдена
+</code></pre>
+<h4 id="пошаговый-разбор"><a class="header" href="#пошаговый-разбор">Пошаговый разбор:</a></h4>
+<ol>
+<li>
+<p><strong>Инициализация</strong>:</p>
+<ul>
+<li><code>left = 0</code> (начало массива)</li>
+<li><code>right = n - 1</code> (конец массива)</li>
+<li>Это дает нам максимально возможную сумму для начала</li>
+</ul>
+</li>
+<li>
+<p><strong>Вычисление текущего значения</strong>:</p>
+<ul>
+<li>Для задачи поиска суммы: <code>sum = arr[left] + arr[right]</code></li>
+<li>Для задачи площади: <code>area = min(arr[left], arr[right]) × (right - left)</code></li>
+</ul>
+</li>
+<li>
+<p><strong>Принятие решения о движении</strong>:</p>
+<ul>
+<li><strong>Если условие выполнено</strong>: сохраняем результат и продолжаем поиск (или завершаем)</li>
+<li><strong>Если значение меньше цели</strong>: увеличиваем <code>left</code> (исключаем все пары с текущим <code>left</code> и меньшими <code>right</code>)</li>
+<li><strong>Если значение больше цели</strong>: уменьшаем <code>right</code> (исключаем все пары с текущим <code>right</code> и большими <code>left</code>)</li>
+</ul>
+</li>
+<li>
+<p><strong>Завершение</strong>: Когда <code>left &gt;= right</code>, все возможные пары проверены</p>
+</li>
+</ol>
+<h3 id="алгоритм-для-указателей-в-одном-направлении"><a class="header" href="#алгоритм-для-указателей-в-одном-направлении">Алгоритм для указателей в одном направлении:</a></h3>
+<pre><code class="language-pseudocode">function twoPointersSameDirection(arr):
+    slow = 0
+    fast = 0  // или fast = 1, в зависимости от задачи
+    
+    while fast &lt; arr.length:
+        if condition(arr[slow], arr[fast]):
+            // Обрабатываем пару
+            process(arr[slow], arr[fast])
+            slow++
+        fast++
+    
+    return result
+</code></pre>
+<p><strong>Применение</strong>: Удаление дубликатов, поиск подмассивов, слияние отсортированных массивов</p>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<h3 id="поиск-пары-с-заданной-суммой-встречные-указатели"><a class="header" href="#поиск-пары-с-заданной-суммой-встречные-указатели">Поиск пары с заданной суммой (встречные указатели):</a></h3>
+<pre><code>Отсортированный массив: [1, 2, 3, 4, 5, 6], цель = 7
+
+Инициализация:
+left = 0, right = 5
+
+Шаг 1:  [1, 2, 3, 4, 5, 6]
+         ↑              ↑
+        left=0         right=5
+        sum = 1 + 6 = 7 ✓ (найдено!)
+        Можно вернуть (0, 5) или продолжить поиск всех пар
+
+Шаг 2:  [1, 2, 3, 4, 5, 6]
+         ↑           ↑
+        left=0      right=4
+        sum = 1 + 5 = 6 &lt; 7
+        Исключаем все пары (0, j) для j &lt; 4, так как они тоже &lt; 7
+        left++ → left=1
+
+Шаг 3:  [1, 2, 3, 4, 5, 6]
+            ↑        ↑
+           left=1    right=4
+           sum = 2 + 5 = 7 ✓ (найдено!)
+
+Шаг 4:  [1, 2, 3, 4, 5, 6]
+            ↑     ↑
+           left=1 right=3
+           sum = 2 + 4 = 6 &lt; 7
+           left++ → left=2
+
+Шаг 5:  [1, 2, 3, 4, 5, 6]
+               ↑  ↑
+           left=2 right=3
+           sum = 3 + 4 = 7 ✓ (найдено!)
+
+Шаг 6:  left=2, right=2 → left &gt;= right, завершение
+
+Результат: Найдены пары (0,5), (1,4), (2,3)
+</code></pre>
+<h3 id="контейнер-с-наибольшим-количеством-воды"><a class="header" href="#контейнер-с-наибольшим-количеством-воды">Контейнер с наибольшим количеством воды:</a></h3>
+<pre><code>Высоты: [1, 8, 6, 2, 5, 4, 8, 3, 7]
+
+Шаг 1:  [1, 8, 6, 2, 5, 4, 8, 3, 7]
+         ↑                        ↑
+        left=0                  right=8
+        height = min(1, 7) = 1
+        width = 8 - 0 = 8
+        area = 1 × 8 = 8
+        maxArea = 8
+        Так как height[left] &lt; height[right], left++
+
+Шаг 2:  [1, 8, 6, 2, 5, 4, 8, 3, 7]
+            ↑                    ↑
+           left=1               right=8
+           height = min(8, 7) = 7
+           width = 8 - 1 = 7
+           area = 7 × 7 = 49
+           maxArea = 49
+           Так как height[left] &gt; height[right], right--
+
+... продолжаем ...
+
+Финальный результат: maxArea = 49
+</code></pre>
+<h3 id="удаление-дубликатов-указатели-в-одном-направлении"><a class="header" href="#удаление-дубликатов-указатели-в-одном-направлении">Удаление дубликатов (указатели в одном направлении):</a></h3>
+<pre><code>Массив: [1, 1, 2, 2, 3, 4, 4, 5]
+
+Инвариант: arr[0..slow] содержит уникальные элементы в отсортированном порядке
+
+Шаг 1:  [1, 1, 2, 2, 3, 4, 4, 5]
+         ↑  ↑
+        slow=0 fast=1
+        arr[slow] == arr[fast] → fast++ (пропускаем дубликат)
+
+Шаг 2:  [1, 1, 2, 2, 3, 4, 4, 5]
+         ↑     ↑
+        slow=0 fast=2
+        arr[slow] != arr[fast] → arr[++slow] = arr[fast]
+        Результат: [1, 2, 2, 2, 3, 4, 4, 5]
+                   ↑  ↑
+                  slow=1
+
+Шаг 3:  [1, 2, 2, 2, 3, 4, 4, 5]
+            ↑     ↑
+           slow=1 fast=3
+           arr[slow] == arr[fast] → fast++
+
+Шаг 4:  [1, 2, 2, 2, 3, 4, 4, 5]
+            ↑        ↑
+           slow=1    fast=4
+           arr[slow] != arr[fast] → arr[++slow] = arr[fast]
+           Результат: [1, 2, 3, 2, 3, 4, 4, 5]
+                      ↑     ↑
+                     slow=2
+
+... продолжаем до конца ...
+
+Финальный результат: [1, 2, 3, 4, 5] (первые 5 элементов)
+</code></pre>
+<h3 id="захват-дождевой-воды-встречные-указатели-с-максимумами"><a class="header" href="#захват-дождевой-воды-встречные-указатели-с-максимумами">Захват дождевой воды (встречные указатели с максимумами):</a></h3>
+<pre><code>Высоты: [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]
+
+leftMax = 0, rightMax = 0
+left = 0, right = 11
+water = 0
+
+Шаг 1:  left=0, right=11
+        height[left]=0 &lt; height[right]=1
+        Так как height[left] &lt; height[right]:
+          leftMax = max(0, 0) = 0
+          water += max(0, 0 - 0) = 0
+          left++
+
+Шаг 2:  left=1, right=11
+        height[left]=1 &lt; height[right]=1
+        leftMax = max(0, 1) = 1
+        water += max(0, 1 - 1) = 0
+        left++
+
+Шаг 3:  left=2, right=11
+        height[left]=0 &lt; height[right]=1
+        leftMax = 1
+        water += max(0, 1 - 0) = 1
+        left++
+
+... продолжаем ...
+
+Финальный результат: water = 6
+</code></pre>
+<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
+<p><strong>Ключевой инвариант</strong>: На каждом шаге мы исключаем из рассмотрения все пары, которые заведомо не могут быть решением.</p>
+<p><strong>Доказательство корректности для встречных указателей</strong>:</p>
+<p>Предположим, массив отсортирован: <code>arr[0] ≤ arr[1] ≤ ... ≤ arr[n-1]</code></p>
+<p><strong>Лемма 1</strong>: Если <code>arr[left] + arr[right] &lt; target</code>, то для любого <code>right' &lt; right</code>:</p>
+<pre><code>arr[left] + arr[right'] ≤ arr[left] + arr[right] &lt; target
+</code></pre>
+<p>Следовательно, все пары <code>(left, right'), right' &lt; right</code> также не подходят, и мы можем безопасно увеличить <code>left</code>.</p>
+<p><strong>Лемма 2</strong>: Если <code>arr[left] + arr[right] &gt; target</code>, то для любого <code>left' &gt; left</code>:</p>
+<pre><code>arr[left'] + arr[right] ≥ arr[left] + arr[right] &gt; target
+</code></pre>
+<p>Следовательно, все пары <code>(left', right), left' &gt; left</code> также не подходят, и мы можем безопасно уменьшить <code>right</code>.</p>
+<p><strong>Теорема</strong>: Алгоритм проверяет все возможные пары и находит решение, если оно существует.</p>
+<p><strong>Доказательство</strong>:</p>
+<ul>
+<li>Начальное состояние: <code>left = 0, right = n-1</code> покрывает все возможные пары</li>
+<li>На каждом шаге мы исключаем только те пары, которые заведомо не подходят (по леммам)</li>
+<li>Когда <code>left &gt;= right</code>, все пары проверены</li>
+<li>Если решение существует, оно будет найдено до завершения цикла</li>
+</ul>
+<h3 id="почему-сложность-on"><a class="header" href="#почему-сложность-on">Почему сложность O(n)?</a></h3>
+<p><strong>Инвариант сложности</strong>: Каждый элемент массива посещается каждым указателем максимум один раз.</p>
+<ul>
+<li><code>left</code> начинается с 0 и может только увеличиваться → максимум n шагов</li>
+<li><code>right</code> начинается с n-1 и может только уменьшаться → максимум n шагов</li>
+<li>На каждой итерации хотя бы один указатель перемещается</li>
+<li>Всего максимум 2n шагов = O(n)</li>
+</ul>
+<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
+<p><strong>Встречные указатели</strong>:</p>
+<ul>
+<li><strong>Временная сложность</strong>: O(n)
+<ul>
+<li>Каждый элемент посещается каждым указателем максимум один раз</li>
+<li>Всего максимум n итераций (когда указатели встречаются)</li>
+</ul>
+</li>
+<li><strong>Пространственная сложность</strong>: O(1)
+<ul>
+<li>Используем только константное количество переменных</li>
+</ul>
+</li>
+</ul>
+<p><strong>Указатели в одном направлении</strong>:</p>
+<ul>
+<li><strong>Временная сложность</strong>: O(n)
+<ul>
+<li><code>fast</code> проходит весь массив один раз: O(n)</li>
+<li><code>slow</code> также проходит максимум n элементов: O(n)</li>
+<li>Итого: O(n)</li>
+</ul>
+</li>
+<li><strong>Пространственная сложность</strong>: O(1)
+<ul>
+<li>Только переменные для указателей</li>
+</ul>
+</li>
+</ul>
+<p><strong>Быстрый и медленный</strong>:</p>
+<ul>
+<li><strong>Временная сложность</strong>: O(n)
+<ul>
+<li>Быстрый указатель проходит максимум n элементов</li>
+<li>Медленный проходит максимум n/2 элементов</li>
+<li>Итого: O(n)</li>
+</ul>
+</li>
+<li><strong>Пространственная сложность</strong>: O(1)</li>
+</ul>
+<h3 id="сравнение-с-наивным-подходом"><a class="header" href="#сравнение-с-наивным-подходом">Сравнение с наивным подходом:</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Подход</th><th>Временная сложность</th><th>Пространственная сложность</th></tr>
+</thead>
+<tbody>
+<tr><td>Наивный (все пары)</td><td>O(n²)</td><td>O(1)</td></tr>
+<tr><td>Два указателя</td><td>O(n)</td><td>O(1)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Выигрыш</strong>: O(n²) → O(n) — квадратичное улучшение!</p>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/">Two Sum II - Input array is sorted</a> - Две суммы в отсортированном массиве</li>
+<li><a href="https://leetcode.com/problems/valid-palindrome/">Valid Palindrome</a> - Валидный палиндром</li>
+<li><a href="https://leetcode.com/problems/remove-duplicates-from-sorted-array/">Remove Duplicates from Sorted Array</a> - Удаление дубликатов из отсортированного массива</li>
+</ul>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/3sum/">3Sum</a> - Три суммы</li>
+<li><a href="https://leetcode.com/problems/container-with-most-water/">Container With Most Water</a> - Контейнер с наибольшим количеством воды</li>
+<li><a href="https://leetcode.com/problems/trapping-rain-water/">Trapping Rain Water</a> - Захват дождевой воды</li>
+<li><a href="https://leetcode.com/problems/squares-of-a-sorted-array/">Squares of a Sorted Array</a> - Квадраты отсортированного массива</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/4sum/">4Sum</a> - Четыре суммы</li>
+<li><a href="https://leetcode.com/problems/3sum-closest/">3Sum Closest</a> - Ближайшая тройная сумма</li>
+<li><a href="https://leetcode.com/problems/partition-labels/">Partition Labels</a> - Разделение меток</li>
+</ul>
+<h2 id="сравнение-с-альтернативными-подходами"><a class="header" href="#сравнение-с-альтернативными-подходами">Сравнение с альтернативными подходами</a></h2>
+<h3 id="1-наивный-подход-перебор-всех-пар"><a class="header" href="#1-наивный-подход-перебор-всех-пар">1. Наивный подход (перебор всех пар):</a></h3>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// O(n²) - проверяем все пары
+for i := 0; i &lt; n; i++ {
+    for j := i + 1; j &lt; n; j++ {
+        if arr[i] + arr[j] == target {
+            return i, j, true
+        }
+    }
+}
+return 0, 0, false
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// O(n²) - проверяем все пары
+for i in 0..n {
+    for j in (i + 1)..n {
+        if arr[i] + arr[j] == target {
+            return Some((i, j));
+        }
+    }
+}
+None
+<span class="boring">}</span></code></pre>
+<p><strong>Недостатки</strong>:</p>
+<ul>
+<li>Временная сложность O(n²)</li>
+<li>Много избыточных проверок</li>
+</ul>
+<p><strong>Когда использовать</strong>: Только если массив не отсортирован и сортировка дороже O(n)</p>
+<h3 id="2-хеш-таблица-для-неотсортированного-массива"><a class="header" href="#2-хеш-таблица-для-неотсортированного-массива">2. Хеш-таблица (для неотсортированного массива):</a></h3>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// O(n) время, O(n) память
+seen := make(map[int]int)
+for i, num := range arr {
+    if idx, exists := seen[target-num]; exists {
+        return idx, i, true
+    }
+    seen[num] = i
+}
+return 0, 0, false
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// O(n) время, O(n) память
+let mut seen = HashMap::new();
+for (i, &amp;num) in arr.iter().enumerate() {
+    if let Some(&amp;idx) = seen.get(&amp;(target - num)) {
+        return Some((idx, i));
+    }
+    seen.insert(num, i);
+}
+None
+<span class="boring">}</span></code></pre>
+<p><strong>Сравнение</strong>:</p>
+<ul>
+<li><strong>Хеш-таблица</strong>: O(n) время, O(n) память, работает для неотсортированных массивов</li>
+<li><strong>Два указателя</strong>: O(n) время, O(1) память, требует отсортированный массив</li>
+</ul>
+<p><strong>Вывод</strong>: Если массив уже отсортирован → используйте два указателя (меньше памяти). Если нет → хеш-таблица может быть лучше.</p>
+<h3 id="3-бинарный-поиск-для-одной-пары"><a class="header" href="#3-бинарный-поиск-для-одной-пары">3. Бинарный поиск (для одной пары):</a></h3>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// O(n log n) - для каждого элемента ищем пару бинарным поиском
+for i := 0; i &lt; n; i++ {
+    j := binarySearch(arr, target-arr[i], i+1, n-1)
+    if j != -1 {
+        return i, j, true
+    }
+}
+return 0, 0, false
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// O(n log n) - для каждого элемента ищем пару бинарным поиском
+for i in 0..n {
+    if let Some(j) = binary_search(&amp;arr, target - arr[i], i + 1, n - 1) {
+        return Some((i, j));
+    }
+}
+None
+<span class="boring">}</span></code></pre>
+<p><strong>Сравнение</strong>:</p>
+<ul>
+<li><strong>Бинарный поиск</strong>: O(n log n) время, O(1) память</li>
+<li><strong>Два указателя</strong>: O(n) время, O(1) память</li>
+</ul>
+<p><strong>Вывод</strong>: Два указателя всегда лучше для отсортированных массивов</p>
+<h2 id="типичные-ошибки-и-подводные-камни"><a class="header" href="#типичные-ошибки-и-подводные-камни">Типичные ошибки и подводные камни</a></h2>
+<h3 id="1-использование-на-неотсортированном-массиве"><a class="header" href="#1-использование-на-неотсортированном-массиве">1. Использование на неотсортированном массиве</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">arr := []int{3, 1, 4, 2}  // Не отсортирован!
+left, right := 0, len(arr)-1
+// Алгоритм не будет работать корректно
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let arr = vec![3, 1, 4, 2];  // Не отсортирован!
+let mut left = 0;
+let mut right = arr.len() - 1;
+// Алгоритм не будет работать корректно
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">arr := []int{3, 1, 4, 2}
+sort.Ints(arr)  // [1, 2, 3, 4]
+left, right := 0, len(arr)-1
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut arr = vec![3, 1, 4, 2];
+arr.sort();  // [1, 2, 3, 4]
+let mut left = 0;
+let mut right = arr.len() - 1;
+<span class="boring">}</span></code></pre>
+<h3 id="2-неправильное-условие-завершения"><a class="header" href="#2-неправильное-условие-завершения">2. Неправильное условие завершения</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">for left != right {  // Может пропустить пару (left, left)
+    // ...
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>while left != right {  // Может пропустить пару (left, left)
+    // ...
+}
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">for left &lt; right {  // Явное условие
+    // ...
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>while left &lt; right {  // Явное условие
+    // ...
+}
+<span class="boring">}</span></code></pre>
+<h3 id="3-неправильный-порядок-обновления-указателей"><a class="header" href="#3-неправильный-порядок-обновления-указателей">3. Неправильный порядок обновления указателей</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">if sum &lt; target {
+    right--  // Неправильно! Нужно увеличивать сумму
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if sum &lt; target {
+    right -= 1;  // Неправильно! Нужно увеличивать сумму
+}
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">if sum &lt; target {
+    left++  // Увеличиваем меньший элемент
+} else {
+    right--  // Уменьшаем больший элемент
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if sum &lt; target {
+    left += 1;  // Увеличиваем меньший элемент
+} else {
+    right -= 1;  // Уменьшаем больший элемент
+}
+<span class="boring">}</span></code></pre>
+<h3 id="4-забывание-обновлять-результат-при-каждом-шаге"><a class="header" href="#4-забывание-обновлять-результат-при-каждом-шаге">4. Забывание обновлять результат при каждом шаге</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">maxArea := 0
+for left &lt; right {
+    area := calculateArea(left, right)
+    if area &gt; maxArea {
+        maxArea = area
+    }
+    // Забыли обновить указатели!
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut max_area = 0;
+while left &lt; right {
+    let area = calculate_area(left, right);
+    if area &gt; max_area {
+        max_area = area;
+    }
+    // Забыли обновить указатели!
+}
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">maxArea := 0
+for left &lt; right {
+    area := calculateArea(left, right)
+    if area &gt; maxArea {
+        maxArea = area
+    }
+    if height[left] &lt; height[right] {
+        left++
+    } else {
+        right--
+    }
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut max_area = 0;
+while left &lt; right {
+    let area = calculate_area(left, right);
+    max_area = max_area.max(area);
+    if height[left] &lt; height[right] {
+        left += 1;
+    } else {
+        right -= 1;
+    }
+}
+<span class="boring">}</span></code></pre>
+<h3 id="5-off-by-one-ошибки-при-работе-с-индексами"><a class="header" href="#5-off-by-one-ошибки-при-работе-с-индексами">5. Off-by-one ошибки при работе с индексами</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// Для задачи удаления дубликатов
+arr[slow] = arr[fast]
+slow++  // Увеличили дважды!
+fast++
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Для задачи удаления дубликатов
+arr[slow] = arr[fast];
+slow += 1;  // Увеличили дважды!
+fast += 1;
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">slow++
+arr[slow] = arr[fast]
+fast++
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>slow += 1;
+arr[slow] = arr[fast];
+fast += 1;
+<span class="boring">}</span></code></pre>
+<h3 id="6-неправильная-обработка-граничных-случаев"><a class="header" href="#6-неправильная-обработка-граничных-случаев">6. Неправильная обработка граничных случаев</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">func twoSum(arr []int, target int) (int, int, bool) {
+    left, right := 0, len(arr)-1
+    // Не проверили пустой массив или массив из 1 элемента
+    for left &lt; right {
+        // ...
+    }
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn two_sum(arr: &amp;[i32], target: i32) -&gt; Option&amp;lt;(usize, usize)&amp;gt; {
+    let mut left = 0;
+    let mut right = arr.len() - 1;
+    // Не проверили пустой массив или массив из 1 элемента
+    while left &lt; right {
+        // ...
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">func twoSum(arr []int, target int) (int, int, bool) {
+    if len(arr) &lt; 2 {
+        return 0, 0, false
+    }
+    left, right := 0, len(arr)-1
+    for left &lt; right {
+        // ...
+    }
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn two_sum(arr: &amp;[i32], target: i32) -&gt; Option&amp;lt;(usize, usize)&amp;gt; {
+    if arr.len() &lt; 2 {
+        return None;
+    }
+    let mut left = 0;
+    let mut right = arr.len() - 1;
+    while left &lt; right {
+        // ...
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="практические-советы-по-применению"><a class="header" href="#практические-советы-по-применению">Практические советы по применению</a></h2>
+<ol>
+<li>
+<p><strong>Определите тип задачи</strong>:</p>
+<ul>
+<li>Поиск пары в отсортированном массиве → встречные указатели</li>
+<li>Удаление/фильтрация элементов → указатели в одном направлении</li>
+<li>Обнаружение циклов → быстрый и медленный</li>
+</ul>
+</li>
+<li>
+<p><strong>Проверьте отсортированность</strong>:</p>
+<ul>
+<li>Метод встречных указателей требует отсортированный массив</li>
+<li>Если массив не отсортирован, рассмотрите сортировку (O(n log n)) или альтернативный подход</li>
+</ul>
+</li>
+<li>
+<p><strong>Правильный порядок операций</strong>:</p>
+<ul>
+<li>Вычислите значение на основе текущих указателей</li>
+<li>Обновите результат (если нужно)</li>
+<li>Примите решение о движении указателей</li>
+<li>Обновите указатели</li>
+</ul>
+</li>
+<li>
+<p><strong>Обработка дубликатов</strong>:</p>
+<ul>
+<li>Для задач типа 3Sum важно пропускать дубликаты</li>
+<li>После нахождения решения, пропустите все одинаковые элементы</li>
+</ul>
+</li>
+<li>
+<p><strong>Оптимизация для конкретных задач</strong>:</p>
+<ul>
+<li>Для площади контейнера: всегда двигайте указатель с меньшей высотой</li>
+<li>Для захвата воды: используйте два указателя с отслеживанием максимумов</li>
+<li>Для палиндромов: проверяйте символы, пропуская не-алфавитные</li>
+</ul>
+</li>
+<li>
+<p><strong>Отладка</strong>:</p>
+<ul>
+<li>Добавьте логирование позиций указателей на каждом шаге</li>
+<li>Проверьте инварианты: что должно быть истинно на каждом шаге</li>
+<li>Визуализируйте движение указателей на бумаге</li>
+</ul>
+</li>
+</ol>
+<h2 id="вариации-и-расширения"><a class="header" href="#вариации-и-расширения">Вариации и расширения</a></h2>
+<h3 id="1-три-указателя-3sum"><a class="header" href="#1-три-указателя-3sum">1. Три указателя (3Sum):</a></h3>
+<p>Расширение метода для поиска троек:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">for i := 0; i &lt; n-2; i++ {
+    left, right := i+1, n-1
+    for left &lt; right {
+        sum := arr[i] + arr[left] + arr[right]
+        // Обработка...
+    }
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>for i in 0..(n - 2) {
+    let mut left = i + 1;
+    let mut right = n - 1;
+    while left &lt; right {
+        let sum = arr[i] + arr[left] + arr[right];
+        // Обработка...
+    }
+}
+<span class="boring">}</span></code></pre>
+<h3 id="2-четыре-указателя-4sum"><a class="header" href="#2-четыре-указателя-4sum">2. Четыре указателя (4Sum):</a></h3>
+<p>Два внешних цикла + два указателя внутри</p>
+<h3 id="3-указатели-на-разных-структурах"><a class="header" href="#3-указатели-на-разных-структурах">3. Указатели на разных структурах:</a></h3>
+<p>Слияние двух отсортированных массивов:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">i, j := 0, 0  // Указатели на разные массивы
+for i &lt; len(arr1) &amp;&amp; j &lt; len(arr2) {
+    // Сравниваем и добавляем меньший элемент
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut i = 0;
+let mut j = 0;  // Указатели на разные массивы
+while i &lt; arr1.len() &amp;&amp; j &lt; arr2.len() {
+    // Сравниваем и добавляем меньший элемент
+}
+<span class="boring">}</span></code></pre>
+<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
+<h3 id="используемые-структуры-данных-в-two-pointers"><a class="header" href="#используемые-структуры-данных-в-two-pointers">Используемые структуры данных в Two Pointers</a></h3>
+<p>В шаблоне Two Pointers используются следующие структуры данных:</p>
+<ul>
+<li>****: Для работы с массивами и хранения результатов</li>
+<li><strong>Указатели/индексы</strong>: Для навигации по массивам (хранятся на стеке)</li>
+</ul>
+<h3 id="rust--slice-go"><a class="header" href="#rust--slice-go">(Rust) / Slice (Go)</a></h3>
+<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
+<p><strong>Rust Vec&lt;T&gt;</strong>:</p>
+<pre><code>В памяти Vec&amp;lt;T&amp;gt; хранится как структура из трех полей:
+┌─────────────────────────────────────────┐
+│ ptr: *mut T    │ Указатель на данные    │
+│ len: usize     │ Текущее количество     │
+│ capacity: usize│ Выделенная емкость    │
+└─────────────────────────────────────────┘
+         │
+         ▼
+    [данные в куче]
+    [T][T][T][T]...[T]
+</code></pre>
+<p><strong>Важные детали для Two Pointers</strong>:</p>
+<ul>
+<li>Доступ по индексу <code>arr[i]</code> - это прямой доступ к памяти: <code>ptr + i * size_of(T)</code></li>
+<li>Операция O(1) благодаря непрерывной памяти</li>
+<li>Cache-friendly: последовательный доступ очень быстрый</li>
+<li>Два указателя (left, right) - это просто <code>usize</code> на стеке, не аллоцируют память</li>
+</ul>
+<p><strong>Go Slice</strong>:</p>
+<pre><code>В памяти slice хранится как структура из трех полей:
+┌─────────────────────────────────────────┐
+│ ptr: *T      │ Указатель на данные      │
+│ len: int     │ Текущая длина            │
+│ cap: int     │ Емкость                  │
+└─────────────────────────────────────────┘
+         │
+         ▼
+    [данные в куче]
+    [T][T][T][T]...[T]
+</code></pre>
+<p><strong>Важные детали для Two Pointers</strong>:</p>
+<ul>
+<li>Слайс - это дескриптор, указатели left/right - это просто <code>int</code> на стеке</li>
+<li>Доступ <code>arr[i]</code> - прямой доступ через указатель</li>
+<li>Несколько слайсов могут ссылаться на один базовый массив (важно для оптимизации)</li>
+</ul>
+<h4 id="что-такое-дескриптор-descriptor"><a class="header" href="#что-такое-дескриптор-descriptor">Что такое дескриптор (Descriptor)?</a></h4>
+<p><strong>Дескриптор</strong> - это структура данных, которая содержит <strong>метаинформацию</strong> о другом объекте, но не владеет самими данными. В контексте Go слайсов:</p>
+<pre><code>Дескриптор слайса:
+┌─────────────────────────────────────────┐
+│ Slice Descriptor (24 байта на 64-bit)   │
+│ ┌─────────────┐                        │
+│ │ ptr: *T     │ Указатель на данные    │ ← НЕ владеет данными
+│ │ len: int    │ Текущая длина          │ ← Метаинформация
+│ │ cap: int    │ Емкость                │ ← Метаинформация
+│ └─────────────┘                        │
+└─────────────────────────────────────────┘
+         │
+         │ (ссылается на)
+         ▼
+    [Базовый массив в куче]
+    [T][T][T][T]...[T]
+</code></pre>
+<p><strong>Ключевые особенности дескриптора</strong>:</p>
+<ol>
+<li>
+<p><strong>Не владеет данными</strong>: Дескриптор содержит только указатель на данные, но не владеет ими. Данные могут быть частью другого массива или слайса.</p>
+</li>
+<li>
+<p><strong>Легковесный</strong>: Дескриптор - это небольшая структура (24 байта), которая может быть на стеке. Копирование дескриптора - это копирование только 24 байт, а не всех данных.</p>
+</li>
+<li>
+<p><strong>Множественные ссылки</strong>: Несколько дескрипторов могут ссылаться на один и тот же базовый массив:</p>
+</li>
+</ol>
+<pre><code class="language-go">arr := []int{1, 2, 3, 4, 5}
+left := arr[0:3]   // Дескриптор 1: [1, 2, 3]
+right := arr[2:5]   // Дескриптор 2: [3, 4, 5]
+// Оба дескриптора ссылаются на один массив arr
+</code></pre>
+<ol start="4">
+<li><strong>Создание среза - O(1)</strong>: Создание нового слайса из существующего - это просто создание нового дескриптора, данные не копируются:</li>
+</ol>
+<pre><code class="language-go">arr := make([]int, 1000)  // Большой массив
+slice := arr[100:200]      // O(1) - только создание дескриптора
+// Данные не копируются, slice ссылается на arr
+</code></pre>
+<p><strong>Почему это важно для Two Pointers</strong>:</p>
+<ul>
+<li><strong>Эффективность</strong>: Создание подмассивов не требует копирования данных</li>
+<li><strong>Экономия памяти</strong>: Указатели left/right работают с одним базовым массивом</li>
+<li><strong>Производительность</strong>: Операции со слайсами быстрые, так как работают только с дескриптором</li>
+</ul>
+<p><strong>Сравнение с Rust Vec</strong>:</p>
+<ul>
+<li><strong>Rust Vec&lt;T&gt;</strong>: Владеет данными. Копирование Vec копирует все данные</li>
+<li><strong>Go Slice</strong>: Дескриптор. Копирование слайса копирует только дескриптор (24 байта), данные не копируются</li>
+</ul>
+<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>Vec&lt;T&gt; (Rust)</th><th>Slice (Go)</th><th>Объяснение</th></tr>
+</thead>
+<tbody>
+<tr><td>Доступ по индексу</td><td>O(1)</td><td>O(1)</td><td>Прямой доступ: <code>ptr + index * size_of(T)</code></td></tr>
+<tr><td>Сравнение элементов</td><td>O(1)</td><td>O(1)</td><td>Просто сравнение значений в памяти</td></tr>
+<tr><td>Создание среза</td><td>O(1)</td><td>O(1)</td><td>Создается новый дескриптор, данные не копируются</td></tr>
+<tr><td>Копирование элемента</td><td>O(1)</td><td>O(1)</td><td>Копирование одного значения</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Почему Two Pointers эффективен</strong>:</p>
+<ul>
+<li>Только O(1) операции доступа</li>
+<li>Нет необходимости создавать новые структуры данных</li>
+<li>Минимальные аллокации памяти (только для результата, если нужен)</li>
+</ul>
+<h4 id="когда-использовать"><a class="header" href="#когда-использовать">Когда использовать:</a></h4>
+<p><strong>Используйте Vec/Slice когда</strong>:</p>
+<ul>
+<li>Нужен произвольный доступ по индексу</li>
+<li>Данные уже отсортированы или можно отсортировать</li>
+<li>Нужна эффективная навигация в двух направлениях</li>
+</ul>
+<p><strong>Почему не LinkedList</strong>:</p>
+<ul>
+<li>LinkedList требует O(n) для доступа по индексу</li>
+<li>Two Pointers требует O(1) доступ, поэтому Vec/Slice оптимальны</li>
+</ul>
+<h3 id="указатели-и-индексы"><a class="header" href="#указатели-и-индексы">Указатели и индексы</a></h3>
+<h4 id="как-хранятся-в-памяти"><a class="header" href="#как-хранятся-в-памяти">Как хранятся в памяти:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let left: usize = 0;   // На стеке, 8 байт (на 64-bit системе)
+let right: usize = 10; // На стеке, 8 байт
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">left := 0   // На стеке, 8 байт (int на 64-bit системе)
+right := 10 // На стеке, 8 байт
+</code></pre>
+<p><strong>Важно</strong>:</p>
+<ul>
+<li>Указатели/индексы - это примитивные типы на стеке</li>
+<li>Не требуют аллокации в куче</li>
+<li>Очень быстрые операции (сложение, вычитание, сравнение)</li>
+<li>Нет overhead от управления памятью</li>
+</ul>
+<h4 id="операции-с-указателями"><a class="header" href="#операции-с-указателями">Операции с указателями:</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>Сложность</th><th>Объяснение</th></tr>
+</thead>
+<tbody>
+<tr><td>Инкремент/декремент</td><td>O(1)</td><td>Простое арифметическое действие</td></tr>
+<tr><td>Сравнение</td><td>O(1)</td><td>Сравнение двух чисел</td></tr>
+<tr><td>Вычисление расстояния</td><td>O(1)</td><td><code>right - left</code></td></tr>
+<tr><td>Доступ к элементу</td><td>O(1)</td><td><code>arr[index]</code> через указатель</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
+<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
+<h4 id="что-это-такое"><a class="header" href="#что-это-такое">Что это такое:</a></h4>
+<p><strong>Escape Analysis</strong> - это статический анализ компилятора Go, который определяет, должна ли переменная быть аллоцирована в куче или может остаться на стеке.</p>
+<p><strong>Для Two Pointers</strong>:</p>
+<ul>
+<li>Индексы (int) всегда на стеке</li>
+<li>Результирующие слайсы могут escape, если возвращаются из функции</li>
+</ul>
+<h4 id="как-проверить"><a class="header" href="#как-проверить">Как проверить:</a></h4>
+<pre><code class="language-bash">go build -gcflags=-m main.go
+</code></pre>
+<p><strong>Пример для Two Pointers</strong>:</p>
+<pre><code class="language-go">func twoSum(nums []int, target int) []int {
+    left, right := 0, len(nums)-1  // на стеке
+    result := make([]int, 2)       // может escape, если возвращается
+    // ...
+    return result  // escape в кучу
+}
+</code></pre>
+<p><strong>Вывод</strong>:</p>
+<pre><code>./main.go:5:6: moved to heap: result
+</code></pre>
+<h4 id="оптимизация"><a class="header" href="#оптимизация">Оптимизация:</a></h4>
+<p><strong>Избежание escape результата</strong>:</p>
+<pre><code class="language-go">// ❌ Плохо: создание нового слайса
+func bad() []int {
+    result := []int{1, 2}  // escape
+    return result
+}
+
+// ✅ Хорошо: использование переданного слайса
+func good(result []int) {
+    result[0] = 1
+    result[1] = 2
+    // result не escape, если передан извне
+}
+</code></pre>
+<h3 id="borrow-checker-rust"><a class="header" href="#borrow-checker-rust">Borrow Checker (Rust)</a></h3>
+<h4 id="что-это-такое-1"><a class="header" href="#что-это-такое-1">Что это такое:</a></h4>
+<p><strong>Borrow Checker</strong> - система проверки заимствований в Rust, гарантирующая безопасность памяти.</p>
+<p><strong>Для Two Pointers</strong>:</p>
+<ul>
+<li>Обычно работаем с immutable ссылками <code>&amp;[T]</code></li>
+<li>Множественные immutable borrows разрешены</li>
+<li>Проблемы редко возникают, так как не изменяем исходный массив</li>
+</ul>
+<h4 id="примеры-для-two-pointers"><a class="header" href="#примеры-для-two-pointers">Примеры для Two Pointers:</a></h4>
+<p><strong>Типичный паттерн</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn two_sum(nums: &amp;[i32], target: i32) -&gt; Vec&amp;lt;usize&amp;gt; {
+    let mut left = 0;
+    let mut right = nums.len() - 1;
+    
+    // nums - immutable borrow, можно использовать много раз
+    while left &lt; right {
+        let sum = nums[left] + nums[right];  // OK: immutable borrow
+        // ...
+    }
+    
+    vec![left, right]  // создаем новый Vec для результата
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Проблема: изменение во время итерации</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Не компилируется
+fn bad(nums: &amp;mut Vec&amp;lt;i32&amp;gt;) {
+    let mut left = 0;
+    let mut right = nums.len() - 1;
+    while left &lt; right {
+        nums.push(0);  // ERROR: нельзя изменять во время borrow
+        left += 1;
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Решение</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Используем индексы без borrow
+fn good(nums: &amp;mut Vec&amp;lt;i32&amp;gt;) {
+    let mut left = 0;
+    let mut right = nums.len() - 1;
+    let len = nums.len();  // сохраняем длину
+    while left &lt; right {
+        // работаем с индексами, не с borrow
+        left += 1;
+    }
+}
+<span class="boring">}</span></code></pre>
+<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
+<h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
+<p><strong>Для Two Pointers</strong>:</p>
+<ul>
+<li>Индексы на стеке - не влияют на GC</li>
+<li>Результирующие слайсы в куче - управляются GC</li>
+<li>Минимизация аллокаций критична для производительности</li>
+</ul>
+<h4 id="оптимизация-1"><a class="header" href="#оптимизация-1">Оптимизация:</a></h4>
+<p><strong>Предварительное выделение результата</strong>:</p>
+<pre><code class="language-go">// ✅ Хорошо: предварительное выделение
+func optimized() []int {
+    result := make([]int, 0, 2)  // capacity = 2
+    // ...
+    return result
+}
+</code></pre>
+<p><strong>Переиспользование слайсов</strong>:</p>
+<pre><code class="language-go">// ✅ Используем sync.Pool для переиспользования
+var resultPool = sync.Pool{
+    New: func() interface{} {
+        return make([]int, 0, 10)
+    },
+}
+</code></pre>
+<h3 id="ownership-и-move-semantics-rust"><a class="header" href="#ownership-и-move-semantics-rust">Ownership и Move Semantics (Rust)</a></h3>
+<h4 id="концепция-владения"><a class="header" href="#концепция-владения">Концепция владения:</a></h4>
+<p><strong>Для Two Pointers</strong>:</p>
+<ul>
+<li>Входные данные: обычно <code>&amp;[T]</code> (slice, не владеет)</li>
+<li>Указатели: <code>usize</code> (Copy, не владеют)</li>
+<li>Результаты: <code>Vec&amp;lt;T&amp;gt;</code> (владеет данными)</li>
+</ul>
+<p><strong>Пример</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn two_pointers_example(nums: &amp;[i32]) -&gt; Vec&amp;lt;usize&amp;gt; {
+    // nums - заимствование, не владеем
+    let mut left = 0;  // usize, Copy
+    let mut right = nums.len() - 1;  // usize, Copy
+    
+    // ...
+    
+    vec![left, right]  // создаем новый Vec, владеем результатом
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Почему <code>&amp;[T]</code> вместо <code>Vec&amp;lt;T&amp;gt;</code></strong>:</p>
+<ul>
+<li><code>&amp;[T]</code> - это slice, не владеет данными</li>
+<li>Можно использовать без передачи владения</li>
+<li>Более гибко: работает с любым слайсом (Vec, array, etc.)</li>
+</ul>
+<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
+<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
+<h4 id="rust-владение-и-аллокации"><a class="header" href="#rust-владение-и-аллокации">Rust: Владение и аллокации</a></h4>
+<p>В Rust для шаблона Two Pointers:</p>
+<ul>
+<li><strong>Указатели (индексы)</strong>: Хранятся на стеке как <code>usize</code> - O(1)</li>
+<li><strong>Ссылки на элементы</strong>: <code>&amp;arr[i]</code> не аллоцируют память</li>
+<li><strong>Результаты</strong>: Если возвращаем <code>Vec</code>, происходит аллокация в куче</li>
+</ul>
+<h4 id="go-сборщик-мусора"><a class="header" href="#go-сборщик-мусора">Go: Сборщик мусора</a></h4>
+<p>В Go для Two Pointers:</p>
+<ul>
+<li><strong>Индексы</strong>: <code>int</code> на стеке - O(1)</li>
+<li><strong>Слайсы</strong>: Могут быть на стеке (если не escape) или в куче</li>
+<li><strong>Результаты</strong>: Слайсы аллоцируются в куче</li>
+</ul>
+<h3 id="анализ-аллокаций-для-two-pointers"><a class="header" href="#анализ-аллокаций-для-two-pointers">Анализ аллокаций для Two Pointers</a></h3>
+<h4 id="базовый-подход-поиск-пары"><a class="header" href="#базовый-подход-поиск-пары">Базовый подход (поиск пары):</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Аллокации:
+// - left, right: usize (стек) - O(1)
+// - Результат: Option&amp;lt;(usize, usize)&amp;gt; (стек) - O(1)
+// Итого: O(1) памяти, никаких аллокаций в куче
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// Аллокации:
+// - left, right: int (стек) - O(1)
+// - Результат: []int (может быть в куче) - O(1) или O(n) если копируем
+// Итого: O(1) памяти для индексов
+</code></pre>
+<h4 id="с-возвратом-всех-пар"><a class="header" href="#с-возвратом-всех-пар">С возвратом всех пар:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Аллокации:
+// - result: Vec&amp;lt;(usize, usize)&amp;gt; - O(k) где k - количество пар
+// - left, right: usize (стек) - O(1)
+// Итого: O(k) памяти в куче
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// Аллокации:
+// - result: [][]int - O(k) в куче
+// - left, right: int (стек) - O(1)
+// Итого: O(k) памяти в куче
+</code></pre>
+<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
+<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
+<ol>
+<li><strong>Предварительное выделение результата</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Хорошо: предварительное выделение
+let mut result = Vec::with_capacity(expected_pairs);
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Избежание клонирования</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Возвращаем индексы вместо значений
+fn find_pair(arr: &amp;[i32], target: i32) -&gt; Option&amp;lt;(usize, usize)&amp;gt; {
+    // ...
+}
+<span class="boring">}</span></code></pre>
+<ol start="3">
+<li><strong>Использование итераторов</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Итераторы не аллоцируют промежуточные структуры
+arr.iter().enumerate().filter(|(i, &amp;x)| x &gt; 0)
+<span class="boring">}</span></code></pre>
+<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
+<ol>
+<li><strong>Предварительное выделение слайсов</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Предварительное выделение
+result := make([][]int, 0, expectedPairs)
+</code></pre>
+<ol start="2">
+<li><strong>Избежание escape в кучу</strong>:</li>
+</ol>
+<pre><code class="language-go">// Используйте значения вместо указателей когда возможно
+</code></pre>
+<ol start="3">
+<li><strong>Переиспользование слайсов</strong>:</li>
+</ol>
+<pre><code class="language-go">// Очистка и переиспользование
+result = result[:0] // вместо make([][]int, 0)
+</code></pre>
+<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Индексы</td><td>usize на стеке</td><td>int на стеке</td></tr>
+<tr><td>Результаты</td><td>Vec аллоцируется в куче</td><td>Слайсы в куче</td></tr>
+<tr><td>Производительность</td><td>Предсказуемая</td><td>Может быть паузы GC</td></tr>
+<tr><td>Оптимизация</td><td>На этапе компиляции</td><td>Runtime</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
+<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
+<ol>
+<li>
+<p><strong>Избежание ненужных проверок</strong>:</p>
+<ul>
+<li>Проверяйте условие только когда необходимо</li>
+<li>Используйте ранние выходы</li>
+</ul>
+</li>
+<li>
+<p><strong>Оптимизация условий</strong>:</p>
+<ul>
+<li>Порядок проверок важен (самые частые случаи первыми)</li>
+<li>Используйте короткие замыкания</li>
+</ul>
+</li>
+<li>
+<p><strong>Кэширование вычислений</strong>:</p>
+<ul>
+<li>Сохраняйте результаты дорогих операций</li>
+<li>Избегайте повторных вычислений сумм</li>
+</ul>
+</li>
+</ol>
+<h3 id="специфичные-оптимизации-для-two-pointers"><a class="header" href="#специфичные-оптимизации-для-two-pointers">Специфичные оптимизации для Two Pointers</a></h3>
+<h4 id="1-оптимизация-для-отсортированных-массивов"><a class="header" href="#1-оптимизация-для-отсортированных-массивов">1. Оптимизация для отсортированных массивов:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Оптимизированная версия
+pub fn two_sum_optimized(arr: &amp;[i32], target: i32) -&gt; Option&amp;lt;(usize, usize)&amp;gt; {
+    let mut left = 0;
+    let mut right = arr.len().saturating_sub(1);
+    
+    while left &lt; right {
+        let sum = arr[left] + arr[right];
+        match sum.cmp(&amp;target) {
+            std::cmp::Ordering::Equal =&gt; return Some((left, right)),
+            std::cmp::Ordering::Less =&gt; left += 1,
+            std::cmp::Ordering::Greater =&gt; right -= 1,
+        }
+    }
+    None
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// ✅ Оптимизированная версия
+func twoSumOptimized(arr []int, target int) (int, int, bool) {
+    left, right := 0, len(arr)-1
+    
+    for left &lt; right {
+        sum := arr[left] + arr[right]
+        switch {
+        case sum == target:
+            return left, right, true
+        case sum &lt; target:
+            left++
+        default:
+            right--
+        }
+    }
+    return 0, 0, false
+}
+</code></pre>
+<h4 id="2-оптимизация-для-удаления-дубликатов"><a class="header" href="#2-оптимизация-для-удаления-дубликатов">2. Оптимизация для удаления дубликатов:</a></h4>
+<p><strong>Использование HashSet для быстрой проверки</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::collections::HashSet;
+
+// Для проверки уникальности
+let mut seen = HashSet::with_capacity(n);
+<span class="boring">}</span></code></pre>
+<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
+<ol>
+<li><strong>Использование <code>cmp</code> вместо if-else</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Более идиоматично
+match sum.cmp(&amp;target) {
+    Ordering::Equal =&gt; ...,
+    Ordering::Less =&gt; ...,
+    Ordering::Greater =&gt; ...,
+}
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Избежание bounds checking</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Компилятор Rust оптимизирует проверки границ
+// Используйте итераторы для дополнительной оптимизации
+<span class="boring">}</span></code></pre>
+<ol start="3">
+<li><strong>Использование <code>get_unchecked</code> (unsafe, только если уверены)</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ⚠️ Только если абсолютно уверены в границах
+unsafe { arr.get_unchecked(i) }
+<span class="boring">}</span></code></pre>
+<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
+<ol>
+<li><strong>Предварительное выделение</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Предварительное выделение
+seen := make(map[int]bool, n)
+</code></pre>
+<ol start="2">
+<li><strong>Избежание аллокаций в циклах</strong>:</li>
+</ol>
+<pre><code class="language-go">// ❌ Плохо: аллокация в цикле
+for i := range arr {
+    result = append(result, []int{i, i+1})
+}
+
+// ✅ Хорошо: предварительное выделение
+result := make([][]int, 0, n)
+for i := range arr {
+    result = append(result, []int{i, i+1})
+}
+</code></pre>
+<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
+<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
+<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
+<h3 id="как-профилировать-two-pointers"><a class="header" href="#как-профилировать-two-pointers">Как профилировать Two Pointers</a></h3>
+<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// benches/two_pointers_bench.rs
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn bench_two_sum(c: &amp;mut Criterion) {
+    let arr: Vec&amp;lt;i32&amp;gt; = (0..10000).collect();
+    
+    c.bench_function("two_sum_10000", |b| {
+        b.iter(|| two_sum_optimized(black_box(&amp;arr), 5000))
+    });
+}
+
+criterion_group!(benches, bench_two_sum);
+criterion_main!(benches);
+<span class="boring">}</span></code></pre>
+<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
+<pre><code class="language-go">func BenchmarkTwoSum(b *testing.B) {
+    arr := make([]int, 10000)
+    for i := range arr {
+        arr[i] = i
+    }
+    
+    b.ResetTimer()
+    for i := 0; i &lt; b.N; i++ {
+        twoSumOptimized(arr, 5000)
+    }
+}
+</code></pre>
+<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
+<p><strong>Анализ производительности</strong>:</p>
+<ul>
+<li>Two Pointers обычно O(n) по времени</li>
+<li>O(1) дополнительной памяти для базового подхода</li>
+<li>O(k) памяти если возвращаем все пары</li>
+</ul>
+<p><strong>Типичные узкие места</strong>:</p>
+<ul>
+<li>Проверки границ массивов</li>
+<li>Условные операторы в горячем пути</li>
+<li>Аллокации результатов</li>
+</ul>
+<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
+<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
+<ol>
+<li><strong>Базовые тесты</strong>: Простые случаи</li>
+<li><strong>Граничные случаи</strong>: Пустые массивы, один элемент, нет решения</li>
+<li><strong>Стресс-тесты</strong>: Большие массивы</li>
+<li><strong>Property-based</strong>: Автоматическая генерация тестов</li>
+</ol>
+<h3 id="примеры-тестов-для-two-pointers"><a class="header" href="#примеры-тестов-для-two-pointers">Примеры тестов для Two Pointers</a></h3>
+<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_two_sum_basic() {
+        let arr = vec![2, 7, 11, 15];
+        assert_eq!(two_sum_optimized(&amp;arr, 9), Some((0, 1)));
+    }
+
+    #[test]
+    fn test_two_sum_no_solution() {
+        let arr = vec![1, 2, 3, 4];
+        assert_eq!(two_sum_optimized(&amp;arr, 10), None);
+    }
+
+    #[test]
+    fn test_two_sum_empty() {
+        let arr = vec![];
+        assert_eq!(two_sum_optimized(&amp;arr, 0), None);
+    }
+
+    #[test]
+    fn test_remove_duplicates() {
+        let mut arr = vec![1, 1, 2, 2, 3, 3];
+        let len = remove_duplicates(&amp;mut arr);
+        assert_eq!(len, 3);
+        assert_eq!(&amp;arr[..len], &amp;[1, 2, 3]);
+    }
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
+<pre><code class="language-go">func TestTwoSum(t *testing.T) {
+    tests := []struct {
+        name   string
+        arr    []int
+        target int
+        want   bool
+    }{
+        {"basic", []int{2, 7, 11, 15}, 9, true},
+        {"no_solution", []int{1, 2, 3, 4}, 10, false},
+        {"empty", []int{}, 0, false},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            _, _, got := twoSumOptimized(tt.arr, tt.target)
+            if got != tt.want {
+                t.Errorf("twoSumOptimized() = %v, want %v", got, tt.want)
+            }
+        })
+    }
+}
+</code></pre>
+<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
+<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
+<pre><code class="language-bash">cargo test
+cargo test -- --nocapture
+cargo bench
+</code></pre>
+<h4 id="go"><a class="header" href="#go">Go:</a></h4>
+<pre><code class="language-bash">go test -v
+go test -bench=. -benchmem
+</code></pre>
+<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
+<h4 id="rust-1"><a class="header" href="#rust-1">Rust:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+
+fn two_pointers_benchmark(c: &amp;mut Criterion) {
+    let sizes = vec![100, 1000, 10000, 100000];
+    
+    let mut group = c.benchmark_group("two_pointers");
+    for size in sizes {
+        let arr: Vec&amp;lt;i32&amp;gt; = (0..size).collect();
+        group.bench_with_input(
+            BenchmarkId::from_parameter(size),
+            &amp;arr,
+            |b, arr| {
+                b.iter(|| two_sum_optimized(black_box(arr), size as i32 / 2));
+            },
+        );
+    }
+    group.finish();
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
+<pre><code class="language-go">func BenchmarkTwoPointersSizes(b *testing.B) {
+    sizes := []int{100, 1000, 10000, 100000}
+    
+    for _, size := range sizes {
+        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
+            arr := make([]int, size)
+            for i := range arr {
+                arr[i] = i
+            }
+            b.ResetTimer()
+            for i := 0; i &lt; b.N; i++ {
+                twoSumOptimized(arr, size/2)
+            }
+        })
+    }
+}
+</code></pre>
+<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
+<h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Примеры использования шаблона Two Pointers на Rust
+
+/// Пример 1: Поиск двух чисел с заданной суммой в отсортированном массиве
+/// 
+/// Задача: Найти два числа в отсортированном массиве, сумма которых равна target
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn two_sum_sorted(arr: &amp;[i32], target: i32) -&gt; Option&amp;lt;(usize, usize)&amp;gt; {
+    let mut left = 0;
+    let mut right = arr.len().saturating_sub(1);
+
+    while left &lt; right {
+        let sum = arr[left] + arr[right];
+        
+        if sum == target {
+            return Some((left, right));
+        } else if sum &lt; target {
+            left += 1;
+        } else {
+            right -= 1;
+        }
+    }
+
+    None
+}
+
+/// Пример 2: Удаление дубликатов из отсортированного массива
+/// 
+/// Задача: Удалить дубликаты из отсортированного массива на месте
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn remove_duplicates(nums: &amp;mut [i32]) -&gt; usize {
+    if nums.is_empty() {
+        return 0;
+    }
+
+    let mut slow = 0;
+
+    for fast in 1..nums.len() {
+        if nums[slow] != nums[fast] {
+            slow += 1;
+            nums[slow] = nums[fast];
+        }
+    }
+
+    slow + 1
+}
+
+/// Пример 3: Три числа с нулевой суммой (3Sum)
+/// 
+/// Задача: Найти все уникальные тройки чисел, сумма которых равна нулю
+/// Временная сложность: O(n²)
+/// Пространственная сложность: O(1) без учета результата
+pub fn three_sum(mut nums: Vec&amp;lt;i32&amp;gt;) -&gt; Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; {
+    nums.sort();
+    let mut result = Vec::new();
+    let n = nums.len();
+
+    for i in 0..n.saturating_sub(2) {
+        // Пропускаем дубликаты для первого числа
+        if i &gt; 0 &amp;&amp; nums[i] == nums[i - 1] {
+            continue;
+        }
+
+        let mut left = i + 1;
+        let mut right = n - 1;
+        let target = -nums[i];
+
+        while left &lt; right {
+            let sum = nums[left] + nums[right];
+
+            if sum == target {
+                result.push(vec![nums[i], nums[left], nums[right]]);
+
+                // Пропускаем дубликаты
+                while left &lt; right &amp;&amp; nums[left] == nums[left + 1] {
+                    left += 1;
+                }
+                while left &lt; right &amp;&amp; nums[right] == nums[right - 1] {
+                    right -= 1;
+                }
+
+                left += 1;
+                right -= 1;
+            } else if sum &lt; target {
+                left += 1;
+            } else {
+                right -= 1;
+            }
+        }
+    }
+
+    result
+}
+
+/// Пример 4: Контейнер с наибольшим количеством воды
+/// 
+/// Задача: Найти два столбца, которые вместе с осью X образуют контейнер,
+/// содержащий наибольшее количество воды
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn max_area(height: Vec&amp;lt;i32&amp;gt;) -&gt; i32 {
+    let mut left = 0;
+    let mut right = height.len() - 1;
+    let mut max_area = 0;
+
+    while left &lt; right {
+        let width = (right - left) as i32;
+        let current_area = width * height[left].min(height[right]);
+        max_area = max_area.max(current_area);
+
+        // Перемещаем указатель с меньшей высотой
+        if height[left] &lt; height[right] {
+            left += 1;
+        } else {
+            right -= 1;
+        }
+    }
+
+    max_area
+}
+
+/// Пример 5: Захват дождевой воды (Trapping Rain Water)
+/// 
+/// Задача: Вычислить, сколько воды можно захватить между столбцами
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn trap_rain_water(height: Vec&amp;lt;i32&amp;gt;) -&gt; i32 {
+    if height.is_empty() {
+        return 0;
+    }
+
+    let mut left = 0;
+    let mut right = height.len() - 1;
+    let mut left_max = 0;
+    let mut right_max = 0;
+    let mut water = 0;
+
+    while left &lt; right {
+        if height[left] &lt; height[right] {
+            if height[left] &gt;= left_max {
+                left_max = height[left];
+            } else {
+                water += left_max - height[left];
+            }
+            left += 1;
+        } else {
+            if height[right] &gt;= right_max {
+                right_max = height[right];
+            } else {
+                water += right_max - height[right];
+            }
+            right -= 1;
+        }
+    }
+
+    water
+}
+
+/// Пример 6: Квадраты отсортированного массива
+/// 
+/// Задача: Вернуть массив квадратов каждого числа в отсортированном порядке
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(n)
+pub fn sorted_squares(nums: Vec&amp;lt;i32&amp;gt;) -&gt; Vec&amp;lt;i32&amp;gt; {
+    let n = nums.len();
+    let mut result = vec![0; n];
+    let mut left = 0;
+    let mut right = n - 1;
+    let mut pos = n - 1;
+
+    while left &lt;= right {
+        let left_sq = nums[left] * nums[left];
+        let right_sq = nums[right] * nums[right];
+
+        if left_sq &gt; right_sq {
+            result[pos] = left_sq;
+            left += 1;
+        } else {
+            result[pos] = right_sq;
+            right -= 1;
+        }
+        pos -= 1;
+    }
+
+    result
+}
+<span class="boring">}</span></code></pre>
+<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
+<pre><code class="language-go">package main
+
+import (
+	"fmt"
+	"sort"
+)
+
+// Пример 1: Поиск двух чисел с заданной суммой в отсортированном массиве
+//
+// Задача: Найти два числа в отсортированном массиве, сумма которых равна target
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func twoSumSorted(arr []int, target int) (int, int, bool) {
+	left := 0
+	right := len(arr) - 1
+
+	for left &lt; right {
+		sum := arr[left] + arr[right]
+
+		if sum == target {
+			return left, right, true
+		} else if sum &lt; target {
+			left++
+		} else {
+			right--
+		}
+	}
+
+	return 0, 0, false
+}
+
+// Пример 2: Удаление дубликатов из отсортированного массива
+//
+// Задача: Удалить дубликаты из отсортированного массива на месте
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func removeDuplicates(nums []int) int {
+	if len(nums) == 0 {
+		return 0
+	}
+
+	slow := 0
+
+	for fast := 1; fast &lt; len(nums); fast++ {
+		if nums[slow] != nums[fast] {
+			slow++
+			nums[slow] = nums[fast]
+		}
+	}
+
+	return slow + 1
+}
+
+// Пример 3: Три числа с нулевой суммой (3Sum)
+//
+// Задача: Найти все уникальные тройки чисел, сумма которых равна нулю
+// Временная сложность: O(n²)
+// Пространственная сложность: O(1) без учета результата
+func threeSum(nums []int) [][]int {
+	sort.Ints(nums)
+	var result [][]int
+	n := len(nums)
+
+	for i := 0; i &lt; n-2; i++ {
+		// Пропускаем дубликаты для первого числа
+		if i &gt; 0 &amp;&amp; nums[i] == nums[i-1] {
+			continue
+		}
+
+		left := i + 1
+		right := n - 1
+		target := -nums[i]
+
+		for left &lt; right {
+			sum := nums[left] + nums[right]
+
+			if sum == target {
+				result = append(result, []int{nums[i], nums[left], nums[right]})
+
+				// Пропускаем дубликаты
+				for left &lt; right &amp;&amp; nums[left] == nums[left+1] {
+					left++
+				}
+				for left &lt; right &amp;&amp; nums[right] == nums[right-1] {
+					right--
+				}
+
+				left++
+				right--
+			} else if sum &lt; target {
+				left++
+			} else {
+				right--
+			}
+		}
+	}
+
+	return result
+}
+
+// Пример 4: Контейнер с наибольшим количеством воды
+//
+// Задача: Найти два столбца, которые вместе с осью X образуют контейнер,
+// содержащий наибольшее количество воды
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func maxArea(height []int) int {
+	left := 0
+	right := len(height) - 1
+	maxArea := 0
+
+	for left &lt; right {
+		width := right - left
+		currentArea := width * min(height[left], height[right])
+		if currentArea &gt; maxArea {
+			maxArea = currentArea
+		}
+
+		// Перемещаем указатель с меньшей высотой
+		if height[left] &lt; height[right] {
+			left++
+		} else {
+			right--
+		}
+	}
+
+	return maxArea
+}
+
+// Пример 5: Захват дождевой воды (Trapping Rain Water)
+//
+// Задача: Вычислить, сколько воды можно захватить между столбцами
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func trapRainWater(height []int) int {
+	if len(height) == 0 {
+		return 0
+	}
+
+	left := 0
+	right := len(height) - 1
+	leftMax := 0
+	rightMax := 0
+	water := 0
+
+	for left &lt; right {
+		if height[left] &lt; height[right] {
+			if height[left] &gt;= leftMax {
+				leftMax = height[left]
+			} else {
+				water += leftMax - height[left]
+			}
+			left++
+		} else {
+			if height[right] &gt;= rightMax {
+				rightMax = height[right]
+			} else {
+				water += rightMax - height[right]
+			}
+			right--
+		}
+	}
+
+	return water
+}
+
+// Пример 6: Квадраты отсортированного массива
+//
+// Задача: Вернуть массив квадратов каждого числа в отсортированном порядке
+// Временная сложность: O(n)
+// Пространственная сложность: O(n)
+func sortedSquares(nums []int) []int {
+	n := len(nums)
+	result := make([]int, n)
+	left := 0
+	right := n - 1
+	pos := n - 1
+
+	for left &lt;= right {
+		leftSq := nums[left] * nums[left]
+		rightSq := nums[right] * nums[right]
+
+		if leftSq &gt; rightSq {
+			result[pos] = leftSq
+			left++
+		} else {
+			result[pos] = rightSq
+			right--
+		}
+		pos--
+	}
+
+	return result
+}
+
+// Вспомогательная функция для min
+func min(a, b int) int {
+	if a &lt; b {
+		return a
+	}
+	return b
+}
+</code></pre>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
+<ul>
+<li><a href="https://www.geeksforgeeks.org/two-pointers-technique/">Two Pointers Technique - GeeksforGeeks</a> - Подробное объяснение</li>
+<li><a href="https://leetcode.com/tag/two-pointers/">LeetCode Two Pointers Problems</a> - Коллекция задач</li>
+<li><a href="https://www.algorist.com/">Algorithm Design Manual - Skiena</a> - Теоретическая база</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="sliding-window.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="fast-slow-pointers.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="sliding-window.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="fast-slow-pointers.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace-2a3cd908.js"></script>
+        <script src="mode-rust-2c9d5c9a.js"></script>
+        <script src="editor-16ca416c.js"></script>
+        <script src="theme-dawn-4493f9c8.js"></script>
+        <script src="theme-tomorrow_night-9dbe62a9.js"></script>
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

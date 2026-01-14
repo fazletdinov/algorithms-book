@@ -1,0 +1,1215 @@
+<!DOCTYPE HTML>
+<html lang="ru" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>K-way Merge (K-way слияние) - Алгоритмические шаблоны для решения задач на собеседованиях</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-9de7afef.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Алгоритмические шаблоны для решения задач на собеседованиях</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="k-way-merge-k-way-слияние"><a class="header" href="#k-way-merge-k-way-слияние">K-way Merge (K-way слияние)</a></h1>
+<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
+<p>Шаблон <strong>K-way Merge</strong> используется для эффективного слияния K отсортированных массивов, списков или последовательностей в один отсортированный результат. Алгоритм использует кучу (min-heap) для выбора минимального элемента среди всех K массивов на каждом шаге.</p>
+<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
+<p>K-way merge является обобщением классического алгоритма слияния двух отсортированных массивов. Он широко используется в внешней сортировке, где данные не помещаются в память и хранятся в нескольких отсортированных файлах.</p>
+<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
+<p>Ключевое наблюдение: для получения следующего минимального элемента нужно сравнить только первые элементы каждого массива. Куча позволяет эффективно находить минимум среди K элементов за O(log k) времени.</p>
+<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
+<p>Используйте этот шаблон, когда:</p>
+<ul>
+<li>Нужно объединить K отсортированных массивов/списков</li>
+<li>Требуется найти минимальный элемент среди K отсортированных последовательностей</li>
+<li>Задача связана с внешней сортировкой или слиянием больших данных</li>
+<li>Нужно обработать несколько отсортированных потоков данных</li>
+<li>Требуется эффективное слияние без полного копирования данных</li>
+</ul>
+<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
+<h3 id="базовый-алгоритм"><a class="header" href="#базовый-алгоритм">Базовый алгоритм:</a></h3>
+<ol>
+<li><strong>Инициализация</strong>: Создайте min-heap и добавьте первый элемент каждого из K массивов</li>
+<li><strong>Извлечение минимума</strong>: Извлеките минимальный элемент из кучи</li>
+<li><strong>Добавление следующего</strong>: Добавьте следующий элемент из того же массива в кучу</li>
+<li><strong>Повторение</strong>: Повторяйте шаги 2-3, пока куча не станет пустой</li>
+</ol>
+<h3 id="структура-элемента-кучи"><a class="header" href="#структура-элемента-кучи">Структура элемента кучи:</a></h3>
+<p>Каждый элемент кучи содержит:</p>
+<ul>
+<li>Значение элемента</li>
+<li>Индекс массива, из которого он пришел</li>
+<li>Индекс элемента в этом массиве</li>
+</ul>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<h3 id="слияние-3-отсортированных-массивов"><a class="header" href="#слияние-3-отсортированных-массивов">Слияние 3 отсортированных массивов:</a></h3>
+<pre><code>Массив 1: [1, 4, 7]
+Массив 2: [2, 5, 8]
+Массив 3: [3, 6, 9]
+
+Инициализация кучи:
+Heap: [(1, arr1, 0), (2, arr2, 0), (3, arr3, 0)]
+
+Шаг 1: Извлекаем 1, добавляем 4
+        Результат: [1]
+        Heap: [(2, arr2, 0), (3, arr3, 0), (4, arr1, 1)]
+
+Шаг 2: Извлекаем 2, добавляем 5
+        Результат: [1, 2]
+        Heap: [(3, arr3, 0), (4, arr1, 1), (5, arr2, 1)]
+
+Шаг 3: Извлекаем 3, добавляем 6
+        Результат: [1, 2, 3]
+        Heap: [(4, arr1, 1), (5, arr2, 1), (6, arr3, 1)]
+
+... и так далее
+
+Финальный результат: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+</code></pre>
+<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
+<p><strong>Инвариант</strong>: На каждом шаге куча содержит минимальный непрочитанный элемент каждого массива, и мы всегда извлекаем глобальный минимум.</p>
+<p><strong>Доказательство корректности</strong>:</p>
+<ol>
+<li><strong>Инициализация</strong>: Куча содержит первые элементы всех массивов - корректно</li>
+<li><strong>Индуктивный шаг</strong>: Предположим, мы правильно обработали i элементов
+<ul>
+<li>Извлекаем минимум из кучи (глобальный минимум среди непрочитанных)</li>
+<li>Добавляем следующий элемент из того же массива</li>
+<li>Куча снова содержит минимальные непрочитанные элементы</li>
+<li>(i+1)-й элемент в результате корректен</li>
+</ul>
+</li>
+</ol>
+<p><strong>Почему сложность O(n log k)?</strong></p>
+<ul>
+<li>Обрабатываем n элементов</li>
+<li>Для каждого элемента: операции с кучей размера k = O(log k)</li>
+<li>Итого: O(n log k)</li>
+</ul>
+<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
+<ul>
+<li><strong>Временная сложность</strong>: O(n log k)
+<ul>
+<li>Инициализация кучи: O(k log k)</li>
+<li>Обработка n элементов: n × O(log k) = O(n log k)</li>
+<li>Итого: O(n log k)</li>
+</ul>
+</li>
+<li><strong>Пространственная сложность</strong>: O(k)
+<ul>
+<li>Куча размера k</li>
+<li>Индексы массивов: O(k)</li>
+</ul>
+</li>
+</ul>
+<h3 id="сравнение-с-наивным-подходом"><a class="header" href="#сравнение-с-наивным-подходом">Сравнение с наивным подходом:</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Подход</th><th>Время</th><th>Применимость</th></tr>
+</thead>
+<tbody>
+<tr><td>Наивный (поиск минимума каждый раз)</td><td>O(nk)</td><td>Простой, но медленный</td></tr>
+<tr><td>K-way merge с кучей</td><td>O(n log k)</td><td>Эффективный</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Выигрыш</strong>: O(nk) → O(n log k) - значительное улучшение при больших k!</p>
+<h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Неправильное отслеживание индексов</strong>: Сохраняйте индекс массива и позицию в массиве</li>
+<li><strong>Забывание проверки пустых массивов</strong>: Проверяйте, есть ли еще элементы в массиве</li>
+<li><strong>Неправильная инициализация</strong>: Добавляйте только первые элементы непустых массивов</li>
+</ol>
+<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
+<ol>
+<li>Используйте структуру данных для хранения (значение, индекс массива, позиция)</li>
+<li>Для больших k рассмотрите разделение на группы</li>
+<li>Оптимизируйте сравнения для сложных объектов</li>
+</ol>
+<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
+<h3 id="используемые-структуры-данных-в-k-way-merge"><a class="header" href="#используемые-структуры-данных-в-k-way-merge">Используемые структуры данных в K-way Merge</a></h3>
+<p>В шаблоне K-way Merge используются следующие структуры данных:</p>
+<ul>
+<li>****: Куча для хранения элементов из k массивов</li>
+<li>****: K отсортированных массивов</li>
+<li><strong>Структура элемента</strong>: (значение, индекс массива, позиция в массиве)</li>
+</ul>
+<h3 id="rust--heap-go"><a class="header" href="#rust--heap-go">(Rust) / Heap (Go)</a></h3>
+<h4 id="что-такое-heap-куча"><a class="header" href="#что-такое-heap-куча">Что такое Heap (Куча)?</a></h4>
+<p><strong>Heap (куча)</strong> — это специализированная древовидная структура данных, которая удовлетворяет свойству кучи: для max-heap родитель всегда больше или равен детям, для min-heap родитель всегда меньше или равен детям.</p>
+<p><strong>Ключевые характеристики:</strong></p>
+<ul>
+<li><strong>Полное бинарное дерево</strong>: Все уровни заполнены слева направо</li>
+<li><strong>Свойство кучи</strong>: Корень содержит максимальный (max-heap) или минимальный (min-heap) элемент</li>
+<li><strong>Эффективные операции</strong>: O(log n) для вставки и удаления, O(1) для доступа к корню</li>
+</ul>
+<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
+<p><strong>Rust BinaryHeap с кастомной структурой</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(PartialEq, Eq)]
+struct Element {
+    val: i32,
+    array_idx: usize,
+    pos: usize,
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Куча хранит</strong>:</p>
+<ul>
+<li>Минимальный элемент из каждого массива</li>
+<li>Размер кучи: k элементов (по одному из каждого массива)</li>
+<li>O(k) памяти</li>
+</ul>
+<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>Сложность</th><th>Объяснение</th></tr>
+</thead>
+<tbody>
+<tr><td>Push</td><td>O(log k)</td><td>Добавление элемента в кучу</td></tr>
+<tr><td>Pop</td><td>O(log k)</td><td>Удаление минимального элемента</td></tr>
+<tr><td>Общая сложность</td><td>O(n log k)</td><td>n элементов, каждый O(log k)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Почему K-way Merge эффективен</strong>:</p>
+<ul>
+<li>O(n log k) вместо O(nk) наивного подхода</li>
+<li>O(k) памяти вместо O(n)</li>
+<li>Оптимально для больших k</li>
+</ul>
+<h3 id="-rust--t-go"><a class="header" href="#-rust--t-go">&gt; (Rust) / [][]T (Go)</a></h3>
+<h4 id="k-отсортированных-массивов"><a class="header" href="#k-отсортированных-массивов">K отсортированных массивов:</a></h4>
+<p><strong>Структура</strong>:</p>
+<pre><code>┌─────────────────────────────────────────┐
+│ Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;                          │
+│ ┌─────────────┐                        │
+│ │ [1,4,7]    │ Массив 0               │
+│ │ [2,5,8]    │ Массив 1               │
+│ │ [3,6,9]    │ Массив 2               │
+│ └─────────────┘                        │
+└─────────────────────────────────────────┘
+</code></pre>
+<p><strong>Важные детали</strong>:</p>
+<ul>
+<li>Каждый массив отсортирован</li>
+<li>Индексы для отслеживания позиции в каждом массиве</li>
+<li>O(n) общая память для всех массивов</li>
+</ul>
+<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
+<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
+<p><strong>Для K-way Merge</strong>:</p>
+<ul>
+<li>Куча в куче</li>
+<li>Массивы в куче</li>
+<li>Результаты могут escape</li>
+</ul>
+<h3 id="borrow-checker-rust"><a class="header" href="#borrow-checker-rust">Borrow Checker (Rust)</a></h3>
+<p><strong>Типичный паттерн</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn merge_k_sorted(arrays: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;) -&gt; Vec&amp;lt;i32&amp;gt; {
+    let mut heap = BinaryHeap::new();
+    let mut indices = vec![0; arrays.len()];
+    // ...
+}
+<span class="boring">}</span></code></pre>
+<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
+<p><strong>Для K-way Merge</strong>:</p>
+<ul>
+<li>Куча в куче</li>
+<li>Массивы в куче</li>
+<li>Минимизация k критична</li>
+</ul>
+<h3 id="ownership-и-move-semantics-rust"><a class="header" href="#ownership-и-move-semantics-rust">Ownership и Move Semantics (Rust)</a></h3>
+<p><strong>Концепция владения</strong>:</p>
+<ul>
+<li><code>Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;</code> владеет массивами</li>
+<li><code>BinaryHeap</code> владеет элементами</li>
+<li>RAII гарантирует освобождение</li>
+</ul>
+<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
+<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
+<h4 id="rust-k-way-merge"><a class="header" href="#rust-k-way-merge">Rust: K-way Merge</a></h4>
+<p>В Rust для K-way Merge:</p>
+<ul>
+<li><strong>Куча</strong>: <code>BinaryHeap&amp;lt;(i32, usize, usize)&amp;gt;</code> - O(k) в куче</li>
+<li><strong>Результат</strong>: <code>Vec&amp;lt;i32&amp;gt;</code> - O(n) где n - общее количество элементов</li>
+<li><strong>Индексы</strong>: <code>usize</code> на стеке - O(1)</li>
+</ul>
+<h4 id="go-k-way-merge"><a class="header" href="#go-k-way-merge">Go: K-way Merge</a></h4>
+<p>В Go:</p>
+<ul>
+<li><strong>Куча</strong>: <code>container/heap</code> - O(k) в куче</li>
+<li><strong>Результат</strong>: <code>[]int</code> - O(n) в куче</li>
+<li><strong>Индексы</strong>: <code>int</code> на стеке - O(1)</li>
+</ul>
+<h3 id="анализ-аллокаций-для-k-way-merge"><a class="header" href="#анализ-аллокаций-для-k-way-merge">Анализ аллокаций для K-way Merge</a></h3>
+<h4 id="подход-с-кучей"><a class="header" href="#подход-с-кучей">Подход с кучей:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Аллокации:
+// - heap: BinaryHeap&amp;lt;(i32, usize, usize)&amp;gt; - O(k) в куче
+// - result: Vec&amp;lt;i32&amp;gt; - O(n) где n - общее количество элементов
+// Итого: O(k) + O(n) памяти
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// Аллокации:
+// - heap: ItemHeap - O(k) в куче
+// - result: []int - O(n) в куче
+// Итого: O(k) + O(n) памяти
+</code></pre>
+<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
+<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
+<ol>
+<li><strong>Предварительное выделение кучи</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Предварительное выделение
+let mut heap = BinaryHeap::with_capacity(k);
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Предварительное выделение результата</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Предварительное выделение
+let mut result = Vec::with_capacity(total_elements);
+<span class="boring">}</span></code></pre>
+<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
+<ol>
+<li><strong>Предварительное выделение кучи</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Предварительное выделение
+heap := make(ItemHeap, 0, k)
+</code></pre>
+<ol start="2">
+<li><strong>Предварительное выделение результата</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Предварительное выделение
+result := make([]int, 0, totalElements)
+</code></pre>
+<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Куча</td><td>BinaryHeap в куче</td><td>container/heap в куче</td></tr>
+<tr><td>Результат</td><td>Vec в куче</td><td>Слайс в куче</td></tr>
+<tr><td>Память</td><td>O(k) + O(n)</td><td>O(k) + O(n)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
+<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
+<ol>
+<li><strong>Предварительное выделение структур данных</strong></li>
+<li><strong>Минимизация операций с кучей</strong></li>
+<li><strong>Эффективные сравнения</strong></li>
+</ol>
+<h3 id="специфичные-оптимизации-для-k-way-merge"><a class="header" href="#специфичные-оптимизации-для-k-way-merge">Специфичные оптимизации для K-way Merge</a></h3>
+<h4 id="1-оптимизация-с-кучей"><a class="header" href="#1-оптимизация-с-кучей">1. Оптимизация с кучей:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Оптимизированная версия
+pub fn merge_k_lists_optimized(lists: Vec&amp;lt;Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    let mut heap = BinaryHeap::with_capacity(lists.len());
+    
+    for (idx, list) in lists.iter().enumerate() {
+        if let Some(node) = list {
+            heap.push((Reverse(node.val), idx));
+        }
+    }
+    
+    let mut dummy = Box::new(ListNode::new(0));
+    let mut current = &amp;mut dummy;
+    
+    while let Some((Reverse(val), idx)) = heap.pop() {
+        current.next = Some(Box::new(ListNode::new(val)));
+        current = current.next.as_mut().unwrap();
+        
+        // Добавляем следующий элемент из того же списка
+        if let Some(next) = &amp;lists[idx].as_ref().unwrap().next {
+            heap.push((Reverse(next.val), idx));
+        }
+    }
+    
+    dummy.next
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// ✅ Оптимизированная версия
+func mergeKListsOptimized(lists []*ListNode) *ListNode {
+    heap := make(ItemHeap, 0, len(lists))
+    
+    for i, list := range lists {
+        if list != nil {
+            heap = append(heap, &amp;Item{Val: list.Val, ListIdx: i})
+        }
+    }
+    heap.Init(&amp;heap)
+    
+    dummy := &amp;ListNode{}
+    current := dummy
+    
+    for heap.Len() &gt; 0 {
+        item := heap.Pop(&amp;heap).(*Item)
+        current.Next = &amp;ListNode{Val: item.Val}
+        current = current.Next
+        
+        if lists[item.ListIdx].Next != nil {
+            lists[item.ListIdx] = lists[item.ListIdx].Next
+            heap.Push(&amp;heap, &amp;Item{Val: lists[item.ListIdx].Val, ListIdx: item.ListIdx})
+        }
+    }
+    
+    return dummy.Next
+}
+</code></pre>
+<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
+<ol>
+<li><strong>Использование <code>Reverse</code> для min heap</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Эффективная min heap
+use std::cmp::Reverse;
+heap.push((Reverse(val), idx));
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Предварительное выделение</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Предварительное выделение
+let mut heap = BinaryHeap::with_capacity(k);
+<span class="boring">}</span></code></pre>
+<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
+<ol>
+<li><strong>Предварительное выделение кучи</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Предварительное выделение
+heap := make(ItemHeap, 0, k)
+</code></pre>
+<ol start="2">
+<li><strong>Эффективные операции</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Использование указателей
+heap.Push(&amp;heap, item)
+</code></pre>
+<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
+<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
+<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
+<h3 id="как-профилировать-k-way-merge"><a class="header" href="#как-профилировать-k-way-merge">Как профилировать K-way Merge</a></h3>
+<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// benches/k_way_merge_bench.rs
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+// Определение ListNode для связанных списков
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct ListNode {
+    pub val: i32,
+    pub next: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;,
+}
+
+impl ListNode {
+    #[inline]
+    fn new(val: i32) -&gt; Self {
+        ListNode { next: None, val }
+    }
+}
+
+// Вспомогательная функция для создания связанного списка из вектора
+fn create_list(vals: Vec&amp;lt;i32&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    if vals.is_empty() {
+        return None;
+    }
+    let mut head = Box::new(ListNode::new(vals[0]));
+    let mut current = &amp;mut head;
+    for val in vals.into_iter().skip(1) {
+        current.next = Some(Box::new(ListNode::new(val)));
+        current = current.next.as_mut().unwrap();
+    }
+    Some(head)
+}
+
+// Вспомогательная функция для преобразования списка в вектор
+fn list_to_vec(mut head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; Vec&amp;lt;i32&amp;gt; {
+    let mut result = Vec::new();
+    while let Some(node) = head {
+        result.push(node.val);
+        head = node.next;
+    }
+    result
+}
+
+// Вспомогательная функция для создания тестовых списков
+fn create_test_lists(k: usize, size_per_list: usize) -&gt; Vec&amp;lt;Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;&amp;gt; {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    let mut lists = Vec::new();
+    
+    for _ in 0..k {
+        let mut vals = Vec::new();
+        for _ in 0..size_per_list {
+            vals.push(rng.gen_range(0..1000));
+        }
+        vals.sort();
+        lists.push(create_list(vals));
+    }
+    
+    lists
+}
+
+fn bench_merge_k_lists(c: &amp;mut Criterion) {
+    let lists = create_test_lists(10, 1000);
+    
+    c.bench_function("merge_10_lists", |b| {
+        b.iter(|| merge_k_lists_optimized(black_box(lists.clone())))
+    });
+}
+
+criterion_group!(benches, bench_merge_k_lists);
+criterion_main!(benches);
+<span class="boring">}</span></code></pre>
+<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
+<pre><code class="language-go">func BenchmarkMergeKLists(b *testing.B) {
+    lists := createTestLists(10, 1000)
+    
+    b.ResetTimer()
+    for i := 0; i &lt; b.N; i++ {
+        mergeKListsOptimized(lists)
+    }
+}
+</code></pre>
+<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
+<p><strong>Анализ производительности</strong>:</p>
+<ul>
+<li>K-way Merge: O(n log k) по времени где n - общее количество элементов</li>
+<li>O(k) памяти для кучи</li>
+<li>O(n) памяти для результата</li>
+</ul>
+<p><strong>Типичные узкие места</strong>:</p>
+<ul>
+<li>Операции с кучей</li>
+<li>Создание результата</li>
+<li>Обновление индексов</li>
+</ul>
+<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
+<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
+<ol>
+<li><strong>Базовые тесты</strong>: Простые списки</li>
+<li><strong>Граничные случаи</strong>: Пустые списки, один список, все пустые</li>
+<li><strong>Стресс-тесты</strong>: Большое количество списков</li>
+</ol>
+<h3 id="примеры-тестов-для-k-way-merge"><a class="header" href="#примеры-тестов-для-k-way-merge">Примеры тестов для K-way Merge</a></h3>
+<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_merge_k_lists_basic() {
+        // Используем вспомогательные функции create_list и list_to_vec
+        // (определены выше в разделе профилирования)
+        let lists = vec![
+            create_list(vec![1, 4, 5]),
+            create_list(vec![1, 3, 4]),
+            create_list(vec![2, 6]),
+        ];
+        let result = merge_k_lists_optimized(lists);
+        assert_eq!(list_to_vec(result), vec![1, 1, 2, 3, 4, 4, 5, 6]);
+    }
+
+    #[test]
+    fn test_merge_k_lists_empty() {
+        let lists = vec![];
+        let result = merge_k_lists_optimized(lists);
+        assert_eq!(list_to_vec(result), Vec::&amp;lt;i32&amp;gt;::new());
+    }
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
+<pre><code class="language-go">func TestMergeKLists(t *testing.T) {
+    tests := []struct {
+        name  string
+        lists []*ListNode
+        want  []int
+    }{
+        {"basic", []*ListNode{
+            createList([]int{1, 4, 5}),
+            createList([]int{1, 3, 4}),
+            createList([]int{2, 6}),
+        }, []int{1, 1, 2, 3, 4, 4, 5, 6}},
+        {"empty", []*ListNode{}, []int{}},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            result := mergeKListsOptimized(tt.lists)
+            if !reflect.DeepEqual(listToVec(result), tt.want) {
+                t.Errorf("mergeKListsOptimized() = %v, want %v", listToVec(result), tt.want)
+            }
+        })
+    }
+}
+</code></pre>
+<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
+<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
+<pre><code class="language-bash">cargo test
+cargo test -- --nocapture
+cargo bench
+</code></pre>
+<h4 id="go"><a class="header" href="#go">Go:</a></h4>
+<pre><code class="language-bash">go test -v
+go test -bench=. -benchmem
+</code></pre>
+<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
+<h4 id="rust-1"><a class="header" href="#rust-1">Rust:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+
+fn k_way_merge_benchmark(c: &amp;mut Criterion) {
+    let k_values = vec![5, 10, 20];
+    
+    let mut group = c.benchmark_group("k_way_merge");
+    for k in k_values {
+        let lists = create_test_lists(k, 100);
+        group.bench_with_input(
+            BenchmarkId::from_parameter(k),
+            &amp;lists,
+            |b, lists| {
+                b.iter(|| merge_k_lists_optimized(black_box(lists.clone())));
+            },
+        );
+    }
+    group.finish();
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
+<pre><code class="language-go">func BenchmarkKWayMergeSizes(b *testing.B) {
+    kValues := []int{5, 10, 20}
+    
+    for _, k := range kValues {
+        b.Run(fmt.Sprintf("k_%d", k), func(b *testing.B) {
+            lists := createTestLists(k, 100)
+            b.ResetTimer()
+            for i := 0; i &lt; b.N; i++ {
+                mergeKListsOptimized(lists)
+            }
+        })
+    }
+}
+</code></pre>
+<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
+<h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Примеры использования шаблона K-way Merge на Rust
+
+use std::collections::BinaryHeap;
+use std::cmp::Reverse;
+
+// Определение узла связанного списка
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct ListNode {
+    pub val: i32,
+    pub next: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;,
+}
+
+impl ListNode {
+    #[inline]
+    pub fn new(val: i32) -&gt; Self {
+        ListNode { next: None, val }
+    }
+}
+
+/// Пример 1: Слияние K отсортированных списков
+/// 
+/// Задача: Объединить K отсортированных связанных списков в один
+/// Временная сложность: O(n log k), где n - общее количество узлов
+/// Пространственная сложность: O(k)
+pub fn merge_k_lists(lists: Vec&amp;lt;Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    let mut heap = BinaryHeap::new();
+
+    // Добавляем первые элементы всех списков в кучу
+    for (idx, list) in lists.iter().enumerate() {
+        if let Some(node) = list {
+            heap.push(Reverse((node.val, idx)));
+        }
+    }
+
+    let mut dummy = Box::new(ListNode::new(0));
+    let mut current = &amp;mut dummy;
+    let mut lists = lists;
+
+    while let Some(Reverse((val, idx))) = heap.pop() {
+        // Создаем новый узел
+        current.next = Some(Box::new(ListNode::new(val)));
+        current = current.next.as_mut().unwrap();
+
+        // Перемещаемся к следующему узлу в списке
+        if let Some(node) = &amp;mut lists[idx] {
+            *node = node.next.take();
+            if let Some(next_node) = &amp;node {
+                heap.push(Reverse((next_node.val, idx)));
+            }
+        }
+    }
+
+    dummy.next
+}
+
+/// Пример 2: Слияние K отсортированных массивов
+/// 
+/// Задача: Объединить K отсортированных массивов в один отсортированный массив
+/// Временная сложность: O(n log k)
+/// Пространственная сложность: O(k)
+pub fn merge_k_arrays(arrays: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;) -&gt; Vec&amp;lt;i32&amp;gt; {
+    let mut heap = BinaryHeap::new();
+    let mut indices = vec![0; arrays.len()];
+    let mut result = Vec::new();
+
+    // Добавляем первые элементы всех массивов в кучу
+    for (idx, arr) in arrays.iter().enumerate() {
+        if !arr.is_empty() {
+            heap.push(Reverse((arr[0], idx)));
+        }
+    }
+
+    while let Some(Reverse((val, arr_idx))) = heap.pop() {
+        result.push(val);
+        indices[arr_idx] += 1;
+
+        // Добавляем следующий элемент из того же массива
+        if indices[arr_idx] &lt; arrays[arr_idx].len() {
+            let next_val = arrays[arr_idx][indices[arr_idx]];
+            heap.push(Reverse((next_val, arr_idx)));
+        }
+    }
+
+    result
+}
+
+/// Пример 3: K-й наименьший элемент в отсортированной матрице
+/// 
+/// Задача: Найти K-й наименьший элемент в матрице, где каждая строка и столбец отсортированы
+/// Временная сложность: O(k log k)
+/// Пространственная сложность: O(k)
+pub fn kth_smallest(matrix: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;, k: i32) -&gt; i32 {
+    let mut heap = BinaryHeap::new();
+    let n = matrix.len();
+
+    // Добавляем первые элементы каждой строки
+    for i in 0..n.min(k as usize) {
+        heap.push(Reverse((matrix[i][0], i, 0)));
+    }
+
+    let mut count = 0;
+    let mut result = 0;
+
+    while let Some(Reverse((val, row, col))) = heap.pop() {
+        count += 1;
+        if count == k {
+            result = val;
+            break;
+        }
+
+        // Добавляем следующий элемент из той же строки
+        if col + 1 &lt; n {
+            heap.push(Reverse((matrix[row][col + 1], row, col + 1)));
+        }
+    }
+
+    result
+}
+
+/// Пример 4: K пар с наименьшими суммами
+/// 
+/// Задача: Найти K пар (u, v), где u из nums1, v из nums2, с наименьшими суммами
+/// Временная сложность: O(k log k)
+/// Пространственная сложность: O(k)
+pub fn k_smallest_pairs(nums1: Vec&amp;lt;i32&amp;gt;, nums2: Vec&amp;lt;i32&amp;gt;, k: i32) -&gt; Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; {
+    let mut heap = BinaryHeap::new();
+    let k = k as usize;
+
+    // Добавляем первые пары
+    for i in 0..nums1.len().min(k) {
+        heap.push(Reverse((
+            nums1[i] + nums2[0],
+            i,
+            0,
+        )));
+    }
+
+    let mut result = Vec::new();
+
+    while let Some(Reverse((sum, i, j))) = heap.pop() {
+        result.push(vec![nums1[i], nums2[j]]);
+
+        if result.len() == k {
+            break;
+        }
+
+        // Добавляем следующую пару из того же элемента nums1
+        if j + 1 &lt; nums2.len() {
+            heap.push(Reverse((
+                nums1[i] + nums2[j + 1],
+                i,
+                j + 1,
+            )));
+        }
+    }
+
+    result
+}
+<span class="boring">}</span></code></pre>
+<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
+<pre><code class="language-go">package main
+
+import (
+	"container/heap"
+	"fmt"
+)
+
+// Определение узла связанного списка
+type ListNode struct {
+	Val  int
+	Next *ListNode
+}
+
+// MinHeap для элементов с индексами массива
+type Element struct {
+	val     int
+	arrIdx  int
+	elemIdx int
+}
+
+type MinHeap []Element
+
+func (h MinHeap) Len() int           { return len(h) }
+func (h MinHeap) Less(i, j int) bool { return h[i].val &lt; h[j].val }
+func (h MinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *MinHeap) Push(x interface{}) {
+	*h = append(*h, x.(Element))
+}
+
+func (h *MinHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
+}
+
+// Пример 1: Слияние K отсортированных массивов
+//
+// Задача: Объединить K отсортированных массивов в один отсортированный массив
+// Временная сложность: O(n log k)
+// Пространственная сложность: O(k)
+func mergeKArrays(arrays [][]int) []int {
+	minHeap := &amp;MinHeap{}
+	heap.Init(minHeap)
+	indices := make([]int, len(arrays))
+	var result []int
+
+	// Добавляем первые элементы всех массивов в кучу
+	for i, arr := range arrays {
+		if len(arr) &gt; 0 {
+			heap.Push(minHeap, Element{val: arr[0], arrIdx: i, elemIdx: 0})
+		}
+	}
+
+	for minHeap.Len() &gt; 0 {
+		elem := heap.Pop(minHeap).(Element)
+		result = append(result, elem.val)
+		indices[elem.arrIdx]++
+
+		// Добавляем следующий элемент из того же массива
+		if indices[elem.arrIdx] &lt; len(arrays[elem.arrIdx]) {
+			nextVal := arrays[elem.arrIdx][indices[elem.arrIdx]]
+			heap.Push(minHeap, Element{
+				val:     nextVal,
+				arrIdx:  elem.arrIdx,
+				elemIdx: indices[elem.arrIdx],
+			})
+		}
+	}
+
+	return result
+}
+
+// Пример 2: K-й наименьший элемент в отсортированной матрице
+//
+// Задача: Найти K-й наименьший элемент в матрице, где каждая строка и столбец отсортированы
+// Временная сложность: O(k log k)
+// Пространственная сложность: O(k)
+func kthSmallest(matrix [][]int, k int) int {
+	minHeap := &amp;MinHeap{}
+	heap.Init(minHeap)
+	n := len(matrix)
+
+	// Добавляем первые элементы каждой строки
+	for i := 0; i &lt; n &amp;&amp; i &lt; k; i++ {
+		heap.Push(minHeap, Element{val: matrix[i][0], arrIdx: i, elemIdx: 0})
+	}
+
+	count := 0
+	result := 0
+
+	for minHeap.Len() &gt; 0 {
+		elem := heap.Pop(minHeap).(Element)
+		count++
+		if count == k {
+			result = elem.val
+			break
+		}
+
+		// Добавляем следующий элемент из той же строки
+		if elem.elemIdx+1 &lt; n {
+			heap.Push(minHeap, Element{
+				val:     matrix[elem.arrIdx][elem.elemIdx+1],
+				arrIdx:  elem.arrIdx,
+				elemIdx: elem.elemIdx + 1,
+			})
+		}
+	}
+
+	return result
+}
+
+// Пример 3: K пар с наименьшими суммами
+//
+// Задача: Найти K пар (u, v), где u из nums1, v из nums2, с наименьшими суммами
+// Временная сложность: O(k log k)
+// Пространственная сложность: O(k)
+func kSmallestPairs(nums1, nums2 []int, k int) [][]int {
+	type Pair struct {
+		sum int
+		i   int
+		j   int
+	}
+
+	minHeap := make([]Pair, 0)
+	for i := 0; i &lt; len(nums1) &amp;&amp; i &lt; k; i++ {
+		minHeap = append(minHeap, Pair{sum: nums1[i] + nums2[0], i: i, j: 0})
+		// Просеиваем вверх
+		for idx := len(minHeap) - 1; idx &gt; 0 &amp;&amp; minHeap[idx].sum &lt; minHeap[(idx-1)/2].sum; idx = (idx - 1) / 2 {
+			minHeap[idx], minHeap[(idx-1)/2] = minHeap[(idx-1)/2], minHeap[idx]
+		}
+	}
+
+	var result [][]int
+	for len(minHeap) &gt; 0 &amp;&amp; len(result) &lt; k {
+		// Извлекаем минимум
+		pair := minHeap[0]
+		result = append(result, []int{nums1[pair.i], nums2[pair.j]})
+
+		// Просеиваем вниз
+		minHeap[0] = minHeap[len(minHeap)-1]
+		minHeap = minHeap[:len(minHeap)-1]
+		i := 0
+		for {
+			smallest := i
+			left := 2*i + 1
+			right := 2*i + 2
+			if left &lt; len(minHeap) &amp;&amp; minHeap[left].sum &lt; minHeap[smallest].sum {
+				smallest = left
+			}
+			if right &lt; len(minHeap) &amp;&amp; minHeap[right].sum &lt; minHeap[smallest].sum {
+				smallest = right
+			}
+			if smallest == i {
+				break
+			}
+			minHeap[i], minHeap[smallest] = minHeap[smallest], minHeap[i]
+			i = smallest
+		}
+
+		// Добавляем следующую пару
+		if pair.j+1 &lt; len(nums2) {
+			newPair := Pair{sum: nums1[pair.i] + nums2[pair.j+1], i: pair.i, j: pair.j + 1}
+			minHeap = append(minHeap, newPair)
+			// Просеиваем вверх
+			idx := len(minHeap) - 1
+			for idx &gt; 0 &amp;&amp; minHeap[idx].sum &lt; minHeap[(idx-1)/2].sum {
+				minHeap[idx], minHeap[(idx-1)/2] = minHeap[(idx-1)/2], minHeap[idx]
+				idx = (idx - 1) / 2
+			}
+		}
+	}
+
+	return result
+}
+</code></pre>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/merge-k-sorted-lists/">Merge k Sorted Lists</a> - Слияние K отсортированных списков</li>
+<li><a href="https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/">Kth Smallest Element in a Sorted Matrix</a> - K-й наименьший элемент в матрице</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/find-k-pairs-with-smallest-sums/">Find K Pairs with Smallest Sums</a> - K пар с наименьшими суммами</li>
+<li><a href="https://leetcode.com/problems/smallest-range-covering-elements-from-k-lists/">Smallest Range Covering Elements from K Lists</a> - Наименьший диапазон</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="top-k-elements.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="topological-sort.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="top-k-elements.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="topological-sort.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace-2a3cd908.js"></script>
+        <script src="mode-rust-2c9d5c9a.js"></script>
+        <script src="editor-16ca416c.js"></script>
+        <script src="theme-dawn-4493f9c8.js"></script>
+        <script src="theme-tomorrow_night-9dbe62a9.js"></script>
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

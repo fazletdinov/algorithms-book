@@ -1,0 +1,1687 @@
+<!DOCTYPE HTML>
+<html lang="ru" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Fast &amp; Slow Pointers (Быстрые и медленные указатели) - Алгоритмические шаблоны для решения задач на собеседованиях</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-9de7afef.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Алгоритмические шаблоны для решения задач на собеседованиях</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="fast--slow-pointers-быстрые-и-медленные-указатели"><a class="header" href="#fast--slow-pointers-быстрые-и-медленные-указатели">Fast &amp; Slow Pointers (Быстрые и медленные указатели)</a></h1>
+<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
+<p>Шаблон <strong>Fast &amp; Slow Pointers</strong> (также известный как “алгоритм зайца и черепахи” или “Floyd’s Cycle Detection”) использует два указателя, которые движутся по структуре данных с разной скоростью. Обычно один указатель (медленный) движется на один шаг за раз, а другой (быстрый) - на два шага.</p>
+<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
+<p>Алгоритм был предложен Робертом Флойдом в 1967 году и является одним из самых элегантных алгоритмов в информатике. Название “заяц и черепаха” происходит из басни Эзопа, где медленная черепаха в итоге догоняет быстрого зайца благодаря настойчивости.</p>
+<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
+<p>Ключевое наблюдение: если в структуре данных есть цикл, то быстрый указатель рано или поздно “догонит” медленный, встретившись с ним внутри цикла. Если цикла нет, быстрый указатель достигнет конца структуры раньше, чем произойдет встреча.</p>
+<h3 id="преимущества"><a class="header" href="#преимущества">Преимущества</a></h3>
+<ul>
+<li><strong>Временная сложность</strong>: O(n) вместо O(n²) для наивного подхода</li>
+<li><strong>Пространственная сложность</strong>: O(1) вместо O(n) для подхода с хеш-таблицей</li>
+<li><strong>Элегантность</strong>: Простое и понятное решение</li>
+</ul>
+<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
+<p>Используйте этот шаблон, когда:</p>
+<ul>
+<li>Нужно определить, есть ли цикл в связанном списке</li>
+<li>Требуется найти середину связанного списка</li>
+<li>Нужно найти K-й элемент с конца списка</li>
+<li>Работаете с циклическими структурами данных</li>
+<li>Хотите решить задачу за O(n) времени и O(1) пространства</li>
+</ul>
+<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
+<h3 id="базовый-алгоритм-обнаружения-цикла"><a class="header" href="#базовый-алгоритм-обнаружения-цикла">Базовый алгоритм обнаружения цикла:</a></h3>
+<ol>
+<li><strong>Инициализация</strong>: Установите <code>slow = head</code> и <code>fast = head</code></li>
+<li><strong>Движение</strong>: Пока <code>fast</code> и <code>fast.next</code> не равны <code>null</code>:
+<ul>
+<li>Переместите <code>slow</code> на один шаг: <code>slow = slow.next</code></li>
+<li>Переместите <code>fast</code> на два шага: <code>fast = fast.next.next</code></li>
+<li>Если <code>slow == fast</code>, обнаружен цикл</li>
+</ul>
+</li>
+<li><strong>Поиск начала цикла</strong>: После обнаружения цикла:
+<ul>
+<li>Верните <code>slow</code> в начало: <code>slow = head</code></li>
+<li>Двигайте оба указателя по одному шагу</li>
+<li>Место встречи - начало цикла</li>
+</ul>
+</li>
+</ol>
+<h3 id="поиск-середины-списка"><a class="header" href="#поиск-середины-списка">Поиск середины списка:</a></h3>
+<ol>
+<li>Используйте два указателя: <code>slow</code> и <code>fast</code></li>
+<li>Когда <code>fast</code> достигнет конца, <code>slow</code> будет в середине</li>
+</ol>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<h3 id="обнаружение-цикла"><a class="header" href="#обнаружение-цикла">Обнаружение цикла:</a></h3>
+<pre><code>Список с циклом: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; 3 (цикл)
+
+Шаг 1: slow=1, fast=1
+        S,F
+        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
+                    ↑________|
+
+Шаг 2: slow=2, fast=3
+           S     F
+        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
+                    ↑________|
+
+Шаг 3: slow=3, fast=5
+              S         F
+        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
+                    ↑________|
+
+Шаг 4: slow=4, fast=3
+                 S  F
+        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
+                    ↑________|
+
+Шаг 5: slow=5, fast=5 (встретились - цикл обнаружен!)
+                    S,F
+        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
+                    ↑________|
+</code></pre>
+<h3 id="поиск-середины-списка-1"><a class="header" href="#поиск-середины-списка-1">Поиск середины списка:</a></h3>
+<pre><code>Список: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
+
+Шаг 1: slow=1, fast=1
+        S,F
+        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
+
+Шаг 2: slow=2, fast=3
+           S     F
+        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
+
+Шаг 3: slow=3, fast=5 (fast достиг конца, slow в середине)
+              S         F
+        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
+</code></pre>
+<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-обнаружения-цикла-работает"><a class="header" href="#почему-алгоритм-обнаружения-цикла-работает">Почему алгоритм обнаружения цикла работает?</a></h3>
+<p><strong>Теорема Флойда</strong>: Если в связанном списке есть цикл длины L, и мы начинаем с двух указателей в одной точке, где медленный указатель движется на 1 шаг, а быстрый на 2 шага, то они встретятся через максимум L шагов после входа в цикл.</p>
+<p><strong>Доказательство</strong>:</p>
+<ol>
+<li>Пусть расстояние от начала до начала цикла = m узлов</li>
+<li>Пусть длина цикла = L узлов</li>
+<li>После m шагов: slow в начале цикла, fast прошел 2m шагов</li>
+<li>Положение fast в цикле: (2m - m) mod L = m mod L</li>
+<li>Расстояние между slow и fast: (L - m mod L) mod L</li>
+<li>На каждом шаге это расстояние уменьшается на 1 (fast догоняет slow)</li>
+<li>Максимальное расстояние = L-1, значит встреча произойдет максимум через L-1 шаг</li>
+</ol>
+<p><strong>Почему место встречи с началом цикла работает?</strong></p>
+<p>После встречи в цикле:</p>
+<ul>
+<li>Пусть расстояние от начала списка до начала цикла = x</li>
+<li>Пусть расстояние от начала цикла до точки встречи = y</li>
+<li>Пусть оставшаяся часть цикла = z (y + z = L)</li>
+</ul>
+<p>Когда slow прошел x + y шагов, fast прошел 2(x + y) шагов.
+В точке встречи: fast = x + y + kL для некоторого k
+Значит: 2(x + y) = x + y + kL → x + y = kL → x = kL - y = (k-1)L + z</p>
+<p>Если мы переместим slow в начало и будем двигать оба указателя по 1 шагу:</p>
+<ul>
+<li>slow пройдет x шагов до начала цикла</li>
+<li>fast пройдет x шагов от точки встречи, что равно (k-1)L + z шагов</li>
+<li>Это приведет fast точно в начало цикла!</li>
+</ul>
+<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
+<p><strong>Обнаружение цикла</strong>:</p>
+<ul>
+<li><strong>Временная сложность</strong>: O(n)
+<ul>
+<li>В худшем случае (цикл начинается в конце): slow проходит n узлов до входа в цикл</li>
+<li>После входа: максимум L шагов до встречи, где L ≤ n</li>
+<li>Итого: O(n)</li>
+</ul>
+</li>
+<li><strong>Пространственная сложность</strong>: O(1)
+<ul>
+<li>Только два указателя</li>
+</ul>
+</li>
+</ul>
+<p><strong>Поиск начала цикла</strong>:</p>
+<ul>
+<li><strong>Временная сложность</strong>: O(n)
+<ul>
+<li>После обнаружения цикла: максимум L шагов до начала цикла</li>
+<li>Итого: O(n)</li>
+</ul>
+</li>
+<li><strong>Пространственная сложность</strong>: O(1)</li>
+</ul>
+<p><strong>Поиск середины списка</strong>:</p>
+<ul>
+<li><strong>Временная сложность</strong>: O(n)
+<ul>
+<li>fast проходит n узлов (или n-1 для четного количества)</li>
+<li>slow проходит n/2 узлов</li>
+<li>Итого: O(n)</li>
+</ul>
+</li>
+<li><strong>Пространственная сложность</strong>: O(1)</li>
+</ul>
+<h3 id="сравнение-с-альтернативными-подходами"><a class="header" href="#сравнение-с-альтернативными-подходами">Сравнение с альтернативными подходами:</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Подход</th><th>Время</th><th>Память</th><th>Примечания</th></tr>
+</thead>
+<tbody>
+<tr><td>Хеш-таблица</td><td>O(n)</td><td>O(n)</td><td>Простой, но требует памяти</td></tr>
+<tr><td>Fast &amp; Slow</td><td>O(n)</td><td>O(1)</td><td>Элегантный, константная память</td></tr>
+<tr><td>Наивный (два цикла)</td><td>O(n²)</td><td>O(1)</td><td>Неэффективный</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/linked-list-cycle/">Linked List Cycle</a> - Цикл в связанном списке</li>
+<li><a href="https://leetcode.com/problems/middle-of-the-linked-list/">Middle of the Linked List</a> - Середина связанного списка</li>
+<li><a href="https://leetcode.com/problems/palindrome-linked-list/">Palindrome Linked List</a> - Палиндромный связанный список</li>
+</ul>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/linked-list-cycle-ii/">Linked List Cycle II</a> - Начало цикла в связанном списке</li>
+<li><a href="https://leetcode.com/problems/remove-nth-node-from-end-of-list/">Remove Nth Node From End of List</a> - Удаление N-го узла с конца</li>
+<li><a href="https://leetcode.com/problems/reorder-list/">Reorder List</a> - Переупорядочивание списка</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/find-the-duplicate-number/">Find the Duplicate Number</a> - Поиск дубликата числа</li>
+<li><a href="https://leetcode.com/problems/sort-list/">Sort List</a> - Сортировка списка</li>
+</ul>
+<h2 id="типичные-ошибки-и-подводные-камни"><a class="header" href="#типичные-ошибки-и-подводные-камни">Типичные ошибки и подводные камни</a></h2>
+<h3 id="1-неправильная-проверка-условий-цикла"><a class="header" href="#1-неправильная-проверка-условий-цикла">1. Неправильная проверка условий цикла</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">for fast != nil {  // Может вызвать ошибку при fast.Next
+    slow = slow.Next
+    fast = fast.Next.Next
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>while fast.is_some() {  // Может вызвать ошибку при fast.next
+    slow = slow.next;
+    fast = fast.next.next;
+}
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">for fast != nil &amp;&amp; fast.Next != nil {
+    slow = slow.Next
+    fast = fast.Next.Next
+    if slow == fast {
+        return true
+    }
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>while fast.is_some() &amp;&amp; fast.as_ref().unwrap().next.is_some() {
+    slow = slow.next;
+    fast = fast.as_ref().unwrap().next.as_ref().map(|n| n.next.clone()).flatten();
+    if slow == fast {
+        return true;
+    }
+}
+<span class="boring">}</span></code></pre>
+<h3 id="2-неправильная-инициализация-указателей"><a class="header" href="#2-неправильная-инициализация-указателей">2. Неправильная инициализация указателей</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">slow := head.Next  // Пропускаем первый элемент
+fast := head.Next.Next
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut slow = head.next.clone();  // Пропускаем первый элемент
+let mut fast = head.next.as_ref().unwrap().next.clone();
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">slow := head
+fast := head
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut slow = head.clone();
+let mut fast = head.clone();
+<span class="boring">}</span></code></pre>
+<h3 id="3-забывание-сброса-slow-при-поиске-начала-цикла"><a class="header" href="#3-забывание-сброса-slow-при-поиске-начала-цикла">3. Забывание сброса slow при поиске начала цикла</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// После обнаружения цикла
+for slow != fast {  // slow уже в цикле!
+    slow = slow.Next
+    fast = fast.Next
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// После обнаружения цикла
+while slow != fast {  // slow уже в цикле!
+    slow = slow.next;
+    fast = fast.next;
+}
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// После обнаружения цикла
+slow = head  // Сбрасываем в начало
+for slow != fast {
+    slow = slow.Next
+    fast = fast.Next
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// После обнаружения цикла
+slow = head.clone();  // Сбрасываем в начало
+while slow != fast {
+    slow = slow.next;
+    fast = fast.next;
+}
+<span class="boring">}</span></code></pre>
+<h3 id="4-неправильная-обработка-пустого-списка"><a class="header" href="#4-неправильная-обработка-пустого-списка">4. Неправильная обработка пустого списка</a></h3>
+<p>❌ <strong>Неправильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">slow := head
+fast := head
+for fast != nil &amp;&amp; fast.Next != nil {
+    // Не проверили head == nil
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut slow = head.clone();
+let mut fast = head.clone();
+while fast.is_some() &amp;&amp; fast.as_ref().unwrap().next.is_some() {
+    // Не проверили head == None
+}
+<span class="boring">}</span></code></pre>
+<p>✅ <strong>Правильно</strong>:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">if head == nil || head.Next == nil {
+    return false
+}
+slow := head
+fast := head
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if head.is_none() || head.as_ref().unwrap().next.is_none() {
+    return false;
+}
+let mut slow = head.clone();
+let mut fast = head.clone();
+<span class="boring">}</span></code></pre>
+<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
+<ol>
+<li>
+<p><strong>Всегда проверяйте граничные случаи</strong>:</p>
+<ul>
+<li>Пустой список</li>
+<li>Список из одного элемента</li>
+<li>Список без цикла</li>
+<li>Цикл начинается с головы</li>
+</ul>
+</li>
+<li>
+<p><strong>Используйте правильные скорости</strong>:</p>
+<ul>
+<li>Для обнаружения цикла: 1 и 2 шага</li>
+<li>Для поиска K-го элемента: можно использовать другие соотношения</li>
+</ul>
+</li>
+<li>
+<p><strong>Отладка</strong>:</p>
+<ul>
+<li>Визуализируйте движение указателей на бумаге</li>
+<li>Добавьте счетчик итераций для предотвращения бесконечных циклов</li>
+<li>Проверьте инвариант: fast всегда впереди slow (если нет цикла)</li>
+</ul>
+</li>
+</ol>
+<h2 id="вариации"><a class="header" href="#вариации">Вариации</a></h2>
+<h3 id="поиск-k-го-элемента-с-конца"><a class="header" href="#поиск-k-го-элемента-с-конца">Поиск K-го элемента с конца:</a></h3>
+<p>Используйте два указателя с расстоянием K между ними:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">fast := head
+for i := 0; i &lt; k; i++ {
+    fast = fast.Next
+}
+slow := head
+for fast != nil {
+    slow = slow.Next
+    fast = fast.Next
+}
+return slow  // K-й элемент с конца
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut fast = head.clone();
+for _ in 0..k {
+    fast = fast.as_ref().unwrap().next.clone();
+}
+let mut slow = head.clone();
+while fast.is_some() {
+    slow = slow.as_ref().unwrap().next.clone();
+    fast = fast.as_ref().unwrap().next.clone();
+}
+slow  // K-й элемент с конца
+<span class="boring">}</span></code></pre>
+<h3 id="определение-длины-цикла"><a class="header" href="#определение-длины-цикла">Определение длины цикла:</a></h3>
+<p>После обнаружения встречи, зафиксируйте slow и двигайте fast до следующей встречи:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// После первой встречи
+cycleLength := 1
+temp := slow.Next
+for temp != slow {
+    cycleLength++
+    temp = temp.Next
+}
+</code></pre>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// После первой встречи
+let mut cycle_length = 1;
+let mut temp = slow.as_ref().unwrap().next.clone();
+while temp != slow {
+    cycle_length += 1;
+    temp = temp.as_ref().unwrap().next.clone();
+}
+<span class="boring">}</span></code></pre>
+<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
+<h3 id="используемые-структуры-данных-в-fast--slow-pointers"><a class="header" href="#используемые-структуры-данных-в-fast--slow-pointers">Используемые структуры данных в Fast &amp; Slow Pointers</a></h3>
+<p>В шаблоне Fast &amp; Slow Pointers используются следующие структуры данных:</p>
+<ul>
+<li><strong>LinkedList Node</strong>: Узлы связанного списка (Box&lt;T&gt; в Rust, указатели в Go)</li>
+<li><strong>Указатели</strong>: Для навигации по списку (fast и slow указатели)</li>
+</ul>
+<h3 id="linkedlist-node-узел-связанного-списка"><a class="header" href="#linkedlist-node-узел-связанного-списка">LinkedList Node (Узел связанного списка)</a></h3>
+<p><strong>Что такое связанный список (Linked List)?</strong></p>
+<p><strong>Связанный список</strong> — это линейная структура данных, где каждый элемент (узел) содержит данные и указатель на следующий узел. В отличие от массива, элементы не хранятся в непрерывной памяти.</p>
+<p><strong>Основные характеристики</strong>:</p>
+<ul>
+<li><strong>Динамический размер</strong>: Можно добавлять/удалять элементы без перераспределения памяти</li>
+<li><strong>Непрерывная память</strong>: Узлы могут быть разбросаны в памяти (нет cache locality)</li>
+<li><strong>Вставка/удаление</strong>: O(1) если известен указатель на узел</li>
+<li><strong>Доступ по индексу</strong>: O(n) - нужно пройти от начала до нужного узла</li>
+</ul>
+<p><strong>Структура узла (ListNode)</strong>:</p>
+<ul>
+<li><strong>val</strong>: Значение узла (данные)</li>
+<li><strong>next</strong>: Указатель на следующий узел (или None/nil для конца списка)</li>
+</ul>
+<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
+<p><strong>Rust (Box&lt;T&gt;)</strong>:</p>
+<pre><code>Узел списка:
+┌─────────────────────────────────────────┐
+│ Box&amp;lt;ListNode&amp;gt;                            │
+│ ┌─────────────┐                         │
+│ │ val: i32    │ Значение                │
+│ │ next: Option│ Указатель на следующий  │
+│ │   &lt;Box&amp;lt;...&amp;gt;&gt;│                         │
+│ └─────────────┘                         │
+└─────────────────────────────────────────┘
+         │
+         ▼
+    [данные в куче]
+    Каждый узел - отдельная аллокация
+</code></pre>
+<p><strong>Важные детали</strong>:</p>
+<ul>
+<li><code>Box&amp;lt;T&amp;gt;</code> - умный указатель, владеет данными в куче</li>
+<li>Каждый узел аллоцируется отдельно (не непрерывная память)</li>
+<li><code>Option&amp;lt;Box&amp;lt;T&amp;gt;&amp;gt;</code> - либо Some(узел), либо None (конец списка)</li>
+<li>Нет cache locality (узлы могут быть разбросаны в памяти)</li>
+</ul>
+<p><strong>Go (указатели)</strong>:</p>
+<pre><code>Узел списка:
+┌─────────────────────────────────────────┐
+│ &amp;ListNode                                │
+│ ┌─────────────┐                         │
+│ │ Val: int    │ Значение                │
+│ │ Next: *ListNode│ Указатель            │
+│ └─────────────┘                         │
+└─────────────────────────────────────────┘
+         │
+         ▼
+    [данные в куче]
+    Каждый узел - отдельная аллокация
+</code></pre>
+<p><strong>Важные детали</strong>:</p>
+<ul>
+<li>Указатель <code>*ListNode</code> - ссылается на узел в куче</li>
+<li>GC управляет памятью узлов</li>
+<li><code>nil</code> означает конец списка</li>
+<li>Нет cache locality</li>
+</ul>
+<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>LinkedList</th><th>Объяснение</th></tr>
+</thead>
+<tbody>
+<tr><td>Доступ по индексу</td><td>O(n)</td><td>Нужно пройти от начала до индекса</td></tr>
+<tr><td>Вставка в начало</td><td>O(1)</td><td>Просто изменение указателя</td></tr>
+<tr><td>Вставка в конец</td><td>O(n)</td><td>Нужно найти последний узел</td></tr>
+<tr><td>Удаление</td><td>O(1) если есть указатель</td><td>Изменение указателей</td></tr>
+<tr><td>Поиск цикла (Floyd)</td><td>O(n)</td><td>Fast pointer проходит максимум 2n узлов</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Почему Fast &amp; Slow Pointers эффективны</strong>:</p>
+<ul>
+<li>Не требуют дополнительной памяти (только два указателя)</li>
+<li>O(n) время для обнаружения цикла</li>
+<li>O(1) дополнительная память</li>
+</ul>
+<h4 id="когда-использовать-linkedlist"><a class="header" href="#когда-использовать-linkedlist">Когда использовать LinkedList:</a></h4>
+<p><strong>Используйте LinkedList когда</strong>:</p>
+<ul>
+<li>Нужны частые вставки/удаления в середине</li>
+<li>Размер неизвестен заранее</li>
+<li>Не нужен произвольный доступ</li>
+</ul>
+<p><strong>Не используйте когда</strong>:</p>
+<ul>
+<li>Нужен произвольный доступ (используйте Vec/Array)</li>
+<li>Важна cache locality (используйте Vec/Array)</li>
+<li>Нужна производительность (Vec обычно быстрее)</li>
+</ul>
+<h3 id="указатели-в-связанных-списках"><a class="header" href="#указатели-в-связанных-списках">Указатели в связанных списках</a></h3>
+<h4 id="rust-boxt-и-optionboxt"><a class="header" href="#rust-boxt-и-optionboxt">Rust: Box&lt;T&gt; и Option&lt;Box&lt;T&gt;&gt;</a></h4>
+<p><strong>Что такое Box&lt;T&gt;?</strong></p>
+<p><strong><code>Box&lt;T&gt;</code></strong> — это умный указатель в Rust, который:</p>
+<ul>
+<li><strong>Владеет данными в куче</strong>: Перемещает данные из стека в кучу</li>
+<li><strong>Автоматически освобождает память</strong>: При выходе из области видимости вызывается <code>Drop</code>, который освобождает память</li>
+<li><strong>Zero-cost абстракция</strong>: Нет runtime overhead, компилятор оптимизирует код</li>
+<li><strong>Размер</strong>: На стеке хранится только указатель (8 байт на 64-bit), сами данные в куче</li>
+</ul>
+<p><strong>Зачем нужен Box?</strong></p>
+<ul>
+<li>Когда размер типа неизвестен во время компиляции (например, рекурсивные структуры)</li>
+<li>Когда нужно переместить большие данные в кучу, чтобы не переполнить стек</li>
+<li>Для создания умных указателей с владением</li>
+</ul>
+<p><strong>Box&lt;T&gt;</strong>:</p>
+<ul>
+<li>Умный указатель, владеет данными в куче</li>
+<li>Автоматически освобождает память при выходе из области видимости</li>
+<li>Zero-cost абстракция (нет runtime overhead)</li>
+</ul>
+<p><strong>Option&lt;Box&lt;T&gt;&gt;</strong>:</p>
+<ul>
+<li><code>Some(box)</code> - есть узел</li>
+<li><code>None</code> - конец списка</li>
+<li>Размер: 8 байт (на 64-bit) для Some, 8 байт для None (discriminant)</li>
+</ul>
+<p><strong>Пример</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct ListNode {
+    val: i32,
+    next: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;,  // Option для nullable указателя
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-listnode-и-nil"><a class="header" href="#go-listnode-и-nil">Go: *ListNode и nil</a></h4>
+<p>*<strong>ListNode</strong>:</p>
+<ul>
+<li>Обычный указатель на узел</li>
+<li><code>nil</code> означает отсутствие узла</li>
+<li>GC управляет памятью</li>
+</ul>
+<p><strong>Пример</strong>:</p>
+<pre><code class="language-go">type ListNode struct {
+    Val  int
+    Next *ListNode  // nil означает конец
+}
+</code></pre>
+<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
+<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
+<h4 id="что-это-такое"><a class="header" href="#что-это-такое">Что это такое:</a></h4>
+<p><strong>Escape Analysis</strong> определяет, должны ли узлы списка быть в куче.</p>
+<p><strong>Для Fast &amp; Slow Pointers</strong>:</p>
+<ul>
+<li>Узлы списка всегда в куче (динамическое выделение)</li>
+<li>Указатели fast/slow - на стеке</li>
+<li>Результаты могут escape, если возвращаются</li>
+</ul>
+<h4 id="как-проверить"><a class="header" href="#как-проверить">Как проверить:</a></h4>
+<pre><code class="language-bash">go build -gcflags=-m main.go
+</code></pre>
+<p><strong>Пример</strong>:</p>
+<pre><code class="language-go">func createList() *ListNode {
+    node := &amp;ListNode{Val: 1}  // escape в кучу
+    return node
+}
+</code></pre>
+<p><strong>Вывод</strong>:</p>
+<pre><code>./main.go:5:6: moved to heap: node
+</code></pre>
+<h3 id="borrow-checker-rust"><a class="header" href="#borrow-checker-rust">Borrow Checker (Rust)</a></h3>
+<h4 id="что-это-такое-1"><a class="header" href="#что-это-такое-1">Что это такое:</a></h4>
+<p><strong>Borrow Checker</strong> проверяет заимствования для безопасной работы с указателями.</p>
+<p><strong>Для Fast &amp; Slow Pointers</strong>:</p>
+<ul>
+<li>Обычно используем <code>&amp;Box&amp;lt;ListNode&amp;gt;</code> для чтения</li>
+<li><code>&amp;mut Box&amp;lt;ListNode&amp;gt;</code> для изменения</li>
+<li>Проблемы могут возникнуть при изменении во время итерации</li>
+</ul>
+<h4 id="примеры"><a class="header" href="#примеры">Примеры:</a></h4>
+<p><strong>Типичный паттерн</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn has_cycle(head: &amp;Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; bool {
+    let mut slow = head;
+    let mut fast = head;
+    
+    // Используем as_ref() для получения &amp;Option&amp;lt;&amp;Box&amp;lt;ListNode&amp;gt;&amp;gt;
+    while let (Some(s), Some(f)) = (slow, fast) {
+        // ...
+    }
+    false
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Проблема: изменение во время итерации</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Не компилируется
+fn bad(head: &amp;mut Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) {
+    let mut current = head;
+    while let Some(node) = current {
+        node.next = None;  // ERROR: нельзя изменять во время borrow
+        current = &amp;mut node.next;
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Решение</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Используем take() для временного владения
+fn good(head: &amp;mut Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) {
+    let mut current = head.take();
+    while let Some(mut node) = current {
+        current = node.next.take();
+        // работаем с node
+    }
+}
+<span class="boring">}</span></code></pre>
+<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
+<h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
+<p><strong>Для Fast &amp; Slow Pointers</strong>:</p>
+<ul>
+<li>Узлы списка в куче - управляются GC</li>
+<li>Указатели fast/slow на стеке - не влияют на GC</li>
+<li>Циклические ссылки могут привести к утечкам памяти (если не разорвать цикл)</li>
+</ul>
+<h4 id="оптимизация"><a class="header" href="#оптимизация">Оптимизация:</a></h4>
+<p><strong>Избежание утечек памяти</strong>:</p>
+<pre><code class="language-go">// ✅ Разрываем цикл перед удалением
+func cleanup(head *ListNode) {
+    current := head
+    for current != nil {
+        next := current.Next
+        current.Next = nil  // разрываем ссылку
+        current = next
+    }
+}
+</code></pre>
+<h3 id="ownership-и-move-semantics-rust"><a class="header" href="#ownership-и-move-semantics-rust">Ownership и Move Semantics (Rust)</a></h3>
+<h4 id="концепция-владения"><a class="header" href="#концепция-владения">Концепция владения:</a></h4>
+<p><strong>Для Fast &amp; Slow Pointers</strong>:</p>
+<ul>
+<li>Каждый <code>Box&amp;lt;ListNode&amp;gt;</code> владеет следующим узлом</li>
+<li>При удалении узла, все дочерние узлы также удаляются (RAII)</li>
+<li><code>Option&amp;lt;Box&amp;lt;T&amp;gt;&amp;gt;</code> позволяет иметь nullable указатель безопасно</li>
+</ul>
+<p><strong>Пример</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn create_list() -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    Some(Box::new(ListNode {
+        val: 1,
+        next: Some(Box::new(ListNode {
+            val: 2,
+            next: None,
+        })),
+    }))
+}
+
+// При выходе из области видимости, все узлы автоматически освобождаются
+<span class="boring">}</span></code></pre>
+<p><strong>Почему это важно</strong>:</p>
+<ul>
+<li>Нет утечек памяти</li>
+<li>Нет необходимости вручную освобождать память</li>
+<li>Безопасность гарантируется компилятором</li>
+</ul>
+<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
+<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
+<h4 id="rust-владение-и-указатели"><a class="header" href="#rust-владение-и-указатели">Rust: Владение и указатели</a></h4>
+<p>В Rust для Fast &amp; Slow Pointers:</p>
+<ul>
+<li><strong>Указатели</strong>: <code>&amp;ListNode</code> или <code>Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;</code> - ссылки не аллоцируют память</li>
+<li><strong>Box</strong>: Аллоцирует узел в куче, но указатели на узлы - это просто адреса</li>
+<li><strong>Option</strong>: Enum, размером с указателем + discriminant</li>
+</ul>
+<h4 id="go-указатели-и-gc"><a class="header" href="#go-указатели-и-gc">Go: Указатели и GC</a></h4>
+<p>В Go:</p>
+<ul>
+<li><strong>Указатели</strong>: <code>*ListNode</code> - просто адреса, не аллоцируют память</li>
+<li><strong>Структуры</strong>: Узлы списка аллоцируются в куче</li>
+<li><strong>GC</strong>: Автоматически управляет памятью узлов</li>
+</ul>
+<h3 id="анализ-аллокаций-для-fast--slow-pointers"><a class="header" href="#анализ-аллокаций-для-fast--slow-pointers">Анализ аллокаций для Fast &amp; Slow Pointers</a></h3>
+<h4 id="обнаружение-цикла-1"><a class="header" href="#обнаружение-цикла-1">Обнаружение цикла:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Аллокации:
+// - slow, fast: &amp;ListNode (ссылки, не аллоцируют) - O(1)
+// - Никаких дополнительных структур данных
+// Итого: O(1) памяти, только указатели
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// Аллокации:
+// - slow, fast: *ListNode (указатели, не аллоцируют) - O(1)
+// - Никаких дополнительных структур данных
+// Итого: O(1) памяти, только указатели
+</code></pre>
+<h4 id="поиск-середины-списка-2"><a class="header" href="#поиск-середины-списка-2">Поиск середины списка:</a></h4>
+<p><strong>Аналогично</strong>: Только два указателя, O(1) памяти.</p>
+<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
+<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
+<ol>
+<li><strong>Использование ссылок вместо копирования</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Хорошо: использование ссылок
+fn has_cycle(head: &amp;Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; bool {
+    let mut slow = head;
+    let mut fast = head;
+    // ...
+}
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Избежание клонирования</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Плохо: клонирование узлов
+let slow_clone = slow.clone();
+
+// ✅ Хорошо: использование ссылок
+let slow_ref = slow;
+<span class="boring">}</span></code></pre>
+<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
+<ol>
+<li><strong>Использование указателей</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Указатели не аллоцируют память
+func hasCycle(head *ListNode) bool {
+    slow, fast := head, head
+    // ...
+}
+</code></pre>
+<ol start="2">
+<li><strong>Избежание создания новых структур</strong>:</li>
+</ol>
+<pre><code class="language-go">// ❌ Плохо: создание новых узлов
+newNode := &amp;ListNode{Val: 0}
+
+// ✅ Хорошо: работа с существующими узлами
+current := head
+</code></pre>
+<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Указатели</td><td><code>&amp;T</code> или <code>Box&amp;lt;T&amp;gt;</code></td><td><code>*T</code></td></tr>
+<tr><td>Память</td><td>Контролируемая</td><td>GC управляет</td></tr>
+<tr><td>Производительность</td><td>Предсказуемая</td><td>Может быть паузы GC</td></tr>
+<tr><td>Безопасность</td><td>Проверяется компилятором</td><td>Runtime проверки</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
+<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
+<ol>
+<li>
+<p><strong>Минимизация проверок</strong>:</p>
+<ul>
+<li>Проверяйте <code>fast.next</code> только когда необходимо</li>
+<li>Используйте ранние выходы</li>
+</ul>
+</li>
+<li>
+<p><strong>Оптимизация условий</strong>:</p>
+<ul>
+<li>Порядок проверок важен</li>
+<li>Используйте короткие замыкания</li>
+</ul>
+</li>
+</ol>
+<h3 id="специфичные-оптимизации-для-fast--slow-pointers"><a class="header" href="#специфичные-оптимизации-для-fast--slow-pointers">Специфичные оптимизации для Fast &amp; Slow Pointers</a></h3>
+<h4 id="1-оптимизация-обнаружения-цикла"><a class="header" href="#1-оптимизация-обнаружения-цикла">1. Оптимизация обнаружения цикла:</a></h4>
+<p><strong>Rust</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Оптимизированная версия
+pub fn has_cycle_optimized(head: &amp;Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; bool {
+    let mut slow = head;
+    let mut fast = head;
+    
+    while let (Some(s), Some(f)) = (slow, fast) {
+        slow = &amp;s.next;
+        fast = &amp;f.next;
+        if let Some(f_next) = fast {
+            fast = &amp;f_next.next;
+        } else {
+            return false; // Нет цикла
+        }
+        if slow == fast {
+            return true; // Цикл обнаружен
+        }
+    }
+    false
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">// ✅ Оптимизированная версия
+func hasCycleOptimized(head *ListNode) bool {
+    if head == nil || head.Next == nil {
+        return false
+    }
+    
+    slow, fast := head, head.Next
+    
+    for fast != nil &amp;&amp; fast.Next != nil {
+        if slow == fast {
+            return true
+        }
+        slow = slow.Next
+        fast = fast.Next.Next
+    }
+    return false
+}
+</code></pre>
+<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
+<ol>
+<li><strong>Использование pattern matching</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Эффективный pattern matching
+match (slow, fast) {
+    (Some(s), Some(f)) =&gt; { /* ... */ },
+    _ =&gt; return false,
+}
+<span class="boring">}</span></code></pre>
+<ol start="2">
+<li><strong>Избежание лишних разыменований</strong>:</li>
+</ol>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Компилятор Rust оптимизирует разыменования
+<span class="boring">}</span></code></pre>
+<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
+<ol>
+<li><strong>Ранние проверки</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Проверка граничных случаев заранее
+if head == nil || head.Next == nil {
+    return false
+}
+</code></pre>
+<ol start="2">
+<li><strong>Минимизация проверок в цикле</strong>:</li>
+</ol>
+<pre><code class="language-go">// ✅ Проверяем fast.Next один раз
+for fast != nil &amp;&amp; fast.Next != nil {
+    // ...
+}
+</code></pre>
+<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
+<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
+<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
+<h3 id="как-профилировать-fast--slow-pointers"><a class="header" href="#как-профилировать-fast--slow-pointers">Как профилировать Fast &amp; Slow Pointers</a></h3>
+<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// benches/fast_slow_bench.rs
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn bench_has_cycle(c: &amp;mut Criterion) {
+    let list = create_cyclic_list(1000);
+    
+    c.bench_function("has_cycle_1000", |b| {
+        b.iter(|| has_cycle_optimized(black_box(&amp;list)))
+    });
+}
+
+criterion_group!(benches, bench_has_cycle);
+criterion_main!(benches);
+<span class="boring">}</span></code></pre>
+<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
+<pre><code class="language-go">func BenchmarkHasCycle(b *testing.B) {
+    list := createCyclicList(1000)
+    
+    b.ResetTimer()
+    for i := 0; i &lt; b.N; i++ {
+        hasCycleOptimized(list)
+    }
+}
+</code></pre>
+<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
+<p><strong>Анализ производительности</strong>:</p>
+<ul>
+<li>Fast &amp; Slow Pointers: O(n) по времени</li>
+<li>O(1) дополнительной памяти</li>
+<li>Минимальные аллокации (только указатели)</li>
+</ul>
+<p><strong>Типичные узкие места</strong>:</p>
+<ul>
+<li>Проверки указателей на nil/null</li>
+<li>Доступ к полям узлов</li>
+<li>Условные операторы</li>
+</ul>
+<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
+<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
+<ol>
+<li><strong>Базовые тесты</strong>: Простые случаи с циклом и без</li>
+<li><strong>Граничные случаи</strong>: Пустой список, один элемент, цикл с головы</li>
+<li><strong>Стресс-тесты</strong>: Большие списки с циклами разной длины</li>
+</ol>
+<h3 id="примеры-тестов-для-fast--slow-pointers"><a class="header" href="#примеры-тестов-для-fast--slow-pointers">Примеры тестов для Fast &amp; Slow Pointers</a></h3>
+<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_has_cycle_no_cycle() {
+        let list = create_list(vec![1, 2, 3, 4, 5]);
+        assert_eq!(has_cycle_optimized(&amp;list), false);
+    }
+
+    #[test]
+    fn test_has_cycle_with_cycle() {
+        let mut list = create_list(vec![1, 2, 3, 4, 5]);
+        // Создаем цикл
+        make_cyclic(&amp;mut list, 2);
+        assert_eq!(has_cycle_optimized(&amp;list), true);
+    }
+
+    #[test]
+    fn test_has_cycle_empty() {
+        let list = None;
+        assert_eq!(has_cycle_optimized(&amp;list), false);
+    }
+
+    #[test]
+    fn test_find_middle() {
+        let list = create_list(vec![1, 2, 3, 4, 5]);
+        assert_eq!(find_middle(&amp;list), Some(3));
+    }
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
+<pre><code class="language-go">func TestHasCycle(t *testing.T) {
+    tests := []struct {
+        name string
+        list *ListNode
+        want bool
+    }{
+        {"no_cycle", createList([]int{1, 2, 3, 4, 5}), false},
+        {"with_cycle", createCyclicList([]int{1, 2, 3, 4, 5}, 2), true},
+        {"empty", nil, false},
+        {"single", &amp;ListNode{Val: 1}, false},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            if got := hasCycleOptimized(tt.list); got != tt.want {
+                t.Errorf("hasCycleOptimized() = %v, want %v", got, tt.want)
+            }
+        })
+    }
+}
+</code></pre>
+<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
+<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
+<pre><code class="language-bash">cargo test
+cargo test -- --nocapture
+cargo bench
+</code></pre>
+<h4 id="go"><a class="header" href="#go">Go:</a></h4>
+<pre><code class="language-bash">go test -v
+go test -bench=. -benchmem
+</code></pre>
+<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
+<h4 id="rust-1"><a class="header" href="#rust-1">Rust:</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+
+fn fast_slow_benchmark(c: &amp;mut Criterion) {
+    let sizes = vec![100, 1000, 10000, 100000];
+    
+    let mut group = c.benchmark_group("fast_slow");
+    for size in sizes {
+        let list = create_cyclic_list(size);
+        group.bench_with_input(
+            BenchmarkId::from_parameter(size),
+            &amp;list,
+            |b, list| {
+                b.iter(|| has_cycle_optimized(black_box(list)));
+            },
+        );
+    }
+    group.finish();
+}
+<span class="boring">}</span></code></pre>
+<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
+<pre><code class="language-go">func BenchmarkFastSlowSizes(b *testing.B) {
+    sizes := []int{100, 1000, 10000, 100000}
+    
+    for _, size := range sizes {
+        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
+            list := createCyclicList(size)
+            b.ResetTimer()
+            for i := 0; i &lt; b.N; i++ {
+                hasCycleOptimized(list)
+            }
+        })
+    }
+}
+</code></pre>
+<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
+<h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Примеры использования шаблона Fast &amp; Slow Pointers на Rust
+
+// Определение узла связанного списка
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct ListNode {
+    pub val: i32,
+    pub next: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;,
+}
+
+impl ListNode {
+    #[inline]
+    pub fn new(val: i32) -&gt; Self {
+        ListNode { next: None, val }
+    }
+}
+
+/// Пример 1: Обнаружение цикла в связанном списке
+/// 
+/// Задача: Определить, содержит ли связанный список цикл
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn has_cycle(head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; bool {
+    let mut slow = head.as_ref();
+    let mut fast = head.as_ref();
+
+    while let (Some(s), Some(f)) = (slow, fast) {
+        slow = s.next.as_ref();
+        
+        // Быстрый указатель движется на два шага
+        fast = f.next.as_ref().and_then(|n| n.next.as_ref());
+
+        // Если указатели встретились, есть цикл
+        if slow.is_some() &amp;&amp; slow == fast {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Пример 2: Поиск начала цикла в связанном списке
+/// 
+/// Задача: Найти узел, где начинается цикл
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn detect_cycle(head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    let mut slow = head.as_ref();
+    let mut fast = head.as_ref();
+
+    // Шаг 1: Обнаружить цикл
+    while let (Some(s), Some(f)) = (slow, fast) {
+        slow = s.next.as_ref();
+        fast = f.next.as_ref().and_then(|n| n.next.as_ref());
+
+        if slow.is_some() &amp;&amp; slow == fast {
+            break;
+        }
+    }
+
+    // Если цикла нет
+    if slow.is_none() || fast.is_none() {
+        return None;
+    }
+
+    // Шаг 2: Найти начало цикла
+    // Возвращаем slow в начало и двигаем оба указателя по одному шагу
+    let mut slow2 = head.as_ref();
+    while slow != slow2 {
+        slow = slow.and_then(|n| n.next.as_ref());
+        slow2 = slow2.and_then(|n| n.next.as_ref());
+    }
+
+    // Клонируем узел для возврата (в реальности обычно возвращают указатель)
+    slow.cloned()
+}
+
+/// Пример 3: Поиск середины связанного списка
+/// 
+/// Задача: Найти средний узел связанного списка
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn middle_node(head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    let mut slow = head.as_ref();
+    let mut fast = head.as_ref();
+
+    while let (Some(s), Some(f)) = (slow, fast) {
+        slow = s.next.as_ref();
+        fast = f.next.as_ref().and_then(|n| n.next.as_ref());
+
+        // Если fast достиг конца, slow в середине
+        if fast.is_none() {
+            break;
+        }
+    }
+
+    slow.cloned()
+}
+
+/// Пример 4: Удаление N-го узла с конца списка
+/// 
+/// Задача: Удалить N-й узел с конца списка
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn remove_nth_from_end(head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;, n: i32) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
+    // Создаем фиктивный узел для упрощения удаления головы
+    let mut dummy = Box::new(ListNode { val: 0, next: head });
+    let mut slow = dummy.as_mut() as *mut ListNode;
+    let mut fast = dummy.as_mut() as *mut ListNode;
+
+    // Двигаем fast на n+1 шагов вперед
+    for _ in 0..=n {
+        unsafe {
+            if let Some(ref mut f) = (*fast).next {
+                fast = f.as_mut() as *mut ListNode;
+            } else {
+                return dummy.next;
+            }
+        }
+    }
+
+    // Двигаем оба указателя до конца
+    unsafe {
+        while (*fast).next.is_some() {
+            slow = (*slow).next.as_mut().unwrap().as_mut() as *mut ListNode;
+            fast = (*fast).next.as_mut().unwrap().as_mut() as *mut ListNode;
+        }
+
+        // Удаляем узел
+        let next = (*slow).next.as_mut().unwrap().next.take();
+        (*slow).next = next;
+    }
+
+    dummy.next
+}
+
+/// Пример 5: Проверка, является ли список палиндромом
+/// 
+/// Задача: Определить, является ли связанный список палиндромом
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn is_palindrome(head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; bool {
+    // Находим середину списка
+    let mut slow = head.as_ref();
+    let mut fast = head.as_ref();
+
+    while let (Some(s), Some(f)) = (slow, fast) {
+        slow = s.next.as_ref();
+        fast = f.next.as_ref().and_then(|n| n.next.as_ref());
+        if fast.is_none() {
+            break;
+        }
+    }
+
+    // Разворачиваем вторую половину списка
+    let mut prev: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; = None;
+    let mut curr = slow.cloned();
+
+    while let Some(mut node) = curr {
+        let next = node.next.take();
+        node.next = prev;
+        prev = Some(node);
+        curr = next;
+    }
+
+    // Сравниваем первую и вторую половины
+    let mut first = head.as_ref();
+    let mut second = prev.as_ref();
+
+    while let (Some(f), Some(s)) = (first, second) {
+        if f.val != s.val {
+            return false;
+        }
+        first = f.next.as_ref();
+        second = s.next.as_ref();
+    }
+
+    true
+}
+
+/// Пример 6: Поиск дубликата числа (Floyd's Cycle Detection для массива)
+/// 
+/// Задача: Найти дубликат числа в массиве, где числа от 1 до n, и есть один дубликат
+/// Временная сложность: O(n)
+/// Пространственная сложность: O(1)
+pub fn find_duplicate(nums: Vec&amp;lt;i32&amp;gt;) -&gt; i32 {
+    // Используем алгоритм Floyd для обнаружения цикла
+    // Массив можно рассматривать как связанный список, где nums[i] указывает на nums[nums[i]]
+    let mut slow = nums[0] as usize;
+    let mut fast = nums[0] as usize;
+
+    // Обнаруживаем цикл
+    loop {
+        slow = nums[slow] as usize;
+        fast = nums[nums[fast] as usize] as usize;
+        if slow == fast {
+            break;
+        }
+    }
+
+    // Находим начало цикла (дубликат)
+    slow = nums[0] as usize;
+    while slow != fast {
+        slow = nums[slow] as usize;
+        fast = nums[fast] as usize;
+    }
+
+    slow as i32
+}
+<span class="boring">}</span></code></pre>
+<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
+<pre><code class="language-go">package main
+
+import (
+	"fmt"
+)
+
+// Определение узла связанного списка
+type ListNode struct {
+	Val  int
+	Next *ListNode
+}
+
+// Пример 1: Обнаружение цикла в связанном списке
+//
+// Задача: Определить, содержит ли связанный список цикл
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func hasCycle(head *ListNode) bool {
+	if head == nil || head.Next == nil {
+		return false
+	}
+
+	slow := head
+	fast := head
+
+	for fast != nil &amp;&amp; fast.Next != nil {
+		slow = slow.Next
+		fast = fast.Next.Next
+
+		// Если указатели встретились, есть цикл
+		if slow == fast {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Пример 2: Поиск начала цикла в связанном списке
+//
+// Задача: Найти узел, где начинается цикл
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func detectCycle(head *ListNode) *ListNode {
+	if head == nil || head.Next == nil {
+		return nil
+	}
+
+	slow := head
+	fast := head
+
+	// Шаг 1: Обнаружить цикл
+	for fast != nil &amp;&amp; fast.Next != nil {
+		slow = slow.Next
+		fast = fast.Next.Next
+
+		if slow == fast {
+			break
+		}
+	}
+
+	// Если цикла нет
+	if fast == nil || fast.Next == nil {
+		return nil
+	}
+
+	// Шаг 2: Найти начало цикла
+	// Возвращаем slow в начало и двигаем оба указателя по одному шагу
+	slow = head
+	for slow != fast {
+		slow = slow.Next
+		fast = fast.Next
+	}
+
+	return slow
+}
+
+// Пример 3: Поиск середины связанного списка
+//
+// Задача: Найти средний узел связанного списка
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func middleNode(head *ListNode) *ListNode {
+	slow := head
+	fast := head
+
+	for fast != nil &amp;&amp; fast.Next != nil {
+		slow = slow.Next
+		fast = fast.Next.Next
+	}
+
+	return slow
+}
+
+// Пример 4: Удаление N-го узла с конца списка
+//
+// Задача: Удалить N-й узел с конца списка
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func removeNthFromEnd(head *ListNode, n int) *ListNode {
+	// Создаем фиктивный узел для упрощения удаления головы
+	dummy := &amp;ListNode{Val: 0, Next: head}
+	slow := dummy
+	fast := dummy
+
+	// Двигаем fast на n+1 шагов вперед
+	for i := 0; i &lt;= n; i++ {
+		fast = fast.Next
+	}
+
+	// Двигаем оба указателя до конца
+	for fast != nil {
+		slow = slow.Next
+		fast = fast.Next
+	}
+
+	// Удаляем узел
+	slow.Next = slow.Next.Next
+
+	return dummy.Next
+}
+
+// Пример 5: Проверка, является ли список палиндромом
+//
+// Задача: Определить, является ли связанный список палиндромом
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func isPalindrome(head *ListNode) bool {
+	if head == nil || head.Next == nil {
+		return true
+	}
+
+	// Находим середину списка
+	slow := head
+	fast := head
+
+	for fast != nil &amp;&amp; fast.Next != nil {
+		slow = slow.Next
+		fast = fast.Next.Next
+	}
+
+	// Разворачиваем вторую половину списка
+	var prev *ListNode
+	curr := slow
+
+	for curr != nil {
+		next := curr.Next
+		curr.Next = prev
+		prev = curr
+		curr = next
+	}
+
+	// Сравниваем первую и вторую половины
+	first := head
+	second := prev
+
+	for second != nil {
+		if first.Val != second.Val {
+			return false
+		}
+		first = first.Next
+		second = second.Next
+	}
+
+	return true
+}
+
+// Пример 6: Поиск дубликата числа (Floyd's Cycle Detection для массива)
+//
+// Задача: Найти дубликат числа в массиве, где числа от 1 до n, и есть один дубликат
+// Временная сложность: O(n)
+// Пространственная сложность: O(1)
+func findDuplicate(nums []int) int {
+	// Используем алгоритм Floyd для обнаружения цикла
+	// Массив можно рассматривать как связанный список, где nums[i] указывает на nums[nums[i]]
+	slow := nums[0]
+	fast := nums[0]
+
+	// Обнаруживаем цикл
+	for {
+		slow = nums[slow]
+		fast = nums[nums[fast]]
+		if slow == fast {
+			break
+		}
+	}
+
+	// Находим начало цикла (дубликат)
+	slow = nums[0]
+	for slow != fast {
+		slow = nums[slow]
+		fast = nums[fast]
+	}
+
+	return slow
+}
+</code></pre>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Cycle_detection">Floyd’s Cycle Detection Algorithm - Wikipedia</a> - Математическое обоснование</li>
+<li><a href="https://leetcode.com/tag/linked-list/">LeetCode Linked List Problems</a> - Практика</li>
+<li><a href="https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/">Introduction to Algorithms - CLRS</a> - Теоретическая база</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="two-pointers.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="merge-intervals.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="two-pointers.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="merge-intervals.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace-2a3cd908.js"></script>
+        <script src="mode-rust-2c9d5c9a.js"></script>
+        <script src="editor-16ca416c.js"></script>
+        <script src="theme-dawn-4493f9c8.js"></script>
+        <script src="theme-tomorrow_night-9dbe62a9.js"></script>
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
