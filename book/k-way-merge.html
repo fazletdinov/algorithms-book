@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,12 +194,85 @@
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
 <h3 id="базовый-алгоритм"><a class="header" href="#базовый-алгоритм">Базовый алгоритм:</a></h3>
-<ol>
-<li><strong>Инициализация</strong>: Создайте min-heap и добавьте первый элемент каждого из K массивов</li>
-<li><strong>Извлечение минимума</strong>: Извлеките минимальный элемент из кучи</li>
-<li><strong>Добавление следующего</strong>: Добавьте следующий элемент из того же массива в кучу</li>
-<li><strong>Повторение</strong>: Повторяйте шаги 2-3, пока куча не станет пустой</li>
-</ol>
+<pre><code class="language-go">import (
+    "container/heap"
+)
+
+// Структура элемента кучи: хранит значение, индекс массива и индекс элемента в массиве
+type Element struct {
+    Val      int  // Значение элемента
+    ArrayIdx int  // Индекс массива, из которого пришел элемент
+    ElemIdx  int  // Индекс элемента в этом массиве
+}
+
+// MinHeap для хранения элементов (реализует интерфейс heap.Interface)
+type MinHeap []Element
+
+func (h MinHeap) Len() int           { return len(h) }
+func (h MinHeap) Less(i, j int) bool { return h[i].Val &lt; h[j].Val }
+func (h MinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *MinHeap) Push(x interface{}) {
+    *h = append(*h, x.(Element))
+}
+
+func (h *MinHeap) Pop() interface{} {
+    old := *h
+    n := len(old)
+    x := old[n-1]
+    *h = old[0 : n-1]
+    return x
+}
+
+func mergeKSortedArrays(arrays [][]int) []int {
+    // Шаг 1: Инициализация - создаем min-heap и добавляем первый элемент каждого массива
+    // Это гарантирует, что в куче всегда находится минимальный непрочитанный элемент каждого массива
+    h := &amp;MinHeap{}
+    heap.Init(h)
+    
+    // Добавляем первый элемент каждого из K массивов в кучу
+    for i := 0; i &lt; len(arrays); i++ {
+        if len(arrays[i]) &gt; 0 {
+            // Создаем элемент с значением, индексом массива и индексом элемента
+            heap.Push(h, Element{
+                Val:      arrays[i][0],
+                ArrayIdx: i,
+                ElemIdx:  0,
+            })
+        }
+    }
+    
+    result := make([]int, 0)
+    
+    // Шаг 4: Повторяем шаги 2-3, пока куча не станет пустой
+    // Когда куча пуста, все элементы из всех массивов обработаны
+    for h.Len() &gt; 0 {
+        // Шаг 2: Извлечение минимума - получаем минимальный элемент из кучи
+        // Благодаря min-heap, это всегда глобальный минимум среди всех непрочитанных элементов
+        minElem := heap.Pop(h).(Element)
+        
+        // Добавляем минимальный элемент в результат
+        result = append(result, minElem.Val)
+        
+        // Шаг 3: Добавление следующего элемента из того же массива
+        // Проверяем, есть ли еще элементы в массиве, из которого мы только что взяли элемент
+        nextIdx := minElem.ElemIdx + 1
+        if nextIdx &lt; len(arrays[minElem.ArrayIdx]) {
+            // Добавляем следующий элемент из того же массива в кучу
+            // Это поддерживает инвариант: в куче всегда есть минимальный элемент каждого массива
+            heap.Push(h, Element{
+                Val:      arrays[minElem.ArrayIdx][nextIdx],
+                ArrayIdx: minElem.ArrayIdx,
+                ElemIdx:  nextIdx,
+            })
+        }
+        // Если элементов в массиве больше нет, просто не добавляем ничего
+        // и продолжаем с другими массивами
+    }
+    
+    return result
+}
+</code></pre>
 <h3 id="структура-элемента-кучи"><a class="header" href="#структура-элемента-кучи">Структура элемента кучи:</a></h3>
 <p>Каждый элемент кучи содержит:</p>
 <ul>
@@ -781,6 +854,17 @@ fn k_way_merge_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/merge-k-sorted-lists/">Merge k Sorted Lists</a> - Слияние K отсортированных списков</li>
+<li><a href="https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/">Kth Smallest Element in a Sorted Matrix</a> - K-й наименьший элемент в матрице</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/find-k-pairs-with-smallest-sums/">Find K Pairs with Smallest Sums</a> - K пар с наименьшими суммами</li>
+<li><a href="https://leetcode.com/problems/smallest-range-covering-elements-from-k-lists/">Smallest Range Covering Elements from K Lists</a> - Наименьший диапазон</li>
+</ul>
 <h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
 <h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1123,16 +1207,19 @@ func kSmallestPairs(nums1, nums2 []int, k int) [][]int {
 	return result
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/merge-k-sorted-lists/">Merge k Sorted Lists</a> - Слияние K отсортированных списков</li>
-<li><a href="https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/">Kth Smallest Element in a Sorted Matrix</a> - K-й наименьший элемент в матрице</li>
+<li><strong><a href="./top-k-elements.html">Top K Elements</a></strong> - Использует кучу для поиска элементов</li>
+<li><strong><a href="./two-heaps.html">Two Heaps</a></strong> - Работа с кучами</li>
+<li><strong><a href="./modified-binary-search.html">Modified Binary Search</a></strong> - Альтернативный подход для работы с отсортированными данными</li>
 </ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения K-way Merge рекомендуется перейти к <strong><a href="./subsets.html">Subsets</a></strong> для изучения комбинаторных задач или к <strong><a href="./topological-sort.html">Topological Sort</a></strong> для изучения работы с графами.</p>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/find-k-pairs-with-smallest-sums/">Find K Pairs with Smallest Sums</a> - K пар с наименьшими суммами</li>
-<li><a href="https://leetcode.com/problems/smallest-range-covering-elements-from-k-lists/">Smallest Range Covering Elements from K Lists</a> - Наименьший диапазон</li>
+<li><a href="https://leetcode.com/problems/merge-k-sorted-lists/">Merge K Sorted Lists - LeetCode</a> - Задача на слияние списков</li>
+<li><a href="https://www.geeksforgeeks.org/merge-k-sorted-arrays/">K-way Merge Pattern - GeeksforGeeks</a> - Подробное объяснение</li>
+<li><a href="https://en.wikipedia.org/wiki/External_sorting">External Sorting - Wikipedia</a> - Сортировка больших данных</li>
 </ul>
 
                     </main>
@@ -1143,7 +1230,7 @@ func kSmallestPairs(nums1, nums2 []int, k int) [][]int {
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="topological-sort.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="subsets.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -1157,7 +1244,7 @@ func kSmallestPairs(nums1, nums2 []int, k int) [][]int {
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="topological-sort.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="subsets.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

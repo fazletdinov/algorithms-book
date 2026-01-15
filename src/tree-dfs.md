@@ -61,9 +61,86 @@ DFS является одним из фундаментальных алгори
 
 ### Рекурсивный подход:
 
-1. **Базовый случай**: Если узел равен `None`, вернитесь
-2. **Обработка**: Обработайте текущий узел (в зависимости от типа обхода)
-3. **Рекурсия**: Рекурсивно обработайте левое и правое поддеревья
+```go
+// Определение узла дерева
+type TreeNode struct {
+    Val   int
+    Left  *TreeNode
+    Right *TreeNode
+}
+
+// Pre-order обход: Корень → Левое поддерево → Правое поддерево
+func preorderTraversal(root *TreeNode) []int {
+    result := []int{}
+    
+    var dfs func(*TreeNode)
+    dfs = func(node *TreeNode) {
+        // Шаг 1: Базовый случай - если узел равен nil, возвращаемся
+        // Это означает, что мы достигли листа или пустого поддерева
+        if node == nil {
+            return
+        }
+        
+        // Шаг 2: Обработка текущего узла (для pre-order - сначала корень)
+        // Добавляем значение узла в результат
+        result = append(result, node.Val)
+        
+        // Шаг 3: Рекурсия - рекурсивно обрабатываем левое и правое поддеревья
+        // Для pre-order: сначала левое, потом правое
+        dfs(node.Left)   // Рекурсивный вызов для левого поддерева
+        dfs(node.Right)  // Рекурсивный вызов для правого поддерева
+    }
+    
+    dfs(root)
+    return result
+}
+
+// In-order обход: Левое поддерево → Корень → Правое поддерево
+func inorderTraversal(root *TreeNode) []int {
+    result := []int{}
+    
+    var dfs func(*TreeNode)
+    dfs = func(node *TreeNode) {
+        if node == nil {
+            return
+        }
+        
+        // Для in-order: сначала обрабатываем левое поддерево
+        dfs(node.Left)
+        
+        // Потом обрабатываем корень (текущий узел)
+        result = append(result, node.Val)
+        
+        // Затем обрабатываем правое поддерево
+        dfs(node.Right)
+    }
+    
+    dfs(root)
+    return result
+}
+
+// Post-order обход: Левое поддерево → Правое поддерево → Корень
+func postorderTraversal(root *TreeNode) []int {
+    result := []int{}
+    
+    var dfs func(*TreeNode)
+    dfs = func(node *TreeNode) {
+        if node == nil {
+            return
+        }
+        
+        // Для post-order: сначала обрабатываем оба поддерева
+        dfs(node.Left)
+        dfs(node.Right)
+        
+        // Потом обрабатываем корень (текущий узел)
+        result = append(result, node.Val)
+    }
+    
+    dfs(root)
+    return result
+}
+```
 
 ### Итеративный подход:
 
@@ -650,6 +727,22 @@ func BenchmarkTreeDFSSizes(b *testing.B) {
 }
 ```
 
+## Примеры задач на LeetCode
+
+### Легкие:
+- [Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/) - Максимальная глубина дерева
+- [Same Tree](https://leetcode.com/problems/same-tree/) - Одинаковые деревья
+- [Symmetric Tree](https://leetcode.com/problems/symmetric-tree/) - Симметричное дерево
+
+### Средние:
+- [Validate Binary Search Tree](https://leetcode.com/problems/validate-binary-search-tree/) - Валидация BST
+- [Path Sum](https://leetcode.com/problems/path-sum/) - Сумма пути
+- [Construct Binary Tree from Preorder and Inorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/) - Построение дерева
+
+### Сложные:
+- [Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/) - Максимальная сумма пути
+- [Serialize and Deserialize Binary Tree](https://leetcode.com/problems/serialize-and-deserialize-binary-tree/) - Сериализация дерева
+
 ## Примеры кода
 
 ### Rust
@@ -1127,19 +1220,19 @@ func max(a, b int) int {
 }
 ```
 
-## Примеры задач на LeetCode
+## Связанные шаблоны
 
-### Легкие:
-- [Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/) - Максимальная глубина дерева
-- [Same Tree](https://leetcode.com/problems/same-tree/) - Одинаковые деревья
-- [Symmetric Tree](https://leetcode.com/problems/symmetric-tree/) - Симметричное дерево
+- **[Tree BFS](./tree-bfs.md)** - Альтернативный подход для обхода деревьев в ширину
+- **[Subsets](./subsets.md)** - Использует похожий рекурсивный подход с backtracking
+- **[Topological Sort](./topological-sort.md)** - Использует DFS для работы с графами
 
-### Средние:
-- [Validate Binary Search Tree](https://leetcode.com/problems/validate-binary-search-tree/) - Валидация BST
-- [Path Sum](https://leetcode.com/problems/path-sum/) - Сумма пути
-- [Construct Binary Tree from Preorder and Inorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/) - Построение дерева
+## Следующий шаг
 
-### Сложные:
-- [Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/) - Максимальная сумма пути
-- [Serialize and Deserialize Binary Tree](https://leetcode.com/problems/serialize-and-deserialize-binary-tree/) - Сериализация дерева
+После изучения Tree DFS рекомендуется перейти к **[Two Heaps](./two-heaps.md)** для изучения продвинутых структур данных или к **[Subsets](./subsets.md)** для изучения комбинаторных задач.
+
+## Дополнительные ресурсы
+
+- [Binary Tree Traversal - LeetCode Tag](https://leetcode.com/tag/tree/) - Коллекция задач на деревья
+- [Depth-First Search - GeeksforGeeks](https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/) - Подробное объяснение алгоритма DFS
+- [Tree Traversal - Wikipedia](https://en.wikipedia.org/wiki/Tree_traversal) - Теория обхода деревьев (Pre-order, In-order, Post-order)
 

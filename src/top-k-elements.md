@@ -25,11 +25,115 @@
 
 ### Подход с кучей:
 
-1. **Инициализация**: Создайте min-heap или max-heap размера K
-2. **Итерация**: Для каждого элемента:
-   - Если размер кучи < K, добавьте элемент
-   - Иначе сравните с вершиной кучи и замените при необходимости
-3. **Результат**: Верните элементы из кучи
+```go
+import (
+    "container/heap"
+)
+
+// MinHeap для хранения K наибольших элементов
+type MinHeap []int
+
+func (h MinHeap) Len() int           { return len(h) }
+func (h MinHeap) Less(i, j int) bool { return h[i] < h[j] }
+func (h MinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *MinHeap) Push(x interface{}) {
+    *h = append(*h, x.(int))
+}
+
+func (h *MinHeap) Pop() interface{} {
+    old := *h
+    n := len(old)
+    x := old[n-1]
+    *h = old[0 : n-1]
+    return x
+}
+
+// Поиск K наибольших элементов
+func findTopK(nums []int, k int) []int {
+    // Шаг 1: Инициализация - создаем min-heap размера K
+    // Min-heap используется для K наибольших, потому что:
+    // - Вершина кучи (минимум) - это худший из K лучших элементов
+    // - Если новый элемент больше вершины, заменяем вершину
+    // - Это поддерживает инвариант: в куче всегда K наибольших элементов
+    h := &MinHeap{}
+    heap.Init(h)
+    
+    // Шаг 2: Итерация по всем элементам массива
+    for _, num := range nums {
+        if h.Len() < k {
+            // Если размер кучи меньше K, просто добавляем элемент
+            // Пока не набрали K элементов, добавляем все подряд
+            heap.Push(h, num)
+        } else {
+            // Размер кучи равен K - сравниваем с вершиной кучи
+            // Вершина min-heap - это минимум среди K элементов, т.е. худший из лучших
+            if num > (*h)[0] {
+                // Новый элемент больше худшего из K лучших
+                // Заменяем худший на новый элемент
+                heap.Pop(h)      // Удаляем худший элемент
+                heap.Push(h, num) // Добавляем новый элемент
+            }
+            // Если новый элемент меньше или равен вершине, игнорируем его
+            // так как он не входит в топ K
+        }
+    }
+    
+    // Шаг 3: Результат - возвращаем элементы из кучи
+    // Куча содержит K наибольших элементов
+    result := make([]int, h.Len())
+    for i := 0; h.Len() > 0; i++ {
+        result[i] = heap.Pop(h).(int)
+    }
+    
+    return result
+}
+
+// Поиск K наименьших элементов (используем max-heap)
+type MaxHeap []int
+
+func (h MaxHeap) Len() int           { return len(h) }
+func (h MaxHeap) Less(i, j int) bool { return h[i] > h[j] } // Обратный порядок для max-heap
+func (h MaxHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *MaxHeap) Push(x interface{}) {
+    *h = append(*h, x.(int))
+}
+
+func (h *MaxHeap) Pop() interface{} {
+    old := *h
+    n := len(old)
+    x := old[n-1]
+    *h = old[0 : n-1]
+    return x
+}
+
+func findBottomK(nums []int, k int) []int {
+    // Для K наименьших используем max-heap
+    // Вершина max-heap - это максимум среди K элементов, т.е. худший из лучших
+    h := &MaxHeap{}
+    heap.Init(h)
+    
+    for _, num := range nums {
+        if h.Len() < k {
+            heap.Push(h, num)
+        } else {
+            // Если новый элемент меньше худшего из K лучших, заменяем
+            if num < (*h)[0] {
+                heap.Pop(h)
+                heap.Push(h, num)
+            }
+        }
+    }
+    
+    result := make([]int, h.Len())
+    for i := 0; h.Len() > 0; i++ {
+        result[i] = heap.Pop(h).(int)
+    }
+    
+    return result
+}
+```
 
 ### Для K наибольших:
 - Используйте min-heap размера K
@@ -567,6 +671,20 @@ func BenchmarkTopKSizes(b *testing.B) {
 }
 ```
 
+## Примеры задач на LeetCode
+
+### Легкие:
+- [Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/) - K-й наибольший элемент
+- [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) - Топ K частых элементов
+
+### Средние:
+- [K Closest Points to Origin](https://leetcode.com/problems/k-closest-points-to-origin/) - K ближайших точек к началу
+- [Sort Characters By Frequency](https://leetcode.com/problems/sort-characters-by-frequency/) - Сортировка символов по частоте
+
+### Сложные:
+- [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) - Слияние K отсортированных списков
+- [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) - K пар с наименьшими суммами
+
 ## Примеры кода
 
 ### Rust
@@ -979,17 +1097,19 @@ func frequencySort(s string) string {
 }
 ```
 
-## Примеры задач на LeetCode
+## Связанные шаблоны
 
-### Легкие:
-- [Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/) - K-й наибольший элемент
-- [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) - Топ K частых элементов
+- **[Two Heaps](./two-heaps.md)** - Использует две кучи для поддержания медианы
+- **[K-way Merge](./k-way-merge.md)** - Использует кучу для слияния массивов
+- **[Sliding Window](./sliding-window.md)** - Может комбинироваться с кучей для поиска максимума/минимума в окне
 
-### Средние:
-- [K Closest Points to Origin](https://leetcode.com/problems/k-closest-points-to-origin/) - K ближайших точек к началу
-- [Sort Characters By Frequency](https://leetcode.com/problems/sort-characters-by-frequency/) - Сортировка символов по частоте
+## Следующий шаг
 
-### Сложные:
-- [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) - Слияние K отсортированных списков
-- [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) - K пар с наименьшими суммами
+После изучения Top K Elements рекомендуется перейти к **[K-way Merge](./k-way-merge.md)** для изучения слияния массивов или к **[Subsets](./subsets.md)** для изучения комбинаторных задач.
+
+## Дополнительные ресурсы
+
+- [Top K Elements - LeetCode Tag](https://leetcode.com/tag/heap/) - Коллекция задач на кучи
+- [Heap Data Structure - GeeksforGeeks](https://www.geeksforgeeks.org/heap-data-structure/) - Подробное объяснение структуры данных кучи
+- [Priority Queue - Wikipedia](https://en.wikipedia.org/wiki/Priority_queue) - Теория приоритетных очередей
 

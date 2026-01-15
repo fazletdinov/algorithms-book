@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,29 +194,108 @@
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
 <h3 id="базовая-структура"><a class="header" href="#базовая-структура">Базовая структура:</a></h3>
-<ol>
-<li>
-<p><strong>Две кучи</strong>:</p>
-<ul>
-<li><code>max_heap</code>: Хранит меньшую половину элементов (максимум на вершине)</li>
-<li><code>min_heap</code>: Хранит большую половину элементов (минимум на вершине)</li>
-</ul>
-</li>
-<li>
-<p><strong>Балансировка</strong>:</p>
-<ul>
-<li>Размеры куч должны отличаться максимум на 1</li>
-<li>Если разница больше 1, перемещаем элемент из большей кучи в меньшую</li>
-</ul>
-</li>
-<li>
-<p><strong>Медиана</strong>:</p>
-<ul>
-<li>Если размеры равны: медиана = (max_heap.top() + min_heap.top()) / 2</li>
-<li>Если размеры разные: медиана = вершина большей кучи</li>
-</ul>
-</li>
-</ol>
+<pre><code class="language-go">import (
+    "container/heap"
+)
+
+// MaxHeap для хранения меньшей половины элементов
+type MaxHeap []int
+
+func (h MaxHeap) Len() int           { return len(h) }
+func (h MaxHeap) Less(i, j int) bool { return h[i] &gt; h[j] } // Обратный порядок для max-heap
+func (h MaxHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *MaxHeap) Push(x interface{}) {
+    *h = append(*h, x.(int))
+}
+
+func (h *MaxHeap) Pop() interface{} {
+    old := *h
+    n := len(old)
+    x := old[n-1]
+    *h = old[0 : n-1]
+    return x
+}
+
+// MinHeap для хранения большей половины элементов
+type MinHeap []int
+
+func (h MinHeap) Len() int           { return len(h) }
+func (h MinHeap) Less(i, j int) bool { return h[i] &lt; h[j] }
+func (h MinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *MinHeap) Push(x interface{}) {
+    *h = append(*h, x.(int))
+}
+
+func (h *MinHeap) Pop() interface{} {
+    old := *h
+    n := len(old)
+    x := old[n-1]
+    *h = old[0 : n-1]
+    return x
+}
+
+// Структура для поддержания медианы
+type MedianFinder struct {
+    // maxHeap: хранит меньшую половину элементов (максимум на вершине)
+    // Все элементы в maxHeap &lt;= медианы
+    maxHeap *MaxHeap
+    
+    // minHeap: хранит большую половину элементов (минимум на вершине)
+    // Все элементы в minHeap &gt;= медианы
+    minHeap *MinHeap
+}
+
+func NewMedianFinder() *MedianFinder {
+    maxHeap := &amp;MaxHeap{}
+    minHeap := &amp;MinHeap{}
+    heap.Init(maxHeap)
+    heap.Init(minHeap)
+    return &amp;MedianFinder{
+        maxHeap: maxHeap,
+        minHeap: minHeap,
+    }
+}
+
+func (mf *MedianFinder) AddNum(num int) {
+    // Добавляем элемент в соответствующую кучу
+    // Если обе кучи пусты или num &lt;= максимума maxHeap, добавляем в maxHeap
+    if mf.maxHeap.Len() == 0 || num &lt;= (*mf.maxHeap)[0] {
+        heap.Push(mf.maxHeap, num)
+    } else {
+        heap.Push(mf.minHeap, num)
+    }
+    
+    // Шаг 2: Балансировка - размеры куч должны отличаться максимум на 1
+    // Если разница больше 1, перемещаем элемент из большей кучи в меньшую
+    if mf.maxHeap.Len() &gt; mf.minHeap.Len()+1 {
+        // maxHeap слишком большая - перемещаем максимум в minHeap
+        maxVal := heap.Pop(mf.maxHeap).(int)
+        heap.Push(mf.minHeap, maxVal)
+    } else if mf.minHeap.Len() &gt; mf.maxHeap.Len()+1 {
+        // minHeap слишком большая - перемещаем минимум в maxHeap
+        minVal := heap.Pop(mf.minHeap).(int)
+        heap.Push(mf.maxHeap, minVal)
+    }
+}
+
+func (mf *MedianFinder) FindMedian() float64 {
+    // Шаг 3: Вычисление медианы
+    if mf.maxHeap.Len() == mf.minHeap.Len() {
+        // Если размеры равны: медиана = (max_heap.top() + min_heap.top()) / 2
+        // Берем среднее арифметическое вершин обеих куч
+        return float64((*mf.maxHeap)[0]+(*mf.minHeap)[0]) / 2.0
+    } else if mf.maxHeap.Len() &gt; mf.minHeap.Len() {
+        // Если размеры разные: медиана = вершина большей кучи
+        // maxHeap больше, поэтому медиана - это её максимум
+        return float64((*mf.maxHeap)[0])
+    } else {
+        // minHeap больше, поэтому медиана - это её минимум
+        return float64((*mf.minHeap)[0])
+    }
+}
+</code></pre>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="поддержание-медианы"><a class="header" href="#поддержание-медианы">Поддержание медианы:</a></h3>
 <pre><code>Поток данных: [1, 5, 2, 3, 4]
@@ -765,6 +844,17 @@ fn two_heaps_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/find-median-from-data-stream/">Find Median from Data Stream</a> - Медиана из потока данных</li>
+<li><a href="https://leetcode.com/problems/sliding-window-median/">Sliding Window Median</a> - Медиана скользящего окна</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/ipo/">IPO</a> - Первичное публичное размещение</li>
+<li><a href="https://leetcode.com/problems/design-twitter/">Design Twitter</a> - Дизайн Twitter</li>
+</ul>
 <h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
 <h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1090,16 +1180,19 @@ func partitionArray(nums []int) int {
 	return sum2 - sum1
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/find-median-from-data-stream/">Find Median from Data Stream</a> - Медиана из потока данных</li>
-<li><a href="https://leetcode.com/problems/sliding-window-median/">Sliding Window Median</a> - Медиана скользящего окна</li>
+<li><strong><a href="./top-k-elements.html">Top K Elements</a></strong> - Использует одну кучу для поиска K элементов</li>
+<li><strong><a href="./k-way-merge.html">K-way Merge</a></strong> - Использует кучу для слияния массивов</li>
+<li><strong><a href="./tree-bfs.html">Tree BFS</a></strong> - Работа с очередями и структурами данных</li>
 </ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения Two Heaps рекомендуется перейти к <strong><a href="./top-k-elements.html">Top K Elements</a></strong> для изучения работы с одной кучей или к <strong><a href="./k-way-merge.html">K-way Merge</a></strong> для изучения слияния массивов.</p>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/ipo/">IPO</a> - Первичное публичное размещение</li>
-<li><a href="https://leetcode.com/problems/design-twitter/">Design Twitter</a> - Дизайн Twitter</li>
+<li><a href="https://leetcode.com/problems/find-median-from-data-stream/">Find Median from Data Stream - LeetCode</a> - Классическая задача на две кучи</li>
+<li><a href="https://www.geeksforgeeks.org/heap-data-structure/">Heap Data Structure - GeeksforGeeks</a> - Подробное объяснение структуры данных кучи</li>
+<li><a href="https://en.wikipedia.org/wiki/Median">Median - Wikipedia</a> - Математическое определение медианы</li>
 </ul>
 
                     </main>
@@ -1110,7 +1203,7 @@ func partitionArray(nums []int) int {
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="subsets.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="top-k-elements.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -1124,7 +1217,7 @@ func partitionArray(nums []int) int {
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="subsets.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="top-k-elements.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

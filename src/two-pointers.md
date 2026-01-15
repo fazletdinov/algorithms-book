@@ -31,30 +31,33 @@
 
 ### Детальный алгоритм для встречных указателей:
 
-#### Псевдокод:
+#### Go код:
 
-```pseudocode
-function twoPointersOpposite(arr, target):
-    left = 0
-    right = arr.length - 1
+```go
+func twoPointersOpposite(arr []int, target int) (int, int, bool) {
+    left := 0
+    right := len(arr) - 1
     
-    while left < right:
-        currentSum = arr[left] + arr[right]
+    for left < right {
+        currentSum := arr[left] + arr[right]
         
-        if currentSum == target:
-            return (left, right)
-        else if currentSum < target:
+        if currentSum == target {
+            return left, right, true
+        } else if currentSum < target {
             // Сумма слишком мала, нужно увеличить
             // Все пары с arr[left] и меньшими правыми элементами
             // также будут меньше target, поэтому можно их пропустить
             left++
-        else:
+        } else {
             // Сумма слишком велика, нужно уменьшить
             // Все пары с arr[right] и большими левыми элементами
             // также будут больше target, поэтому можно их пропустить
             right--
+        }
+    }
     
-    return null  // Пара не найдена
+    return 0, 0, false  // Пара не найдена
+}
 ```
 
 #### Пошаговый разбор:
@@ -77,19 +80,23 @@ function twoPointersOpposite(arr, target):
 
 ### Алгоритм для указателей в одном направлении:
 
-```pseudocode
-function twoPointersSameDirection(arr):
-    slow = 0
-    fast = 0  // или fast = 1, в зависимости от задачи
+```go
+func twoPointersSameDirection(arr []int, condition func(int, int) bool, process func(int, int)) []int {
+    slow := 0
+    fast := 0  // или fast = 1, в зависимости от задачи
+    result := make([]int, 0)
     
-    while fast < arr.length:
-        if condition(arr[slow], arr[fast]):
+    for fast < len(arr) {
+        if condition(arr[slow], arr[fast]) {
             // Обрабатываем пару
             process(arr[slow], arr[fast])
             slow++
+        }
         fast++
+    }
     
     return result
+}
 ```
 
 **Применение**: Удаление дубликатов, поиск подмассивов, слияние отсортированных массивов
@@ -1911,6 +1918,16 @@ func min(a, b int) int {
 	return b
 }
 ```
+
+## Связанные шаблоны
+
+- **[Sliding Window](./sliding-window.md)** - Похожий подход для работы с подмассивами
+- **[Fast & Slow Pointers](./fast-slow-pointers.md)** - Вариация двух указателей для работы со списками
+- **[Merge Intervals](./merge-intervals.md)** - Использует сортировку и два указателя для работы с интервалами
+
+## Следующий шаг
+
+После изучения Two Pointers рекомендуется перейти к **[Fast & Slow Pointers](./fast-slow-pointers.md)** для работы со связанными списками или к **[Merge Intervals](./merge-intervals.md)** для работы с интервалами.
 
 ## Дополнительные ресурсы
 

@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,16 +194,114 @@
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
 <h3 id="подход-с-кучей"><a class="header" href="#подход-с-кучей">Подход с кучей:</a></h3>
-<ol>
-<li><strong>Инициализация</strong>: Создайте min-heap или max-heap размера K</li>
-<li><strong>Итерация</strong>: Для каждого элемента:
-<ul>
-<li>Если размер кучи &lt; K, добавьте элемент</li>
-<li>Иначе сравните с вершиной кучи и замените при необходимости</li>
-</ul>
-</li>
-<li><strong>Результат</strong>: Верните элементы из кучи</li>
-</ol>
+<pre><code class="language-go">import (
+    "container/heap"
+)
+
+// MinHeap для хранения K наибольших элементов
+type MinHeap []int
+
+func (h MinHeap) Len() int           { return len(h) }
+func (h MinHeap) Less(i, j int) bool { return h[i] &lt; h[j] }
+func (h MinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *MinHeap) Push(x interface{}) {
+    *h = append(*h, x.(int))
+}
+
+func (h *MinHeap) Pop() interface{} {
+    old := *h
+    n := len(old)
+    x := old[n-1]
+    *h = old[0 : n-1]
+    return x
+}
+
+// Поиск K наибольших элементов
+func findTopK(nums []int, k int) []int {
+    // Шаг 1: Инициализация - создаем min-heap размера K
+    // Min-heap используется для K наибольших, потому что:
+    // - Вершина кучи (минимум) - это худший из K лучших элементов
+    // - Если новый элемент больше вершины, заменяем вершину
+    // - Это поддерживает инвариант: в куче всегда K наибольших элементов
+    h := &amp;MinHeap{}
+    heap.Init(h)
+    
+    // Шаг 2: Итерация по всем элементам массива
+    for _, num := range nums {
+        if h.Len() &lt; k {
+            // Если размер кучи меньше K, просто добавляем элемент
+            // Пока не набрали K элементов, добавляем все подряд
+            heap.Push(h, num)
+        } else {
+            // Размер кучи равен K - сравниваем с вершиной кучи
+            // Вершина min-heap - это минимум среди K элементов, т.е. худший из лучших
+            if num &gt; (*h)[0] {
+                // Новый элемент больше худшего из K лучших
+                // Заменяем худший на новый элемент
+                heap.Pop(h)      // Удаляем худший элемент
+                heap.Push(h, num) // Добавляем новый элемент
+            }
+            // Если новый элемент меньше или равен вершине, игнорируем его
+            // так как он не входит в топ K
+        }
+    }
+    
+    // Шаг 3: Результат - возвращаем элементы из кучи
+    // Куча содержит K наибольших элементов
+    result := make([]int, h.Len())
+    for i := 0; h.Len() &gt; 0; i++ {
+        result[i] = heap.Pop(h).(int)
+    }
+    
+    return result
+}
+
+// Поиск K наименьших элементов (используем max-heap)
+type MaxHeap []int
+
+func (h MaxHeap) Len() int           { return len(h) }
+func (h MaxHeap) Less(i, j int) bool { return h[i] &gt; h[j] } // Обратный порядок для max-heap
+func (h MaxHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *MaxHeap) Push(x interface{}) {
+    *h = append(*h, x.(int))
+}
+
+func (h *MaxHeap) Pop() interface{} {
+    old := *h
+    n := len(old)
+    x := old[n-1]
+    *h = old[0 : n-1]
+    return x
+}
+
+func findBottomK(nums []int, k int) []int {
+    // Для K наименьших используем max-heap
+    // Вершина max-heap - это максимум среди K элементов, т.е. худший из лучших
+    h := &amp;MaxHeap{}
+    heap.Init(h)
+    
+    for _, num := range nums {
+        if h.Len() &lt; k {
+            heap.Push(h, num)
+        } else {
+            // Если новый элемент меньше худшего из K лучших, заменяем
+            if num &lt; (*h)[0] {
+                heap.Pop(h)
+                heap.Push(h, num)
+            }
+        }
+    }
+    
+    result := make([]int, h.Len())
+    for i := 0; h.Len() &gt; 0; i++ {
+        result[i] = heap.Pop(h).(int)
+    }
+    
+    return result
+}
+</code></pre>
 <h3 id="для-k-наибольших"><a class="header" href="#для-k-наибольших">Для K наибольших:</a></h3>
 <ul>
 <li>Используйте min-heap размера K</li>
@@ -721,6 +819,22 @@ fn top_k_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/kth-largest-element-in-an-array/">Kth Largest Element in an Array</a> - K-й наибольший элемент</li>
+<li><a href="https://leetcode.com/problems/top-k-frequent-elements/">Top K Frequent Elements</a> - Топ K частых элементов</li>
+</ul>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/k-closest-points-to-origin/">K Closest Points to Origin</a> - K ближайших точек к началу</li>
+<li><a href="https://leetcode.com/problems/sort-characters-by-frequency/">Sort Characters By Frequency</a> - Сортировка символов по частоте</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/merge-k-sorted-lists/">Merge k Sorted Lists</a> - Слияние K отсортированных списков</li>
+<li><a href="https://leetcode.com/problems/find-k-pairs-with-smallest-sums/">Find K Pairs with Smallest Sums</a> - K пар с наименьшими суммами</li>
+</ul>
 <h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
 <h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1128,28 +1242,26 @@ func frequencySort(s string) string {
 	return result.String()
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/kth-largest-element-in-an-array/">Kth Largest Element in an Array</a> - K-й наибольший элемент</li>
-<li><a href="https://leetcode.com/problems/top-k-frequent-elements/">Top K Frequent Elements</a> - Топ K частых элементов</li>
+<li><strong><a href="./two-heaps.html">Two Heaps</a></strong> - Использует две кучи для поддержания медианы</li>
+<li><strong><a href="./k-way-merge.html">K-way Merge</a></strong> - Использует кучу для слияния массивов</li>
+<li><strong><a href="./sliding-window.html">Sliding Window</a></strong> - Может комбинироваться с кучей для поиска максимума/минимума в окне</li>
 </ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения Top K Elements рекомендуется перейти к <strong><a href="./k-way-merge.html">K-way Merge</a></strong> для изучения слияния массивов или к <strong><a href="./subsets.html">Subsets</a></strong> для изучения комбинаторных задач.</p>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/k-closest-points-to-origin/">K Closest Points to Origin</a> - K ближайших точек к началу</li>
-<li><a href="https://leetcode.com/problems/sort-characters-by-frequency/">Sort Characters By Frequency</a> - Сортировка символов по частоте</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/merge-k-sorted-lists/">Merge k Sorted Lists</a> - Слияние K отсортированных списков</li>
-<li><a href="https://leetcode.com/problems/find-k-pairs-with-smallest-sums/">Find K Pairs with Smallest Sums</a> - K пар с наименьшими суммами</li>
+<li><a href="https://leetcode.com/tag/heap/">Top K Elements - LeetCode Tag</a> - Коллекция задач на кучи</li>
+<li><a href="https://www.geeksforgeeks.org/heap-data-structure/">Heap Data Structure - GeeksforGeeks</a> - Подробное объяснение структуры данных кучи</li>
+<li><a href="https://en.wikipedia.org/wiki/Priority_queue">Priority Queue - Wikipedia</a> - Теория приоритетных очередей</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="modified-binary-search.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="two-heaps.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -1163,7 +1275,7 @@ func frequencySort(s string) string {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="modified-binary-search.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="two-heaps.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

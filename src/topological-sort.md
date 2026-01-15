@@ -61,15 +61,74 @@ A → B → C → A  (цикл!)
 
 ### Алгоритм Кана (Kahn's Algorithm):
 
-1. **Инициализация**: 
-   - Подсчитайте входящие степени (in-degree) для каждой вершины
-   - Добавьте все вершины с in-degree = 0 в очередь
-2. **Обработка**:
-   - Извлеките вершину из очереди
-   - Добавьте её в результат
-   - Уменьшите in-degree всех соседних вершин на 1
-   - Если in-degree вершины стал 0, добавьте её в очередь
-3. **Проверка**: Если размер результата != количеству вершин, есть цикл
+```go
+// Топологическая сортировка с использованием алгоритма Кана
+func topologicalSort(numCourses int, prerequisites [][]int) []int {
+    // Шаг 1: Инициализация
+    // Подсчитываем входящие степени (in-degree) для каждой вершины
+    // In-degree - это количество ребер, входящих в вершину
+    inDegree := make([]int, numCourses)
+    
+    // Создаем граф (список смежности) для хранения зависимостей
+    // graph[i] содержит список вершин, которые зависят от вершины i
+    graph := make([][]int, numCourses)
+    
+    // Заполняем граф и подсчитываем in-degree
+    for _, prereq := range prerequisites {
+        course := prereq[0]      // Курс, который зависит от другого
+        prerequisite := prereq[1] // Курс, от которого зависит
+        
+        // Добавляем зависимость в граф
+        graph[prerequisite] = append(graph[prerequisite], course)
+        // Увеличиваем in-degree для зависимого курса
+        inDegree[course]++
+    }
+    
+    // Добавляем все вершины с in-degree = 0 в очередь
+    // Эти вершины не зависят ни от каких других вершин и могут быть обработаны первыми
+    queue := []int{}
+    for i := 0; i < numCourses; i++ {
+        if inDegree[i] == 0 {
+            queue = append(queue, i)
+        }
+    }
+    
+    result := []int{}
+    
+    // Шаг 2: Обработка вершин
+    // Пока очередь не пуста, обрабатываем вершины
+    for len(queue) > 0 {
+        // Извлекаем вершину из очереди (FIFO)
+        course := queue[0]
+        queue = queue[1:]
+        
+        // Добавляем вершину в результат
+        // Порядок добавления в результат и есть топологический порядок
+        result = append(result, course)
+        
+        // Уменьшаем in-degree всех соседних вершин на 1
+        // Соседние вершины - это те, которые зависят от текущей вершины
+        for _, neighbor := range graph[course] {
+            inDegree[neighbor]--
+            
+            // Если in-degree вершины стал 0, добавляем её в очередь
+            // Это означает, что все зависимости этой вершины уже обработаны
+            if inDegree[neighbor] == 0 {
+                queue = append(queue, neighbor)
+            }
+        }
+    }
+    
+    // Шаг 3: Проверка - если размер результата != количеству вершин, есть цикл
+    // Если в графе есть цикл, некоторые вершины никогда не получат in-degree = 0
+    // и не будут добавлены в результат
+    if len(result) != numCourses {
+        return []int{}  // Цикл обнаружен, топологическая сортировка невозможна
+    }
+    
+    return result
+}
+```
 
 ### Что такое in-degree и out-degree?
 
@@ -707,6 +766,17 @@ func BenchmarkTopologicalSortSizes(b *testing.B) {
 }
 ```
 
+## Примеры задач на LeetCode
+
+### Средние:
+- [Course Schedule](https://leetcode.com/problems/course-schedule/) - Расписание курсов
+- [Course Schedule II](https://leetcode.com/problems/course-schedule-ii/) - Расписание курсов II
+- [Alien Dictionary](https://leetcode.com/problems/alien-dictionary/) - Словарь инопланетян
+
+### Сложные:
+- [Minimum Height Trees](https://leetcode.com/problems/minimum-height-trees/) - Деревья минимальной высоты
+- [Sequence Reconstruction](https://leetcode.com/problems/sequence-reconstruction/) - Реконструкция последовательности
+
 ## Примеры кода
 
 ### Rust
@@ -1128,14 +1198,19 @@ func findMinHeightTrees(n int, edges [][]int) []int {
 }
 ```
 
-## Примеры задач на LeetCode
+## Связанные шаблоны
 
-### Средние:
-- [Course Schedule](https://leetcode.com/problems/course-schedule/) - Расписание курсов
-- [Course Schedule II](https://leetcode.com/problems/course-schedule-ii/) - Расписание курсов II
-- [Alien Dictionary](https://leetcode.com/problems/alien-dictionary/) - Словарь инопланетян
+- **[Tree BFS](./tree-bfs.md)** - Использует похожий подход с очередью
+- **[Tree DFS](./tree-dfs.md)** - Альтернативный подход для топологической сортировки
+- **[Subsets](./subsets.md)** - Для комбинаторных задач с зависимостями
 
-### Сложные:
-- [Minimum Height Trees](https://leetcode.com/problems/minimum-height-trees/) - Деревья минимальной высоты
-- [Sequence Reconstruction](https://leetcode.com/problems/sequence-reconstruction/) - Реконструкция последовательности
+## Следующий шаг
+
+Поздравляем! Вы изучили все основные алгоритмические шаблоны. Рекомендуется повторить изученные шаблоны и решить больше практических задач на LeetCode.
+
+## Дополнительные ресурсы
+
+- [Topological Sorting - LeetCode Tag](https://leetcode.com/tag/topological-sort/) - Коллекция задач на топологическую сортировку
+- [Topological Sort - GeeksforGeeks](https://www.geeksforgeeks.org/topological-sorting/) - Подробное объяснение алгоритма
+- [Topological Sorting - Wikipedia](https://en.wikipedia.org/wiki/Topological_sorting) - Математическая теория и приложения
 

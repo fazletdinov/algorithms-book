@@ -22,53 +22,66 @@
 
 ## Алгоритм/Подход
 
-### Базовый подход с псевдокодом:
+### Базовый подход:
 
 #### Фиксированное окно:
 
-```pseudocode
-function slidingWindowFixed(arr, k):
+```go
+func slidingWindowFixed(arr []int, k int) int {
     // Шаг 1: Инициализация
-    windowSum = 0
-    maxSum = -∞
+    windowSum := 0
+    maxSum := math.MinInt
     
     // Шаг 2: Вычисление суммы первого окна
-    for i = 0 to k-1:
+    for i := 0; i < k; i++ {
         windowSum += arr[i]
+    }
     maxSum = windowSum
     
     // Шаг 3: Скольжение окна
-    for i = k to n-1:
+    for i := k; i < len(arr); i++ {
         // Добавляем новый элемент справа
         windowSum += arr[i]
         // Удаляем старый элемент слева
-        windowSum -= arr[i - k]
+        windowSum -= arr[i-k]
         // Обновляем результат
-        maxSum = max(maxSum, windowSum)
+        if windowSum > maxSum {
+            maxSum = windowSum
+        }
+    }
     
     return maxSum
+}
 ```
 
 #### Переменное окно (расширяющееся/сжимающееся):
 
-```pseudocode
-function slidingWindowVariable(arr, condition):
-    left = 0
-    maxLen = 0
+```go
+func slidingWindowVariable(arr []int, condition func([]int) bool) int {
+    left := 0
+    maxLen := 0
+    window := make([]int, 0)
     
-    for right = 0 to n-1:
+    for right := 0; right < len(arr); right++ {
         // Расширяем окно: добавляем arr[right]
-        add arr[right] to window
+        window = append(window, arr[right])
         
         // Сжимаем окно пока условие не выполняется
-        while condition not satisfied:
-            remove arr[left] from window
+        for !condition(window) {
+            // Удаляем элемент слева
+            window = window[1:]
             left++
+        }
         
         // Обновляем результат
-        maxLen = max(maxLen, right - left + 1)
+        currentLen := right - left + 1
+        if currentLen > maxLen {
+            maxLen = currentLen
+        }
+    }
     
     return maxLen
+}
 ```
 
 ### Детальный разбор шагов:
@@ -2269,6 +2282,15 @@ func minWindowSubstring(s, t string) string {
 	return s[minLeft : minLeft+minLen]
 }
 ```
+
+## Связанные шаблоны
+
+- **[Two Pointers](./two-pointers.md)** - Похожий подход для работы с массивами, часто используется вместе со Sliding Window
+- **[Fast & Slow Pointers](./fast-slow-pointers.md)** - Альтернативный подход для работы с последовательностями
+
+## Следующий шаг
+
+После изучения Sliding Window рекомендуется перейти к изучению **[Two Pointers](./two-pointers.md)**, который является логическим продолжением работы с массивами и строками.
 
 ## Дополнительные ресурсы
 

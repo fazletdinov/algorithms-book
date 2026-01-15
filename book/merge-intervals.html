@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,17 +194,53 @@
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
 <h3 id="базовый-алгоритм-слияния"><a class="header" href="#базовый-алгоритм-слияния">Базовый алгоритм слияния:</a></h3>
-<ol>
-<li><strong>Сортировка</strong>: Отсортируйте интервалы по начальной точке</li>
-<li><strong>Инициализация</strong>: Создайте результирующий список с первым интервалом</li>
-<li><strong>Итерация</strong>: Для каждого следующего интервала:
-<ul>
-<li>Если текущий интервал перекрывается с последним в результате, объедините их</li>
-<li>Иначе добавьте текущий интервал в результат</li>
-</ul>
-</li>
-<li><strong>Возврат</strong>: Верните объединенный список интервалов</li>
-</ol>
+<pre><code class="language-go">func mergeIntervals(intervals [][]int) [][]int {
+    // Шаг 1: Сортировка интервалов по начальной точке
+    // Это необходимо, чтобы гарантировать, что мы обрабатываем интервалы
+    // в порядке возрастания их начала, что упрощает проверку перекрытий
+    // После сортировки достаточно проверять только последний интервал в результате
+    sort.Slice(intervals, func(i, j int) bool {
+        return intervals[i][0] &lt; intervals[j][0]
+    })
+    
+    // Шаг 2: Инициализация - создаем результирующий список с первым интервалом
+    // Первый интервал всегда будет в результате, так как он самый ранний
+    // и не может перекрываться с более ранними интервалами (их нет)
+    result := [][]int{intervals[0]}
+    
+    // Шаг 3: Итерация по остальным интервалам
+    // Начинаем со второго интервала (индекс 1), так как первый уже добавлен
+    for i := 1; i &lt; len(intervals); i++ {
+        current := intervals[i]  // Текущий интервал для обработки
+        last := result[len(result)-1]  // Последний интервал в результате
+        
+        // Проверка перекрытия: интервалы перекрываются, если начало текущего
+        // меньше или равно концу последнего (current[0] &lt;= last[1])
+        // Это работает благодаря сортировке - мы знаем, что current[0] &gt;= last[0]
+        if current[0] &lt;= last[1] {
+            // Интервалы перекрываются - объединяем их
+            // Берем минимум начал (уже есть в last[0], так как отсортированы)
+            // и максимум концов для получения объединенного интервала
+            result[len(result)-1][1] = max(last[1], current[1])
+        } else {
+            // Интервалы не перекрываются - добавляем текущий как новый интервал
+            // Это означает, что между last и current есть разрыв
+            result = append(result, current)
+        }
+    }
+    
+    // Шаг 4: Возврат объединенного списка интервалов
+    return result
+}
+
+// Вспомогательная функция для нахождения максимума
+func max(a, b int) int {
+    if a &gt; b {
+        return a
+    }
+    return b
+}
+</code></pre>
 <h3 id="проверка-перекрытия"><a class="header" href="#проверка-перекрытия">Проверка перекрытия:</a></h3>
 <p>Два интервала <code>[a, b]</code> и <code>[c, d]</code> перекрываются, если:</p>
 <ul>
@@ -1405,6 +1441,14 @@ func max(a, b int) int {
 	return b
 }
 </code></pre>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="./two-pointers.html">Two Pointers</a></strong> - Похожий подход для работы с отсортированными данными</li>
+<li><strong><a href="./cyclic-sort.html">Cyclic Sort</a></strong> - Работа с массивами в определенном диапазоне</li>
+<li><strong><a href="./modified-binary-search.html">Modified Binary Search</a></strong> - Поиск в отсортированных данных</li>
+</ul>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения Merge Intervals рекомендуется перейти к <strong><a href="./cyclic-sort.html">Cyclic Sort</a></strong> для работы с массивами в определенном диапазоне или к <strong><a href="./modified-binary-search.html">Modified Binary Search</a></strong> для работы с отсортированными данными.</p>
 <h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
 <ul>
 <li><a href="https://en.wikipedia.org/wiki/Interval_scheduling">Interval Scheduling - Wikipedia</a> - Теоретическая база</li>

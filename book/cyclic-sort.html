@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -193,17 +193,37 @@
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
 <h3 id="базовый-алгоритм"><a class="header" href="#базовый-алгоритм">Базовый алгоритм:</a></h3>
-<ol>
-<li><strong>Итерация</strong>: Проходим по массиву</li>
-<li><strong>Проверка позиции</strong>: Для каждого элемента проверяем, находится ли он на правильной позиции</li>
-<li><strong>Циклическая замена</strong>: Если элемент не на правильной позиции:
-<ul>
-<li>Меняем его с элементом на правильной позиции</li>
-<li>Повторяем для нового элемента на текущей позиции</li>
-</ul>
-</li>
-<li><strong>Продолжение</strong>: Переходим к следующему индексу только если текущий элемент на правильной позиции</li>
-</ol>
+<pre><code class="language-go">func cyclicSort(nums []int) {
+    i := 0
+    
+    // Шаг 1: Итерация по массиву
+    // Используем while вместо for, так как не всегда увеличиваем i
+    for i &lt; len(nums) {
+        // Шаг 2: Проверка позиции - вычисляем правильную позицию для текущего элемента
+        // Для массива с числами от 1 до N: число x должно быть на индексе x-1
+        // Например, число 3 должно быть на индексе 2 (3-1=2)
+        correctPos := nums[i] - 1
+        
+        // Проверяем, находится ли элемент на правильной позиции
+        // Если nums[i] уже на правильной позиции, переходим к следующему элементу
+        if nums[i] != nums[correctPos] {
+            // Шаг 3: Циклическая замена - элемент не на правильной позиции
+            // Меняем текущий элемент с элементом на правильной позиции
+            // Это гарантирует, что элемент на правильной позиции попадет на свое место
+            nums[i], nums[correctPos] = nums[correctPos], nums[i]
+            
+            // После замены на позиции i находится новый элемент
+            // НЕ увеличиваем i - нужно проверить этот новый элемент
+            // Повторяем проверку для нового элемента на текущей позиции
+        } else {
+            // Шаг 4: Продолжение - элемент на правильной позиции
+            // Только теперь переходим к следующему индексу
+            // Это гарантирует, что все элементы до индекса i находятся на правильных позициях
+            i++
+        }
+    }
+}
+</code></pre>
 <h3 id="правильная-позиция"><a class="header" href="#правильная-позиция">Правильная позиция:</a></h3>
 <p>Для массива с числами от 1 до N:</p>
 <ul>
@@ -1200,6 +1220,20 @@ func firstMissingPositive(nums []int) int {
 	return n + 1
 }
 </code></pre>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="./merge-intervals.html">Merge Intervals</a></strong> - Работа с отсортированными данными</li>
+<li><strong><a href="./modified-binary-search.html">Modified Binary Search</a></strong> - Поиск в отсортированных массивах</li>
+<li><strong><a href="./two-pointers.html">Two Pointers</a></strong> - Работа с массивами</li>
+</ul>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения Cyclic Sort рекомендуется перейти к <strong><a href="./modified-binary-search.html">Modified Binary Search</a></strong> для работы с отсортированными данными или к <strong><a href="./reverse-linked-list.html">Reverse Linked List</a></strong> для изучения работы со списками.</p>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
+<ul>
+<li><a href="https://leetcode.com/tag/array/">Cyclic Sort Pattern - LeetCode Tag</a> - Коллекция задач на циклическую сортировку</li>
+<li><a href="https://www.geeksforgeeks.org/cycle-sort/">Cycle Sort - GeeksforGeeks</a> - Подробное объяснение алгоритма</li>
+<li><a href="https://en.wikipedia.org/wiki/In-place_algorithm">In-place Algorithm - Wikipedia</a> - Теория алгоритмов на месте</li>
+</ul>
 
                     </main>
 
@@ -1209,7 +1243,7 @@ func firstMissingPositive(nums []int) int {
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="reverse-linked-list.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="modified-binary-search.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -1223,7 +1257,7 @@ func firstMissingPositive(nums []int) int {
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="reverse-linked-list.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="modified-binary-search.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

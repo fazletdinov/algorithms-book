@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,17 +194,92 @@
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
 <h3 id="базовый-алгоритм"><a class="header" href="#базовый-алгоритм">Базовый алгоритм:</a></h3>
-<ol>
-<li><strong>Инициализация</strong>: Создайте очередь и добавьте корневой узел</li>
-<li><strong>Итерация</strong>: Пока очередь не пуста:
-<ul>
-<li>Определите размер текущего уровня</li>
-<li>Обработайте все узлы текущего уровня</li>
-<li>Для каждого узла добавьте его дочерние узлы в очередь</li>
-</ul>
-</li>
-<li><strong>Завершение</strong>: Когда очередь пуста, обход завершен</li>
-</ol>
+<pre><code class="language-go">// Определение узла дерева
+type TreeNode struct {
+    Val   int
+    Left  *TreeNode
+    Right *TreeNode
+}
+
+// Обход дерева в ширину (BFS - Breadth-First Search)
+func levelOrder(root *TreeNode) [][]int {
+    // Проверка на пустое дерево
+    if root == nil {
+        return [][]int{}
+    }
+    
+    // Шаг 1: Инициализация - создаем очередь и добавляем корневой узел
+    // Очередь (queue) используется для хранения узлов, которые нужно обработать
+    // BFS обрабатывает узлы уровень за уровнем, поэтому очередь идеально подходит
+    queue := []*TreeNode{root}
+    result := [][]int{}  // Результат: список уровней, каждый уровень - список значений
+    
+    // Шаг 2: Итерация - пока очередь не пуста
+    // Каждая итерация внешнего цикла обрабатывает один уровень дерева
+    for len(queue) &gt; 0 {
+        // Определяем размер текущего уровня
+        // Это количество узлов на текущем уровне, которые нужно обработать
+        levelSize := len(queue)
+        levelValues := []int{}  // Значения узлов текущего уровня
+        
+        // Обрабатываем все узлы текущего уровня
+        // Используем levelSize, чтобы обработать ровно столько узлов, сколько было на начало уровня
+        // Это важно, так как мы добавляем дочерние узлы в очередь во время обработки
+        for i := 0; i &lt; levelSize; i++ {
+            // Извлекаем узел из начала очереди (FIFO - First In, First Out)
+            node := queue[0]
+            queue = queue[1:]  // Удаляем обработанный узел из очереди
+            
+            // Добавляем значение узла в текущий уровень
+            levelValues = append(levelValues, node.Val)
+            
+            // Для каждого узла добавляем его дочерние узлы в очередь
+            // Сначала левый, потом правый - это сохраняет порядок слева направо
+            if node.Left != nil {
+                queue = append(queue, node.Left)
+            }
+            if node.Right != nil {
+                queue = append(queue, node.Right)
+            }
+        }
+        
+        // После обработки всех узлов уровня, добавляем его в результат
+        result = append(result, levelValues)
+    }
+    
+    // Шаг 3: Завершение - когда очередь пуста, все узлы обработаны
+    return result
+}
+
+// Упрощенная версия BFS без разделения на уровни (просто обход)
+func bfsSimple(root *TreeNode) []int {
+    if root == nil {
+        return []int{}
+    }
+    
+    queue := []*TreeNode{root}
+    result := []int{}
+    
+    for len(queue) &gt; 0 {
+        // Извлекаем узел из очереди
+        node := queue[0]
+        queue = queue[1:]
+        
+        // Обрабатываем узел (добавляем его значение)
+        result = append(result, node.Val)
+        
+        // Добавляем дочерние узлы в очередь
+        if node.Left != nil {
+            queue = append(queue, node.Left)
+        }
+        if node.Right != nil {
+            queue = append(queue, node.Right)
+        }
+    }
+    
+    return result
+}
+</code></pre>
 <h3 id="структура"><a class="header" href="#структура">Структура:</a></h3>
 <p><strong>Что такое Queue (Очередь)?</strong></p>
 <p><strong>Queue (Очередь)</strong> — это структура данных типа FIFO (First In, First Out — первый пришел, первый ушел). Элементы добавляются в конец и извлекаются из начала.</p>
@@ -742,6 +817,24 @@ fn tree_bfs_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/binary-tree-level-order-traversal/">Binary Tree Level Order Traversal</a> - Обход дерева по уровням</li>
+<li><a href="https://leetcode.com/problems/average-of-levels-in-binary-tree/">Average of Levels in Binary Tree</a> - Среднее значение уровней</li>
+<li><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/">Maximum Depth of Binary Tree</a> - Максимальная глубина дерева</li>
+</ul>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/binary-tree-zigzag-level-order-traversal/">Binary Tree Zigzag Level Order Traversal</a> - Зигзагообразный обход</li>
+<li><a href="https://leetcode.com/problems/binary-tree-right-side-view/">Right Side View</a> - Вид справа</li>
+<li><a href="https://leetcode.com/problems/cousins-in-binary-tree/">Cousins in Binary Tree</a> - Двоюродные братья в дереве</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/serialize-and-deserialize-binary-tree/">Serialize and Deserialize Binary Tree</a> - Сериализация дерева</li>
+<li><a href="https://leetcode.com/problems/binary-tree-maximum-path-sum/">Binary Tree Maximum Path Sum</a> - Максимальная сумма пути</li>
+</ul>
 <h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
 <h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1252,23 +1345,19 @@ func minDepth(root *TreeNode) int {
 	return depth
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/binary-tree-level-order-traversal/">Binary Tree Level Order Traversal</a> - Обход дерева по уровням</li>
-<li><a href="https://leetcode.com/problems/average-of-levels-in-binary-tree/">Average of Levels in Binary Tree</a> - Среднее значение уровней</li>
-<li><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/">Maximum Depth of Binary Tree</a> - Максимальная глубина дерева</li>
+<li><strong><a href="./tree-dfs.html">Tree DFS</a></strong> - Альтернативный подход для обхода деревьев в глубину</li>
+<li><strong><a href="./reverse-linked-list.html">Reverse Linked List</a></strong> - Работа со связанными структурами данных</li>
+<li><strong><a href="./topological-sort.html">Topological Sort</a></strong> - Использует BFS для работы с графами</li>
 </ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения Tree BFS рекомендуется перейти к <strong><a href="./tree-dfs.html">Tree DFS</a></strong> для изучения обхода деревьев в глубину или к <strong><a href="./two-heaps.html">Two Heaps</a></strong> для изучения продвинутых структур данных.</p>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/binary-tree-zigzag-level-order-traversal/">Binary Tree Zigzag Level Order Traversal</a> - Зигзагообразный обход</li>
-<li><a href="https://leetcode.com/problems/binary-tree-right-side-view/">Right Side View</a> - Вид справа</li>
-<li><a href="https://leetcode.com/problems/cousins-in-binary-tree/">Cousins in Binary Tree</a> - Двоюродные братья в дереве</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/serialize-and-deserialize-binary-tree/">Serialize and Deserialize Binary Tree</a> - Сериализация дерева</li>
-<li><a href="https://leetcode.com/problems/binary-tree-maximum-path-sum/">Binary Tree Maximum Path Sum</a> - Максимальная сумма пути</li>
+<li><a href="https://leetcode.com/problems/binary-tree-level-order-traversal/">Binary Tree Level Order Traversal - LeetCode</a> - Классическая задача на BFS</li>
+<li><a href="https://www.geeksforgeeks.org/breadth-first-search-or-bfs-for-a-graph/">Breadth-First Search - GeeksforGeeks</a> - Подробное объяснение алгоритма BFS</li>
+<li><a href="https://en.wikipedia.org/wiki/Tree_traversal">Tree Traversal - Wikipedia</a> - Теория обхода деревьев</li>
 </ul>
 
                     </main>

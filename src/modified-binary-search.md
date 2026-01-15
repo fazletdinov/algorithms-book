@@ -26,12 +26,76 @@
 
 ### Базовый модифицированный бинарный поиск:
 
-1. **Инициализация**: `left = 0`, `right = n - 1`
-2. **Цикл**: Пока `left <= right`:
-   - Вычислить `mid = left + (right - left) / 2`
-   - Проверить условие для `mid`
-   - Обновить `left` или `right` в зависимости от условия
-3. **Возврат**: Вернуть результат в зависимости от задачи
+```go
+// Базовый шаблон модифицированного бинарного поиска
+func modifiedBinarySearch(arr []int, target int) int {
+    // Шаг 1: Инициализация границ поиска
+    // left - левая граница интервала поиска (включительно)
+    // right - правая граница интервала поиска (включительно)
+    left := 0
+    right := len(arr) - 1
+    
+    // Шаг 2: Цикл поиска - продолжаем, пока интервал не пуст
+    // Условие left <= right означает, что интервал [left, right] содержит хотя бы один элемент
+    for left <= right {
+        // Вычисляем средний индекс интервала
+        // Используем формулу left + (right - left) / 2 вместо (left + right) / 2
+        // чтобы избежать переполнения при больших значениях left и right
+        mid := left + (right-left)/2
+        
+        // Проверяем условие для среднего элемента
+        // В зависимости от задачи, условие может быть разным:
+        // - arr[mid] == target: обычный бинарный поиск
+        // - arr[mid] >= target: поиск первого вхождения
+        // - arr[mid] <= target: поиск последнего вхождения
+        // - и другие модификации для специфических задач
+        if arr[mid] == target {
+            // Нашли элемент - возвращаем индекс
+            // В модифицированных версиях здесь может быть дополнительная логика
+            return mid
+        } else if arr[mid] < target {
+            // Средний элемент меньше цели - ищем в правой половине
+            // Обновляем left, исключая левую половину из поиска
+            left = mid + 1
+        } else {
+            // Средний элемент больше цели - ищем в левой половине
+            // Обновляем right, исключая правую половину из поиска
+            right = mid - 1
+        }
+    }
+    
+    // Шаг 3: Возврат результата
+    // Если мы дошли сюда, элемент не найден
+    // В зависимости от задачи, можно вернуть:
+    // - -1 для "не найдено"
+    // - left для "позиция вставки"
+    // - right для других вариантов
+    return -1
+}
+
+// Пример: Поиск первого вхождения элемента (если есть дубликаты)
+func findFirstOccurrence(arr []int, target int) int {
+    left := 0
+    right := len(arr) - 1
+    result := -1
+    
+    for left <= right {
+        mid := left + (right-left)/2
+        
+        if arr[mid] == target {
+            // Нашли элемент, но продолжаем искать влево для первого вхождения
+            result = mid
+            right = mid - 1  // Ищем дальше влево
+        } else if arr[mid] < target {
+            left = mid + 1
+        } else {
+            right = mid - 1
+        }
+    }
+    
+    return result
+}
+```
 
 ### Варианты условий:
 
@@ -545,6 +609,21 @@ func BenchmarkBinarySearchSizes(b *testing.B) {
 }
 ```
 
+## Примеры задач на LeetCode
+
+### Легкие:
+- [Binary Search](https://leetcode.com/problems/binary-search/) - Бинарный поиск
+- [First Bad Version](https://leetcode.com/problems/first-bad-version/) - Первая плохая версия
+
+### Средние:
+- [Search in Rotated Sorted Array](https://leetcode.com/problems/search-in-rotated-sorted-array/) - Поиск в повернутом массиве
+- [Find First and Last Position of Element in Sorted Array](https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/) - Первая и последняя позиция
+- [Search a 2D Matrix](https://leetcode.com/problems/search-a-2d-matrix/) - Поиск в 2D матрице
+
+### Сложные:
+- [Find Minimum in Rotated Sorted Array](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/) - Минимум в повернутом массиве
+- [Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/) - Медиана двух отсортированных массивов
+
 ## Примеры кода
 
 ### Rust
@@ -965,18 +1044,19 @@ func searchInsert(nums []int, target int) int {
 }
 ```
 
-## Примеры задач на LeetCode
+## Связанные шаблоны
 
-### Легкие:
-- [Binary Search](https://leetcode.com/problems/binary-search/) - Бинарный поиск
-- [First Bad Version](https://leetcode.com/problems/first-bad-version/) - Первая плохая версия
+- **[Cyclic Sort](./cyclic-sort.md)** - Работа с массивами в определенном диапазоне
+- **[Merge Intervals](./merge-intervals.md)** - Работа с отсортированными интервалами
+- **[K-way Merge](./k-way-merge.md)** - Слияние отсортированных массивов
 
-### Средние:
-- [Search in Rotated Sorted Array](https://leetcode.com/problems/search-in-rotated-sorted-array/) - Поиск в повернутом массиве
-- [Find First and Last Position of Element in Sorted Array](https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/) - Первая и последняя позиция
-- [Search a 2D Matrix](https://leetcode.com/problems/search-a-2d-matrix/) - Поиск в 2D матрице
+## Следующий шаг
 
-### Сложные:
-- [Find Minimum in Rotated Sorted Array](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/) - Минимум в повернутом массиве
-- [Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/) - Медиана двух отсортированных массивов
+После изучения Modified Binary Search рекомендуется перейти к **[Reverse Linked List](./reverse-linked-list.md)** для изучения работы со списками или к **[Tree BFS](./tree-bfs.md)** для изучения обхода деревьев.
+
+## Дополнительные ресурсы
+
+- [Binary Search - LeetCode Tag](https://leetcode.com/tag/binary-search/) - Коллекция задач на бинарный поиск
+- [Binary Search Algorithm - GeeksforGeeks](https://www.geeksforgeeks.org/binary-search/) - Подробное объяснение
+- [Binary Search - Wikipedia](https://en.wikipedia.org/wiki/Binary_search_algorithm) - Исторический контекст и вариации
 

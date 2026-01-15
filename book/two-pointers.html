@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -200,28 +200,31 @@
 <li><strong>Оба в одном направлении (Same Direction)</strong>: Два указателя начинаются с одного конца и движутся в одном направлении</li>
 </ol>
 <h3 id="детальный-алгоритм-для-встречных-указателей"><a class="header" href="#детальный-алгоритм-для-встречных-указателей">Детальный алгоритм для встречных указателей:</a></h3>
-<h4 id="псевдокод"><a class="header" href="#псевдокод">Псевдокод:</a></h4>
-<pre><code class="language-pseudocode">function twoPointersOpposite(arr, target):
-    left = 0
-    right = arr.length - 1
+<h4 id="go-код"><a class="header" href="#go-код">Go код:</a></h4>
+<pre><code class="language-go">func twoPointersOpposite(arr []int, target int) (int, int, bool) {
+    left := 0
+    right := len(arr) - 1
     
-    while left &lt; right:
-        currentSum = arr[left] + arr[right]
+    for left &lt; right {
+        currentSum := arr[left] + arr[right]
         
-        if currentSum == target:
-            return (left, right)
-        else if currentSum &lt; target:
+        if currentSum == target {
+            return left, right, true
+        } else if currentSum &lt; target {
             // Сумма слишком мала, нужно увеличить
             // Все пары с arr[left] и меньшими правыми элементами
             // также будут меньше target, поэтому можно их пропустить
             left++
-        else:
+        } else {
             // Сумма слишком велика, нужно уменьшить
             // Все пары с arr[right] и большими левыми элементами
             // также будут больше target, поэтому можно их пропустить
             right--
+        }
+    }
     
-    return null  // Пара не найдена
+    return 0, 0, false  // Пара не найдена
+}
 </code></pre>
 <h4 id="пошаговый-разбор"><a class="header" href="#пошаговый-разбор">Пошаговый разбор:</a></h4>
 <ol>
@@ -253,18 +256,22 @@
 </li>
 </ol>
 <h3 id="алгоритм-для-указателей-в-одном-направлении"><a class="header" href="#алгоритм-для-указателей-в-одном-направлении">Алгоритм для указателей в одном направлении:</a></h3>
-<pre><code class="language-pseudocode">function twoPointersSameDirection(arr):
-    slow = 0
-    fast = 0  // или fast = 1, в зависимости от задачи
+<pre><code class="language-go">func twoPointersSameDirection(arr []int, condition func(int, int) bool, process func(int, int)) []int {
+    slow := 0
+    fast := 0  // или fast = 1, в зависимости от задачи
+    result := make([]int, 0)
     
-    while fast &lt; arr.length:
-        if condition(arr[slow], arr[fast]):
+    for fast &lt; len(arr) {
+        if condition(arr[slow], arr[fast]) {
             // Обрабатываем пару
             process(arr[slow], arr[fast])
             slow++
+        }
         fast++
+    }
     
     return result
+}
 </code></pre>
 <p><strong>Применение</strong>: Удаление дубликатов, поиск подмассивов, слияние отсортированных массивов</p>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
@@ -2001,6 +2008,14 @@ func min(a, b int) int {
 	return b
 }
 </code></pre>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="./sliding-window.html">Sliding Window</a></strong> - Похожий подход для работы с подмассивами</li>
+<li><strong><a href="./fast-slow-pointers.html">Fast &amp; Slow Pointers</a></strong> - Вариация двух указателей для работы со списками</li>
+<li><strong><a href="./merge-intervals.html">Merge Intervals</a></strong> - Использует сортировку и два указателя для работы с интервалами</li>
+</ul>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения Two Pointers рекомендуется перейти к <strong><a href="./fast-slow-pointers.html">Fast &amp; Slow Pointers</a></strong> для работы со связанными списками или к <strong><a href="./merge-intervals.html">Merge Intervals</a></strong> для работы с интервалами.</p>
 <h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
 <ul>
 <li><a href="https://www.geeksforgeeks.org/two-pointers-technique/">Two Pointers Technique - GeeksforGeeks</a> - Подробное объяснение</li>

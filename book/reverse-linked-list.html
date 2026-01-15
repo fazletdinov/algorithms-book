@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,30 +194,75 @@
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
 <h3 id="итеративный-подход"><a class="header" href="#итеративный-подход">Итеративный подход:</a></h3>
-<ol>
-<li><strong>Инициализация</strong>: Создайте три указателя:
-<ul>
-<li><code>prev = None</code> (предыдущий узел)</li>
-<li><code>curr = head</code> (текущий узел)</li>
-<li><code>next = None</code> (следующий узел)</li>
-</ul>
-</li>
-<li><strong>Итерация</strong>: Пока <code>curr != None</code>:
-<ul>
-<li>Сохраните следующий узел: <code>next = curr.next</code></li>
-<li>Разверните указатель: <code>curr.next = prev</code></li>
-<li>Переместите указатели: <code>prev = curr</code>, <code>curr = next</code></li>
-</ul>
-</li>
-<li><strong>Возврат</strong>: Верните <code>prev</code> как новую голову списка</li>
-</ol>
+<pre><code class="language-go">// Определение узла связанного списка
+type ListNode struct {
+    Val  int
+    Next *ListNode
+}
+
+// Итеративный разворот связанного списка
+func reverseListIterative(head *ListNode) *ListNode {
+    // Шаг 1: Инициализация трех указателей
+    // prev - предыдущий узел (изначально nil, так как перед головой ничего нет)
+    var prev *ListNode = nil
+    // curr - текущий узел (начинаем с головы списка)
+    curr := head
+    // next - следующий узел (будет использоваться для сохранения ссылки)
+    var next *ListNode = nil
+    
+    // Шаг 2: Итерация по списку
+    // Пока curr != nil, продолжаем разворачивать указатели
+    for curr != nil {
+        // Сохраняем следующий узел перед тем, как изменить curr.Next
+        // Это критически важно, иначе мы потеряем ссылку на остаток списка
+        next = curr.Next
+        
+        // Разворачиваем указатель: текущий узел теперь указывает на предыдущий
+        // Это и есть основная операция разворота
+        curr.Next = prev
+        
+        // Перемещаем указатели: prev становится текущим узлом, curr становится следующим
+        // Это позволяет перейти к следующей итерации
+        prev = curr
+        curr = next
+    }
+    
+    // Шаг 3: Возврат новой головы списка
+    // После завершения цикла prev указывает на последний узел исходного списка,
+    // который теперь стал первым узлом развернутого списка
+    return prev
+}
+</code></pre>
 <h3 id="рекурсивный-подход"><a class="header" href="#рекурсивный-подход">Рекурсивный подход:</a></h3>
-<ol>
-<li>Базовый случай: если <code>head == None</code> или <code>head.next == None</code>, верните <code>head</code></li>
-<li>Рекурсивно разверните остальную часть списка</li>
-<li>Установите <code>head.next.next = head</code> и <code>head.next = None</code></li>
-<li>Верните новую голову</li>
-</ol>
+<pre><code class="language-go">// Рекурсивный разворот связанного списка
+func reverseListRecursive(head *ListNode) *ListNode {
+    // Шаг 1: Базовый случай
+    // Если head == nil или head.Next == nil, возвращаем head
+    // Это означает, что список пуст или содержит один элемент - разворачивать нечего
+    if head == nil || head.Next == nil {
+        return head
+    }
+    
+    // Шаг 2: Рекурсивно разворачиваем остальную часть списка
+    // Вызываем функцию для следующего узла, что развернет весь остаток списка
+    // newHead будет указывать на последний узел исходного списка (новую голову)
+    newHead := reverseListRecursive(head.Next)
+    
+    // Шаг 3: Устанавливаем связи для текущего узла
+    // head.Next теперь указывает на узел, который был после него
+    // Мы хотим, чтобы этот узел указывал обратно на head
+    head.Next.Next = head
+    
+    // Устанавливаем head.Next = nil, так как после разворота
+    // head станет последним узлом в новом списке
+    head.Next = nil
+    
+    // Шаг 4: Возвращаем новую голову
+    // newHead остается неизменным на всех уровнях рекурсии
+    // и в итоге указывает на последний узел исходного списка
+    return newHead
+}
+</code></pre>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="итеративный-разворот"><a class="header" href="#итеративный-разворот">Итеративный разворот:</a></h3>
 <pre><code>Исходный список: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; None
@@ -1090,12 +1135,26 @@ func reverseList(head *ListNode) *ListNode {
 	return reverseListIterative(head)
 }
 </code></pre>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="./fast-slow-pointers.html">Fast &amp; Slow Pointers</a></strong> - Работа со связанными списками</li>
+<li><strong><a href="./tree-bfs.html">Tree BFS</a></strong> - Обход деревьев в ширину</li>
+<li><strong><a href="./tree-dfs.html">Tree DFS</a></strong> - Обход деревьев в глубину</li>
+</ul>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения Reverse Linked List рекомендуется перейти к <strong><a href="./tree-bfs.html">Tree BFS</a></strong> для изучения обхода деревьев в ширину или к <strong><a href="./tree-dfs.html">Tree DFS</a></strong> для изучения обхода в глубину.</p>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
+<ul>
+<li><a href="https://leetcode.com/problems/reverse-linked-list/">Reverse Linked List - LeetCode</a> - Классическая задача на разворот списка</li>
+<li><a href="https://leetcode.com/tag/linked-list/">Linked List Problems - LeetCode Tag</a> - Коллекция задач на связанные списки</li>
+<li><a href="https://www.geeksforgeeks.org/data-structures/linked-list/">Linked List Data Structure - GeeksforGeeks</a> - Подробное объяснение структуры данных</li>
+</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="cyclic-sort.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="modified-binary-search.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -1109,7 +1168,7 @@ func reverseList(head *ListNode) *ListNode {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="cyclic-sort.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="modified-binary-search.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

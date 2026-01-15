@@ -25,17 +25,109 @@
 
 ### Базовая структура:
 
-1. **Две кучи**:
-   - `max_heap`: Хранит меньшую половину элементов (максимум на вершине)
-   - `min_heap`: Хранит большую половину элементов (минимум на вершине)
+```go
+import (
+    "container/heap"
+)
 
-2. **Балансировка**:
-   - Размеры куч должны отличаться максимум на 1
-   - Если разница больше 1, перемещаем элемент из большей кучи в меньшую
+// MaxHeap для хранения меньшей половины элементов
+type MaxHeap []int
 
-3. **Медиана**:
-   - Если размеры равны: медиана = (max_heap.top() + min_heap.top()) / 2
-   - Если размеры разные: медиана = вершина большей кучи
+func (h MaxHeap) Len() int           { return len(h) }
+func (h MaxHeap) Less(i, j int) bool { return h[i] > h[j] } // Обратный порядок для max-heap
+func (h MaxHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *MaxHeap) Push(x interface{}) {
+    *h = append(*h, x.(int))
+}
+
+func (h *MaxHeap) Pop() interface{} {
+    old := *h
+    n := len(old)
+    x := old[n-1]
+    *h = old[0 : n-1]
+    return x
+}
+
+// MinHeap для хранения большей половины элементов
+type MinHeap []int
+
+func (h MinHeap) Len() int           { return len(h) }
+func (h MinHeap) Less(i, j int) bool { return h[i] < h[j] }
+func (h MinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *MinHeap) Push(x interface{}) {
+    *h = append(*h, x.(int))
+}
+
+func (h *MinHeap) Pop() interface{} {
+    old := *h
+    n := len(old)
+    x := old[n-1]
+    *h = old[0 : n-1]
+    return x
+}
+
+// Структура для поддержания медианы
+type MedianFinder struct {
+    // maxHeap: хранит меньшую половину элементов (максимум на вершине)
+    // Все элементы в maxHeap <= медианы
+    maxHeap *MaxHeap
+    
+    // minHeap: хранит большую половину элементов (минимум на вершине)
+    // Все элементы в minHeap >= медианы
+    minHeap *MinHeap
+}
+
+func NewMedianFinder() *MedianFinder {
+    maxHeap := &MaxHeap{}
+    minHeap := &MinHeap{}
+    heap.Init(maxHeap)
+    heap.Init(minHeap)
+    return &MedianFinder{
+        maxHeap: maxHeap,
+        minHeap: minHeap,
+    }
+}
+
+func (mf *MedianFinder) AddNum(num int) {
+    // Добавляем элемент в соответствующую кучу
+    // Если обе кучи пусты или num <= максимума maxHeap, добавляем в maxHeap
+    if mf.maxHeap.Len() == 0 || num <= (*mf.maxHeap)[0] {
+        heap.Push(mf.maxHeap, num)
+    } else {
+        heap.Push(mf.minHeap, num)
+    }
+    
+    // Шаг 2: Балансировка - размеры куч должны отличаться максимум на 1
+    // Если разница больше 1, перемещаем элемент из большей кучи в меньшую
+    if mf.maxHeap.Len() > mf.minHeap.Len()+1 {
+        // maxHeap слишком большая - перемещаем максимум в minHeap
+        maxVal := heap.Pop(mf.maxHeap).(int)
+        heap.Push(mf.minHeap, maxVal)
+    } else if mf.minHeap.Len() > mf.maxHeap.Len()+1 {
+        // minHeap слишком большая - перемещаем минимум в maxHeap
+        minVal := heap.Pop(mf.minHeap).(int)
+        heap.Push(mf.maxHeap, minVal)
+    }
+}
+
+func (mf *MedianFinder) FindMedian() float64 {
+    // Шаг 3: Вычисление медианы
+    if mf.maxHeap.Len() == mf.minHeap.Len() {
+        // Если размеры равны: медиана = (max_heap.top() + min_heap.top()) / 2
+        // Берем среднее арифметическое вершин обеих куч
+        return float64((*mf.maxHeap)[0]+(*mf.minHeap)[0]) / 2.0
+    } else if mf.maxHeap.Len() > mf.minHeap.Len() {
+        // Если размеры разные: медиана = вершина большей кучи
+        // maxHeap больше, поэтому медиана - это её максимум
+        return float64((*mf.maxHeap)[0])
+    } else {
+        // minHeap больше, поэтому медиана - это её минимум
+        return float64((*mf.minHeap)[0])
+    }
+}
+```
 
 ## Визуализация
 
@@ -604,6 +696,16 @@ func BenchmarkTwoHeapsSizes(b *testing.B) {
 }
 ```
 
+## Примеры задач на LeetCode
+
+### Средние:
+- [Find Median from Data Stream](https://leetcode.com/problems/find-median-from-data-stream/) - Медиана из потока данных
+- [Sliding Window Median](https://leetcode.com/problems/sliding-window-median/) - Медиана скользящего окна
+
+### Сложные:
+- [IPO](https://leetcode.com/problems/ipo/) - Первичное публичное размещение
+- [Design Twitter](https://leetcode.com/problems/design-twitter/) - Дизайн Twitter
+
 ## Примеры кода
 
 ### Rust
@@ -934,13 +1036,19 @@ func partitionArray(nums []int) int {
 }
 ```
 
-## Примеры задач на LeetCode
+## Связанные шаблоны
 
-### Средние:
-- [Find Median from Data Stream](https://leetcode.com/problems/find-median-from-data-stream/) - Медиана из потока данных
-- [Sliding Window Median](https://leetcode.com/problems/sliding-window-median/) - Медиана скользящего окна
+- **[Top K Elements](./top-k-elements.md)** - Использует одну кучу для поиска K элементов
+- **[K-way Merge](./k-way-merge.md)** - Использует кучу для слияния массивов
+- **[Tree BFS](./tree-bfs.md)** - Работа с очередями и структурами данных
 
-### Сложные:
-- [IPO](https://leetcode.com/problems/ipo/) - Первичное публичное размещение
-- [Design Twitter](https://leetcode.com/problems/design-twitter/) - Дизайн Twitter
+## Следующий шаг
+
+После изучения Two Heaps рекомендуется перейти к **[Top K Elements](./top-k-elements.md)** для изучения работы с одной кучей или к **[K-way Merge](./k-way-merge.md)** для изучения слияния массивов.
+
+## Дополнительные ресурсы
+
+- [Find Median from Data Stream - LeetCode](https://leetcode.com/problems/find-median-from-data-stream/) - Классическая задача на две кучи
+- [Heap Data Structure - GeeksforGeeks](https://www.geeksforgeeks.org/heap-data-structure/) - Подробное объяснение структуры данных кучи
+- [Median - Wikipedia](https://en.wikipedia.org/wiki/Median) - Математическое определение медианы
 

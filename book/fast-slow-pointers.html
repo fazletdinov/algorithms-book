@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -200,23 +200,79 @@
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
 <h3 id="базовый-алгоритм-обнаружения-цикла"><a class="header" href="#базовый-алгоритм-обнаружения-цикла">Базовый алгоритм обнаружения цикла:</a></h3>
-<ol>
-<li><strong>Инициализация</strong>: Установите <code>slow = head</code> и <code>fast = head</code></li>
-<li><strong>Движение</strong>: Пока <code>fast</code> и <code>fast.next</code> не равны <code>null</code>:
-<ul>
-<li>Переместите <code>slow</code> на один шаг: <code>slow = slow.next</code></li>
-<li>Переместите <code>fast</code> на два шага: <code>fast = fast.next.next</code></li>
-<li>Если <code>slow == fast</code>, обнаружен цикл</li>
-</ul>
-</li>
-<li><strong>Поиск начала цикла</strong>: После обнаружения цикла:
-<ul>
-<li>Верните <code>slow</code> в начало: <code>slow = head</code></li>
-<li>Двигайте оба указателя по одному шагу</li>
-<li>Место встречи - начало цикла</li>
-</ul>
-</li>
-</ol>
+<pre><code class="language-go">// Определение узла связанного списка
+type ListNode struct {
+    Val  int
+    Next *ListNode
+}
+
+// Функция для обнаружения цикла в связанном списке
+func hasCycle(head *ListNode) bool {
+    // Шаг 1: Инициализация - оба указателя начинают с головы списка
+    // slow будет двигаться медленно (1 шаг за раз)
+    // fast будет двигаться быстро (2 шага за раз)
+    slow := head
+    fast := head
+    
+    // Шаг 2: Движение по списку
+    // Проверяем, что fast и fast.Next не равны nil
+    // Это гарантирует, что мы можем безопасно сделать fast.Next.Next
+    for fast != nil &amp;&amp; fast.Next != nil {
+        // Перемещаем slow на один шаг вперед
+        slow = slow.Next
+        
+        // Перемещаем fast на два шага вперед
+        // Если есть цикл, fast рано или поздно "догонит" slow
+        fast = fast.Next.Next
+        
+        // Проверка встречи: если указатели встретились, обнаружен цикл
+        // Это работает благодаря разной скорости движения:
+        // если есть цикл, fast обязательно встретит slow внутри цикла
+        if slow == fast {
+            return true  // Цикл обнаружен
+        }
+    }
+    
+    // Если мы дошли сюда, значит fast достиг конца списка (nil)
+    // Это означает, что цикла нет
+    return false
+}
+
+// Функция для поиска начала цикла (если цикл обнаружен)
+func detectCycle(head *ListNode) *ListNode {
+    slow := head
+    fast := head
+    
+    // Сначала находим точку встречи в цикле (если цикл есть)
+    for fast != nil &amp;&amp; fast.Next != nil {
+        slow = slow.Next
+        fast = fast.Next.Next
+        if slow == fast {
+            break  // Нашли точку встречи
+        }
+    }
+    
+    // Если цикла нет, возвращаем nil
+    if fast == nil || fast.Next == nil {
+        return nil
+    }
+    
+    // Шаг 3: Поиск начала цикла
+    // Возвращаем slow в начало списка
+    slow = head
+    
+    // Двигаем оба указателя по одному шагу
+    // Математически доказано, что место встречи - это начало цикла
+    // Расстояние от начала до начала цикла равно расстоянию от точки встречи до начала цикла
+    for slow != fast {
+        slow = slow.Next
+        fast = fast.Next
+    }
+    
+    // Место встречи - это начало цикла
+    return slow
+}
+</code></pre>
 <h3 id="поиск-середины-списка"><a class="header" href="#поиск-середины-списка">Поиск середины списка:</a></h3>
 <ol>
 <li>Используйте два указателя: <code>slow</code> и <code>fast</code></li>
@@ -1600,6 +1656,14 @@ func findDuplicate(nums []int) int {
 	return slow
 }
 </code></pre>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="./two-pointers.html">Two Pointers</a></strong> - Базовый подход с двумя указателями для массивов</li>
+<li><strong><a href="./reverse-linked-list.html">Reverse Linked List</a></strong> - Работа со связанными списками</li>
+<li><strong><a href="./tree-bfs.html">Tree BFS</a></strong> - Похожий подход для обхода деревьев</li>
+</ul>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения Fast &amp; Slow Pointers рекомендуется перейти к <strong><a href="./merge-intervals.html">Merge Intervals</a></strong> для работы с интервалами или к <strong><a href="./reverse-linked-list.html">Reverse Linked List</a></strong> для более глубокого изучения работы со списками.</p>
 <h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
 <ul>
 <li><a href="https://en.wikipedia.org/wiki/Cycle_detection">Floyd’s Cycle Detection Algorithm - Wikipedia</a> - Математическое обоснование</li>

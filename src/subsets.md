@@ -25,11 +25,73 @@
 
 ### Рекурсивный подход:
 
-1. **Базовый случай**: Если достигнут конец массива, добавить текущее подмножество в результат
-2. **Рекурсия**: Для каждого элемента:
-   - Включить элемент в подмножество и рекурсивно обработать следующий
-   - Исключить элемент и рекурсивно обработать следующий
-3. **Backtracking**: После обработки удалить элемент из текущего подмножества
+```go
+// Генерация всех подмножеств с использованием backtracking
+func subsets(nums []int) [][]int {
+    result := [][]int{}
+    current := []int{}  // Текущее подмножество, которое мы строим
+    
+    var backtrack func(int)
+    backtrack = func(index int) {
+        // Шаг 1: Базовый случай - если достигнут конец массива
+        // Добавляем текущее подмножество в результат
+        // Важно: создаем копию current, так как мы будем изменять его дальше
+        if index == len(nums) {
+            subset := make([]int, len(current))
+            copy(subset, current)
+            result = append(result, subset)
+            return
+        }
+        
+        // Шаг 2: Рекурсия - для каждого элемента у нас два выбора
+        
+        // Вариант 1: Включить элемент в подмножество
+        // Добавляем текущий элемент в current
+        current = append(current, nums[index])
+        // Рекурсивно обрабатываем следующий элемент
+        backtrack(index + 1)
+        
+        // Шаг 3: Backtracking - удаляем элемент из текущего подмножества
+        // Это критически важно: после обработки всех вариантов с включенным элементом,
+        // мы должны "откатиться" к состоянию до включения элемента
+        current = current[:len(current)-1]  // Удаляем последний элемент (backtrack)
+        
+        // Вариант 2: Исключить элемент из подмножества
+        // Не добавляем элемент и рекурсивно обрабатываем следующий
+        backtrack(index + 1)
+    }
+    
+    // Начинаем с индекса 0
+    backtrack(0)
+    return result
+}
+
+// Альтернативный подход: итеративная генерация
+func subsetsIterative(nums []int) [][]int {
+    // Начинаем с пустого подмножества
+    result := [][]int{{}}
+    
+    // Для каждого элемента добавляем его ко всем существующим подмножествам
+    for _, num := range nums {
+        // Сохраняем текущий размер результата
+        // Это важно, так как мы будем добавлять новые подмножества
+        size := len(result)
+        
+        // Для каждого существующего подмножества создаем новое с текущим элементом
+        for i := 0; i < size; i++ {
+            // Создаем новое подмножество на основе существующего
+            newSubset := make([]int, len(result[i]))
+            copy(newSubset, result[i])
+            // Добавляем текущий элемент
+            newSubset = append(newSubset, num)
+            // Добавляем в результат
+            result = append(result, newSubset)
+        }
+    }
+    
+    return result
+}
+```
 
 ### Что такое Backtracking?
 
@@ -607,6 +669,21 @@ func BenchmarkSubsetsSizes(b *testing.B) {
 }
 ```
 
+## Примеры задач на LeetCode
+
+### Легкие:
+- [Subsets](https://leetcode.com/problems/subsets/) - Все подмножества
+- [Subsets II](https://leetcode.com/problems/subsets-ii/) - Подмножества с дубликатами
+
+### Средние:
+- [Combination Sum](https://leetcode.com/problems/combination-sum/) - Сумма комбинаций
+- [Permutations](https://leetcode.com/problems/permutations/) - Перестановки
+- [Letter Combinations of a Phone Number](https://leetcode.com/problems/letter-combinations-of-a-phone-number/) - Комбинации букв телефона
+
+### Сложные:
+- [Word Search II](https://leetcode.com/problems/word-search-ii/) - Поиск слов II
+- [N-Queens](https://leetcode.com/problems/n-queens/) - N ферзей
+
 ## Примеры кода
 
 ### Rust
@@ -994,18 +1071,19 @@ func permute(nums []int) [][]int {
 }
 ```
 
-## Примеры задач на LeetCode
+## Связанные шаблоны
 
-### Легкие:
-- [Subsets](https://leetcode.com/problems/subsets/) - Все подмножества
-- [Subsets II](https://leetcode.com/problems/subsets-ii/) - Подмножества с дубликатами
+- **[Tree DFS](./tree-dfs.md)** - Использует похожий рекурсивный подход
+- **[Topological Sort](./topological-sort.md)** - Работа с графами и зависимостями
+- **[Modified Binary Search](./modified-binary-search.md)** - Для задач поиска в отсортированных данных
 
-### Средние:
-- [Combination Sum](https://leetcode.com/problems/combination-sum/) - Сумма комбинаций
-- [Permutations](https://leetcode.com/problems/permutations/) - Перестановки
-- [Letter Combinations of a Phone Number](https://leetcode.com/problems/letter-combinations-of-a-phone-number/) - Комбинации букв телефона
+## Следующий шаг
 
-### Сложные:
-- [Word Search II](https://leetcode.com/problems/word-search-ii/) - Поиск слов II
-- [N-Queens](https://leetcode.com/problems/n-queens/) - N ферзей
+После изучения Subsets рекомендуется перейти к **[Topological Sort](./topological-sort.md)** для изучения работы с графами и зависимостями.
+
+## Дополнительные ресурсы
+
+- [Subsets - LeetCode](https://leetcode.com/problems/subsets/) - Классическая задача на генерацию подмножеств
+- [Backtracking Algorithm - GeeksforGeeks](https://www.geeksforgeeks.org/backtracking-algorithms/) - Подробное объяснение backtracking
+- [Power Set - Wikipedia](https://en.wikipedia.org/wiki/Power_set) - Математическая теория подмножеств
 

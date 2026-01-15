@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,16 +194,72 @@
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
 <h3 id="рекурсивный-подход"><a class="header" href="#рекурсивный-подход">Рекурсивный подход:</a></h3>
-<ol>
-<li><strong>Базовый случай</strong>: Если достигнут конец массива, добавить текущее подмножество в результат</li>
-<li><strong>Рекурсия</strong>: Для каждого элемента:
-<ul>
-<li>Включить элемент в подмножество и рекурсивно обработать следующий</li>
-<li>Исключить элемент и рекурсивно обработать следующий</li>
-</ul>
-</li>
-<li><strong>Backtracking</strong>: После обработки удалить элемент из текущего подмножества</li>
-</ol>
+<pre><code class="language-go">// Генерация всех подмножеств с использованием backtracking
+func subsets(nums []int) [][]int {
+    result := [][]int{}
+    current := []int{}  // Текущее подмножество, которое мы строим
+    
+    var backtrack func(int)
+    backtrack = func(index int) {
+        // Шаг 1: Базовый случай - если достигнут конец массива
+        // Добавляем текущее подмножество в результат
+        // Важно: создаем копию current, так как мы будем изменять его дальше
+        if index == len(nums) {
+            subset := make([]int, len(current))
+            copy(subset, current)
+            result = append(result, subset)
+            return
+        }
+        
+        // Шаг 2: Рекурсия - для каждого элемента у нас два выбора
+        
+        // Вариант 1: Включить элемент в подмножество
+        // Добавляем текущий элемент в current
+        current = append(current, nums[index])
+        // Рекурсивно обрабатываем следующий элемент
+        backtrack(index + 1)
+        
+        // Шаг 3: Backtracking - удаляем элемент из текущего подмножества
+        // Это критически важно: после обработки всех вариантов с включенным элементом,
+        // мы должны "откатиться" к состоянию до включения элемента
+        current = current[:len(current)-1]  // Удаляем последний элемент (backtrack)
+        
+        // Вариант 2: Исключить элемент из подмножества
+        // Не добавляем элемент и рекурсивно обрабатываем следующий
+        backtrack(index + 1)
+    }
+    
+    // Начинаем с индекса 0
+    backtrack(0)
+    return result
+}
+
+// Альтернативный подход: итеративная генерация
+func subsetsIterative(nums []int) [][]int {
+    // Начинаем с пустого подмножества
+    result := [][]int{{}}
+    
+    // Для каждого элемента добавляем его ко всем существующим подмножествам
+    for _, num := range nums {
+        // Сохраняем текущий размер результата
+        // Это важно, так как мы будем добавлять новые подмножества
+        size := len(result)
+        
+        // Для каждого существующего подмножества создаем новое с текущим элементом
+        for i := 0; i &lt; size; i++ {
+            // Создаем новое подмножество на основе существующего
+            newSubset := make([]int, len(result[i]))
+            copy(newSubset, result[i])
+            // Добавляем текущий элемент
+            newSubset = append(newSubset, num)
+            // Добавляем в результат
+            result = append(result, newSubset)
+        }
+    }
+    
+    return result
+}
+</code></pre>
 <h3 id="что-такое-backtracking"><a class="header" href="#что-такое-backtracking">Что такое Backtracking?</a></h3>
 <p><strong>Backtracking (возврат, откат)</strong> — это техника решения задач, при которой мы строим решение пошагово, и если на каком-то шаге понимаем, что текущий путь не ведет к решению, мы “откатываемся” назад и пробуем другой путь.</p>
 <p><strong>Ключевая идея backtracking:</strong></p>
@@ -748,6 +804,23 @@ fn subsets_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/subsets/">Subsets</a> - Все подмножества</li>
+<li><a href="https://leetcode.com/problems/subsets-ii/">Subsets II</a> - Подмножества с дубликатами</li>
+</ul>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/combination-sum/">Combination Sum</a> - Сумма комбинаций</li>
+<li><a href="https://leetcode.com/problems/permutations/">Permutations</a> - Перестановки</li>
+<li><a href="https://leetcode.com/problems/letter-combinations-of-a-phone-number/">Letter Combinations of a Phone Number</a> - Комбинации букв телефона</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/word-search-ii/">Word Search II</a> - Поиск слов II</li>
+<li><a href="https://leetcode.com/problems/n-queens/">N-Queens</a> - N ферзей</li>
+</ul>
 <h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
 <h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1130,33 +1203,30 @@ func permute(nums []int) [][]int {
 	return result
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/subsets/">Subsets</a> - Все подмножества</li>
-<li><a href="https://leetcode.com/problems/subsets-ii/">Subsets II</a> - Подмножества с дубликатами</li>
+<li><strong><a href="./tree-dfs.html">Tree DFS</a></strong> - Использует похожий рекурсивный подход</li>
+<li><strong><a href="./topological-sort.html">Topological Sort</a></strong> - Работа с графами и зависимостями</li>
+<li><strong><a href="./modified-binary-search.html">Modified Binary Search</a></strong> - Для задач поиска в отсортированных данных</li>
 </ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения Subsets рекомендуется перейти к <strong><a href="./topological-sort.html">Topological Sort</a></strong> для изучения работы с графами и зависимостями.</p>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/combination-sum/">Combination Sum</a> - Сумма комбинаций</li>
-<li><a href="https://leetcode.com/problems/permutations/">Permutations</a> - Перестановки</li>
-<li><a href="https://leetcode.com/problems/letter-combinations-of-a-phone-number/">Letter Combinations of a Phone Number</a> - Комбинации букв телефона</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/word-search-ii/">Word Search II</a> - Поиск слов II</li>
-<li><a href="https://leetcode.com/problems/n-queens/">N-Queens</a> - N ферзей</li>
+<li><a href="https://leetcode.com/problems/subsets/">Subsets - LeetCode</a> - Классическая задача на генерацию подмножеств</li>
+<li><a href="https://www.geeksforgeeks.org/backtracking-algorithms/">Backtracking Algorithm - GeeksforGeeks</a> - Подробное объяснение backtracking</li>
+<li><a href="https://en.wikipedia.org/wiki/Power_set">Power Set - Wikipedia</a> - Математическая теория подмножеств</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="two-heaps.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="k-way-merge.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="modified-binary-search.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="topological-sort.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -1166,11 +1236,11 @@ func permute(nums []int) [][]int {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="two-heaps.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="k-way-merge.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="modified-binary-search.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="topological-sort.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

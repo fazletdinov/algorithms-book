@@ -25,10 +25,86 @@ K-way merge является обобщением классического а�
 
 ### Базовый алгоритм:
 
-1. **Инициализация**: Создайте min-heap и добавьте первый элемент каждого из K массивов
-2. **Извлечение минимума**: Извлеките минимальный элемент из кучи
-3. **Добавление следующего**: Добавьте следующий элемент из того же массива в кучу
-4. **Повторение**: Повторяйте шаги 2-3, пока куча не станет пустой
+```go
+import (
+    "container/heap"
+)
+
+// Структура элемента кучи: хранит значение, индекс массива и индекс элемента в массиве
+type Element struct {
+    Val      int  // Значение элемента
+    ArrayIdx int  // Индекс массива, из которого пришел элемент
+    ElemIdx  int  // Индекс элемента в этом массиве
+}
+
+// MinHeap для хранения элементов (реализует интерфейс heap.Interface)
+type MinHeap []Element
+
+func (h MinHeap) Len() int           { return len(h) }
+func (h MinHeap) Less(i, j int) bool { return h[i].Val < h[j].Val }
+func (h MinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *MinHeap) Push(x interface{}) {
+    *h = append(*h, x.(Element))
+}
+
+func (h *MinHeap) Pop() interface{} {
+    old := *h
+    n := len(old)
+    x := old[n-1]
+    *h = old[0 : n-1]
+    return x
+}
+
+func mergeKSortedArrays(arrays [][]int) []int {
+    // Шаг 1: Инициализация - создаем min-heap и добавляем первый элемент каждого массива
+    // Это гарантирует, что в куче всегда находится минимальный непрочитанный элемент каждого массива
+    h := &MinHeap{}
+    heap.Init(h)
+    
+    // Добавляем первый элемент каждого из K массивов в кучу
+    for i := 0; i < len(arrays); i++ {
+        if len(arrays[i]) > 0 {
+            // Создаем элемент с значением, индексом массива и индексом элемента
+            heap.Push(h, Element{
+                Val:      arrays[i][0],
+                ArrayIdx: i,
+                ElemIdx:  0,
+            })
+        }
+    }
+    
+    result := make([]int, 0)
+    
+    // Шаг 4: Повторяем шаги 2-3, пока куча не станет пустой
+    // Когда куча пуста, все элементы из всех массивов обработаны
+    for h.Len() > 0 {
+        // Шаг 2: Извлечение минимума - получаем минимальный элемент из кучи
+        // Благодаря min-heap, это всегда глобальный минимум среди всех непрочитанных элементов
+        minElem := heap.Pop(h).(Element)
+        
+        // Добавляем минимальный элемент в результат
+        result = append(result, minElem.Val)
+        
+        // Шаг 3: Добавление следующего элемента из того же массива
+        // Проверяем, есть ли еще элементы в массиве, из которого мы только что взяли элемент
+        nextIdx := minElem.ElemIdx + 1
+        if nextIdx < len(arrays[minElem.ArrayIdx]) {
+            // Добавляем следующий элемент из того же массива в кучу
+            // Это поддерживает инвариант: в куче всегда есть минимальный элемент каждого массива
+            heap.Push(h, Element{
+                Val:      arrays[minElem.ArrayIdx][nextIdx],
+                ArrayIdx: minElem.ArrayIdx,
+                ElemIdx:  nextIdx,
+            })
+        }
+        // Если элементов в массиве больше нет, просто не добавляем ничего
+        // и продолжаем с другими массивами
+    }
+    
+    return result
+}
+```
 
 ### Структура элемента кучи:
 
@@ -631,6 +707,16 @@ func BenchmarkKWayMergeSizes(b *testing.B) {
 }
 ```
 
+## Примеры задач на LeetCode
+
+### Средние:
+- [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) - Слияние K отсортированных списков
+- [Kth Smallest Element in a Sorted Matrix](https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/) - K-й наименьший элемент в матрице
+
+### Сложные:
+- [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) - K пар с наименьшими суммами
+- [Smallest Range Covering Elements from K Lists](https://leetcode.com/problems/smallest-range-covering-elements-from-k-lists/) - Наименьший диапазон
+
 ## Примеры кода
 
 ### Rust
@@ -978,13 +1064,19 @@ func kSmallestPairs(nums1, nums2 []int, k int) [][]int {
 }
 ```
 
-## Примеры задач на LeetCode
+## Связанные шаблоны
 
-### Средние:
-- [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) - Слияние K отсортированных списков
-- [Kth Smallest Element in a Sorted Matrix](https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/) - K-й наименьший элемент в матрице
+- **[Top K Elements](./top-k-elements.md)** - Использует кучу для поиска элементов
+- **[Two Heaps](./two-heaps.md)** - Работа с кучами
+- **[Modified Binary Search](./modified-binary-search.md)** - Альтернативный подход для работы с отсортированными данными
 
-### Сложные:
-- [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) - K пар с наименьшими суммами
-- [Smallest Range Covering Elements from K Lists](https://leetcode.com/problems/smallest-range-covering-elements-from-k-lists/) - Наименьший диапазон
+## Следующий шаг
+
+После изучения K-way Merge рекомендуется перейти к **[Subsets](./subsets.md)** для изучения комбинаторных задач или к **[Topological Sort](./topological-sort.md)** для изучения работы с графами.
+
+## Дополнительные ресурсы
+
+- [Merge K Sorted Lists - LeetCode](https://leetcode.com/problems/merge-k-sorted-lists/) - Задача на слияние списков
+- [K-way Merge Pattern - GeeksforGeeks](https://www.geeksforgeeks.org/merge-k-sorted-arrays/) - Подробное объяснение
+- [External Sorting - Wikipedia](https://en.wikipedia.org/wiki/External_sorting) - Сортировка больших данных
 

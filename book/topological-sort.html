@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -225,23 +225,73 @@ B → C
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
 <h3 id="алгоритм-кана-kahns-algorithm"><a class="header" href="#алгоритм-кана-kahns-algorithm">Алгоритм Кана (Kahn’s Algorithm):</a></h3>
-<ol>
-<li><strong>Инициализация</strong>:
-<ul>
-<li>Подсчитайте входящие степени (in-degree) для каждой вершины</li>
-<li>Добавьте все вершины с in-degree = 0 в очередь</li>
-</ul>
-</li>
-<li><strong>Обработка</strong>:
-<ul>
-<li>Извлеките вершину из очереди</li>
-<li>Добавьте её в результат</li>
-<li>Уменьшите in-degree всех соседних вершин на 1</li>
-<li>Если in-degree вершины стал 0, добавьте её в очередь</li>
-</ul>
-</li>
-<li><strong>Проверка</strong>: Если размер результата != количеству вершин, есть цикл</li>
-</ol>
+<pre><code class="language-go">// Топологическая сортировка с использованием алгоритма Кана
+func topologicalSort(numCourses int, prerequisites [][]int) []int {
+    // Шаг 1: Инициализация
+    // Подсчитываем входящие степени (in-degree) для каждой вершины
+    // In-degree - это количество ребер, входящих в вершину
+    inDegree := make([]int, numCourses)
+    
+    // Создаем граф (список смежности) для хранения зависимостей
+    // graph[i] содержит список вершин, которые зависят от вершины i
+    graph := make([][]int, numCourses)
+    
+    // Заполняем граф и подсчитываем in-degree
+    for _, prereq := range prerequisites {
+        course := prereq[0]      // Курс, который зависит от другого
+        prerequisite := prereq[1] // Курс, от которого зависит
+        
+        // Добавляем зависимость в граф
+        graph[prerequisite] = append(graph[prerequisite], course)
+        // Увеличиваем in-degree для зависимого курса
+        inDegree[course]++
+    }
+    
+    // Добавляем все вершины с in-degree = 0 в очередь
+    // Эти вершины не зависят ни от каких других вершин и могут быть обработаны первыми
+    queue := []int{}
+    for i := 0; i &lt; numCourses; i++ {
+        if inDegree[i] == 0 {
+            queue = append(queue, i)
+        }
+    }
+    
+    result := []int{}
+    
+    // Шаг 2: Обработка вершин
+    // Пока очередь не пуста, обрабатываем вершины
+    for len(queue) &gt; 0 {
+        // Извлекаем вершину из очереди (FIFO)
+        course := queue[0]
+        queue = queue[1:]
+        
+        // Добавляем вершину в результат
+        // Порядок добавления в результат и есть топологический порядок
+        result = append(result, course)
+        
+        // Уменьшаем in-degree всех соседних вершин на 1
+        // Соседние вершины - это те, которые зависят от текущей вершины
+        for _, neighbor := range graph[course] {
+            inDegree[neighbor]--
+            
+            // Если in-degree вершины стал 0, добавляем её в очередь
+            // Это означает, что все зависимости этой вершины уже обработаны
+            if inDegree[neighbor] == 0 {
+                queue = append(queue, neighbor)
+            }
+        }
+    }
+    
+    // Шаг 3: Проверка - если размер результата != количеству вершин, есть цикл
+    // Если в графе есть цикл, некоторые вершины никогда не получат in-degree = 0
+    // и не будут добавлены в результат
+    if len(result) != numCourses {
+        return []int{}  // Цикл обнаружен, топологическая сортировка невозможна
+    }
+    
+    return result
+}
+</code></pre>
 <h3 id="что-такое-in-degree-и-out-degree"><a class="header" href="#что-такое-in-degree-и-out-degree">Что такое in-degree и out-degree?</a></h3>
 <p><strong>In-degree (входящая степень)</strong> — количество ребер, входящих в вершину (сколько вершин зависят от этой вершины как предшественника).</p>
 <p><strong>Out-degree (исходящая степень)</strong> — количество ребер, выходящих из вершины (от скольких вершин зависит эта вершина).</p>
@@ -850,6 +900,18 @@ fn topological_sort_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/course-schedule/">Course Schedule</a> - Расписание курсов</li>
+<li><a href="https://leetcode.com/problems/course-schedule-ii/">Course Schedule II</a> - Расписание курсов II</li>
+<li><a href="https://leetcode.com/problems/alien-dictionary/">Alien Dictionary</a> - Словарь инопланетян</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/minimum-height-trees/">Minimum Height Trees</a> - Деревья минимальной высоты</li>
+<li><a href="https://leetcode.com/problems/sequence-reconstruction/">Sequence Reconstruction</a> - Реконструкция последовательности</li>
+</ul>
 <h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
 <h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1266,27 +1328,32 @@ func findMinHeightTrees(n int, edges [][]int) []int {
 	return queue
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/course-schedule/">Course Schedule</a> - Расписание курсов</li>
-<li><a href="https://leetcode.com/problems/course-schedule-ii/">Course Schedule II</a> - Расписание курсов II</li>
-<li><a href="https://leetcode.com/problems/alien-dictionary/">Alien Dictionary</a> - Словарь инопланетян</li>
+<li><strong><a href="./tree-bfs.html">Tree BFS</a></strong> - Использует похожий подход с очередью</li>
+<li><strong><a href="./tree-dfs.html">Tree DFS</a></strong> - Альтернативный подход для топологической сортировки</li>
+<li><strong><a href="./subsets.html">Subsets</a></strong> - Для комбинаторных задач с зависимостями</li>
 </ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>Поздравляем! Вы изучили все основные алгоритмические шаблоны. Рекомендуется повторить изученные шаблоны и решить больше практических задач на LeetCode.</p>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/minimum-height-trees/">Minimum Height Trees</a> - Деревья минимальной высоты</li>
-<li><a href="https://leetcode.com/problems/sequence-reconstruction/">Sequence Reconstruction</a> - Реконструкция последовательности</li>
+<li><a href="https://leetcode.com/tag/topological-sort/">Topological Sorting - LeetCode Tag</a> - Коллекция задач на топологическую сортировку</li>
+<li><a href="https://www.geeksforgeeks.org/topological-sorting/">Topological Sort - GeeksforGeeks</a> - Подробное объяснение алгоритма</li>
+<li><a href="https://en.wikipedia.org/wiki/Topological_sorting">Topological Sorting - Wikipedia</a> - Математическая теория и приложения</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="k-way-merge.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="subsets.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
+                            <a rel="next prefetch" href="conclusion.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -1294,10 +1361,13 @@ func findMinHeightTrees(n int, edges [][]int) []int {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="k-way-merge.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="subsets.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
+                    <a rel="next prefetch" href="conclusion.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
             </nav>
 
         </div>

@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -195,17 +195,75 @@
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
 <h3 id="базовый-модифицированный-бинарный-поиск"><a class="header" href="#базовый-модифицированный-бинарный-поиск">Базовый модифицированный бинарный поиск:</a></h3>
-<ol>
-<li><strong>Инициализация</strong>: <code>left = 0</code>, <code>right = n - 1</code></li>
-<li><strong>Цикл</strong>: Пока <code>left &lt;= right</code>:
-<ul>
-<li>Вычислить <code>mid = left + (right - left) / 2</code></li>
-<li>Проверить условие для <code>mid</code></li>
-<li>Обновить <code>left</code> или <code>right</code> в зависимости от условия</li>
-</ul>
-</li>
-<li><strong>Возврат</strong>: Вернуть результат в зависимости от задачи</li>
-</ol>
+<pre><code class="language-go">// Базовый шаблон модифицированного бинарного поиска
+func modifiedBinarySearch(arr []int, target int) int {
+    // Шаг 1: Инициализация границ поиска
+    // left - левая граница интервала поиска (включительно)
+    // right - правая граница интервала поиска (включительно)
+    left := 0
+    right := len(arr) - 1
+    
+    // Шаг 2: Цикл поиска - продолжаем, пока интервал не пуст
+    // Условие left &lt;= right означает, что интервал [left, right] содержит хотя бы один элемент
+    for left &lt;= right {
+        // Вычисляем средний индекс интервала
+        // Используем формулу left + (right - left) / 2 вместо (left + right) / 2
+        // чтобы избежать переполнения при больших значениях left и right
+        mid := left + (right-left)/2
+        
+        // Проверяем условие для среднего элемента
+        // В зависимости от задачи, условие может быть разным:
+        // - arr[mid] == target: обычный бинарный поиск
+        // - arr[mid] &gt;= target: поиск первого вхождения
+        // - arr[mid] &lt;= target: поиск последнего вхождения
+        // - и другие модификации для специфических задач
+        if arr[mid] == target {
+            // Нашли элемент - возвращаем индекс
+            // В модифицированных версиях здесь может быть дополнительная логика
+            return mid
+        } else if arr[mid] &lt; target {
+            // Средний элемент меньше цели - ищем в правой половине
+            // Обновляем left, исключая левую половину из поиска
+            left = mid + 1
+        } else {
+            // Средний элемент больше цели - ищем в левой половине
+            // Обновляем right, исключая правую половину из поиска
+            right = mid - 1
+        }
+    }
+    
+    // Шаг 3: Возврат результата
+    // Если мы дошли сюда, элемент не найден
+    // В зависимости от задачи, можно вернуть:
+    // - -1 для "не найдено"
+    // - left для "позиция вставки"
+    // - right для других вариантов
+    return -1
+}
+
+// Пример: Поиск первого вхождения элемента (если есть дубликаты)
+func findFirstOccurrence(arr []int, target int) int {
+    left := 0
+    right := len(arr) - 1
+    result := -1
+    
+    for left &lt;= right {
+        mid := left + (right-left)/2
+        
+        if arr[mid] == target {
+            // Нашли элемент, но продолжаем искать влево для первого вхождения
+            result = mid
+            right = mid - 1  // Ищем дальше влево
+        } else if arr[mid] &lt; target {
+            left = mid + 1
+        } else {
+            right = mid - 1
+        }
+    }
+    
+    return result
+}
+</code></pre>
 <h3 id="варианты-условий"><a class="header" href="#варианты-условий">Варианты условий:</a></h3>
 <ul>
 <li><strong>Первое вхождение</strong>: Продолжать поиск влево при равенстве</li>
@@ -698,6 +756,23 @@ fn binary_search_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/binary-search/">Binary Search</a> - Бинарный поиск</li>
+<li><a href="https://leetcode.com/problems/first-bad-version/">First Bad Version</a> - Первая плохая версия</li>
+</ul>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/search-in-rotated-sorted-array/">Search in Rotated Sorted Array</a> - Поиск в повернутом массиве</li>
+<li><a href="https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/">Find First and Last Position of Element in Sorted Array</a> - Первая и последняя позиция</li>
+<li><a href="https://leetcode.com/problems/search-a-2d-matrix/">Search a 2D Matrix</a> - Поиск в 2D матрице</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/">Find Minimum in Rotated Sorted Array</a> - Минимум в повернутом массиве</li>
+<li><a href="https://leetcode.com/problems/median-of-two-sorted-arrays/">Median of Two Sorted Arrays</a> - Медиана двух отсортированных массивов</li>
+</ul>
 <h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
 <h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1113,33 +1188,30 @@ func searchInsert(nums []int, target int) int {
 	return left
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/binary-search/">Binary Search</a> - Бинарный поиск</li>
-<li><a href="https://leetcode.com/problems/first-bad-version/">First Bad Version</a> - Первая плохая версия</li>
+<li><strong><a href="./cyclic-sort.html">Cyclic Sort</a></strong> - Работа с массивами в определенном диапазоне</li>
+<li><strong><a href="./merge-intervals.html">Merge Intervals</a></strong> - Работа с отсортированными интервалами</li>
+<li><strong><a href="./k-way-merge.html">K-way Merge</a></strong> - Слияние отсортированных массивов</li>
 </ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения Modified Binary Search рекомендуется перейти к <strong><a href="./reverse-linked-list.html">Reverse Linked List</a></strong> для изучения работы со списками или к <strong><a href="./tree-bfs.html">Tree BFS</a></strong> для изучения обхода деревьев.</p>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/search-in-rotated-sorted-array/">Search in Rotated Sorted Array</a> - Поиск в повернутом массиве</li>
-<li><a href="https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/">Find First and Last Position of Element in Sorted Array</a> - Первая и последняя позиция</li>
-<li><a href="https://leetcode.com/problems/search-a-2d-matrix/">Search a 2D Matrix</a> - Поиск в 2D матрице</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/">Find Minimum in Rotated Sorted Array</a> - Минимум в повернутом массиве</li>
-<li><a href="https://leetcode.com/problems/median-of-two-sorted-arrays/">Median of Two Sorted Arrays</a> - Медиана двух отсортированных массивов</li>
+<li><a href="https://leetcode.com/tag/binary-search/">Binary Search - LeetCode Tag</a> - Коллекция задач на бинарный поиск</li>
+<li><a href="https://www.geeksforgeeks.org/binary-search/">Binary Search Algorithm - GeeksforGeeks</a> - Подробное объяснение</li>
+<li><a href="https://en.wikipedia.org/wiki/Binary_search_algorithm">Binary Search - Wikipedia</a> - Исторический контекст и вариации</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="subsets.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="cyclic-sort.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="top-k-elements.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="reverse-linked-list.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -1149,11 +1221,11 @@ func searchInsert(nums []int, target int) int {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="subsets.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="cyclic-sort.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="top-k-elements.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="reverse-linked-list.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

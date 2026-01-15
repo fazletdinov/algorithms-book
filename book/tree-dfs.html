@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -225,11 +225,85 @@
 <li><strong>Post-order (Обратный обход)</strong>: Левое поддерево → Правое поддерево → Корень</li>
 </ol>
 <h3 id="рекурсивный-подход"><a class="header" href="#рекурсивный-подход">Рекурсивный подход:</a></h3>
-<ol>
-<li><strong>Базовый случай</strong>: Если узел равен <code>None</code>, вернитесь</li>
-<li><strong>Обработка</strong>: Обработайте текущий узел (в зависимости от типа обхода)</li>
-<li><strong>Рекурсия</strong>: Рекурсивно обработайте левое и правое поддеревья</li>
-</ol>
+<pre><code class="language-go">// Определение узла дерева
+type TreeNode struct {
+    Val   int
+    Left  *TreeNode
+    Right *TreeNode
+}
+
+// Pre-order обход: Корень → Левое поддерево → Правое поддерево
+func preorderTraversal(root *TreeNode) []int {
+    result := []int{}
+    
+    var dfs func(*TreeNode)
+    dfs = func(node *TreeNode) {
+        // Шаг 1: Базовый случай - если узел равен nil, возвращаемся
+        // Это означает, что мы достигли листа или пустого поддерева
+        if node == nil {
+            return
+        }
+        
+        // Шаг 2: Обработка текущего узла (для pre-order - сначала корень)
+        // Добавляем значение узла в результат
+        result = append(result, node.Val)
+        
+        // Шаг 3: Рекурсия - рекурсивно обрабатываем левое и правое поддеревья
+        // Для pre-order: сначала левое, потом правое
+        dfs(node.Left)   // Рекурсивный вызов для левого поддерева
+        dfs(node.Right)  // Рекурсивный вызов для правого поддерева
+    }
+    
+    dfs(root)
+    return result
+}
+
+// In-order обход: Левое поддерево → Корень → Правое поддерево
+func inorderTraversal(root *TreeNode) []int {
+    result := []int{}
+    
+    var dfs func(*TreeNode)
+    dfs = func(node *TreeNode) {
+        if node == nil {
+            return
+        }
+        
+        // Для in-order: сначала обрабатываем левое поддерево
+        dfs(node.Left)
+        
+        // Потом обрабатываем корень (текущий узел)
+        result = append(result, node.Val)
+        
+        // Затем обрабатываем правое поддерево
+        dfs(node.Right)
+    }
+    
+    dfs(root)
+    return result
+}
+
+// Post-order обход: Левое поддерево → Правое поддерево → Корень
+func postorderTraversal(root *TreeNode) []int {
+    result := []int{}
+    
+    var dfs func(*TreeNode)
+    dfs = func(node *TreeNode) {
+        if node == nil {
+            return
+        }
+        
+        // Для post-order: сначала обрабатываем оба поддерева
+        dfs(node.Left)
+        dfs(node.Right)
+        
+        // Потом обрабатываем корень (текущий узел)
+        result = append(result, node.Val)
+    }
+    
+    dfs(root)
+    return result
+}
+</code></pre>
 <h3 id="итеративный-подход"><a class="header" href="#итеративный-подход">Итеративный подход:</a></h3>
 <p>Используйте стек для имитации рекурсии.</p>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
@@ -777,6 +851,24 @@ fn tree_dfs_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
+<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/">Maximum Depth of Binary Tree</a> - Максимальная глубина дерева</li>
+<li><a href="https://leetcode.com/problems/same-tree/">Same Tree</a> - Одинаковые деревья</li>
+<li><a href="https://leetcode.com/problems/symmetric-tree/">Symmetric Tree</a> - Симметричное дерево</li>
+</ul>
+<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/validate-binary-search-tree/">Validate Binary Search Tree</a> - Валидация BST</li>
+<li><a href="https://leetcode.com/problems/path-sum/">Path Sum</a> - Сумма пути</li>
+<li><a href="https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/">Construct Binary Tree from Preorder and Inorder Traversal</a> - Построение дерева</li>
+</ul>
+<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/binary-tree-maximum-path-sum/">Binary Tree Maximum Path Sum</a> - Максимальная сумма пути</li>
+<li><a href="https://leetcode.com/problems/serialize-and-deserialize-binary-tree/">Serialize and Deserialize Binary Tree</a> - Сериализация дерева</li>
+</ul>
 <h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
 <h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1249,23 +1341,19 @@ func max(a, b int) int {
 	return b
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/">Maximum Depth of Binary Tree</a> - Максимальная глубина дерева</li>
-<li><a href="https://leetcode.com/problems/same-tree/">Same Tree</a> - Одинаковые деревья</li>
-<li><a href="https://leetcode.com/problems/symmetric-tree/">Symmetric Tree</a> - Симметричное дерево</li>
+<li><strong><a href="./tree-bfs.html">Tree BFS</a></strong> - Альтернативный подход для обхода деревьев в ширину</li>
+<li><strong><a href="./subsets.html">Subsets</a></strong> - Использует похожий рекурсивный подход с backtracking</li>
+<li><strong><a href="./topological-sort.html">Topological Sort</a></strong> - Использует DFS для работы с графами</li>
 </ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения Tree DFS рекомендуется перейти к <strong><a href="./two-heaps.html">Two Heaps</a></strong> для изучения продвинутых структур данных или к <strong><a href="./subsets.html">Subsets</a></strong> для изучения комбинаторных задач.</p>
+<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
 <ul>
-<li><a href="https://leetcode.com/problems/validate-binary-search-tree/">Validate Binary Search Tree</a> - Валидация BST</li>
-<li><a href="https://leetcode.com/problems/path-sum/">Path Sum</a> - Сумма пути</li>
-<li><a href="https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/">Construct Binary Tree from Preorder and Inorder Traversal</a> - Построение дерева</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/binary-tree-maximum-path-sum/">Binary Tree Maximum Path Sum</a> - Максимальная сумма пути</li>
-<li><a href="https://leetcode.com/problems/serialize-and-deserialize-binary-tree/">Serialize and Deserialize Binary Tree</a> - Сериализация дерева</li>
+<li><a href="https://leetcode.com/tag/tree/">Binary Tree Traversal - LeetCode Tag</a> - Коллекция задач на деревья</li>
+<li><a href="https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/">Depth-First Search - GeeksforGeeks</a> - Подробное объяснение алгоритма DFS</li>
+<li><a href="https://en.wikipedia.org/wiki/Tree_traversal">Tree Traversal - Wikipedia</a> - Теория обхода деревьев (Pre-order, In-order, Post-order)</li>
 </ul>
 
                     </main>

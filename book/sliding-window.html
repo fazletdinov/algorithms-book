@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2e08b4ec.js";
+            window.path_to_searchindex_js = "searchindex-99f0e790.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9de7afef.js"></script>
+        <script src="toc-6bdcd01b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -192,47 +192,60 @@
 <li>Можно оптимизировать решение, избегая повторных вычислений</li>
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
-<h3 id="базовый-подход-с-псевдокодом"><a class="header" href="#базовый-подход-с-псевдокодом">Базовый подход с псевдокодом:</a></h3>
+<h3 id="базовый-подход"><a class="header" href="#базовый-подход">Базовый подход:</a></h3>
 <h4 id="фиксированное-окно"><a class="header" href="#фиксированное-окно">Фиксированное окно:</a></h4>
-<pre><code class="language-pseudocode">function slidingWindowFixed(arr, k):
+<pre><code class="language-go">func slidingWindowFixed(arr []int, k int) int {
     // Шаг 1: Инициализация
-    windowSum = 0
-    maxSum = -∞
+    windowSum := 0
+    maxSum := math.MinInt
     
     // Шаг 2: Вычисление суммы первого окна
-    for i = 0 to k-1:
+    for i := 0; i &lt; k; i++ {
         windowSum += arr[i]
+    }
     maxSum = windowSum
     
     // Шаг 3: Скольжение окна
-    for i = k to n-1:
+    for i := k; i &lt; len(arr); i++ {
         // Добавляем новый элемент справа
         windowSum += arr[i]
         // Удаляем старый элемент слева
-        windowSum -= arr[i - k]
+        windowSum -= arr[i-k]
         // Обновляем результат
-        maxSum = max(maxSum, windowSum)
+        if windowSum &gt; maxSum {
+            maxSum = windowSum
+        }
+    }
     
     return maxSum
+}
 </code></pre>
 <h4 id="переменное-окно-расширяющеесясжимающееся"><a class="header" href="#переменное-окно-расширяющеесясжимающееся">Переменное окно (расширяющееся/сжимающееся):</a></h4>
-<pre><code class="language-pseudocode">function slidingWindowVariable(arr, condition):
-    left = 0
-    maxLen = 0
+<pre><code class="language-go">func slidingWindowVariable(arr []int, condition func([]int) bool) int {
+    left := 0
+    maxLen := 0
+    window := make([]int, 0)
     
-    for right = 0 to n-1:
+    for right := 0; right &lt; len(arr); right++ {
         // Расширяем окно: добавляем arr[right]
-        add arr[right] to window
+        window = append(window, arr[right])
         
         // Сжимаем окно пока условие не выполняется
-        while condition not satisfied:
-            remove arr[left] from window
+        for !condition(window) {
+            // Удаляем элемент слева
+            window = window[1:]
             left++
+        }
         
         // Обновляем результат
-        maxLen = max(maxLen, right - left + 1)
+        currentLen := right - left + 1
+        if currentLen &gt; maxLen {
+            maxLen = currentLen
+        }
+    }
     
     return maxLen
+}
 </code></pre>
 <h3 id="детальный-разбор-шагов"><a class="header" href="#детальный-разбор-шагов">Детальный разбор шагов:</a></h3>
 <ol>
@@ -2351,6 +2364,13 @@ func minWindowSubstring(s, t string) string {
 	return s[minLeft : minLeft+minLen]
 }
 </code></pre>
+<h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="./two-pointers.html">Two Pointers</a></strong> - Похожий подход для работы с массивами, часто используется вместе со Sliding Window</li>
+<li><strong><a href="./fast-slow-pointers.html">Fast &amp; Slow Pointers</a></strong> - Альтернативный подход для работы с последовательностями</li>
+</ul>
+<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
+<p>После изучения Sliding Window рекомендуется перейти к изучению <strong><a href="./two-pointers.html">Two Pointers</a></strong>, который является логическим продолжением работы с массивами и строками.</p>
 <h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
 <ul>
 <li><a href="https://www.educative.io/courses/grokking-the-coding-interview">Grokking the Coding Interview: Sliding Window Pattern</a> - Интерактивный курс</li>
@@ -2362,7 +2382,7 @@ func minWindowSubstring(s, t string) string {
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="glossary.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -2376,7 +2396,7 @@ func minWindowSubstring(s, t string) string {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="glossary.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
