@@ -119,11 +119,11 @@ BFS был разработан в контексте поиска в графа
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
+### Теория аллокаций в Go
 
-#### Rust: Очередь для BFS
+#### : Очередь для BFS
 
-В Rust для Tree BFS:
+В для Tree BFS:
 - **Очередь**: `VecDeque<TreeNode>` - аллоцируется в куче, O(w) где w - ширина дерева
 - **Результат**: `Vec<Vec<i32>>` - O(n) для всех значений
 - **Указатели**: `&TreeNode` - ссылки, не аллоцируют
@@ -139,14 +139,6 @@ BFS был разработан в контексте поиска в графа
 
 #### Базовый обход:
 
-**Rust**:
-```rust
-// Аллокации:
-// - queue: VecDeque - O(w) где w - максимальная ширина уровня
-// - result: Vec<Vec<i32>> - O(n) для всех значений
-// Итого: O(n) памяти в худшем случае (полное дерево)
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -157,19 +149,11 @@ BFS был разработан в контексте поиска в графа
 
 ### Оптимизация памяти
 
-#### Rust оптимизации:
+#### оптимизации:
 
 1. **Предварительное выделение очереди**:
-```rust
-// ✅ Предварительное выделение
-let mut queue = VecDeque::with_capacity(max_width);
-```
 
 2. **Переиспользование векторов**:
-```rust
-// ✅ Переиспользование level вектора
-let mut level = Vec::with_capacity(queue.len());
-```
 
 #### Go оптимизации:
 
@@ -185,9 +169,9 @@ queue := make([]*TreeNode, 0, maxWidth)
 level := make([]int, 0, len(queue))
 ```
 
-### Сравнение Rust vs Go
+### Сравнение vs Go
 
-| Аспект | Rust | Go |
+| Аспект | | Go |
 |--------|------|-----|
 | Очередь | VecDeque в куче | Слайс в куче |
 | Результат | `Vec<Vec<i32>>` | [][]int |
@@ -204,38 +188,6 @@ level := make([]int, 0, len(queue))
 ### Специфичные оптимизации для Tree BFS
 
 #### 1. Оптимизация обхода:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn level_order_optimized(root: Option<Rc<RefCell<TreeNode>>>) -> Vec<Vec<i32>> {
-    let mut result = Vec::new();
-    if root.is_none() { return result; }
-    
-    let mut queue = VecDeque::with_capacity(100);
-    queue.push_back(root.unwrap());
-    
-    while !queue.is_empty() {
-        let level_size = queue.len();
-        let mut level = Vec::with_capacity(level_size);
-        
-        for _ in 0..level_size {
-            let node = queue.pop_front().unwrap();
-            let node_ref = node.borrow();
-            level.push(node_ref.val);
-            
-            if let Some(left) = &node_ref.left {
-                queue.push_back(left.clone());
-            }
-            if let Some(right) = &node_ref.right {
-                queue.push_back(right.clone());
-            }
-        }
-        result.push(level);
-    }
-    result
-}
-```
 
 **Go**:
 ```go
@@ -269,19 +221,9 @@ func levelOrderOptimized(root *TreeNode) [][]int {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Использование `VecDeque`**:
-```rust
-// ✅ Эффективная очередь с O(1) операциями
-use std::collections::VecDeque;
-```
+### Оптимизация для 1. **Использование `VecDeque`**:
 
 2. **Предварительное выделение**:
-```rust
-// ✅ Предварительное выделение
-let mut queue = VecDeque::with_capacity(max_width);
-```
 
 ### Оптимизация для Go
 
@@ -308,23 +250,7 @@ for i := 0; i < levelSize; i++ {
 
 ### Как профилировать Tree BFS
 
-#### Rust пример:
-
-```rust
-// benches/tree_bfs_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_level_order(c: &mut Criterion) {
-    let tree = create_test_tree(1000);
-    
-    c.bench_function("level_order_1000", |b| {
-        b.iter(|| level_order_optimized(black_box(tree.clone())))
-    });
-}
-
-criterion_group!(benches, bench_level_order);
-criterion_main!(benches);
-```
+#### пример:
 
 #### Go пример:
 
@@ -348,7 +274,7 @@ func BenchmarkLevelOrder(b *testing.B) {
 **Типичные узкие места**:
 - Операции с очередью
 - Создание векторов для уровней
-- Клонирование узлов (в Rust)
+- Клонирование узлов (в )
 
 ## Тестирование
 
@@ -360,28 +286,7 @@ func BenchmarkLevelOrder(b *testing.B) {
 
 ### Примеры тестов для Tree BFS
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_level_order_basic() {
-        let tree = create_tree(vec![Some(3), Some(9), Some(20), None, None, Some(15), Some(7)]);
-        let result = level_order_optimized(tree);
-        assert_eq!(result, vec![vec![3], vec![9, 20], vec![15, 7]]);
-    }
-
-    #[test]
-    fn test_level_order_empty() {
-        let tree = None;
-        let result = level_order_optimized(tree);
-        assert_eq!(result, Vec::<Vec<i32>>::new());
-    }
-}
-```
+#### тесты:
 
 #### Go тесты:
 
@@ -409,7 +314,7 @@ func TestLevelOrder(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
+#### :
 ```bash
 cargo test
 cargo test -- --nocapture
@@ -424,27 +329,7 @@ go test -bench=. -benchmem
 
 ### Бенчмарки
 
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn tree_bfs_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000];
-    
-    let mut group = c.benchmark_group("tree_bfs");
-    for size in sizes {
-        let tree = create_test_tree(size);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &tree,
-            |b, tree| {
-                b.iter(|| level_order_optimized(black_box(tree.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-```
+#### :
 
 #### Go:
 ```go
@@ -466,7 +351,7 @@ func BenchmarkTreeBFSSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 
 ## Примеры задач на LeetCode
@@ -488,6 +373,6 @@ func BenchmarkTreeBFSSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 

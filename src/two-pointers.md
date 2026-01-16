@@ -441,19 +441,6 @@ for i := 0; i < n; i++ {
 return 0, 0, false
 ```
 
-**Rust**:
-```rust
-// O(n²) - проверяем все пары
-for i in 0..n {
-    for j in (i + 1)..n {
-        if arr[i] + arr[j] == target {
-            return Some((i, j));
-        }
-    }
-}
-None
-```
-
 **Недостатки**: 
 - Временная сложность O(n²)
 - Много избыточных проверок
@@ -475,18 +462,6 @@ for i, num := range arr {
 return 0, 0, false
 ```
 
-**Rust**:
-```rust
-// O(n) время, O(n) память
-let mut seen = HashMap::new();
-for (i, &num) in arr.iter().enumerate() {
-    if let Some(&idx) = seen.get(&(target - num)) {
-        return Some((idx, i));
-    }
-    seen.insert(num, i);
-}
-None
-```
 
 **Сравнение**:
 - **Хеш-таблица**: O(n) время, O(n) память, работает для неотсортированных массивов
@@ -506,17 +481,6 @@ for i := 0; i < n; i++ {
     }
 }
 return 0, 0, false
-```
-
-**Rust**:
-```rust
-// O(n log n) - для каждого элемента ищем пару бинарным поиском
-for i in 0..n {
-    if let Some(j) = binary_search(&arr, target - arr[i], i + 1, n - 1) {
-        return Some((i, j));
-    }
-}
-None
 ```
 
 **Сравнение**:
@@ -540,16 +504,6 @@ None
 func twoPointersOpposite(arr []int, target int) (int, int, bool) {
     if len(arr) == 0 {
         return -1, -1, false
-    }
-    // ... остальной код
-}
-```
-
-**Rust**:
-```rust
-pub fn two_pointers_opposite(arr: &[i32], target: i32) -> Option<(usize, usize)> {
-    if arr.is_empty() {
-        return None;
     }
     // ... остальной код
 }
@@ -678,14 +632,6 @@ left, right := 0, len(arr)-1
 // Алгоритм не будет работать корректно
 ```
 
-**Rust**:
-```rust
-let arr = vec![3, 1, 4, 2];  // Не отсортирован!
-let mut left = 0;
-let mut right = arr.len() - 1;
-// Алгоритм не будет работать корректно
-```
-
 ✅ **Правильно**:
 
 **Go**:
@@ -693,14 +639,6 @@ let mut right = arr.len() - 1;
 arr := []int{3, 1, 4, 2}
 sort.Ints(arr)  // [1, 2, 3, 4]
 left, right := 0, len(arr)-1
-```
-
-**Rust**:
-```rust
-let mut arr = vec![3, 1, 4, 2];
-arr.sort();  // [1, 2, 3, 4]
-let mut left = 0;
-let mut right = arr.len() - 1;
 ```
 
 ### 2. Неправильное условие завершения
@@ -714,25 +652,11 @@ for left != right {  // Может пропустить пару (left, left)
 }
 ```
 
-**Rust**:
-```rust
-while left != right {  // Может пропустить пару (left, left)
-    // ...
-}
-```
-
 ✅ **Правильно**:
 
 **Go**:
 ```go
 for left < right {  // Явное условие
-    // ...
-}
-```
-
-**Rust**:
-```rust
-while left < right {  // Явное условие
     // ...
 }
 ```
@@ -748,13 +672,6 @@ if sum < target {
 }
 ```
 
-**Rust**:
-```rust
-if sum < target {
-    right -= 1;  // Неправильно! Нужно увеличивать сумму
-}
-```
-
 ✅ **Правильно**:
 
 **Go**:
@@ -763,15 +680,6 @@ if sum < target {
     left++  // Увеличиваем меньший элемент
 } else {
     right--  // Уменьшаем больший элемент
-}
-```
-
-**Rust**:
-```rust
-if sum < target {
-    left += 1;  // Увеличиваем меньший элемент
-} else {
-    right -= 1;  // Уменьшаем больший элемент
 }
 ```
 
@@ -786,18 +694,6 @@ for left < right {
     area := calculateArea(left, right)
     if area > maxArea {
         maxArea = area
-    }
-    // Забыли обновить указатели!
-}
-```
-
-**Rust**:
-```rust
-let mut max_area = 0;
-while left < right {
-    let area = calculate_area(left, right);
-    if area > max_area {
-        max_area = area;
     }
     // Забыли обновить указатели!
 }
@@ -821,20 +717,6 @@ for left < right {
 }
 ```
 
-**Rust**:
-```rust
-let mut max_area = 0;
-while left < right {
-    let area = calculate_area(left, right);
-    max_area = max_area.max(area);
-    if height[left] < height[right] {
-        left += 1;
-    } else {
-        right -= 1;
-    }
-}
-```
-
 ### 5. Off-by-one ошибки при работе с индексами
 
 ❌ **Неправильно**:
@@ -847,14 +729,6 @@ slow++  // Увеличили дважды!
 fast++
 ```
 
-**Rust**:
-```rust
-// Для задачи удаления дубликатов
-arr[slow] = arr[fast];
-slow += 1;  // Увеличили дважды!
-fast += 1;
-```
-
 ✅ **Правильно**:
 
 **Go**:
@@ -862,13 +736,6 @@ fast += 1;
 slow++
 arr[slow] = arr[fast]
 fast++
-```
-
-**Rust**:
-```rust
-slow += 1;
-arr[slow] = arr[fast];
-fast += 1;
 ```
 
 ### 6. Неправильная обработка граничных случаев
@@ -881,18 +748,6 @@ func twoSum(arr []int, target int) (int, int, bool) {
     left, right := 0, len(arr)-1
     // Не проверили пустой массив или массив из 1 элемента
     for left < right {
-        // ...
-    }
-}
-```
-
-**Rust**:
-```rust
-fn two_sum(arr: &[i32], target: i32) -> Option&lt;(usize, usize)&gt; {
-    let mut left = 0;
-    let mut right = arr.len() - 1;
-    // Не проверили пустой массив или массив из 1 элемента
-    while left < right {
         // ...
     }
 }
@@ -912,10 +767,6 @@ func twoSum(arr []int, target int) (int, int, bool) {
     }
 }
 ```
-
-**Rust**:
-```rust
-fn two_sum(arr: &[i32], target: i32) -> Option&lt;(usize, usize)&gt; {
     if arr.len() < 2 {
         return None;
     }
@@ -975,18 +826,6 @@ for i := 0; i < n-2; i++ {
 }
 ```
 
-**Rust**:
-```rust
-for i in 0..(n - 2) {
-    let mut left = i + 1;
-    let mut right = n - 1;
-    while left < right {
-        let sum = arr[i] + arr[left] + arr[right];
-        // Обработка...
-    }
-}
-```
-
 ### 2. Четыре указателя (4Sum):
 
 Два внешних цикла + два указателя внутри
@@ -1003,46 +842,17 @@ for i < len(arr1) && j < len(arr2) {
 }
 ```
 
-**Rust**:
-```rust
-let mut i = 0;
-let mut j = 0;  // Указатели на разные массивы
-while i < arr1.len() && j < arr2.len() {
-    // Сравниваем и добавляем меньший элемент
-}
-```
-
 ## Структуры данных: внутреннее устройство
 
 ### Используемые структуры данных в Two Pointers
 
 В шаблоне Two Pointers используются следующие структуры данных:
-- ****: Для работы с массивами и хранения результатов
+- **Slice (Go)**: Для работы с массивами и хранения результатов
 - **Указатели/индексы**: Для навигации по массивам (хранятся на стеке)
 
-###  (Rust) / Slice (Go)
+### Slice (Go)
 
 #### Как хранится в памяти:
-
-**Rust Vec&lt;T&gt;**:
-```
-В памяти Vec&lt;T&gt; хранится как структура из трех полей:
-┌─────────────────────────────────────────┐
-│ ptr: *mut T    │ Указатель на данные    │
-│ len: usize     │ Текущее количество     │
-│ capacity: usize│ Выделенная емкость    │
-└─────────────────────────────────────────┘
-         │
-         ▼
-    [данные в куче]
-    [T][T][T][T]...[T]
-```
-
-**Важные детали для Two Pointers**:
-- Доступ по индексу `arr[i]` - это прямой доступ к памяти: `ptr + i * size_of(T)`
-- Операция O(1) благодаря непрерывной памяти
-- Cache-friendly: последовательный доступ очень быстрый
-- Два указателя (left, right) - это просто `usize` на стеке, не аллоцируют память
 
 **Go Slice**:
 ```
@@ -1112,18 +922,14 @@ slice := arr[100:200]      // O(1) - только создание дескри�
 - **Экономия памяти**: Указатели left/right работают с одним базовым массивом
 - **Производительность**: Операции со слайсами быстрые, так как работают только с дескриптором
 
-**Сравнение с Rust Vec**:
-- **Rust Vec&lt;T&gt;**: Владеет данными. Копирование Vec копирует все данные
-- **Go Slice**: Дескриптор. Копирование слайса копирует только дескриптор (24 байта), данные не копируются
-
 #### Операции и их сложность:
 
-| Операция | Vec&lt;T&gt; (Rust) | Slice (Go) | Объяснение |
-|----------|---------------|------------|------------|
-| Доступ по индексу | O(1) | O(1) | Прямой доступ: `ptr + index * size_of(T)` |
-| Сравнение элементов | O(1) | O(1) | Просто сравнение значений в памяти |
-| Создание среза | O(1) | O(1) | Создается новый дескриптор, данные не копируются |
-| Копирование элемента | O(1) | O(1) | Копирование одного значения |
+| Операция | Slice (Go) | Объяснение |
+|----------|------------|------------|
+| Доступ по индексу | O(1) | Прямой доступ: `ptr + index * size_of(T)` |
+| Сравнение элементов | O(1) | Просто сравнение значений в памяти |
+| Создание среза | O(1) | Создается новый дескриптор, данные не копируются |
+| Копирование элемента | O(1) | Копирование одного значения |
 
 **Почему Two Pointers эффективен**:
 - Только O(1) операции доступа
@@ -1144,12 +950,6 @@ slice := arr[100:200]      // O(1) - только создание дескри�
 ### Указатели и индексы
 
 #### Как хранятся в памяти:
-
-**Rust**:
-```rust
-let left: usize = 0;   // На стеке, 8 байт (на 64-bit системе)
-let right: usize = 10; // На стеке, 8 байт
-```
 
 **Go**:
 ```go
@@ -1223,62 +1023,6 @@ func good(result []int) {
 }
 ```
 
-### Borrow Checker (Rust)
-
-#### Что это такое:
-
-**Borrow Checker** - система проверки заимствований в Rust, гарантирующая безопасность памяти.
-
-**Для Two Pointers**:
-- Обычно работаем с immutable ссылками `&[T]`
-- Множественные immutable borrows разрешены
-- Проблемы редко возникают, так как не изменяем исходный массив
-
-#### Примеры для Two Pointers:
-
-**Типичный паттерн**:
-```rust
-fn two_sum(nums: &[i32], target: i32) -> Vec&lt;usize&gt; {
-    let mut left = 0;
-    let mut right = nums.len() - 1;
-    
-    // nums - immutable borrow, можно использовать много раз
-    while left < right {
-        let sum = nums[left] + nums[right];  // OK: immutable borrow
-        // ...
-    }
-    
-    vec![left, right]  // создаем новый Vec для результата
-}
-```
-
-**Проблема: изменение во время итерации**:
-```rust
-// ❌ Не компилируется
-fn bad(nums: &mut Vec&lt;i32&gt;) {
-    let mut left = 0;
-    let mut right = nums.len() - 1;
-    while left < right {
-        nums.push(0);  // ERROR: нельзя изменять во время borrow
-        left += 1;
-    }
-}
-```
-
-**Решение**:
-```rust
-// ✅ Используем индексы без borrow
-fn good(nums: &mut Vec&lt;i32&gt;) {
-    let mut left = 0;
-    let mut right = nums.len() - 1;
-    let len = nums.len();  // сохраняем длину
-    while left < right {
-        // работаем с индексами, не с borrow
-        left += 1;
-    }
-}
-```
-
 ### Garbage Collector (Go)
 
 #### Как работает GC:
@@ -1310,43 +1054,9 @@ var resultPool = sync.Pool{
 }
 ```
 
-### Ownership и Move Semantics (Rust)
-
-#### Концепция владения:
-
-**Для Two Pointers**:
-- Входные данные: обычно `&[T]` (slice, не владеет)
-- Указатели: `usize` (Copy, не владеют)
-- Результаты: `Vec&lt;T&gt;` (владеет данными)
-
-**Пример**:
-```rust
-fn two_pointers_example(nums: &[i32]) -> Vec&lt;usize&gt; {
-    // nums - заимствование, не владеем
-    let mut left = 0;  // usize, Copy
-    let mut right = nums.len() - 1;  // usize, Copy
-    
-    // ...
-    
-    vec![left, right]  // создаем новый Vec, владеем результатом
-}
-```
-
-**Почему `&[T]` вместо `Vec&lt;T&gt;`**:
-- `&[T]` - это slice, не владеет данными
-- Можно использовать без передачи владения
-- Более гибко: работает с любым слайсом (Vec, array, etc.)
-
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
-
-#### Rust: Владение и аллокации
-
-В Rust для шаблона Two Pointers:
-- **Указатели (индексы)**: Хранятся на стеке как `usize` - O(1)
-- **Ссылки на элементы**: `&arr[i]` не аллоцируют память
-- **Результаты**: Если возвращаем `Vec`, происходит аллокация в куче
+### Теория аллокаций в Go
 
 #### Go: Сборщик мусора
 
@@ -1359,14 +1069,6 @@ fn two_pointers_example(nums: &[i32]) -> Vec&lt;usize&gt; {
 
 #### Базовый подход (поиск пары):
 
-**Rust**:
-```rust
-// Аллокации:
-// - left, right: usize (стек) - O(1)
-// - Результат: Option&lt;(usize, usize)&gt; (стек) - O(1)
-// Итого: O(1) памяти, никаких аллокаций в куче
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -1377,14 +1079,6 @@ fn two_pointers_example(nums: &[i32]) -> Vec&lt;usize&gt; {
 
 #### С возвратом всех пар:
 
-**Rust**:
-```rust
-// Аллокации:
-// - result: Vec&lt;(usize, usize)&gt; - O(k) где k - количество пар
-// - left, right: usize (стек) - O(1)
-// Итого: O(k) памяти в куче
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -1394,28 +1088,6 @@ fn two_pointers_example(nums: &[i32]) -> Vec&lt;usize&gt; {
 ```
 
 ### Оптимизация памяти
-
-#### Rust оптимизации:
-
-1. **Предварительное выделение результата**:
-```rust
-// ✅ Хорошо: предварительное выделение
-let mut result = Vec::with_capacity(expected_pairs);
-```
-
-2. **Избежание клонирования**:
-```rust
-// ✅ Возвращаем индексы вместо значений
-fn find_pair(arr: &[i32], target: i32) -> Option&lt;(usize, usize)&gt; {
-    // ...
-}
-```
-
-3. **Использование итераторов**:
-```rust
-// ✅ Итераторы не аллоцируют промежуточные структуры
-arr.iter().enumerate().filter(|(i, &x)| x > 0)
-```
 
 #### Go оптимизации:
 
@@ -1436,15 +1108,6 @@ result := make([][]int, 0, expectedPairs)
 result = result[:0] // вместо make([][]int, 0)
 ```
 
-### Сравнение Rust vs Go
-
-| Аспект | Rust | Go |
-|--------|------|-----|
-| Индексы | usize на стеке | int на стеке |
-| Результаты | Vec аллоцируется в куче | Слайсы в куче |
-| Производительность | Предсказуемая | Может быть паузы GC |
-| Оптимизация | На этапе компиляции | Runtime |
-
 ## Оптимизация производительности
 
 ### Общие техники
@@ -1464,25 +1127,6 @@ result = result[:0] // вместо make([][]int, 0)
 ### Специфичные оптимизации для Two Pointers
 
 #### 1. Оптимизация для отсортированных массивов:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn two_sum_optimized(arr: &[i32], target: i32) -> Option&lt;(usize, usize)&gt; {
-    let mut left = 0;
-    let mut right = arr.len().saturating_sub(1);
-    
-    while left < right {
-        let sum = arr[left] + arr[right];
-        match sum.cmp(&target) {
-            std::cmp::Ordering::Equal => return Some((left, right)),
-            std::cmp::Ordering::Less => left += 1,
-            std::cmp::Ordering::Greater => right -= 1,
-        }
-    }
-    None
-}
-```
 
 **Go**:
 ```go
@@ -1507,37 +1151,8 @@ func twoSumOptimized(arr []int, target int) (int, int, bool) {
 
 #### 2. Оптимизация для удаления дубликатов:
 
-**Использование HashSet для быстрой проверки**:
-```rust
-use std::collections::HashSet;
-
-// Для проверки уникальности
-let mut seen = HashSet::with_capacity(n);
-```
-
-### Оптимизация для Rust
-
-1. **Использование `cmp` вместо if-else**:
-```rust
-// ✅ Более идиоматично
-match sum.cmp(&target) {
-    Ordering::Equal => ...,
-    Ordering::Less => ...,
-    Ordering::Greater => ...,
-}
-```
-
-2. **Избежание bounds checking**:
-```rust
-// Компилятор Rust оптимизирует проверки границ
-// Используйте итераторы для дополнительной оптимизации
-```
-
-3. **Использование `get_unchecked` (unsafe, только если уверены)**:
-```rust
-// ⚠️ Только если абсолютно уверены в границах
-unsafe { arr.get_unchecked(i) }
-```
+**Использование map для быстрой проверки**:
+Для проверки уникальности используйте map с предварительным выделением.
 
 ### Оптимизация для Go
 
@@ -1568,24 +1183,6 @@ for i := range arr {
 См. раздел "Профилирование" в [Sliding Window](./sliding-window.md#профилирование) для общих инструментов.
 
 ### Как профилировать Two Pointers
-
-#### Rust пример:
-
-```rust
-// benches/two_pointers_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_two_sum(c: &mut Criterion) {
-    let arr: Vec&lt;i32&gt; = (0..10000).collect();
-    
-    c.bench_function("two_sum_10000", |b| {
-        b.iter(|| two_sum_optimized(black_box(&arr), 5000))
-    });
-}
-
-criterion_group!(benches, bench_two_sum);
-criterion_main!(benches);
-```
 
 #### Go пример:
 
@@ -1717,41 +1314,6 @@ func twoPointersWithInvariants(arr []int, target int) (int, int, bool) {
 
 ### Примеры тестов для Two Pointers
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_two_sum_basic() {
-        let arr = vec![2, 7, 11, 15];
-        assert_eq!(two_sum_optimized(&arr, 9), Some((0, 1)));
-    }
-
-    #[test]
-    fn test_two_sum_no_solution() {
-        let arr = vec![1, 2, 3, 4];
-        assert_eq!(two_sum_optimized(&arr, 10), None);
-    }
-
-    #[test]
-    fn test_two_sum_empty() {
-        let arr = vec![];
-        assert_eq!(two_sum_optimized(&arr, 0), None);
-    }
-
-    #[test]
-    fn test_remove_duplicates() {
-        let mut arr = vec![1, 1, 2, 2, 3, 3];
-        let len = remove_duplicates(&mut arr);
-        assert_eq!(len, 3);
-        assert_eq!(&arr[..len], &[1, 2, 3]);
-    }
-}
-```
-
 #### Go тесты:
 
 ```go
@@ -1779,13 +1341,6 @@ func TestTwoSum(t *testing.T) {
 ```
 
 ### Запуск тестов
-
-#### Rust:
-```bash
-cargo test
-cargo test -- --nocapture
-cargo bench
-```
 
 #### Go:
 ```bash
@@ -1837,28 +1392,6 @@ go test -bench=. -benchmem
 **Вывод**: Two Pointers быстрее HashMap для отсортированных массивов и использует меньше памяти.
 
 ### Бенчмарки
-
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn two_pointers_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000, 100000];
-    
-    let mut group = c.benchmark_group("two_pointers");
-    for size in sizes {
-        let arr: Vec&lt;i32&gt; = (0..size).collect();
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &arr,
-            |b, arr| {
-                b.iter(|| two_sum_optimized(black_box(arr), size as i32 / 2));
-            },
-        );
-    }
-    group.finish();
-}
-```
 
 #### Go:
 ```go
@@ -1945,217 +1478,6 @@ func twoSumIdiomatic(arr []int, target int) (leftIdx, rightIdx int, found bool) 
     }
     
     return -1, -1, false
-}
-```
-
-#### Идиоматичный Rust код:
-
-```rust
-// ✅ Идиоматичный Rust: используем Option и паттерн-матчинг
-pub fn two_sum_idiomatic(arr: &[i32], target: i32) -> Option<(usize, usize)> {
-    let (mut left, mut right) = (0, arr.len().saturating_sub(1));
-    
-    while left < right {
-        match (arr[left] + arr[right]).cmp(&target) {
-            std::cmp::Ordering::Equal => return Some((left, right)),
-            std::cmp::Ordering::Less => left += 1,
-            std::cmp::Ordering::Greater => right -= 1,
-        }
-    }
-    
-    None
-}
-```
-
-### Rust
-
-```rust
-// Примеры использования шаблона Two Pointers на Rust
-
-/// Пример 1: Поиск двух чисел с заданной суммой в отсортированном массиве
-/// 
-/// Задача: Найти два числа в отсортированном массиве, сумма которых равна target
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn two_sum_sorted(arr: &[i32], target: i32) -> Option&lt;(usize, usize)&gt; {
-    let mut left = 0;
-    let mut right = arr.len().saturating_sub(1);
-
-    while left < right {
-        let sum = arr[left] + arr[right];
-        
-        if sum == target {
-            return Some((left, right));
-        } else if sum < target {
-            left += 1;
-        } else {
-            right -= 1;
-        }
-    }
-
-    None
-}
-
-/// Пример 2: Удаление дубликатов из отсортированного массива
-/// 
-/// Задача: Удалить дубликаты из отсортированного массива на месте
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn remove_duplicates(nums: &mut [i32]) -> usize {
-    if nums.is_empty() {
-        return 0;
-    }
-
-    let mut slow = 0;
-
-    for fast in 1..nums.len() {
-        if nums[slow] != nums[fast] {
-            slow += 1;
-            nums[slow] = nums[fast];
-        }
-    }
-
-    slow + 1
-}
-
-/// Пример 3: Три числа с нулевой суммой (3Sum)
-/// 
-/// Задача: Найти все уникальные тройки чисел, сумма которых равна нулю
-/// Временная сложность: O(n²)
-/// Пространственная сложность: O(1) без учета результата
-pub fn three_sum(mut nums: Vec&lt;i32&gt;) -> Vec&lt;Vec<i32&gt;> {
-    nums.sort();
-    let mut result = Vec::new();
-    let n = nums.len();
-
-    for i in 0..n.saturating_sub(2) {
-        // Пропускаем дубликаты для первого числа
-        if i > 0 && nums[i] == nums[i - 1] {
-            continue;
-        }
-
-        let mut left = i + 1;
-        let mut right = n - 1;
-        let target = -nums[i];
-
-        while left < right {
-            let sum = nums[left] + nums[right];
-
-            if sum == target {
-                result.push(vec![nums[i], nums[left], nums[right]]);
-
-                // Пропускаем дубликаты
-                while left < right && nums[left] == nums[left + 1] {
-                    left += 1;
-                }
-                while left < right && nums[right] == nums[right - 1] {
-                    right -= 1;
-                }
-
-                left += 1;
-                right -= 1;
-            } else if sum < target {
-                left += 1;
-            } else {
-                right -= 1;
-            }
-        }
-    }
-
-    result
-}
-
-/// Пример 4: Контейнер с наибольшим количеством воды
-/// 
-/// Задача: Найти два столбца, которые вместе с осью X образуют контейнер,
-/// содержащий наибольшее количество воды
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn max_area(height: Vec&lt;i32&gt;) -> i32 {
-    let mut left = 0;
-    let mut right = height.len() - 1;
-    let mut max_area = 0;
-
-    while left < right {
-        let width = (right - left) as i32;
-        let current_area = width * height[left].min(height[right]);
-        max_area = max_area.max(current_area);
-
-        // Перемещаем указатель с меньшей высотой
-        if height[left] < height[right] {
-            left += 1;
-        } else {
-            right -= 1;
-        }
-    }
-
-    max_area
-}
-
-/// Пример 5: Захват дождевой воды (Trapping Rain Water)
-/// 
-/// Задача: Вычислить, сколько воды можно захватить между столбцами
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn trap_rain_water(height: Vec&lt;i32&gt;) -> i32 {
-    if height.is_empty() {
-        return 0;
-    }
-
-    let mut left = 0;
-    let mut right = height.len() - 1;
-    let mut left_max = 0;
-    let mut right_max = 0;
-    let mut water = 0;
-
-    while left < right {
-        if height[left] < height[right] {
-            if height[left] >= left_max {
-                left_max = height[left];
-            } else {
-                water += left_max - height[left];
-            }
-            left += 1;
-        } else {
-            if height[right] >= right_max {
-                right_max = height[right];
-            } else {
-                water += right_max - height[right];
-            }
-            right -= 1;
-        }
-    }
-
-    water
-}
-
-/// Пример 6: Квадраты отсортированного массива
-/// 
-/// Задача: Вернуть массив квадратов каждого числа в отсортированном порядке
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(n)
-pub fn sorted_squares(nums: Vec&lt;i32&gt;) -> Vec&lt;i32&gt; {
-    let n = nums.len();
-    let mut result = vec![0; n];
-    let mut left = 0;
-    let mut right = n - 1;
-    let mut pos = n - 1;
-
-    while left <= right {
-        let left_sq = nums[left] * nums[left];
-        let right_sq = nums[right] * nums[right];
-
-        if left_sq > right_sq {
-            result[pos] = left_sq;
-            left += 1;
-        } else {
-            result[pos] = right_sq;
-            right -= 1;
-        }
-        pos -= 1;
-    }
-
-    result
 }
 ```
 

@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Go">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
+            window.path_to_searchindex_js = "searchindex-469fa2ee.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -453,16 +453,6 @@ func mergeKSortedArrays(arrays [][]int) []int {
     // ... остальной код
 }
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn merge_k_arrays(arrays: Vec&lt;Vec&lt;i32&gt;&gt;) -&gt; Vec&lt;i32&gt; {
-    if arrays.is_empty() {
-        return vec![];
-    }
-    // ... остальной код
-}
-<span class="boring">}</span></code></pre>
 <h3 id="2-один-массив"><a class="header" href="#2-один-массив">2. Один массив</a></h3>
 <p><strong>Проблема</strong>: Если есть только один массив, слияние не требуется.</p>
 <p><strong>Решение</strong>:</p>
@@ -539,7 +529,7 @@ if allEmpty {
 <li>****: K отсортированных массивов</li>
 <li><strong>Структура элемента</strong>: (значение, индекс массива, позиция в массиве)</li>
 </ul>
-<h3 id="rust--heap-go"><a class="header" href="#rust--heap-go">(Rust) / Heap (Go)</a></h3>
+<h3 id="-heap-go"><a class="header" href="#-heap-go">/ Heap (Go)</a></h3>
 <h4 id="что-такое-heap-куча"><a class="header" href="#что-такое-heap-куча">Что такое Heap (Куча)?</a></h4>
 <p><strong>Heap (куча)</strong> — это специализированная древовидная структура данных, которая удовлетворяет свойству кучи: для max-heap родитель всегда больше или равен детям, для min-heap родитель всегда меньше или равен детям.</p>
 <p><strong>Ключевые характеристики:</strong></p>
@@ -549,16 +539,6 @@ if allEmpty {
 <li><strong>Эффективные операции</strong>: O(log n) для вставки и удаления, O(1) для доступа к корню</li>
 </ul>
 <h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>Rust BinaryHeap с кастомной структурой</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(PartialEq, Eq)]
-struct Element {
-    val: i32,
-    array_idx: usize,
-    pos: usize,
-}
-<span class="boring">}</span></code></pre>
 <p><strong>Куча хранит</strong>:</p>
 <ul>
 <li>Минимальный элемент из каждого массива</li>
@@ -584,7 +564,7 @@ struct Element {
 <li>O(k) памяти вместо O(n)</li>
 <li>Оптимально для больших k</li>
 </ul>
-<h3 id="-rust--t-go"><a class="header" href="#-rust--t-go">&gt; (Rust) / [][]T (Go)</a></h3>
+<h3 id="---t-go"><a class="header" href="#---t-go">&gt;  / [][]T (Go)</a></h3>
 <h4 id="k-отсортированных-массивов"><a class="header" href="#k-отсортированных-массивов">K отсортированных массивов:</a></h4>
 <p><strong>Структура</strong>:</p>
 <pre><code>┌─────────────────────────────────────────┐
@@ -610,16 +590,6 @@ struct Element {
 <li>Массивы в куче</li>
 <li>Результаты могут escape</li>
 </ul>
-<h3 id="borrow-checker-rust"><a class="header" href="#borrow-checker-rust">Borrow Checker (Rust)</a></h3>
-<p><strong>Типичный паттерн</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn merge_k_sorted(arrays: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;) -&gt; Vec&amp;lt;i32&amp;gt; {
-    let mut heap = BinaryHeap::new();
-    let mut indices = vec![0; arrays.len()];
-    // ...
-}
-<span class="boring">}</span></code></pre>
 <h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
 <p><strong>Для K-way Merge</strong>:</p>
 <ul>
@@ -627,22 +597,8 @@ struct Element {
 <li>Массивы в куче</li>
 <li>Минимизация k критична</li>
 </ul>
-<h3 id="ownership-и-move-semantics-rust"><a class="header" href="#ownership-и-move-semantics-rust">Ownership и Move Semantics (Rust)</a></h3>
-<p><strong>Концепция владения</strong>:</p>
-<ul>
-<li><code>Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;</code> владеет массивами</li>
-<li><code>BinaryHeap</code> владеет элементами</li>
-<li>RAII гарантирует освобождение</li>
-</ul>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
-<h4 id="rust-k-way-merge"><a class="header" href="#rust-k-way-merge">Rust: K-way Merge</a></h4>
-<p>В Rust для K-way Merge:</p>
-<ul>
-<li><strong>Куча</strong>: <code>BinaryHeap&amp;lt;(i32, usize, usize)&amp;gt;</code> - O(k) в куче</li>
-<li><strong>Результат</strong>: <code>Vec&amp;lt;i32&amp;gt;</code> - O(n) где n - общее количество элементов</li>
-<li><strong>Индексы</strong>: <code>usize</code> на стеке - O(1)</li>
-</ul>
+<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
 <h4 id="go-k-way-merge"><a class="header" href="#go-k-way-merge">Go: K-way Merge</a></h4>
 <p>В Go:</p>
 <ul>
@@ -652,14 +608,6 @@ struct Element {
 </ul>
 <h3 id="анализ-аллокаций-для-k-way-merge"><a class="header" href="#анализ-аллокаций-для-k-way-merge">Анализ аллокаций для K-way Merge</a></h3>
 <h4 id="подход-с-кучей"><a class="header" href="#подход-с-кучей">Подход с кучей:</a></h4>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Аллокации:
-// - heap: BinaryHeap&amp;lt;(i32, usize, usize)&amp;gt; - O(k) в куче
-// - result: Vec&amp;lt;i32&amp;gt; - O(n) где n - общее количество элементов
-// Итого: O(k) + O(n) памяти
-<span class="boring">}</span></code></pre>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">// Аллокации:
 // - heap: ItemHeap - O(k) в куче
@@ -667,23 +615,6 @@ struct Element {
 // Итого: O(k) + O(n) памяти
 </code></pre>
 <h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
-<ol>
-<li><strong>Предварительное выделение кучи</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Предварительное выделение
-let mut heap = BinaryHeap::with_capacity(k);
-<span class="boring">}</span></code></pre>
-<ol start="2">
-<li><strong>Предварительное выделение результата</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Предварительное выделение
-let mut result = Vec::with_capacity(total_elements);
-<span class="boring">}</span></code></pre>
 <h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
 <ol>
 <li><strong>Предварительное выделение кучи</strong>:</li>
@@ -697,19 +628,11 @@ heap := make(ItemHeap, 0, k)
 <pre><code class="language-go">// ✅ Предварительное выделение
 result := make([]int, 0, totalElements)
 </code></pre>
-<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
-</thead>
-<tbody>
-<tr><td>Куча</td><td>BinaryHeap в куче</td><td>container/heap в куче</td></tr>
-<tr><td>Результат</td><td>Vec в куче</td><td>Слайс в куче</td></tr>
-<tr><td>Память</td><td>O(k) + O(n)</td><td>O(k) + O(n)</td></tr>
-</tbody>
-</table>
-</div>
+<p>| Аспект | Go |
+|––––|——|—–|
+| Куча | BinaryHeap в куче | container/heap в куче |
+| Результат | Vec в куче | Слайс в куче |
+| Память | O(k) + O(n) | O(k) + O(n) |</p>
 <h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
 <h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
 <ol>
@@ -719,35 +642,6 @@ result := make([]int, 0, totalElements)
 </ol>
 <h3 id="специфичные-оптимизации-для-k-way-merge"><a class="header" href="#специфичные-оптимизации-для-k-way-merge">Специфичные оптимизации для K-way Merge</a></h3>
 <h4 id="1-оптимизация-с-кучей"><a class="header" href="#1-оптимизация-с-кучей">1. Оптимизация с кучей:</a></h4>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Оптимизированная версия
-pub fn merge_k_lists_optimized(lists: Vec&amp;lt;Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
-    let mut heap = BinaryHeap::with_capacity(lists.len());
-    
-    for (idx, list) in lists.iter().enumerate() {
-        if let Some(node) = list {
-            heap.push((Reverse(node.val), idx));
-        }
-    }
-    
-    let mut dummy = Box::new(ListNode::new(0));
-    let mut current = &amp;mut dummy;
-    
-    while let Some((Reverse(val), idx)) = heap.pop() {
-        current.next = Some(Box::new(ListNode::new(val)));
-        current = current.next.as_mut().unwrap();
-        
-        // Добавляем следующий элемент из того же списка
-        if let Some(next) = &amp;lists[idx].as_ref().unwrap().next {
-            heap.push((Reverse(next.val), idx));
-        }
-    }
-    
-    dummy.next
-}
-<span class="boring">}</span></code></pre>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">// ✅ Оптимизированная версия
 func mergeKListsOptimized(lists []*ListNode) *ListNode {
@@ -777,24 +671,14 @@ func mergeKListsOptimized(lists []*ListNode) *ListNode {
     return dummy.Next
 }
 </code></pre>
-<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
 <ol>
-<li><strong>Использование <code>Reverse</code> для min heap</strong>:</li>
+<li>
+<p><strong>Использование <code>Reverse</code> для min heap</strong>:</p>
+</li>
+<li>
+<p><strong>Предварительное выделение</strong>:</p>
+</li>
 </ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Эффективная min heap
-use std::cmp::Reverse;
-heap.push((Reverse(val), idx));
-<span class="boring">}</span></code></pre>
-<ol start="2">
-<li><strong>Предварительное выделение</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Предварительное выделение
-let mut heap = BinaryHeap::with_capacity(k);
-<span class="boring">}</span></code></pre>
 <h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
 <ol>
 <li><strong>Предварительное выделение кучи</strong>:</li>
@@ -812,79 +696,6 @@ heap.Push(&amp;heap, item)
 <h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-k-way-merge"><a class="header" href="#как-профилировать-k-way-merge">Как профилировать K-way Merge</a></h3>
-<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// benches/k_way_merge_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-// Определение ListNode для связанных списков
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct ListNode {
-    pub val: i32,
-    pub next: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;,
-}
-
-impl ListNode {
-    #[inline]
-    fn new(val: i32) -&gt; Self {
-        ListNode { next: None, val }
-    }
-}
-
-// Вспомогательная функция для создания связанного списка из вектора
-fn create_list(vals: Vec&amp;lt;i32&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
-    if vals.is_empty() {
-        return None;
-    }
-    let mut head = Box::new(ListNode::new(vals[0]));
-    let mut current = &amp;mut head;
-    for val in vals.into_iter().skip(1) {
-        current.next = Some(Box::new(ListNode::new(val)));
-        current = current.next.as_mut().unwrap();
-    }
-    Some(head)
-}
-
-// Вспомогательная функция для преобразования списка в вектор
-fn list_to_vec(mut head: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;) -&gt; Vec&amp;lt;i32&amp;gt; {
-    let mut result = Vec::new();
-    while let Some(node) = head {
-        result.push(node.val);
-        head = node.next;
-    }
-    result
-}
-
-// Вспомогательная функция для создания тестовых списков
-fn create_test_lists(k: usize, size_per_list: usize) -&gt; Vec&amp;lt;Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;&amp;gt; {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
-    let mut lists = Vec::new();
-    
-    for _ in 0..k {
-        let mut vals = Vec::new();
-        for _ in 0..size_per_list {
-            vals.push(rng.gen_range(0..1000));
-        }
-        vals.sort();
-        lists.push(create_list(vals));
-    }
-    
-    lists
-}
-
-fn bench_merge_k_lists(c: &amp;mut Criterion) {
-    let lists = create_test_lists(10, 1000);
-    
-    c.bench_function("merge_10_lists", |b| {
-        b.iter(|| merge_k_lists_optimized(black_box(lists.clone())))
-    });
-}
-
-criterion_group!(benches, bench_merge_k_lists);
-criterion_main!(benches);
-<span class="boring">}</span></code></pre>
 <h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkMergeKLists(b *testing.B) {
     lists := createTestLists(10, 1000)
@@ -1033,34 +844,6 @@ criterion_main!(benches);
 <li><strong>Стресс-тесты</strong>: Большое количество списков</li>
 </ol>
 <h3 id="примеры-тестов-для-k-way-merge"><a class="header" href="#примеры-тестов-для-k-way-merge">Примеры тестов для K-way Merge</a></h3>
-<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_merge_k_lists_basic() {
-        // Используем вспомогательные функции create_list и list_to_vec
-        // (определены выше в разделе профилирования)
-        let lists = vec![
-            create_list(vec![1, 4, 5]),
-            create_list(vec![1, 3, 4]),
-            create_list(vec![2, 6]),
-        ];
-        let result = merge_k_lists_optimized(lists);
-        assert_eq!(list_to_vec(result), vec![1, 1, 2, 3, 4, 4, 5, 6]);
-    }
-
-    #[test]
-    fn test_merge_k_lists_empty() {
-        let lists = vec![];
-        let result = merge_k_lists_optimized(lists);
-        assert_eq!(list_to_vec(result), Vec::&amp;lt;i32&amp;gt;::new());
-    }
-}
-<span class="boring">}</span></code></pre>
 <h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
 <pre><code class="language-go">func TestMergeKLists(t *testing.T) {
     tests := []struct {
@@ -1087,38 +870,11 @@ mod tests {
 }
 </code></pre>
 <h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
-<pre><code class="language-bash">cargo test
-cargo test -- --nocapture
-cargo bench
-</code></pre>
 <h4 id="go"><a class="header" href="#go">Go:</a></h4>
 <pre><code class="language-bash">go test -v
 go test -bench=. -benchmem
 </code></pre>
 <h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="rust-1"><a class="header" href="#rust-1">Rust:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn k_way_merge_benchmark(c: &amp;mut Criterion) {
-    let k_values = vec![5, 10, 20];
-    
-    let mut group = c.benchmark_group("k_way_merge");
-    for k in k_values {
-        let lists = create_test_lists(k, 100);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(k),
-            &amp;lists,
-            |b, lists| {
-                b.iter(|| merge_k_lists_optimized(black_box(lists.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-<span class="boring">}</span></code></pre>
 <h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
 <pre><code class="language-go">func BenchmarkKWayMergeSizes(b *testing.B) {
     kValues := []int{5, 10, 20}
@@ -1262,168 +1018,6 @@ func mergeKArraysIdiomatic(arrays [][]int) []int {
     return result
 }
 </code></pre>
-<h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Примеры использования шаблона K-way Merge на Rust
-
-use std::collections::BinaryHeap;
-use std::cmp::Reverse;
-
-// Определение узла связанного списка
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct ListNode {
-    pub val: i32,
-    pub next: Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;,
-}
-
-impl ListNode {
-    #[inline]
-    pub fn new(val: i32) -&gt; Self {
-        ListNode { next: None, val }
-    }
-}
-
-/// Пример 1: Слияние K отсортированных списков
-/// 
-/// Задача: Объединить K отсортированных связанных списков в один
-/// Временная сложность: O(n log k), где n - общее количество узлов
-/// Пространственная сложность: O(k)
-pub fn merge_k_lists(lists: Vec&amp;lt;Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt;&amp;gt;) -&gt; Option&amp;lt;Box&amp;lt;ListNode&amp;gt;&amp;gt; {
-    let mut heap = BinaryHeap::new();
-
-    // Добавляем первые элементы всех списков в кучу
-    for (idx, list) in lists.iter().enumerate() {
-        if let Some(node) = list {
-            heap.push(Reverse((node.val, idx)));
-        }
-    }
-
-    let mut dummy = Box::new(ListNode::new(0));
-    let mut current = &amp;mut dummy;
-    let mut lists = lists;
-
-    while let Some(Reverse((val, idx))) = heap.pop() {
-        // Создаем новый узел
-        current.next = Some(Box::new(ListNode::new(val)));
-        current = current.next.as_mut().unwrap();
-
-        // Перемещаемся к следующему узлу в списке
-        if let Some(node) = &amp;mut lists[idx] {
-            *node = node.next.take();
-            if let Some(next_node) = &amp;node {
-                heap.push(Reverse((next_node.val, idx)));
-            }
-        }
-    }
-
-    dummy.next
-}
-
-/// Пример 2: Слияние K отсортированных массивов
-/// 
-/// Задача: Объединить K отсортированных массивов в один отсортированный массив
-/// Временная сложность: O(n log k)
-/// Пространственная сложность: O(k)
-pub fn merge_k_arrays(arrays: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;) -&gt; Vec&amp;lt;i32&amp;gt; {
-    let mut heap = BinaryHeap::new();
-    let mut indices = vec![0; arrays.len()];
-    let mut result = Vec::new();
-
-    // Добавляем первые элементы всех массивов в кучу
-    for (idx, arr) in arrays.iter().enumerate() {
-        if !arr.is_empty() {
-            heap.push(Reverse((arr[0], idx)));
-        }
-    }
-
-    while let Some(Reverse((val, arr_idx))) = heap.pop() {
-        result.push(val);
-        indices[arr_idx] += 1;
-
-        // Добавляем следующий элемент из того же массива
-        if indices[arr_idx] &lt; arrays[arr_idx].len() {
-            let next_val = arrays[arr_idx][indices[arr_idx]];
-            heap.push(Reverse((next_val, arr_idx)));
-        }
-    }
-
-    result
-}
-
-/// Пример 3: K-й наименьший элемент в отсортированной матрице
-/// 
-/// Задача: Найти K-й наименьший элемент в матрице, где каждая строка и столбец отсортированы
-/// Временная сложность: O(k log k)
-/// Пространственная сложность: O(k)
-pub fn kth_smallest(matrix: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;, k: i32) -&gt; i32 {
-    let mut heap = BinaryHeap::new();
-    let n = matrix.len();
-
-    // Добавляем первые элементы каждой строки
-    for i in 0..n.min(k as usize) {
-        heap.push(Reverse((matrix[i][0], i, 0)));
-    }
-
-    let mut count = 0;
-    let mut result = 0;
-
-    while let Some(Reverse((val, row, col))) = heap.pop() {
-        count += 1;
-        if count == k {
-            result = val;
-            break;
-        }
-
-        // Добавляем следующий элемент из той же строки
-        if col + 1 &lt; n {
-            heap.push(Reverse((matrix[row][col + 1], row, col + 1)));
-        }
-    }
-
-    result
-}
-
-/// Пример 4: K пар с наименьшими суммами
-/// 
-/// Задача: Найти K пар (u, v), где u из nums1, v из nums2, с наименьшими суммами
-/// Временная сложность: O(k log k)
-/// Пространственная сложность: O(k)
-pub fn k_smallest_pairs(nums1: Vec&amp;lt;i32&amp;gt;, nums2: Vec&amp;lt;i32&amp;gt;, k: i32) -&gt; Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; {
-    let mut heap = BinaryHeap::new();
-    let k = k as usize;
-
-    // Добавляем первые пары
-    for i in 0..nums1.len().min(k) {
-        heap.push(Reverse((
-            nums1[i] + nums2[0],
-            i,
-            0,
-        )));
-    }
-
-    let mut result = Vec::new();
-
-    while let Some(Reverse((sum, i, j))) = heap.pop() {
-        result.push(vec![nums1[i], nums2[j]]);
-
-        if result.len() == k {
-            break;
-        }
-
-        // Добавляем следующую пару из того же элемента nums1
-        if j + 1 &lt; nums2.len() {
-            heap.push(Reverse((
-                nums1[i] + nums2[j + 1],
-                i,
-                j + 1,
-            )));
-        }
-    }
-
-    result
-}
-<span class="boring">}</span></code></pre>
 <h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
 <pre><code class="language-go">package main
 

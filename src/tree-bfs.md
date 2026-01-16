@@ -270,16 +270,6 @@ func levelOrder(root *TreeNode) [][]int {
 }
 ```
 
-**Rust**:
-```rust
-pub fn level_order(root: Option<Rc<RefCell<TreeNode>>>) -> Vec<Vec<i32>> {
-    if root.is_none() {
-        return vec![];
-    }
-    // ... остальной код
-}
-```
-
 ### 2. Дерево из одного узла
 
 **Проблема**: Если дерево содержит только корневой узел, результат должен содержать один уровень с одним элементом.
@@ -359,7 +349,7 @@ func findPath(root *TreeNode, target int) []int {
 ### Используемые структуры данных в Tree BFS
 
 В шаблоне Tree BFS используются следующие структуры данных:
-- **TreeNode**: Узлы дерева (Box&lt;T&gt; в Rust, указатели в Go)
+- **TreeNode**: Узлы дерева (, указатели в Go)
 - ****: Очередь для BFS обхода
 
 ### TreeNode (Узел дерева)
@@ -381,19 +371,6 @@ func findPath(root *TreeNode, target int) []int {
 
 #### Как хранится в памяти:
 
-**Rust (Box&lt;T&gt;)**:
-```
-Узел дерева:
-┌─────────────────────────────────────────┐
-│ Box&lt;TreeNode&gt;                            │
-│ ┌─────────────┐                         │
-│ │ val: i32    │ Значение                │
-│ │ left: Option│ Левый потомок           │
-│ │ right: Option│ Правый потомок         │
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-```
-
 **Go (указатели)**:
 ```
 Узел дерева:
@@ -407,19 +384,19 @@ func findPath(root *TreeNode, target int) []int {
 └─────────────────────────────────────────┘
 ```
 
-### `VecDeque<T>` (Rust) / Queue (Go)
+### Queue (Go)
 
 #### Как хранится в памяти:
 
-**Rust `VecDeque<T>`**:
+**Go Queue (через slice)**:
 ```
 Кольцевой буфер:
 ┌─────────────────────────────────────────┐
-│ VecDeque<Option&lt;Box&lt;TreeNode&gt;&gt;>         │
+│ Queue (slice)                              │
 │ ┌─────────────┐                         │
 │ │ head: usize │ Индекс начала           │
 │ │ tail: usize │ Индекс конца            │
-│ │ buf: Vec&lt;T&gt; │ Буфер данных            │
+│ │ buf: []T │ Буфер данных            │
 │ └─────────────┘                         │
 └─────────────────────────────────────────┘
 ```
@@ -432,13 +409,13 @@ type Queue []*TreeNode
 
 #### Операции и их сложность:
 
-| Операция | VecDeque | Queue (slice) | Объяснение |
-|----------|----------|---------------|------------|
+| Операция | Queue (slice) | Объяснение |
+|----------|---------------|------------|
 | Enqueue (push_back) | O(1) амортизированная | O(1) амортизированная | Добавление в конец |
 | Dequeue (pop_front) | O(1) | O(1) | Удаление из начала |
 | Размер | O(1) | O(1) | Простое вычисление |
 
-**Почему VecDeque эффективен для BFS**:
+**Почему Queue эффективен для BFS**:
 - O(1) операции с обоих концов
 - Непрерывная память (cache-friendly)
 - Эффективнее чем LinkedList для очереди
@@ -452,17 +429,6 @@ type Queue []*TreeNode
 - Очередь может escape, если возвращается
 - Указатели на узлы - на стеке
 
-### Borrow Checker (Rust)
-
-**Типичный паттерн**:
-```rust
-fn bfs(root: Option&lt;Box&lt;TreeNode&gt;&gt;) -> Vec&lt;Vec<i32&gt;> {
-    let mut queue = VecDeque::new();
-    queue.push_back(root);
-    // ...
-}
-```
-
 ### Garbage Collector (Go)
 
 **Для Tree BFS**:
@@ -470,23 +436,9 @@ fn bfs(root: Option&lt;Box&lt;TreeNode&gt;&gt;) -> Vec&lt;Vec<i32&gt;> {
 - Очередь также в куче
 - Минимизация размера очереди критична
 
-### Ownership и Move Semantics (Rust)
-
-**Концепция владения**:
-- Каждый `Box&lt;TreeNode&gt;` владеет потомками
-- При добавлении в очередь передаем владение
-- RAII гарантирует освобождение
-
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
-
-#### Rust: Очередь для BFS
-
-В Rust для Tree BFS:
-- **Очередь**: `VecDeque&lt;TreeNode&gt;` - аллоцируется в куче, O(w) где w - ширина дерева
-- **Результат**: `Vec&lt;Vec<i32&gt;>` - O(n) для всех значений
-- **Указатели**: `&TreeNode` - ссылки, не аллоцируют
+### Теория аллокаций в Go
 
 #### Go: Очередь для BFS
 
@@ -499,14 +451,6 @@ fn bfs(root: Option&lt;Box&lt;TreeNode&gt;&gt;) -> Vec&lt;Vec<i32&gt;> {
 
 #### Базовый обход:
 
-**Rust**:
-```rust
-// Аллокации:
-// - queue: VecDeque - O(w) где w - максимальная ширина уровня
-// - result: Vec&lt;Vec<i32&gt;> - O(n) для всех значений
-// Итого: O(n) памяти в худшем случае (полное дерево)
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -516,20 +460,6 @@ fn bfs(root: Option&lt;Box&lt;TreeNode&gt;&gt;) -> Vec&lt;Vec<i32&gt;> {
 ```
 
 ### Оптимизация памяти
-
-#### Rust оптимизации:
-
-1. **Предварительное выделение очереди**:
-```rust
-// ✅ Предварительное выделение
-let mut queue = VecDeque::with_capacity(max_width);
-```
-
-2. **Переиспользование векторов**:
-```rust
-// ✅ Переиспользование level вектора
-let mut level = Vec::with_capacity(queue.len());
-```
 
 #### Go оптимизации:
 
@@ -545,12 +475,10 @@ queue := make([]*TreeNode, 0, maxWidth)
 level := make([]int, 0, len(queue))
 ```
 
-### Сравнение Rust vs Go
-
-| Аспект | Rust | Go |
-|--------|------|-----|
-| Очередь | VecDeque в куче | Слайс в куче |
-| Результат | `Vec&lt;Vec<i32&gt;>` | [][]int |
+| Аспект | Go |
+|--------|------|
+| Очередь | Слайс в куче |
+| Результат | [][]int |
 | Память | O(n) в худшем случае | O(n) в худшем случае |
 
 ## Оптимизация производительности
@@ -564,38 +492,6 @@ level := make([]int, 0, len(queue))
 ### Специфичные оптимизации для Tree BFS
 
 #### 1. Оптимизация обхода:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn level_order_optimized(root: Option&lt;Rc&lt;RefCell&lt;TreeNode&gt;&gt;&gt;) -> Vec&lt;Vec<i32&gt;> {
-    let mut result = Vec::new();
-    if root.is_none() { return result; }
-    
-    let mut queue = VecDeque::with_capacity(100);
-    queue.push_back(root.unwrap());
-    
-    while !queue.is_empty() {
-        let level_size = queue.len();
-        let mut level = Vec::with_capacity(level_size);
-        
-        for _ in 0..level_size {
-            let node = queue.pop_front().unwrap();
-            let node_ref = node.borrow();
-            level.push(node_ref.val);
-            
-            if let Some(left) = &node_ref.left {
-                queue.push_back(left.clone());
-            }
-            if let Some(right) = &node_ref.right {
-                queue.push_back(right.clone());
-            }
-        }
-        result.push(level);
-    }
-    result
-}
-```
 
 **Go**:
 ```go
@@ -629,19 +525,9 @@ func levelOrderOptimized(root *TreeNode) [][]int {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Использование `VecDeque`**:
-```rust
-// ✅ Эффективная очередь с O(1) операциями
-use std::collections::VecDeque;
-```
+1. **Использование Queue (slice)**:
 
 2. **Предварительное выделение**:
-```rust
-// ✅ Предварительное выделение
-let mut queue = VecDeque::with_capacity(max_width);
-```
 
 ### Оптимизация для Go
 
@@ -668,24 +554,6 @@ for i := 0; i < levelSize; i++ {
 
 ### Как профилировать Tree BFS
 
-#### Rust пример:
-
-```rust
-// benches/tree_bfs_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_level_order(c: &mut Criterion) {
-    let tree = create_test_tree(1000);
-    
-    c.bench_function("level_order_1000", |b| {
-        b.iter(|| level_order_optimized(black_box(tree.clone())))
-    });
-}
-
-criterion_group!(benches, bench_level_order);
-criterion_main!(benches);
-```
-
 #### Go пример:
 
 ```go
@@ -708,7 +576,7 @@ func BenchmarkLevelOrder(b *testing.B) {
 **Типичные узкие места**:
 - Операции с очередью
 - Создание векторов для уровней
-- Клонирование узлов (в Rust)
+- Клонирование узлов (в )
 
 ## Отладка и диагностика
 
@@ -840,29 +708,6 @@ func getPrefix(isLast bool) string {
 
 ### Примеры тестов для Tree BFS
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_level_order_basic() {
-        let tree = create_tree(vec![Some(3), Some(9), Some(20), None, None, Some(15), Some(7)]);
-        let result = level_order_optimized(tree);
-        assert_eq!(result, vec![vec![3], vec![9, 20], vec![15, 7]]);
-    }
-
-    #[test]
-    fn test_level_order_empty() {
-        let tree = None;
-        let result = level_order_optimized(tree);
-        assert_eq!(result, Vec::<Vec&lt;i32&gt;>::new());
-    }
-}
-```
-
 #### Go тесты:
 
 ```go
@@ -889,13 +734,6 @@ func TestLevelOrder(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
-```bash
-cargo test
-cargo test -- --nocapture
-cargo bench
-```
-
 #### Go:
 ```bash
 go test -v
@@ -903,28 +741,6 @@ go test -bench=. -benchmem
 ```
 
 ### Бенчмарки
-
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn tree_bfs_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000];
-    
-    let mut group = c.benchmark_group("tree_bfs");
-    for size in sizes {
-        let tree = create_test_tree(size);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &tree,
-            |b, tree| {
-                b.iter(|| level_order_optimized(black_box(tree.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-```
 
 #### Go:
 ```go
@@ -1070,271 +886,7 @@ func levelOrderIdiomatic(root *TreeNode) [][]int {
 }
 ```
 
-### Rust
-
-```rust
-// Примеры использования шаблона Tree BFS на Rust
-
-use std::collections::VecDeque;
-use std::rc::Rc;
-use std::cell::RefCell;
-
-// Определение узла бинарного дерева
-#[derive(Debug, PartialEq, Eq)]
-pub struct TreeNode {
-    pub val: i32,
-    pub left: Option&lt;Rc&lt;RefCell&lt;TreeNode&gt;&gt;&gt;,
-    pub right: Option&lt;Rc&lt;RefCell&lt;TreeNode&gt;&gt;&gt;,
-}
-
-impl TreeNode {
-    #[inline]
-    pub fn new(val: i32) -> Self {
-        TreeNode {
-            val,
-            left: None,
-            right: None,
-        }
-    }
-}
-
-/// Пример 1: Обход дерева по уровням
-/// 
-/// Задача: Вернуть значения узлов, сгруппированные по уровням
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(n)
-pub fn level_order(root: Option&lt;Rc&lt;RefCell&lt;TreeNode&gt;&gt;&gt;) -> Vec&lt;Vec<i32&gt;> {
-    let mut result = Vec::new();
-    
-    if root.is_none() {
-        return result;
-    }
-
-    let mut queue = VecDeque::new();
-    queue.push_back(root.unwrap());
-
-    while !queue.is_empty() {
-        let level_size = queue.len();
-        let mut current_level = Vec::new();
-
-        for _ in 0..level_size {
-            let node = queue.pop_front().unwrap();
-            let node_ref = node.borrow();
-            
-            current_level.push(node_ref.val);
-
-            if let Some(left) = &node_ref.left {
-                queue.push_back(left.clone());
-            }
-            if let Some(right) = &node_ref.right {
-                queue.push_back(right.clone());
-            }
-        }
-
-        result.push(current_level);
-    }
-
-    result
-}
-
-/// Пример 2: Среднее значение каждого уровня
-/// 
-/// Задача: Вычислить среднее значение узлов на каждом уровне
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(n)
-pub fn average_of_levels(root: Option&lt;Rc&lt;RefCell&lt;TreeNode&gt;&gt;&gt;) -> Vec&lt;f64&gt; {
-    let mut result = Vec::new();
-    
-    if root.is_none() {
-        return result;
-    }
-
-    let mut queue = VecDeque::new();
-    queue.push_back(root.unwrap());
-
-    while !queue.is_empty() {
-        let level_size = queue.len();
-        let mut sum = 0i64;
-
-        for _ in 0..level_size {
-            let node = queue.pop_front().unwrap();
-            let node_ref = node.borrow();
-            
-            sum += node_ref.val as i64;
-
-            if let Some(left) = &node_ref.left {
-                queue.push_back(left.clone());
-            }
-            if let Some(right) = &node_ref.right {
-                queue.push_back(right.clone());
-            }
-        }
-
-        result.push(sum as f64 / level_size as f64);
-    }
-
-    result
-}
-
-/// Пример 3: Вид дерева справа
-/// 
-/// Задача: Вернуть значения узлов, видимых справа на каждом уровне
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(n)
-pub fn right_side_view(root: Option&lt;Rc&lt;RefCell&lt;TreeNode&gt;&gt;&gt;) -> Vec&lt;i32&gt; {
-    let mut result = Vec::new();
-    
-    if root.is_none() {
-        return result;
-    }
-
-    let mut queue = VecDeque::new();
-    queue.push_back(root.unwrap());
-
-    while !queue.is_empty() {
-        let level_size = queue.len();
-        let mut rightmost = 0;
-
-        for i in 0..level_size {
-            let node = queue.pop_front().unwrap();
-            let node_ref = node.borrow();
-            
-            rightmost = node_ref.val;
-
-            if let Some(left) = &node_ref.left {
-                queue.push_back(left.clone());
-            }
-            if let Some(right) = &node_ref.right {
-                queue.push_back(right.clone());
-            }
-        }
-
-        result.push(rightmost);
-    }
-
-    result
-}
-
-/// Пример 4: Зигзагообразный обход дерева
-/// 
-/// Задача: Обойти дерево зигзагообразно (слева направо, затем справа налево)
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(n)
-pub fn zigzag_level_order(root: Option&lt;Rc&lt;RefCell&lt;TreeNode&gt;&gt;&gt;) -> Vec&lt;Vec<i32&gt;> {
-    let mut result = Vec::new();
-    
-    if root.is_none() {
-        return result;
-    }
-
-    let mut queue = VecDeque::new();
-    queue.push_back(root.unwrap());
-    let mut left_to_right = true;
-
-    while !queue.is_empty() {
-        let level_size = queue.len();
-        let mut current_level = Vec::new();
-
-        for _ in 0..level_size {
-            let node = queue.pop_front().unwrap();
-            let node_ref = node.borrow();
-            
-            current_level.push(node_ref.val);
-
-            if let Some(left) = &node_ref.left {
-                queue.push_back(left.clone());
-            }
-            if let Some(right) = &node_ref.right {
-                queue.push_back(right.clone());
-            }
-        }
-
-        if !left_to_right {
-            current_level.reverse();
-        }
-
-        result.push(current_level);
-        left_to_right = !left_to_right;
-    }
-
-    result
-}
-
-/// Пример 5: Максимальная глубина дерева (BFS подход)
-/// 
-/// Задача: Найти максимальную глубину бинарного дерева
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(n)
-pub fn max_depth_bfs(root: Option&lt;Rc&lt;RefCell&lt;TreeNode&gt;&gt;&gt;) -> i32 {
-    if root.is_none() {
-        return 0;
-    }
-
-    let mut queue = VecDeque::new();
-    queue.push_back(root.unwrap());
-    let mut depth = 0;
-
-    while !queue.is_empty() {
-        let level_size = queue.len();
-        depth += 1;
-
-        for _ in 0..level_size {
-            let node = queue.pop_front().unwrap();
-            let node_ref = node.borrow();
-
-            if let Some(left) = &node_ref.left {
-                queue.push_back(left.clone());
-            }
-            if let Some(right) = &node_ref.right {
-                queue.push_back(right.clone());
-            }
-        }
-    }
-
-    depth
-}
-
-/// Пример 6: Минимальная глубина дерева
-/// 
-/// Задача: Найти минимальную глубину дерева (до ближайшего листа)
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(n)
-pub fn min_depth(root: Option&lt;Rc&lt;RefCell&lt;TreeNode&gt;&gt;&gt;) -> i32 {
-    if root.is_none() {
-        return 0;
-    }
-
-    let mut queue = VecDeque::new();
-    queue.push_back(root.unwrap());
-    let mut depth = 0;
-
-    while !queue.is_empty() {
-        let level_size = queue.len();
-        depth += 1;
-
-        for _ in 0..level_size {
-            let node = queue.pop_front().unwrap();
-            let node_ref = node.borrow();
-
-            // Если это лист, возвращаем текущую глубину
-            if node_ref.left.is_none() && node_ref.right.is_none() {
-                return depth;
-            }
-
-            if let Some(left) = &node_ref.left {
-                queue.push_back(left.clone());
-            }
-            if let Some(right) = &node_ref.right {
-                queue.push_back(right.clone());
-            }
-        }
-    }
-
-    depth
-}
-```
-
-### Go
+### ### Go
 
 ```go
 package main

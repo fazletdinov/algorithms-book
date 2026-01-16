@@ -113,11 +113,11 @@
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
+### Теория аллокаций в Go
 
-#### Rust: Генерация подмножеств
+#### : Генерация подмножеств
 
-В Rust для Subsets:
+В для Subsets:
 - **Backtracking**: Стек вызовов - O(n) для глубины рекурсии
 - **Результат**: `Vec<Vec<i32>>` - O(2^n * n) в худшем случае
 - **Текущий путь**: `Vec<i32>` - O(n) для каждого пути
@@ -133,15 +133,6 @@
 
 #### Рекурсивный подход:
 
-**Rust**:
-```rust
-// Аллокации:
-// - Стек вызовов: O(n) для глубины рекурсии
-// - result: Vec<Vec<i32>> - O(2^n * n) в худшем случае
-// - current: Vec<i32> - O(n) для каждого пути
-// Итого: O(2^n * n) памяти в худшем случае
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -153,26 +144,11 @@
 
 ### Оптимизация памяти
 
-#### Rust оптимизации:
+#### оптимизации:
 
 1. **Использование backtracking**:
-```rust
-// ✅ Переиспользование current вектора
-fn backtrack(nums: &[i32], start: usize, current: &mut Vec<i32>, result: &mut Vec<Vec<i32>>) {
-    result.push(current.clone());
-    for i in start..nums.len() {
-        current.push(nums[i]);
-        backtrack(nums, i + 1, current, result);
-        current.pop();  // Backtrack
-    }
-}
-```
 
 2. **Предварительное выделение результата**:
-```rust
-// ✅ Предварительное выделение
-let mut result = Vec::with_capacity(1 << nums.len());
-```
 
 #### Go оптимизации:
 
@@ -195,9 +171,9 @@ func backtrack(nums []int, start int, current []int, result *[][]int) {
 result := make([][]int, 0, 1<<len(nums))
 ```
 
-### Сравнение Rust vs Go
+### Сравнение vs Go
 
-| Аспект | Rust | Go |
+| Аспект | | Go |
 |--------|------|-----|
 | Backtracking | O(n) стек | O(n) стек |
 | Результат | O(2^n * n) | O(2^n * n) |
@@ -214,26 +190,6 @@ result := make([][]int, 0, 1<<len(nums))
 ### Специфичные оптимизации для Subsets
 
 #### 1. Оптимизация backtracking:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn subsets_optimized(nums: Vec<i32>) -> Vec<Vec<i32>> {
-    let mut result = Vec::with_capacity(1 << nums.len());
-    let mut current = Vec::new();
-    backtrack(&nums, 0, &mut current, &mut result);
-    result
-}
-
-fn backtrack(nums: &[i32], start: usize, current: &mut Vec<i32>, result: &mut Vec<Vec<i32>>) {
-    result.push(current.clone());
-    for i in start..nums.len() {
-        current.push(nums[i]);
-        backtrack(nums, i + 1, current, result);
-        current.pop();
-    }
-}
-```
 
 **Go**:
 ```go
@@ -255,19 +211,9 @@ func backtrack(nums []int, start int, current []int, result *[][]int) {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Минимизация клонирования**:
-```rust
-// ✅ Клонируем только при добавлении в результат
-result.push(current.clone());
-```
+### Оптимизация для 1. **Минимизация клонирования**:
 
 2. **Предварительное выделение**:
-```rust
-// ✅ Предварительное выделение
-let mut result = Vec::with_capacity(1 << nums.len());
-```
 
 ### Оптимизация для Go
 
@@ -291,23 +237,7 @@ result := make([][]int, 0, 1<<len(nums))
 
 ### Как профилировать Subsets
 
-#### Rust пример:
-
-```rust
-// benches/subsets_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_subsets(c: &mut Criterion) {
-    let nums: Vec<i32> = (0..10).collect();
-    
-    c.bench_function("subsets_10", |b| {
-        b.iter(|| subsets_optimized(black_box(nums.clone())))
-    });
-}
-
-criterion_group!(benches, bench_subsets);
-criterion_main!(benches);
-```
+#### пример:
 
 #### Go пример:
 
@@ -347,28 +277,7 @@ func BenchmarkSubsets(b *testing.B) {
 
 ### Примеры тестов для Subsets
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_subsets_basic() {
-        let nums = vec![1, 2, 3];
-        let result = subsets_optimized(nums);
-        assert_eq!(result.len(), 8);  // 2^3 = 8
-    }
-
-    #[test]
-    fn test_subsets_empty() {
-        let nums = vec![];
-        let result = subsets_optimized(nums);
-        assert_eq!(result, vec![vec![]]);
-    }
-}
-```
+#### тесты:
 
 #### Go тесты:
 
@@ -396,7 +305,7 @@ func TestSubsets(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
+#### :
 ```bash
 cargo test
 cargo test -- --nocapture
@@ -411,27 +320,7 @@ go test -bench=. -benchmem
 
 ### Бенчмарки
 
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn subsets_benchmark(c: &mut Criterion) {
-    let sizes = vec![5, 10, 15];
-    
-    let mut group = c.benchmark_group("subsets");
-    for size in sizes {
-        let nums: Vec<i32> = (0..size).collect();
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &nums,
-            |b, nums| {
-                b.iter(|| subsets_optimized(black_box(nums.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-```
+#### :
 
 #### Go:
 ```go
@@ -456,7 +345,7 @@ func BenchmarkSubsetsSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 
 ## Примеры задач на LeetCode
@@ -477,6 +366,6 @@ func BenchmarkSubsetsSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 

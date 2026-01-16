@@ -353,16 +353,6 @@ func hasCycle(head *ListNode) bool {
 }
 ```
 
-**Rust**:
-```rust
-pub fn has_cycle(head: Option<Box<ListNode>>) -> bool {
-    if head.is_none() {
-        return false;
-    }
-    // ... остальной код
-}
-```
-
 ### 2. Список из одного элемента
 
 **Проблема**: Если список содержит только один элемент, цикл невозможен (если нет self-loop).
@@ -460,14 +450,6 @@ for fast != nil {  // Может вызвать ошибку при fast.Next
 }
 ```
 
-**Rust**:
-```rust
-while fast.is_some() {  // Может вызвать ошибку при fast.next
-    slow = slow.next;
-    fast = fast.next.next;
-}
-```
-
 ✅ **Правильно**:
 
 **Go**:
@@ -477,17 +459,6 @@ for fast != nil && fast.Next != nil {
     fast = fast.Next.Next
     if slow == fast {
         return true
-    }
-}
-```
-
-**Rust**:
-```rust
-while fast.is_some() && fast.as_ref().unwrap().next.is_some() {
-    slow = slow.next;
-    fast = fast.as_ref().unwrap().next.as_ref().map(|n| n.next.clone()).flatten();
-    if slow == fast {
-        return true;
     }
 }
 ```
@@ -502,24 +473,12 @@ slow := head.Next  // Пропускаем первый элемент
 fast := head.Next.Next
 ```
 
-**Rust**:
-```rust
-let mut slow = head.next.clone();  // Пропускаем первый элемент
-let mut fast = head.next.as_ref().unwrap().next.clone();
-```
-
 ✅ **Правильно**:
 
 **Go**:
 ```go
 slow := head
 fast := head
-```
-
-**Rust**:
-```rust
-let mut slow = head.clone();
-let mut fast = head.clone();
 ```
 
 ### 3. Забывание сброса slow при поиске начала цикла
@@ -535,15 +494,6 @@ for slow != fast {  // slow уже в цикле!
 }
 ```
 
-**Rust**:
-```rust
-// После обнаружения цикла
-while slow != fast {  // slow уже в цикле!
-    slow = slow.next;
-    fast = fast.next;
-}
-```
-
 ✅ **Правильно**:
 
 **Go**:
@@ -553,16 +503,6 @@ slow = head  // Сбрасываем в начало
 for slow != fast {
     slow = slow.Next
     fast = fast.Next
-}
-```
-
-**Rust**:
-```rust
-// После обнаружения цикла
-slow = head.clone();  // Сбрасываем в начало
-while slow != fast {
-    slow = slow.next;
-    fast = fast.next;
 }
 ```
 
@@ -579,15 +519,6 @@ for fast != nil && fast.Next != nil {
 }
 ```
 
-**Rust**:
-```rust
-let mut slow = head.clone();
-let mut fast = head.clone();
-while fast.is_some() && fast.as_ref().unwrap().next.is_some() {
-    // Не проверили head == None
-}
-```
-
 ✅ **Правильно**:
 
 **Go**:
@@ -597,15 +528,6 @@ if head == nil || head.Next == nil {
 }
 slow := head
 fast := head
-```
-
-**Rust**:
-```rust
-if head.is_none() || head.as_ref().unwrap().next.is_none() {
-    return false;
-}
-let mut slow = head.clone();
-let mut fast = head.clone();
 ```
 
 ## Практические советы
@@ -645,20 +567,6 @@ for fast != nil {
 return slow  // K-й элемент с конца
 ```
 
-**Rust**:
-```rust
-let mut fast = head.clone();
-for _ in 0..k {
-    fast = fast.as_ref().unwrap().next.clone();
-}
-let mut slow = head.clone();
-while fast.is_some() {
-    slow = slow.as_ref().unwrap().next.clone();
-    fast = fast.as_ref().unwrap().next.clone();
-}
-slow  // K-й элемент с конца
-```
-
 ### Определение длины цикла:
 
 После обнаружения встречи, зафиксируйте slow и двигайте fast до следующей встречи:
@@ -674,23 +582,12 @@ for temp != slow {
 }
 ```
 
-**Rust**:
-```rust
-// После первой встречи
-let mut cycle_length = 1;
-let mut temp = slow.as_ref().unwrap().next.clone();
-while temp != slow {
-    cycle_length += 1;
-    temp = temp.as_ref().unwrap().next.clone();
-}
-```
-
 ## Структуры данных: внутреннее устройство
 
 ### Используемые структуры данных в Fast & Slow Pointers
 
 В шаблоне Fast & Slow Pointers используются следующие структуры данных:
-- **LinkedList Node**: Узлы связанного списка (Box&lt;T&gt; в Rust, указатели в Go)
+- **LinkedList Node**: Узлы связанного списка (указатели в Go)
 - **Указатели**: Для навигации по списку (fast и slow указатели)
 
 ### LinkedList Node (Узел связанного списка)
@@ -710,29 +607,6 @@ while temp != slow {
 - **next**: Указатель на следующий узел (или None/nil для конца списка)
 
 #### Как хранится в памяти:
-
-**Rust (Box&lt;T&gt;)**:
-```
-Узел списка:
-┌─────────────────────────────────────────┐
-│ Box&lt;ListNode&gt;                            │
-│ ┌─────────────┐                         │
-│ │ val: i32    │ Значение                │
-│ │ next: Option│ Указатель на следующий  │
-│ │   <Box&lt;...&gt;>│                         │
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-         │
-         ▼
-    [данные в куче]
-    Каждый узел - отдельная аллокация
-```
-
-**Важные детали**:
-- `Box&lt;T&gt;` - умный указатель, владеет данными в куче
-- Каждый узел аллоцируется отдельно (не непрерывная память)
-- `Option&lt;Box&lt;T&gt;&gt;` - либо Some(узел), либо None (конец списка)
-- Нет cache locality (узлы могут быть разбросаны в памяти)
 
 **Go (указатели)**:
 ```
@@ -785,38 +659,10 @@ while temp != slow {
 
 ### Указатели в связанных списках
 
-#### Rust: Box&lt;T&gt; и Option&lt;Box&lt;T&gt;&gt;
-
-**Что такое Box&lt;T&gt;?**
-
-**`Box<T>`** — это умный указатель в Rust, который:
-- **Владеет данными в куче**: Перемещает данные из стека в кучу
-- **Автоматически освобождает память**: При выходе из области видимости вызывается `Drop`, который освобождает память
-- **Zero-cost абстракция**: Нет runtime overhead, компилятор оптимизирует код
-- **Размер**: На стеке хранится только указатель (8 байт на 64-bit), сами данные в куче
-
-**Зачем нужен Box?**
-- Когда размер типа неизвестен во время компиляции (например, рекурсивные структуры)
-- Когда нужно переместить большие данные в кучу, чтобы не переполнить стек
-- Для создания умных указателей с владением
-
-**Box&lt;T&gt;**:
-- Умный указатель, владеет данными в куче
-- Автоматически освобождает память при выходе из области видимости
-- Zero-cost абстракция (нет runtime overhead)
-
-**Option&lt;Box&lt;T&gt;&gt;**:
+**Go: *ListNode и nil**:
 - `Some(box)` - есть узел
 - `None` - конец списка
 - Размер: 8 байт (на 64-bit) для Some, 8 байт для None (discriminant)
-
-**Пример**:
-```rust
-struct ListNode {
-    val: i32,
-    next: Option&lt;Box&lt;ListNode&gt;&gt;,  // Option для nullable указателя
-}
-```
 
 #### Go: *ListNode и nil
 
@@ -865,57 +711,6 @@ func createList() *ListNode {
 ./main.go:5:6: moved to heap: node
 ```
 
-### Borrow Checker (Rust)
-
-#### Что это такое:
-
-**Borrow Checker** проверяет заимствования для безопасной работы с указателями.
-
-**Для Fast & Slow Pointers**:
-- Обычно используем `&Box&lt;ListNode&gt;` для чтения
-- `&mut Box&lt;ListNode&gt;` для изменения
-- Проблемы могут возникнуть при изменении во время итерации
-
-#### Примеры:
-
-**Типичный паттерн**:
-```rust
-fn has_cycle(head: &Option&lt;Box&lt;ListNode&gt;&gt;) -> bool {
-    let mut slow = head;
-    let mut fast = head;
-    
-    // Используем as_ref() для получения &Option&lt;&Box&lt;ListNode&gt;&gt;
-    while let (Some(s), Some(f)) = (slow, fast) {
-        // ...
-    }
-    false
-}
-```
-
-**Проблема: изменение во время итерации**:
-```rust
-// ❌ Не компилируется
-fn bad(head: &mut Option&lt;Box&lt;ListNode&gt;&gt;) {
-    let mut current = head;
-    while let Some(node) = current {
-        node.next = None;  // ERROR: нельзя изменять во время borrow
-        current = &mut node.next;
-    }
-}
-```
-
-**Решение**:
-```rust
-// ✅ Используем take() для временного владения
-fn good(head: &mut Option&lt;Box&lt;ListNode&gt;&gt;) {
-    let mut current = head.take();
-    while let Some(mut node) = current {
-        current = node.next.take();
-        // работаем с node
-    }
-}
-```
-
 ### Garbage Collector (Go)
 
 #### Как работает GC:
@@ -940,45 +735,10 @@ func cleanup(head *ListNode) {
 }
 ```
 
-### Ownership и Move Semantics (Rust)
-
-#### Концепция владения:
-
-**Для Fast & Slow Pointers**:
-- Каждый `Box&lt;ListNode&gt;` владеет следующим узлом
-- При удалении узла, все дочерние узлы также удаляются (RAII)
-- `Option&lt;Box&lt;T&gt;&gt;` позволяет иметь nullable указатель безопасно
-
-**Пример**:
-```rust
-fn create_list() -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    Some(Box::new(ListNode {
-        val: 1,
-        next: Some(Box::new(ListNode {
-            val: 2,
-            next: None,
-        })),
-    }))
-}
-
-// При выходе из области видимости, все узлы автоматически освобождаются
-```
-
-**Почему это важно**:
-- Нет утечек памяти
-- Нет необходимости вручную освобождать память
-- Безопасность гарантируется компилятором
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
-
-#### Rust: Владение и указатели
-
-В Rust для Fast & Slow Pointers:
-- **Указатели**: `&ListNode` или `Option&lt;Box&lt;ListNode&gt;&gt;` - ссылки не аллоцируют память
-- **Box**: Аллоцирует узел в куче, но указатели на узлы - это просто адреса
-- **Option**: Enum, размером с указателем + discriminant
+### Теория аллокаций в Go
 
 #### Go: Указатели и GC
 
@@ -990,14 +750,6 @@ fn create_list() -> Option&lt;Box&lt;ListNode&gt;&gt; {
 ### Анализ аллокаций для Fast & Slow Pointers
 
 #### Обнаружение цикла:
-
-**Rust**:
-```rust
-// Аллокации:
-// - slow, fast: &ListNode (ссылки, не аллоцируют) - O(1)
-// - Никаких дополнительных структур данных
-// Итого: O(1) памяти, только указатели
-```
 
 **Go**:
 ```go
@@ -1012,27 +764,6 @@ fn create_list() -> Option&lt;Box&lt;ListNode&gt;&gt; {
 **Аналогично**: Только два указателя, O(1) памяти.
 
 ### Оптимизация памяти
-
-#### Rust оптимизации:
-
-1. **Использование ссылок вместо копирования**:
-```rust
-// ✅ Хорошо: использование ссылок
-fn has_cycle(head: &Option&lt;Box&lt;ListNode&gt;&gt;) -> bool {
-    let mut slow = head;
-    let mut fast = head;
-    // ...
-}
-```
-
-2. **Избежание клонирования**:
-```rust
-// ❌ Плохо: клонирование узлов
-let slow_clone = slow.clone();
-
-// ✅ Хорошо: использование ссылок
-let slow_ref = slow;
-```
 
 #### Go оптимизации:
 
@@ -1054,11 +785,6 @@ newNode := &ListNode{Val: 0}
 current := head
 ```
 
-### Сравнение Rust vs Go
-
-| Аспект | Rust | Go |
-|--------|------|-----|
-| Указатели | `&T` или `Box&lt;T&gt;` | `*T` |
 | Память | Контролируемая | GC управляет |
 | Производительность | Предсказуемая | Может быть паузы GC |
 | Безопасность | Проверяется компилятором | Runtime проверки |
@@ -1078,29 +804,6 @@ current := head
 ### Специфичные оптимизации для Fast & Slow Pointers
 
 #### 1. Оптимизация обнаружения цикла:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn has_cycle_optimized(head: &Option&lt;Box&lt;ListNode&gt;&gt;) -> bool {
-    let mut slow = head;
-    let mut fast = head;
-    
-    while let (Some(s), Some(f)) = (slow, fast) {
-        slow = &s.next;
-        fast = &f.next;
-        if let Some(f_next) = fast {
-            fast = &f_next.next;
-        } else {
-            return false; // Нет цикла
-        }
-        if slow == fast {
-            return true; // Цикл обнаружен
-        }
-    }
-    false
-}
-```
 
 **Go**:
 ```go
@@ -1123,21 +826,6 @@ func hasCycleOptimized(head *ListNode) bool {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Использование pattern matching**:
-```rust
-// ✅ Эффективный pattern matching
-match (slow, fast) {
-    (Some(s), Some(f)) => { /* ... */ },
-    _ => return false,
-}
-```
-
-2. **Избежание лишних разыменований**:
-```rust
-// Компилятор Rust оптимизирует разыменования
-```
 
 ### Оптимизация для Go
 
@@ -1164,24 +852,6 @@ for fast != nil && fast.Next != nil {
 См. раздел "Профилирование" в [Sliding Window](./sliding-window.md#профилирование) для общих инструментов.
 
 ### Как профилировать Fast & Slow Pointers
-
-#### Rust пример:
-
-```rust
-// benches/fast_slow_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_has_cycle(c: &mut Criterion) {
-    let list = create_cyclic_list(1000);
-    
-    c.bench_function("has_cycle_1000", |b| {
-        b.iter(|| has_cycle_optimized(black_box(&list)))
-    });
-}
-
-criterion_group!(benches, bench_has_cycle);
-criterion_main!(benches);
-```
 
 #### Go пример:
 
@@ -1360,41 +1030,6 @@ func detectCycleWithCount(head *ListNode) (*ListNode, int) {
 
 ### Примеры тестов для Fast & Slow Pointers
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_has_cycle_no_cycle() {
-        let list = create_list(vec![1, 2, 3, 4, 5]);
-        assert_eq!(has_cycle_optimized(&list), false);
-    }
-
-    #[test]
-    fn test_has_cycle_with_cycle() {
-        let mut list = create_list(vec![1, 2, 3, 4, 5]);
-        // Создаем цикл
-        make_cyclic(&mut list, 2);
-        assert_eq!(has_cycle_optimized(&list), true);
-    }
-
-    #[test]
-    fn test_has_cycle_empty() {
-        let list = None;
-        assert_eq!(has_cycle_optimized(&list), false);
-    }
-
-    #[test]
-    fn test_find_middle() {
-        let list = create_list(vec![1, 2, 3, 4, 5]);
-        assert_eq!(find_middle(&list), Some(3));
-    }
-}
-```
-
 #### Go тесты:
 
 ```go
@@ -1422,13 +1057,6 @@ func TestHasCycle(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
-```bash
-cargo test
-cargo test -- --nocapture
-cargo bench
-```
-
 #### Go:
 ```bash
 go test -v
@@ -1436,28 +1064,6 @@ go test -bench=. -benchmem
 ```
 
 ### Бенчмарки
-
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn fast_slow_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000, 100000];
-    
-    let mut group = c.benchmark_group("fast_slow");
-    for size in sizes {
-        let list = create_cyclic_list(size);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &list,
-            |b, list| {
-                b.iter(|| has_cycle_optimized(black_box(list)));
-            },
-        );
-    }
-    group.finish();
-}
-```
 
 #### Go:
 ```go
@@ -1547,238 +1153,6 @@ func hasCycleIdiomatic(head *ListNode) (hasCycle bool) {
     }
     
     return false
-}
-```
-
-#### Идиоматичный Rust код:
-
-```rust
-// ✅ Идиоматичный Rust: используем Option и паттерн-матчинг
-pub fn has_cycle_idiomatic(head: Option<&ListNode>) -> bool {
-    let (mut slow, mut fast) = (head, head);
-    
-    while let (Some(s), Some(f)) = (slow, fast.and_then(|n| n.next.as_deref())) {
-        if std::ptr::eq(s, f) {
-            return true;
-        }
-        slow = s.next.as_deref();
-        fast = f.next.as_deref().and_then(|n| n.next.as_deref());
-    }
-    
-    false
-}
-```
-
-### Rust
-
-```rust
-// Примеры использования шаблона Fast & Slow Pointers на Rust
-
-// Определение узла связанного списка
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct ListNode {
-    pub val: i32,
-    pub next: Option&lt;Box&lt;ListNode&gt;&gt;,
-}
-
-impl ListNode {
-    #[inline]
-    pub fn new(val: i32) -> Self {
-        ListNode { next: None, val }
-    }
-}
-
-/// Пример 1: Обнаружение цикла в связанном списке
-/// 
-/// Задача: Определить, содержит ли связанный список цикл
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn has_cycle(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> bool {
-    let mut slow = head.as_ref();
-    let mut fast = head.as_ref();
-
-    while let (Some(s), Some(f)) = (slow, fast) {
-        slow = s.next.as_ref();
-        
-        // Быстрый указатель движется на два шага
-        fast = f.next.as_ref().and_then(|n| n.next.as_ref());
-
-        // Если указатели встретились, есть цикл
-        if slow.is_some() && slow == fast {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Пример 2: Поиск начала цикла в связанном списке
-/// 
-/// Задача: Найти узел, где начинается цикл
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn detect_cycle(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    let mut slow = head.as_ref();
-    let mut fast = head.as_ref();
-
-    // Шаг 1: Обнаружить цикл
-    while let (Some(s), Some(f)) = (slow, fast) {
-        slow = s.next.as_ref();
-        fast = f.next.as_ref().and_then(|n| n.next.as_ref());
-
-        if slow.is_some() && slow == fast {
-            break;
-        }
-    }
-
-    // Если цикла нет
-    if slow.is_none() || fast.is_none() {
-        return None;
-    }
-
-    // Шаг 2: Найти начало цикла
-    // Возвращаем slow в начало и двигаем оба указателя по одному шагу
-    let mut slow2 = head.as_ref();
-    while slow != slow2 {
-        slow = slow.and_then(|n| n.next.as_ref());
-        slow2 = slow2.and_then(|n| n.next.as_ref());
-    }
-
-    // Клонируем узел для возврата (в реальности обычно возвращают указатель)
-    slow.cloned()
-}
-
-/// Пример 3: Поиск середины связанного списка
-/// 
-/// Задача: Найти средний узел связанного списка
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn middle_node(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    let mut slow = head.as_ref();
-    let mut fast = head.as_ref();
-
-    while let (Some(s), Some(f)) = (slow, fast) {
-        slow = s.next.as_ref();
-        fast = f.next.as_ref().and_then(|n| n.next.as_ref());
-
-        // Если fast достиг конца, slow в середине
-        if fast.is_none() {
-            break;
-        }
-    }
-
-    slow.cloned()
-}
-
-/// Пример 4: Удаление N-го узла с конца списка
-/// 
-/// Задача: Удалить N-й узел с конца списка
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn remove_nth_from_end(head: Option&lt;Box&lt;ListNode&gt;&gt;, n: i32) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    // Создаем фиктивный узел для упрощения удаления головы
-    let mut dummy = Box::new(ListNode { val: 0, next: head });
-    let mut slow = dummy.as_mut() as *mut ListNode;
-    let mut fast = dummy.as_mut() as *mut ListNode;
-
-    // Двигаем fast на n+1 шагов вперед
-    for _ in 0..=n {
-        unsafe {
-            if let Some(ref mut f) = (*fast).next {
-                fast = f.as_mut() as *mut ListNode;
-            } else {
-                return dummy.next;
-            }
-        }
-    }
-
-    // Двигаем оба указателя до конца
-    unsafe {
-        while (*fast).next.is_some() {
-            slow = (*slow).next.as_mut().unwrap().as_mut() as *mut ListNode;
-            fast = (*fast).next.as_mut().unwrap().as_mut() as *mut ListNode;
-        }
-
-        // Удаляем узел
-        let next = (*slow).next.as_mut().unwrap().next.take();
-        (*slow).next = next;
-    }
-
-    dummy.next
-}
-
-/// Пример 5: Проверка, является ли список палиндромом
-/// 
-/// Задача: Определить, является ли связанный список палиндромом
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn is_palindrome(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> bool {
-    // Находим середину списка
-    let mut slow = head.as_ref();
-    let mut fast = head.as_ref();
-
-    while let (Some(s), Some(f)) = (slow, fast) {
-        slow = s.next.as_ref();
-        fast = f.next.as_ref().and_then(|n| n.next.as_ref());
-        if fast.is_none() {
-            break;
-        }
-    }
-
-    // Разворачиваем вторую половину списка
-    let mut prev: Option&lt;Box&lt;ListNode&gt;&gt; = None;
-    let mut curr = slow.cloned();
-
-    while let Some(mut node) = curr {
-        let next = node.next.take();
-        node.next = prev;
-        prev = Some(node);
-        curr = next;
-    }
-
-    // Сравниваем первую и вторую половины
-    let mut first = head.as_ref();
-    let mut second = prev.as_ref();
-
-    while let (Some(f), Some(s)) = (first, second) {
-        if f.val != s.val {
-            return false;
-        }
-        first = f.next.as_ref();
-        second = s.next.as_ref();
-    }
-
-    true
-}
-
-/// Пример 6: Поиск дубликата числа (Floyd's Cycle Detection для массива)
-/// 
-/// Задача: Найти дубликат числа в массиве, где числа от 1 до n, и есть один дубликат
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn find_duplicate(nums: Vec&lt;i32&gt;) -> i32 {
-    // Используем алгоритм Floyd для обнаружения цикла
-    // Массив можно рассматривать как связанный список, где nums[i] указывает на nums[nums[i]]
-    let mut slow = nums[0] as usize;
-    let mut fast = nums[0] as usize;
-
-    // Обнаруживаем цикл
-    loop {
-        slow = nums[slow] as usize;
-        fast = nums[nums[fast] as usize] as usize;
-        if slow == fast {
-            break;
-        }
-    }
-
-    // Находим начало цикла (дубликат)
-    slow = nums[0] as usize;
-    while slow != fast {
-        slow = nums[slow] as usize;
-        fast = nums[fast] as usize;
-    }
-
-    slow as i32
 }
 ```
 

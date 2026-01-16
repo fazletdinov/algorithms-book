@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Go">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
+            window.path_to_searchindex_js = "searchindex-469fa2ee.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -374,16 +374,6 @@
     // ... остальной код
 }
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn cyclic_sort(nums: &amp;mut [i32]) {
-    if nums.is_empty() {
-        return;
-    }
-    // ... остальной код
-}
-<span class="boring">}</span></code></pre>
 <h3 id="2-массив-из-одного-элемента"><a class="header" href="#2-массив-из-одного-элемента">2. Массив из одного элемента</a></h3>
 <p><strong>Проблема</strong>: Если массив содержит только один элемент, он уже на правильной позиции.</p>
 <p><strong>Решение</strong>:</p>
@@ -481,9 +471,9 @@ for i := range nums {
 <li>****: Для in-place сортировки массива</li>
 <li><strong>Индексы</strong>: Для навигации по массиву (хранятся на стеке)</li>
 </ul>
-<h3 id="rust--slice-go---in-place-операции"><a class="header" href="#rust--slice-go---in-place-операции">(Rust) / Slice (Go) - In-place операции</a></h3>
+<h3 id="-slice-go---in-place-операции"><a class="header" href="#-slice-go---in-place-операции">/ Slice (Go) - In-place операции</a></h3>
 <h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>Rust Vec&lt;T&gt;</strong>:</p>
+<p><strong>Vec&lt;T&gt;</strong>:</p>
 <pre><code>┌─────────────────────────────────────────┐
 │ Vec&amp;lt;i32&amp;gt;                                 │
 │ ┌─────────────┐                         │
@@ -552,12 +542,7 @@ for i := range nums {
 <li>Элементы не уникальны (нужна специальная обработка)</li>
 </ul>
 <h3 id="in-place-операции"><a class="header" href="#in-place-операции">In-place операции</a></h3>
-<h4 id="rust-swap-и-мутабельные-ссылки"><a class="header" href="#rust-swap-и-мутабельные-ссылки">Rust: swap и мутабельные ссылки</a></h4>
 <p><strong>swap</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>arr.swap(i, j);  // O(1) операция
-<span class="boring">}</span></code></pre>
 <p><strong>Как работает</strong>:</p>
 <ul>
 <li>Временная переменная для хранения значения</li>
@@ -565,13 +550,6 @@ for i := range nums {
 <li>Не требует дополнительной аллокации</li>
 </ul>
 <p><strong>Мутабельные ссылки</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn cyclic_sort(arr: &amp;mut [i32]) {
-    // &amp;mut [i32] - мутабельная ссылка на слайс
-    // Можно изменять элементы in-place
-}
-<span class="boring">}</span></code></pre>
 <h4 id="go-swap-через-временную-переменную"><a class="header" href="#go-swap-через-временную-переменную">Go: swap через временную переменную</a></h4>
 <p><strong>swap</strong>:</p>
 <pre><code class="language-go">arr[i], arr[j] = arr[j], arr[i]  // O(1) операция
@@ -603,9 +581,7 @@ for i := range nums {
     // ...
 }
 </code></pre>
-<h3 id="borrow-checker-rust"><a class="header" href="#borrow-checker-rust">Borrow Checker (Rust)</a></h3>
-<h4 id="что-это-такое-1"><a class="header" href="#что-это-такое-1">Что это такое:</a></h4>
-<p><strong>Borrow Checker</strong> проверяет заимствования для безопасной работы.</p>
+<h3 id="что-это-такое-1"><a class="header" href="#что-это-такое-1">Что это такое:</a></h3>
 <p><strong>Для Cyclic Sort</strong>:</p>
 <ul>
 <li>Используем <code>&amp;mut [T]</code> для in-place изменений</li>
@@ -614,38 +590,8 @@ for i := range nums {
 </ul>
 <h4 id="примеры"><a class="header" href="#примеры">Примеры:</a></h4>
 <p><strong>Типичный паттерн</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn cyclic_sort(arr: &amp;mut [i32]) {
-    // arr - mutable borrow, можно изменять
-    let mut i = 0;
-    while i &lt; arr.len() {
-        let correct_pos = arr[i] as usize - 1;
-        if arr[i] != arr[correct_pos] {
-            arr.swap(i, correct_pos);  // OK: изменяем через mutable borrow
-        } else {
-            i += 1;
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
 <p><strong>Проблема: множественные borrows</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ Не компилируется
-fn bad(arr: &amp;mut [i32]) {
-    let ptr1 = &amp;mut arr[0];
-    let ptr2 = &amp;mut arr[1];  // ERROR: нельзя два mutable borrows
-}
-<span class="boring">}</span></code></pre>
 <p><strong>Решение</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Используем индексы и swap
-fn good(arr: &amp;mut [i32]) {
-    arr.swap(0, 1);  // OK: swap использует индексы
-}
-<span class="boring">}</span></code></pre>
 <h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
 <h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
 <p><strong>Для Cyclic Sort</strong>:</p>
@@ -662,8 +608,7 @@ func cyclicSort(arr []int) {
     // Только перестановка элементов
 }
 </code></pre>
-<h3 id="ownership-и-move-semantics-rust"><a class="header" href="#ownership-и-move-semantics-rust">Ownership и Move Semantics (Rust)</a></h3>
-<h4 id="концепция-владения"><a class="header" href="#концепция-владения">Концепция владения:</a></h4>
+<h2 id="концепция-владения"><a class="header" href="#концепция-владения">Концепция владения:</a></h2>
 <p><strong>Для Cyclic Sort</strong>:</p>
 <ul>
 <li>Входные данные: <code>&amp;mut [T]</code> (мутабельное заимствование)</li>
@@ -671,14 +616,6 @@ func cyclicSort(arr []int) {
 <li>Нет необходимости в новом Vec</li>
 </ul>
 <p><strong>Пример</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn cyclic_sort(arr: &amp;mut [i32]) {
-    // &amp;mut [i32] - мутабельное заимствование
-    // Не владеем данными, только изменяем
-    // После вызова функции, владелец все еще владеет данными
-}
-<span class="boring">}</span></code></pre>
 <p><strong>Почему это важно</strong>:</p>
 <ul>
 <li>Не требуется копирование данных</li>
@@ -686,14 +623,7 @@ func cyclicSort(arr []int) {
 <li>Безопасность гарантируется компилятором</li>
 </ul>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
-<h4 id="rust-in-place-сортировка"><a class="header" href="#rust-in-place-сортировка">Rust: In-place сортировка</a></h4>
-<p>В Rust для Cyclic Sort:</p>
-<ul>
-<li><strong>Сортировка на месте</strong>: Модифицирует входной массив, не аллоцирует дополнительную память</li>
-<li><strong>Только индексы</strong>: <code>usize</code> на стеке - O(1)</li>
-<li><strong>Временные переменные</strong>: Для swap операций - O(1)</li>
-</ul>
+<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
 <h4 id="go-in-place-сортировка"><a class="header" href="#go-in-place-сортировка">Go: In-place сортировка</a></h4>
 <p>В Go:</p>
 <ul>
@@ -703,14 +633,6 @@ func cyclicSort(arr []int) {
 </ul>
 <h3 id="анализ-аллокаций-для-cyclic-sort"><a class="header" href="#анализ-аллокаций-для-cyclic-sort">Анализ аллокаций для Cyclic Sort</a></h3>
 <h4 id="базовый-алгоритм-1"><a class="header" href="#базовый-алгоритм-1">Базовый алгоритм:</a></h4>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Аллокации:
-// - i, correct_pos: usize (стек) - O(1)
-// - Временные переменные для swap: O(1)
-// Итого: O(1) памяти, никаких аллокаций в куче
-<span class="boring">}</span></code></pre>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">// Аллокации:
 // - i, correctPos: int (стек) - O(1)
@@ -718,25 +640,6 @@ func cyclicSort(arr []int) {
 // Итого: O(1) памяти, никаких аллокаций в куче
 </code></pre>
 <h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
-<ol>
-<li><strong>Использование <code>swap</code> вместо временных переменных</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Эффективный swap
-arr.swap(i, correct_pos);
-<span class="boring">}</span></code></pre>
-<ol start="2">
-<li><strong>Избежание клонирования</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Модифицируем на месте
-fn cyclic_sort(arr: &amp;mut [i32]) {
-    // ...
-}
-<span class="boring">}</span></code></pre>
 <h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
 <ol>
 <li><strong>Использование встроенного swap</strong>:</li>
@@ -752,19 +655,11 @@ func cyclicSort(arr []int) {
     // ...
 }
 </code></pre>
-<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
-</thead>
-<tbody>
-<tr><td>Память</td><td>O(1) константная</td><td>O(1) константная</td></tr>
-<tr><td>In-place</td><td>Да, через <code>&amp;mut</code></td><td>Да, слайсы</td></tr>
-<tr><td>Производительность</td><td>Предсказуемая</td><td>Предсказуемая</td></tr>
-</tbody>
-</table>
-</div>
+<p>| Аспект | Go |
+|––––|——|—–|
+| Память | O(1) константная | O(1) константная |
+| In-place | Да, через <code>&amp;mut</code> | Да, слайсы |
+| Производительность | Предсказуемая | Предсказуемая |</p>
 <h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
 <h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
 <ol>
@@ -785,24 +680,6 @@ func cyclicSort(arr []int) {
 </ol>
 <h3 id="специфичные-оптимизации-для-cyclic-sort"><a class="header" href="#специфичные-оптимизации-для-cyclic-sort">Специфичные оптимизации для Cyclic Sort</a></h3>
 <h4 id="1-оптимизация-проверки-позиции"><a class="header" href="#1-оптимизация-проверки-позиции">1. Оптимизация проверки позиции:</a></h4>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Оптимизированная версия
-pub fn cyclic_sort_optimized(arr: &amp;mut [i32]) {
-    let n = arr.len();
-    let mut i = 0;
-    
-    while i &lt; n {
-        let correct_pos = (arr[i] - 1) as usize;
-        if arr[i] != arr[correct_pos] {
-            arr.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">// ✅ Оптимизированная версия
 func cyclicSortOptimized(arr []int) {
@@ -817,25 +694,14 @@ func cyclicSortOptimized(arr []int) {
     }
 }
 </code></pre>
-<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
 <ol>
-<li><strong>Использование <code>swap</code></strong>:</li>
+<li>
+<p><strong>Использование <code>swap</code></strong>:</p>
+</li>
+<li>
+<p><strong>Избежание лишних проверок</strong>:</p>
+</li>
 </ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Встроенный swap оптимизирован
-arr.swap(i, correct_pos);
-<span class="boring">}</span></code></pre>
-<ol start="2">
-<li><strong>Избежание лишних проверок</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Проверяем только когда необходимо
-if arr[i] != arr[correct_pos] {
-    arr.swap(i, correct_pos);
-}
-<span class="boring">}</span></code></pre>
 <h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
 <ol>
 <li><strong>Множественное присваивание</strong>:</li>
@@ -855,23 +721,6 @@ if arr[i] != arr[correctPos] {
 <h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-cyclic-sort"><a class="header" href="#как-профилировать-cyclic-sort">Как профилировать Cyclic Sort</a></h3>
-<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// benches/cyclic_sort_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_cyclic_sort(c: &amp;mut Criterion) {
-    let mut arr = create_test_array(1000);
-    
-    c.bench_function("cyclic_sort_1000", |b| {
-        b.iter(|| cyclic_sort_optimized(black_box(&amp;mut arr)))
-    });
-}
-
-criterion_group!(benches, bench_cyclic_sort);
-criterion_main!(benches);
-<span class="boring">}</span></code></pre>
 <h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkCyclicSort(b *testing.B) {
     arr := createTestArray(1000)
@@ -1016,35 +865,6 @@ criterion_main!(benches);
 <li><strong>Стресс-тесты</strong>: Большие массивы</li>
 </ol>
 <h3 id="примеры-тестов-для-cyclic-sort"><a class="header" href="#примеры-тестов-для-cyclic-sort">Примеры тестов для Cyclic Sort</a></h3>
-<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_cyclic_sort_basic() {
-        let mut arr = vec![3, 1, 5, 4, 2];
-        cyclic_sort_optimized(&amp;mut arr);
-        assert_eq!(arr, vec![1, 2, 3, 4, 5]);
-    }
-
-    #[test]
-    fn test_cyclic_sort_empty() {
-        let mut arr = vec![];
-        cyclic_sort_optimized(&amp;mut arr);
-        assert_eq!(arr, vec![]);
-    }
-
-    #[test]
-    fn test_cyclic_sort_sorted() {
-        let mut arr = vec![1, 2, 3, 4, 5];
-        cyclic_sort_optimized(&amp;mut arr);
-        assert_eq!(arr, vec![1, 2, 3, 4, 5]);
-    }
-}
-<span class="boring">}</span></code></pre>
 <h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
 <pre><code class="language-go">func TestCyclicSort(t *testing.T) {
     tests := []struct {
@@ -1068,38 +888,11 @@ mod tests {
 }
 </code></pre>
 <h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
-<pre><code class="language-bash">cargo test
-cargo test -- --nocapture
-cargo bench
-</code></pre>
 <h4 id="go"><a class="header" href="#go">Go:</a></h4>
 <pre><code class="language-bash">go test -v
 go test -bench=. -benchmem
 </code></pre>
 <h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="rust-1"><a class="header" href="#rust-1">Rust:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn cyclic_sort_benchmark(c: &amp;mut Criterion) {
-    let sizes = vec![100, 1000, 10000, 100000];
-    
-    let mut group = c.benchmark_group("cyclic_sort");
-    for size in sizes {
-        let mut arr = create_test_array(size);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &amp;mut arr,
-            |b, arr| {
-                b.iter(|| cyclic_sort_optimized(black_box(arr)));
-            },
-        );
-    }
-    group.finish();
-}
-<span class="boring">}</span></code></pre>
 <h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
 <pre><code class="language-go">func BenchmarkCyclicSortSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000, 100000}
@@ -1176,386 +969,6 @@ func cyclicSortIdiomatic(nums []int) {
             nums[i], nums[nums[i]-1] = nums[nums[i]-1], nums[i]
         }
     }
-}
-</code></pre>
-<h4 id="идиоматичный-rust-код"><a class="header" href="#идиоматичный-rust-код">Идиоматичный Rust код:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Идиоматичный Rust: используем итераторы и методы
-pub fn cyclic_sort_idiomatic(nums: &amp;mut [i32]) {
-    let mut i = 0;
-    
-    while i &lt; nums.len() {
-        let correct_pos = (nums[i] - 1) as usize;
-        
-        if nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
-<h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Примеры использования шаблона Cyclic Sort на Rust
-
-/// Пример 1: Циклическая сортировка массива от 1 до N
-/// 
-/// Задача: Отсортировать массив, содержащий числа от 1 до N
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn cyclic_sort(nums: &amp;mut [i32]) {
-    let mut i = 0;
-    while i &lt; nums.len() {
-        // Правильная позиция для числа nums[i] - это nums[i] - 1
-        let correct_pos = (nums[i] - 1) as usize;
-        
-        // Если число не на правильной позиции, меняем местами
-        if nums[i] &gt; 0 &amp;&amp; nums[i] &lt;= nums.len() as i32 &amp;&amp; nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-}
-
-/// Пример 2: Поиск отсутствующего числа
-/// 
-/// Задача: Найти отсутствующее число в массиве от 0 до n
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn missing_number(mut nums: Vec&amp;lt;i32&amp;gt;) -&gt; i32 {
-    let n = nums.len();
-    let mut i = 0;
-
-    // Используем циклическую сортировку
-    while i &lt; n {
-        let correct_pos = nums[i] as usize;
-        
-        // Для диапазона 0..n правильная позиция - это само значение
-        if nums[i] &lt; n as i32 &amp;&amp; nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-
-    // Ищем отсутствующее число
-    for (i, &amp;num) in nums.iter().enumerate() {
-        if num != i as i32 {
-            return i as i32;
-        }
-    }
-
-    n as i32
-}
-
-/// Пример 3: Поиск всех исчезнувших чисел
-/// 
-/// Задача: Найти все числа от 1 до n, которых нет в массиве
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1) без учета результата
-pub fn find_disappeared_numbers(mut nums: Vec&amp;lt;i32&amp;gt;) -&gt; Vec&amp;lt;i32&amp;gt; {
-    let mut i = 0;
-    let n = nums.len();
-
-    // Используем циклическую сортировку
-    while i &lt; n {
-        let correct_pos = (nums[i] - 1) as usize;
-        
-        if nums[i] &gt; 0 &amp;&amp; nums[i] &lt;= n as i32 &amp;&amp; nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-
-    // Находим все числа, которых нет на правильных позициях
-    let mut result = Vec::new();
-    for (i, &amp;num) in nums.iter().enumerate() {
-        if num != (i + 1) as i32 {
-            result.push((i + 1) as i32);
-        }
-    }
-
-    result
-}
-
-/// Пример 4: Поиск дубликата числа
-/// 
-/// Задача: Найти дубликат числа в массиве от 1 до n (один дубликат)
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn find_duplicate(mut nums: Vec&amp;lt;i32&amp;gt;) -&gt; i32 {
-    let mut i = 0;
-    let n = nums.len();
-
-    // Используем циклическую сортировку
-    while i &lt; n {
-        let correct_pos = (nums[i] - 1) as usize;
-        
-        if nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-
-    // Ищем дубликат (число не на правильной позиции)
-    for (i, &amp;num) in nums.iter().enumerate() {
-        if num != (i + 1) as i32 {
-            return num;
-        }
-    }
-
-    -1
-}
-
-/// Пример 5: Поиск всех дубликатов
-/// 
-/// Задача: Найти все дубликаты в массиве от 1 до n
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1) без учета результата
-pub fn find_all_duplicates(mut nums: Vec&amp;lt;i32&amp;gt;) -&gt; Vec&amp;lt;i32&amp;gt; {
-    let mut i = 0;
-    let n = nums.len();
-
-    // Используем циклическую сортировку
-    while i &lt; n {
-        let correct_pos = (nums[i] - 1) as usize;
-        
-        if nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-
-    // Находим все дубликаты
-    let mut result = Vec::new();
-    for (i, &amp;num) in nums.iter().enumerate() {
-        if num != (i + 1) as i32 {
-            result.push(num);
-        }
-    }
-
-    result
-}
-
-/// Пример 6: Первое отсутствующее положительное число
-/// 
-/// Задача: Найти первое отсутствующее положительное число
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn first_missing_positive(mut nums: Vec&amp;lt;i32&amp;gt;) -&gt; i32 {
-    let n = nums.len();
-    let mut i = 0;
-
-    // Используем циклическую сортировку
-    // Правильная позиция для числа x - это x - 1
-    while i &lt; n {
-        let correct_pos = (nums[i] - 1) as usize;
-        
-        // Игнорируем числа вне диапазона [1, n]
-        if nums[i] &gt; 0 &amp;&amp; nums[i] &lt;= n as i32 &amp;&amp; nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-
-    // Находим первое отсутствующее положительное число
-    for (i, &amp;num) in nums.iter().enumerate() {
-        if num != (i + 1) as i32 {
-            return (i + 1) as i32;
-        }
-    }
-
-    (n + 1) as i32
-}
-<span class="boring">}</span></code></pre>
-<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
-<pre><code class="language-go">package main
-
-import (
-	"fmt"
-)
-
-// Пример 1: Циклическая сортировка массива от 1 до N
-//
-// Задача: Отсортировать массив, содержащий числа от 1 до N
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func cyclicSort(nums []int) {
-	i := 0
-	for i &lt; len(nums) {
-		// Правильная позиция для числа nums[i] - это nums[i] - 1
-		correctPos := nums[i] - 1
-
-		// Если число не на правильной позиции, меняем местами
-		if nums[i] &gt; 0 &amp;&amp; nums[i] &lt;= len(nums) &amp;&amp; nums[i] != nums[correctPos] {
-			nums[i], nums[correctPos] = nums[correctPos], nums[i]
-		} else {
-			i++
-		}
-	}
-}
-
-// Пример 2: Поиск отсутствующего числа
-//
-// Задача: Найти отсутствующее число в массиве от 0 до n
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func missingNumber(nums []int) int {
-	n := len(nums)
-	i := 0
-
-	// Используем циклическую сортировку
-	for i &lt; n {
-		correctPos := nums[i]
-
-		// Для диапазона 0..n правильная позиция - это само значение
-		if nums[i] &lt; n &amp;&amp; nums[i] != nums[correctPos] {
-			nums[i], nums[correctPos] = nums[correctPos], nums[i]
-		} else {
-			i++
-		}
-	}
-
-	// Ищем отсутствующее число
-	for i, num := range nums {
-		if num != i {
-			return i
-		}
-	}
-
-	return n
-}
-
-// Пример 3: Поиск всех исчезнувших чисел
-//
-// Задача: Найти все числа от 1 до n, которых нет в массиве
-// Временная сложность: O(n)
-// Пространственная сложность: O(1) без учета результата
-func findDisappearedNumbers(nums []int) []int {
-	i := 0
-	n := len(nums)
-
-	// Используем циклическую сортировку
-	for i &lt; n {
-		correctPos := nums[i] - 1
-
-		if nums[i] &gt; 0 &amp;&amp; nums[i] &lt;= n &amp;&amp; nums[i] != nums[correctPos] {
-			nums[i], nums[correctPos] = nums[correctPos], nums[i]
-		} else {
-			i++
-		}
-	}
-
-	// Находим все числа, которых нет на правильных позициях
-	var result []int
-	for i, num := range nums {
-		if num != i+1 {
-			result = append(result, i+1)
-		}
-	}
-
-	return result
-}
-
-// Пример 4: Поиск дубликата числа
-//
-// Задача: Найти дубликат числа в массиве от 1 до n (один дубликат)
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func findDuplicate(nums []int) int {
-	i := 0
-	n := len(nums)
-
-	// Используем циклическую сортировку
-	for i &lt; n {
-		correctPos := nums[i] - 1
-
-		if nums[i] != nums[correctPos] {
-			nums[i], nums[correctPos] = nums[correctPos], nums[i]
-		} else {
-			i++
-		}
-	}
-
-	// Ищем дубликат (число не на правильной позиции)
-	for i, num := range nums {
-		if num != i+1 {
-			return num
-		}
-	}
-
-	return -1
-}
-
-// Пример 5: Поиск всех дубликатов
-//
-// Задача: Найти все дубликаты в массиве от 1 до n
-// Временная сложность: O(n)
-// Пространственная сложность: O(1) без учета результата
-func findAllDuplicates(nums []int) []int {
-	i := 0
-	n := len(nums)
-
-	// Используем циклическую сортировку
-	for i &lt; n {
-		correctPos := nums[i] - 1
-
-		if nums[i] != nums[correctPos] {
-			nums[i], nums[correctPos] = nums[correctPos], nums[i]
-		} else {
-			i++
-		}
-	}
-
-	// Находим все дубликаты
-	var result []int
-	for i, num := range nums {
-		if num != i+1 {
-			result = append(result, num)
-		}
-	}
-
-	return result
-}
-
-// Пример 6: Первое отсутствующее положительное число
-//
-// Задача: Найти первое отсутствующее положительное число
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func firstMissingPositive(nums []int) int {
-	n := len(nums)
-	i := 0
-
-	// Используем циклическую сортировку
-	// Правильная позиция для числа x - это x - 1
-	for i &lt; n {
-		correctPos := nums[i] - 1
-
-		// Игнорируем числа вне диапазона [1, n]
-		if nums[i] &gt; 0 &amp;&amp; nums[i] &lt;= n &amp;&amp; nums[i] != nums[correctPos] {
-			nums[i], nums[correctPos] = nums[correctPos], nums[i]
-		} else {
-			i++
-		}
-	}
-
-	// Находим первое отсутствующее положительное число
-	for i, num := range nums {
-		if num != i+1 {
-			return i + 1
-		}
-	}
-
-	return n + 1
 }
 </code></pre>
 <h2 id="реальные-применения"><a class="header" href="#реальные-применения">Реальные применения</a></h2>

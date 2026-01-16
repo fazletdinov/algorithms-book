@@ -290,16 +290,6 @@ func findTopK(nums []int, k int) []int {
 }
 ```
 
-**Rust**:
-```rust
-pub fn find_top_k(nums: Vec<i32>, k: usize) -> Vec<i32> {
-    if nums.is_empty() || k == 0 {
-        return vec![];
-    }
-    // ... остальной код
-}
-```
-
 ### 2. K больше размера массива
 
 **Проблема**: Если k > n, нужно вернуть все элементы.
@@ -383,9 +373,9 @@ if k > len(nums)/2 {
 
 В шаблоне Top K Elements используются следующие структуры данных:
 - ****: Куча для хранения топ-k элементов
-- **HashMap<K, V> (Rust) / Map (Go)**: Для подсчета частоты (опционально)
+- **HashMap<K, V>  / Map (Go)**: Для подсчета частоты (опционально)
 
-###  (Rust) / Heap (Go)
+###   / Heap (Go)
 
 #### Что такое Heap (Куча)?
 
@@ -398,28 +388,6 @@ if k > len(nums)/2 {
 
 #### Как хранится в памяти:
 
-**Rust BinaryHeap&lt;T&gt;** (для min-heap используйте `Reverse`):
-```
-Минимальная куча (для топ-k):
-┌─────────────────────────────────────────┐
-│ BinaryHeap&lt;Reverse&lt;i32&gt;&gt;                │
-│ ┌─────────────┐                         │
-│ │ data: Vec&lt;T&gt;│ Массив элементов        │
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-         │
-         ▼
-    [1][3][5][7][9]  ← размер k
-    
-    Представление в виде дерева:
-          1
-        /   \
-       3     5
-      / \   
-     7   9
-```
-
-**Go Heap (container/heap)**:
 ```go
 type IntHeap []int
 
@@ -432,7 +400,7 @@ func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 - Размер кучи ограничен k элементами
 - Min-heap для топ-k наибольших (храним k наименьших, остальные больше)
 - Max-heap для топ-k наименьших
-- Rust `BinaryHeap` по умолчанию max-heap, для min-heap используйте `Reverse`
+- BinaryHeap` по умолчанию max-heap, для min-heap используйте `Reverse`
 - O(k) памяти вместо O(n)
 
 #### Операции и их сложность:
@@ -448,7 +416,7 @@ func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 - O(k) памяти вместо O(n)
 - Оптимально для больших n и малых k
 
-### HashMap<K, V> (Rust) / Map (Go)
+### HashMap<K, V>  / Map (Go)
 
 #### Для подсчета частоты:
 
@@ -470,21 +438,6 @@ func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 - HashMap в куче (если используется)
 - Результаты могут escape
 
-### Borrow Checker (Rust)
-
-**Типичный паттерн**:
-```rust
-use std::collections::{BinaryHeap, HashMap};
-use std::cmp::Reverse;
-
-fn top_k_frequent(nums: Vec&lt;i32&gt;, k: i32) -> Vec&lt;i32&gt; {
-    let mut freq = HashMap::new();
-    // подсчет частоты
-    let mut heap = BinaryHeap::new();
-    // добавление в кучу
-}
-```
-
 ### Garbage Collector (Go)
 
 **Для Top K Elements**:
@@ -492,23 +445,9 @@ fn top_k_frequent(nums: Vec&lt;i32&gt;, k: i32) -> Vec&lt;i32&gt; {
 - HashMap в куче
 - Минимизация размера k критична
 
-### Ownership и Move Semantics (Rust)
-
-**Концепция владения**:
-- `BinaryHeap&lt;T&gt;` владеет элементами
-- `HashMap<K, V>` владеет ключами и значениями
-- RAII гарантирует освобождение
-
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
-
-#### Rust: Top K Elements
-
-В Rust для Top K Elements:
-- **Куча**: `BinaryHeap&lt;T&gt;` - O(k) памяти в куче
-- **HashMap для частоты**: `HashMap<T, usize>` - O(n) в худшем случае
-- **Результат**: `Vec&lt;T&gt;` - O(k) памяти
+### Теория аллокаций в Go
 
 #### Go: Top K Elements
 
@@ -521,15 +460,6 @@ fn top_k_frequent(nums: Vec&lt;i32&gt;, k: i32) -> Vec&lt;i32&gt; {
 
 #### Подход с кучей:
 
-**Rust**:
-```rust
-// Аллокации:
-// - heap: BinaryHeap&lt;T&gt; - O(k) в куче
-// - frequency: HashMap<T, usize> - O(n) в худшем случае
-// - result: Vec&lt;T&gt; - O(k)
-// Итого: O(n) памяти в худшем случае
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -540,20 +470,6 @@ fn top_k_frequent(nums: Vec&lt;i32&gt;, k: i32) -> Vec&lt;i32&gt; {
 ```
 
 ### Оптимизация памяти
-
-#### Rust оптимизации:
-
-1. **Предварительное выделение кучи**:
-```rust
-// ✅ Предварительное выделение
-let mut heap = BinaryHeap::with_capacity(k);
-```
-
-2. **Предварительное выделение HashMap**:
-```rust
-// ✅ Предварительное выделение
-let mut frequency = HashMap::with_capacity(n);
-```
 
 #### Go оптимизации:
 
@@ -569,9 +485,7 @@ heap := make(IntHeap, 0, k)
 frequency := make(map[int]int, n)
 ```
 
-### Сравнение Rust vs Go
-
-| Аспект | Rust | Go |
+| Аспект | Go |
 |--------|------|-----|
 | Куча | BinaryHeap в куче | container/heap в куче |
 | Частота | HashMap в куче | map в куче |
@@ -588,27 +502,6 @@ frequency := make(map[int]int, n)
 ### Специфичные оптимизации для Top K Elements
 
 #### 1. Оптимизация с кучей:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn top_k_frequent_optimized(nums: Vec&lt;i32&gt;, k: i32) -> Vec&lt;i32&gt; {
-    let mut frequency = HashMap::with_capacity(nums.len());
-    for &num in &nums {
-        *frequency.entry(num).or_insert(0) += 1;
-    }
-    
-    let mut heap = BinaryHeap::with_capacity(k as usize);
-    for (num, count) in frequency {
-        heap.push((count, num));
-        if heap.len() > k as usize {
-            heap.pop();
-        }
-    }
-    
-    heap.into_iter().map(|(_, num)| num).collect()
-}
-```
 
 **Go**:
 ```go
@@ -635,19 +528,9 @@ func topKFrequentOptimized(nums []int, k int) []int {
 }
 ```
 
-### Оптимизация для Rust
-
 1. **Использование `entry` API**:
-```rust
-// ✅ Эффективное обновление
-*frequency.entry(num).or_insert(0) += 1;
-```
 
 2. **Предварительное выделение**:
-```rust
-// ✅ Предварительное выделение
-let mut frequency = HashMap::with_capacity(nums.len());
-```
 
 ### Оптимизация для Go
 
@@ -670,24 +553,6 @@ heap := make(IntHeap, 0, k)
 См. раздел "Профилирование" в [Sliding Window](./sliding-window.md#профилирование) для общих инструментов.
 
 ### Как профилировать Top K Elements
-
-#### Rust пример:
-
-```rust
-// benches/top_k_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_top_k(c: &mut Criterion) {
-    let nums: Vec&lt;i32&gt; = (0..10000).cycle().take(100000).collect();
-    
-    c.bench_function("top_k_100", |b| {
-        b.iter(|| top_k_frequent_optimized(black_box(nums.clone()), 100))
-    });
-}
-
-criterion_group!(benches, bench_top_k);
-criterion_main!(benches);
-```
 
 #### Go пример:
 
@@ -824,29 +689,6 @@ func printHeap(heap *IntHeap) {
 
 ### Примеры тестов для Top K Elements
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_top_k_basic() {
-        let nums = vec![1, 1, 1, 2, 2, 3];
-        let result = top_k_frequent_optimized(nums, 2);
-        assert_eq!(result.len(), 2);
-    }
-
-    #[test]
-    fn test_top_k_empty() {
-        let nums = vec![];
-        let result = top_k_frequent_optimized(nums, 0);
-        assert_eq!(result, Vec::&lt;i32&gt;::new());
-    }
-}
-```
-
 #### Go тесты:
 
 ```go
@@ -874,13 +716,6 @@ func TestTopK(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
-```bash
-cargo test
-cargo test -- --nocapture
-cargo bench
-```
-
 #### Go:
 ```bash
 go test -v
@@ -888,28 +723,6 @@ go test -bench=. -benchmem
 ```
 
 ### Бенчмарки
-
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn top_k_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000];
-    
-    let mut group = c.benchmark_group("top_k");
-    for size in sizes {
-        let nums: Vec&lt;i32&gt; = (0..size).cycle().take(size * 10).collect();
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &nums,
-            |b, nums| {
-                b.iter(|| top_k_frequent_optimized(black_box(nums.clone()), 10));
-            },
-        );
-    }
-    group.finish();
-}
-```
 
 #### Go:
 ```go
@@ -1017,164 +830,6 @@ func findTopKIdiomatic(nums []int, k int) []int {
         result[i] = heap.Pop(&h).(int)
     }
     return result
-}
-```
-
-### Rust
-
-```rust
-// Примеры использования шаблона Top K Elements на Rust
-
-use std::collections::{BinaryHeap, HashMap};
-use std::cmp::Reverse;
-
-/// Пример 1: K наибольших элементов
-/// 
-/// Задача: Найти K наибольших элементов в массиве
-/// Временная сложность: O(n log k)
-/// Пространственная сложность: O(k)
-pub fn find_k_largest(nums: Vec&lt;i32&gt;, k: usize) -> Vec&lt;i32&gt; {
-    let mut min_heap = BinaryHeap::new();
-
-    for &num in &nums {
-        if min_heap.len() < k {
-            min_heap.push(Reverse(num));
-        } else if let Some(&Reverse(min_val)) = min_heap.peek() {
-            if num > min_val {
-                min_heap.pop();
-                min_heap.push(Reverse(num));
-            }
-        }
-    }
-
-    min_heap.into_iter().map(|Reverse(x)| x).collect()
-}
-
-/// Пример 2: K наименьших элементов
-/// 
-/// Задача: Найти K наименьших элементов в массиве
-/// Временная сложность: O(n log k)
-/// Пространственная сложность: O(k)
-pub fn find_k_smallest(nums: Vec&lt;i32&gt;, k: usize) -> Vec&lt;i32&gt; {
-    let mut max_heap = BinaryHeap::new();
-
-    for &num in &nums {
-        if max_heap.len() < k {
-            max_heap.push(num);
-        } else if let Some(&max_val) = max_heap.peek() {
-            if num < max_val {
-                max_heap.pop();
-                max_heap.push(num);
-            }
-        }
-    }
-
-    max_heap.into_iter().collect()
-}
-
-/// Пример 3: K-й наибольший элемент
-/// 
-/// Задача: Найти K-й наибольший элемент в массиве
-/// Временная сложность: O(n log k)
-/// Пространственная сложность: O(k)
-pub fn find_kth_largest(nums: Vec&lt;i32&gt;, k: i32) -> i32 {
-    let mut min_heap = BinaryHeap::new();
-    let k = k as usize;
-
-    for &num in &nums {
-        if min_heap.len() < k {
-            min_heap.push(Reverse(num));
-        } else if let Some(&Reverse(min_val)) = min_heap.peek() {
-            if num > min_val {
-                min_heap.pop();
-                min_heap.push(Reverse(num));
-            }
-        }
-    }
-
-    min_heap.peek().unwrap().0
-}
-
-/// Пример 4: Топ K частых элементов
-/// 
-/// Задача: Найти K наиболее частых элементов
-/// Временная сложность: O(n + k log k)
-/// Пространственная сложность: O(n)
-pub fn top_k_frequent(nums: Vec&lt;i32&gt;, k: i32) -> Vec&lt;i32&gt; {
-    // Подсчитываем частоту
-    let mut freq_map = HashMap::new();
-    for &num in &nums {
-        *freq_map.entry(num).or_insert(0) += 1;
-    }
-
-    // Используем min-heap для хранения топ K
-    let mut min_heap = BinaryHeap::new();
-    let k = k as usize;
-
-    for (num, freq) in freq_map {
-        if min_heap.len() < k {
-            min_heap.push((Reverse(freq), num));
-        } else if let Some(&(Reverse(min_freq), _)) = min_heap.peek() {
-            if freq > min_freq {
-                min_heap.pop();
-                min_heap.push((Reverse(freq), num));
-            }
-        }
-    }
-
-    min_heap.into_iter().map(|(_, num)| num).collect()
-}
-
-/// Пример 5: K ближайших точек к началу координат
-/// 
-/// Задача: Найти K ближайших точек к началу координат
-/// Временная сложность: O(n log k)
-/// Пространственная сложность: O(k)
-pub fn k_closest(points: Vec&lt;Vec<i32&gt;>, k: i32) -> Vec&lt;Vec<i32&gt;> {
-    let mut max_heap = BinaryHeap::new();
-    let k = k as usize;
-
-    for point in &points {
-        let distance = point[0] * point[0] + point[1] * point[1];
-        
-        if max_heap.len() < k {
-            max_heap.push((distance, point.clone()));
-        } else if let Some(&(max_dist, _)) = max_heap.peek() {
-            if distance < max_dist {
-                max_heap.pop();
-                max_heap.push((distance, point.clone()));
-            }
-        }
-    }
-
-    max_heap.into_iter().map(|(_, point)| point).collect()
-}
-
-/// Пример 6: Сортировка символов по частоте
-/// 
-/// Задача: Отсортировать символы строки по убыванию частоты
-/// Временная сложность: O(n log n)
-/// Пространственная сложность: O(n)
-pub fn frequency_sort(s: String) -> String {
-    // Подсчитываем частоту
-    let mut freq_map = HashMap::new();
-    for ch in s.chars() {
-        *freq_map.entry(ch).or_insert(0) += 1;
-    }
-
-    // Используем max-heap для сортировки по частоте
-    let mut max_heap = BinaryHeap::new();
-    for (ch, freq) in freq_map {
-        max_heap.push((freq, ch));
-    }
-
-    // Строим результирующую строку
-    let mut result = String::new();
-    while let Some((freq, ch)) = max_heap.pop() {
-        result.push_str(&ch.to_string().repeat(freq));
-    }
-
-    result
 }
 ```
 

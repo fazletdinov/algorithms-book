@@ -191,14 +191,6 @@ for fast != nil {  // Может вызвать ошибку при fast.Next
 }
 ```
 
-**Rust**:
-```rust
-while fast.is_some() {  // Может вызвать ошибку при fast.next
-    slow = slow.next;
-    fast = fast.next.next;
-}
-```
-
 ✅ **Правильно**:
 
 **Go**:
@@ -208,17 +200,6 @@ for fast != nil && fast.Next != nil {
     fast = fast.Next.Next
     if slow == fast {
         return true
-    }
-}
-```
-
-**Rust**:
-```rust
-while fast.is_some() && fast.as_ref().unwrap().next.is_some() {
-    slow = slow.next;
-    fast = fast.as_ref().unwrap().next.as_ref().map(|n| n.next.clone()).flatten();
-    if slow == fast {
-        return true;
     }
 }
 ```
@@ -233,24 +214,12 @@ slow := head.Next  // Пропускаем первый элемент
 fast := head.Next.Next
 ```
 
-**Rust**:
-```rust
-let mut slow = head.next.clone();  // Пропускаем первый элемент
-let mut fast = head.next.as_ref().unwrap().next.clone();
-```
-
 ✅ **Правильно**:
 
 **Go**:
 ```go
 slow := head
 fast := head
-```
-
-**Rust**:
-```rust
-let mut slow = head.clone();
-let mut fast = head.clone();
 ```
 
 ### 3. Забывание сброса slow при поиске начала цикла
@@ -266,15 +235,6 @@ for slow != fast {  // slow уже в цикле!
 }
 ```
 
-**Rust**:
-```rust
-// После обнаружения цикла
-while slow != fast {  // slow уже в цикле!
-    slow = slow.next;
-    fast = fast.next;
-}
-```
-
 ✅ **Правильно**:
 
 **Go**:
@@ -284,16 +244,6 @@ slow = head  // Сбрасываем в начало
 for slow != fast {
     slow = slow.Next
     fast = fast.Next
-}
-```
-
-**Rust**:
-```rust
-// После обнаружения цикла
-slow = head.clone();  // Сбрасываем в начало
-while slow != fast {
-    slow = slow.next;
-    fast = fast.next;
 }
 ```
 
@@ -310,15 +260,6 @@ for fast != nil && fast.Next != nil {
 }
 ```
 
-**Rust**:
-```rust
-let mut slow = head.clone();
-let mut fast = head.clone();
-while fast.is_some() && fast.as_ref().unwrap().next.is_some() {
-    // Не проверили head == None
-}
-```
-
 ✅ **Правильно**:
 
 **Go**:
@@ -328,15 +269,6 @@ if head == nil || head.Next == nil {
 }
 slow := head
 fast := head
-```
-
-**Rust**:
-```rust
-if head.is_none() || head.as_ref().unwrap().next.is_none() {
-    return false;
-}
-let mut slow = head.clone();
-let mut fast = head.clone();
 ```
 
 ## Практические советы
@@ -376,20 +308,6 @@ for fast != nil {
 return slow  // K-й элемент с конца
 ```
 
-**Rust**:
-```rust
-let mut fast = head.clone();
-for _ in 0..k {
-    fast = fast.as_ref().unwrap().next.clone();
-}
-let mut slow = head.clone();
-while fast.is_some() {
-    slow = slow.as_ref().unwrap().next.clone();
-    fast = fast.as_ref().unwrap().next.clone();
-}
-slow  // K-й элемент с конца
-```
-
 ### Определение длины цикла:
 
 После обнаружения встречи, зафиксируйте slow и двигайте fast до следующей встречи:
@@ -405,24 +323,13 @@ for temp != slow {
 }
 ```
 
-**Rust**:
-```rust
-// После первой встречи
-let mut cycle_length = 1;
-let mut temp = slow.as_ref().unwrap().next.clone();
-while temp != slow {
-    cycle_length += 1;
-    temp = temp.as_ref().unwrap().next.clone();
-}
-```
-
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
+### Теория аллокаций в Go
 
-#### Rust: Владение и указатели
+#### : Владение и указатели
 
-В Rust для Fast & Slow Pointers:
+В для Fast & Slow Pointers:
 - **Указатели**: `&ListNode` или `Option<Box<ListNode>>` - ссылки не аллоцируют память
 - **Box**: Аллоцирует узел в куче, но указатели на узлы - это просто адреса
 - **Option**: Enum, размером с указателем + discriminant
@@ -438,14 +345,6 @@ while temp != slow {
 
 #### Обнаружение цикла:
 
-**Rust**:
-```rust
-// Аллокации:
-// - slow, fast: &ListNode (ссылки, не аллоцируют) - O(1)
-// - Никаких дополнительных структур данных
-// Итого: O(1) памяти, только указатели
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -460,26 +359,11 @@ while temp != slow {
 
 ### Оптимизация памяти
 
-#### Rust оптимизации:
+#### оптимизации:
 
 1. **Использование ссылок вместо копирования**:
-```rust
-// ✅ Хорошо: использование ссылок
-fn has_cycle(head: &Option<Box<ListNode>>) -> bool {
-    let mut slow = head;
-    let mut fast = head;
-    // ...
-}
-```
 
 2. **Избежание клонирования**:
-```rust
-// ❌ Плохо: клонирование узлов
-let slow_clone = slow.clone();
-
-// ✅ Хорошо: использование ссылок
-let slow_ref = slow;
-```
 
 #### Go оптимизации:
 
@@ -501,9 +385,9 @@ newNode := &ListNode{Val: 0}
 current := head
 ```
 
-### Сравнение Rust vs Go
+### Сравнение vs Go
 
-| Аспект | Rust | Go |
+| Аспект | | Go |
 |--------|------|-----|
 | Указатели | `&T` или `Box<T>` | `*T` |
 | Память | Контролируемая | GC управляет |
@@ -526,29 +410,6 @@ current := head
 
 #### 1. Оптимизация обнаружения цикла:
 
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn has_cycle_optimized(head: &Option<Box<ListNode>>) -> bool {
-    let mut slow = head;
-    let mut fast = head;
-    
-    while let (Some(s), Some(f)) = (slow, fast) {
-        slow = &s.next;
-        fast = &f.next;
-        if let Some(f_next) = fast {
-            fast = &f_next.next;
-        } else {
-            return false; // Нет цикла
-        }
-        if slow == fast {
-            return true; // Цикл обнаружен
-        }
-    }
-    false
-}
-```
-
 **Go**:
 ```go
 // ✅ Оптимизированная версия
@@ -570,21 +431,9 @@ func hasCycleOptimized(head *ListNode) bool {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Использование pattern matching**:
-```rust
-// ✅ Эффективный pattern matching
-match (slow, fast) {
-    (Some(s), Some(f)) => { /* ... */ },
-    _ => return false,
-}
-```
+### Оптимизация для 1. **Использование pattern matching**:
 
 2. **Избежание лишних разыменований**:
-```rust
-// Компилятор Rust оптимизирует разыменования
-```
 
 ### Оптимизация для Go
 
@@ -612,23 +461,7 @@ for fast != nil && fast.Next != nil {
 
 ### Как профилировать Fast & Slow Pointers
 
-#### Rust пример:
-
-```rust
-// benches/fast_slow_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_has_cycle(c: &mut Criterion) {
-    let list = create_cyclic_list(1000);
-    
-    c.bench_function("has_cycle_1000", |b| {
-        b.iter(|| has_cycle_optimized(black_box(&list)))
-    });
-}
-
-criterion_group!(benches, bench_has_cycle);
-criterion_main!(benches);
-```
+#### пример:
 
 #### Go пример:
 
@@ -665,40 +498,7 @@ func BenchmarkHasCycle(b *testing.B) {
 
 ### Примеры тестов для Fast & Slow Pointers
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_has_cycle_no_cycle() {
-        let list = create_list(vec![1, 2, 3, 4, 5]);
-        assert_eq!(has_cycle_optimized(&list), false);
-    }
-
-    #[test]
-    fn test_has_cycle_with_cycle() {
-        let mut list = create_list(vec![1, 2, 3, 4, 5]);
-        // Создаем цикл
-        make_cyclic(&mut list, 2);
-        assert_eq!(has_cycle_optimized(&list), true);
-    }
-
-    #[test]
-    fn test_has_cycle_empty() {
-        let list = None;
-        assert_eq!(has_cycle_optimized(&list), false);
-    }
-
-    #[test]
-    fn test_find_middle() {
-        let list = create_list(vec![1, 2, 3, 4, 5]);
-        assert_eq!(find_middle(&list), Some(3));
-    }
-}
-```
+#### тесты:
 
 #### Go тесты:
 
@@ -727,7 +527,7 @@ func TestHasCycle(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
+#### :
 ```bash
 cargo test
 cargo test -- --nocapture
@@ -742,27 +542,7 @@ go test -bench=. -benchmem
 
 ### Бенчмарки
 
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn fast_slow_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000, 100000];
-    
-    let mut group = c.benchmark_group("fast_slow");
-    for size in sizes {
-        let list = create_cyclic_list(size);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &list,
-            |b, list| {
-                b.iter(|| has_cycle_optimized(black_box(list)));
-            },
-        );
-    }
-    group.finish();
-}
-```
+#### :
 
 #### Go:
 ```go
@@ -784,7 +564,7 @@ func BenchmarkFastSlowSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 
 ## Дополнительные ресурсы

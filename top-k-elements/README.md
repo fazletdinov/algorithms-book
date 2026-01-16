@@ -112,11 +112,11 @@
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
+### Теория аллокаций в Go
 
-#### Rust: Top K Elements
+#### : Top K Elements
 
-В Rust для Top K Elements:
+В для Top K Elements:
 - **Куча**: `BinaryHeap<T>` - O(k) памяти в куче
 - **HashMap для частоты**: `HashMap<T, usize>` - O(n) в худшем случае
 - **Результат**: `Vec<T>` - O(k) памяти
@@ -132,15 +132,6 @@
 
 #### Подход с кучей:
 
-**Rust**:
-```rust
-// Аллокации:
-// - heap: BinaryHeap<T> - O(k) в куче
-// - frequency: HashMap<T, usize> - O(n) в худшем случае
-// - result: Vec<T> - O(k)
-// Итого: O(n) памяти в худшем случае
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -152,19 +143,11 @@
 
 ### Оптимизация памяти
 
-#### Rust оптимизации:
+#### оптимизации:
 
 1. **Предварительное выделение кучи**:
-```rust
-// ✅ Предварительное выделение
-let mut heap = BinaryHeap::with_capacity(k);
-```
 
 2. **Предварительное выделение HashMap**:
-```rust
-// ✅ Предварительное выделение
-let mut frequency = HashMap::with_capacity(n);
-```
 
 #### Go оптимизации:
 
@@ -180,9 +163,9 @@ heap := make(IntHeap, 0, k)
 frequency := make(map[int]int, n)
 ```
 
-### Сравнение Rust vs Go
+### Сравнение vs Go
 
-| Аспект | Rust | Go |
+| Аспект | | Go |
 |--------|------|-----|
 | Куча | BinaryHeap в куче | container/heap в куче |
 | Частота | HashMap в куче | map в куче |
@@ -199,27 +182,6 @@ frequency := make(map[int]int, n)
 ### Специфичные оптимизации для Top K Elements
 
 #### 1. Оптимизация с кучей:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn top_k_frequent_optimized(nums: Vec<i32>, k: i32) -> Vec<i32> {
-    let mut frequency = HashMap::with_capacity(nums.len());
-    for &num in &nums {
-        *frequency.entry(num).or_insert(0) += 1;
-    }
-    
-    let mut heap = BinaryHeap::with_capacity(k as usize);
-    for (num, count) in frequency {
-        heap.push((count, num));
-        if heap.len() > k as usize {
-            heap.pop();
-        }
-    }
-    
-    heap.into_iter().map(|(_, num)| num).collect()
-}
-```
 
 **Go**:
 ```go
@@ -246,19 +208,9 @@ func topKFrequentOptimized(nums []int, k int) []int {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Использование `entry` API**:
-```rust
-// ✅ Эффективное обновление
-*frequency.entry(num).or_insert(0) += 1;
-```
+### Оптимизация для 1. **Использование `entry` API**:
 
 2. **Предварительное выделение**:
-```rust
-// ✅ Предварительное выделение
-let mut frequency = HashMap::with_capacity(nums.len());
-```
 
 ### Оптимизация для Go
 
@@ -282,23 +234,7 @@ heap := make(IntHeap, 0, k)
 
 ### Как профилировать Top K Elements
 
-#### Rust пример:
-
-```rust
-// benches/top_k_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_top_k(c: &mut Criterion) {
-    let nums: Vec<i32> = (0..10000).cycle().take(100000).collect();
-    
-    c.bench_function("top_k_100", |b| {
-        b.iter(|| top_k_frequent_optimized(black_box(nums.clone()), 100))
-    });
-}
-
-criterion_group!(benches, bench_top_k);
-criterion_main!(benches);
-```
+#### пример:
 
 #### Go пример:
 
@@ -338,28 +274,7 @@ func BenchmarkTopK(b *testing.B) {
 
 ### Примеры тестов для Top K Elements
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_top_k_basic() {
-        let nums = vec![1, 1, 1, 2, 2, 3];
-        let result = top_k_frequent_optimized(nums, 2);
-        assert_eq!(result.len(), 2);
-    }
-
-    #[test]
-    fn test_top_k_empty() {
-        let nums = vec![];
-        let result = top_k_frequent_optimized(nums, 0);
-        assert_eq!(result, Vec::<i32>::new());
-    }
-}
-```
+#### тесты:
 
 #### Go тесты:
 
@@ -388,7 +303,7 @@ func TestTopK(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
+#### :
 ```bash
 cargo test
 cargo test -- --nocapture
@@ -403,27 +318,7 @@ go test -bench=. -benchmem
 
 ### Бенчмарки
 
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn top_k_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000];
-    
-    let mut group = c.benchmark_group("top_k");
-    for size in sizes {
-        let nums: Vec<i32> = (0..size).cycle().take(size * 10).collect();
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &nums,
-            |b, nums| {
-                b.iter(|| top_k_frequent_optimized(black_box(nums.clone()), 10));
-            },
-        );
-    }
-    group.finish();
-}
-```
+#### :
 
 #### Go:
 ```go
@@ -448,7 +343,7 @@ func BenchmarkTopKSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 
 ## Примеры задач на LeetCode
@@ -468,6 +363,6 @@ func BenchmarkTopKSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 

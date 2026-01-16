@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Go">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
+            window.path_to_searchindex_js = "searchindex-469fa2ee.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -473,16 +473,6 @@ func (mf *MedianFinder) FindMedian() float64 {
     // ... остальной код
 }
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn find_median(&amp;self) -&gt; Option&lt;f64&gt; {
-    if self.max_heap.is_empty() &amp;&amp; self.min_heap.is_empty() {
-        return None;
-    }
-    // ... остальной код
-}
-<span class="boring">}</span></code></pre>
 <h3 id="2-один-элемент"><a class="header" href="#2-один-элемент">2. Один элемент</a></h3>
 <p><strong>Проблема</strong>: Если есть только один элемент, медиана равна этому элементу.</p>
 <p><strong>Решение</strong>:</p>
@@ -545,9 +535,8 @@ type MedianFinder struct {
 <ul>
 <li>****: Две кучи (min-heap и max-heap)</li>
 </ul>
-<h3 id="rust--heap-go"><a class="header" href="#rust--heap-go">(Rust) / Heap (Go)</a></h3>
+<h3 id="-heap-go"><a class="header" href="#-heap-go">/ Heap (Go)</a></h3>
 <h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>Rust BinaryHeap&lt;T&gt;</strong>:</p>
 <pre><code>Двоичная куча (массив):
 ┌─────────────────────────────────────────┐
 │ BinaryHeap&amp;lt;i32&amp;gt;                          │
@@ -612,18 +601,6 @@ func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 <li>Элементы в куче</li>
 <li>Результаты могут escape</li>
 </ul>
-<h3 id="borrow-checker-rust"><a class="header" href="#borrow-checker-rust">Borrow Checker (Rust)</a></h3>
-<p><strong>Типичный паттерн</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::BinaryHeap;
-use std::cmp::Reverse;
-
-let mut max_heap = BinaryHeap::new();
-let mut min_heap = BinaryHeap::new();
-// Reverse для min-heap
-min_heap.push(Reverse(5));
-<span class="boring">}</span></code></pre>
 <h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
 <p><strong>Для Two Heaps</strong>:</p>
 <ul>
@@ -631,22 +608,8 @@ min_heap.push(Reverse(5));
 <li>Элементы в куче</li>
 <li>Минимизация размера куч критична</li>
 </ul>
-<h3 id="ownership-и-move-semantics-rust"><a class="header" href="#ownership-и-move-semantics-rust">Ownership и Move Semantics (Rust)</a></h3>
-<p><strong>Концепция владения</strong>:</p>
-<ul>
-<li><code>BinaryHeap&amp;lt;T&amp;gt;</code> владеет элементами</li>
-<li>При push/pop передаем владение</li>
-<li>RAII гарантирует освобождение</li>
-</ul>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
-<h4 id="rust-две-кучи"><a class="header" href="#rust-две-кучи">Rust: Две кучи</a></h4>
-<p>В Rust для Two Heaps:</p>
-<ul>
-<li><strong>MaxHeap и MinHeap</strong>: <code>BinaryHeap&amp;lt;T&amp;gt;</code> - аллоцируются в куче, O(n) памяти</li>
-<li><strong>Балансировка</strong>: Перемещение элементов между кучами</li>
-<li><strong>Результат</strong>: O(1) для получения медианы</li>
-</ul>
+<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
 <h4 id="go-две-кучи"><a class="header" href="#go-две-кучи">Go: Две кучи</a></h4>
 <p>В Go:</p>
 <ul>
@@ -656,14 +619,6 @@ min_heap.push(Reverse(5));
 </ul>
 <h3 id="анализ-аллокаций-для-two-heaps"><a class="header" href="#анализ-аллокаций-для-two-heaps">Анализ аллокаций для Two Heaps</a></h3>
 <h4 id="базовый-подход"><a class="header" href="#базовый-подход">Базовый подход:</a></h4>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Аллокации:
-// - max_heap: BinaryHeap&amp;lt;i32&amp;gt; - O(n/2) в худшем случае
-// - min_heap: BinaryHeap&amp;lt;i32&amp;gt; - O(n/2) в худшем случае
-// Итого: O(n) памяти в куче
-<span class="boring">}</span></code></pre>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">// Аллокации:
 // - maxHeap: IntHeap - O(n/2) в куче
@@ -671,25 +626,6 @@ min_heap.push(Reverse(5));
 // Итого: O(n) памяти в куче
 </code></pre>
 <h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
-<ol>
-<li><strong>Предварительное выделение куч</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Предварительное выделение
-let mut max_heap = BinaryHeap::with_capacity(n / 2);
-let mut min_heap = BinaryHeap::with_capacity(n / 2);
-<span class="boring">}</span></code></pre>
-<ol start="2">
-<li><strong>Переиспользование куч</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Очистка и переиспользование
-max_heap.clear();
-min_heap.clear();
-<span class="boring">}</span></code></pre>
 <h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
 <ol>
 <li><strong>Предварительное выделение</strong>:</li>
@@ -705,19 +641,11 @@ minHeap := make(IntHeap, 0, n/2)
 maxHeap = maxHeap[:0]
 minHeap = minHeap[:0]
 </code></pre>
-<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
-</thead>
-<tbody>
-<tr><td>Кучи</td><td>BinaryHeap в куче</td><td>container/heap в куче</td></tr>
-<tr><td>Память</td><td>O(n)</td><td>O(n)</td></tr>
-<tr><td>Балансировка</td><td>O(log n)</td><td>O(log n)</td></tr>
-</tbody>
-</table>
-</div>
+<p>| Аспект | Go |
+|––––|——|—–|
+| Кучи | BinaryHeap в куче | container/heap в куче |
+| Память | O(n) | O(n) |
+| Балансировка | O(log n) | O(log n) |</p>
 <h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
 <h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
 <ol>
@@ -727,43 +655,6 @@ minHeap = minHeap[:0]
 </ol>
 <h3 id="специфичные-оптимизации-для-two-heaps"><a class="header" href="#специфичные-оптимизации-для-two-heaps">Специфичные оптимизации для Two Heaps</a></h3>
 <h4 id="1-оптимизация-балансировки"><a class="header" href="#1-оптимизация-балансировки">1. Оптимизация балансировки:</a></h4>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Оптимизированная версия
-pub struct MedianFinder {
-    max_heap: BinaryHeap&amp;lt;i32&amp;gt;,  // Меньшая половина
-    min_heap: BinaryHeap&amp;lt;Reverse&amp;lt;i32&amp;gt;&amp;gt;,  // Большая половина
-}
-
-impl MedianFinder {
-    pub fn new() -&gt; Self {
-        Self {
-            max_heap: BinaryHeap::with_capacity(1000),
-            min_heap: BinaryHeap::with_capacity(1000),
-        }
-    }
-
-    pub fn add_num(&amp;mut self, num: i32) {
-        if self.max_heap.is_empty() || num &lt;= *self.max_heap.peek().unwrap() {
-            self.max_heap.push(num);
-        } else {
-            self.min_heap.push(Reverse(num));
-        }
-
-        // Балансировка
-        if self.max_heap.len() &gt; self.min_heap.len() + 1 {
-            if let Some(val) = self.max_heap.pop() {
-                self.min_heap.push(Reverse(val));
-            }
-        } else if self.min_heap.len() &gt; self.max_heap.len() + 1 {
-            if let Some(Reverse(val)) = self.min_heap.pop() {
-                self.max_heap.push(val);
-            }
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">// ✅ Оптимизированная версия
 type MedianFinder struct {
@@ -795,25 +686,14 @@ func (mf *MedianFinder) AddNum(num int) {
     }
 }
 </code></pre>
-<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
 <ol>
-<li><strong>Использование <code>Reverse</code> для min heap</strong>:</li>
+<li>
+<p><strong>Использование <code>Reverse</code> для min heap</strong>:</p>
+</li>
+<li>
+<p><strong>Предварительное выделение</strong>:</p>
+</li>
 </ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Эффективная min heap
-use std::cmp::Reverse;
-let mut min_heap = BinaryHeap::new();
-min_heap.push(Reverse(5));
-<span class="boring">}</span></code></pre>
-<ol start="2">
-<li><strong>Предварительное выделение</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Предварительное выделение
-let mut max_heap = BinaryHeap::with_capacity(n / 2);
-<span class="boring">}</span></code></pre>
 <h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
 <ol>
 <li><strong>Использование <code>container/heap</code></strong>:</li>
@@ -831,28 +711,6 @@ maxHeap := make(IntHeap, 0, n/2)
 <h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-two-heaps"><a class="header" href="#как-профилировать-two-heaps">Как профилировать Two Heaps</a></h3>
-<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// benches/two_heaps_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_median_finder(c: &amp;mut Criterion) {
-    let mut finder = MedianFinder::new();
-    let nums: Vec&amp;lt;i32&amp;gt; = (0..1000).collect();
-    
-    c.bench_function("add_num_1000", |b| {
-        b.iter(|| {
-            for &amp;num in &amp;nums {
-                finder.add_num(black_box(num));
-            }
-        })
-    });
-}
-
-criterion_group!(benches, bench_median_finder);
-criterion_main!(benches);
-<span class="boring">}</span></code></pre>
 <h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkMedianFinder(b *testing.B) {
     finder := NewMedianFinder()
@@ -1000,30 +858,6 @@ criterion_main!(benches);
 <li><strong>Стресс-тесты</strong>: Большие последовательности чисел</li>
 </ol>
 <h3 id="примеры-тестов-для-two-heaps"><a class="header" href="#примеры-тестов-для-two-heaps">Примеры тестов для Two Heaps</a></h3>
-<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_median_finder_basic() {
-        let mut finder = MedianFinder::new();
-        finder.add_num(1);
-        finder.add_num(2);
-        assert_eq!(finder.find_median(), 1.5);
-        finder.add_num(3);
-        assert_eq!(finder.find_median(), 2.0);
-    }
-
-    #[test]
-    fn test_median_finder_empty() {
-        let finder = MedianFinder::new();
-        // Обработка пустой структуры
-    }
-}
-<span class="boring">}</span></code></pre>
 <h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
 <pre><code class="language-go">func TestMedianFinder(t *testing.T) {
     tests := []struct {
@@ -1049,43 +883,11 @@ mod tests {
 }
 </code></pre>
 <h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
-<pre><code class="language-bash">cargo test
-cargo test -- --nocapture
-cargo bench
-</code></pre>
 <h4 id="go"><a class="header" href="#go">Go:</a></h4>
 <pre><code class="language-bash">go test -v
 go test -bench=. -benchmem
 </code></pre>
 <h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="rust-1"><a class="header" href="#rust-1">Rust:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn two_heaps_benchmark(c: &amp;mut Criterion) {
-    let sizes = vec![100, 1000, 10000];
-    
-    let mut group = c.benchmark_group("two_heaps");
-    for size in sizes {
-        let nums: Vec&amp;lt;i32&amp;gt; = (0..size).collect();
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &amp;nums,
-            |b, nums| {
-                let mut finder = MedianFinder::new();
-                b.iter(|| {
-                    for &amp;num in nums {
-                        finder.add_num(black_box(num));
-                    }
-                });
-            },
-        );
-    }
-    group.finish();
-}
-<span class="boring">}</span></code></pre>
 <h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
 <pre><code class="language-go">func BenchmarkTwoHeapsSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000}
@@ -1205,144 +1007,7 @@ func (mf *MedianFinder) balance() {
     }
 }
 </code></pre>
-<h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Примеры использования шаблона Two Heaps на Rust
-
-use std::collections::BinaryHeap;
-use std::cmp::Reverse;
-
-/// Структура для поддержания медианы с двумя кучами
-pub struct MedianFinder {
-    // Max heap для меньшей половины (используем Reverse для max heap)
-    max_heap: BinaryHeap&amp;lt;i32&amp;gt;,
-    // Min heap для большей половины
-    min_heap: BinaryHeap&amp;lt;Reverse&amp;lt;i32&amp;gt;&amp;gt;,
-}
-
-impl MedianFinder {
-    pub fn new() -&gt; Self {
-        MedianFinder {
-            max_heap: BinaryHeap::new(),
-            min_heap: BinaryHeap::new(),
-        }
-    }
-
-    /// Добавление числа в структуру
-    /// Временная сложность: O(log n)
-    pub fn add_num(&amp;mut self, num: i32) {
-        // Добавляем в max_heap по умолчанию
-        self.max_heap.push(num);
-
-        // Перемещаем максимум из max_heap в min_heap
-        if let Some(max_val) = self.max_heap.pop() {
-            self.min_heap.push(Reverse(max_val));
-        }
-
-        // Балансируем кучи: max_heap должен быть &gt;= min_heap
-        if self.max_heap.len() &lt; self.min_heap.len() {
-            if let Some(Reverse(min_val)) = self.min_heap.pop() {
-                self.max_heap.push(min_val);
-            }
-        }
-    }
-
-    /// Получение медианы
-    /// Временная сложность: O(1)
-    pub fn find_median(&amp;self) -&gt; f64 {
-        if self.max_heap.len() &gt; self.min_heap.len() {
-            *self.max_heap.peek().unwrap() as f64
-        } else {
-            let max_val = *self.max_heap.peek().unwrap() as f64;
-            let min_val = self.min_heap.peek().unwrap().0 as f64;
-            (max_val + min_val) / 2.0
-        }
-    }
-}
-
-/// Пример 1: Медиана из потока данных
-/// 
-/// Задача: Поддерживать медиану потока чисел
-/// Временная сложность: O(log n) для добавления, O(1) для получения медианы
-/// Пространственная сложность: O(n)
-pub struct MedianOfStream {
-    max_heap: BinaryHeap&amp;lt;i32&amp;gt;,
-    min_heap: BinaryHeap&amp;lt;Reverse&amp;lt;i32&amp;gt;&amp;gt;,
-}
-
-impl MedianOfStream {
-    pub fn new() -&gt; Self {
-        MedianOfStream {
-            max_heap: BinaryHeap::new(),
-            min_heap: BinaryHeap::new(),
-        }
-    }
-
-    pub fn insert(&amp;mut self, num: i32) {
-        if self.max_heap.is_empty() || num &lt;= *self.max_heap.peek().unwrap() {
-            self.max_heap.push(num);
-        } else {
-            self.min_heap.push(Reverse(num));
-        }
-
-        // Балансируем кучи
-        if self.max_heap.len() &gt; self.min_heap.len() + 1 {
-            if let Some(val) = self.max_heap.pop() {
-                self.min_heap.push(Reverse(val));
-            }
-        } else if self.min_heap.len() &gt; self.max_heap.len() {
-            if let Some(Reverse(val)) = self.min_heap.pop() {
-                self.max_heap.push(val);
-            }
-        }
-    }
-
-    pub fn get_median(&amp;self) -&gt; f64 {
-        if self.max_heap.len() == self.min_heap.len() {
-            let max_val = *self.max_heap.peek().unwrap() as f64;
-            let min_val = self.min_heap.peek().unwrap().0 as f64;
-            (max_val + min_val) / 2.0
-        } else {
-            *self.max_heap.peek().unwrap() as f64
-        }
-    }
-}
-
-/// Пример 2: Разделение массива на две части с помощью двух куч
-/// 
-/// Задача: Разделить массив так, чтобы разница сумм была минимальной
-/// Временная сложность: O(n log n)
-/// Пространственная сложность: O(n)
-pub fn partition_array(nums: Vec&amp;lt;i32&amp;gt;) -&gt; i32 {
-    let mut max_heap = BinaryHeap::new();
-    let mut min_heap = BinaryHeap::new();
-
-    for &amp;num in &amp;nums {
-        if max_heap.len() &lt;= min_heap.len() {
-            max_heap.push(num);
-        } else {
-            min_heap.push(Reverse(num));
-        }
-
-        // Балансируем
-        if let (Some(&amp;max_val), Some(&amp;Reverse(min_val))) = (max_heap.peek(), min_heap.peek()) {
-            if max_val &gt; min_val {
-                let max_val = max_heap.pop().unwrap();
-                let Reverse(min_val) = min_heap.pop().unwrap();
-                max_heap.push(min_val);
-                min_heap.push(Reverse(max_val));
-            }
-        }
-    }
-
-    let sum1: i32 = max_heap.iter().sum();
-    let sum2: i32 = min_heap.iter().map(|Reverse(x)| x).sum();
-
-    (sum1 - sum2).abs()
-}
-<span class="boring">}</span></code></pre>
-<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
+<h3 id="-go"><a class="header" href="#-go">### Go</a></h3>
 <pre><code class="language-go">package main
 
 import (

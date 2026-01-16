@@ -133,11 +133,11 @@ Post-order: 4 -> 5 -> 2 -> 6 -> 3 -> 1
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
+### Теория аллокаций в Go
 
-#### Rust: Рекурсивный обход
+#### : Рекурсивный обход
 
-В Rust для Tree DFS:
+В для Tree DFS:
 - **Рекурсивный подход**: Стек вызовов - O(h) где h - высота дерева
 - **Итеративный подход**: Стек (Vec) - O(h) в куче
 - **Результат**: `Vec<i32>` - O(n) для всех значений
@@ -153,14 +153,6 @@ Post-order: 4 -> 5 -> 2 -> 6 -> 3 -> 1
 
 #### Рекурсивный подход:
 
-**Rust**:
-```rust
-// Аллокации:
-// - Стек вызовов: O(h) где h - высота дерева
-// - Результат: Vec<i32> - O(n) в худшем случае
-// Итого: O(h) для стека + O(n) для результата
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -170,14 +162,6 @@ Post-order: 4 -> 5 -> 2 -> 6 -> 3 -> 1
 ```
 
 #### Итеративный подход:
-
-**Rust**:
-```rust
-// Аллокации:
-// - Стек: Vec<Option<Rc<RefCell<TreeNode>>>> - O(h) в куче
-// - Результат: Vec<i32> - O(n)
-// Итого: O(h) + O(n) памяти
-```
 
 **Go**:
 ```go
@@ -189,19 +173,11 @@ Post-order: 4 -> 5 -> 2 -> 6 -> 3 -> 1
 
 ### Оптимизация памяти
 
-#### Rust оптимизации:
+#### оптимизации:
 
 1. **Использование итеративного подхода для больших деревьев**:
-```rust
-// ✅ Избегаем переполнения стека
-let mut stack = Vec::with_capacity(max_depth);
-```
 
 2. **Предварительное выделение результата**:
-```rust
-// ✅ Предварительное выделение
-let mut result = Vec::with_capacity(n);
-```
 
 #### Go оптимизации:
 
@@ -217,9 +193,9 @@ stack := make([]*TreeNode, 0, maxDepth)
 result := make([]int, 0, n)
 ```
 
-### Сравнение Rust vs Go
+### Сравнение vs Go
 
-| Аспект | Rust | Go |
+| Аспект | | Go |
 |--------|------|-----|
 | Рекурсивный | O(h) стек | O(h) стек |
 | Итеративный | O(h) + O(n) | O(h) + O(n) |
@@ -236,25 +212,6 @@ result := make([]int, 0, n)
 ### Специфичные оптимизации для Tree DFS
 
 #### 1. Оптимизация рекурсивного подхода:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn inorder_traversal_optimized(root: Option<Rc<RefCell<TreeNode>>>) -> Vec<i32> {
-    let mut result = Vec::new();
-    inorder_helper(&root, &mut result);
-    result
-}
-
-fn inorder_helper(node: &Option<Rc<RefCell<TreeNode>>>, result: &mut Vec<i32>) {
-    if let Some(n) = node {
-        let n_ref = n.borrow();
-        inorder_helper(&n_ref.left, result);
-        result.push(n_ref.val);
-        inorder_helper(&n_ref.right, result);
-    }
-}
-```
 
 **Go**:
 ```go
@@ -275,19 +232,9 @@ func inorderHelper(node *TreeNode, result *[]int) {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Использование ссылок**:
-```rust
-// ✅ Передаем ссылки вместо клонирования
-fn inorder_helper(node: &Option<Rc<RefCell<TreeNode>>>, result: &mut Vec<i32>)
-```
+### Оптимизация для 1. **Использование ссылок**:
 
 2. **Предварительное выделение**:
-```rust
-// ✅ Предварительное выделение
-let mut result = Vec::with_capacity(n);
-```
 
 ### Оптимизация для Go
 
@@ -311,23 +258,7 @@ result := make([]int, 0, n)
 
 ### Как профилировать Tree DFS
 
-#### Rust пример:
-
-```rust
-// benches/tree_dfs_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_inorder_traversal(c: &mut Criterion) {
-    let tree = create_test_tree(1000);
-    
-    c.bench_function("inorder_1000", |b| {
-        b.iter(|| inorder_traversal_optimized(black_box(tree.clone())))
-    });
-}
-
-criterion_group!(benches, bench_inorder_traversal);
-criterion_main!(benches);
-```
+#### пример:
 
 #### Go пример:
 
@@ -364,28 +295,7 @@ func BenchmarkInorderTraversal(b *testing.B) {
 
 ### Примеры тестов для Tree DFS
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_inorder_basic() {
-        let tree = create_tree(vec![Some(1), None, Some(2), Some(3)]);
-        let result = inorder_traversal_optimized(tree);
-        assert_eq!(result, vec![1, 3, 2]);
-    }
-
-    #[test]
-    fn test_inorder_empty() {
-        let tree = None;
-        let result = inorder_traversal_optimized(tree);
-        assert_eq!(result, Vec::<i32>::new());
-    }
-}
-```
+#### тесты:
 
 #### Go тесты:
 
@@ -413,7 +323,7 @@ func TestInorderTraversal(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
+#### :
 ```bash
 cargo test
 cargo test -- --nocapture
@@ -428,27 +338,7 @@ go test -bench=. -benchmem
 
 ### Бенчмарки
 
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn tree_dfs_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000];
-    
-    let mut group = c.benchmark_group("tree_dfs");
-    for size in sizes {
-        let tree = create_test_tree(size);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &tree,
-            |b, tree| {
-                b.iter(|| inorder_traversal_optimized(black_box(tree.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-```
+#### :
 
 #### Go:
 ```go
@@ -470,7 +360,7 @@ func BenchmarkTreeDFSSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 
 ## Примеры задач на LeetCode
@@ -492,6 +382,6 @@ func BenchmarkTreeDFSSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 

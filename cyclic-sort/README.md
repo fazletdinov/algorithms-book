@@ -117,11 +117,11 @@ Cyclic Sort является специализированным алгорит
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
+### Теория аллокаций в Go
 
-#### Rust: In-place сортировка
+#### : In-place сортировка
 
-В Rust для Cyclic Sort:
+В для Cyclic Sort:
 - **Сортировка на месте**: Модифицирует входной массив, не аллоцирует дополнительную память
 - **Только индексы**: `usize` на стеке - O(1)
 - **Временные переменные**: Для swap операций - O(1)
@@ -137,14 +137,6 @@ Cyclic Sort является специализированным алгорит
 
 #### Базовый алгоритм:
 
-**Rust**:
-```rust
-// Аллокации:
-// - i, correct_pos: usize (стек) - O(1)
-// - Временные переменные для swap: O(1)
-// Итого: O(1) памяти, никаких аллокаций в куче
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -155,21 +147,11 @@ Cyclic Sort является специализированным алгорит
 
 ### Оптимизация памяти
 
-#### Rust оптимизации:
+#### оптимизации:
 
 1. **Использование `swap` вместо временных переменных**:
-```rust
-// ✅ Эффективный swap
-arr.swap(i, correct_pos);
-```
 
 2. **Избежание клонирования**:
-```rust
-// ✅ Модифицируем на месте
-fn cyclic_sort(arr: &mut [i32]) {
-    // ...
-}
-```
 
 #### Go оптимизации:
 
@@ -187,9 +169,9 @@ func cyclicSort(arr []int) {
 }
 ```
 
-### Сравнение Rust vs Go
+### Сравнение vs Go
 
-| Аспект | Rust | Go |
+| Аспект | | Go |
 |--------|------|-----|
 | Память | O(1) константная | O(1) константная |
 | In-place | Да, через `&mut` | Да, слайсы |
@@ -211,24 +193,6 @@ func cyclicSort(arr []int) {
 
 #### 1. Оптимизация проверки позиции:
 
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn cyclic_sort_optimized(arr: &mut [i32]) {
-    let n = arr.len();
-    let mut i = 0;
-    
-    while i < n {
-        let correct_pos = (arr[i] - 1) as usize;
-        if arr[i] != arr[correct_pos] {
-            arr.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-}
-```
-
 **Go**:
 ```go
 // ✅ Оптимизированная версия
@@ -245,21 +209,9 @@ func cyclicSortOptimized(arr []int) {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Использование `swap`**:
-```rust
-// ✅ Встроенный swap оптимизирован
-arr.swap(i, correct_pos);
-```
+### Оптимизация для 1. **Использование `swap`**:
 
 2. **Избежание лишних проверок**:
-```rust
-// ✅ Проверяем только когда необходимо
-if arr[i] != arr[correct_pos] {
-    arr.swap(i, correct_pos);
-}
-```
 
 ### Оптимизация для Go
 
@@ -285,23 +237,7 @@ if arr[i] != arr[correctPos] {
 
 ### Как профилировать Cyclic Sort
 
-#### Rust пример:
-
-```rust
-// benches/cyclic_sort_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_cyclic_sort(c: &mut Criterion) {
-    let mut arr = create_test_array(1000);
-    
-    c.bench_function("cyclic_sort_1000", |b| {
-        b.iter(|| cyclic_sort_optimized(black_box(&mut arr)))
-    });
-}
-
-criterion_group!(benches, bench_cyclic_sort);
-criterion_main!(benches);
-```
+#### пример:
 
 #### Go пример:
 
@@ -338,35 +274,7 @@ func BenchmarkCyclicSort(b *testing.B) {
 
 ### Примеры тестов для Cyclic Sort
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_cyclic_sort_basic() {
-        let mut arr = vec![3, 1, 5, 4, 2];
-        cyclic_sort_optimized(&mut arr);
-        assert_eq!(arr, vec![1, 2, 3, 4, 5]);
-    }
-
-    #[test]
-    fn test_cyclic_sort_empty() {
-        let mut arr = vec![];
-        cyclic_sort_optimized(&mut arr);
-        assert_eq!(arr, vec![]);
-    }
-
-    #[test]
-    fn test_cyclic_sort_sorted() {
-        let mut arr = vec![1, 2, 3, 4, 5];
-        cyclic_sort_optimized(&mut arr);
-        assert_eq!(arr, vec![1, 2, 3, 4, 5]);
-    }
-}
-```
+#### тесты:
 
 #### Go тесты:
 
@@ -395,7 +303,7 @@ func TestCyclicSort(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
+#### :
 ```bash
 cargo test
 cargo test -- --nocapture
@@ -410,27 +318,7 @@ go test -bench=. -benchmem
 
 ### Бенчмарки
 
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn cyclic_sort_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000, 100000];
-    
-    let mut group = c.benchmark_group("cyclic_sort");
-    for size in sizes {
-        let mut arr = create_test_array(size);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &mut arr,
-            |b, arr| {
-                b.iter(|| cyclic_sort_optimized(black_box(arr)));
-            },
-        );
-    }
-    group.finish();
-}
-```
+#### :
 
 #### Go:
 ```go
@@ -466,6 +354,6 @@ func BenchmarkCyclicSortSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 

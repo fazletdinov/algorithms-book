@@ -279,16 +279,6 @@ func mergeKArrays(arrays [][]int) []int {
 }
 ```
 
-**Rust**:
-```rust
-pub fn merge_k_arrays(arrays: Vec<Vec<i32>>) -> Vec<i32> {
-    if arrays.is_empty() {
-        return vec![];
-    }
-    // ... остальной код
-}
-```
-
 ### 2. Один массив
 
 **Проблема**: Если есть только один массив, слияние не требуется.
@@ -396,7 +386,7 @@ func mergeKLists(lists []*ListNode) *ListNode {
 - ****: K отсортированных массивов
 - **Структура элемента**: (значение, индекс массива, позиция в массиве)
 
-###  (Rust) / Heap (Go)
+###   / Heap (Go)
 
 #### Что такое Heap (Куча)?
 
@@ -408,16 +398,6 @@ func mergeKLists(lists []*ListNode) *ListNode {
 - **Эффективные операции**: O(log n) для вставки и удаления, O(1) для доступа к корню
 
 #### Как хранится в памяти:
-
-**Rust BinaryHeap с кастомной структурой**:
-```rust
-#[derive(PartialEq, Eq)]
-struct Element {
-    val: i32,
-    array_idx: usize,
-    pos: usize,
-}
-```
 
 **Куча хранит**:
 - Минимальный элемент из каждого массива
@@ -437,7 +417,7 @@ struct Element {
 - O(k) памяти вместо O(n)
 - Оптимально для больших k
 
-### > (Rust) / [][]T (Go)
+### >  / [][]T (Go)
 
 #### K отсортированных массивов:
 
@@ -467,17 +447,6 @@ struct Element {
 - Массивы в куче
 - Результаты могут escape
 
-### Borrow Checker (Rust)
-
-**Типичный паттерн**:
-```rust
-fn merge_k_sorted(arrays: Vec&lt;Vec<i32&gt;>) -> Vec&lt;i32&gt; {
-    let mut heap = BinaryHeap::new();
-    let mut indices = vec![0; arrays.len()];
-    // ...
-}
-```
-
 ### Garbage Collector (Go)
 
 **Для K-way Merge**:
@@ -485,23 +454,9 @@ fn merge_k_sorted(arrays: Vec&lt;Vec<i32&gt;>) -> Vec&lt;i32&gt; {
 - Массивы в куче
 - Минимизация k критична
 
-### Ownership и Move Semantics (Rust)
-
-**Концепция владения**:
-- `Vec&lt;Vec<i32&gt;>` владеет массивами
-- `BinaryHeap` владеет элементами
-- RAII гарантирует освобождение
-
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
-
-#### Rust: K-way Merge
-
-В Rust для K-way Merge:
-- **Куча**: `BinaryHeap&lt;(i32, usize, usize)&gt;` - O(k) в куче
-- **Результат**: `Vec&lt;i32&gt;` - O(n) где n - общее количество элементов
-- **Индексы**: `usize` на стеке - O(1)
+### Теория аллокаций в Go
 
 #### Go: K-way Merge
 
@@ -514,14 +469,6 @@ fn merge_k_sorted(arrays: Vec&lt;Vec<i32&gt;>) -> Vec&lt;i32&gt; {
 
 #### Подход с кучей:
 
-**Rust**:
-```rust
-// Аллокации:
-// - heap: BinaryHeap&lt;(i32, usize, usize)&gt; - O(k) в куче
-// - result: Vec&lt;i32&gt; - O(n) где n - общее количество элементов
-// Итого: O(k) + O(n) памяти
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -531,20 +478,6 @@ fn merge_k_sorted(arrays: Vec&lt;Vec<i32&gt;>) -> Vec&lt;i32&gt; {
 ```
 
 ### Оптимизация памяти
-
-#### Rust оптимизации:
-
-1. **Предварительное выделение кучи**:
-```rust
-// ✅ Предварительное выделение
-let mut heap = BinaryHeap::with_capacity(k);
-```
-
-2. **Предварительное выделение результата**:
-```rust
-// ✅ Предварительное выделение
-let mut result = Vec::with_capacity(total_elements);
-```
 
 #### Go оптимизации:
 
@@ -560,9 +493,7 @@ heap := make(ItemHeap, 0, k)
 result := make([]int, 0, totalElements)
 ```
 
-### Сравнение Rust vs Go
-
-| Аспект | Rust | Go |
+| Аспект | Go |
 |--------|------|-----|
 | Куча | BinaryHeap в куче | container/heap в куче |
 | Результат | Vec в куче | Слайс в куче |
@@ -579,35 +510,6 @@ result := make([]int, 0, totalElements)
 ### Специфичные оптимизации для K-way Merge
 
 #### 1. Оптимизация с кучей:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn merge_k_lists_optimized(lists: Vec&lt;Option&lt;Box&lt;ListNode&gt;&gt;&gt;) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    let mut heap = BinaryHeap::with_capacity(lists.len());
-    
-    for (idx, list) in lists.iter().enumerate() {
-        if let Some(node) = list {
-            heap.push((Reverse(node.val), idx));
-        }
-    }
-    
-    let mut dummy = Box::new(ListNode::new(0));
-    let mut current = &mut dummy;
-    
-    while let Some((Reverse(val), idx)) = heap.pop() {
-        current.next = Some(Box::new(ListNode::new(val)));
-        current = current.next.as_mut().unwrap();
-        
-        // Добавляем следующий элемент из того же списка
-        if let Some(next) = &lists[idx].as_ref().unwrap().next {
-            heap.push((Reverse(next.val), idx));
-        }
-    }
-    
-    dummy.next
-}
-```
 
 **Go**:
 ```go
@@ -640,20 +542,9 @@ func mergeKListsOptimized(lists []*ListNode) *ListNode {
 }
 ```
 
-### Оптимизация для Rust
-
 1. **Использование `Reverse` для min heap**:
-```rust
-// ✅ Эффективная min heap
-use std::cmp::Reverse;
-heap.push((Reverse(val), idx));
-```
 
 2. **Предварительное выделение**:
-```rust
-// ✅ Предварительное выделение
-let mut heap = BinaryHeap::with_capacity(k);
-```
 
 ### Оптимизация для Go
 
@@ -676,80 +567,6 @@ heap.Push(&heap, item)
 См. раздел "Профилирование" в [Sliding Window](./sliding-window.md#профилирование) для общих инструментов.
 
 ### Как профилировать K-way Merge
-
-#### Rust пример:
-
-```rust
-// benches/k_way_merge_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-// Определение ListNode для связанных списков
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct ListNode {
-    pub val: i32,
-    pub next: Option&lt;Box&lt;ListNode&gt;&gt;,
-}
-
-impl ListNode {
-    #[inline]
-    fn new(val: i32) -> Self {
-        ListNode { next: None, val }
-    }
-}
-
-// Вспомогательная функция для создания связанного списка из вектора
-fn create_list(vals: Vec&lt;i32&gt;) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    if vals.is_empty() {
-        return None;
-    }
-    let mut head = Box::new(ListNode::new(vals[0]));
-    let mut current = &mut head;
-    for val in vals.into_iter().skip(1) {
-        current.next = Some(Box::new(ListNode::new(val)));
-        current = current.next.as_mut().unwrap();
-    }
-    Some(head)
-}
-
-// Вспомогательная функция для преобразования списка в вектор
-fn list_to_vec(mut head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Vec&lt;i32&gt; {
-    let mut result = Vec::new();
-    while let Some(node) = head {
-        result.push(node.val);
-        head = node.next;
-    }
-    result
-}
-
-// Вспомогательная функция для создания тестовых списков
-fn create_test_lists(k: usize, size_per_list: usize) -> Vec&lt;Option&lt;Box&lt;ListNode&gt;&gt;&gt; {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
-    let mut lists = Vec::new();
-    
-    for _ in 0..k {
-        let mut vals = Vec::new();
-        for _ in 0..size_per_list {
-            vals.push(rng.gen_range(0..1000));
-        }
-        vals.sort();
-        lists.push(create_list(vals));
-    }
-    
-    lists
-}
-
-fn bench_merge_k_lists(c: &mut Criterion) {
-    let lists = create_test_lists(10, 1000);
-    
-    c.bench_function("merge_10_lists", |b| {
-        b.iter(|| merge_k_lists_optimized(black_box(lists.clone())))
-    });
-}
-
-criterion_group!(benches, bench_merge_k_lists);
-criterion_main!(benches);
-```
 
 #### Go пример:
 
@@ -897,35 +714,6 @@ func visualizeHeap(heap *MinHeap, arrays [][]int) {
 
 ### Примеры тестов для K-way Merge
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_merge_k_lists_basic() {
-        // Используем вспомогательные функции create_list и list_to_vec
-        // (определены выше в разделе профилирования)
-        let lists = vec![
-            create_list(vec![1, 4, 5]),
-            create_list(vec![1, 3, 4]),
-            create_list(vec![2, 6]),
-        ];
-        let result = merge_k_lists_optimized(lists);
-        assert_eq!(list_to_vec(result), vec![1, 1, 2, 3, 4, 4, 5, 6]);
-    }
-
-    #[test]
-    fn test_merge_k_lists_empty() {
-        let lists = vec![];
-        let result = merge_k_lists_optimized(lists);
-        assert_eq!(list_to_vec(result), Vec::&lt;i32&gt;::new());
-    }
-}
-```
-
 #### Go тесты:
 
 ```go
@@ -956,13 +744,6 @@ func TestMergeKLists(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
-```bash
-cargo test
-cargo test -- --nocapture
-cargo bench
-```
-
 #### Go:
 ```bash
 go test -v
@@ -970,28 +751,6 @@ go test -bench=. -benchmem
 ```
 
 ### Бенчмарки
-
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn k_way_merge_benchmark(c: &mut Criterion) {
-    let k_values = vec![5, 10, 20];
-    
-    let mut group = c.benchmark_group("k_way_merge");
-    for k in k_values {
-        let lists = create_test_lists(k, 100);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(k),
-            &lists,
-            |b, lists| {
-                b.iter(|| merge_k_lists_optimized(black_box(lists.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-```
 
 #### Go:
 ```go
@@ -1145,169 +904,6 @@ func mergeKArraysIdiomatic(arrays [][]int) []int {
     }
     
     return result
-}
-```
-
-### Rust
-
-```rust
-// Примеры использования шаблона K-way Merge на Rust
-
-use std::collections::BinaryHeap;
-use std::cmp::Reverse;
-
-// Определение узла связанного списка
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct ListNode {
-    pub val: i32,
-    pub next: Option&lt;Box&lt;ListNode&gt;&gt;,
-}
-
-impl ListNode {
-    #[inline]
-    pub fn new(val: i32) -> Self {
-        ListNode { next: None, val }
-    }
-}
-
-/// Пример 1: Слияние K отсортированных списков
-/// 
-/// Задача: Объединить K отсортированных связанных списков в один
-/// Временная сложность: O(n log k), где n - общее количество узлов
-/// Пространственная сложность: O(k)
-pub fn merge_k_lists(lists: Vec&lt;Option&lt;Box&lt;ListNode&gt;&gt;&gt;) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    let mut heap = BinaryHeap::new();
-
-    // Добавляем первые элементы всех списков в кучу
-    for (idx, list) in lists.iter().enumerate() {
-        if let Some(node) = list {
-            heap.push(Reverse((node.val, idx)));
-        }
-    }
-
-    let mut dummy = Box::new(ListNode::new(0));
-    let mut current = &mut dummy;
-    let mut lists = lists;
-
-    while let Some(Reverse((val, idx))) = heap.pop() {
-        // Создаем новый узел
-        current.next = Some(Box::new(ListNode::new(val)));
-        current = current.next.as_mut().unwrap();
-
-        // Перемещаемся к следующему узлу в списке
-        if let Some(node) = &mut lists[idx] {
-            *node = node.next.take();
-            if let Some(next_node) = &node {
-                heap.push(Reverse((next_node.val, idx)));
-            }
-        }
-    }
-
-    dummy.next
-}
-
-/// Пример 2: Слияние K отсортированных массивов
-/// 
-/// Задача: Объединить K отсортированных массивов в один отсортированный массив
-/// Временная сложность: O(n log k)
-/// Пространственная сложность: O(k)
-pub fn merge_k_arrays(arrays: Vec&lt;Vec<i32&gt;>) -> Vec&lt;i32&gt; {
-    let mut heap = BinaryHeap::new();
-    let mut indices = vec![0; arrays.len()];
-    let mut result = Vec::new();
-
-    // Добавляем первые элементы всех массивов в кучу
-    for (idx, arr) in arrays.iter().enumerate() {
-        if !arr.is_empty() {
-            heap.push(Reverse((arr[0], idx)));
-        }
-    }
-
-    while let Some(Reverse((val, arr_idx))) = heap.pop() {
-        result.push(val);
-        indices[arr_idx] += 1;
-
-        // Добавляем следующий элемент из того же массива
-        if indices[arr_idx] < arrays[arr_idx].len() {
-            let next_val = arrays[arr_idx][indices[arr_idx]];
-            heap.push(Reverse((next_val, arr_idx)));
-        }
-    }
-
-    result
-}
-
-/// Пример 3: K-й наименьший элемент в отсортированной матрице
-/// 
-/// Задача: Найти K-й наименьший элемент в матрице, где каждая строка и столбец отсортированы
-/// Временная сложность: O(k log k)
-/// Пространственная сложность: O(k)
-pub fn kth_smallest(matrix: Vec&lt;Vec<i32&gt;>, k: i32) -> i32 {
-    let mut heap = BinaryHeap::new();
-    let n = matrix.len();
-
-    // Добавляем первые элементы каждой строки
-    for i in 0..n.min(k as usize) {
-        heap.push(Reverse((matrix[i][0], i, 0)));
-    }
-
-    let mut count = 0;
-    let mut result = 0;
-
-    while let Some(Reverse((val, row, col))) = heap.pop() {
-        count += 1;
-        if count == k {
-            result = val;
-            break;
-        }
-
-        // Добавляем следующий элемент из той же строки
-        if col + 1 < n {
-            heap.push(Reverse((matrix[row][col + 1], row, col + 1)));
-        }
-    }
-
-    result
-}
-
-/// Пример 4: K пар с наименьшими суммами
-/// 
-/// Задача: Найти K пар (u, v), где u из nums1, v из nums2, с наименьшими суммами
-/// Временная сложность: O(k log k)
-/// Пространственная сложность: O(k)
-pub fn k_smallest_pairs(nums1: Vec&lt;i32&gt;, nums2: Vec&lt;i32&gt;, k: i32) -> Vec&lt;Vec<i32&gt;> {
-    let mut heap = BinaryHeap::new();
-    let k = k as usize;
-
-    // Добавляем первые пары
-    for i in 0..nums1.len().min(k) {
-        heap.push(Reverse((
-            nums1[i] + nums2[0],
-            i,
-            0,
-        )));
-    }
-
-    let mut result = Vec::new();
-
-    while let Some(Reverse((sum, i, j))) = heap.pop() {
-        result.push(vec![nums1[i], nums2[j]]);
-
-        if result.len() == k {
-            break;
-        }
-
-        // Добавляем следующую пару из того же элемента nums1
-        if j + 1 < nums2.len() {
-            heap.push(Reverse((
-                nums1[i] + nums2[j + 1],
-                i,
-                j + 1,
-            )));
-        }
-    }
-
-    result
 }
 ```
 

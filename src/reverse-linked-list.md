@@ -238,16 +238,6 @@ func reverseList(head *ListNode) *ListNode {
 }
 ```
 
-**Rust**:
-```rust
-pub fn reverse_list(head: Option<Box<ListNode>>) -> Option<Box<ListNode>> {
-    if head.is_none() {
-        return None;
-    }
-    // ... остальной код
-}
-```
-
 ### 2. Список из одного элемента
 
 **Проблема**: Если список содержит только один элемент, разворот возвращает тот же список.
@@ -365,14 +355,14 @@ if count < k {
 ### Используемые структуры данных в Reverse Linked List
 
 В шаблоне Reverse Linked List используются следующие структуры данных:
-- **LinkedList Node**: Узлы связанного списка (Box&lt;T&gt; в Rust, указатели в Go)
+- **LinkedList Node**: Узлы связанного списка (, указатели в Go)
 - **Указатели**: Для навигации по списку (prev, curr, next)
 
 ### LinkedList Node (Узел связанного списка)
 
 #### Как хранится в памяти:
 
-**Rust (Box&lt;T&gt;)**:
+**(Box&lt;T&gt;)**:
 ```
 Узел списка:
 ┌─────────────────────────────────────────┐
@@ -419,25 +409,6 @@ if count < k {
 - Указатели prev, curr, next - на стеке
 - Результат может escape, если возвращается
 
-### Borrow Checker (Rust)
-
-**Типичный паттерн**:
-```rust
-fn reverse_list(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    let mut prev = None;
-    let mut curr = head;
-    while let Some(mut node) = curr {
-        let next = node.next.take();
-        node.next = prev;
-        prev = Some(node);
-        curr = next;
-    }
-    prev
-}
-```
-
-**Важно**: Используем `take()` для временного владения узлом.
-
 ### Garbage Collector (Go)
 
 **Для Reverse Linked List**:
@@ -445,23 +416,9 @@ fn reverse_list(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;Lis
 - In-place разворот не создает новых узлов
 - Минимальное влияние на GC
 
-### Ownership и Move Semantics (Rust)
-
-**Концепция владения**:
-- Каждый `Box&lt;ListNode&gt;` владеет следующим узлом
-- При развороте передаем владение между указателями
-- RAII гарантирует освобождение памяти
-
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
-
-#### Rust: In-place разворот
-
-В Rust для Reverse Linked List:
-- **Итеративный подход**: Только указатели на стеке - O(1)
-- **Рекурсивный подход**: Стек вызовов - O(n)
-- **Узлы**: Уже аллоцированы, только меняем указатели
+### Теория аллокаций в Go
 
 #### Go: In-place разворот
 
@@ -474,14 +431,6 @@ fn reverse_list(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;Lis
 
 #### Итеративный подход:
 
-**Rust**:
-```rust
-// Аллокации:
-// - prev, curr, next: Option&lt;Box&lt;ListNode&gt;&gt; (указатели) - O(1)
-// - Никаких новых узлов не создается
-// Итого: O(1) памяти, только указатели
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -492,13 +441,6 @@ fn reverse_list(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;Lis
 
 #### Рекурсивный подход:
 
-**Rust**:
-```rust
-// Аллокации:
-// - Стек вызовов: O(n) для глубины рекурсии
-// Итого: O(n) памяти для стека
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -507,31 +449,6 @@ fn reverse_list(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;Lis
 ```
 
 ### Оптимизация памяти
-
-#### Rust оптимизации:
-
-1. **Использование итеративного подхода**:
-```rust
-// ✅ O(1) памяти вместо O(n)
-pub fn reverse_list_iterative(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    let mut prev = None;
-    let mut curr = head;
-    
-    while let Some(mut node) = curr {
-        let next = node.next.take();
-        node.next = prev;
-        prev = Some(node);
-        curr = next;
-    }
-    prev
-}
-```
-
-2. **Избежание клонирования**:
-```rust
-// ✅ Используем take() вместо clone()
-let next = node.next.take();
-```
 
 #### Go оптимизации:
 
@@ -558,9 +475,7 @@ func reverseListIterative(head *ListNode) *ListNode {
 curr.Next = prev
 ```
 
-### Сравнение Rust vs Go
-
-| Аспект | Rust | Go |
+| Аспект | Go |
 |--------|------|-----|
 | Итеративный | O(1) память | O(1) память |
 | Рекурсивный | O(n) стек | O(n) стек |
@@ -583,22 +498,6 @@ curr.Next = prev
 
 #### 1. Оптимизация итеративного подхода:
 
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn reverse_list_optimized(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    let mut prev = None;
-    let mut curr = head;
-    
-    while let Some(mut node) = curr {
-        curr = node.next.take();
-        node.next = prev;
-        prev = Some(node);
-    }
-    prev
-}
-```
-
 **Go**:
 ```go
 // ✅ Оптимизированная версия
@@ -615,21 +514,9 @@ func reverseListOptimized(head *ListNode) *ListNode {
 }
 ```
 
-### Оптимизация для Rust
-
 1. **Использование `take()`**:
-```rust
-// ✅ Эффективное перемещение владения
-curr = node.next.take();
-```
 
 2. **Избежание лишних проверок**:
-```rust
-// ✅ Pattern matching оптимизирован компилятором
-while let Some(mut node) = curr {
-    // ...
-}
-```
 
 ### Оптимизация для Go
 
@@ -654,24 +541,6 @@ for curr != nil {
 См. раздел "Профилирование" в [Sliding Window](./sliding-window.md#профилирование) для общих инструментов.
 
 ### Как профилировать Reverse Linked List
-
-#### Rust пример:
-
-```rust
-// benches/reverse_list_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_reverse_list(c: &mut Criterion) {
-    let list = create_list(1000);
-    
-    c.bench_function("reverse_1000", |b| {
-        b.iter(|| reverse_list_optimized(black_box(list.clone())))
-    });
-}
-
-criterion_group!(benches, bench_reverse_list);
-criterion_main!(benches);
-```
 
 #### Go пример:
 
@@ -806,36 +675,6 @@ func printList(head *ListNode) {
 
 ### Примеры тестов для Reverse Linked List
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_reverse_basic() {
-        let list = create_list(vec![1, 2, 3, 4, 5]);
-        let reversed = reverse_list_optimized(list);
-        assert_eq!(list_to_vec(reversed), vec![5, 4, 3, 2, 1]);
-    }
-
-    #[test]
-    fn test_reverse_empty() {
-        let list = None;
-        let reversed = reverse_list_optimized(list);
-        assert_eq!(list_to_vec(reversed), vec![]);
-    }
-
-    #[test]
-    fn test_reverse_single() {
-        let list = create_list(vec![1]);
-        let reversed = reverse_list_optimized(list);
-        assert_eq!(list_to_vec(reversed), vec![1]);
-    }
-}
-```
-
 #### Go тесты:
 
 ```go
@@ -863,13 +702,6 @@ func TestReverseList(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
-```bash
-cargo test
-cargo test -- --nocapture
-cargo bench
-```
-
 #### Go:
 ```bash
 go test -v
@@ -877,28 +709,6 @@ go test -bench=. -benchmem
 ```
 
 ### Бенчмарки
-
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn reverse_list_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000, 100000];
-    
-    let mut group = c.benchmark_group("reverse_list");
-    for size in sizes {
-        let list = create_list(size);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &list,
-            |b, list| {
-                b.iter(|| reverse_list_optimized(black_box(list.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-```
 
 #### Go:
 ```go
@@ -994,365 +804,6 @@ func reverseListIdiomatic(head *ListNode) (newHead *ListNode) {
     }
     
     return prev
-}
-```
-
-#### Идиоматичный Rust код:
-
-```rust
-// ✅ Идиоматичный Rust: используем Option и take()
-pub fn reverse_list_idiomatic(mut head: Option<Box<ListNode>>) -> Option<Box<ListNode>> {
-    let mut prev = None;
-    
-    while let Some(mut node) = head {
-        head = node.next.take();
-        node.next = prev;
-        prev = Some(node);
-    }
-    
-    prev
-}
-```
-
-### Rust
-
-```rust
-// Примеры использования шаблона Reverse Linked List на Rust
-
-// Определение узла связанного списка
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct ListNode {
-    pub val: i32,
-    pub next: Option&lt;Box&lt;ListNode&gt;&gt;,
-}
-
-impl ListNode {
-    #[inline]
-    pub fn new(val: i32) -> Self {
-        ListNode { next: None, val }
-    }
-}
-
-/// Пример 1: Итеративный разворот связанного списка
-/// 
-/// Задача: Развернуть связанный список итеративно
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn reverse_list_iterative(mut head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    let mut prev = None;
-    let mut curr = head;
-
-    while let Some(mut node) = curr {
-        let next = node.next.take();
-        node.next = prev;
-        prev = Some(node);
-        curr = next;
-    }
-
-    prev
-}
-
-/// Пример 2: Рекурсивный разворот связанного списка
-/// 
-/// Задача: Развернуть связанный список рекурсивно
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(n) из-за стека вызовов
-pub fn reverse_list_recursive(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    fn reverse(
-        prev: Option&lt;Box&lt;ListNode&gt;&gt;,
-        curr: Option&lt;Box&lt;ListNode&gt;&gt;,
-    ) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-        match curr {
-            None => prev,
-            Some(mut node) => {
-                let next = node.next.take();
-                node.next = prev;
-                reverse(Some(node), next)
-            }
-        }
-    }
-
-    reverse(None, head)
-}
-
-/// Пример 3: Разворот части списка (от позиции left до right)
-/// 
-/// Задача: Развернуть узлы списка от позиции left до right
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn reverse_between(
-    head: Option&lt;Box&lt;ListNode&gt;&gt;,
-    left: i32,
-    right: i32,
-) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    if left == right {
-        return head;
-    }
-
-    let mut dummy = Box::new(ListNode { val: 0, next: head });
-    let mut prev = &mut dummy;
-
-    // Переходим к узлу перед left
-    for _ in 1..left {
-        prev = prev.next.as_mut().unwrap();
-    }
-
-    // Разворачиваем часть списка
-    let mut curr = prev.next.take();
-    let mut next = None;
-
-    for _ in 0..=right - left {
-        if let Some(mut node) = curr {
-            let temp = node.next.take();
-            node.next = next;
-            next = Some(node);
-            curr = temp;
-        }
-    }
-
-    // Соединяем части
-    prev.next = next;
-    while prev.next.is_some() {
-        prev = prev.next.as_mut().unwrap();
-    }
-    prev.next = curr;
-
-    dummy.next
-}
-
-/// Пример 4: Разворот узлов группами по K
-/// 
-/// Задача: Развернуть узлы списка группами по K элементов
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn reverse_k_group(head: Option&lt;Box&lt;ListNode&gt;&gt;, k: i32) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    let mut curr = head.as_ref();
-    let mut count = 0;
-
-    // Проверяем, достаточно ли узлов для группы
-    while curr.is_some() && count < k {
-        curr = curr.unwrap().next.as_ref();
-        count += 1;
-    }
-
-    // Если достаточно узлов, разворачиваем
-    if count == k {
-        // Рекурсивно обрабатываем остальную часть
-        curr = head.as_ref();
-        for _ in 0..k {
-            curr = curr.unwrap().next.as_ref();
-        }
-
-        let mut reversed_rest = reverse_k_group(
-            curr.cloned(),
-            k,
-        );
-
-        // Разворачиваем текущую группу
-        let mut curr_head = head;
-        while reversed_rest.is_some() {
-            let mut next = curr_head.as_mut().unwrap().next.take();
-            curr_head.as_mut().unwrap().next = reversed_rest;
-            reversed_rest = next;
-            curr_head = curr_head.unwrap().next;
-        }
-
-        curr_head
-    } else {
-        // Недостаточно узлов, возвращаем как есть
-        head
-    }
-}
-
-/// Пример 5: Обмен узлами парами
-/// 
-/// Задача: Обменять каждые два соседних узла
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn swap_pairs(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    let mut dummy = Box::new(ListNode { val: 0, next: head });
-    let mut prev = &mut dummy;
-
-    while prev.next.is_some() && prev.next.as_ref().unwrap().next.is_some() {
-        let mut first = prev.next.take().unwrap();
-        let mut second = first.next.take().unwrap();
-        let next = second.next.take();
-
-        first.next = next;
-        second.next = Some(first);
-        prev.next = Some(second);
-
-        prev = prev.next.as_mut().unwrap().next.as_mut().unwrap();
-    }
-
-    dummy.next
-}
-
-/// Пример 6: Разворот связанного списка (упрощенная версия)
-/// 
-/// Задача: Развернуть весь список (базовая версия)
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn reverse_list(head: Option&lt;Box&lt;ListNode&gt;&gt;) -> Option&lt;Box&lt;ListNode&gt;&gt; {
-    reverse_list_iterative(head)
-}
-```
-
-### Go
-
-```go
-package main
-
-import (
-	"fmt"
-)
-
-// Определение узла связанного списка
-type ListNode struct {
-	Val  int
-	Next *ListNode
-}
-
-// Пример 1: Итеративный разворот связанного списка
-//
-// Задача: Развернуть связанный список итеративно
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func reverseListIterative(head *ListNode) *ListNode {
-	var prev *ListNode
-	curr := head
-
-	for curr != nil {
-		next := curr.Next
-		curr.Next = prev
-		prev = curr
-		curr = next
-	}
-
-	return prev
-}
-
-// Пример 2: Рекурсивный разворот связанного списка
-//
-// Задача: Развернуть связанный список рекурсивно
-// Временная сложность: O(n)
-// Пространственная сложность: O(n) из-за стека вызовов
-func reverseListRecursive(head *ListNode) *ListNode {
-	if head == nil || head.Next == nil {
-		return head
-	}
-
-	// Рекурсивно разворачиваем остальную часть
-	reversed := reverseListRecursive(head.Next)
-
-	// Разворачиваем текущий узел
-	head.Next.Next = head
-	head.Next = nil
-
-	return reversed
-}
-
-// Пример 3: Разворот части списка (от позиции left до right)
-//
-// Задача: Развернуть узлы списка от позиции left до right
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func reverseBetween(head *ListNode, left, right int) *ListNode {
-	if left == right {
-		return head
-	}
-
-	dummy := &ListNode{Val: 0, Next: head}
-	prev := dummy
-
-	// Переходим к узлу перед left
-	for i := 1; i < left; i++ {
-		prev = prev.Next
-	}
-
-	// Разворачиваем часть списка
-	curr := prev.Next
-	var next *ListNode
-
-	for i := 0; i <= right-left; i++ {
-		temp := curr.Next
-		curr.Next = next
-		next = curr
-		curr = temp
-	}
-
-	// Соединяем части
-	prev.Next.Next = curr
-	prev.Next = next
-
-	return dummy.Next
-}
-
-// Пример 4: Разворот узлов группами по K
-//
-// Задача: Развернуть узлы списка группами по K элементов
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func reverseKGroup(head *ListNode, k int) *ListNode {
-	curr := head
-	count := 0
-
-	// Проверяем, достаточно ли узлов для группы
-	for curr != nil && count < k {
-		curr = curr.Next
-		count++
-	}
-
-	// Если достаточно узлов, разворачиваем
-	if count == k {
-		// Рекурсивно обрабатываем остальную часть
-		curr = reverseKGroup(curr, k)
-
-		// Разворачиваем текущую группу
-		for count > 0 {
-			next := head.Next
-			head.Next = curr
-			curr = head
-			head = next
-			count--
-		}
-
-		head = curr
-	}
-
-	return head
-}
-
-// Пример 5: Обмен узлами парами
-//
-// Задача: Обменять каждые два соседних узла
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func swapPairs(head *ListNode) *ListNode {
-	dummy := &ListNode{Val: 0, Next: head}
-	prev := dummy
-
-	for prev.Next != nil && prev.Next.Next != nil {
-		first := prev.Next
-		second := first.Next
-
-		first.Next = second.Next
-		second.Next = first
-		prev.Next = second
-
-		prev = first
-	}
-
-	return dummy.Next
-}
-
-// Пример 6: Разворот связанного списка (упрощенная версия)
-//
-// Задача: Развернуть весь список (базовая версия)
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func reverseList(head *ListNode) *ListNode {
-	return reverseListIterative(head)
 }
 ```
 

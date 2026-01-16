@@ -289,19 +289,6 @@ for i := 0; i < n; i++ {
 }
 ```
 
-**Rust**:
-```rust
-// O(n²) для всех подмассивов × O(k) для вычисления = O(n²×k)
-for i in 0..n {
-    for j in i..n {
-        let subarray = &arr[i..=j];
-        if condition(subarray) {
-            update_result();
-        }
-    }
-}
-```
-
 **Недостатки**: 
 - Временная сложность O(n²) или O(n²×k)
 - Много повторных вычислений
@@ -338,14 +325,6 @@ maxLen := 0
 // Пропускаем инициализацию первого окна
 ```
 
-**Rust**:
-```rust
-let mut left = 0;
-let mut right = 0;
-let mut max_len = 0;
-// Пропускаем инициализацию первого окна
-```
-
 ✅ **Правильно**:
 
 **Go**:
@@ -354,15 +333,6 @@ left, right := 0, 0
 maxLen := 0
 // Инициализируем структуры данных для окна
 window := make(map[byte]int)
-```
-
-**Rust**:
-```rust
-let mut left = 0;
-let mut right = 0;
-let mut max_len = 0;
-// Инициализируем структуры данных для окна
-let mut window = HashMap::new();
 ```
 
 ### 2. Забывание обновлять результат при сжатии окна
@@ -377,14 +347,6 @@ for conditionNotSatisfied() {
 }
 ```
 
-**Rust**:
-```rust
-while condition_not_satisfied() {
-    shrink_window();
-    // Забыли обновить max_len здесь!
-}
-```
-
 ✅ **Правильно**:
 
 **Go**:
@@ -394,14 +356,6 @@ for conditionNotSatisfied() {
     if right-left+1 > maxLen {
         maxLen = right - left + 1  // Обновляем после сжатия
     }
-}
-```
-
-**Rust**:
-```rust
-while condition_not_satisfied() {
-    shrink_window();
-    max_len = max_len.max(right - left + 1);  // Обновляем после сжатия
 }
 ```
 
@@ -424,19 +378,6 @@ for right := 0; right < n; right++ {
 }
 ```
 
-**Rust**:
-```rust
-for right in 0..n {
-    add_to_window(arr[right]);
-    while condition() {
-        remove_from_window(arr[left]);
-        left += 1;
-    }
-    // Обновляем результат ДО проверки условия
-    max_len = max_len.max(right - left + 1);
-}
-```
-
 ✅ **Правильно**:
 
 **Go**:
@@ -454,19 +395,6 @@ for right := 0; right < n; right++ {
 }
 ```
 
-**Rust**:
-```rust
-for right in 0..n {
-    add_to_window(arr[right]);
-    while condition_not_satisfied() {
-        remove_from_window(arr[left]);
-        left += 1;
-    }
-    // Обновляем результат ПОСЛЕ того, как условие выполнено
-    max_len = max_len.max(right - left + 1);
-}
-```
-
 ### 4. Off-by-one ошибки
 
 ❌ **Неправильно**:
@@ -476,21 +404,11 @@ for right in 0..n {
 windowSize := right - left  // Не включает right!
 ```
 
-**Rust**:
-```rust
-let window_size = right - left;  // Не включает right!
-```
-
 ✅ **Правильно**:
 
 **Go**:
 ```go
 windowSize := right - left + 1  // Включает оба конца
-```
-
-**Rust**:
-```rust
-let window_size = right - left + 1;  // Включает оба конца
 ```
 
 ### 5. Неэффективное обновление структур данных
@@ -507,25 +425,12 @@ for right := k; right < n; right++ {
 }
 ```
 
-**Rust**:
-```rust
-for right in k..n {
-    let window_sum: i32 = arr[left..=right].iter().sum();  // O(k) операция!
-}
-```
-
 ✅ **Правильно** (инкрементальное обновление):
 
 **Go**:
 ```go
 windowSum += arr[right] - arr[left]
 left++
-```
-
-**Rust**:
-```rust
-window_sum += arr[right] - arr[left];
-left += 1;
 ```
 
 ## Практические советы по применению
@@ -558,17 +463,17 @@ left += 1;
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
+### Теория аллокаций в Go
 
-#### Rust: Владение и аллокации
+#### : Владение и аллокации
 
-В Rust управление памятью основано на системе владения (ownership):
+В управление памятью основано на системе владения (ownership):
 - **Стек**: Примитивные типы (`i32`, `bool`, ссылки) хранятся на стеке
 - **Куча**: Динамические структуры (`Vec`, `String`, `HashMap`) аллоцируются в куче
 - **Владение**: Каждое значение имеет одного владельца, который отвечает за освобождение памяти
 - **Borrow checker**: Проверяет заимствования на этапе компиляции
 
-**Аллокации в Rust**:
+**Аллокации в **:
 - `Vec::new()` - создает пустой вектор (не аллоцирует память сразу)
 - `Vec::with_capacity(n)` - предварительно аллоцирует память для n элементов
 - `String::from()` - аллоцирует память в куче для строки
@@ -592,15 +497,6 @@ left += 1;
 
 #### Фиксированное окно:
 
-**Rust**:
-```rust
-// Аллокации:
-// - windowSum: i32 (стек) - O(1)
-// - maxSum: i32 (стек) - O(1)
-// - Индексы: usize (стек) - O(1)
-// Итого: O(1) памяти, никаких аллокаций в куче
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -612,14 +508,6 @@ left += 1;
 
 #### Переменное окно:
 
-**Rust**:
-```rust
-// Аллокации:
-// - HashMap для подсчета символов: O(k), где k - размер алфавита
-// - left, right: usize (стек) - O(1)
-// Итого: O(k) памяти в худшем случае
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -630,31 +518,13 @@ left += 1;
 
 ### Оптимизация памяти
 
-#### Rust оптимизации:
+#### оптимизации:
 
 1. **Предварительное выделение HashMap**:
-```rust
-// ❌ Плохо: HashMap растет динамически
-let mut char_count = HashMap::new();
-
-// ✅ Хорошо: Предварительное выделение
-let mut char_count = HashMap::with_capacity(26); // для ASCII
-```
 
 2. **Избежание клонирования**:
-```rust
-// ❌ Плохо: клонирование строки
-let substring = s[left..right].to_string();
-
-// ✅ Хорошо: использование срезов
-let substring = &s[left..right];
-```
 
 3. **Переиспользование структур**:
-```rust
-// Переиспользование HashMap вместо создания новой
-char_count.clear(); // вместо HashMap::new()
-```
 
 #### Go оптимизации:
 
@@ -681,9 +551,9 @@ for k := range charCount {
 }
 ```
 
-### Сравнение Rust vs Go
+### Сравнение vs Go
 
-| Аспект | Rust | Go |
+| Аспект | | Go |
 |--------|------|-----|
 | Управление памятью | Владение, компилятор | GC, runtime |
 | Аллокации HashMap | Явные, контролируемые | Автоматические |
@@ -691,7 +561,7 @@ for k := range charCount {
 | Сложность | Выше (borrow checker) | Ниже (автоматическое) |
 | Оптимизация | На этапе компиляции | Runtime оптимизации |
 
-**Когда использовать Rust**: Когда нужна предсказуемая производительность и контроль над памятью
+**Когда использовать **: Когда нужна предсказуемая производительность и контроль над памятью
 **Когда использовать Go**: Когда важна простота разработки и приемлемы небольшие паузы GC
 
 ## Оптимизация производительности
@@ -709,31 +579,12 @@ for k := range charCount {
 
 3. **Оптимизация циклов**:
    - Минимизируйте операции внутри циклов
-   - Используйте итераторы вместо индексов (в Rust)
+   - Используйте итераторы вместо индексов (в )
    - Избегайте проверок условий в горячих путях
 
 ### Специфичные оптимизации для Sliding Window
 
 #### 1. Оптимизация для фиксированного окна:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn max_sum_optimized(arr: &[i32], k: usize) -> i32 {
-    if arr.len() < k { return 0; }
-    
-    // Используем итераторы для лучшей оптимизации
-    let mut window_sum: i32 = arr.iter().take(k).sum();
-    let mut max_sum = window_sum;
-    
-    for i in k..arr.len() {
-        window_sum += arr[i] - arr[i - k];
-        max_sum = max_sum.max(window_sum);
-    }
-    
-    max_sum
-}
-```
 
 **Go**:
 ```go
@@ -761,42 +612,14 @@ func maxSumOptimized(arr []int, k int) int {
 #### 2. Оптимизация для переменного окна:
 
 **Использование VecDeque для минимума/максимума**:
-```rust
-use std::collections::VecDeque;
 
-// Для задачи "Sliding Window Maximum"
-// Используем VecDeque для O(1) операций с обоих концов
-let mut deque = VecDeque::with_capacity(k);
-```
-
-### Оптимизация для Rust
-
-1. **Использование `Vec::with_capacity()`**:
-```rust
-// Предварительное выделение памяти
-let mut result = Vec::with_capacity(n);
-```
+### Оптимизация для 1. **Использование `Vec::with_capacity()`**:
 
 2. **Избежание `clone()`**:
-```rust
-// ❌ Плохо
-let copy = data.clone();
-
-// ✅ Хорошо: использование ссылок
-let reference = &data;
-```
 
 3. **Использование `&str` вместо `String`**:
-```rust
-// ✅ Для входных данных используйте &str
-fn process(s: &str) { ... }
-```
 
 4. **Zero-cost abstractions**:
-```rust
-// Итераторы компилируются в эффективный код
-arr.iter().filter(|&x| x > 0).sum()
-```
 
 ### Оптимизация для Go
 
@@ -831,7 +654,7 @@ var bufferPool = sync.Pool{
 
 ### Инструменты профилирования
 
-#### Rust инструменты:
+#### инструменты:
 
 1. **`cargo bench`** - встроенные бенчмарки:
 ```toml
@@ -883,24 +706,7 @@ go tool pprof mem.prof
 
 ### Как профилировать Sliding Window
 
-#### Rust пример:
-
-```rust
-// benches/sliding_window_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use sliding_window::max_sum_subarray_fixed_k;
-
-fn bench_sliding_window(c: &mut Criterion) {
-    let arr: Vec<i32> = (0..10000).collect();
-    
-    c.bench_function("sliding_window_k_100", |b| {
-        b.iter(|| max_sum_subarray_fixed_k(black_box(&arr), 100))
-    });
-}
-
-criterion_group!(benches, bench_sliding_window);
-criterion_main!(benches);
-```
+#### пример:
 
 **Запуск**:
 ```bash
@@ -933,7 +739,7 @@ go test -bench=. -benchmem
 
 #### Анализ производительности фиксированного окна:
 
-**Rust вывод `cargo bench`**:
+**вывод `cargo bench`**:
 ```
 sliding_window_k_100    time:   [1.2345 µs 1.2456 µs 1.2567 µs]
                         change: [-2.3456% +0.1234% +2.5678%] (p = 0.95)
@@ -951,7 +757,7 @@ BenchmarkMaxSumSubarray-8    1000000    1234 ns/op    0 B/op    0 allocs/op
 
 #### Анализ памяти переменного окна:
 
-**Rust с valgrind**:
+**с valgrind**:
 ```
 HEAP SUMMARY:
     total heap usage: 1 allocs, 1 frees, 1,024 bytes allocated
@@ -982,51 +788,7 @@ HEAP SUMMARY:
 
 ### Примеры тестов для Sliding Window
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_max_sum_fixed_k_basic() {
-        let arr = vec![2, 1, 5, 1, 3, 2];
-        assert_eq!(max_sum_subarray_fixed_k(&arr, 3), 9);
-    }
-
-    #[test]
-    fn test_max_sum_fixed_k_empty() {
-        let arr = vec![];
-        assert_eq!(max_sum_subarray_fixed_k(&arr, 3), 0);
-    }
-
-    #[test]
-    fn test_max_sum_fixed_k_single_element() {
-        let arr = vec![5];
-        assert_eq!(max_sum_subarray_fixed_k(&arr, 1), 5);
-    }
-
-    #[test]
-    fn test_longest_substring_no_repeats() {
-        assert_eq!(longest_substring_no_repeats("abcabcbb"), 3);
-        assert_eq!(longest_substring_no_repeats("bbbbb"), 1);
-        assert_eq!(longest_substring_no_repeats("pwwkew"), 3);
-    }
-
-    // Property-based тест с proptest
-    #[cfg(feature = "proptest")]
-    proptest! {
-        #[test]
-        fn test_max_sum_property(arr in prop::collection::vec(-1000i32..1000, 1..1000)) {
-            let k = (arr.len() / 2).max(1);
-            let result = max_sum_subarray_fixed_k(&arr, k);
-            // Свойство: результат должен быть >= любого элемента
-            assert!(result >= *arr.iter().max().unwrap());
-        }
-    }
-}
-```
+#### тесты:
 
 #### Go тесты:
 
@@ -1077,7 +839,7 @@ func TestLongestSubstringNoRepeats(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
+#### :
 
 ```bash
 # Запуск всех тестов
@@ -1114,31 +876,7 @@ go test -bench=. -cpuprofile=cpu.prof -memprofile=mem.prof
 
 ### Бенчмарки
 
-#### Rust бенчмарк с criterion:
-
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn sliding_window_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000, 100000];
-    
-    let mut group = c.benchmark_group("sliding_window");
-    for size in sizes {
-        let arr: Vec<i32> = (0..size).collect();
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &arr,
-            |b, arr| {
-                b.iter(|| max_sum_subarray_fixed_k(black_box(arr), 10));
-            },
-        );
-    }
-    group.finish();
-}
-
-criterion_group!(benches, sliding_window_benchmark);
-criterion_main!(benches);
-```
+#### бенчмарк с criterion:
 
 #### Go бенчмарк:
 
@@ -1164,7 +902,7 @@ func BenchmarkSlidingWindowSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 
 ## Дополнительные ресурсы

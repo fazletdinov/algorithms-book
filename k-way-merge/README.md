@@ -121,11 +121,11 @@ Heap: [(1, arr1, 0), (2, arr2, 0), (3, arr3, 0)]
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
+### Теория аллокаций в Go
 
-#### Rust: K-way Merge
+#### : K-way Merge
 
-В Rust для K-way Merge:
+В для K-way Merge:
 - **Куча**: `BinaryHeap<(i32, usize, usize)>` - O(k) в куче
 - **Результат**: `Vec<i32>` - O(n) где n - общее количество элементов
 - **Индексы**: `usize` на стеке - O(1)
@@ -141,14 +141,6 @@ Heap: [(1, arr1, 0), (2, arr2, 0), (3, arr3, 0)]
 
 #### Подход с кучей:
 
-**Rust**:
-```rust
-// Аллокации:
-// - heap: BinaryHeap<(i32, usize, usize)> - O(k) в куче
-// - result: Vec<i32> - O(n) где n - общее количество элементов
-// Итого: O(k) + O(n) памяти
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -159,19 +151,11 @@ Heap: [(1, arr1, 0), (2, arr2, 0), (3, arr3, 0)]
 
 ### Оптимизация памяти
 
-#### Rust оптимизации:
+#### оптимизации:
 
 1. **Предварительное выделение кучи**:
-```rust
-// ✅ Предварительное выделение
-let mut heap = BinaryHeap::with_capacity(k);
-```
 
 2. **Предварительное выделение результата**:
-```rust
-// ✅ Предварительное выделение
-let mut result = Vec::with_capacity(total_elements);
-```
 
 #### Go оптимизации:
 
@@ -187,9 +171,9 @@ heap := make(ItemHeap, 0, k)
 result := make([]int, 0, totalElements)
 ```
 
-### Сравнение Rust vs Go
+### Сравнение vs Go
 
-| Аспект | Rust | Go |
+| Аспект | | Go |
 |--------|------|-----|
 | Куча | BinaryHeap в куче | container/heap в куче |
 | Результат | Vec в куче | Слайс в куче |
@@ -206,35 +190,6 @@ result := make([]int, 0, totalElements)
 ### Специфичные оптимизации для K-way Merge
 
 #### 1. Оптимизация с кучей:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn merge_k_lists_optimized(lists: Vec<Option<Box<ListNode>>>) -> Option<Box<ListNode>> {
-    let mut heap = BinaryHeap::with_capacity(lists.len());
-    
-    for (idx, list) in lists.iter().enumerate() {
-        if let Some(node) = list {
-            heap.push((Reverse(node.val), idx));
-        }
-    }
-    
-    let mut dummy = Box::new(ListNode::new(0));
-    let mut current = &mut dummy;
-    
-    while let Some((Reverse(val), idx)) = heap.pop() {
-        current.next = Some(Box::new(ListNode::new(val)));
-        current = current.next.as_mut().unwrap();
-        
-        // Добавляем следующий элемент из того же списка
-        if let Some(next) = &lists[idx].as_ref().unwrap().next {
-            heap.push((Reverse(next.val), idx));
-        }
-    }
-    
-    dummy.next
-}
-```
 
 **Go**:
 ```go
@@ -267,20 +222,9 @@ func mergeKListsOptimized(lists []*ListNode) *ListNode {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Использование `Reverse` для min heap**:
-```rust
-// ✅ Эффективная min heap
-use std::cmp::Reverse;
-heap.push((Reverse(val), idx));
-```
+### Оптимизация для 1. **Использование `Reverse` для min heap**:
 
 2. **Предварительное выделение**:
-```rust
-// ✅ Предварительное выделение
-let mut heap = BinaryHeap::with_capacity(k);
-```
 
 ### Оптимизация для Go
 
@@ -304,23 +248,7 @@ heap.Push(&heap, item)
 
 ### Как профилировать K-way Merge
 
-#### Rust пример:
-
-```rust
-// benches/k_way_merge_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_merge_k_lists(c: &mut Criterion) {
-    let lists = create_test_lists(10, 1000);
-    
-    c.bench_function("merge_10_lists", |b| {
-        b.iter(|| merge_k_lists_optimized(black_box(lists.clone())))
-    });
-}
-
-criterion_group!(benches, bench_merge_k_lists);
-criterion_main!(benches);
-```
+#### пример:
 
 #### Go пример:
 
@@ -357,32 +285,7 @@ func BenchmarkMergeKLists(b *testing.B) {
 
 ### Примеры тестов для K-way Merge
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_merge_k_lists_basic() {
-        let lists = vec![
-            create_list(vec![1, 4, 5]),
-            create_list(vec![1, 3, 4]),
-            create_list(vec![2, 6]),
-        ];
-        let result = merge_k_lists_optimized(lists);
-        assert_eq!(list_to_vec(result), vec![1, 1, 2, 3, 4, 4, 5, 6]);
-    }
-
-    #[test]
-    fn test_merge_k_lists_empty() {
-        let lists = vec![];
-        let result = merge_k_lists_optimized(lists);
-        assert_eq!(list_to_vec(result), Vec::<i32>::new());
-    }
-}
-```
+#### тесты:
 
 #### Go тесты:
 
@@ -414,7 +317,7 @@ func TestMergeKLists(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
+#### :
 ```bash
 cargo test
 cargo test -- --nocapture
@@ -429,27 +332,7 @@ go test -bench=. -benchmem
 
 ### Бенчмарки
 
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn k_way_merge_benchmark(c: &mut Criterion) {
-    let k_values = vec![5, 10, 20];
-    
-    let mut group = c.benchmark_group("k_way_merge");
-    for k in k_values {
-        let lists = create_test_lists(k, 100);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(k),
-            &lists,
-            |b, lists| {
-                b.iter(|| merge_k_lists_optimized(black_box(lists.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-```
+#### :
 
 #### Go:
 ```go
@@ -471,7 +354,7 @@ func BenchmarkKWayMergeSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 
 ## Примеры задач на LeetCode
@@ -487,6 +370,6 @@ func BenchmarkKWayMergeSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 

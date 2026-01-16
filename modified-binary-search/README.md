@@ -122,11 +122,11 @@
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
+### Теория аллокаций в Go
 
-#### Rust: Бинарный поиск
+#### : Бинарный поиск
 
-В Rust для Modified Binary Search:
+В для Modified Binary Search:
 - **Индексы**: `usize` на стеке - O(1)
 - **Входные данные**: `&[i32]` - ссылка, не аллоцирует
 - **Результат**: `Option<usize>` - на стеке, O(1)
@@ -142,14 +142,6 @@
 
 #### Базовый подход:
 
-**Rust**:
-```rust
-// Аллокации:
-// - left, right, mid: usize (стек) - O(1)
-// - Результат: Option<usize> (стек) - O(1)
-// Итого: O(1) памяти, никаких аллокаций в куче
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -160,21 +152,11 @@
 
 ### Оптимизация памяти
 
-#### Rust оптимизации:
+#### оптимизации:
 
 1. **Использование ссылок**:
-```rust
-// ✅ Используем ссылки вместо владения
-fn binary_search(arr: &[i32], target: i32) -> Option<usize> {
-    // ...
-}
-```
 
 2. **Избежание клонирования**:
-```rust
-// ✅ Работаем с индексами, не клонируем элементы
-let mid = left + (right - left) / 2;
-```
 
 #### Go оптимизации:
 
@@ -190,9 +172,9 @@ mid := left + (right-left)/2
 left, right := 0, len(arr)-1
 ```
 
-### Сравнение Rust vs Go
+### Сравнение vs Go
 
-| Аспект | Rust | Go |
+| Аспект | | Go |
 |--------|------|-----|
 | Память | O(1) константная | O(1) константная |
 | Индексы | usize на стеке | int на стеке |
@@ -209,25 +191,6 @@ left, right := 0, len(arr)-1
 ### Специфичные оптимизации для Modified Binary Search
 
 #### 1. Оптимизация бинарного поиска:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn binary_search_optimized(arr: &[i32], target: i32) -> Option<usize> {
-    let mut left = 0;
-    let mut right = arr.len().saturating_sub(1);
-    
-    while left <= right {
-        let mid = left + (right - left) / 2;  // Избегаем переполнения
-        match arr[mid].cmp(&target) {
-            std::cmp::Ordering::Equal => return Some(mid),
-            std::cmp::Ordering::Less => left = mid + 1,
-            std::cmp::Ordering::Greater => right = mid - 1,
-        }
-    }
-    None
-}
-```
 
 **Go**:
 ```go
@@ -250,21 +213,9 @@ func binarySearchOptimized(arr []int, target int) (int, bool) {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Использование `cmp`**:
-```rust
-// ✅ Более эффективное сравнение
-match arr[mid].cmp(&target) {
-    Ordering::Equal => return Some(mid),
-    // ...
-}
-```
+### Оптимизация для 1. **Использование `cmp`**:
 
 2. **Избежание bounds checking**:
-```rust
-// Компилятор Rust оптимизирует проверки границ
-```
 
 ### Оптимизация для Go
 
@@ -294,23 +245,7 @@ for left <= right {
 
 ### Как профилировать Modified Binary Search
 
-#### Rust пример:
-
-```rust
-// benches/binary_search_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_binary_search(c: &mut Criterion) {
-    let arr: Vec<i32> = (0..1000000).collect();
-    
-    c.bench_function("binary_search_1M", |b| {
-        b.iter(|| binary_search_optimized(black_box(&arr), 500000))
-    });
-}
-
-criterion_group!(benches, bench_binary_search);
-criterion_main!(benches);
-```
+#### пример:
 
 #### Go пример:
 
@@ -350,32 +285,7 @@ func BenchmarkBinarySearch(b *testing.B) {
 
 ### Примеры тестов для Modified Binary Search
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_binary_search_basic() {
-        let arr = vec![1, 2, 3, 4, 5];
-        assert_eq!(binary_search_optimized(&arr, 3), Some(2));
-    }
-
-    #[test]
-    fn test_binary_search_not_found() {
-        let arr = vec![1, 2, 3, 4, 5];
-        assert_eq!(binary_search_optimized(&arr, 6), None);
-    }
-
-    #[test]
-    fn test_binary_search_empty() {
-        let arr = vec![];
-        assert_eq!(binary_search_optimized(&arr, 1), None);
-    }
-}
-```
+#### тесты:
 
 #### Go тесты:
 
@@ -405,7 +315,7 @@ func TestBinarySearch(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
+#### :
 ```bash
 cargo test
 cargo test -- --nocapture
@@ -420,27 +330,7 @@ go test -bench=. -benchmem
 
 ### Бенчмарки
 
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn binary_search_benchmark(c: &mut Criterion) {
-    let sizes = vec![1000, 100000, 10000000];
-    
-    let mut group = c.benchmark_group("binary_search");
-    for size in sizes {
-        let arr: Vec<i32> = (0..size).collect();
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &arr,
-            |b, arr| {
-                b.iter(|| binary_search_optimized(black_box(arr), size as i32 / 2));
-            },
-        );
-    }
-    group.finish();
-}
-```
+#### :
 
 #### Go:
 ```go
@@ -465,7 +355,7 @@ func BenchmarkBinarySearchSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 
 ## Примеры задач на LeetCode
@@ -486,6 +376,6 @@ func BenchmarkBinarySearchSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 

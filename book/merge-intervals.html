@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Go">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
+            window.path_to_searchindex_js = "searchindex-469fa2ee.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -447,16 +447,6 @@ func max(a, b int) int {
     // ... остальной код
 }
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn merge_intervals(intervals: Vec&lt;Vec&lt;i32&gt;&gt;) -&gt; Vec&lt;Vec&lt;i32&gt;&gt; {
-    if intervals.is_empty() {
-        return vec![];
-    }
-    // ... остальной код
-}
-<span class="boring">}</span></code></pre>
 <h3 id="2-один-интервал"><a class="header" href="#2-один-интервал">2. Один интервал</a></h3>
 <p><strong>Проблема</strong>: Если есть только один интервал, слияние не требуется.</p>
 <p><strong>Решение</strong>:</p>
@@ -522,13 +512,6 @@ for _, interval := range intervals {
     merge()
 }
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>if current[0] &lt;= last[1] {  // Не учитывает случай, когда current полностью справа
-    merge();
-}
-<span class="boring">}</span></code></pre>
 <p>✅ <strong>Правильно</strong>:</p>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">if current[0] &lt;= last[1] {  // Перекрытие: начало текущего &lt;= конец последнего
@@ -537,13 +520,6 @@ for _, interval := range intervals {
     }
 }
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>if current[0] &lt;= last[1] {  // Перекрытие: начало текущего &lt;= конец последнего
-    last[1] = last[1].max(current[1]);  // Берем максимум
-}
-<span class="boring">}</span></code></pre>
 <h3 id="2-забывание-сортировки"><a class="header" href="#2-забывание-сортировки">2. Забывание сортировки</a></h3>
 <p>❌ <strong>Неправильно</strong>:</p>
 <p><strong>Go</strong>:</p>
@@ -552,14 +528,6 @@ for _, interval := range intervals[1:] {  // Не отсортированы!
     // ...
 }
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let mut result = vec![intervals[0].clone()];
-for interval in intervals.iter().skip(1) {  // Не отсортированы!
-    // ...
-}
-<span class="boring">}</span></code></pre>
 <p>✅ <strong>Правильно</strong>:</p>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">sort.Slice(intervals, func(i, j int) bool {
@@ -570,46 +538,22 @@ for _, interval := range intervals[1:] {
     // ...
 }
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>intervals.sort_by_key(|x| x[0]);
-let mut result = vec![intervals[0].clone()];
-for interval in intervals.iter().skip(1) {
-    // ...
-}
-<span class="boring">}</span></code></pre>
 <h3 id="3-неправильное-объединение-интервалов"><a class="header" href="#3-неправильное-объединение-интервалов">3. Неправильное объединение интервалов</a></h3>
 <p>❌ <strong>Неправильно</strong>:</p>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">last[1] = current[1]  // Может уменьшить интервал!
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>last[1] = current[1];  // Может уменьшить интервал!
-<span class="boring">}</span></code></pre>
 <p>✅ <strong>Правильно</strong>:</p>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">if current[1] &gt; last[1] {
     last[1] = current[1]  // Берем максимум
 }
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>last[1] = last[1].max(current[1]);  // Берем максимум
-<span class="boring">}</span></code></pre>
 <h3 id="4-обработка-пустого-списка"><a class="header" href="#4-обработка-пустого-списка">4. Обработка пустого списка</a></h3>
 <p>❌ <strong>Неправильно</strong>:</p>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">result := [][]int{intervals[0]}  // Ошибка если intervals пуст
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let mut result = vec![intervals[0].clone()];  // Ошибка если intervals пуст
-<span class="boring">}</span></code></pre>
 <p>✅ <strong>Правильно</strong>:</p>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">if len(intervals) == 0 {
@@ -617,14 +561,6 @@ for interval in intervals.iter().skip(1) {
 }
 result := [][]int{intervals[0]}
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>if intervals.is_empty() {
-    return Vec::new();
-}
-let mut result = vec![intervals[0].clone()];
-<span class="boring">}</span></code></pre>
 <h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
 <ol>
 <li><strong>Всегда сортируйте по начальной точке</strong> перед обработкой</li>
@@ -656,24 +592,6 @@ for i &lt; len(A) &amp;&amp; j &lt; len(B) {
     }
 }
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let mut i = 0;
-let mut j = 0;
-while i &lt; A.len() &amp;&amp; j &lt; B.len() {
-    let start = A[i][0].max(B[j][0]);
-    let end = A[i][1].min(B[j][1]);
-    if start &lt;= end {
-        result.push(vec![start, end]);
-    }
-    if A[i][1] &lt; B[j][1] {
-        i += 1;
-    } else {
-        j += 1;
-    }
-}
-<span class="boring">}</span></code></pre>
 <h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
 <h3 id="используемые-структуры-данных-в-merge-intervals"><a class="header" href="#используемые-структуры-данных-в-merge-intervals">Используемые структуры данных в Merge Intervals</a></h3>
 <p>В шаблоне Merge Intervals используются следующие структуры данных:</p>
@@ -682,9 +600,9 @@ while i &lt; A.len() &amp;&amp; j &lt; B.len() {
 <li>****: Для хранения результата</li>
 <li><strong>Структуры интервалов</strong>: Tuple/Struct для представления интервала [start, end]</li>
 </ul>
-<h3 id="rust--slice-go"><a class="header" href="#rust--slice-go">(Rust) / Slice (Go)</a></h3>
+<h3 id="-slice-go"><a class="header" href="#-slice-go">/ Slice (Go)</a></h3>
 <h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>Rust Vec&lt;Vec&lt;i32&gt;&gt;</strong> (массив интервалов):</p>
+<p><strong>Vec&lt;Vec&lt;i32&gt;&gt;</strong> (массив интервалов):</p>
 <pre><code>┌─────────────────────────────────────────┐
 │ Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;                           │
 │ ┌─────────────┐                         │
@@ -750,22 +668,8 @@ while i &lt; A.len() &amp;&amp; j &lt; B.len() {
 <li>Для Merge Intervals Vec/Slice оптимальны</li>
 </ul>
 <h3 id="структуры-интервалов"><a class="header" href="#структуры-интервалов">Структуры интервалов</a></h3>
-<h4 id="rust-tuple-vs-struct"><a class="header" href="#rust-tuple-vs-struct">Rust: Tuple vs Struct</a></h4>
 <p><strong>Tuple</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>type Interval = (i32, i32);  // (start, end)
-let interval = (1, 3);
-<span class="boring">}</span></code></pre>
 <p><strong>Struct</strong> (более читаемо):</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Debug, Clone, PartialEq, Eq)]
-struct Interval {
-    start: i32,
-    end: i32,
-}
-<span class="boring">}</span></code></pre>
 <p><strong>Память</strong>:</p>
 <ul>
 <li>Tuple: 8 байт (2 * i32)</li>
@@ -812,26 +716,6 @@ struct Interval {
 <pre><code class="language-go">// ✅ Хорошо: предварительное выделение
 result := make([][]int, 0, len(intervals))
 </code></pre>
-<h3 id="borrow-checker-rust"><a class="header" href="#borrow-checker-rust">Borrow Checker (Rust)</a></h3>
-<h4 id="что-это-такое-1"><a class="header" href="#что-это-такое-1">Что это такое:</a></h4>
-<p><strong>Borrow Checker</strong> проверяет заимствования для безопасной работы.</p>
-<p><strong>Для Merge Intervals</strong>:</p>
-<ul>
-<li>Обычно работаем с <code>&amp;[Vec&amp;lt;i32&amp;gt;]</code> для входных данных</li>
-<li>Создаем новый <code>Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;</code> для результата</li>
-<li>Проблемы редко возникают</li>
-</ul>
-<h4 id="примеры"><a class="header" href="#примеры">Примеры:</a></h4>
-<p><strong>Типичный паттерн</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn merge(intervals: &amp;[Vec&amp;lt;i32&amp;gt;]) -&gt; Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; {
-    let mut result = Vec::new();
-    // intervals - immutable borrow
-    // result - новое владение
-    result
-}
-<span class="boring">}</span></code></pre>
 <h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
 <h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
 <p><strong>Для Merge Intervals</strong>:</p>
@@ -849,7 +733,6 @@ func merge(intervals [][]int) [][]int {
     return result
 }
 </code></pre>
-<h3 id="ownership-и-move-semantics-rust"><a class="header" href="#ownership-и-move-semantics-rust">Ownership и Move Semantics (Rust)</a></h3>
 <h4 id="концепция-владения"><a class="header" href="#концепция-владения">Концепция владения:</a></h4>
 <p><strong>Для Merge Intervals</strong>:</p>
 <ul>
@@ -858,18 +741,9 @@ func merge(intervals [][]int) [][]int {
 <li>Сортировка может потребовать владения (если изменяем исходный массив)</li>
 </ul>
 <p><strong>Пример</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn merge(mut intervals: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;) -&gt; Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; {
-    intervals.sort_by_key(|v| v[0]);  // берем владение для сортировки
-    // ...
-    result
-}
-<span class="boring">}</span></code></pre>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
-<h4 id="rust-владение-и-аллокации"><a class="header" href="#rust-владение-и-аллокации">Rust: Владение и аллокации</a></h4>
-<p>В Rust для Merge Intervals:</p>
+<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
+<p>В для Merge Intervals:</p>
 <ul>
 <li><strong>Сортировка</strong>: Может аллоцировать временную память (зависит от алгоритма)</li>
 <li><strong>Результат</strong>: <code>Vec&amp;lt;Interval&amp;gt;</code> - аллоцируется в куче</li>
@@ -884,14 +758,6 @@ func merge(intervals [][]int) [][]int {
 </ul>
 <h3 id="анализ-аллокаций-для-merge-intervals"><a class="header" href="#анализ-аллокаций-для-merge-intervals">Анализ аллокаций для Merge Intervals</a></h3>
 <h4 id="базовое-слияние"><a class="header" href="#базовое-слияние">Базовое слияние:</a></h4>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Аллокации:
-// - Сортировка: O(n) дополнительной памяти (для стабильной сортировки)
-// - result: Vec&amp;lt;Interval&amp;gt; - O(n) в худшем случае
-// Итого: O(n) памяти в куче
-<span class="boring">}</span></code></pre>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">// Аллокации:
 // - Сортировка: O(log n) для стека рекурсии
@@ -899,13 +765,6 @@ func merge(intervals [][]int) [][]int {
 // Итого: O(n) памяти в куче
 </code></pre>
 <h4 id="оптимизация-in-place-слияние"><a class="header" href="#оптимизация-in-place-слияние">Оптимизация: In-place слияние:</a></h4>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ In-place: модифицируем входной массив
-intervals.sort_by_key(|x| x.start);
-let mut result = Vec::with_capacity(intervals.len());
-<span class="boring">}</span></code></pre>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">// ✅ In-place: модифицируем входной слайс
 sort.Slice(intervals, func(i, j int) bool {
@@ -914,33 +773,6 @@ sort.Slice(intervals, func(i, j int) bool {
 result := make([][]int, 0, len(intervals))
 </code></pre>
 <h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
-<ol>
-<li><strong>Предварительное выделение результата</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Хорошо: предварительное выделение
-let mut result = Vec::with_capacity(intervals.len());
-<span class="boring">}</span></code></pre>
-<ol start="2">
-<li><strong>Избежание клонирования</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Используем ссылки на интервалы
-fn merge_intervals(intervals: &amp;mut [Interval]) -&gt; Vec&amp;lt;Interval&amp;gt; {
-    // Модифицируем на месте
-}
-<span class="boring">}</span></code></pre>
-<ol start="3">
-<li><strong>Использование <code>sort_unstable</code></strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Нестабильная сортировка быстрее и использует меньше памяти
-intervals.sort_unstable_by_key(|x| x.start);
-<span class="boring">}</span></code></pre>
 <h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
 <ol>
 <li><strong>Предварительное выделение</strong>:</li>
@@ -960,11 +792,10 @@ result[len(result)-1][1] = max(result[len(result)-1][1], current[1])
 <pre><code class="language-go">// Очистка и переиспользование
 result = result[:0]
 </code></pre>
-<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
+<tr><th>Аспект</th><th></th><th>Go</th></tr>
 </thead>
 <tbody>
 <tr><td>Сортировка</td><td>Контролируемая память</td><td>GC управляет</td></tr>
@@ -994,31 +825,6 @@ result = result[:0]
 </ol>
 <h3 id="специфичные-оптимизации-для-merge-intervals"><a class="header" href="#специфичные-оптимизации-для-merge-intervals">Специфичные оптимизации для Merge Intervals</a></h3>
 <h4 id="1-оптимизация-слияния"><a class="header" href="#1-оптимизация-слияния">1. Оптимизация слияния:</a></h4>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Оптимизированная версия
-pub fn merge_intervals_optimized(mut intervals: Vec&amp;lt;Interval&amp;gt;) -&gt; Vec&amp;lt;Interval&amp;gt; {
-    if intervals.is_empty() {
-        return Vec::new();
-    }
-    
-    intervals.sort_unstable_by_key(|x| x.start);
-    let mut result = Vec::with_capacity(intervals.len());
-    result.push(intervals[0]);
-    
-    for current in intervals.into_iter().skip(1) {
-        let last = result.last_mut().unwrap();
-        if current.start &lt;= last.end {
-            last.end = last.end.max(current.end);
-        } else {
-            result.push(current);
-        }
-    }
-    
-    result
-}
-<span class="boring">}</span></code></pre>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">// ✅ Оптимизированная версия
 func mergeIntervalsOptimized(intervals [][]int) [][]int {
@@ -1047,23 +853,14 @@ func mergeIntervalsOptimized(intervals [][]int) [][]int {
     return result
 }
 </code></pre>
-<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
 <ol>
-<li><strong>Использование <code>sort_unstable</code></strong>:</li>
+<li>
+<p><strong>Использование <code>sort_unstable</code></strong>:</p>
+</li>
+<li>
+<p><strong>Избежание лишних аллокаций</strong>:</p>
+</li>
 </ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Быстрее и использует меньше памяти
-intervals.sort_unstable_by_key(|x| x.start);
-<span class="boring">}</span></code></pre>
-<ol start="2">
-<li><strong>Избежание лишних аллокаций</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Предварительное выделение
-let mut result = Vec::with_capacity(intervals.len());
-<span class="boring">}</span></code></pre>
 <h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
 <ol>
 <li><strong>Предварительное выделение</strong>:</li>
@@ -1082,23 +879,7 @@ last[1] = max(last[1], current[1])
 <h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-merge-intervals"><a class="header" href="#как-профилировать-merge-intervals">Как профилировать Merge Intervals</a></h3>
-<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// benches/merge_intervals_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_merge_intervals(c: &amp;mut Criterion) {
-    let intervals = create_test_intervals(1000);
-    
-    c.bench_function("merge_1000", |b| {
-        b.iter(|| merge_intervals_optimized(black_box(intervals.clone())))
-    });
-}
-
-criterion_group!(benches, bench_merge_intervals);
-criterion_main!(benches);
-<span class="boring">}</span></code></pre>
+<h4 id="пример"><a class="header" href="#пример">пример:</a></h4>
 <h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkMergeIntervals(b *testing.B) {
     intervals := createTestIntervals(1000)
@@ -1248,43 +1029,6 @@ criterion_main!(benches);
 <li><strong>Стресс-тесты</strong>: Большие списки интервалов</li>
 </ol>
 <h3 id="примеры-тестов-для-merge-intervals"><a class="header" href="#примеры-тестов-для-merge-intervals">Примеры тестов для Merge Intervals</a></h3>
-<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_merge_basic() {
-        let intervals = vec![
-            Interval::new(1, 3),
-            Interval::new(2, 6),
-            Interval::new(8, 10),
-        ];
-        let result = merge_intervals_optimized(intervals);
-        assert_eq!(result.len(), 2);
-    }
-
-    #[test]
-    fn test_merge_empty() {
-        let intervals = vec![];
-        let result = merge_intervals_optimized(intervals);
-        assert_eq!(result.len(), 0);
-    }
-
-    #[test]
-    fn test_merge_all_overlap() {
-        let intervals = vec![
-            Interval::new(1, 4),
-            Interval::new(2, 5),
-            Interval::new(3, 6),
-        ];
-        let result = merge_intervals_optimized(intervals);
-        assert_eq!(result.len(), 1);
-    }
-}
-<span class="boring">}</span></code></pre>
 <h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
 <pre><code class="language-go">func TestMergeIntervals(t *testing.T) {
     tests := []struct {
@@ -1308,38 +1052,11 @@ mod tests {
 }
 </code></pre>
 <h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
-<pre><code class="language-bash">cargo test
-cargo test -- --nocapture
-cargo bench
-</code></pre>
 <h4 id="go"><a class="header" href="#go">Go:</a></h4>
 <pre><code class="language-bash">go test -v
 go test -bench=. -benchmem
 </code></pre>
 <h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="rust-1"><a class="header" href="#rust-1">Rust:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn merge_intervals_benchmark(c: &amp;mut Criterion) {
-    let sizes = vec![100, 1000, 10000, 100000];
-    
-    let mut group = c.benchmark_group("merge_intervals");
-    for size in sizes {
-        let intervals = create_test_intervals(size);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &amp;intervals,
-            |b, intervals| {
-                b.iter(|| merge_intervals_optimized(black_box(intervals.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-<span class="boring">}</span></code></pre>
 <h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
 <pre><code class="language-go">func BenchmarkMergeIntervalsSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000, 100000}
@@ -1445,222 +1162,6 @@ func mergeIntervalsIdiomatic(intervals []Interval) []Interval {
     return merged
 }
 </code></pre>
-<h4 id="идиоматичный-rust-код"><a class="header" href="#идиоматичный-rust-код">Идиоматичный Rust код:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Идиоматичный Rust: используем структуры и трейты
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Interval {
-    pub start: i32,
-    pub end: i32,
-}
-
-impl Interval {
-    pub fn new(start: i32, end: i32) -&gt; Self {
-        Self { start, end }
-    }
-    
-    pub fn overlaps(&amp;self, other: &amp;Self) -&gt; bool {
-        self.start &lt;= other.end &amp;&amp; other.start &lt;= self.end
-    }
-    
-    pub fn merge(&amp;self, other: &amp;Self) -&gt; Self {
-        Self {
-            start: self.start.min(other.start),
-            end: self.end.max(other.end),
-        }
-    }
-}
-
-pub fn merge_intervals_idiomatic(mut intervals: Vec&lt;Interval&gt;) -&gt; Vec&lt;Interval&gt; {
-    if intervals.is_empty() {
-        return vec![];
-    }
-    
-    intervals.sort_unstable_by_key(|i| i.start);
-    let mut merged = vec![intervals[0]];
-    
-    for current in intervals.into_iter().skip(1) {
-        let last = merged.last_mut().unwrap();
-        if current.start &lt;= last.end {
-            *last = last.merge(&amp;current);
-        } else {
-            merged.push(current);
-        }
-    }
-    
-    merged
-}
-<span class="boring">}</span></code></pre>
-<h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Примеры использования шаблона Merge Intervals на Rust
-
-/// Пример 1: Слияние перекрывающихся интервалов
-/// 
-/// Задача: Объединить все перекрывающиеся интервалы
-/// Временная сложность: O(n log n)
-/// Пространственная сложность: O(n)
-pub fn merge_intervals(mut intervals: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;) -&gt; Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; {
-    if intervals.is_empty() {
-        return vec![];
-    }
-
-    // Сортируем интервалы по начальной точке
-    intervals.sort_by_key(|interval| interval[0]);
-
-    let mut merged = vec![intervals[0].clone()];
-
-    for current in intervals.into_iter().skip(1) {
-        let last = merged.last_mut().unwrap();
-
-        // Если текущий интервал перекрывается с последним, объединяем
-        if current[0] &lt;= last[1] {
-            last[1] = last[1].max(current[1]);
-        } else {
-            // Иначе добавляем новый интервал
-            merged.push(current);
-        }
-    }
-
-    merged
-}
-
-/// Пример 2: Вставка нового интервала
-/// 
-/// Задача: Вставить новый интервал в отсортированный список неперекрывающихся интервалов
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(n)
-pub fn insert_interval(mut intervals: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;, new_interval: Vec&amp;lt;i32&amp;gt;) -&gt; Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; {
-    let mut result = Vec::new();
-    let mut i = 0;
-    let n = intervals.len();
-
-    // Добавляем все интервалы, которые заканчиваются до начала нового интервала
-    while i &lt; n &amp;&amp; intervals[i][1] &lt; new_interval[0] {
-        result.push(intervals[i].clone());
-        i += 1;
-    }
-
-    // Объединяем все перекрывающиеся интервалы
-    let mut merged_interval = new_interval.clone();
-    while i &lt; n &amp;&amp; intervals[i][0] &lt;= merged_interval[1] {
-        merged_interval[0] = merged_interval[0].min(intervals[i][0]);
-        merged_interval[1] = merged_interval[1].max(intervals[i][1]);
-        i += 1;
-    }
-    result.push(merged_interval);
-
-    // Добавляем оставшиеся интервалы
-    while i &lt; n {
-        result.push(intervals[i].clone());
-        i += 1;
-    }
-
-    result
-}
-
-/// Пример 3: Поиск неперекрывающихся интервалов
-/// 
-/// Задача: Найти минимальное количество интервалов для удаления,
-/// чтобы сделать остальные неперекрывающимися
-/// Временная сложность: O(n log n)
-/// Пространственная сложность: O(1)
-pub fn erase_overlap_intervals(mut intervals: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;) -&gt; i32 {
-    if intervals.is_empty() {
-        return 0;
-    }
-
-    // Сортируем по конечной точке
-    intervals.sort_by_key(|interval| interval[1]);
-
-    let mut count = 0;
-    let mut end = intervals[0][1];
-
-    for i in 1..intervals.len() {
-        // Если интервал перекрывается с предыдущим, удаляем его
-        if intervals[i][0] &lt; end {
-            count += 1;
-        } else {
-            end = intervals[i][1];
-        }
-    }
-
-    count
-}
-
-/// Пример 4: Пересечения двух списков интервалов
-/// 
-/// Задача: Найти пересечения интервалов из двух списков
-/// Временная сложность: O(n + m)
-/// Пространственная сложность: O(k), где k - количество пересечений
-pub fn interval_intersection(
-    first_list: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;,
-    second_list: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;,
-) -&gt; Vec&amp;lt;Vec&lt;i32&amp;gt;&gt; {
-    let mut result = Vec::new();
-    let mut i = 0;
-    let mut j = 0;
-
-    while i &lt; first_list.len() &amp;&amp; j &lt; second_list.len() {
-        let first = &amp;first_list[i];
-        let second = &amp;second_list[j];
-
-        // Находим пересечение
-        let start = first[0].max(second[0]);
-        let end = first[1].min(second[1]);
-
-        if start &lt;= end {
-            result.push(vec![start, end]);
-        }
-
-        // Перемещаем указатель с меньшей конечной точкой
-        if first[1] &lt; second[1] {
-            i += 1;
-        } else {
-            j += 1;
-        }
-    }
-
-    result
-}
-
-/// Пример 5: Комнаты для встреч II (Meeting Rooms II)
-/// 
-/// Задача: Найти минимальное количество комнат, необходимое для всех встреч
-/// Временная сложность: O(n log n)
-/// Пространственная сложность: O(n)
-pub fn min_meeting_rooms(intervals: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;) -&gt; i32 {
-    if intervals.is_empty() {
-        return 0;
-    }
-
-    // Извлекаем времена начала и конца
-    let mut starts: Vec&amp;lt;i32&amp;gt; = intervals.iter().map(|i| i[0]).collect();
-    let mut ends: Vec&amp;lt;i32&amp;gt; = intervals.iter().map(|i| i[1]).collect();
-
-    starts.sort();
-    ends.sort();
-
-    let mut rooms = 0;
-    let mut end_ptr = 0;
-
-    // Проходим по временам начала
-    for start in starts {
-        // Если текущее время начала &gt;= времени окончания,
-        // освобождаем комнату
-        if start &gt;= ends[end_ptr] {
-            end_ptr += 1;
-        } else {
-            // Иначе нужна новая комната
-            rooms += 1;
-        }
-    }
-
-    rooms
-}
-<span class="boring">}</span></code></pre>
 <h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
 <pre><code class="language-go">package main
 

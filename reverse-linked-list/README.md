@@ -126,11 +126,11 @@
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
+### Теория аллокаций в Go
 
-#### Rust: In-place разворот
+#### : In-place разворот
 
-В Rust для Reverse Linked List:
+В для Reverse Linked List:
 - **Итеративный подход**: Только указатели на стеке - O(1)
 - **Рекурсивный подход**: Стек вызовов - O(n)
 - **Узлы**: Уже аллоцированы, только меняем указатели
@@ -146,14 +146,6 @@
 
 #### Итеративный подход:
 
-**Rust**:
-```rust
-// Аллокации:
-// - prev, curr, next: Option<Box<ListNode>> (указатели) - O(1)
-// - Никаких новых узлов не создается
-// Итого: O(1) памяти, только указатели
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -164,13 +156,6 @@
 
 #### Рекурсивный подход:
 
-**Rust**:
-```rust
-// Аллокации:
-// - Стек вызовов: O(n) для глубины рекурсии
-// Итого: O(n) памяти для стека
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -180,30 +165,11 @@
 
 ### Оптимизация памяти
 
-#### Rust оптимизации:
+#### оптимизации:
 
 1. **Использование итеративного подхода**:
-```rust
-// ✅ O(1) памяти вместо O(n)
-pub fn reverse_list_iterative(head: Option<Box<ListNode>>) -> Option<Box<ListNode>> {
-    let mut prev = None;
-    let mut curr = head;
-    
-    while let Some(mut node) = curr {
-        let next = node.next.take();
-        node.next = prev;
-        prev = Some(node);
-        curr = next;
-    }
-    prev
-}
-```
 
 2. **Избежание клонирования**:
-```rust
-// ✅ Используем take() вместо clone()
-let next = node.next.take();
-```
 
 #### Go оптимизации:
 
@@ -230,9 +196,9 @@ func reverseListIterative(head *ListNode) *ListNode {
 curr.Next = prev
 ```
 
-### Сравнение Rust vs Go
+### Сравнение vs Go
 
-| Аспект | Rust | Go |
+| Аспект | | Go |
 |--------|------|-----|
 | Итеративный | O(1) память | O(1) память |
 | Рекурсивный | O(n) стек | O(n) стек |
@@ -255,22 +221,6 @@ curr.Next = prev
 
 #### 1. Оптимизация итеративного подхода:
 
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn reverse_list_optimized(head: Option<Box<ListNode>>) -> Option<Box<ListNode>> {
-    let mut prev = None;
-    let mut curr = head;
-    
-    while let Some(mut node) = curr {
-        curr = node.next.take();
-        node.next = prev;
-        prev = Some(node);
-    }
-    prev
-}
-```
-
 **Go**:
 ```go
 // ✅ Оптимизированная версия
@@ -287,21 +237,9 @@ func reverseListOptimized(head *ListNode) *ListNode {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Использование `take()`**:
-```rust
-// ✅ Эффективное перемещение владения
-curr = node.next.take();
-```
+### Оптимизация для 1. **Использование `take()`**:
 
 2. **Избежание лишних проверок**:
-```rust
-// ✅ Pattern matching оптимизирован компилятором
-while let Some(mut node) = curr {
-    // ...
-}
-```
 
 ### Оптимизация для Go
 
@@ -327,23 +265,7 @@ for curr != nil {
 
 ### Как профилировать Reverse Linked List
 
-#### Rust пример:
-
-```rust
-// benches/reverse_list_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_reverse_list(c: &mut Criterion) {
-    let list = create_list(1000);
-    
-    c.bench_function("reverse_1000", |b| {
-        b.iter(|| reverse_list_optimized(black_box(list.clone())))
-    });
-}
-
-criterion_group!(benches, bench_reverse_list);
-criterion_main!(benches);
-```
+#### пример:
 
 #### Go пример:
 
@@ -380,35 +302,7 @@ func BenchmarkReverseList(b *testing.B) {
 
 ### Примеры тестов для Reverse Linked List
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_reverse_basic() {
-        let list = create_list(vec![1, 2, 3, 4, 5]);
-        let reversed = reverse_list_optimized(list);
-        assert_eq!(list_to_vec(reversed), vec![5, 4, 3, 2, 1]);
-    }
-
-    #[test]
-    fn test_reverse_empty() {
-        let list = None;
-        let reversed = reverse_list_optimized(list);
-        assert_eq!(list_to_vec(reversed), vec![]);
-    }
-
-    #[test]
-    fn test_reverse_single() {
-        let list = create_list(vec![1]);
-        let reversed = reverse_list_optimized(list);
-        assert_eq!(list_to_vec(reversed), vec![1]);
-    }
-}
-```
+#### тесты:
 
 #### Go тесты:
 
@@ -437,7 +331,7 @@ func TestReverseList(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
+#### :
 ```bash
 cargo test
 cargo test -- --nocapture
@@ -452,27 +346,7 @@ go test -bench=. -benchmem
 
 ### Бенчмарки
 
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn reverse_list_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000, 100000];
-    
-    let mut group = c.benchmark_group("reverse_list");
-    for size in sizes {
-        let list = create_list(size);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &list,
-            |b, list| {
-                b.iter(|| reverse_list_optimized(black_box(list.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-```
+#### :
 
 #### Go:
 ```go
@@ -508,6 +382,6 @@ func BenchmarkReverseListSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 

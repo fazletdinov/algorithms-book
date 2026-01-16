@@ -324,16 +324,6 @@ func topologicalSort(numCourses int, prerequisites [][]int) []int {
 }
 ```
 
-**Rust**:
-```rust
-pub fn topological_sort(num_courses: i32, prerequisites: Vec<Vec<i32>>) -> Vec<i32> {
-    if num_courses == 0 {
-        return vec![];
-    }
-    // ... остальной код
-}
-```
-
 ### 2. Граф без ребер
 
 **Проблема**: Если граф не имеет ребер, любая перестановка вершин является валидной топологической сортировкой.
@@ -454,7 +444,7 @@ for _, prereq := range prerequisites {
 - Эффективнее матрицы смежности для разреженных графов
 - Легко найти соседей узла
 
-###  (Rust) / []int (Go) - In-degree массив
+###   / []int (Go) - In-degree массив
 
 #### Массив in-degree:
 
@@ -476,7 +466,7 @@ for _, prereq := range prerequisites {
 - O(V) памяти
 - Обновляется при обработке узлов
 
-###  (Rust) / Queue (Go)
+###   / Queue (Go)
 
 #### Очередь для BFS:
 
@@ -508,17 +498,6 @@ for _, prereq := range prerequisites {
 - In-degree массив может быть на стеке (если небольшой)
 - Результаты могут escape
 
-### Borrow Checker (Rust)
-
-**Типичный паттерн**:
-```rust
-fn topological_sort(graph: &[Vec&lt;usize&gt;]) -> Vec&lt;usize&gt; {
-    let mut in_degree = vec![0; graph.len()];
-    let mut queue = VecDeque::new();
-    // ...
-}
-```
-
 ### Garbage Collector (Go)
 
 **Для Topological Sort**:
@@ -526,24 +505,9 @@ fn topological_sort(graph: &[Vec&lt;usize&gt;]) -> Vec&lt;usize&gt; {
 - Очередь в куче
 - Минимизация размера графа критична
 
-### Ownership и Move Semantics (Rust)
-
-**Концепция владения**:
-- Граф: `&[Vec&lt;usize&gt;]` (заимствование) или `Vec&lt;Vec<usize&gt;>` (владение)
-- Очередь: `VecDeque&lt;usize&gt;` (владение)
-- RAII гарантирует освобождение
-
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
-
-#### Rust: Topological Sort
-
-В Rust для Topological Sort:
-- **Граф**: `Vec&lt;Vec<usize&gt;>` - O(V + E) памяти
-- **In-degree массив**: `Vec&lt;usize&gt;` - O(V) памяти
-- **Очередь**: `VecDeque&lt;usize&gt;` - O(V) в худшем случае
-- **Результат**: `Vec&lt;usize&gt;` - O(V) памяти
+### Теория аллокаций в Go
 
 #### Go: Topological Sort
 
@@ -557,16 +521,6 @@ fn topological_sort(graph: &[Vec&lt;usize&gt;]) -> Vec&lt;usize&gt; {
 
 #### Алгоритм Кана:
 
-**Rust**:
-```rust
-// Аллокации:
-// - graph: Vec&lt;Vec<usize&gt;> - O(V + E) памяти
-// - in_degree: Vec&lt;usize&gt; - O(V) памяти
-// - queue: VecDeque&lt;usize&gt; - O(V) в худшем случае
-// - result: Vec&lt;usize&gt; - O(V) памяти
-// Итого: O(V + E) памяти
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -578,20 +532,6 @@ fn topological_sort(graph: &[Vec&lt;usize&gt;]) -> Vec&lt;usize&gt; {
 ```
 
 ### Оптимизация памяти
-
-#### Rust оптимизации:
-
-1. **Предварительное выделение графа**:
-```rust
-// ✅ Предварительное выделение
-let mut graph = vec![Vec::new(); num_courses];
-```
-
-2. **Предварительное выделение in-degree**:
-```rust
-// ✅ Предварительное выделение
-let mut in_degree = vec![0; num_courses];
-```
 
 #### Go оптимизации:
 
@@ -607,9 +547,7 @@ graph := make([][]int, numCourses)
 inDegree := make([]int, numCourses)
 ```
 
-### Сравнение Rust vs Go
-
-| Аспект | Rust | Go |
+| Аспект | Go |
 |--------|------|-----|
 | Граф | `Vec&lt;Vec<usize&gt;>` | [][]int |
 | Память | O(V + E) | O(V + E) |
@@ -626,41 +564,6 @@ inDegree := make([]int, numCourses)
 ### Специфичные оптимизации для Topological Sort
 
 #### 1. Оптимизация алгоритма Кана:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn topological_sort_optimized(num_courses: i32, prerequisites: Vec&lt;Vec<i32&gt;>) -> Vec&lt;i32&gt; {
-    let n = num_courses as usize;
-    let mut graph = vec![Vec::new(); n];
-    let mut in_degree = vec![0; n];
-    
-    for edge in &prerequisites {
-        graph[edge[1] as usize].push(edge[0] as usize);
-        in_degree[edge[0] as usize] += 1;
-    }
-    
-    let mut queue = VecDeque::with_capacity(n);
-    for i in 0..n {
-        if in_degree[i] == 0 {
-            queue.push_back(i);
-        }
-    }
-    
-    let mut result = Vec::with_capacity(n);
-    while let Some(course) = queue.pop_front() {
-        result.push(course as i32);
-        for &next in &graph[course] {
-            in_degree[next] -= 1;
-            if in_degree[next] == 0 {
-                queue.push_back(next);
-            }
-        }
-    }
-    
-    result
-}
-```
 
 **Go**:
 ```go
@@ -699,20 +602,9 @@ func topologicalSortOptimized(numCourses int, prerequisites [][]int) []int {
 }
 ```
 
-### Оптимизация для Rust
-
 1. **Использование `VecDeque`**:
-```rust
-// ✅ Эффективная очередь
-use std::collections::VecDeque;
-let mut queue = VecDeque::with_capacity(n);
-```
 
 2. **Предварительное выделение**:
-```rust
-// ✅ Предварительное выделение
-let mut graph = vec![Vec::new(); n];
-```
 
 ### Оптимизация для Go
 
@@ -736,41 +628,6 @@ queue = queue[1:]  // Удаление первого элемента
 См. раздел "Профилирование" в [Sliding Window](./sliding-window.md#профилирование) для общих инструментов.
 
 ### Как профилировать Topological Sort
-
-#### Rust пример:
-
-```rust
-// benches/topological_sort_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-// Вспомогательная функция для создания тестовых данных
-fn create_test_prerequisites(num_courses: usize, num_edges: usize) -> Vec&lt;Vec<i32&gt;> {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
-    let mut prerequisites = Vec::new();
-    
-    for _ in 0..num_edges {
-        let from = rng.gen_range(0..num_courses) as i32;
-        let to = rng.gen_range(0..num_courses) as i32;
-        if from != to {
-            prerequisites.push(vec![to, from]); // [to, from] означает from → to
-        }
-    }
-    
-    prerequisites
-}
-
-fn bench_topological_sort(c: &mut Criterion) {
-    let prerequisites = create_test_prerequisites(1000, 5000);
-    
-    c.bench_function("topological_sort_1000", |b| {
-        b.iter(|| topological_sort_optimized(black_box(1000), black_box(prerequisites.clone())))
-    });
-}
-
-criterion_group!(benches, bench_topological_sort);
-criterion_main!(benches);
-```
 
 #### Go пример:
 
@@ -934,29 +791,6 @@ func visualizeGraph(graph [][]int, inDegree []int) {
 
 ### Примеры тестов для Topological Sort
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_topological_sort_basic() {
-        let prerequisites = vec![vec![1, 0], vec![2, 0], vec![3, 1], vec![3, 2]];
-        let result = topological_sort_optimized(4, prerequisites);
-        assert_eq!(result.len(), 4);
-    }
-
-    #[test]
-    fn test_topological_sort_empty() {
-        let prerequisites = vec![];
-        let result = topological_sort_optimized(2, prerequisites);
-        assert_eq!(result.len(), 2);
-    }
-}
-```
-
 #### Go тесты:
 
 ```go
@@ -984,13 +818,6 @@ func TestTopologicalSort(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
-```bash
-cargo test
-cargo test -- --nocapture
-cargo bench
-```
-
 #### Go:
 ```bash
 go test -v
@@ -998,28 +825,6 @@ go test -bench=. -benchmem
 ```
 
 ### Бенчмарки
-
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn topological_sort_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000];
-    
-    let mut group = c.benchmark_group("topological_sort");
-    for size in sizes {
-        let prerequisites = create_test_prerequisites(size, size * 2);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &prerequisites,
-            |b, prerequisites| {
-                b.iter(|| topological_sort_optimized(black_box(size), black_box(prerequisites.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-```
 
 #### Go:
 ```go
@@ -1195,219 +1000,6 @@ func (g *Graph) TopologicalSort() ([]int, bool) {
     }
     
     return result, len(result) == g.nodes
-}
-```
-
-### Rust
-
-```rust
-// Примеры использования шаблона Topological Sort на Rust
-
-use std::collections::{VecDeque, HashMap};
-
-/// Пример 1: Топологическая сортировка (алгоритм Кана)
-/// 
-/// Задача: Найти топологический порядок вершин в графе
-/// Временная сложность: O(V + E)
-/// Пространственная сложность: O(V + E)
-pub fn topological_sort(num_courses: i32, prerequisites: Vec&lt;Vec<i32&gt;>) -> Vec&lt;i32&gt; {
-    let n = num_courses as usize;
-    // Инициализируем граф как список смежности (каждая вершина -> список соседей)
-    let mut graph: Vec&lt;Vec<usize&gt;> = vec![Vec::new(); n];
-    // Массив для хранения входящих степеней каждой вершины
-    let mut in_degree = vec![0; n];
-
-    // Шаг 1: Строим граф и подсчитываем входящие степени (in-degree)
-    // prerequisites[i] = [to, from] означает, что курс 'to' зависит от курса 'from'
-    // В графе это ребро: from → to
-    for prereq in prerequisites {
-        let from = prereq[1] as usize;  // Предшественник
-        let to = prereq[0] as usize;      // Зависимый курс
-        graph[from].push(to);            // Добавляем ребро from → to
-        in_degree[to] += 1;              // Увеличиваем in-degree для 'to'
-    }
-
-    // Шаг 2: Находим все вершины с in-degree = 0 (источники)
-    // Эти вершины не имеют зависимостей и могут быть обработаны первыми
-    let mut queue = VecDeque::new();
-    for i in 0..n {
-        if in_degree[i] == 0 {
-            queue.push_back(i);  // Добавляем источник в очередь
-        }
-    }
-
-    let mut result = Vec::new();
-
-    // Шаг 3: Обрабатываем вершины из очереди (алгоритм Кана)
-    while let Some(node) = queue.pop_front() {
-        // Добавляем обработанную вершину в результат
-        result.push(node as i32);
-
-        // Для каждого соседа текущей вершины:
-        for &neighbor in &graph[node] {
-            // Уменьшаем in-degree, так как мы "удалили" предшественника
-            in_degree[neighbor] -= 1;
-            // Если in-degree стал 0, вершина готова к обработке
-            if in_degree[neighbor] == 0 {
-                queue.push_back(neighbor);
-            }
-        }
-    }
-
-    // Шаг 4: Проверка на циклы
-    // Если не все вершины обработаны, значит в графе есть цикл
-    if result.len() == n {
-        result  // Все вершины обработаны - топологическая сортировка возможна
-    } else {
-        Vec::new()  // Есть цикл - топологическая сортировка невозможна
-    }
-}
-
-/// Пример 2: Проверка возможности завершения курсов
-/// 
-/// Задача: Определить, можно ли завершить все курсы (нет циклов)
-/// Временная сложность: O(V + E)
-/// Пространственная сложность: O(V + E)
-pub fn can_finish(num_courses: i32, prerequisites: Vec&lt;Vec<i32&gt;>) -> bool {
-    let n = num_courses as usize;
-    let mut graph: Vec&lt;Vec<usize&gt;> = vec![Vec::new(); n];
-    let mut in_degree = vec![0; n];
-
-    for prereq in prerequisites {
-        let from = prereq[1] as usize;
-        let to = prereq[0] as usize;
-        graph[from].push(to);
-        in_degree[to] += 1;
-    }
-
-    let mut queue = VecDeque::new();
-    for i in 0..n {
-        if in_degree[i] == 0 {
-            queue.push_back(i);
-        }
-    }
-
-    let mut count = 0;
-
-    while let Some(node) = queue.pop_front() {
-        count += 1;
-
-        for &neighbor in &graph[node] {
-            in_degree[neighbor] -= 1;
-            if in_degree[neighbor] == 0 {
-                queue.push_back(neighbor);
-            }
-        }
-    }
-
-    count == n
-}
-
-/// Пример 3: Топологическая сортировка с DFS
-/// 
-/// Задача: Найти топологический порядок используя DFS
-/// Временная сложность: O(V + E)
-/// Пространственная сложность: O(V + E)
-pub fn topological_sort_dfs(num_courses: i32, prerequisites: Vec&lt;Vec<i32&gt;>) -> Vec&lt;i32&gt; {
-    let n = num_courses as usize;
-    let mut graph: Vec&lt;Vec<usize&gt;> = vec![Vec::new(); n];
-    
-    for prereq in prerequisites {
-        let from = prereq[1] as usize;
-        let to = prereq[0] as usize;
-        graph[from].push(to);
-    }
-
-    let mut visited = vec![0; n]; // 0: не посещено, 1: посещено, 2: обработано
-    let mut result = Vec::new();
-
-    fn dfs(
-        node: usize,
-        graph: &[Vec&lt;usize&gt;],
-        visited: &mut [i32],
-        result: &mut Vec&lt;i32&gt;,
-    ) -> bool {
-        if visited[node] == 1 {
-            // Обнаружен цикл
-            return false;
-        }
-        if visited[node] == 2 {
-            return true;
-        }
-
-        visited[node] = 1;
-        for &neighbor in &graph[node] {
-            if !dfs(neighbor, graph, visited, result) {
-                return false;
-            }
-        }
-        visited[node] = 2;
-        result.push(node as i32);
-        true
-    }
-
-    for i in 0..n {
-        if visited[i] == 0 {
-            if !dfs(i, &graph, &mut visited, &mut result) {
-                return Vec::new();
-            }
-        }
-    }
-
-    result.reverse();
-    result
-}
-
-/// Пример 4: Минимальная высота деревьев
-/// 
-/// Задача: Найти корни деревьев минимальной высоты в неориентированном графе
-/// Временная сложность: O(V + E)
-/// Пространственная сложность: O(V + E)
-pub fn find_min_height_trees(n: i32, edges: Vec&lt;Vec<i32&gt;>) -> Vec&lt;i32&gt; {
-    if n == 1 {
-        return vec![0];
-    }
-
-    let n = n as usize;
-    let mut graph: Vec&lt;Vec<usize&gt;> = vec![Vec::new(); n];
-    let mut degree = vec![0; n];
-
-    for edge in edges {
-        let u = edge[0] as usize;
-        let v = edge[1] as usize;
-        graph[u].push(v);
-        graph[v].push(u);
-        degree[u] += 1;
-        degree[v] += 1;
-    }
-
-    // Начинаем с листьев (степень = 1)
-    let mut queue = VecDeque::new();
-    for i in 0..n {
-        if degree[i] == 1 {
-            queue.push_back(i);
-        }
-    }
-
-    let mut remaining = n;
-
-    // Удаляем листья слой за слоем
-    while remaining > 2 {
-        let size = queue.len();
-        remaining -= size;
-
-        for _ in 0..size {
-            let leaf = queue.pop_front().unwrap();
-            for &neighbor in &graph[leaf] {
-                degree[neighbor] -= 1;
-                if degree[neighbor] == 1 {
-                    queue.push_back(neighbor);
-                }
-            }
-        }
-    }
-
-    queue.into_iter().map(|x| x as i32).collect()
 }
 ```
 

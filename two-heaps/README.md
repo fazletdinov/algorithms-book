@@ -122,11 +122,11 @@
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
+### Теория аллокаций в Go
 
-#### Rust: Две кучи
+#### : Две кучи
 
-В Rust для Two Heaps:
+В для Two Heaps:
 - **MaxHeap и MinHeap**: `BinaryHeap<T>` - аллоцируются в куче, O(n) памяти
 - **Балансировка**: Перемещение элементов между кучами
 - **Результат**: O(1) для получения медианы
@@ -142,14 +142,6 @@
 
 #### Базовый подход:
 
-**Rust**:
-```rust
-// Аллокации:
-// - max_heap: BinaryHeap<i32> - O(n/2) в худшем случае
-// - min_heap: BinaryHeap<i32> - O(n/2) в худшем случае
-// Итого: O(n) памяти в куче
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -160,21 +152,11 @@
 
 ### Оптимизация памяти
 
-#### Rust оптимизации:
+#### оптимизации:
 
 1. **Предварительное выделение куч**:
-```rust
-// ✅ Предварительное выделение
-let mut max_heap = BinaryHeap::with_capacity(n / 2);
-let mut min_heap = BinaryHeap::with_capacity(n / 2);
-```
 
 2. **Переиспользование куч**:
-```rust
-// ✅ Очистка и переиспользование
-max_heap.clear();
-min_heap.clear();
-```
 
 #### Go оптимизации:
 
@@ -192,9 +174,9 @@ maxHeap = maxHeap[:0]
 minHeap = minHeap[:0]
 ```
 
-### Сравнение Rust vs Go
+### Сравнение vs Go
 
-| Аспект | Rust | Go |
+| Аспект | | Go |
 |--------|------|-----|
 | Кучи | BinaryHeap в куче | container/heap в куче |
 | Память | O(n) | O(n) |
@@ -211,43 +193,6 @@ minHeap = minHeap[:0]
 ### Специфичные оптимизации для Two Heaps
 
 #### 1. Оптимизация балансировки:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub struct MedianFinder {
-    max_heap: BinaryHeap<i32>,  // Меньшая половина
-    min_heap: BinaryHeap<Reverse<i32>>,  // Большая половина
-}
-
-impl MedianFinder {
-    pub fn new() -> Self {
-        Self {
-            max_heap: BinaryHeap::with_capacity(1000),
-            min_heap: BinaryHeap::with_capacity(1000),
-        }
-    }
-
-    pub fn add_num(&mut self, num: i32) {
-        if self.max_heap.is_empty() || num <= *self.max_heap.peek().unwrap() {
-            self.max_heap.push(num);
-        } else {
-            self.min_heap.push(Reverse(num));
-        }
-
-        // Балансировка
-        if self.max_heap.len() > self.min_heap.len() + 1 {
-            if let Some(val) = self.max_heap.pop() {
-                self.min_heap.push(Reverse(val));
-            }
-        } else if self.min_heap.len() > self.max_heap.len() + 1 {
-            if let Some(Reverse(val)) = self.min_heap.pop() {
-                self.max_heap.push(val);
-            }
-        }
-    }
-}
-```
 
 **Go**:
 ```go
@@ -282,21 +227,9 @@ func (mf *MedianFinder) AddNum(num int) {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Использование `Reverse` для min heap**:
-```rust
-// ✅ Эффективная min heap
-use std::cmp::Reverse;
-let mut min_heap = BinaryHeap::new();
-min_heap.push(Reverse(5));
-```
+### Оптимизация для 1. **Использование `Reverse` для min heap**:
 
 2. **Предварительное выделение**:
-```rust
-// ✅ Предварительное выделение
-let mut max_heap = BinaryHeap::with_capacity(n / 2);
-```
 
 ### Оптимизация для Go
 
@@ -320,28 +253,7 @@ maxHeap := make(IntHeap, 0, n/2)
 
 ### Как профилировать Two Heaps
 
-#### Rust пример:
-
-```rust
-// benches/two_heaps_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_median_finder(c: &mut Criterion) {
-    let mut finder = MedianFinder::new();
-    let nums: Vec<i32> = (0..1000).collect();
-    
-    c.bench_function("add_num_1000", |b| {
-        b.iter(|| {
-            for &num in &nums {
-                finder.add_num(black_box(num));
-            }
-        })
-    });
-}
-
-criterion_group!(benches, bench_median_finder);
-criterion_main!(benches);
-```
+#### пример:
 
 #### Go пример:
 
@@ -384,30 +296,7 @@ func BenchmarkMedianFinder(b *testing.B) {
 
 ### Примеры тестов для Two Heaps
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_median_finder_basic() {
-        let mut finder = MedianFinder::new();
-        finder.add_num(1);
-        finder.add_num(2);
-        assert_eq!(finder.find_median(), 1.5);
-        finder.add_num(3);
-        assert_eq!(finder.find_median(), 2.0);
-    }
-
-    #[test]
-    fn test_median_finder_empty() {
-        let finder = MedianFinder::new();
-        // Обработка пустой структуры
-    }
-}
-```
+#### тесты:
 
 #### Go тесты:
 
@@ -438,7 +327,7 @@ func TestMedianFinder(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
+#### :
 ```bash
 cargo test
 cargo test -- --nocapture
@@ -453,32 +342,7 @@ go test -bench=. -benchmem
 
 ### Бенчмарки
 
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn two_heaps_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000];
-    
-    let mut group = c.benchmark_group("two_heaps");
-    for size in sizes {
-        let nums: Vec<i32> = (0..size).collect();
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &nums,
-            |b, nums| {
-                let mut finder = MedianFinder::new();
-                b.iter(|| {
-                    for &num in nums {
-                        finder.add_num(black_box(num));
-                    }
-                });
-            },
-        );
-    }
-    group.finish();
-}
-```
+#### :
 
 #### Go:
 ```go
@@ -506,7 +370,7 @@ func BenchmarkTwoHeapsSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 
 ## Примеры задач на LeetCode
@@ -522,6 +386,6 @@ func BenchmarkTwoHeapsSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 

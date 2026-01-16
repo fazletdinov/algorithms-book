@@ -140,11 +140,11 @@ A: 0, B: 1, C: 2, D: 2
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
+### Теория аллокаций в Go
 
-#### Rust: Topological Sort
+#### : Topological Sort
 
-В Rust для Topological Sort:
+В для Topological Sort:
 - **Граф**: `Vec<Vec<usize>>` - O(V + E) памяти
 - **In-degree массив**: `Vec<usize>` - O(V) памяти
 - **Очередь**: `VecDeque<usize>` - O(V) в худшем случае
@@ -162,16 +162,6 @@ A: 0, B: 1, C: 2, D: 2
 
 #### Алгоритм Кана:
 
-**Rust**:
-```rust
-// Аллокации:
-// - graph: Vec<Vec<usize>> - O(V + E) памяти
-// - in_degree: Vec<usize> - O(V) памяти
-// - queue: VecDeque<usize> - O(V) в худшем случае
-// - result: Vec<usize> - O(V) памяти
-// Итого: O(V + E) памяти
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -184,19 +174,11 @@ A: 0, B: 1, C: 2, D: 2
 
 ### Оптимизация памяти
 
-#### Rust оптимизации:
+#### оптимизации:
 
 1. **Предварительное выделение графа**:
-```rust
-// ✅ Предварительное выделение
-let mut graph = vec![Vec::new(); num_courses];
-```
 
 2. **Предварительное выделение in-degree**:
-```rust
-// ✅ Предварительное выделение
-let mut in_degree = vec![0; num_courses];
-```
 
 #### Go оптимизации:
 
@@ -212,9 +194,9 @@ graph := make([][]int, numCourses)
 inDegree := make([]int, numCourses)
 ```
 
-### Сравнение Rust vs Go
+### Сравнение vs Go
 
-| Аспект | Rust | Go |
+| Аспект | | Go |
 |--------|------|-----|
 | Граф | `Vec<Vec<usize>>` | [][]int |
 | Память | O(V + E) | O(V + E) |
@@ -231,41 +213,6 @@ inDegree := make([]int, numCourses)
 ### Специфичные оптимизации для Topological Sort
 
 #### 1. Оптимизация алгоритма Кана:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn topological_sort_optimized(num_courses: i32, prerequisites: Vec<Vec<i32>>) -> Vec<i32> {
-    let n = num_courses as usize;
-    let mut graph = vec![Vec::new(); n];
-    let mut in_degree = vec![0; n];
-    
-    for edge in &prerequisites {
-        graph[edge[1] as usize].push(edge[0] as usize);
-        in_degree[edge[0] as usize] += 1;
-    }
-    
-    let mut queue = VecDeque::with_capacity(n);
-    for i in 0..n {
-        if in_degree[i] == 0 {
-            queue.push_back(i);
-        }
-    }
-    
-    let mut result = Vec::with_capacity(n);
-    while let Some(course) = queue.pop_front() {
-        result.push(course as i32);
-        for &next in &graph[course] {
-            in_degree[next] -= 1;
-            if in_degree[next] == 0 {
-                queue.push_back(next);
-            }
-        }
-    }
-    
-    result
-}
-```
 
 **Go**:
 ```go
@@ -304,20 +251,9 @@ func topologicalSortOptimized(numCourses int, prerequisites [][]int) []int {
 }
 ```
 
-### Оптимизация для Rust
-
-1. **Использование `VecDeque`**:
-```rust
-// ✅ Эффективная очередь
-use std::collections::VecDeque;
-let mut queue = VecDeque::with_capacity(n);
-```
+### Оптимизация для 1. **Использование `VecDeque`**:
 
 2. **Предварительное выделение**:
-```rust
-// ✅ Предварительное выделение
-let mut graph = vec![Vec::new(); n];
-```
 
 ### Оптимизация для Go
 
@@ -342,23 +278,7 @@ queue = queue[1:]  // Удаление первого элемента
 
 ### Как профилировать Topological Sort
 
-#### Rust пример:
-
-```rust
-// benches/topological_sort_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_topological_sort(c: &mut Criterion) {
-    let prerequisites = create_test_prerequisites(1000, 5000);
-    
-    c.bench_function("topological_sort_1000", |b| {
-        b.iter(|| topological_sort_optimized(black_box(1000), black_box(prerequisites.clone())))
-    });
-}
-
-criterion_group!(benches, bench_topological_sort);
-criterion_main!(benches);
-```
+#### пример:
 
 #### Go пример:
 
@@ -395,28 +315,7 @@ func BenchmarkTopologicalSort(b *testing.B) {
 
 ### Примеры тестов для Topological Sort
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_topological_sort_basic() {
-        let prerequisites = vec![vec![1, 0], vec![2, 0], vec![3, 1], vec![3, 2]];
-        let result = topological_sort_optimized(4, prerequisites);
-        assert_eq!(result.len(), 4);
-    }
-
-    #[test]
-    fn test_topological_sort_empty() {
-        let prerequisites = vec![];
-        let result = topological_sort_optimized(2, prerequisites);
-        assert_eq!(result.len(), 2);
-    }
-}
-```
+#### тесты:
 
 #### Go тесты:
 
@@ -445,7 +344,7 @@ func TestTopologicalSort(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
+#### :
 ```bash
 cargo test
 cargo test -- --nocapture
@@ -460,27 +359,7 @@ go test -bench=. -benchmem
 
 ### Бенчмарки
 
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn topological_sort_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000];
-    
-    let mut group = c.benchmark_group("topological_sort");
-    for size in sizes {
-        let prerequisites = create_test_prerequisites(size, size * 2);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &prerequisites,
-            |b, prerequisites| {
-                b.iter(|| topological_sort_optimized(black_box(size), black_box(prerequisites.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-```
+#### :
 
 #### Go:
 ```go
@@ -502,7 +381,7 @@ func BenchmarkTopologicalSortSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 
 ## Примеры задач на LeetCode
@@ -519,6 +398,6 @@ func BenchmarkTopologicalSortSizes(b *testing.B) {
 ## Примеры кода
 
 См. файлы:
-- [Rust примеры](./rust/examples.rs)
+
 - [Go примеры](./go/examples.go)
 

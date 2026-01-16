@@ -325,16 +325,6 @@ func subsets(nums []int) [][]int {
 }
 ```
 
-**Rust**:
-```rust
-pub fn subsets(nums: Vec<i32>) -> Vec<Vec<i32>> {
-    if nums.is_empty() {
-        return vec![vec![]]; // Только пустое подмножество
-    }
-    // ... остальной код
-}
-```
-
 ### 2. Массив из одного элемента
 
 **Проблема**: Если массив содержит один элемент, результат должен содержать пустое подмножество и подмножество с этим элементом.
@@ -448,11 +438,11 @@ func permute(nums []int) [][]int {
 - ****: Для хранения всех подмножеств
 - ****: Для текущего подмножества (backtracking)
 
-### > (Rust) / [][]T (Go)
+### >  / [][]T (Go)
 
 #### Как хранится в памяти:
 
-**Rust Vec&lt;Vec<i32&gt;>**:
+**Vec&lt;Vec<i32&gt;>**:
 ```
 Результат (все подмножества):
 ┌─────────────────────────────────────────┐
@@ -498,25 +488,6 @@ func permute(nums []int) [][]int {
 - Текущее подмножество может остаться на стеке (если небольшое)
 - Результат escape при возврате
 
-### Borrow Checker (Rust)
-
-**Типичный паттерн**:
-```rust
-fn subsets(nums: &[i32]) -> Vec&lt;Vec<i32&gt;> {
-    let mut result = Vec::new();
-    let mut current = Vec::new();
-    backtrack(nums, 0, &mut current, &mut result);
-    result
-}
-
-fn backtrack(nums: &[i32], start: usize, 
-             current: &mut Vec&lt;i32&gt;, 
-             result: &mut Vec&lt;Vec<i32&gt;>) {
-    result.push(current.clone());  // копирование
-    // ...
-}
-```
-
 ### Garbage Collector (Go)
 
 **Для Subsets**:
@@ -524,23 +495,9 @@ fn backtrack(nums: &[i32], start: usize,
 - 2^n подмножеств - много аллокаций
 - Минимизация копирований критична
 
-### Ownership и Move Semantics (Rust)
-
-**Концепция владения**:
-- `Vec&lt;Vec<i32&gt;>` владеет всеми подмножествами
-- При backtracking клонируем текущее подмножество
-- RAII гарантирует освобождение
-
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
-
-#### Rust: Генерация подмножеств
-
-В Rust для Subsets:
-- **Backtracking**: Стек вызовов - O(n) для глубины рекурсии
-- **Результат**: `Vec&lt;Vec<i32&gt;>` - O(2^n * n) в худшем случае
-- **Текущий путь**: `Vec&lt;i32&gt;` - O(n) для каждого пути
+### Теория аллокаций в Go
 
 #### Go: Генерация подмножеств
 
@@ -553,15 +510,6 @@ fn backtrack(nums: &[i32], start: usize,
 
 #### Рекурсивный подход:
 
-**Rust**:
-```rust
-// Аллокации:
-// - Стек вызовов: O(n) для глубины рекурсии
-// - result: Vec&lt;Vec<i32&gt;> - O(2^n * n) в худшем случае
-// - current: Vec&lt;i32&gt; - O(n) для каждого пути
-// Итого: O(2^n * n) памяти в худшем случае
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -572,27 +520,6 @@ fn backtrack(nums: &[i32], start: usize,
 ```
 
 ### Оптимизация памяти
-
-#### Rust оптимизации:
-
-1. **Использование backtracking**:
-```rust
-// ✅ Переиспользование current вектора
-fn backtrack(nums: &[i32], start: usize, current: &mut Vec&lt;i32&gt;, result: &mut Vec&lt;Vec<i32&gt;>) {
-    result.push(current.clone());
-    for i in start..nums.len() {
-        current.push(nums[i]);
-        backtrack(nums, i + 1, current, result);
-        current.pop();  // Backtrack
-    }
-}
-```
-
-2. **Предварительное выделение результата**:
-```rust
-// ✅ Предварительное выделение
-let mut result = Vec::with_capacity(1 << nums.len());
-```
 
 #### Go оптимизации:
 
@@ -615,9 +542,7 @@ func backtrack(nums []int, start int, current []int, result *[][]int) {
 result := make([][]int, 0, 1<<len(nums))
 ```
 
-### Сравнение Rust vs Go
-
-| Аспект | Rust | Go |
+| Аспект | Go |
 |--------|------|-----|
 | Backtracking | O(n) стек | O(n) стек |
 | Результат | O(2^n * n) | O(2^n * n) |
@@ -634,26 +559,6 @@ result := make([][]int, 0, 1<<len(nums))
 ### Специфичные оптимизации для Subsets
 
 #### 1. Оптимизация backtracking:
-
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn subsets_optimized(nums: Vec&lt;i32&gt;) -> Vec&lt;Vec<i32&gt;> {
-    let mut result = Vec::with_capacity(1 << nums.len());
-    let mut current = Vec::new();
-    backtrack(&nums, 0, &mut current, &mut result);
-    result
-}
-
-fn backtrack(nums: &[i32], start: usize, current: &mut Vec&lt;i32&gt;, result: &mut Vec&lt;Vec<i32&gt;>) {
-    result.push(current.clone());
-    for i in start..nums.len() {
-        current.push(nums[i]);
-        backtrack(nums, i + 1, current, result);
-        current.pop();
-    }
-}
-```
 
 **Go**:
 ```go
@@ -675,19 +580,9 @@ func backtrack(nums []int, start int, current []int, result *[][]int) {
 }
 ```
 
-### Оптимизация для Rust
-
 1. **Минимизация клонирования**:
-```rust
-// ✅ Клонируем только при добавлении в результат
-result.push(current.clone());
-```
 
 2. **Предварительное выделение**:
-```rust
-// ✅ Предварительное выделение
-let mut result = Vec::with_capacity(1 << nums.len());
-```
 
 ### Оптимизация для Go
 
@@ -710,24 +605,6 @@ result := make([][]int, 0, 1<<len(nums))
 См. раздел "Профилирование" в [Sliding Window](./sliding-window.md#профилирование) для общих инструментов.
 
 ### Как профилировать Subsets
-
-#### Rust пример:
-
-```rust
-// benches/subsets_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_subsets(c: &mut Criterion) {
-    let nums: Vec&lt;i32&gt; = (0..10).collect();
-    
-    c.bench_function("subsets_10", |b| {
-        b.iter(|| subsets_optimized(black_box(nums.clone())))
-    });
-}
-
-criterion_group!(benches, bench_subsets);
-criterion_main!(benches);
-```
 
 #### Go пример:
 
@@ -868,29 +745,6 @@ func visualizeSubsetTree(nums []int, current []int, start int, depth int) {
 
 ### Примеры тестов для Subsets
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_subsets_basic() {
-        let nums = vec![1, 2, 3];
-        let result = subsets_optimized(nums);
-        assert_eq!(result.len(), 8);  // 2^3 = 8
-    }
-
-    #[test]
-    fn test_subsets_empty() {
-        let nums = vec![];
-        let result = subsets_optimized(nums);
-        assert_eq!(result, vec![vec![]]);
-    }
-}
-```
-
 #### Go тесты:
 
 ```go
@@ -917,13 +771,6 @@ func TestSubsets(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
-```bash
-cargo test
-cargo test -- --nocapture
-cargo bench
-```
-
 #### Go:
 ```bash
 go test -v
@@ -931,28 +778,6 @@ go test -bench=. -benchmem
 ```
 
 ### Бенчмарки
-
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn subsets_benchmark(c: &mut Criterion) {
-    let sizes = vec![5, 10, 15];
-    
-    let mut group = c.benchmark_group("subsets");
-    for size in sizes {
-        let nums: Vec&lt;i32&gt; = (0..size).collect();
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &nums,
-            |b, nums| {
-                b.iter(|| subsets_optimized(black_box(nums.clone())));
-            },
-        );
-    }
-    group.finish();
-}
-```
 
 #### Go:
 ```go
@@ -1073,203 +898,7 @@ func subsetsIdiomatic(nums []int) [][]int {
 }
 ```
 
-### Rust
-
-```rust
-// Примеры использования шаблона Subsets на Rust
-
-/// Пример 1: Генерация всех подмножеств (рекурсивный подход)
-/// 
-/// Задача: Вернуть все возможные подмножества массива
-/// Временная сложность: O(2^n × n)
-/// Пространственная сложность: O(2^n × n)
-pub fn subsets(nums: Vec&lt;i32&gt;) -> Vec&lt;Vec<i32&gt;> {
-    let mut result = Vec::new();
-    let mut current = Vec::new();
-
-    fn backtrack(
-        nums: &[i32],
-        start: usize,
-        current: &mut Vec&lt;i32&gt;,
-        result: &mut Vec&lt;Vec<i32&gt;>,
-    ) {
-        // Добавляем текущее подмножество
-        result.push(current.clone());
-
-        // Генерируем подмножества для оставшихся элементов
-        for i in start..nums.len() {
-            current.push(nums[i]);
-            backtrack(nums, i + 1, current, result);
-            current.pop(); // Backtrack
-        }
-    }
-
-    backtrack(&nums, 0, &mut current, &mut result);
-    result
-}
-
-/// Пример 2: Генерация всех подмножеств (итеративный подход)
-/// 
-/// Задача: Вернуть все возможные подмножества массива итеративно
-/// Временная сложность: O(2^n × n)
-/// Пространственная сложность: O(2^n × n)
-pub fn subsets_iterative(nums: Vec&lt;i32&gt;) -> Vec&lt;Vec<i32&gt;> {
-    let mut result: Vec&lt;Vec<i32&gt;> = vec![vec![]];
-
-    for &num in &nums {
-        let mut new_subsets = Vec::new();
-        for subset in &result {
-            let mut new_subset = subset.clone();
-            new_subset.push(num);
-            new_subsets.push(new_subset);
-        }
-        result.extend(new_subsets);
-    }
-
-    result
-}
-
-/// Пример 3: Подмножества с дубликатами
-/// 
-/// Задача: Вернуть все подмножества массива с дубликатами
-/// Временная сложность: O(2^n × n)
-/// Пространственная сложность: O(2^n × n)
-pub fn subsets_with_dup(mut nums: Vec&lt;i32&gt;) -> Vec&lt;Vec<i32&gt;> {
-    nums.sort();
-    let mut result = Vec::new();
-    let mut current = Vec::new();
-
-    fn backtrack(
-        nums: &[i32],
-        start: usize,
-        current: &mut Vec&lt;i32&gt;,
-        result: &mut Vec&lt;Vec<i32&gt;>,
-    ) {
-        result.push(current.clone());
-
-        for i in start..nums.len() {
-            // Пропускаем дубликаты
-            if i > start && nums[i] == nums[i - 1] {
-                continue;
-            }
-            current.push(nums[i]);
-            backtrack(nums, i + 1, current, result);
-            current.pop();
-        }
-    }
-
-    backtrack(&nums, 0, &mut current, &mut result);
-    result
-}
-
-/// Пример 4: Комбинации заданной длины
-/// 
-/// Задача: Вернуть все комбинации длины k из массива
-/// Временная сложность: O(C(n,k) × k)
-/// Пространственная сложность: O(C(n,k) × k)
-pub fn combine(n: i32, k: i32) -> Vec&lt;Vec<i32&gt;> {
-    let mut result = Vec::new();
-    let mut current = Vec::new();
-
-    fn backtrack(
-        start: i32,
-        n: i32,
-        k: i32,
-        current: &mut Vec&lt;i32&gt;,
-        result: &mut Vec&lt;Vec<i32&gt;>,
-    ) {
-        if current.len() == k as usize {
-            result.push(current.clone());
-            return;
-        }
-
-        for i in start..=n {
-            current.push(i);
-            backtrack(i + 1, n, k, current, result);
-            current.pop();
-        }
-    }
-
-    backtrack(1, n, k, &mut current, &mut result);
-    result
-}
-
-/// Пример 5: Комбинации с суммой
-/// 
-/// Задача: Найти все уникальные комбинации, сумма которых равна target
-/// Временная сложность: O(2^n)
-/// Пространственная сложность: O(target)
-pub fn combination_sum(candidates: Vec&lt;i32&gt;, target: i32) -> Vec&lt;Vec<i32&gt;> {
-    let mut result = Vec::new();
-    let mut current = Vec::new();
-    let mut candidates = candidates;
-    candidates.sort();
-
-    fn backtrack(
-        candidates: &[i32],
-        target: i32,
-        start: usize,
-        current: &mut Vec&lt;i32&gt;,
-        result: &mut Vec&lt;Vec<i32&gt;>,
-    ) {
-        if target == 0 {
-            result.push(current.clone());
-            return;
-        }
-
-        if target < 0 {
-            return;
-        }
-
-        for i in start..candidates.len() {
-            current.push(candidates[i]);
-            backtrack(candidates, target - candidates[i], i, current, result);
-            current.pop();
-        }
-    }
-
-    backtrack(&candidates, target, 0, &mut current, &mut result);
-    result
-}
-
-/// Пример 6: Перестановки
-/// 
-/// Задача: Вернуть все возможные перестановки массива
-/// Временная сложность: O(n! × n)
-/// Пространственная сложность: O(n! × n)
-pub fn permute(nums: Vec&lt;i32&gt;) -> Vec&lt;Vec<i32&gt;> {
-    let mut result = Vec::new();
-    let mut current = Vec::new();
-    let mut used = vec![false; nums.len()];
-
-    fn backtrack(
-        nums: &[i32],
-        used: &mut [bool],
-        current: &mut Vec&lt;i32&gt;,
-        result: &mut Vec&lt;Vec<i32&gt;>,
-    ) {
-        if current.len() == nums.len() {
-            result.push(current.clone());
-            return;
-        }
-
-        for i in 0..nums.len() {
-            if !used[i] {
-                used[i] = true;
-                current.push(nums[i]);
-                backtrack(nums, used, current, result);
-                current.pop();
-                used[i] = false;
-            }
-        }
-    }
-
-    backtrack(&nums, &mut used, &mut current, &mut result);
-    result
-}
-```
-
-### Go
+### ### Go
 
 ```go
 package main

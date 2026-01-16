@@ -197,16 +197,6 @@ func cyclicSort(nums []int) {
 }
 ```
 
-**Rust**:
-```rust
-pub fn cyclic_sort(nums: &mut [i32]) {
-    if nums.is_empty() {
-        return;
-    }
-    // ... остальной код
-}
-```
-
 ### 2. Массив из одного элемента
 
 **Проблема**: Если массив содержит только один элемент, он уже на правильной позиции.
@@ -338,11 +328,11 @@ func findDuplicates(nums []int) []int {
 - ****: Для in-place сортировки массива
 - **Индексы**: Для навигации по массиву (хранятся на стеке)
 
-###  (Rust) / Slice (Go) - In-place операции
+###   / Slice (Go) - In-place операции
 
 #### Как хранится в памяти:
 
-**Rust Vec&lt;T&gt;**:
+**Vec&lt;T&gt;**:
 ```
 ┌─────────────────────────────────────────┐
 │ Vec&lt;i32&gt;                                 │
@@ -408,12 +398,7 @@ func findDuplicates(nums []int) []int {
 
 ### In-place операции
 
-#### Rust: swap и мутабельные ссылки
-
 **swap**:
-```rust
-arr.swap(i, j);  // O(1) операция
-```
 
 **Как работает**:
 - Временная переменная для хранения значения
@@ -421,12 +406,6 @@ arr.swap(i, j);  // O(1) операция
 - Не требует дополнительной аллокации
 
 **Мутабельные ссылки**:
-```rust
-fn cyclic_sort(arr: &mut [i32]) {
-    // &mut [i32] - мутабельная ссылка на слайс
-    // Можно изменять элементы in-place
-}
-```
 
 #### Go: swap через временную переменную
 
@@ -469,11 +448,8 @@ func cyclicSort(arr []int) {
 }
 ```
 
-### Borrow Checker (Rust)
+### Что это такое:
 
-#### Что это такое:
-
-**Borrow Checker** проверяет заимствования для безопасной работы.
 
 **Для Cyclic Sort**:
 - Используем `&mut [T]` для in-place изменений
@@ -483,37 +459,10 @@ func cyclicSort(arr []int) {
 #### Примеры:
 
 **Типичный паттерн**:
-```rust
-fn cyclic_sort(arr: &mut [i32]) {
-    // arr - mutable borrow, можно изменять
-    let mut i = 0;
-    while i < arr.len() {
-        let correct_pos = arr[i] as usize - 1;
-        if arr[i] != arr[correct_pos] {
-            arr.swap(i, correct_pos);  // OK: изменяем через mutable borrow
-        } else {
-            i += 1;
-        }
-    }
-}
-```
 
 **Проблема: множественные borrows**:
-```rust
-// ❌ Не компилируется
-fn bad(arr: &mut [i32]) {
-    let ptr1 = &mut arr[0];
-    let ptr2 = &mut arr[1];  // ERROR: нельзя два mutable borrows
-}
-```
 
 **Решение**:
-```rust
-// ✅ Используем индексы и swap
-fn good(arr: &mut [i32]) {
-    arr.swap(0, 1);  // OK: swap использует индексы
-}
-```
 
 ### Garbage Collector (Go)
 
@@ -535,9 +484,7 @@ func cyclicSort(arr []int) {
 }
 ```
 
-### Ownership и Move Semantics (Rust)
-
-#### Концепция владения:
+## Концепция владения:
 
 **Для Cyclic Sort**:
 - Входные данные: `&mut [T]` (мутабельное заимствование)
@@ -545,13 +492,6 @@ func cyclicSort(arr []int) {
 - Нет необходимости в новом Vec
 
 **Пример**:
-```rust
-fn cyclic_sort(arr: &mut [i32]) {
-    // &mut [i32] - мутабельное заимствование
-    // Не владеем данными, только изменяем
-    // После вызова функции, владелец все еще владеет данными
-}
-```
 
 **Почему это важно**:
 - Не требуется копирование данных
@@ -560,14 +500,7 @@ fn cyclic_sort(arr: &mut [i32]) {
 
 ## Аллокации памяти и управление памятью
 
-### Теория аллокаций в Rust и Go
-
-#### Rust: In-place сортировка
-
-В Rust для Cyclic Sort:
-- **Сортировка на месте**: Модифицирует входной массив, не аллоцирует дополнительную память
-- **Только индексы**: `usize` на стеке - O(1)
-- **Временные переменные**: Для swap операций - O(1)
+### Теория аллокаций в Go
 
 #### Go: In-place сортировка
 
@@ -580,14 +513,6 @@ fn cyclic_sort(arr: &mut [i32]) {
 
 #### Базовый алгоритм:
 
-**Rust**:
-```rust
-// Аллокации:
-// - i, correct_pos: usize (стек) - O(1)
-// - Временные переменные для swap: O(1)
-// Итого: O(1) памяти, никаких аллокаций в куче
-```
-
 **Go**:
 ```go
 // Аллокации:
@@ -597,22 +522,6 @@ fn cyclic_sort(arr: &mut [i32]) {
 ```
 
 ### Оптимизация памяти
-
-#### Rust оптимизации:
-
-1. **Использование `swap` вместо временных переменных**:
-```rust
-// ✅ Эффективный swap
-arr.swap(i, correct_pos);
-```
-
-2. **Избежание клонирования**:
-```rust
-// ✅ Модифицируем на месте
-fn cyclic_sort(arr: &mut [i32]) {
-    // ...
-}
-```
 
 #### Go оптимизации:
 
@@ -630,9 +539,7 @@ func cyclicSort(arr []int) {
 }
 ```
 
-### Сравнение Rust vs Go
-
-| Аспект | Rust | Go |
+| Аспект | Go |
 |--------|------|-----|
 | Память | O(1) константная | O(1) константная |
 | In-place | Да, через `&mut` | Да, слайсы |
@@ -654,24 +561,6 @@ func cyclicSort(arr []int) {
 
 #### 1. Оптимизация проверки позиции:
 
-**Rust**:
-```rust
-// ✅ Оптимизированная версия
-pub fn cyclic_sort_optimized(arr: &mut [i32]) {
-    let n = arr.len();
-    let mut i = 0;
-    
-    while i < n {
-        let correct_pos = (arr[i] - 1) as usize;
-        if arr[i] != arr[correct_pos] {
-            arr.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-}
-```
-
 **Go**:
 ```go
 // ✅ Оптимизированная версия
@@ -688,21 +577,9 @@ func cyclicSortOptimized(arr []int) {
 }
 ```
 
-### Оптимизация для Rust
-
 1. **Использование `swap`**:
-```rust
-// ✅ Встроенный swap оптимизирован
-arr.swap(i, correct_pos);
-```
 
 2. **Избежание лишних проверок**:
-```rust
-// ✅ Проверяем только когда необходимо
-if arr[i] != arr[correct_pos] {
-    arr.swap(i, correct_pos);
-}
-```
 
 ### Оптимизация для Go
 
@@ -727,24 +604,6 @@ if arr[i] != arr[correctPos] {
 См. раздел "Профилирование" в [Sliding Window](./sliding-window.md#профилирование) для общих инструментов.
 
 ### Как профилировать Cyclic Sort
-
-#### Rust пример:
-
-```rust
-// benches/cyclic_sort_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_cyclic_sort(c: &mut Criterion) {
-    let mut arr = create_test_array(1000);
-    
-    c.bench_function("cyclic_sort_1000", |b| {
-        b.iter(|| cyclic_sort_optimized(black_box(&mut arr)))
-    });
-}
-
-criterion_group!(benches, bench_cyclic_sort);
-criterion_main!(benches);
-```
 
 #### Go пример:
 
@@ -888,36 +747,6 @@ func detectCycles(nums []int) [][]int {
 
 ### Примеры тестов для Cyclic Sort
 
-#### Rust тесты:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_cyclic_sort_basic() {
-        let mut arr = vec![3, 1, 5, 4, 2];
-        cyclic_sort_optimized(&mut arr);
-        assert_eq!(arr, vec![1, 2, 3, 4, 5]);
-    }
-
-    #[test]
-    fn test_cyclic_sort_empty() {
-        let mut arr = vec![];
-        cyclic_sort_optimized(&mut arr);
-        assert_eq!(arr, vec![]);
-    }
-
-    #[test]
-    fn test_cyclic_sort_sorted() {
-        let mut arr = vec![1, 2, 3, 4, 5];
-        cyclic_sort_optimized(&mut arr);
-        assert_eq!(arr, vec![1, 2, 3, 4, 5]);
-    }
-}
-```
-
 #### Go тесты:
 
 ```go
@@ -945,13 +774,6 @@ func TestCyclicSort(t *testing.T) {
 
 ### Запуск тестов
 
-#### Rust:
-```bash
-cargo test
-cargo test -- --nocapture
-cargo bench
-```
-
 #### Go:
 ```bash
 go test -v
@@ -959,28 +781,6 @@ go test -bench=. -benchmem
 ```
 
 ### Бенчмарки
-
-#### Rust:
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn cyclic_sort_benchmark(c: &mut Criterion) {
-    let sizes = vec![100, 1000, 10000, 100000];
-    
-    let mut group = c.benchmark_group("cyclic_sort");
-    for size in sizes {
-        let mut arr = create_test_array(size);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &mut arr,
-            |b, arr| {
-                b.iter(|| cyclic_sort_optimized(black_box(arr)));
-            },
-        );
-    }
-    group.finish();
-}
-```
 
 #### Go:
 ```go
@@ -1068,391 +868,6 @@ func cyclicSortIdiomatic(nums []int) {
             nums[i], nums[nums[i]-1] = nums[nums[i]-1], nums[i]
         }
     }
-}
-```
-
-#### Идиоматичный Rust код:
-
-```rust
-// ✅ Идиоматичный Rust: используем итераторы и методы
-pub fn cyclic_sort_idiomatic(nums: &mut [i32]) {
-    let mut i = 0;
-    
-    while i < nums.len() {
-        let correct_pos = (nums[i] - 1) as usize;
-        
-        if nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-}
-```
-
-### Rust
-
-```rust
-// Примеры использования шаблона Cyclic Sort на Rust
-
-/// Пример 1: Циклическая сортировка массива от 1 до N
-/// 
-/// Задача: Отсортировать массив, содержащий числа от 1 до N
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn cyclic_sort(nums: &mut [i32]) {
-    let mut i = 0;
-    while i < nums.len() {
-        // Правильная позиция для числа nums[i] - это nums[i] - 1
-        let correct_pos = (nums[i] - 1) as usize;
-        
-        // Если число не на правильной позиции, меняем местами
-        if nums[i] > 0 && nums[i] <= nums.len() as i32 && nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-}
-
-/// Пример 2: Поиск отсутствующего числа
-/// 
-/// Задача: Найти отсутствующее число в массиве от 0 до n
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn missing_number(mut nums: Vec&lt;i32&gt;) -> i32 {
-    let n = nums.len();
-    let mut i = 0;
-
-    // Используем циклическую сортировку
-    while i < n {
-        let correct_pos = nums[i] as usize;
-        
-        // Для диапазона 0..n правильная позиция - это само значение
-        if nums[i] < n as i32 && nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-
-    // Ищем отсутствующее число
-    for (i, &num) in nums.iter().enumerate() {
-        if num != i as i32 {
-            return i as i32;
-        }
-    }
-
-    n as i32
-}
-
-/// Пример 3: Поиск всех исчезнувших чисел
-/// 
-/// Задача: Найти все числа от 1 до n, которых нет в массиве
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1) без учета результата
-pub fn find_disappeared_numbers(mut nums: Vec&lt;i32&gt;) -> Vec&lt;i32&gt; {
-    let mut i = 0;
-    let n = nums.len();
-
-    // Используем циклическую сортировку
-    while i < n {
-        let correct_pos = (nums[i] - 1) as usize;
-        
-        if nums[i] > 0 && nums[i] <= n as i32 && nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-
-    // Находим все числа, которых нет на правильных позициях
-    let mut result = Vec::new();
-    for (i, &num) in nums.iter().enumerate() {
-        if num != (i + 1) as i32 {
-            result.push((i + 1) as i32);
-        }
-    }
-
-    result
-}
-
-/// Пример 4: Поиск дубликата числа
-/// 
-/// Задача: Найти дубликат числа в массиве от 1 до n (один дубликат)
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn find_duplicate(mut nums: Vec&lt;i32&gt;) -> i32 {
-    let mut i = 0;
-    let n = nums.len();
-
-    // Используем циклическую сортировку
-    while i < n {
-        let correct_pos = (nums[i] - 1) as usize;
-        
-        if nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-
-    // Ищем дубликат (число не на правильной позиции)
-    for (i, &num) in nums.iter().enumerate() {
-        if num != (i + 1) as i32 {
-            return num;
-        }
-    }
-
-    -1
-}
-
-/// Пример 5: Поиск всех дубликатов
-/// 
-/// Задача: Найти все дубликаты в массиве от 1 до n
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1) без учета результата
-pub fn find_all_duplicates(mut nums: Vec&lt;i32&gt;) -> Vec&lt;i32&gt; {
-    let mut i = 0;
-    let n = nums.len();
-
-    // Используем циклическую сортировку
-    while i < n {
-        let correct_pos = (nums[i] - 1) as usize;
-        
-        if nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-
-    // Находим все дубликаты
-    let mut result = Vec::new();
-    for (i, &num) in nums.iter().enumerate() {
-        if num != (i + 1) as i32 {
-            result.push(num);
-        }
-    }
-
-    result
-}
-
-/// Пример 6: Первое отсутствующее положительное число
-/// 
-/// Задача: Найти первое отсутствующее положительное число
-/// Временная сложность: O(n)
-/// Пространственная сложность: O(1)
-pub fn first_missing_positive(mut nums: Vec&lt;i32&gt;) -> i32 {
-    let n = nums.len();
-    let mut i = 0;
-
-    // Используем циклическую сортировку
-    // Правильная позиция для числа x - это x - 1
-    while i < n {
-        let correct_pos = (nums[i] - 1) as usize;
-        
-        // Игнорируем числа вне диапазона [1, n]
-        if nums[i] > 0 && nums[i] <= n as i32 && nums[i] != nums[correct_pos] {
-            nums.swap(i, correct_pos);
-        } else {
-            i += 1;
-        }
-    }
-
-    // Находим первое отсутствующее положительное число
-    for (i, &num) in nums.iter().enumerate() {
-        if num != (i + 1) as i32 {
-            return (i + 1) as i32;
-        }
-    }
-
-    (n + 1) as i32
-}
-```
-
-### Go
-
-```go
-package main
-
-import (
-	"fmt"
-)
-
-// Пример 1: Циклическая сортировка массива от 1 до N
-//
-// Задача: Отсортировать массив, содержащий числа от 1 до N
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func cyclicSort(nums []int) {
-	i := 0
-	for i < len(nums) {
-		// Правильная позиция для числа nums[i] - это nums[i] - 1
-		correctPos := nums[i] - 1
-
-		// Если число не на правильной позиции, меняем местами
-		if nums[i] > 0 && nums[i] <= len(nums) && nums[i] != nums[correctPos] {
-			nums[i], nums[correctPos] = nums[correctPos], nums[i]
-		} else {
-			i++
-		}
-	}
-}
-
-// Пример 2: Поиск отсутствующего числа
-//
-// Задача: Найти отсутствующее число в массиве от 0 до n
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func missingNumber(nums []int) int {
-	n := len(nums)
-	i := 0
-
-	// Используем циклическую сортировку
-	for i < n {
-		correctPos := nums[i]
-
-		// Для диапазона 0..n правильная позиция - это само значение
-		if nums[i] < n && nums[i] != nums[correctPos] {
-			nums[i], nums[correctPos] = nums[correctPos], nums[i]
-		} else {
-			i++
-		}
-	}
-
-	// Ищем отсутствующее число
-	for i, num := range nums {
-		if num != i {
-			return i
-		}
-	}
-
-	return n
-}
-
-// Пример 3: Поиск всех исчезнувших чисел
-//
-// Задача: Найти все числа от 1 до n, которых нет в массиве
-// Временная сложность: O(n)
-// Пространственная сложность: O(1) без учета результата
-func findDisappearedNumbers(nums []int) []int {
-	i := 0
-	n := len(nums)
-
-	// Используем циклическую сортировку
-	for i < n {
-		correctPos := nums[i] - 1
-
-		if nums[i] > 0 && nums[i] <= n && nums[i] != nums[correctPos] {
-			nums[i], nums[correctPos] = nums[correctPos], nums[i]
-		} else {
-			i++
-		}
-	}
-
-	// Находим все числа, которых нет на правильных позициях
-	var result []int
-	for i, num := range nums {
-		if num != i+1 {
-			result = append(result, i+1)
-		}
-	}
-
-	return result
-}
-
-// Пример 4: Поиск дубликата числа
-//
-// Задача: Найти дубликат числа в массиве от 1 до n (один дубликат)
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func findDuplicate(nums []int) int {
-	i := 0
-	n := len(nums)
-
-	// Используем циклическую сортировку
-	for i < n {
-		correctPos := nums[i] - 1
-
-		if nums[i] != nums[correctPos] {
-			nums[i], nums[correctPos] = nums[correctPos], nums[i]
-		} else {
-			i++
-		}
-	}
-
-	// Ищем дубликат (число не на правильной позиции)
-	for i, num := range nums {
-		if num != i+1 {
-			return num
-		}
-	}
-
-	return -1
-}
-
-// Пример 5: Поиск всех дубликатов
-//
-// Задача: Найти все дубликаты в массиве от 1 до n
-// Временная сложность: O(n)
-// Пространственная сложность: O(1) без учета результата
-func findAllDuplicates(nums []int) []int {
-	i := 0
-	n := len(nums)
-
-	// Используем циклическую сортировку
-	for i < n {
-		correctPos := nums[i] - 1
-
-		if nums[i] != nums[correctPos] {
-			nums[i], nums[correctPos] = nums[correctPos], nums[i]
-		} else {
-			i++
-		}
-	}
-
-	// Находим все дубликаты
-	var result []int
-	for i, num := range nums {
-		if num != i+1 {
-			result = append(result, num)
-		}
-	}
-
-	return result
-}
-
-// Пример 6: Первое отсутствующее положительное число
-//
-// Задача: Найти первое отсутствующее положительное число
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func firstMissingPositive(nums []int) int {
-	n := len(nums)
-	i := 0
-
-	// Используем циклическую сортировку
-	// Правильная позиция для числа x - это x - 1
-	for i < n {
-		correctPos := nums[i] - 1
-
-		// Игнорируем числа вне диапазона [1, n]
-		if nums[i] > 0 && nums[i] <= n && nums[i] != nums[correctPos] {
-			nums[i], nums[correctPos] = nums[correctPos], nums[i]
-		} else {
-			i++
-		}
-	}
-
-	// Находим первое отсутствующее положительное число
-	for i, num := range nums {
-		if num != i+1 {
-			return i + 1
-		}
-	}
-
-	return n + 1
 }
 ```
 

@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Rust и Go">
+        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Go">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
+            window.path_to_searchindex_js = "searchindex-469fa2ee.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -426,16 +426,6 @@ func findFirstOccurrence(arr []int, target int) int {
     // ... остальной код
 }
 </code></pre>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn binary_search(nums: &amp;[i32], target: i32) -&gt; Option&lt;usize&gt; {
-    if nums.is_empty() {
-        return None;
-    }
-    // ... остальной код
-}
-<span class="boring">}</span></code></pre>
 <h3 id="2-массив-из-одного-элемента"><a class="header" href="#2-массив-из-одного-элемента">2. Массив из одного элемента</a></h3>
 <p><strong>Проблема</strong>: Минимальный случай для бинарного поиска.</p>
 <p><strong>Решение</strong>:</p>
@@ -528,9 +518,9 @@ mid := (left + right) / 2 // Может переполниться
 <li>****: Отсортированный массив для поиска</li>
 <li><strong>Индексы</strong>: left, right, mid для навигации (хранятся на стеке)</li>
 </ul>
-<h3 id="rust--slice-go"><a class="header" href="#rust--slice-go">(Rust) / Slice (Go)</a></h3>
+<h3 id="-slice-go"><a class="header" href="#-slice-go">/ Slice (Go)</a></h3>
 <h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>Rust Vec&lt;T&gt;</strong>:</p>
+<p><strong>Vec&lt;T&gt;</strong>:</p>
 <pre><code>Отсортированный массив:
 ┌─────────────────────────────────────────┐
 │ Vec&amp;lt;i32&amp;gt;                                 │
@@ -578,18 +568,6 @@ mid := (left + right) / 2 // Может переполниться
 <li>Индексы left, right, mid - на стеке</li>
 <li>Результаты могут escape</li>
 </ul>
-<h3 id="borrow-checker-rust"><a class="header" href="#borrow-checker-rust">Borrow Checker (Rust)</a></h3>
-<p><strong>Типичный паттерн</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn binary_search(arr: &amp;[i32], target: i32) -&gt; Option&amp;lt;usize&amp;gt; {
-    let mut left = 0;
-    let mut right = arr.len();
-    // arr - immutable borrow
-    // left, right - на стеке
-    // ...
-}
-<span class="boring">}</span></code></pre>
 <h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
 <p><strong>Для Modified Binary Search</strong>:</p>
 <ul>
@@ -597,22 +575,8 @@ mid := (left + right) / 2 // Может переполниться
 <li>Минимальное влияние на GC</li>
 <li>Только индексы на стеке</li>
 </ul>
-<h3 id="ownership-и-move-semantics-rust"><a class="header" href="#ownership-и-move-semantics-rust">Ownership и Move Semantics (Rust)</a></h3>
-<p><strong>Концепция владения</strong>:</p>
-<ul>
-<li>Входные данные: <code>&amp;[T]</code> (заимствование)</li>
-<li>Не берем владение, только читаем</li>
-<li>Нет необходимости в новом Vec</li>
-</ul>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-rust-и-go"><a class="header" href="#теория-аллокаций-в-rust-и-go">Теория аллокаций в Rust и Go</a></h3>
-<h4 id="rust-бинарный-поиск"><a class="header" href="#rust-бинарный-поиск">Rust: Бинарный поиск</a></h4>
-<p>В Rust для Modified Binary Search:</p>
-<ul>
-<li><strong>Индексы</strong>: <code>usize</code> на стеке - O(1)</li>
-<li><strong>Входные данные</strong>: <code>&amp;[i32]</code> - ссылка, не аллоцирует</li>
-<li><strong>Результат</strong>: <code>Option&amp;lt;usize&amp;gt;</code> - на стеке, O(1)</li>
-</ul>
+<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
 <h4 id="go-бинарный-поиск"><a class="header" href="#go-бинарный-поиск">Go: Бинарный поиск</a></h4>
 <p>В Go:</p>
 <ul>
@@ -622,14 +586,6 @@ mid := (left + right) / 2 // Может переполниться
 </ul>
 <h3 id="анализ-аллокаций-для-modified-binary-search"><a class="header" href="#анализ-аллокаций-для-modified-binary-search">Анализ аллокаций для Modified Binary Search</a></h3>
 <h4 id="базовый-подход"><a class="header" href="#базовый-подход">Базовый подход:</a></h4>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Аллокации:
-// - left, right, mid: usize (стек) - O(1)
-// - Результат: Option&amp;lt;usize&amp;gt; (стек) - O(1)
-// Итого: O(1) памяти, никаких аллокаций в куче
-<span class="boring">}</span></code></pre>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">// Аллокации:
 // - left, right, mid: int (стек) - O(1)
@@ -637,25 +593,6 @@ mid := (left + right) / 2 // Может переполниться
 // Итого: O(1) памяти, никаких аллокаций в куче
 </code></pre>
 <h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="rust-оптимизации"><a class="header" href="#rust-оптимизации">Rust оптимизации:</a></h4>
-<ol>
-<li><strong>Использование ссылок</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Используем ссылки вместо владения
-fn binary_search(arr: &amp;[i32], target: i32) -&gt; Option&amp;lt;usize&amp;gt; {
-    // ...
-}
-<span class="boring">}</span></code></pre>
-<ol start="2">
-<li><strong>Избежание клонирования</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Работаем с индексами, не клонируем элементы
-let mid = left + (right - left) / 2;
-<span class="boring">}</span></code></pre>
 <h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
 <ol>
 <li><strong>Работа с индексами</strong>:</li>
@@ -669,19 +606,11 @@ mid := left + (right-left)/2
 <pre><code class="language-go">// ✅ Все операции на стеке
 left, right := 0, len(arr)-1
 </code></pre>
-<h3 id="сравнение-rust-vs-go"><a class="header" href="#сравнение-rust-vs-go">Сравнение Rust vs Go</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Аспект</th><th>Rust</th><th>Go</th></tr>
-</thead>
-<tbody>
-<tr><td>Память</td><td>O(1) константная</td><td>O(1) константная</td></tr>
-<tr><td>Индексы</td><td>usize на стеке</td><td>int на стеке</td></tr>
-<tr><td>Производительность</td><td>Предсказуемая</td><td>Предсказуемая</td></tr>
-</tbody>
-</table>
-</div>
+<p>| Аспект | Go |
+|––––|——|—–|
+| Память | O(1) константная | O(1) константная |
+| Индексы | usize на стеке | int на стеке |
+| Производительность | Предсказуемая | Предсказуемая |</p>
 <h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
 <h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
 <ol>
@@ -691,25 +620,6 @@ left, right := 0, len(arr)-1
 </ol>
 <h3 id="специфичные-оптимизации-для-modified-binary-search"><a class="header" href="#специфичные-оптимизации-для-modified-binary-search">Специфичные оптимизации для Modified Binary Search</a></h3>
 <h4 id="1-оптимизация-бинарного-поиска"><a class="header" href="#1-оптимизация-бинарного-поиска">1. Оптимизация бинарного поиска:</a></h4>
-<p><strong>Rust</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Оптимизированная версия
-pub fn binary_search_optimized(arr: &amp;[i32], target: i32) -&gt; Option&amp;lt;usize&amp;gt; {
-    let mut left = 0;
-    let mut right = arr.len().saturating_sub(1);
-    
-    while left &lt;= right {
-        let mid = left + (right - left) / 2;  // Избегаем переполнения
-        match arr[mid].cmp(&amp;target) {
-            std::cmp::Ordering::Equal =&gt; return Some(mid),
-            std::cmp::Ordering::Less =&gt; left = mid + 1,
-            std::cmp::Ordering::Greater =&gt; right = mid - 1,
-        }
-    }
-    None
-}
-<span class="boring">}</span></code></pre>
 <p><strong>Go</strong>:</p>
 <pre><code class="language-go">// ✅ Оптимизированная версия
 func binarySearchOptimized(arr []int, target int) (int, bool) {
@@ -729,25 +639,14 @@ func binarySearchOptimized(arr []int, target int) (int, bool) {
     return 0, false
 }
 </code></pre>
-<h3 id="оптимизация-для-rust"><a class="header" href="#оптимизация-для-rust">Оптимизация для Rust</a></h3>
 <ol>
-<li><strong>Использование <code>cmp</code></strong>:</li>
+<li>
+<p><strong>Использование <code>cmp</code></strong>:</p>
+</li>
+<li>
+<p><strong>Избежание bounds checking</strong>:</p>
+</li>
 </ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Более эффективное сравнение
-match arr[mid].cmp(&amp;target) {
-    Ordering::Equal =&gt; return Some(mid),
-    // ...
-}
-<span class="boring">}</span></code></pre>
-<ol start="2">
-<li><strong>Избежание bounds checking</strong>:</li>
-</ol>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Компилятор Rust оптимизирует проверки границ
-<span class="boring">}</span></code></pre>
 <h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
 <ol>
 <li><strong>Использование switch</strong>:</li>
@@ -771,23 +670,6 @@ for left &lt;= right {
 <h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-modified-binary-search"><a class="header" href="#как-профилировать-modified-binary-search">Как профилировать Modified Binary Search</a></h3>
-<h4 id="rust-пример"><a class="header" href="#rust-пример">Rust пример:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// benches/binary_search_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_binary_search(c: &amp;mut Criterion) {
-    let arr: Vec&amp;lt;i32&amp;gt; = (0..1000000).collect();
-    
-    c.bench_function("binary_search_1M", |b| {
-        b.iter(|| binary_search_optimized(black_box(&amp;arr), 500000))
-    });
-}
-
-criterion_group!(benches, bench_binary_search);
-criterion_main!(benches);
-<span class="boring">}</span></code></pre>
 <h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkBinarySearch(b *testing.B) {
     arr := make([]int, 1000000)
@@ -969,32 +851,6 @@ criterion_main!(benches);
 <li><strong>Стресс-тесты</strong>: Большие массивы</li>
 </ol>
 <h3 id="примеры-тестов-для-modified-binary-search"><a class="header" href="#примеры-тестов-для-modified-binary-search">Примеры тестов для Modified Binary Search</a></h3>
-<h4 id="rust-тесты"><a class="header" href="#rust-тесты">Rust тесты:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_binary_search_basic() {
-        let arr = vec![1, 2, 3, 4, 5];
-        assert_eq!(binary_search_optimized(&amp;arr, 3), Some(2));
-    }
-
-    #[test]
-    fn test_binary_search_not_found() {
-        let arr = vec![1, 2, 3, 4, 5];
-        assert_eq!(binary_search_optimized(&amp;arr, 6), None);
-    }
-
-    #[test]
-    fn test_binary_search_empty() {
-        let arr = vec![];
-        assert_eq!(binary_search_optimized(&amp;arr, 1), None);
-    }
-}
-<span class="boring">}</span></code></pre>
 <h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
 <pre><code class="language-go">func TestBinarySearch(t *testing.T) {
     tests := []struct {
@@ -1019,38 +875,11 @@ mod tests {
 }
 </code></pre>
 <h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="rust"><a class="header" href="#rust">Rust:</a></h4>
-<pre><code class="language-bash">cargo test
-cargo test -- --nocapture
-cargo bench
-</code></pre>
 <h4 id="go"><a class="header" href="#go">Go:</a></h4>
 <pre><code class="language-bash">go test -v
 go test -bench=. -benchmem
 </code></pre>
 <h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="rust-1"><a class="header" href="#rust-1">Rust:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-
-fn binary_search_benchmark(c: &amp;mut Criterion) {
-    let sizes = vec![1000, 100000, 10000000];
-    
-    let mut group = c.benchmark_group("binary_search");
-    for size in sizes {
-        let arr: Vec&amp;lt;i32&amp;gt; = (0..size).collect();
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &amp;arr,
-            |b, arr| {
-                b.iter(|| binary_search_optimized(black_box(arr), size as i32 / 2));
-            },
-        );
-    }
-    group.finish();
-}
-<span class="boring">}</span></code></pre>
 <h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
 <pre><code class="language-go">func BenchmarkBinarySearchSizes(b *testing.B) {
     sizes := []int{1000, 100000, 10000000}
@@ -1136,428 +965,6 @@ func binarySearchIdiomatic(nums []int, target int) int {
         return i
     }
     return -1
-}
-</code></pre>
-<h4 id="идиоматичный-rust-код"><a class="header" href="#идиоматичный-rust-код">Идиоматичный Rust код:</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Идиоматичный Rust: используем встроенный binary_search
-pub fn binary_search_idiomatic(nums: &amp;[i32], target: i32) -&gt; Option&lt;usize&gt; {
-    nums.binary_search(&amp;target).ok()
-}
-<span class="boring">}</span></code></pre>
-<h3 id="rust-2"><a class="header" href="#rust-2">Rust</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Примеры использования шаблона Modified Binary Search на Rust
-
-/// Пример 1: Классический бинарный поиск
-/// 
-/// Задача: Найти индекс элемента target в отсортированном массиве
-/// Временная сложность: O(log n)
-/// Пространственная сложность: O(1)
-pub fn binary_search(nums: Vec&amp;lt;i32&amp;gt;, target: i32) -&gt; i32 {
-    let mut left = 0;
-    let mut right = nums.len() as i32 - 1;
-
-    while left &lt;= right {
-        let mid = left + (right - left) / 2;
-        let mid_val = nums[mid as usize];
-
-        if mid_val == target {
-            return mid;
-        } else if mid_val &lt; target {
-            left = mid + 1;
-        } else {
-            right = mid - 1;
-        }
-    }
-
-    -1
-}
-
-/// Пример 2: Поиск первого вхождения элемента
-/// 
-/// Задача: Найти индекс первого вхождения target в отсортированном массиве
-/// Временная сложность: O(log n)
-/// Пространственная сложность: O(1)
-pub fn search_first(nums: Vec&amp;lt;i32&amp;gt;, target: i32) -&gt; i32 {
-    let mut left = 0;
-    let mut right = nums.len() as i32 - 1;
-    let mut result = -1;
-
-    while left &lt;= right {
-        let mid = left + (right - left) / 2;
-        let mid_val = nums[mid as usize];
-
-        if mid_val == target {
-            result = mid;
-            right = mid - 1; // Продолжаем искать влево
-        } else if mid_val &lt; target {
-            left = mid + 1;
-        } else {
-            right = mid - 1;
-        }
-    }
-
-    result
-}
-
-/// Пример 3: Поиск последнего вхождения элемента
-/// 
-/// Задача: Найти индекс последнего вхождения target в отсортированном массиве
-/// Временная сложность: O(log n)
-/// Пространственная сложность: O(1)
-pub fn search_last(nums: Vec&amp;lt;i32&amp;gt;, target: i32) -&gt; i32 {
-    let mut left = 0;
-    let mut right = nums.len() as i32 - 1;
-    let mut result = -1;
-
-    while left &lt;= right {
-        let mid = left + (right - left) / 2;
-        let mid_val = nums[mid as usize];
-
-        if mid_val == target {
-            result = mid;
-            left = mid + 1; // Продолжаем искать вправо
-        } else if mid_val &lt; target {
-            left = mid + 1;
-        } else {
-            right = mid - 1;
-        }
-    }
-
-    result
-}
-
-/// Пример 4: Поиск в повернутом отсортированном массиве
-/// 
-/// Задача: Найти target в массиве, который был повернут
-/// Временная сложность: O(log n)
-/// Пространственная сложность: O(1)
-pub fn search_rotated(nums: Vec&amp;lt;i32&amp;gt;, target: i32) -&gt; i32 {
-    let mut left = 0;
-    let mut right = nums.len() as i32 - 1;
-
-    while left &lt;= right {
-        let mid = left + (right - left) / 2;
-        let mid_val = nums[mid as usize];
-
-        if mid_val == target {
-            return mid;
-        }
-
-        // Определяем, какая часть отсортирована
-        if nums[left as usize] &lt;= mid_val {
-            // Левая часть отсортирована
-            if nums[left as usize] &lt;= target &amp;&amp; target &lt; mid_val {
-                right = mid - 1;
-            } else {
-                left = mid + 1;
-            }
-        } else {
-            // Правая часть отсортирована
-            if mid_val &lt; target &amp;&amp; target &lt;= nums[right as usize] {
-                left = mid + 1;
-            } else {
-                right = mid - 1;
-            }
-        }
-    }
-
-    -1
-}
-
-/// Пример 5: Поиск минимума в повернутом массиве
-/// 
-/// Задача: Найти минимальный элемент в повернутом отсортированном массиве
-/// Временная сложность: O(log n)
-/// Пространственная сложность: O(1)
-pub fn find_min_rotated(nums: Vec&amp;lt;i32&amp;gt;) -&gt; i32 {
-    let mut left = 0;
-    let mut right = nums.len() as i32 - 1;
-
-    while left &lt; right {
-        let mid = left + (right - left) / 2;
-        let mid_val = nums[mid as usize];
-        let right_val = nums[right as usize];
-
-        if mid_val &gt; right_val {
-            // Минимум в правой части
-            left = mid + 1;
-        } else {
-            // Минимум в левой части (включая mid)
-            right = mid;
-        }
-    }
-
-    nums[left as usize]
-}
-
-/// Пример 6: Поиск в 2D матрице
-/// 
-/// Задача: Найти target в отсортированной 2D матрице
-/// Временная сложность: O(log(m×n))
-/// Пространственная сложность: O(1)
-pub fn search_matrix(matrix: Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;, target: i32) -&gt; bool {
-    if matrix.is_empty() || matrix[0].is_empty() {
-        return false;
-    }
-
-    let rows = matrix.len();
-    let cols = matrix[0].len();
-    let mut left = 0;
-    let mut right = (rows * cols) as i32 - 1;
-
-    while left &lt;= right {
-        let mid = left + (right - left) / 2;
-        let row = (mid / cols as i32) as usize;
-        let col = (mid % cols as i32) as usize;
-        let mid_val = matrix[row][col];
-
-        if mid_val == target {
-            return true;
-        } else if mid_val &lt; target {
-            left = mid + 1;
-        } else {
-            right = mid - 1;
-        }
-    }
-
-    false
-}
-
-/// Пример 7: Поиск вставки элемента
-/// 
-/// Задача: Найти индекс, куда нужно вставить target в отсортированном массиве
-/// Временная сложность: O(log n)
-/// Пространственная сложность: O(1)
-pub fn search_insert(nums: Vec&amp;lt;i32&amp;gt;, target: i32) -&gt; i32 {
-    let mut left = 0;
-    let mut right = nums.len() as i32 - 1;
-
-    while left &lt;= right {
-        let mid = left + (right - left) / 2;
-        let mid_val = nums[mid as usize];
-
-        if mid_val == target {
-            return mid;
-        } else if mid_val &lt; target {
-            left = mid + 1;
-        } else {
-            right = mid - 1;
-        }
-    }
-
-    left
-}
-<span class="boring">}</span></code></pre>
-<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
-<pre><code class="language-go">package main
-
-import (
-	"fmt"
-)
-
-// Пример 1: Классический бинарный поиск
-//
-// Задача: Найти индекс элемента target в отсортированном массиве
-// Временная сложность: O(log n)
-// Пространственная сложность: O(1)
-func binarySearch(nums []int, target int) int {
-	left := 0
-	right := len(nums) - 1
-
-	for left &lt;= right {
-		mid := left + (right-left)/2
-		midVal := nums[mid]
-
-		if midVal == target {
-			return mid
-		} else if midVal &lt; target {
-			left = mid + 1
-		} else {
-			right = mid - 1
-		}
-	}
-
-	return -1
-}
-
-// Пример 2: Поиск первого вхождения элемента
-//
-// Задача: Найти индекс первого вхождения target в отсортированном массиве
-// Временная сложность: O(log n)
-// Пространственная сложность: O(1)
-func searchFirst(nums []int, target int) int {
-	left := 0
-	right := len(nums) - 1
-	result := -1
-
-	for left &lt;= right {
-		mid := left + (right-left)/2
-		midVal := nums[mid]
-
-		if midVal == target {
-			result = mid
-			right = mid - 1 // Продолжаем искать влево
-		} else if midVal &lt; target {
-			left = mid + 1
-		} else {
-			right = mid - 1
-		}
-	}
-
-	return result
-}
-
-// Пример 3: Поиск последнего вхождения элемента
-//
-// Задача: Найти индекс последнего вхождения target в отсортированном массиве
-// Временная сложность: O(log n)
-// Пространственная сложность: O(1)
-func searchLast(nums []int, target int) int {
-	left := 0
-	right := len(nums) - 1
-	result := -1
-
-	for left &lt;= right {
-		mid := left + (right-left)/2
-		midVal := nums[mid]
-
-		if midVal == target {
-			result = mid
-			left = mid + 1 // Продолжаем искать вправо
-		} else if midVal &lt; target {
-			left = mid + 1
-		} else {
-			right = mid - 1
-		}
-	}
-
-	return result
-}
-
-// Пример 4: Поиск в повернутом отсортированном массиве
-//
-// Задача: Найти target в массиве, который был повернут
-// Временная сложность: O(log n)
-// Пространственная сложность: O(1)
-func searchRotated(nums []int, target int) int {
-	left := 0
-	right := len(nums) - 1
-
-	for left &lt;= right {
-		mid := left + (right-left)/2
-		midVal := nums[mid]
-
-		if midVal == target {
-			return mid
-		}
-
-		// Определяем, какая часть отсортирована
-		if nums[left] &lt;= midVal {
-			// Левая часть отсортирована
-			if nums[left] &lt;= target &amp;&amp; target &lt; midVal {
-				right = mid - 1
-			} else {
-				left = mid + 1
-			}
-		} else {
-			// Правая часть отсортирована
-			if midVal &lt; target &amp;&amp; target &lt;= nums[right] {
-				left = mid + 1
-			} else {
-				right = mid - 1
-			}
-		}
-	}
-
-	return -1
-}
-
-// Пример 5: Поиск минимума в повернутом массиве
-//
-// Задача: Найти минимальный элемент в повернутом отсортированном массиве
-// Временная сложность: O(log n)
-// Пространственная сложность: O(1)
-func findMinRotated(nums []int) int {
-	left := 0
-	right := len(nums) - 1
-
-	for left &lt; right {
-		mid := left + (right-left)/2
-		midVal := nums[mid]
-		rightVal := nums[right]
-
-		if midVal &gt; rightVal {
-			// Минимум в правой части
-			left = mid + 1
-		} else {
-			// Минимум в левой части (включая mid)
-			right = mid
-		}
-	}
-
-	return nums[left]
-}
-
-// Пример 6: Поиск в 2D матрице
-//
-// Задача: Найти target в отсортированной 2D матрице
-// Временная сложность: O(log(m×n))
-// Пространственная сложность: O(1)
-func searchMatrix(matrix [][]int, target int) bool {
-	if len(matrix) == 0 || len(matrix[0]) == 0 {
-		return false
-	}
-
-	rows := len(matrix)
-	cols := len(matrix[0])
-	left := 0
-	right := rows*cols - 1
-
-	for left &lt;= right {
-		mid := left + (right-left)/2
-		row := mid / cols
-		col := mid % cols
-		midVal := matrix[row][col]
-
-		if midVal == target {
-			return true
-		} else if midVal &lt; target {
-			left = mid + 1
-		} else {
-			right = mid - 1
-		}
-	}
-
-	return false
-}
-
-// Пример 7: Поиск вставки элемента
-//
-// Задача: Найти индекс, куда нужно вставить target в отсортированном массиве
-// Временная сложность: O(log n)
-// Пространственная сложность: O(1)
-func searchInsert(nums []int, target int) int {
-	left := 0
-	right := len(nums) - 1
-
-	for left &lt;= right {
-		mid := left + (right-left)/2
-		midVal := nums[mid]
-
-		if midVal == target {
-			return mid
-		} else if midVal &lt; target {
-			left = mid + 1
-		} else {
-			right = mid - 1
-		}
-	}
-
-	return left
 }
 </code></pre>
 <h2 id="реальные-применения"><a class="header" href="#реальные-применения">Реальные применения</a></h2>
