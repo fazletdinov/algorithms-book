@@ -410,6 +410,10 @@ left, right := 0, len(arr)-1
 
 **Go**:
 ```go
+package main
+
+import "sort"
+
 arr := []int{3, 1, 4, 2}
 sort.Ints(arr)  // [1, 2, 3, 4]
 left, right := 0, len(arr)-1
@@ -770,6 +774,10 @@ for i := range arr {
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkTwoSum(b *testing.B) {
     arr := make([]int, 10000)
     for i := range arr {
@@ -811,6 +819,10 @@ func BenchmarkTwoSum(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import "testing"
+
 func TestTwoSum(t *testing.T) {
     tests := []struct {
         name   string
@@ -855,6 +867,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkTwoPointersSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000, 100000}
     

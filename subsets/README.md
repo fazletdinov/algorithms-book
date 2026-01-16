@@ -242,6 +242,10 @@ result := make([][]int, 0, 1<<len(nums))
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkSubsets(b *testing.B) {
     nums := make([]int, 10)
     for i := range nums {
@@ -282,6 +286,10 @@ func BenchmarkSubsets(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import "testing"
+
 func TestSubsets(t *testing.T) {
     tests := []struct {
         name string
@@ -324,6 +332,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkSubsetsSizes(b *testing.B) {
     sizes := []int{5, 10, 15}
     

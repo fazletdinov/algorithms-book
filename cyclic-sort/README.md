@@ -242,6 +242,10 @@ if arr[i] != arr[correctPos] {
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkCyclicSort(b *testing.B) {
     arr := createTestArray(1000)
     
@@ -279,6 +283,13 @@ func BenchmarkCyclicSort(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import (
+    "reflect"
+    "testing"
+)
+
 func TestCyclicSort(t *testing.T) {
     tests := []struct {
         name string
@@ -322,6 +333,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkCyclicSortSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000, 100000}
     

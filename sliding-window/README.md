@@ -716,6 +716,10 @@ cargo bench
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 // sliding_window_test.go
 func BenchmarkMaxSumSubarray(b *testing.B) {
     arr := make([]int, 10000)
@@ -793,6 +797,10 @@ HEAP SUMMARY:
 #### Go тесты:
 
 ```go
+package main
+
+import "testing"
+
 func TestMaxSumSubarrayFixedK(t *testing.T) {
     tests := []struct {
         name string
@@ -881,6 +889,13 @@ go test -bench=. -cpuprofile=cpu.prof -memprofile=mem.prof
 #### Go бенчмарк:
 
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkSlidingWindowSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000, 100000}
     

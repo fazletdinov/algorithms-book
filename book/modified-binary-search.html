@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-469fa2ee.js";
+            window.path_to_searchindex_js = "searchindex-1c99952b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -272,46 +272,43 @@ func findFirstOccurrence(arr []int, target int) int {
 </ul>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="поиск-первого-вхождения"><a class="header" href="#поиск-первого-вхождения">Поиск первого вхождения:</a></h3>
-<p>Массив: <code>[1, 2, 2, 2, 3, 4, 5]</code>, target = 2</p>
-<pre><code class="language-mermaid">graph LR
-    A["[0:6]&lt;br/&gt;Весь массив"] --&gt; B["[0:2]&lt;br/&gt;Левая половина"]
-    A --&gt; C["[3:6]&lt;br/&gt;Правая половина"]
-    B --&gt; D["[0:0]&lt;br/&gt;arr[0]=1 &lt; 2"]
-    B --&gt; E["[1:2]&lt;br/&gt;arr[1]=2 == 2"]
-    E --&gt; F["Результат: left=1"]
-    
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style B fill:#bbf,stroke:#333,stroke-width:2px
-    style E fill:#bfb,stroke:#333,stroke-width:2px
-    style F fill:#fbb,stroke:#333,stroke-width:3px
+<p><strong>Исходные данные:</strong> Массив <code>[1, 2, 2, 2, 3, 4, 5]</code>, target = 2</p>
+<p><strong>Шаг 1: Инициализация</strong></p>
+<pre><code>Массив: [1, 2, 2, 2, 3, 4, 5]
+Индексы: 0  1  2  3  4  5  6
+         ↑              ↑
+        left          right
+       mid = (0 + 6) / 2 = 3
+       arr[3] = 2 == target ✓
+       Найдено! Ищем первое вхождение → right = mid - 1 = 2
 </code></pre>
-<p><strong>Процесс поиска:</strong></p>
-<pre><code class="language-mermaid">sequenceDiagram
-    participant L as left
-    participant M as mid
-    participant A as Массив
-    participant R as right
-    participant T as target
-    
-    Note over L,R: Инициализация: left=0, right=6
-    
-    loop Пока left &lt;= right
-        L-&gt;&gt;M: mid = (left + right) / 2
-        M-&gt;&gt;A: arr[mid]
-        alt arr[mid] == target
-            Note over R: Найдено! Продолжаем влево для первого вхождения
-            R-&gt;&gt;R: right = mid - 1
-        else arr[mid] &lt; target
-            Note over L: Ищем справа
-            L-&gt;&gt;L: left = mid + 1
-        else arr[mid] &gt; target
-            Note over R: Ищем слева
-            R-&gt;&gt;R: right = mid - 1
-        end
-    end
-    
-    Note over L: Результат: left = 1
+<p><strong>Шаг 2: Ищем влево (первое вхождение)</strong></p>
+<pre><code>Массив: [1, 2, 2, 2, 3, 4, 5]
+Индексы: 0  1  2  3  4  5  6
+         ↑     ↑
+        left right
+       mid = (0 + 2) / 2 = 1
+       arr[1] = 2 == target ✓
+       Найдено! Продолжаем влево → right = mid - 1 = 0
 </code></pre>
+<p><strong>Шаг 3: Проверяем левую границу</strong></p>
+<pre><code>Массив: [1, 2, 2, 2, 3, 4, 5]
+Индексы: 0  1  2  3  4  5  6
+         ↑
+        left, right
+       mid = (0 + 0) / 2 = 0
+       arr[0] = 1 &lt; target
+       Ищем справа → left = mid + 1 = 1
+</code></pre>
+<p><strong>Шаг 4: Завершение</strong></p>
+<pre><code>Массив: [1, 2, 2, 2, 3, 4, 5]
+Индексы: 0  1  2  3  4  5  6
+            ↑
+          left, right
+       left &gt; right → завершение
+       Результат: left = 1 (первое вхождение target)
+</code></pre>
+<p><strong>Результат:</strong> Первое вхождение target = 2 находится на индексе <strong>1</strong></p>
 <p><strong>Детальная таблица выполнения:</strong></p>
 <div class="table-wrapper">
 <table>

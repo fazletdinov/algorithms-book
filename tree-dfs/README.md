@@ -263,6 +263,10 @@ result := make([]int, 0, n)
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkInorderTraversal(b *testing.B) {
     tree := createTestTree(1000)
     
@@ -300,6 +304,13 @@ func BenchmarkInorderTraversal(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import (
+    "reflect"
+    "testing"
+)
+
 func TestInorderTraversal(t *testing.T) {
     tests := []struct {
         name string
@@ -342,6 +353,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkTreeDFSSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000}
     

@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-469fa2ee.js";
+            window.path_to_searchindex_js = "searchindex-1c99952b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -232,49 +232,71 @@
 </ul>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="сортировка-массива-3-1-5-4-2"><a class="header" href="#сортировка-массива-3-1-5-4-2">Сортировка массива [3, 1, 5, 4, 2]:</a></h3>
-<p>Исходный массив: <code>[3, 1, 5, 4, 2]</code> (диапазон [1, 5])</p>
-<pre><code class="language-mermaid">sequenceDiagram
-    participant I as Индекс i
-    participant A as Массив
-    participant P as Правильная позиция
-    
-    Note over I,P: Инициализация: i=0
-    
-    loop Пока i &lt; len(arr)
-        I-&gt;&gt;A: arr[i]
-        A-&gt;&gt;P: correctPos = arr[i] - 1
-        alt arr[i] != arr[correctPos]
-            Note over A: Элемент не на месте
-            A-&gt;&gt;A: Поменять arr[i] и arr[correctPos]
-            Note over I: Продолжаем с тем же i
-        else arr[i] == arr[correctPos]
-            Note over I: Элемент на месте
-            I-&gt;&gt;I: i++
-        end
-    end
-    
-    Note over A: Результат: [1, 2, 3, 4, 5]
+<p><strong>Исходные данные:</strong> Массив <code>[3, 1, 5, 4, 2]</code> (диапазон [1, 5])</p>
+<p><strong>Правило:</strong> Число <code>x</code> должно быть на позиции <code>x - 1</code></p>
+<p><strong>Шаг 1: i=0, arr[0]=3 не на месте</strong></p>
+<pre><code>Массив: [3, 1, 5, 4, 2]
+Индексы: 0  1  2  3  4
+         ↑
+         i=0
+       arr[0] = 3
+       Правильная позиция для 3: 3-1 = 2
+       arr[2] = 5 ≠ 3 → меняем местами
+       
+Массив: [5, 1, 3, 4, 2]
+         ↑     ↑
+         i   correctPos
+       Продолжаем с i=0 (не увеличиваем)
 </code></pre>
-<p><strong>Детальная таблица выполнения:</strong></p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Шаг</th><th>i</th><th>arr[i]</th><th>Правильная позиция</th><th>arr[correctPos]</th><th>Сравнение</th><th>Массив</th><th>Действие</th></tr>
-</thead>
-<tbody>
-<tr><td>Инициализация</td><td>0</td><td>3</td><td>2</td><td>5</td><td>3 ≠ 5</td><td>[3,1,5,4,2]</td><td>Поменять arr[0] и arr[2]</td></tr>
-<tr><td>1</td><td>0</td><td>5</td><td>4</td><td>2</td><td>5 ≠ 2</td><td>[5,1,3,4,2]</td><td>Поменять arr[0] и arr[4]</td></tr>
-<tr><td>2</td><td>0</td><td>2</td><td>1</td><td>1</td><td>2 ≠ 1</td><td>[2,1,3,4,5]</td><td>Поменять arr[0] и arr[1]</td></tr>
-<tr><td>3</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1 == 1</td><td>[1,2,3,4,5]</td><td>На месте → i++</td></tr>
-<tr><td>4</td><td>1</td><td>2</td><td>1</td><td>2</td><td>2 == 2</td><td>[1,2,3,4,5]</td><td>На месте → i++</td></tr>
-<tr><td>5</td><td>2</td><td>3</td><td>2</td><td>3</td><td>3 == 3</td><td>[1,2,3,4,5]</td><td>На месте → i++</td></tr>
-<tr><td>6</td><td>3</td><td>4</td><td>3</td><td>4</td><td>4 == 4</td><td>[1,2,3,4,5]</td><td>На месте → i++</td></tr>
-<tr><td>7</td><td>4</td><td>5</td><td>4</td><td>5</td><td>5 == 5</td><td>[1,2,3,4,5]</td><td>На месте → i++</td></tr>
-<tr><td>8</td><td>5</td><td>-</td><td>-</td><td>-</td><td>-</td><td>[1,2,3,4,5]</td><td>i &gt;= len → завершение</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Результат:</strong> [1, 2, 3, 4, 5]</p>
+<p><strong>Шаг 2: i=0, arr[0]=5 не на месте</strong></p>
+<pre><code>Массив: [5, 1, 3, 4, 2]
+Индексы: 0  1  2  3  4
+         ↑
+         i=0
+       arr[0] = 5
+       Правильная позиция для 5: 5-1 = 4
+       arr[4] = 2 ≠ 5 → меняем местами
+       
+Массив: [2, 1, 3, 4, 5]
+         ↑        ↑
+         i     correctPos
+       Продолжаем с i=0
+</code></pre>
+<p><strong>Шаг 3: i=0, arr[0]=2 не на месте</strong></p>
+<pre><code>Массив: [2, 1, 3, 4, 5]
+Индексы: 0  1  2  3  4
+         ↑
+         i=0
+       arr[0] = 2
+       Правильная позиция для 2: 2-1 = 1
+       arr[1] = 1 ≠ 2 → меняем местами
+       
+Массив: [1, 2, 3, 4, 5]
+         ↑  ↑
+         i correctPos
+</code></pre>
+<p><strong>Шаг 4: i=0, arr[0]=1 на месте!</strong></p>
+<pre><code>Массив: [1, 2, 3, 4, 5]
+Индексы: 0  1  2  3  4
+         ↑
+         i=0
+       arr[0] = 1
+       Правильная позиция для 1: 1-1 = 0
+       arr[0] = 1 == 1 ✓ На месте!
+       i++ → i=1
+</code></pre>
+<p><strong>Шаг 5-8: Остальные элементы уже на местах</strong></p>
+<pre><code>Массив: [1, 2, 3, 4, 5]
+Индексы: 0  1  2  3  4
+            ↑  ↑  ↑  ↑
+          все на местах
+       i=1: arr[1]=2 на позиции 1 ✓
+       i=2: arr[2]=3 на позиции 2 ✓
+       i=3: arr[3]=4 на позиции 3 ✓
+       i=4: arr[4]=5 на позиции 4 ✓
+       i &gt;= len → завершение
+</code></pre>
+<p><strong>Результат:</strong> <code>[1, 2, 3, 4, 5]</code> - массив отсортирован</p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: После обработки позиции i, все элементы на позициях [0..i-1] находятся на своих правильных позициях.</p>

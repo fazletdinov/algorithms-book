@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-469fa2ee.js";
+            window.path_to_searchindex_js = "searchindex-1c99952b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -346,45 +346,46 @@ func topologicalSort(numCourses int, prerequisites [][]int) []int {
     style D fill:#fbf,stroke:#333,stroke-width:2px
 </code></pre>
 <p><strong>Процесс алгоритма Кана:</strong></p>
-<pre><code class="language-mermaid">sequenceDiagram
-    participant Q as Очередь
-    participant G as Граф
-    participant I as In-degree
-    participant R as Результат
-    
-    Note over Q,R: Инициализация: очередь содержит вершины с in-degree=0
-    
-    loop Пока очередь не пуста
-        Q-&gt;&gt;G: Извлечь вершину из очереди
-        G-&gt;&gt;R: Добавить в результат
-        G-&gt;&gt;I: Уменьшить in-degree соседей
-        alt in-degree соседа стал 0
-            I-&gt;&gt;Q: Добавить соседа в очередь
-        end
-    end
-    
-    alt Все вершины обработаны
-        Note over R: Успех: топологический порядок найден
-    else Остались вершины
-        Note over R: Ошибка: цикл в графе
-    end
+<p><strong>Граф зависимостей:</strong></p>
+<pre><code>A → B → D
+↓   ↓
+C ──┘
 </code></pre>
-<p><strong>Детальная таблица выполнения:</strong></p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Шаг</th><th>Очередь (до обработки)</th><th>Обрабатываем</th><th>In-degree до</th><th>Уменьшаем in-degree</th><th>In-degree после</th><th>Очередь (после)</th><th>Результат</th></tr>
-</thead>
-<tbody>
-<tr><td>Инициализация</td><td>[A]</td><td>-</td><td>A:0, B:1, C:2, D:2</td><td>-</td><td>-</td><td>[A]</td><td>[]</td></tr>
-<tr><td>1</td><td>[A]</td><td>A</td><td>B:1, C:2</td><td>B–, C–</td><td>B:0, C:1</td><td>[B]</td><td>[A]</td></tr>
-<tr><td>2</td><td>[B]</td><td>B</td><td>C:1, D:2</td><td>C–, D–</td><td>C:0, D:1</td><td>[C]</td><td>[A, B]</td></tr>
-<tr><td>3</td><td>[C]</td><td>C</td><td>D:1</td><td>D–</td><td>D:0</td><td>[D]</td><td>[A, B, C]</td></tr>
-<tr><td>4</td><td>[D]</td><td>D</td><td>-</td><td>-</td><td>-</td><td>[]</td><td>[A, B, C, D]</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Результат:</strong> [A, B, C, D]</p>
+<p><strong>Шаг 1: Инициализация - находим вершины с in-degree=0</strong></p>
+<pre><code>In-degree: A:0, B:1, C:2, D:2
+Очередь: [A]  (только A имеет in-degree=0)
+Результат: []
+</code></pre>
+<p><strong>Шаг 2: Обрабатываем A</strong></p>
+<pre><code>Обрабатываем: A
+Результат: [A]
+Уменьшаем in-degree соседей (B и C):
+  B: 1 → 0 ✓ (добавляем в очередь)
+  C: 2 → 1
+Очередь: [B]
+</code></pre>
+<p><strong>Шаг 3: Обрабатываем B</strong></p>
+<pre><code>Обрабатываем: B
+Результат: [A, B]
+Уменьшаем in-degree соседей (C и D):
+  C: 1 → 0 ✓ (добавляем в очередь)
+  D: 2 → 1
+Очередь: [C]
+</code></pre>
+<p><strong>Шаг 4: Обрабатываем C</strong></p>
+<pre><code>Обрабатываем: C
+Результат: [A, B, C]
+Уменьшаем in-degree соседей (D):
+  D: 1 → 0 ✓ (добавляем в очередь)
+Очередь: [D]
+</code></pre>
+<p><strong>Шаг 5: Обрабатываем D</strong></p>
+<pre><code>Обрабатываем: D
+Результат: [A, B, C, D]
+Нет соседей
+Очередь: []
+</code></pre>
+<p><strong>Результат:</strong> Топологический порядок: <strong>[A, B, C, D]</strong></p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
 <p><strong>Теорема</strong>: В любом DAG существует хотя бы одна топологическая сортировка.</p>

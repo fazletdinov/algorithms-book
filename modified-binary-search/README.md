@@ -250,6 +250,10 @@ for left <= right {
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkBinarySearch(b *testing.B) {
     arr := make([]int, 1000000)
     for i := range arr {
@@ -290,6 +294,10 @@ func BenchmarkBinarySearch(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import "testing"
+
 func TestBinarySearch(t *testing.T) {
     tests := []struct {
         name   string
@@ -334,6 +342,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkBinarySearchSizes(b *testing.B) {
     sizes := []int{1000, 100000, 10000000}
     

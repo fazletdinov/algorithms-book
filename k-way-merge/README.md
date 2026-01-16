@@ -253,6 +253,10 @@ heap.Push(&heap, item)
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkMergeKLists(b *testing.B) {
     lists := createTestLists(10, 1000)
     
@@ -290,6 +294,13 @@ func BenchmarkMergeKLists(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import (
+    "reflect"
+    "testing"
+)
+
 func TestMergeKLists(t *testing.T) {
     tests := []struct {
         name  string
@@ -336,6 +347,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkKWayMergeSizes(b *testing.B) {
     kValues := []int{5, 10, 20}
     

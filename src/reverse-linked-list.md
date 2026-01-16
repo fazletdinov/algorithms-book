@@ -103,52 +103,81 @@ func reverseListRecursive(head *ListNode) *ListNode {
 
 ### Итеративный разворот:
 
-Исходный список: 1 → 2 → 3 → 4 → 5 → None
+**Исходные данные:** Список: 1 → 2 → 3 → 4 → 5 → None
 
-```mermaid
-graph LR
-    A[1] --> B[2]
-    B --> C[3]
-    C --> D[4]
-    D --> E[5]
-    E --> F[None]
-    
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style E fill:#bfb,stroke:#333,stroke-width:2px
+**Шаг 1: Инициализация**
+```
+Исходный:  1 → 2 → 3 → 4 → 5 → None
+           ↑
+          curr=head
+          prev=None
+          next=?
 ```
 
-**Процесс разворота:**
-
-```mermaid
-sequenceDiagram
-    participant P as prev
-    participant C as curr
-    participant N as next
-    participant L as Список
-    
-    Note over P,L: Инициализация: prev=None, curr=head
-    
-    loop Пока curr != None
-        C->>N: next = curr.next
-        C->>L: curr.next = prev
-        P->>C: prev = curr
-        C->>N: curr = next
-    end
-    
-    Note over P: prev - новая голова списка
+**Шаг 2: Разворот первого узла**
+```
+Список:    None ← 1    2 → 3 → 4 → 5 → None
+                ↑    ↑
+              prev  curr
+          next = curr.next = 2
+          curr.next = prev = None
+          prev = curr = 1
+          curr = next = 2
 ```
 
-**Детальная таблица выполнения:**
+**Шаг 3: Разворот второго узла**
+```
+Список:    None ← 1 ← 2    3 → 4 → 5 → None
+                    ↑    ↑
+                  prev  curr
+          next = curr.next = 3
+          curr.next = prev = 1
+          prev = curr = 2
+          curr = next = 3
+```
 
-| Шаг | prev | curr | next | curr.next | Состояние списка | Действие |
-|-----|------|------|------|-----------|------------------|----------|
-| Инициализация | None | 1 | - | 2 | 1→2→3→4→5→None | - |
-| 1 | None | 1 | 2 | None | None←1  2→3→4→5→None | Разворот указателя 1 |
-| 2 | 1 | 2 | 3 | 1 | None←1←2  3→4→5→None | Разворот указателя 2 |
-| 3 | 2 | 3 | 4 | 2 | None←1←2←3  4→5→None | Разворот указателя 3 |
-| 4 | 3 | 4 | 5 | 3 | None←1←2←3←4  5→None | Разворот указателя 4 |
-| 5 | 4 | 5 | None | 4 | None←1←2←3←4←5 | Разворот указателя 5 |
-| 6 | 5 | None | - | - | None←1←2←3←4←5 | curr == None → завершение |
+**Шаг 4: Разворот третьего узла**
+```
+Список:    None ← 1 ← 2 ← 3    4 → 5 → None
+                        ↑    ↑
+                      prev  curr
+          next = curr.next = 4
+          curr.next = prev = 2
+          prev = curr = 3
+          curr = next = 4
+```
+
+**Шаг 5: Разворот четвертого узла**
+```
+Список:    None ← 1 ← 2 ← 3 ← 4    5 → None
+                            ↑    ↑
+                          prev  curr
+          next = curr.next = 5
+          curr.next = prev = 3
+          prev = curr = 4
+          curr = next = 5
+```
+
+**Шаг 6: Разворот последнего узла**
+```
+Список:    None ← 1 ← 2 ← 3 ← 4 ← 5
+                                ↑    ↑
+                              prev  curr
+          next = curr.next = None
+          curr.next = prev = 4
+          prev = curr = 5
+          curr = next = None
+```
+
+**Шаг 7: Завершение**
+```
+Результат: None ← 1 ← 2 ← 3 ← 4 ← 5
+                                ↑
+                              prev (новая голова)
+          curr == None → завершение
+```
+
+**Результат:** Развернутый список: **5 → 4 → 3 → 2 → 1 → None**
 
 **Результат:** 5 → 4 → 3 → 2 → 1 → None
 

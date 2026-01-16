@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-469fa2ee.js";
+            window.path_to_searchindex_js = "searchindex-1c99952b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -350,23 +350,42 @@ func subsetsIterative(nums []int) [][]int {
     style O fill:#bfb,stroke:#333,stroke-width:2px
 </code></pre>
 <p><strong>Процесс backtracking:</strong></p>
-<pre><code class="language-mermaid">sequenceDiagram
-    participant F as Функция backtrack
-    participant C as Текущее подмножество
-    participant R as Результат
-    
-    Note over F,R: Инициализация: current=[], start=0
-    
-    F-&gt;&gt;R: Добавить копию current в результат
-    
-    loop Для i от start до len(nums)
-        C-&gt;&gt;C: Добавить nums[i]
-        F-&gt;&gt;F: Рекурсия: backtrack(i+1)
-        C-&gt;&gt;C: Backtrack: удалить nums[i]
-    end
-    
-    Note over R: Результат: все подмножества
+<p><strong>Шаг 1: Начало с пустого подмножества</strong></p>
+<pre><code>current = []
+start = 0
+Добавляем [] в результат → [[]]
 </code></pre>
+<p><strong>Шаг 2: Добавляем 1, рекурсия</strong></p>
+<pre><code>current = [1]
+start = 1
+Добавляем [1] в результат → [[], [1]]
+Рекурсия: backtrack(1) для элементов [2, 3]
+</code></pre>
+<p><strong>Шаг 3: В рекурсии добавляем 2</strong></p>
+<pre><code>current = [1, 2]
+start = 2
+Добавляем [1, 2] в результат → [[], [1], [1, 2]]
+Рекурсия: backtrack(2) для элемента [3]
+</code></pre>
+<p><strong>Шаг 4: Добавляем 3, затем backtrack</strong></p>
+<pre><code>current = [1, 2, 3]
+start = 3
+Добавляем [1, 2, 3] в результат
+Backtrack: удаляем 3 → current = [1, 2]
+</code></pre>
+<p><strong>Шаг 5: Продолжаем backtrack</strong></p>
+<pre><code>Backtrack: удаляем 2 → current = [1]
+Добавляем [1, 3] в результат
+Backtrack: удаляем 3 → current = [1]
+Backtrack: удаляем 1 → current = []
+</code></pre>
+<p><strong>Шаг 6: Начинаем с 2</strong></p>
+<pre><code>current = [2]
+start = 2
+Добавляем [2] в результат
+Рекурсия для [3]...
+</code></pre>
+<p><strong>Результат:</strong> Все подмножества: <code>[[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]]</code></p>
 <p><strong>Детальная таблица выполнения (backtracking):</strong></p>
 <div class="table-wrapper">
 <table>

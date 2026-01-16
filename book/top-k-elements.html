@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-469fa2ee.js";
+            window.path_to_searchindex_js = "searchindex-1c99952b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -330,42 +330,31 @@ func findBottomK(nums []int, k int) []int {
     style H3 fill:#fbb,stroke:#333,stroke-width:2px
 </code></pre>
 <p><strong>Процесс добавления элементов:</strong></p>
-<pre><code class="language-mermaid">sequenceDiagram
-    participant A as Массив
-    participant H as Min Heap (K=3)
-    participant R as Результат
-    
-    loop Для каждого элемента
-        A-&gt;&gt;H: Элемент
-        alt Размер кучи &lt; K
-            H-&gt;&gt;H: Добавить элемент
-        else Элемент &gt; min кучи
-            H-&gt;&gt;H: Удалить минимум
-            H-&gt;&gt;H: Добавить элемент
-        else Элемент &lt;= min кучи
-            Note over H: Пропустить элемент
-        end
-    end
-    
-    H-&gt;&gt;R: Извлечь все элементы из кучи
+<p><strong>Шаг 1-3: Заполняем кучу до размера K=3</strong></p>
+<pre><code>Элемент 3: Куча [] → Добавить → [3]
+Элемент 1: Куча [3] → Добавить → [1, 3]
+Элемент 5: Куча [1, 3] → Добавить → [1, 3, 5]
+Куча заполнена (размер = K)
 </code></pre>
-<p><strong>Детальная таблица выполнения:</strong></p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Шаг</th><th>Элемент</th><th>Куча (до)</th><th>Сравнение</th><th>Действие</th><th>Куча (после)</th></tr>
-</thead>
-<tbody>
-<tr><td>1</td><td>3</td><td>[]</td><td>Размер &lt; K</td><td>Добавить</td><td>[3]</td></tr>
-<tr><td>2</td><td>1</td><td>[3]</td><td>Размер &lt; K</td><td>Добавить</td><td>[1, 3]</td></tr>
-<tr><td>3</td><td>5</td><td>[1, 3]</td><td>Размер &lt; K</td><td>Добавить</td><td>[1, 3, 5]</td></tr>
-<tr><td>4</td><td>12</td><td>[1, 3, 5]</td><td>12 &gt; 1 (min)</td><td>Удалить 1, добавить 12</td><td>[3, 5, 12]</td></tr>
-<tr><td>5</td><td>2</td><td>[3, 5, 12]</td><td>2 &lt; 3 (min)</td><td>Пропустить</td><td>[3, 5, 12]</td></tr>
-<tr><td>6</td><td>11</td><td>[3, 5, 12]</td><td>11 &gt; 3 (min)</td><td>Удалить 3, добавить 11</td><td>[5, 11, 12]</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Результат:</strong> [5, 11, 12]</p>
+<p><strong>Шаг 4: Добавляем 12 (больше минимума)</strong></p>
+<pre><code>Куча: [1, 3, 5]
+min = 1
+12 &gt; 1 → Удалить минимум (1), добавить 12
+Куча: [3, 5, 12]
+</code></pre>
+<p><strong>Шаг 5: Добавляем 2 (меньше минимума)</strong></p>
+<pre><code>Куча: [3, 5, 12]
+min = 3
+2 &lt; 3 → Пропустить (не добавляем)
+Куча: [3, 5, 12]
+</code></pre>
+<p><strong>Шаг 6: Добавляем 11 (больше минимума)</strong></p>
+<pre><code>Куча: [3, 5, 12]
+min = 3
+11 &gt; 3 → Удалить минимум (3), добавить 11
+Куча: [5, 11, 12]
+</code></pre>
+<p><strong>Результат:</strong> Топ-3 наибольших элемента: <strong>[5, 11, 12]</strong></p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: После обработки i элементов, куча содержит K лучших элементов из первых i элементов.</p>

@@ -270,6 +270,10 @@ for curr != nil {
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkReverseList(b *testing.B) {
     list := createList(1000)
     
@@ -307,6 +311,13 @@ func BenchmarkReverseList(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import (
+    "reflect"
+    "testing"
+)
+
 func TestReverseList(t *testing.T) {
     tests := []struct {
         name string
@@ -350,6 +361,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkReverseListSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000, 100000}
     

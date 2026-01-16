@@ -239,6 +239,10 @@ heap := make(IntHeap, 0, k)
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkTopK(b *testing.B) {
     nums := make([]int, 100000)
     for i := range nums {
@@ -279,6 +283,10 @@ func BenchmarkTopK(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import "testing"
+
 func TestTopK(t *testing.T) {
     tests := []struct {
         name string
@@ -322,6 +330,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkTopKSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000}
     

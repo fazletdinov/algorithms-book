@@ -283,6 +283,10 @@ queue = queue[1:]  // Удаление первого элемента
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkTopologicalSort(b *testing.B) {
     prerequisites := createTestPrerequisites(1000, 5000)
     
@@ -320,6 +324,10 @@ func BenchmarkTopologicalSort(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import "testing"
+
 func TestTopologicalSort(t *testing.T) {
     tests := []struct {
         name         string
@@ -363,6 +371,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkTopologicalSortSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000}
     

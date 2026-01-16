@@ -255,6 +255,10 @@ for i := 0; i < levelSize; i++ {
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkLevelOrder(b *testing.B) {
     tree := createTestTree(1000)
     
@@ -291,6 +295,13 @@ func BenchmarkLevelOrder(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import (
+    "reflect"
+    "testing"
+)
+
 func TestLevelOrder(t *testing.T) {
     tests := []struct {
         name string
@@ -333,6 +344,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkTreeBFSSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000}
     

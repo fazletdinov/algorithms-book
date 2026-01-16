@@ -466,6 +466,10 @@ for fast != nil && fast.Next != nil {
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkHasCycle(b *testing.B) {
     list := createCyclicList(1000)
     
@@ -503,6 +507,10 @@ func BenchmarkHasCycle(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import "testing"
+
 func TestHasCycle(t *testing.T) {
     tests := []struct {
         name string
@@ -546,6 +554,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkFastSlowSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000, 100000}
     

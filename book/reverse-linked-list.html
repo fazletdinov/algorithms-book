@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-469fa2ee.js";
+            window.path_to_searchindex_js = "searchindex-1c99952b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -265,52 +265,66 @@ func reverseListRecursive(head *ListNode) *ListNode {
 </code></pre>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="итеративный-разворот"><a class="header" href="#итеративный-разворот">Итеративный разворот:</a></h3>
-<p>Исходный список: 1 → 2 → 3 → 4 → 5 → None</p>
-<pre><code class="language-mermaid">graph LR
-    A[1] --&gt; B[2]
-    B --&gt; C[3]
-    C --&gt; D[4]
-    D --&gt; E[5]
-    E --&gt; F[None]
-    
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style E fill:#bfb,stroke:#333,stroke-width:2px
+<p><strong>Исходные данные:</strong> Список: 1 → 2 → 3 → 4 → 5 → None</p>
+<p><strong>Шаг 1: Инициализация</strong></p>
+<pre><code>Исходный:  1 → 2 → 3 → 4 → 5 → None
+           ↑
+          curr=head
+          prev=None
+          next=?
 </code></pre>
-<p><strong>Процесс разворота:</strong></p>
-<pre><code class="language-mermaid">sequenceDiagram
-    participant P as prev
-    participant C as curr
-    participant N as next
-    participant L as Список
-    
-    Note over P,L: Инициализация: prev=None, curr=head
-    
-    loop Пока curr != None
-        C-&gt;&gt;N: next = curr.next
-        C-&gt;&gt;L: curr.next = prev
-        P-&gt;&gt;C: prev = curr
-        C-&gt;&gt;N: curr = next
-    end
-    
-    Note over P: prev - новая голова списка
+<p><strong>Шаг 2: Разворот первого узла</strong></p>
+<pre><code>Список:    None ← 1    2 → 3 → 4 → 5 → None
+                ↑    ↑
+              prev  curr
+          next = curr.next = 2
+          curr.next = prev = None
+          prev = curr = 1
+          curr = next = 2
 </code></pre>
-<p><strong>Детальная таблица выполнения:</strong></p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Шаг</th><th>prev</th><th>curr</th><th>next</th><th>curr.next</th><th>Состояние списка</th><th>Действие</th></tr>
-</thead>
-<tbody>
-<tr><td>Инициализация</td><td>None</td><td>1</td><td>-</td><td>2</td><td>1→2→3→4→5→None</td><td>-</td></tr>
-<tr><td>1</td><td>None</td><td>1</td><td>2</td><td>None</td><td>None←1  2→3→4→5→None</td><td>Разворот указателя 1</td></tr>
-<tr><td>2</td><td>1</td><td>2</td><td>3</td><td>1</td><td>None←1←2  3→4→5→None</td><td>Разворот указателя 2</td></tr>
-<tr><td>3</td><td>2</td><td>3</td><td>4</td><td>2</td><td>None←1←2←3  4→5→None</td><td>Разворот указателя 3</td></tr>
-<tr><td>4</td><td>3</td><td>4</td><td>5</td><td>3</td><td>None←1←2←3←4  5→None</td><td>Разворот указателя 4</td></tr>
-<tr><td>5</td><td>4</td><td>5</td><td>None</td><td>4</td><td>None←1←2←3←4←5</td><td>Разворот указателя 5</td></tr>
-<tr><td>6</td><td>5</td><td>None</td><td>-</td><td>-</td><td>None←1←2←3←4←5</td><td>curr == None → завершение</td></tr>
-</tbody>
-</table>
-</div>
+<p><strong>Шаг 3: Разворот второго узла</strong></p>
+<pre><code>Список:    None ← 1 ← 2    3 → 4 → 5 → None
+                    ↑    ↑
+                  prev  curr
+          next = curr.next = 3
+          curr.next = prev = 1
+          prev = curr = 2
+          curr = next = 3
+</code></pre>
+<p><strong>Шаг 4: Разворот третьего узла</strong></p>
+<pre><code>Список:    None ← 1 ← 2 ← 3    4 → 5 → None
+                        ↑    ↑
+                      prev  curr
+          next = curr.next = 4
+          curr.next = prev = 2
+          prev = curr = 3
+          curr = next = 4
+</code></pre>
+<p><strong>Шаг 5: Разворот четвертого узла</strong></p>
+<pre><code>Список:    None ← 1 ← 2 ← 3 ← 4    5 → None
+                            ↑    ↑
+                          prev  curr
+          next = curr.next = 5
+          curr.next = prev = 3
+          prev = curr = 4
+          curr = next = 5
+</code></pre>
+<p><strong>Шаг 6: Разворот последнего узла</strong></p>
+<pre><code>Список:    None ← 1 ← 2 ← 3 ← 4 ← 5
+                                ↑    ↑
+                              prev  curr
+          next = curr.next = None
+          curr.next = prev = 4
+          prev = curr = 5
+          curr = next = None
+</code></pre>
+<p><strong>Шаг 7: Завершение</strong></p>
+<pre><code>Результат: None ← 1 ← 2 ← 3 ← 4 ← 5
+                                ↑
+                              prev (новая голова)
+          curr == None → завершение
+</code></pre>
+<p><strong>Результат:</strong> Развернутый список: <strong>5 → 4 → 3 → 2 → 1 → None</strong></p>
 <p><strong>Результат:</strong> 5 → 4 → 3 → 2 → 1 → None</p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>

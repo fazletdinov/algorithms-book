@@ -411,6 +411,10 @@ last[1] = max(last[1], current[1])
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkMergeIntervals(b *testing.B) {
     intervals := createTestIntervals(1000)
     
@@ -448,6 +452,10 @@ func BenchmarkMergeIntervals(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import "testing"
+
 func TestMergeIntervals(t *testing.T) {
     tests := []struct {
         name      string
@@ -491,6 +499,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkMergeIntervalsSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000, 100000}
     

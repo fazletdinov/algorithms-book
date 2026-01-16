@@ -258,6 +258,10 @@ maxHeap := make(IntHeap, 0, n/2)
 #### Go пример:
 
 ```go
+package main
+
+import "testing"
+
 func BenchmarkMedianFinder(b *testing.B) {
     finder := NewMedianFinder()
     nums := make([]int, 1000)
@@ -301,6 +305,10 @@ func BenchmarkMedianFinder(b *testing.B) {
 #### Go тесты:
 
 ```go
+package main
+
+import "testing"
+
 func TestMedianFinder(t *testing.T) {
     tests := []struct {
         name   string
@@ -346,6 +354,13 @@ go test -bench=. -benchmem
 
 #### Go:
 ```go
+package main
+
+import (
+    "fmt"
+    "testing"
+)
+
 func BenchmarkTwoHeapsSizes(b *testing.B) {
     sizes := []int{100, 1000, 10000}
     
