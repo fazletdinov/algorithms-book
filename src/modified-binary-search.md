@@ -107,31 +107,62 @@ func findFirstOccurrence(arr []int, target int) int {
 
 ### Поиск первого вхождения:
 
+Массив: `[1, 2, 2, 2, 3, 4, 5]`, target = 2
+
+```mermaid
+graph LR
+    A["[0:6]<br/>Весь массив"] --> B["[0:2]<br/>Левая половина"]
+    A --> C["[3:6]<br/>Правая половина"]
+    B --> D["[0:0]<br/>arr[0]=1 < 2"]
+    B --> E["[1:2]<br/>arr[1]=2 == 2"]
+    E --> F["Результат: left=1"]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style E fill:#bfb,stroke:#333,stroke-width:2px
+    style F fill:#fbb,stroke:#333,stroke-width:3px
 ```
-Массив: [1, 2, 2, 2, 3, 4, 5], target = 2
 
-Шаг 1: left=0, right=6, mid=3, arr[3]=2
-        [1, 2, 2, 2, 3, 4, 5]
-         ↑        ↑        ↑
-        left    mid     right
-        Найдено 2, но продолжаем влево для первого вхождения
-        right = mid - 1 = 2
+**Процесс поиска:**
 
-Шаг 2: left=0, right=2, mid=1, arr[1]=2
-        [1, 2, 2, 2, 3, 4, 5]
-         ↑  ↑  ↑
-        left mid right
-        Найдено 2, продолжаем влево
-        right = mid - 1 = 0
-
-Шаг 3: left=0, right=0, mid=0, arr[0]=1
-        [1, 2, 2, 2, 3, 4, 5]
-         ↑
-        left=right=mid
-        arr[0] != 2, left = mid + 1 = 1
-
-Результат: left = 1 (первое вхождение 2)
+```mermaid
+sequenceDiagram
+    participant L as left
+    participant M as mid
+    participant A as Массив
+    participant R as right
+    participant T as target
+    
+    Note over L,R: Инициализация: left=0, right=6
+    
+    loop Пока left <= right
+        L->>M: mid = (left + right) / 2
+        M->>A: arr[mid]
+        alt arr[mid] == target
+            Note over R: Найдено! Продолжаем влево для первого вхождения
+            R->>R: right = mid - 1
+        else arr[mid] < target
+            Note over L: Ищем справа
+            L->>L: left = mid + 1
+        else arr[mid] > target
+            Note over R: Ищем слева
+            R->>R: right = mid - 1
+        end
+    end
+    
+    Note over L: Результат: left = 1
 ```
+
+**Детальная таблица выполнения:**
+
+| Шаг | left | right | mid | arr[mid] | Сравнение с target | Действие | Новый интервал |
+|-----|------|-------|-----|----------|-------------------|----------|----------------|
+| Инициализация | 0 | 6 | - | - | - | - | [0:6] |
+| 1 | 0 | 6 | 3 | 2 | == 2 ✓ | Найдено, ищем первое вхождение | right = 2 → [0:2] |
+| 2 | 0 | 2 | 1 | 2 | == 2 ✓ | Найдено, продолжаем влево | right = 0 → [0:0] |
+| 3 | 0 | 0 | 0 | 1 | < 2 | Ищем справа | left = 1 → [1:0] (завершение) |
+
+**Результат:** left = 1 (первое вхождение 2)
 
 ## Математическое обоснование
 

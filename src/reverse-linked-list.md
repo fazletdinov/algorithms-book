@@ -103,35 +103,54 @@ func reverseListRecursive(head *ListNode) *ListNode {
 
 ### Итеративный разворот:
 
+Исходный список: 1 → 2 → 3 → 4 → 5 → None
+
+```mermaid
+graph LR
+    A[1] --> B[2]
+    B --> C[3]
+    C --> D[4]
+    D --> E[5]
+    E --> F[None]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style E fill:#bfb,stroke:#333,stroke-width:2px
 ```
-Исходный список: 1 -> 2 -> 3 -> 4 -> 5 -> None
 
-Шаг 1: prev=None, curr=1, next=None
-        prev    curr
-        None <- 1 -> 2 -> 3 -> 4 -> 5 -> None
+**Процесс разворота:**
 
-Шаг 2: prev=1, curr=2, next=2
-              prev  curr
-        None <- 1 <- 2 -> 3 -> 4 -> 5 -> None
-
-Шаг 3: prev=2, curr=3, next=3
-                    prev  curr
-        None <- 1 <- 2 <- 3 -> 4 -> 5 -> None
-
-Шаг 4: prev=3, curr=4, next=4
-                          prev  curr
-        None <- 1 <- 2 <- 3 <- 4 -> 5 -> None
-
-Шаг 5: prev=4, curr=5, next=5
-                                prev  curr
-        None <- 1 <- 2 <- 3 <- 4 <- 5 -> None
-
-Шаг 6: prev=5, curr=None
-                                      prev
-        None <- 1 <- 2 <- 3 <- 4 <- 5
-
-Результат: 5 -> 4 -> 3 -> 2 -> 1 -> None
+```mermaid
+sequenceDiagram
+    participant P as prev
+    participant C as curr
+    participant N as next
+    participant L as Список
+    
+    Note over P,L: Инициализация: prev=None, curr=head
+    
+    loop Пока curr != None
+        C->>N: next = curr.next
+        C->>L: curr.next = prev
+        P->>C: prev = curr
+        C->>N: curr = next
+    end
+    
+    Note over P: prev - новая голова списка
 ```
+
+**Детальная таблица выполнения:**
+
+| Шаг | prev | curr | next | curr.next | Состояние списка | Действие |
+|-----|------|------|------|-----------|------------------|----------|
+| Инициализация | None | 1 | - | 2 | 1→2→3→4→5→None | - |
+| 1 | None | 1 | 2 | None | None←1  2→3→4→5→None | Разворот указателя 1 |
+| 2 | 1 | 2 | 3 | 1 | None←1←2  3→4→5→None | Разворот указателя 2 |
+| 3 | 2 | 3 | 4 | 2 | None←1←2←3  4→5→None | Разворот указателя 3 |
+| 4 | 3 | 4 | 5 | 3 | None←1←2←3←4  5→None | Разворот указателя 4 |
+| 5 | 4 | 5 | None | 4 | None←1←2←3←4←5 | Разворот указателя 5 |
+| 6 | 5 | None | - | - | None←1←2←3←4←5 | curr == None → завершение |
+
+**Результат:** 5 → 4 → 3 → 2 → 1 → None
 
 ## Математическое обоснование
 

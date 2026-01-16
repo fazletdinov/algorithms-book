@@ -105,102 +105,145 @@ func twoPointersSameDirection(arr []int, condition func(int, int) bool, process 
 
 ### Поиск пары с заданной суммой (встречные указатели):
 
+Отсортированный массив: `[1, 2, 3, 4, 5, 6]`, цель = 7
+
+```mermaid
+sequenceDiagram
+    participant L as left
+    participant A as Массив
+    participant R as right
+    participant T as target
+    
+    Note over L,R: Инициализация: left=0, right=5
+    
+    loop Пока left < right
+        L->>A: arr[left]
+        R->>A: arr[right]
+        A->>A: sum = arr[left] + arr[right]
+        alt sum == target
+            A-->>T: Найдена пара! (left, right)
+            Note over L: left++ (продолжаем поиск)
+        else sum < target
+            Note over L: Нужна большая сумма
+            L->>L: left++
+        else sum > target
+            Note over R: Нужна меньшая сумма
+            R->>R: right--
+        end
+    end
+    
+    Note over T: Результат: пары (0,5), (1,4), (2,3)
 ```
-Отсортированный массив: [1, 2, 3, 4, 5, 6], цель = 7
 
-Инициализация:
-left = 0, right = 5
+**Детальная таблица выполнения:**
 
-Шаг 1:  [1, 2, 3, 4, 5, 6]
-         ↑              ↑
-        left=0         right=5
-        sum = 1 + 6 = 7 ✓ (найдено!)
-        Можно вернуть (0, 5) или продолжить поиск всех пар
+| Шаг | left | right | arr[left] | arr[right] | sum | Сравнение с target | Действие | Результат |
+|-----|------|-------|-----------|------------|-----|-------------------|----------|-----------|
+| Инициализация | 0 | 5 | 1 | 6 | - | - | Установка начальных позиций | - |
+| 1 | 0 | 5 | 1 | 6 | 7 | == 7 ✓ | Найдена пара! | (0, 5) |
+| 2 | 0 | 4 | 1 | 5 | 6 | < 7 | left++ | - |
+| 3 | 1 | 4 | 2 | 5 | 7 | == 7 ✓ | Найдена пара! | (1, 4) |
+| 4 | 1 | 3 | 2 | 4 | 6 | < 7 | left++ | - |
+| 5 | 2 | 3 | 3 | 4 | 7 | == 7 ✓ | Найдена пара! | (2, 3) |
+| 6 | 2 | 2 | - | - | - | left >= right | Завершение | - |
 
-Шаг 2:  [1, 2, 3, 4, 5, 6]
-         ↑           ↑
-        left=0      right=4
-        sum = 1 + 5 = 6 < 7
-        Исключаем все пары (0, j) для j < 4, так как они тоже < 7
-        left++ → left=1
-
-Шаг 3:  [1, 2, 3, 4, 5, 6]
-            ↑        ↑
-           left=1    right=4
-           sum = 2 + 5 = 7 ✓ (найдено!)
-
-Шаг 4:  [1, 2, 3, 4, 5, 6]
-            ↑     ↑
-           left=1 right=3
-           sum = 2 + 4 = 6 < 7
-           left++ → left=2
-
-Шаг 5:  [1, 2, 3, 4, 5, 6]
-               ↑  ↑
-           left=2 right=3
-           sum = 3 + 4 = 7 ✓ (найдено!)
-
-Шаг 6:  left=2, right=2 → left >= right, завершение
-
-Результат: Найдены пары (0,5), (1,4), (2,3)
-```
+**Результат:** Найдены пары (0,5), (1,4), (2,3)
 
 ### Контейнер с наибольшим количеством воды:
 
+Высоты: `[1, 8, 6, 2, 5, 4, 8, 3, 7]`
+
+```mermaid
+sequenceDiagram
+    participant L as left
+    participant H as Высоты
+    participant R as right
+    participant A as Площадь
+    
+    Note over L,R: Инициализация: left=0, right=8
+    
+    loop Пока left < right
+        L->>H: height[left]
+        R->>H: height[right]
+        H->>A: height = min(height[left], height[right])
+        H->>A: width = right - left
+        A->>A: area = height × width
+        A->>A: Обновить maxArea
+        
+        alt height[left] < height[right]
+            Note over L: Увеличиваем меньшую высоту
+            L->>L: left++
+        else height[left] >= height[right]
+            Note over R: Увеличиваем меньшую высоту
+            R->>R: right--
+        end
+    end
+    
+    Note over A: Результат: maxArea = 49
 ```
-Высоты: [1, 8, 6, 2, 5, 4, 8, 3, 7]
 
-Шаг 1:  [1, 8, 6, 2, 5, 4, 8, 3, 7]
-         ↑                        ↑
-        left=0                  right=8
-        height = min(1, 7) = 1
-        width = 8 - 0 = 8
-        area = 1 × 8 = 8
-        maxArea = 8
-        Так как height[left] < height[right], left++
+**Детальная таблица выполнения:**
 
-Шаг 2:  [1, 8, 6, 2, 5, 4, 8, 3, 7]
-            ↑                    ↑
-           left=1               right=8
-           height = min(8, 7) = 7
-           width = 8 - 1 = 7
-           area = 7 × 7 = 49
-           maxArea = 49
-           Так как height[left] > height[right], right--
+| Шаг | left | right | height[left] | height[right] | height | width | area | maxArea | Действие |
+|-----|------|-------|--------------|---------------|--------|-------|------|---------|----------|
+| 1 | 0 | 8 | 1 | 7 | 1 | 8 | 8 | 8 | height[left] < height[right] → left++ |
+| 2 | 1 | 8 | 8 | 7 | 7 | 7 | 49 | 49 | height[left] > height[right] → right-- |
+| 3 | 1 | 7 | 8 | 3 | 3 | 6 | 18 | 49 | height[left] > height[right] → right-- |
+| 4 | 1 | 6 | 8 | 8 | 8 | 5 | 40 | 49 | height[left] == height[right] → right-- |
+| 5 | 1 | 5 | 8 | 4 | 4 | 4 | 16 | 49 | height[left] > height[right] → right-- |
+| 6 | 1 | 4 | 8 | 5 | 5 | 3 | 15 | 49 | height[left] > height[right] → right-- |
+| 7 | 1 | 3 | 8 | 2 | 2 | 2 | 4 | 49 | height[left] > height[right] → right-- |
+| 8 | 1 | 2 | 8 | 6 | 6 | 1 | 6 | 49 | height[left] > height[right] → right-- |
+| 9 | 1 | 1 | - | - | - | - | - | 49 | left >= right → завершение |
 
-... продолжаем ...
-
-Финальный результат: maxArea = 49
-```
+**Финальный результат:** maxArea = 49
 
 ### Удаление дубликатов (указатели в одном направлении):
 
+Массив: `[1, 1, 2, 2, 3, 4, 4, 5]`
+
+**Инвариант:** `arr[0..slow]` содержит уникальные элементы в отсортированном порядке
+
+```mermaid
+sequenceDiagram
+    participant S as slow
+    participant A as Массив
+    participant F as fast
+    
+    Note over S,F: Инициализация: slow=0, fast=1
+    
+    loop Пока fast < len(arr)
+        S->>A: arr[slow]
+        F->>A: arr[fast]
+        alt arr[slow] == arr[fast]
+            Note over F: Дубликат, пропускаем
+            F->>F: fast++
+        else arr[slow] != arr[fast]
+            Note over S: Новый уникальный элемент
+            S->>S: slow++
+            A->>A: arr[slow] = arr[fast]
+            F->>F: fast++
+        end
+    end
+    
+    Note over A: Результат: arr[0..slow] содержит уникальные элементы
 ```
-Массив: [1, 1, 2, 2, 3, 4, 4, 5]
 
-Инвариант: arr[0..slow] содержит уникальные элементы в отсортированном порядке
+**Детальная таблица выполнения:**
 
-Шаг 1:  [1, 1, 2, 2, 3, 4, 4, 5]
-         ↑  ↑
-        slow=0 fast=1
-        arr[slow] == arr[fast] → fast++ (пропускаем дубликат)
+| Шаг | slow | fast | arr[slow] | arr[fast] | Сравнение | Массив | Действие |
+|-----|------|------|-----------|-----------|-----------|--------|----------|
+| Инициализация | 0 | 1 | 1 | 1 | - | [1,1,2,2,3,4,4,5] | - |
+| 1 | 0 | 1 | 1 | 1 | == | [1,1,2,2,3,4,4,5] | Дубликат → fast++ |
+| 2 | 0 | 2 | 1 | 2 | != | [1,2,2,2,3,4,4,5] | slow++, arr[slow]=arr[fast], fast++ |
+| 3 | 1 | 3 | 2 | 2 | == | [1,2,2,2,3,4,4,5] | Дубликат → fast++ |
+| 4 | 1 | 4 | 2 | 3 | != | [1,2,3,2,3,4,4,5] | slow++, arr[slow]=arr[fast], fast++ |
+| 5 | 2 | 5 | 3 | 4 | != | [1,2,3,4,4,4,4,5] | slow++, arr[slow]=arr[fast], fast++ |
+| 6 | 3 | 6 | 4 | 4 | == | [1,2,3,4,4,4,4,5] | Дубликат → fast++ |
+| 7 | 3 | 7 | 4 | 5 | != | [1,2,3,4,5,4,4,5] | slow++, arr[slow]=arr[fast], fast++ |
+| 8 | 4 | 8 | 5 | - | - | [1,2,3,4,5,4,4,5] | fast >= len → завершение |
 
-Шаг 2:  [1, 1, 2, 2, 3, 4, 4, 5]
-         ↑     ↑
-        slow=0 fast=2
-        arr[slow] != arr[fast] → arr[++slow] = arr[fast]
-        Результат: [1, 2, 2, 2, 3, 4, 4, 5]
-                   ↑  ↑
-                  slow=1
-
-Шаг 3:  [1, 2, 2, 2, 3, 4, 4, 5]
-            ↑     ↑
-           slow=1 fast=3
-           arr[slow] == arr[fast] → fast++
-
-Шаг 4:  [1, 2, 2, 2, 3, 4, 4, 5]
-            ↑        ↑
-           slow=1    fast=4
+**Результат:** `arr[0..slow] = [1, 2, 3, 4, 5]` содержит 5 уникальных элементов
            arr[slow] != arr[fast] → arr[++slow] = arr[fast]
            Результат: [1, 2, 3, 2, 3, 4, 4, 5]
                       ↑     ↑

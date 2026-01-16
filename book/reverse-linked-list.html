@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dacd1ff1.js";
+            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -265,34 +265,53 @@ func reverseListRecursive(head *ListNode) *ListNode {
 </code></pre>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="итеративный-разворот"><a class="header" href="#итеративный-разворот">Итеративный разворот:</a></h3>
-<pre><code>Исходный список: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; None
-
-Шаг 1: prev=None, curr=1, next=None
-        prev    curr
-        None &lt;- 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; None
-
-Шаг 2: prev=1, curr=2, next=2
-              prev  curr
-        None &lt;- 1 &lt;- 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; None
-
-Шаг 3: prev=2, curr=3, next=3
-                    prev  curr
-        None &lt;- 1 &lt;- 2 &lt;- 3 -&gt; 4 -&gt; 5 -&gt; None
-
-Шаг 4: prev=3, curr=4, next=4
-                          prev  curr
-        None &lt;- 1 &lt;- 2 &lt;- 3 &lt;- 4 -&gt; 5 -&gt; None
-
-Шаг 5: prev=4, curr=5, next=5
-                                prev  curr
-        None &lt;- 1 &lt;- 2 &lt;- 3 &lt;- 4 &lt;- 5 -&gt; None
-
-Шаг 6: prev=5, curr=None
-                                      prev
-        None &lt;- 1 &lt;- 2 &lt;- 3 &lt;- 4 &lt;- 5
-
-Результат: 5 -&gt; 4 -&gt; 3 -&gt; 2 -&gt; 1 -&gt; None
+<p>Исходный список: 1 → 2 → 3 → 4 → 5 → None</p>
+<pre><code class="language-mermaid">graph LR
+    A[1] --&gt; B[2]
+    B --&gt; C[3]
+    C --&gt; D[4]
+    D --&gt; E[5]
+    E --&gt; F[None]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style E fill:#bfb,stroke:#333,stroke-width:2px
 </code></pre>
+<p><strong>Процесс разворота:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant P as prev
+    participant C as curr
+    participant N as next
+    participant L as Список
+    
+    Note over P,L: Инициализация: prev=None, curr=head
+    
+    loop Пока curr != None
+        C-&gt;&gt;N: next = curr.next
+        C-&gt;&gt;L: curr.next = prev
+        P-&gt;&gt;C: prev = curr
+        C-&gt;&gt;N: curr = next
+    end
+    
+    Note over P: prev - новая голова списка
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>prev</th><th>curr</th><th>next</th><th>curr.next</th><th>Состояние списка</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>None</td><td>1</td><td>-</td><td>2</td><td>1→2→3→4→5→None</td><td>-</td></tr>
+<tr><td>1</td><td>None</td><td>1</td><td>2</td><td>None</td><td>None←1  2→3→4→5→None</td><td>Разворот указателя 1</td></tr>
+<tr><td>2</td><td>1</td><td>2</td><td>3</td><td>1</td><td>None←1←2  3→4→5→None</td><td>Разворот указателя 2</td></tr>
+<tr><td>3</td><td>2</td><td>3</td><td>4</td><td>2</td><td>None←1←2←3  4→5→None</td><td>Разворот указателя 3</td></tr>
+<tr><td>4</td><td>3</td><td>4</td><td>5</td><td>3</td><td>None←1←2←3←4  5→None</td><td>Разворот указателя 4</td></tr>
+<tr><td>5</td><td>4</td><td>5</td><td>None</td><td>4</td><td>None←1←2←3←4←5</td><td>Разворот указателя 5</td></tr>
+<tr><td>6</td><td>5</td><td>None</td><td>-</td><td>-</td><td>None←1←2←3←4←5</td><td>curr == None → завершение</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> 5 → 4 → 3 → 2 → 1 → None</p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: После обработки k узлов, первые k узлов развернуты и образуют корректный список, указывающий в обратном направлении.</p>

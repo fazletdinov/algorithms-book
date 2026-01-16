@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dacd1ff1.js";
+            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -285,107 +285,152 @@
 </ul>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="фиксированное-окно-размера-k3-максимальная-сумма"><a class="header" href="#фиксированное-окно-размера-k3-максимальная-сумма">Фиксированное окно размера K=3 (максимальная сумма):</a></h3>
-<pre><code>Исходный массив: [1, 2, 3, 4, 5, 6], k = 3
-
-Инициализация:
-windowSum = 1 + 2 + 3 = 6
-maxSum = 6
-
-Шаг 1: [1, 2, 3] 4, 5, 6
-        ↑  ↑  ↑
-        left=0, right=2
-        windowSum = 6, maxSum = 6
-
-Шаг 2: 1 [2, 3, 4] 5, 6
-           ↑  ↑  ↑
-        left=1, right=3
-        windowSum = 6 - 1 + 4 = 9, maxSum = 9
-
-Шаг 3: 1, 2 [3, 4, 5] 6
-              ↑  ↑  ↑
-        left=2, right=4
-        windowSum = 9 - 2 + 5 = 12, maxSum = 12
-
-Шаг 4: 1, 2, 3 [4, 5, 6]
-                 ↑  ↑  ↑
-        left=3, right=5
-        windowSum = 12 - 3 + 6 = 15, maxSum = 15
-
-Результат: maxSum = 15
+<p>Исходный массив: <code>[1, 2, 3, 4, 5, 6]</code>, k = 3</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant A as Массив
+    participant W as Окно
+    participant R as Результат
+    
+    Note over A,R: Инициализация: windowSum = 1+2+3 = 6
+    A-&gt;&gt;W: Элементы [0:2] = [1,2,3]
+    W-&gt;&gt;R: windowSum = 6, maxSum = 6
+    
+    loop Для i от 3 до 5
+        A-&gt;&gt;W: Добавить arr[i]
+        A-&gt;&gt;W: Удалить arr[i-k]
+        W-&gt;&gt;W: Обновить windowSum
+        W-&gt;&gt;R: Обновить maxSum если нужно
+    end
+    
+    Note over R: Результат: maxSum = 15
 </code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Массив</th><th>Окно [left:right]</th><th>windowSum</th><th>maxSum</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>[1,2,3,4,5,6]</td><td>[0:2]</td><td>6</td><td>6</td><td>Вычисление суммы первого окна</td></tr>
+<tr><td>1</td><td>[1,2,3,4,5,6]</td><td>[0:2]</td><td>6</td><td>6</td><td>Окно: [1,2,3]</td></tr>
+<tr><td>2</td><td>[1,2,3,4,5,6]</td><td>[1:3]</td><td>9</td><td>9</td><td>Сдвиг: добавить 4, убрать 1</td></tr>
+<tr><td>3</td><td>[1,2,3,4,5,6]</td><td>[2:4]</td><td>12</td><td>12</td><td>Сдвиг: добавить 5, убрать 2</td></tr>
+<tr><td>4</td><td>[1,2,3,4,5,6]</td><td>[3:5]</td><td>15</td><td>15</td><td>Сдвиг: добавить 6, убрать 3</td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="переменное-окно-поиск-максимальной-подстроки-без-повторяющихся-символов"><a class="header" href="#переменное-окно-поиск-максимальной-подстроки-без-повторяющихся-символов">Переменное окно (поиск максимальной подстроки без повторяющихся символов):</a></h3>
-<pre><code>Строка: "abcabcbb"
-
-Шаг 1: [a] b c a b c b b
-        ↑  ↑
-        left=0, right=0, chars={a}, len=1, maxLen=1
-
-Шаг 2: [a b] c a b c b b
-        ↑     ↑
-        left=0, right=1, chars={a,b}, len=2, maxLen=2
-
-Шаг 3: [a b c] a b c b b
-        ↑        ↑
-        left=0, right=2, chars={a,b,c}, len=3, maxLen=3
-
-Шаг 4: [a b c a] b c b b  ← дубликат 'a'!
-        ↑         ↑
-        left=0, right=3, chars={a,b,c,a} - НЕДОПУСТИМО
-        Сжимаем: left=1, chars={b,c,a}, len=3, maxLen=3
-
-Шаг 5: a [b c a b] c b b  ← дубликат 'b'!
-             ↑     ↑
-        left=1, right=4, chars={b,c,a,b} - НЕДОПУСТИМО
-        Сжимаем: left=2, chars={c,a,b}, len=3, maxLen=3
-
-Шаг 6: a b [c a b c] b b  ← дубликат 'c'!
-              ↑       ↑
-        left=2, right=5, сжимаем до left=3
-        chars={a,b,c}, len=3, maxLen=3
-
-Шаг 7: a b c [a b c b] b  ← дубликат 'b'!
-                 ↑     ↑
-        left=3, right=6, сжимаем до left=5
-        chars={c,b}, len=2, maxLen=3
-
-Шаг 8: a b c a b [c b b]  ← дубликат 'b'!
-                    ↑   ↑
-        left=5, right=7, сжимаем до left=7
-        chars={b}, len=1, maxLen=3
-
-Результат: maxLen = 3 (подстрока "abc")
+<p>Строка: <code>"abcabcbb"</code></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant L as left
+    participant S as Строка
+    participant C as chars (Set)
+    participant R as Результат
+    
+    Note over L,R: Инициализация: left=0, right=0
+    S-&gt;&gt;C: Добавить 'a'
+    C-&gt;&gt;R: len=1, maxLen=1
+    
+    S-&gt;&gt;C: Добавить 'b'
+    C-&gt;&gt;R: len=2, maxLen=2
+    
+    S-&gt;&gt;C: Добавить 'c'
+    C-&gt;&gt;R: len=3, maxLen=3
+    
+    S-&gt;&gt;C: Добавить 'a' (дубликат!)
+    C-&gt;&gt;L: Сдвинуть left до индекса 'a'+1
+    L-&gt;&gt;C: Удалить символы до left
+    C-&gt;&gt;R: len=3, maxLen=3
+    
+    Note over S,R: Продолжаем до конца строки
+    
+    Note over R: Результат: maxLen = 3 (подстрока "abc")
 </code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Строка</th><th>left</th><th>right</th><th>Окно</th><th>chars</th><th>len</th><th>maxLen</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>“abcabcbb”</td><td>0</td><td>0</td><td>“a”</td><td>{a}</td><td>1</td><td>1</td><td>Расширение: добавить ‘a’</td></tr>
+<tr><td>2</td><td>“abcabcbb”</td><td>0</td><td>1</td><td>“ab”</td><td>{a,b}</td><td>2</td><td>2</td><td>Расширение: добавить ‘b’</td></tr>
+<tr><td>3</td><td>“abcabcbb”</td><td>0</td><td>2</td><td>“abc”</td><td>{a,b,c}</td><td>3</td><td>3</td><td>Расширение: добавить ‘c’</td></tr>
+<tr><td>4</td><td>“abcabcbb”</td><td>0</td><td>3</td><td>“abca”</td><td>{a,b,c,a}</td><td>-</td><td>3</td><td>Дубликат ‘a’! Сжатие: left=1</td></tr>
+<tr><td>5</td><td>“abcabcbb”</td><td>1</td><td>4</td><td>“bca”</td><td>{b,c,a}</td><td>3</td><td>3</td><td>Расширение: добавить ‘b’</td></tr>
+<tr><td>6</td><td>“abcabcbb”</td><td>1</td><td>4</td><td>“bcab”</td><td>{b,c,a,b}</td><td>-</td><td>3</td><td>Дубликат ‘b’! Сжатие: left=2</td></tr>
+<tr><td>7</td><td>“abcabcbb”</td><td>2</td><td>5</td><td>“cab”</td><td>{c,a,b}</td><td>3</td><td>3</td><td>Расширение: добавить ‘c’</td></tr>
+<tr><td>8</td><td>“abcabcbb”</td><td>2</td><td>5</td><td>“cabc”</td><td>{c,a,b,c}</td><td>-</td><td>3</td><td>Дубликат ‘c’! Сжатие: left=3</td></tr>
+<tr><td>9</td><td>“abcabcbb”</td><td>3</td><td>6</td><td>“abc”</td><td>{a,b,c}</td><td>3</td><td>3</td><td>Расширение: добавить ‘b’</td></tr>
+<tr><td>10</td><td>“abcabcbb”</td><td>3</td><td>6</td><td>“abcb”</td><td>{a,b,c,b}</td><td>-</td><td>3</td><td>Дубликат ‘b’! Сжатие: left=5</td></tr>
+<tr><td>11</td><td>“abcabcbb”</td><td>5</td><td>7</td><td>“cb”</td><td>{c,b}</td><td>2</td><td>3</td><td>Расширение: добавить ‘b’</td></tr>
+<tr><td>12</td><td>“abcabcbb”</td><td>5</td><td>7</td><td>“cbb”</td><td>{c,b,b}</td><td>-</td><td>3</td><td>Дубликат ‘b’! Сжатие: left=7</td></tr>
+<tr><td>13</td><td>“abcabcbb”</td><td>7</td><td>7</td><td>“b”</td><td>{b}</td><td>1</td><td>3</td><td>Конец строки</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> maxLen = 3 (подстрока “abc”)</p>
 <h3 id="переменное-окно-минимум-подстроки-содержащей-все-символы-из-t"><a class="header" href="#переменное-окно-минимум-подстроки-содержащей-все-символы-из-t">Переменное окно (минимум подстроки, содержащей все символы из t):</a></h3>
-<pre><code>s = "ADOBECODEBANC", t = "ABC"
-
-Шаг 1: [A D O B E C] O D E B A N C
-        ↑           ↑
-        left=0, right=5
-        Найдены все символы: A, B, C
-        Длина = 6, minLen = 6
-
-Шаг 2: A [D O B E C O] D E B A N C
-           ↑           ↑
-        left=1, right=6
-        Все еще содержит A, B, C
-        Длина = 6, minLen = 6
-
-Шаг 3: A D [O B E C O D] E B A N C
-             ↑           ↑
-        left=2, right=7
-        Все еще содержит A, B, C
-        Длина = 6, minLen = 6
-
-... продолжаем сжимать ...
-
-Шаг N: A D O B E C O D E B [A N C]
-                                ↑ ↑
-        left=10, right=12
-        Содержит A, C, но не B
-        Расширяем...
-
-Финальный результат: "BANC" (длина 4)
+<p>s = <code>"ADOBECODEBANC"</code>, t = <code>"ABC"</code></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant L as left
+    participant S as Строка s
+    participant T as Требуемые символы t
+    participant W as Окно
+    participant R as Результат
+    
+    Note over L,R: Инициализация: left=0, right=0
+    loop Расширение окна
+        S-&gt;&gt;W: Добавить s[right]
+        W-&gt;&gt;T: Проверить наличие всех символов
+        alt Все символы найдены
+            W-&gt;&gt;R: Обновить minLen
+            Note over L: Начать сжатие окна
+            loop Сжатие окна
+                L-&gt;&gt;W: Удалить s[left]
+                W-&gt;&gt;T: Проверить наличие всех символов
+                alt Все еще содержит все символы
+                    W-&gt;&gt;R: Обновить minLen
+                    L-&gt;&gt;L: left++
+                else Не содержит все символы
+                    Note over L: Остановить сжатие
+                end
+            end
+        end
+        S-&gt;&gt;S: right++
+    end
+    
+    Note over R: Результат: "BANC" (длина 4)
 </code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>left</th><th>right</th><th>Окно</th><th>Найдены символы</th><th>Длина</th><th>minLen</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>0</td><td>5</td><td>“ADOBEC”</td><td>A, B, C ✓</td><td>6</td><td>6</td><td>Расширение: найдены все символы</td></tr>
+<tr><td>2</td><td>1</td><td>5</td><td>“DOBEC”</td><td>A, B, C ✓</td><td>5</td><td>5</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>3</td><td>2</td><td>5</td><td>“OBEC”</td><td>B, C ✗</td><td>4</td><td>5</td><td>Сжатие: отсутствует A, остановка</td></tr>
+<tr><td>4</td><td>2</td><td>6</td><td>“OBECO”</td><td>B, C ✗</td><td>5</td><td>5</td><td>Расширение: все еще нет A</td></tr>
+<tr><td>5</td><td>2</td><td>7</td><td>“OBECOD”</td><td>B, C ✗</td><td>6</td><td>5</td><td>Расширение: все еще нет A</td></tr>
+<tr><td>6</td><td>2</td><td>8</td><td>“OBECODE”</td><td>B, C ✗</td><td>7</td><td>5</td><td>Расширение: все еще нет A</td></tr>
+<tr><td>7</td><td>2</td><td>9</td><td>“OBECODEB”</td><td>B, C ✗</td><td>8</td><td>5</td><td>Расширение: все еще нет A</td></tr>
+<tr><td>8</td><td>2</td><td>10</td><td>“OBECODEBA”</td><td>A, B, C ✓</td><td>9</td><td>5</td><td>Расширение: найдены все символы</td></tr>
+<tr><td>9</td><td>3</td><td>10</td><td>“BECODEBA”</td><td>A, B, C ✓</td><td>8</td><td>5</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>10</td><td>4</td><td>10</td><td>“ECODEBA”</td><td>A, B, C ✓</td><td>7</td><td>5</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>11</td><td>5</td><td>10</td><td>“CODEBA”</td><td>A, B, C ✓</td><td>6</td><td>5</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>12</td><td>6</td><td>10</td><td>“ODEBA”</td><td>A, B, C ✓</td><td>5</td><td>5</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>13</td><td>7</td><td>10</td><td>“DEBA”</td><td>A, B, C ✓</td><td>4</td><td>4</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>14</td><td>8</td><td>10</td><td>“EBA”</td><td>A, B ✗</td><td>3</td><td>4</td><td>Сжатие: отсутствует C, остановка</td></tr>
+<tr><td>15</td><td>8</td><td>11</td><td>“EBAN”</td><td>A, B ✗</td><td>4</td><td>4</td><td>Расширение: все еще нет C</td></tr>
+<tr><td>16</td><td>8</td><td>12</td><td>“EBANC”</td><td>A, B, C ✓</td><td>5</td><td>4</td><td>Расширение: найдены все символы</td></tr>
+<tr><td>17</td><td>9</td><td>12</td><td>“BANC”</td><td>A, B, C ✓</td><td>4</td><td>4</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>18</td><td>10</td><td>12</td><td>“ANC”</td><td>A, C ✗</td><td>3</td><td>4</td><td>Сжатие: отсутствует B, остановка</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Финальный результат:</strong> “BANC” (длина 4)</p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант скользящего окна</strong>: На каждом шаге i окно содержит элементы от <code>left</code> до <code>right</code> включительно, и все элементы внутри окна удовлетворяют условию задачи (или окно имеет фиксированный размер k).</p>

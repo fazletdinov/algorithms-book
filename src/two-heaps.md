@@ -133,31 +133,73 @@ func (mf *MedianFinder) FindMedian() float64 {
 
 ### Поддержание медианы:
 
+Поток данных: `[1, 5, 2, 3, 4]`
+
+**Структура двух куч:**
+
+```mermaid
+graph TD
+    subgraph maxHeap["Max Heap (меньшая половина)"]
+        M1[3]
+        M2[2]
+        M3[1]
+        M1 --> M2
+        M1 --> M3
+    end
+    
+    subgraph minHeap["Min Heap (большая половина)"]
+        N1[4]
+        N2[5]
+        N1 --> N2
+    end
+    
+    style M1 fill:#bfb,stroke:#333,stroke-width:2px
+    style N1 fill:#bbf,stroke:#333,stroke-width:2px
 ```
-Поток данных: [1, 5, 2, 3, 4]
 
-Шаг 1: Добавляем 1
-        max_heap: [1]          min_heap: []
-        Медиана: 1
+**Процесс добавления элементов:**
 
-Шаг 2: Добавляем 5
-        max_heap: [1]          min_heap: [5]
-        Медиана: (1 + 5) / 2 = 3
-
-Шаг 3: Добавляем 2
-        max_heap: [2, 1]       min_heap: [5]
-        Медиана: 2
-
-Шаг 4: Добавляем 3
-        max_heap: [2, 1]       min_heap: [3, 5]
-        Медиана: (2 + 3) / 2 = 2.5
-
-Шаг 5: Добавляем 4
-        max_heap: [2, 1]       min_heap: [3, 4, 5]
-        Балансируем: перемещаем 3 в max_heap
-        max_heap: [3, 2, 1]    min_heap: [4, 5]
-        Медиана: 3
+```mermaid
+sequenceDiagram
+    participant I as Входной элемент
+    participant M as Max Heap
+    participant N as Min Heap
+    participant R as Медиана
+    
+    loop Для каждого элемента
+        I->>M: Проверить: элемент <= maxHeap.peek()?
+        alt Да
+            M->>M: Добавить в maxHeap
+        else Нет
+            N->>N: Добавить в minHeap
+        end
+        
+        alt |maxHeap| > |minHeap| + 1
+            M->>N: Переместить вершину в minHeap
+        else |minHeap| > |maxHeap|
+            N->>M: Переместить вершину в maxHeap
+        end
+        
+        alt |maxHeap| == |minHeap|
+            M->>R: Медиана = (maxHeap.peek() + minHeap.peek()) / 2
+        else
+            M->>R: Медиана = maxHeap.peek()
+        end
+    end
 ```
+
+**Детальная таблица выполнения:**
+
+| Шаг | Элемент | maxHeap | minHeap | Размеры | Балансировка | Медиана |
+|-----|---------|---------|---------|---------|--------------|---------|
+| 1 | 1 | [1] | [] | 1:0 | - | 1 |
+| 2 | 5 | [1] | [5] | 1:1 | - | (1+5)/2 = 3 |
+| 3 | 2 | [2,1] | [5] | 2:1 | - | 2 |
+| 4 | 3 | [2,1] | [3,5] | 2:2 | - | (2+3)/2 = 2.5 |
+| 5 | 4 | [2,1] | [3,4,5] | 2:3 | Переместить 3 в maxHeap | 3 |
+| 5 (после балансировки) | - | [3,2,1] | [4,5] | 3:2 | - | 3 |
+
+**Результат:** Медиана после каждого шага поддерживается корректно
 
 ## Математическое обоснование
 

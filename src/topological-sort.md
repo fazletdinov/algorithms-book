@@ -136,39 +136,30 @@ func topologicalSort(numCourses int, prerequisites [][]int) []int {
 
 **Out-degree (исходящая степень)** — количество ребер, выходящих из вершины (от скольких вершин зависит эта вершина).
 
-**Визуализация:**
+**Визуализация графа зависимостей:**
 
+```mermaid
+graph TD
+    A[A<br/>in: 0<br/>out: 2] --> B[B<br/>in: 1<br/>out: 2]
+    A --> C[C<br/>in: 2<br/>out: 1]
+    B --> C
+    B --> D[D<br/>in: 2<br/>out: 0]
+    C --> D
+    
+    style A fill:#bfb,stroke:#333,stroke-width:3px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#fbb,stroke:#333,stroke-width:2px
+    style D fill:#fbf,stroke:#333,stroke-width:2px
 ```
-Граф зависимостей:
-A → B → D
-A → C → D
-B → C
 
-Визуализация in-degree и out-degree:
+**Таблица in-degree и out-degree:**
 
-    A (in: 0, out: 2)  ← нет входящих, 2 исходящих (к B и C)
-   / \
-  B   C (in: 2, out: 1)  ← 2 входящих (от A и B), 1 исходящий (к D)
-   \ /
-    D (in: 2, out: 0)  ← 2 входящих (от B и C), нет исходящих
-
-Подробный разбор:
-- Вершина A: 
-  - In-degree = 0 (нет входящих ребер)
-  - Out-degree = 2 (ребра A→B и A→C)
-  
-- Вершина B:
-  - In-degree = 1 (ребро A→B)
-  - Out-degree = 2 (ребра B→C и B→D)
-  
-- Вершина C:
-  - In-degree = 2 (ребра A→C и B→C)
-  - Out-degree = 1 (ребро C→D)
-  
-- Вершина D:
-  - In-degree = 2 (ребра B→D и C→D)
-  - Out-degree = 0 (нет исходящих ребер)
-```
+| Вершина | In-degree | Out-degree | Описание |
+|---------|-----------|------------|----------|
+| A | 0 | 2 | Нет входящих, 2 исходящих (A→B, A→C) |
+| B | 1 | 2 | 1 входящий (A→B), 2 исходящих (B→C, B→D) |
+| C | 2 | 1 | 2 входящих (A→C, B→C), 1 исходящий (C→D) |
+| D | 2 | 0 | 2 входящих (B→D, C→D), нет исходящих |
 
 **Почему in-degree важен для топологической сортировки?**
 
@@ -184,39 +175,60 @@ B → C
 
 ### Пример графа зависимостей:
 
+Задачи: A → B → D, A → C → D, B → C
+
+```mermaid
+graph TD
+    A[A] --> B[B]
+    A --> C[C]
+    B --> C
+    B --> D[D]
+    C --> D
+    
+    style A fill:#bfb,stroke:#333,stroke-width:3px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#fbb,stroke:#333,stroke-width:2px
+    style D fill:#fbf,stroke:#333,stroke-width:2px
 ```
-Задачи: A -> B -> D
-        A -> C -> D
-        B -> C
 
-Граф:
-    A
-   / \
-  B   C
-   \ /
-    D
+**Процесс алгоритма Кана:**
 
-In-degrees:
-A: 0, B: 1, C: 2, D: 2
-
-Шаг 1: Очередь = [A], Результат = []
-        Обрабатываем A: уменьшаем in-degree B и C
-        B: 0, C: 1, D: 2
-        Очередь = [B]
-
-Шаг 2: Обрабатываем B: уменьшаем in-degree C и D
-        C: 0, D: 1
-        Очередь = [C]
-
-Шаг 3: Обрабатываем C: уменьшаем in-degree D
-        D: 0
-        Очередь = [D]
-
-Шаг 4: Обрабатываем D
-        Очередь = []
-
-Результат: [A, B, C, D]
+```mermaid
+sequenceDiagram
+    participant Q as Очередь
+    participant G as Граф
+    participant I as In-degree
+    participant R as Результат
+    
+    Note over Q,R: Инициализация: очередь содержит вершины с in-degree=0
+    
+    loop Пока очередь не пуста
+        Q->>G: Извлечь вершину из очереди
+        G->>R: Добавить в результат
+        G->>I: Уменьшить in-degree соседей
+        alt in-degree соседа стал 0
+            I->>Q: Добавить соседа в очередь
+        end
+    end
+    
+    alt Все вершины обработаны
+        Note over R: Успех: топологический порядок найден
+    else Остались вершины
+        Note over R: Ошибка: цикл в графе
+    end
 ```
+
+**Детальная таблица выполнения:**
+
+| Шаг | Очередь (до обработки) | Обрабатываем | In-degree до | Уменьшаем in-degree | In-degree после | Очередь (после) | Результат |
+|-----|------------------------|--------------|--------------|---------------------|-----------------|----------------|-----------|
+| Инициализация | [A] | - | A:0, B:1, C:2, D:2 | - | - | [A] | [] |
+| 1 | [A] | A | B:1, C:2 | B--, C-- | B:0, C:1 | [B] | [A] |
+| 2 | [B] | B | C:1, D:2 | C--, D-- | C:0, D:1 | [C] | [A, B] |
+| 3 | [C] | C | D:1 | D-- | D:0 | [D] | [A, B, C] |
+| 4 | [D] | D | - | - | - | [] | [A, B, C, D] |
+
+**Результат:** [A, B, C, D]
 
 ## Математическое обоснование
 

@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dacd1ff1.js";
+            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -295,37 +295,33 @@ func topologicalSort(numCourses int, prerequisites [][]int) []int {
 <h3 id="что-такое-in-degree-и-out-degree"><a class="header" href="#что-такое-in-degree-и-out-degree">Что такое in-degree и out-degree?</a></h3>
 <p><strong>In-degree (входящая степень)</strong> — количество ребер, входящих в вершину (сколько вершин зависят от этой вершины как предшественника).</p>
 <p><strong>Out-degree (исходящая степень)</strong> — количество ребер, выходящих из вершины (от скольких вершин зависит эта вершина).</p>
-<p><strong>Визуализация:</strong></p>
-<pre><code>Граф зависимостей:
-A → B → D
-A → C → D
-B → C
-
-Визуализация in-degree и out-degree:
-
-    A (in: 0, out: 2)  ← нет входящих, 2 исходящих (к B и C)
-   / \
-  B   C (in: 2, out: 1)  ← 2 входящих (от A и B), 1 исходящий (к D)
-   \ /
-    D (in: 2, out: 0)  ← 2 входящих (от B и C), нет исходящих
-
-Подробный разбор:
-- Вершина A: 
-  - In-degree = 0 (нет входящих ребер)
-  - Out-degree = 2 (ребра A→B и A→C)
-  
-- Вершина B:
-  - In-degree = 1 (ребро A→B)
-  - Out-degree = 2 (ребра B→C и B→D)
-  
-- Вершина C:
-  - In-degree = 2 (ребра A→C и B→C)
-  - Out-degree = 1 (ребро C→D)
-  
-- Вершина D:
-  - In-degree = 2 (ребра B→D и C→D)
-  - Out-degree = 0 (нет исходящих ребер)
+<p><strong>Визуализация графа зависимостей:</strong></p>
+<pre><code class="language-mermaid">graph TD
+    A[A&lt;br/&gt;in: 0&lt;br/&gt;out: 2] --&gt; B[B&lt;br/&gt;in: 1&lt;br/&gt;out: 2]
+    A --&gt; C[C&lt;br/&gt;in: 2&lt;br/&gt;out: 1]
+    B --&gt; C
+    B --&gt; D[D&lt;br/&gt;in: 2&lt;br/&gt;out: 0]
+    C --&gt; D
+    
+    style A fill:#bfb,stroke:#333,stroke-width:3px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#fbb,stroke:#333,stroke-width:2px
+    style D fill:#fbf,stroke:#333,stroke-width:2px
 </code></pre>
+<p><strong>Таблица in-degree и out-degree:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Вершина</th><th>In-degree</th><th>Out-degree</th><th>Описание</th></tr>
+</thead>
+<tbody>
+<tr><td>A</td><td>0</td><td>2</td><td>Нет входящих, 2 исходящих (A→B, A→C)</td></tr>
+<tr><td>B</td><td>1</td><td>2</td><td>1 входящий (A→B), 2 исходящих (B→C, B→D)</td></tr>
+<tr><td>C</td><td>2</td><td>1</td><td>2 входящих (A→C, B→C), 1 исходящий (C→D)</td></tr>
+<tr><td>D</td><td>2</td><td>0</td><td>2 входящих (B→D, C→D), нет исходящих</td></tr>
+</tbody>
+</table>
+</div>
 <p><strong>Почему in-degree важен для топологической сортировки?</strong></p>
 <p>Вершины с in-degree = 0 не имеют зависимостей и могут быть обработаны первыми. После их обработки мы “удаляем” их из графа (уменьшаем in-degree соседних вершин), что может сделать другие вершины готовыми к обработке (их in-degree станет 0).</p>
 <h3 id="dfs-подход"><a class="header" href="#dfs-подход">DFS подход:</a></h3>
@@ -336,38 +332,59 @@ B → C
 </ol>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="пример-графа-зависимостей"><a class="header" href="#пример-графа-зависимостей">Пример графа зависимостей:</a></h3>
-<pre><code>Задачи: A -&gt; B -&gt; D
-        A -&gt; C -&gt; D
-        B -&gt; C
-
-Граф:
-    A
-   / \
-  B   C
-   \ /
-    D
-
-In-degrees:
-A: 0, B: 1, C: 2, D: 2
-
-Шаг 1: Очередь = [A], Результат = []
-        Обрабатываем A: уменьшаем in-degree B и C
-        B: 0, C: 1, D: 2
-        Очередь = [B]
-
-Шаг 2: Обрабатываем B: уменьшаем in-degree C и D
-        C: 0, D: 1
-        Очередь = [C]
-
-Шаг 3: Обрабатываем C: уменьшаем in-degree D
-        D: 0
-        Очередь = [D]
-
-Шаг 4: Обрабатываем D
-        Очередь = []
-
-Результат: [A, B, C, D]
+<p>Задачи: A → B → D, A → C → D, B → C</p>
+<pre><code class="language-mermaid">graph TD
+    A[A] --&gt; B[B]
+    A --&gt; C[C]
+    B --&gt; C
+    B --&gt; D[D]
+    C --&gt; D
+    
+    style A fill:#bfb,stroke:#333,stroke-width:3px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#fbb,stroke:#333,stroke-width:2px
+    style D fill:#fbf,stroke:#333,stroke-width:2px
 </code></pre>
+<p><strong>Процесс алгоритма Кана:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant Q as Очередь
+    participant G as Граф
+    participant I as In-degree
+    participant R as Результат
+    
+    Note over Q,R: Инициализация: очередь содержит вершины с in-degree=0
+    
+    loop Пока очередь не пуста
+        Q-&gt;&gt;G: Извлечь вершину из очереди
+        G-&gt;&gt;R: Добавить в результат
+        G-&gt;&gt;I: Уменьшить in-degree соседей
+        alt in-degree соседа стал 0
+            I-&gt;&gt;Q: Добавить соседа в очередь
+        end
+    end
+    
+    alt Все вершины обработаны
+        Note over R: Успех: топологический порядок найден
+    else Остались вершины
+        Note over R: Ошибка: цикл в графе
+    end
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Очередь (до обработки)</th><th>Обрабатываем</th><th>In-degree до</th><th>Уменьшаем in-degree</th><th>In-degree после</th><th>Очередь (после)</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>[A]</td><td>-</td><td>A:0, B:1, C:2, D:2</td><td>-</td><td>-</td><td>[A]</td><td>[]</td></tr>
+<tr><td>1</td><td>[A]</td><td>A</td><td>B:1, C:2</td><td>B–, C–</td><td>B:0, C:1</td><td>[B]</td><td>[A]</td></tr>
+<tr><td>2</td><td>[B]</td><td>B</td><td>C:1, D:2</td><td>C–, D–</td><td>C:0, D:1</td><td>[C]</td><td>[A, B]</td></tr>
+<tr><td>3</td><td>[C]</td><td>C</td><td>D:1</td><td>D–</td><td>D:0</td><td>[D]</td><td>[A, B, C]</td></tr>
+<tr><td>4</td><td>[D]</td><td>D</td><td>-</td><td>-</td><td>-</td><td>[]</td><td>[A, B, C, D]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> [A, B, C, D]</p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
 <p><strong>Теорема</strong>: В любом DAG существует хотя бы одна топологическая сортировка.</p>

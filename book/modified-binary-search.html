@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dacd1ff1.js";
+            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -272,30 +272,61 @@ func findFirstOccurrence(arr []int, target int) int {
 </ul>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="поиск-первого-вхождения"><a class="header" href="#поиск-первого-вхождения">Поиск первого вхождения:</a></h3>
-<pre><code>Массив: [1, 2, 2, 2, 3, 4, 5], target = 2
-
-Шаг 1: left=0, right=6, mid=3, arr[3]=2
-        [1, 2, 2, 2, 3, 4, 5]
-         ↑        ↑        ↑
-        left    mid     right
-        Найдено 2, но продолжаем влево для первого вхождения
-        right = mid - 1 = 2
-
-Шаг 2: left=0, right=2, mid=1, arr[1]=2
-        [1, 2, 2, 2, 3, 4, 5]
-         ↑  ↑  ↑
-        left mid right
-        Найдено 2, продолжаем влево
-        right = mid - 1 = 0
-
-Шаг 3: left=0, right=0, mid=0, arr[0]=1
-        [1, 2, 2, 2, 3, 4, 5]
-         ↑
-        left=right=mid
-        arr[0] != 2, left = mid + 1 = 1
-
-Результат: left = 1 (первое вхождение 2)
+<p>Массив: <code>[1, 2, 2, 2, 3, 4, 5]</code>, target = 2</p>
+<pre><code class="language-mermaid">graph LR
+    A["[0:6]&lt;br/&gt;Весь массив"] --&gt; B["[0:2]&lt;br/&gt;Левая половина"]
+    A --&gt; C["[3:6]&lt;br/&gt;Правая половина"]
+    B --&gt; D["[0:0]&lt;br/&gt;arr[0]=1 &lt; 2"]
+    B --&gt; E["[1:2]&lt;br/&gt;arr[1]=2 == 2"]
+    E --&gt; F["Результат: left=1"]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style E fill:#bfb,stroke:#333,stroke-width:2px
+    style F fill:#fbb,stroke:#333,stroke-width:3px
 </code></pre>
+<p><strong>Процесс поиска:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant L as left
+    participant M as mid
+    participant A as Массив
+    participant R as right
+    participant T as target
+    
+    Note over L,R: Инициализация: left=0, right=6
+    
+    loop Пока left &lt;= right
+        L-&gt;&gt;M: mid = (left + right) / 2
+        M-&gt;&gt;A: arr[mid]
+        alt arr[mid] == target
+            Note over R: Найдено! Продолжаем влево для первого вхождения
+            R-&gt;&gt;R: right = mid - 1
+        else arr[mid] &lt; target
+            Note over L: Ищем справа
+            L-&gt;&gt;L: left = mid + 1
+        else arr[mid] &gt; target
+            Note over R: Ищем слева
+            R-&gt;&gt;R: right = mid - 1
+        end
+    end
+    
+    Note over L: Результат: left = 1
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>left</th><th>right</th><th>mid</th><th>arr[mid]</th><th>Сравнение с target</th><th>Действие</th><th>Новый интервал</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>0</td><td>6</td><td>-</td><td>-</td><td>-</td><td>-</td><td>[0:6]</td></tr>
+<tr><td>1</td><td>0</td><td>6</td><td>3</td><td>2</td><td>== 2 ✓</td><td>Найдено, ищем первое вхождение</td><td>right = 2 → [0:2]</td></tr>
+<tr><td>2</td><td>0</td><td>2</td><td>1</td><td>2</td><td>== 2 ✓</td><td>Найдено, продолжаем влево</td><td>right = 0 → [0:0]</td></tr>
+<tr><td>3</td><td>0</td><td>0</td><td>0</td><td>1</td><td>&lt; 2</td><td>Ищем справа</td><td>left = 1 → [1:0] (завершение)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> left = 1 (первое вхождение 2)</p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант бинарного поиска</strong>: На каждом шаге интервал [left, right] содержит решение (если оно существует), и размер интервала уменьшается вдвое.</p>

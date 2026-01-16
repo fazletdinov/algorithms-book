@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dacd1ff1.js";
+            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -942,107 +942,152 @@ mdbook build
 </ul>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="фиксированное-окно-размера-k3-максимальная-сумма"><a class="header" href="#фиксированное-окно-размера-k3-максимальная-сумма">Фиксированное окно размера K=3 (максимальная сумма):</a></h3>
-<pre><code>Исходный массив: [1, 2, 3, 4, 5, 6], k = 3
-
-Инициализация:
-windowSum = 1 + 2 + 3 = 6
-maxSum = 6
-
-Шаг 1: [1, 2, 3] 4, 5, 6
-        ↑  ↑  ↑
-        left=0, right=2
-        windowSum = 6, maxSum = 6
-
-Шаг 2: 1 [2, 3, 4] 5, 6
-           ↑  ↑  ↑
-        left=1, right=3
-        windowSum = 6 - 1 + 4 = 9, maxSum = 9
-
-Шаг 3: 1, 2 [3, 4, 5] 6
-              ↑  ↑  ↑
-        left=2, right=4
-        windowSum = 9 - 2 + 5 = 12, maxSum = 12
-
-Шаг 4: 1, 2, 3 [4, 5, 6]
-                 ↑  ↑  ↑
-        left=3, right=5
-        windowSum = 12 - 3 + 6 = 15, maxSum = 15
-
-Результат: maxSum = 15
+<p>Исходный массив: <code>[1, 2, 3, 4, 5, 6]</code>, k = 3</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant A as Массив
+    participant W as Окно
+    participant R as Результат
+    
+    Note over A,R: Инициализация: windowSum = 1+2+3 = 6
+    A-&gt;&gt;W: Элементы [0:2] = [1,2,3]
+    W-&gt;&gt;R: windowSum = 6, maxSum = 6
+    
+    loop Для i от 3 до 5
+        A-&gt;&gt;W: Добавить arr[i]
+        A-&gt;&gt;W: Удалить arr[i-k]
+        W-&gt;&gt;W: Обновить windowSum
+        W-&gt;&gt;R: Обновить maxSum если нужно
+    end
+    
+    Note over R: Результат: maxSum = 15
 </code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Массив</th><th>Окно [left:right]</th><th>windowSum</th><th>maxSum</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>[1,2,3,4,5,6]</td><td>[0:2]</td><td>6</td><td>6</td><td>Вычисление суммы первого окна</td></tr>
+<tr><td>1</td><td>[1,2,3,4,5,6]</td><td>[0:2]</td><td>6</td><td>6</td><td>Окно: [1,2,3]</td></tr>
+<tr><td>2</td><td>[1,2,3,4,5,6]</td><td>[1:3]</td><td>9</td><td>9</td><td>Сдвиг: добавить 4, убрать 1</td></tr>
+<tr><td>3</td><td>[1,2,3,4,5,6]</td><td>[2:4]</td><td>12</td><td>12</td><td>Сдвиг: добавить 5, убрать 2</td></tr>
+<tr><td>4</td><td>[1,2,3,4,5,6]</td><td>[3:5]</td><td>15</td><td>15</td><td>Сдвиг: добавить 6, убрать 3</td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="переменное-окно-поиск-максимальной-подстроки-без-повторяющихся-символов"><a class="header" href="#переменное-окно-поиск-максимальной-подстроки-без-повторяющихся-символов">Переменное окно (поиск максимальной подстроки без повторяющихся символов):</a></h3>
-<pre><code>Строка: "abcabcbb"
-
-Шаг 1: [a] b c a b c b b
-        ↑  ↑
-        left=0, right=0, chars={a}, len=1, maxLen=1
-
-Шаг 2: [a b] c a b c b b
-        ↑     ↑
-        left=0, right=1, chars={a,b}, len=2, maxLen=2
-
-Шаг 3: [a b c] a b c b b
-        ↑        ↑
-        left=0, right=2, chars={a,b,c}, len=3, maxLen=3
-
-Шаг 4: [a b c a] b c b b  ← дубликат 'a'!
-        ↑         ↑
-        left=0, right=3, chars={a,b,c,a} - НЕДОПУСТИМО
-        Сжимаем: left=1, chars={b,c,a}, len=3, maxLen=3
-
-Шаг 5: a [b c a b] c b b  ← дубликат 'b'!
-             ↑     ↑
-        left=1, right=4, chars={b,c,a,b} - НЕДОПУСТИМО
-        Сжимаем: left=2, chars={c,a,b}, len=3, maxLen=3
-
-Шаг 6: a b [c a b c] b b  ← дубликат 'c'!
-              ↑       ↑
-        left=2, right=5, сжимаем до left=3
-        chars={a,b,c}, len=3, maxLen=3
-
-Шаг 7: a b c [a b c b] b  ← дубликат 'b'!
-                 ↑     ↑
-        left=3, right=6, сжимаем до left=5
-        chars={c,b}, len=2, maxLen=3
-
-Шаг 8: a b c a b [c b b]  ← дубликат 'b'!
-                    ↑   ↑
-        left=5, right=7, сжимаем до left=7
-        chars={b}, len=1, maxLen=3
-
-Результат: maxLen = 3 (подстрока "abc")
+<p>Строка: <code>"abcabcbb"</code></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant L as left
+    participant S as Строка
+    participant C as chars (Set)
+    participant R as Результат
+    
+    Note over L,R: Инициализация: left=0, right=0
+    S-&gt;&gt;C: Добавить 'a'
+    C-&gt;&gt;R: len=1, maxLen=1
+    
+    S-&gt;&gt;C: Добавить 'b'
+    C-&gt;&gt;R: len=2, maxLen=2
+    
+    S-&gt;&gt;C: Добавить 'c'
+    C-&gt;&gt;R: len=3, maxLen=3
+    
+    S-&gt;&gt;C: Добавить 'a' (дубликат!)
+    C-&gt;&gt;L: Сдвинуть left до индекса 'a'+1
+    L-&gt;&gt;C: Удалить символы до left
+    C-&gt;&gt;R: len=3, maxLen=3
+    
+    Note over S,R: Продолжаем до конца строки
+    
+    Note over R: Результат: maxLen = 3 (подстрока "abc")
 </code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Строка</th><th>left</th><th>right</th><th>Окно</th><th>chars</th><th>len</th><th>maxLen</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>“abcabcbb”</td><td>0</td><td>0</td><td>“a”</td><td>{a}</td><td>1</td><td>1</td><td>Расширение: добавить ‘a’</td></tr>
+<tr><td>2</td><td>“abcabcbb”</td><td>0</td><td>1</td><td>“ab”</td><td>{a,b}</td><td>2</td><td>2</td><td>Расширение: добавить ‘b’</td></tr>
+<tr><td>3</td><td>“abcabcbb”</td><td>0</td><td>2</td><td>“abc”</td><td>{a,b,c}</td><td>3</td><td>3</td><td>Расширение: добавить ‘c’</td></tr>
+<tr><td>4</td><td>“abcabcbb”</td><td>0</td><td>3</td><td>“abca”</td><td>{a,b,c,a}</td><td>-</td><td>3</td><td>Дубликат ‘a’! Сжатие: left=1</td></tr>
+<tr><td>5</td><td>“abcabcbb”</td><td>1</td><td>4</td><td>“bca”</td><td>{b,c,a}</td><td>3</td><td>3</td><td>Расширение: добавить ‘b’</td></tr>
+<tr><td>6</td><td>“abcabcbb”</td><td>1</td><td>4</td><td>“bcab”</td><td>{b,c,a,b}</td><td>-</td><td>3</td><td>Дубликат ‘b’! Сжатие: left=2</td></tr>
+<tr><td>7</td><td>“abcabcbb”</td><td>2</td><td>5</td><td>“cab”</td><td>{c,a,b}</td><td>3</td><td>3</td><td>Расширение: добавить ‘c’</td></tr>
+<tr><td>8</td><td>“abcabcbb”</td><td>2</td><td>5</td><td>“cabc”</td><td>{c,a,b,c}</td><td>-</td><td>3</td><td>Дубликат ‘c’! Сжатие: left=3</td></tr>
+<tr><td>9</td><td>“abcabcbb”</td><td>3</td><td>6</td><td>“abc”</td><td>{a,b,c}</td><td>3</td><td>3</td><td>Расширение: добавить ‘b’</td></tr>
+<tr><td>10</td><td>“abcabcbb”</td><td>3</td><td>6</td><td>“abcb”</td><td>{a,b,c,b}</td><td>-</td><td>3</td><td>Дубликат ‘b’! Сжатие: left=5</td></tr>
+<tr><td>11</td><td>“abcabcbb”</td><td>5</td><td>7</td><td>“cb”</td><td>{c,b}</td><td>2</td><td>3</td><td>Расширение: добавить ‘b’</td></tr>
+<tr><td>12</td><td>“abcabcbb”</td><td>5</td><td>7</td><td>“cbb”</td><td>{c,b,b}</td><td>-</td><td>3</td><td>Дубликат ‘b’! Сжатие: left=7</td></tr>
+<tr><td>13</td><td>“abcabcbb”</td><td>7</td><td>7</td><td>“b”</td><td>{b}</td><td>1</td><td>3</td><td>Конец строки</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> maxLen = 3 (подстрока “abc”)</p>
 <h3 id="переменное-окно-минимум-подстроки-содержащей-все-символы-из-t"><a class="header" href="#переменное-окно-минимум-подстроки-содержащей-все-символы-из-t">Переменное окно (минимум подстроки, содержащей все символы из t):</a></h3>
-<pre><code>s = "ADOBECODEBANC", t = "ABC"
-
-Шаг 1: [A D O B E C] O D E B A N C
-        ↑           ↑
-        left=0, right=5
-        Найдены все символы: A, B, C
-        Длина = 6, minLen = 6
-
-Шаг 2: A [D O B E C O] D E B A N C
-           ↑           ↑
-        left=1, right=6
-        Все еще содержит A, B, C
-        Длина = 6, minLen = 6
-
-Шаг 3: A D [O B E C O D] E B A N C
-             ↑           ↑
-        left=2, right=7
-        Все еще содержит A, B, C
-        Длина = 6, minLen = 6
-
-... продолжаем сжимать ...
-
-Шаг N: A D O B E C O D E B [A N C]
-                                ↑ ↑
-        left=10, right=12
-        Содержит A, C, но не B
-        Расширяем...
-
-Финальный результат: "BANC" (длина 4)
+<p>s = <code>"ADOBECODEBANC"</code>, t = <code>"ABC"</code></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant L as left
+    participant S as Строка s
+    participant T as Требуемые символы t
+    participant W as Окно
+    participant R as Результат
+    
+    Note over L,R: Инициализация: left=0, right=0
+    loop Расширение окна
+        S-&gt;&gt;W: Добавить s[right]
+        W-&gt;&gt;T: Проверить наличие всех символов
+        alt Все символы найдены
+            W-&gt;&gt;R: Обновить minLen
+            Note over L: Начать сжатие окна
+            loop Сжатие окна
+                L-&gt;&gt;W: Удалить s[left]
+                W-&gt;&gt;T: Проверить наличие всех символов
+                alt Все еще содержит все символы
+                    W-&gt;&gt;R: Обновить minLen
+                    L-&gt;&gt;L: left++
+                else Не содержит все символы
+                    Note over L: Остановить сжатие
+                end
+            end
+        end
+        S-&gt;&gt;S: right++
+    end
+    
+    Note over R: Результат: "BANC" (длина 4)
 </code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>left</th><th>right</th><th>Окно</th><th>Найдены символы</th><th>Длина</th><th>minLen</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>0</td><td>5</td><td>“ADOBEC”</td><td>A, B, C ✓</td><td>6</td><td>6</td><td>Расширение: найдены все символы</td></tr>
+<tr><td>2</td><td>1</td><td>5</td><td>“DOBEC”</td><td>A, B, C ✓</td><td>5</td><td>5</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>3</td><td>2</td><td>5</td><td>“OBEC”</td><td>B, C ✗</td><td>4</td><td>5</td><td>Сжатие: отсутствует A, остановка</td></tr>
+<tr><td>4</td><td>2</td><td>6</td><td>“OBECO”</td><td>B, C ✗</td><td>5</td><td>5</td><td>Расширение: все еще нет A</td></tr>
+<tr><td>5</td><td>2</td><td>7</td><td>“OBECOD”</td><td>B, C ✗</td><td>6</td><td>5</td><td>Расширение: все еще нет A</td></tr>
+<tr><td>6</td><td>2</td><td>8</td><td>“OBECODE”</td><td>B, C ✗</td><td>7</td><td>5</td><td>Расширение: все еще нет A</td></tr>
+<tr><td>7</td><td>2</td><td>9</td><td>“OBECODEB”</td><td>B, C ✗</td><td>8</td><td>5</td><td>Расширение: все еще нет A</td></tr>
+<tr><td>8</td><td>2</td><td>10</td><td>“OBECODEBA”</td><td>A, B, C ✓</td><td>9</td><td>5</td><td>Расширение: найдены все символы</td></tr>
+<tr><td>9</td><td>3</td><td>10</td><td>“BECODEBA”</td><td>A, B, C ✓</td><td>8</td><td>5</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>10</td><td>4</td><td>10</td><td>“ECODEBA”</td><td>A, B, C ✓</td><td>7</td><td>5</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>11</td><td>5</td><td>10</td><td>“CODEBA”</td><td>A, B, C ✓</td><td>6</td><td>5</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>12</td><td>6</td><td>10</td><td>“ODEBA”</td><td>A, B, C ✓</td><td>5</td><td>5</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>13</td><td>7</td><td>10</td><td>“DEBA”</td><td>A, B, C ✓</td><td>4</td><td>4</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>14</td><td>8</td><td>10</td><td>“EBA”</td><td>A, B ✗</td><td>3</td><td>4</td><td>Сжатие: отсутствует C, остановка</td></tr>
+<tr><td>15</td><td>8</td><td>11</td><td>“EBAN”</td><td>A, B ✗</td><td>4</td><td>4</td><td>Расширение: все еще нет C</td></tr>
+<tr><td>16</td><td>8</td><td>12</td><td>“EBANC”</td><td>A, B, C ✓</td><td>5</td><td>4</td><td>Расширение: найдены все символы</td></tr>
+<tr><td>17</td><td>9</td><td>12</td><td>“BANC”</td><td>A, B, C ✓</td><td>4</td><td>4</td><td>Сжатие: все еще содержит все</td></tr>
+<tr><td>18</td><td>10</td><td>12</td><td>“ANC”</td><td>A, C ✗</td><td>3</td><td>4</td><td>Сжатие: отсутствует B, остановка</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Финальный результат:</strong> “BANC” (длина 4)</p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант скользящего окна</strong>: На каждом шаге i окно содержит элементы от <code>left</code> до <code>right</code> включительно, и все элементы внутри окна удовлетворяют условию задачи (или окно имеет фиксированный размер k).</p>
@@ -4422,307 +4467,321 @@ func (tw *TemperatureWindow) Average() float64 {
 <p><strong>Применение</strong>: Удаление дубликатов, поиск подмассивов, слияние отсортированных массивов</p>
 <h2 id="визуализация-1"><a class="header" href="#визуализация-1">Визуализация</a></h2>
 <h3 id="поиск-пары-с-заданной-суммой-встречные-указатели"><a class="header" href="#поиск-пары-с-заданной-суммой-встречные-указатели">Поиск пары с заданной суммой (встречные указатели):</a></h3>
-<pre><code>Отсортированный массив: [1, 2, 3, 4, 5, 6], цель = 7
-
-Инициализация:
-left = 0, right = 5
-
-Шаг 1:  [1, 2, 3, 4, 5, 6]
-         ↑              ↑
-        left=0         right=5
-        sum = 1 + 6 = 7 ✓ (найдено!)
-        Можно вернуть (0, 5) или продолжить поиск всех пар
-
-Шаг 2:  [1, 2, 3, 4, 5, 6]
-         ↑           ↑
-        left=0      right=4
-        sum = 1 + 5 = 6 &lt; 7
-        Исключаем все пары (0, j) для j &lt; 4, так как они тоже &lt; 7
-        left++ → left=1
-
-Шаг 3:  [1, 2, 3, 4, 5, 6]
-            ↑        ↑
-           left=1    right=4
-           sum = 2 + 5 = 7 ✓ (найдено!)
-
-Шаг 4:  [1, 2, 3, 4, 5, 6]
-            ↑     ↑
-           left=1 right=3
-           sum = 2 + 4 = 6 &lt; 7
-           left++ → left=2
-
-Шаг 5:  [1, 2, 3, 4, 5, 6]
-               ↑  ↑
-           left=2 right=3
-           sum = 3 + 4 = 7 ✓ (найдено!)
-
-Шаг 6:  left=2, right=2 → left &gt;= right, завершение
-
-Результат: Найдены пары (0,5), (1,4), (2,3)
+<p>Отсортированный массив: <code>[1, 2, 3, 4, 5, 6]</code>, цель = 7</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant L as left
+    participant A as Массив
+    participant R as right
+    participant T as target
+    
+    Note over L,R: Инициализация: left=0, right=5
+    
+    loop Пока left &lt; right
+        L-&gt;&gt;A: arr[left]
+        R-&gt;&gt;A: arr[right]
+        A-&gt;&gt;A: sum = arr[left] + arr[right]
+        alt sum == target
+            A--&gt;&gt;T: Найдена пара! (left, right)
+            Note over L: left++ (продолжаем поиск)
+        else sum &lt; target
+            Note over L: Нужна большая сумма
+            L-&gt;&gt;L: left++
+        else sum &gt; target
+            Note over R: Нужна меньшая сумма
+            R-&gt;&gt;R: right--
+        end
+    end
+    
+    Note over T: Результат: пары (0,5), (1,4), (2,3)
 </code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>left</th><th>right</th><th>arr[left]</th><th>arr[right]</th><th>sum</th><th>Сравнение с target</th><th>Действие</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>0</td><td>5</td><td>1</td><td>6</td><td>-</td><td>-</td><td>Установка начальных позиций</td><td>-</td></tr>
+<tr><td>1</td><td>0</td><td>5</td><td>1</td><td>6</td><td>7</td><td>== 7 ✓</td><td>Найдена пара!</td><td>(0, 5)</td></tr>
+<tr><td>2</td><td>0</td><td>4</td><td>1</td><td>5</td><td>6</td><td>&lt; 7</td><td>left++</td><td>-</td></tr>
+<tr><td>3</td><td>1</td><td>4</td><td>2</td><td>5</td><td>7</td><td>== 7 ✓</td><td>Найдена пара!</td><td>(1, 4)</td></tr>
+<tr><td>4</td><td>1</td><td>3</td><td>2</td><td>4</td><td>6</td><td>&lt; 7</td><td>left++</td><td>-</td></tr>
+<tr><td>5</td><td>2</td><td>3</td><td>3</td><td>4</td><td>7</td><td>== 7 ✓</td><td>Найдена пара!</td><td>(2, 3)</td></tr>
+<tr><td>6</td><td>2</td><td>2</td><td>-</td><td>-</td><td>-</td><td>left &gt;= right</td><td>Завершение</td><td>-</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> Найдены пары (0,5), (1,4), (2,3)</p>
 <h3 id="контейнер-с-наибольшим-количеством-воды"><a class="header" href="#контейнер-с-наибольшим-количеством-воды">Контейнер с наибольшим количеством воды:</a></h3>
-<pre><code>Высоты: [1, 8, 6, 2, 5, 4, 8, 3, 7]
-
-Шаг 1:  [1, 8, 6, 2, 5, 4, 8, 3, 7]
-         ↑                        ↑
-        left=0                  right=8
-        height = min(1, 7) = 1
-        width = 8 - 0 = 8
-        area = 1 × 8 = 8
-        maxArea = 8
-        Так как height[left] &lt; height[right], left++
-
-Шаг 2:  [1, 8, 6, 2, 5, 4, 8, 3, 7]
-            ↑                    ↑
-           left=1               right=8
-           height = min(8, 7) = 7
-           width = 8 - 1 = 7
-           area = 7 × 7 = 49
-           maxArea = 49
-           Так как height[left] &gt; height[right], right--
-
-... продолжаем ...
-
-Финальный результат: maxArea = 49
+<p>Высоты: <code>[1, 8, 6, 2, 5, 4, 8, 3, 7]</code></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant L as left
+    participant H as Высоты
+    participant R as right
+    participant A as Площадь
+    
+    Note over L,R: Инициализация: left=0, right=8
+    
+    loop Пока left &lt; right
+        L-&gt;&gt;H: height[left]
+        R-&gt;&gt;H: height[right]
+        H-&gt;&gt;A: height = min(height[left], height[right])
+        H-&gt;&gt;A: width = right - left
+        A-&gt;&gt;A: area = height × width
+        A-&gt;&gt;A: Обновить maxArea
+        
+        alt height[left] &lt; height[right]
+            Note over L: Увеличиваем меньшую высоту
+            L-&gt;&gt;L: left++
+        else height[left] &gt;= height[right]
+            Note over R: Увеличиваем меньшую высоту
+            R-&gt;&gt;R: right--
+        end
+    end
+    
+    Note over A: Результат: maxArea = 49
 </code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>left</th><th>right</th><th>height[left]</th><th>height[right]</th><th>height</th><th>width</th><th>area</th><th>maxArea</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>0</td><td>8</td><td>1</td><td>7</td><td>1</td><td>8</td><td>8</td><td>8</td><td>height[left] &lt; height[right] → left++</td></tr>
+<tr><td>2</td><td>1</td><td>8</td><td>8</td><td>7</td><td>7</td><td>7</td><td>49</td><td>49</td><td>height[left] &gt; height[right] → right–</td></tr>
+<tr><td>3</td><td>1</td><td>7</td><td>8</td><td>3</td><td>3</td><td>6</td><td>18</td><td>49</td><td>height[left] &gt; height[right] → right–</td></tr>
+<tr><td>4</td><td>1</td><td>6</td><td>8</td><td>8</td><td>8</td><td>5</td><td>40</td><td>49</td><td>height[left] == height[right] → right–</td></tr>
+<tr><td>5</td><td>1</td><td>5</td><td>8</td><td>4</td><td>4</td><td>4</td><td>16</td><td>49</td><td>height[left] &gt; height[right] → right–</td></tr>
+<tr><td>6</td><td>1</td><td>4</td><td>8</td><td>5</td><td>5</td><td>3</td><td>15</td><td>49</td><td>height[left] &gt; height[right] → right–</td></tr>
+<tr><td>7</td><td>1</td><td>3</td><td>8</td><td>2</td><td>2</td><td>2</td><td>4</td><td>49</td><td>height[left] &gt; height[right] → right–</td></tr>
+<tr><td>8</td><td>1</td><td>2</td><td>8</td><td>6</td><td>6</td><td>1</td><td>6</td><td>49</td><td>height[left] &gt; height[right] → right–</td></tr>
+<tr><td>9</td><td>1</td><td>1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>49</td><td>left &gt;= right → завершение</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Финальный результат:</strong> maxArea = 49</p>
 <h3 id="удаление-дубликатов-указатели-в-одном-направлении"><a class="header" href="#удаление-дубликатов-указатели-в-одном-направлении">Удаление дубликатов (указатели в одном направлении):</a></h3>
-<pre><code>Массив: [1, 1, 2, 2, 3, 4, 4, 5]
-
-Инвариант: arr[0..slow] содержит уникальные элементы в отсортированном порядке
-
-Шаг 1:  [1, 1, 2, 2, 3, 4, 4, 5]
-         ↑  ↑
-        slow=0 fast=1
-        arr[slow] == arr[fast] → fast++ (пропускаем дубликат)
-
-Шаг 2:  [1, 1, 2, 2, 3, 4, 4, 5]
-         ↑     ↑
-        slow=0 fast=2
-        arr[slow] != arr[fast] → arr[++slow] = arr[fast]
-        Результат: [1, 2, 2, 2, 3, 4, 4, 5]
-                   ↑  ↑
-                  slow=1
-
-Шаг 3:  [1, 2, 2, 2, 3, 4, 4, 5]
-            ↑     ↑
-           slow=1 fast=3
-           arr[slow] == arr[fast] → fast++
-
-Шаг 4:  [1, 2, 2, 2, 3, 4, 4, 5]
-            ↑        ↑
-           slow=1    fast=4
-           arr[slow] != arr[fast] → arr[++slow] = arr[fast]
-           Результат: [1, 2, 3, 2, 3, 4, 4, 5]
-                      ↑     ↑
-                     slow=2
-
-... продолжаем до конца ...
-
-Финальный результат: [1, 2, 3, 4, 5] (первые 5 элементов)
+<p>Массив: <code>[1, 1, 2, 2, 3, 4, 4, 5]</code></p>
+<p><strong>Инвариант:</strong> <code>arr[0..slow]</code> содержит уникальные элементы в отсортированном порядке</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant S as slow
+    participant A as Массив
+    participant F as fast
+    
+    Note over S,F: Инициализация: slow=0, fast=1
+    
+    loop Пока fast &lt; len(arr)
+        S-&gt;&gt;A: arr[slow]
+        F-&gt;&gt;A: arr[fast]
+        alt arr[slow] == arr[fast]
+            Note over F: Дубликат, пропускаем
+            F-&gt;&gt;F: fast++
+        else arr[slow] != arr[fast]
+            Note over S: Новый уникальный элемент
+            S-&gt;&gt;S: slow++
+            A-&gt;&gt;A: arr[slow] = arr[fast]
+            F-&gt;&gt;F: fast++
+        end
+    end
+    
+    Note over A: Результат: arr[0..slow] содержит уникальные элементы
 </code></pre>
-<h3 id="захват-дождевой-воды-встречные-указатели-с-максимумами"><a class="header" href="#захват-дождевой-воды-встречные-указатели-с-максимумами">Захват дождевой воды (встречные указатели с максимумами):</a></h3>
-<pre><code>Высоты: [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>slow</th><th>fast</th><th>arr[slow]</th><th>arr[fast]</th><th>Сравнение</th><th>Массив</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>0</td><td>1</td><td>1</td><td>1</td><td>-</td><td>[1,1,2,2,3,4,4,5]</td><td>-</td></tr>
+<tr><td>1</td><td>0</td><td>1</td><td>1</td><td>1</td><td>==</td><td>[1,1,2,2,3,4,4,5]</td><td>Дубликат → fast++</td></tr>
+<tr><td>2</td><td>0</td><td>2</td><td>1</td><td>2</td><td>!=</td><td>[1,2,2,2,3,4,4,5]</td><td>slow++, arr[slow]=arr[fast], fast++</td></tr>
+<tr><td>3</td><td>1</td><td>3</td><td>2</td><td>2</td><td>==</td><td>[1,2,2,2,3,4,4,5]</td><td>Дубликат → fast++</td></tr>
+<tr><td>4</td><td>1</td><td>4</td><td>2</td><td>3</td><td>!=</td><td>[1,2,3,2,3,4,4,5]</td><td>slow++, arr[slow]=arr[fast], fast++</td></tr>
+<tr><td>5</td><td>2</td><td>5</td><td>3</td><td>4</td><td>!=</td><td>[1,2,3,4,4,4,4,5]</td><td>slow++, arr[slow]=arr[fast], fast++</td></tr>
+<tr><td>6</td><td>3</td><td>6</td><td>4</td><td>4</td><td>==</td><td>[1,2,3,4,4,4,4,5]</td><td>Дубликат → fast++</td></tr>
+<tr><td>7</td><td>3</td><td>7</td><td>4</td><td>5</td><td>!=</td><td>[1,2,3,4,5,4,4,5]</td><td>slow++, arr[slow]=arr[fast], fast++</td></tr>
+<tr><td>8</td><td>4</td><td>8</td><td>5</td><td>-</td><td>-</td><td>[1,2,3,4,5,4,4,5]</td><td>fast &gt;= len → завершение</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> <code>arr[0..slow] = [1, 2, 3, 4, 5]</code> содержит 5 уникальных элементов
+arr[slow] != arr[fast] → arr[++slow] = arr[fast]
+Результат: [1, 2, 3, 2, 3, 4, 4, 5]
+↑     ↑
+slow=2</p>
+<p>… продолжаем до конца …</p>
+<p>Финальный результат: [1, 2, 3, 4, 5] (первые 5 элементов)</p>
+<pre><code>
+### Захват дождевой воды (встречные указатели с максимумами):
 
-leftMax = 0, rightMax = 0
+</code></pre>
+<p>Высоты: [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]</p>
+<p>leftMax = 0, rightMax = 0
 left = 0, right = 11
-water = 0
+water = 0</p>
+<p>Шаг 1:  left=0, right=11
+height[left]=0 &lt; height[right]=1
+Так как height[left] &lt; height[right]:
+leftMax = max(0, 0) = 0
+water += max(0, 0 - 0) = 0
+left++</p>
+<p>Шаг 2:  left=1, right=11
+height[left]=1 &lt; height[right]=1
+leftMax = max(0, 1) = 1
+water += max(0, 1 - 1) = 0
+left++</p>
+<p>Шаг 3:  left=2, right=11
+height[left]=0 &lt; height[right]=1
+leftMax = 1
+water += max(0, 1 - 0) = 1
+left++</p>
+<p>… продолжаем …</p>
+<p>Финальный результат: water = 6</p>
+<pre><code>
+## Математическое обоснование
 
-Шаг 1:  left=0, right=11
-        height[left]=0 &lt; height[right]=1
-        Так как height[left] &lt; height[right]:
-          leftMax = max(0, 0) = 0
-          water += max(0, 0 - 0) = 0
-          left++
+### Почему алгоритм работает?
 
-Шаг 2:  left=1, right=11
-        height[left]=1 &lt; height[right]=1
-        leftMax = max(0, 1) = 1
-        water += max(0, 1 - 1) = 0
-        left++
+**Ключевой инвариант**: На каждом шаге мы исключаем из рассмотрения все пары, которые заведомо не могут быть решением.
 
-Шаг 3:  left=2, right=11
-        height[left]=0 &lt; height[right]=1
-        leftMax = 1
-        water += max(0, 1 - 0) = 1
-        left++
+**Доказательство корректности для встречных указателей**:
 
-... продолжаем ...
+Предположим, массив отсортирован: `arr[0] ≤ arr[1] ≤ ... ≤ arr[n-1]`
 
-Финальный результат: water = 6
+**Лемма 1**: Если `arr[left] + arr[right] &lt; target`, то для любого `right' &lt; right`:
 </code></pre>
-<h2 id="математическое-обоснование-1"><a class="header" href="#математическое-обоснование-1">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает-1"><a class="header" href="#почему-алгоритм-работает-1">Почему алгоритм работает?</a></h3>
-<p><strong>Ключевой инвариант</strong>: На каждом шаге мы исключаем из рассмотрения все пары, которые заведомо не могут быть решением.</p>
-<p><strong>Доказательство корректности для встречных указателей</strong>:</p>
-<p>Предположим, массив отсортирован: <code>arr[0] ≤ arr[1] ≤ ... ≤ arr[n-1]</code></p>
-<p><strong>Лемма 1</strong>: Если <code>arr[left] + arr[right] &lt; target</code>, то для любого <code>right' &lt; right</code>:</p>
-<pre><code>arr[left] + arr[right'] ≤ arr[left] + arr[right] &lt; target
+<p>arr[left] + arr[right’] ≤ arr[left] + arr[right] &lt; target</p>
+<pre><code>Следовательно, все пары `(left, right'), right' &lt; right` также не подходят, и мы можем безопасно увеличить `left`.
+
+**Лемма 2**: Если `arr[left] + arr[right] &gt; target`, то для любого `left' &gt; left`:
 </code></pre>
-<p>Следовательно, все пары <code>(left, right'), right' &lt; right</code> также не подходят, и мы можем безопасно увеличить <code>left</code>.</p>
-<p><strong>Лемма 2</strong>: Если <code>arr[left] + arr[right] &gt; target</code>, то для любого <code>left' &gt; left</code>:</p>
-<pre><code>arr[left'] + arr[right] ≥ arr[left] + arr[right] &gt; target
-</code></pre>
-<p>Следовательно, все пары <code>(left', right), left' &gt; left</code> также не подходят, и мы можем безопасно уменьшить <code>right</code>.</p>
-<p><strong>Теорема</strong>: Алгоритм проверяет все возможные пары и находит решение, если оно существует.</p>
-<p><strong>Доказательство</strong>:</p>
-<ul>
-<li>Начальное состояние: <code>left = 0, right = n-1</code> покрывает все возможные пары</li>
-<li>На каждом шаге мы исключаем только те пары, которые заведомо не подходят (по леммам)</li>
-<li>Когда <code>left &gt;= right</code>, все пары проверены</li>
-<li>Если решение существует, оно будет найдено до завершения цикла</li>
-</ul>
-<h3 id="почему-сложность-on"><a class="header" href="#почему-сложность-on">Почему сложность O(n)?</a></h3>
-<p><strong>Инвариант сложности</strong>: Каждый элемент массива посещается каждым указателем максимум один раз.</p>
-<ul>
-<li><code>left</code> начинается с 0 и может только увеличиваться → максимум n шагов</li>
-<li><code>right</code> начинается с n-1 и может только уменьшаться → максимум n шагов</li>
-<li>На каждой итерации хотя бы один указатель перемещается</li>
-<li>Всего максимум 2n шагов = O(n)</li>
-</ul>
-<h2 id="временная-и-пространственная-сложность-1"><a class="header" href="#временная-и-пространственная-сложность-1">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-1"><a class="header" href="#детальный-анализ-1">Детальный анализ:</a></h3>
-<p><strong>Встречные указатели</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li>Каждый элемент посещается каждым указателем максимум один раз</li>
-<li>Всего максимум n итераций (когда указатели встречаются)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(1)
-<ul>
-<li>Используем только константное количество переменных</li>
-</ul>
-</li>
-</ul>
-<p><strong>Указатели в одном направлении</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li><code>fast</code> проходит весь массив один раз: O(n)</li>
-<li><code>slow</code> также проходит максимум n элементов: O(n)</li>
-<li>Итого: O(n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(1)
-<ul>
-<li>Только переменные для указателей</li>
-</ul>
-</li>
-</ul>
-<p><strong>Быстрый и медленный</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)</li>
-</ul>
-<h3 id="амортизированная-сложность-1"><a class="header" href="#амортизированная-сложность-1">Амортизированная сложность</a></h3>
-<p><strong>Амортизированный анализ</strong> для двух указателей:</p>
-<h4 id="встречные-указатели"><a class="header" href="#встречные-указатели">Встречные указатели:</a></h4>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(1) на элемент
-<ul>
-<li>Каждый элемент посещается максимум один раз каждым указателем</li>
-<li>Амортизированная стоимость: O(2n) / n = O(1) на элемент</li>
-</ul>
-</li>
-</ul>
-<h4 id="указатели-в-одном-направлении"><a class="header" href="#указатели-в-одном-направлении">Указатели в одном направлении:</a></h4>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(1) на элемент
-<ul>
-<li><code>fast</code> проходит каждый элемент один раз: O(1) на элемент</li>
-<li><code>slow</code> проходит подмножество элементов: O(1) на элемент в среднем</li>
-</ul>
-</li>
-</ul>
-<h3 id="worstaveragebest-case-анализ-1"><a class="header" href="#worstaveragebest-case-анализ-1">Worst/Average/Best Case анализ</a></h3>
-<h4 id="встречные-указатели-1"><a class="header" href="#встречные-указатели-1">Встречные указатели:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(1)</td><td>Пара найдена сразу (первые два элемента)</td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(n)</td><td>Пара найдена в середине массива</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(n)</td><td>Пара не найдена или найдена в конце</td></tr>
-</tbody>
-</table>
-</div>
-<h4 id="указатели-в-одном-направлении-1"><a class="header" href="#указатели-в-одном-направлении-1">Указатели в одном направлении:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(n)</td><td>Все элементы уникальны, <code>slow</code> движется вместе с <code>fast</code></td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(n)</td><td>Некоторые дубликаты, <code>slow</code> периодически отстает</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(n)</td><td>Все элементы одинаковые, <code>slow</code> остается на месте</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Примечание</strong>: Для двух указателей все случаи имеют O(n), так как алгоритм всегда проходит по массиву один раз.</p>
-<h3 id="таблица-сравнения-сложностей-1"><a class="header" href="#таблица-сравнения-сложностей-1">Таблица сравнения сложностей</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Алгоритм</th><th>Время (Worst)</th><th>Время (Average)</th><th>Время (Best)</th><th>Память</th><th>Амортизированное время</th></tr>
-</thead>
-<tbody>
-<tr><td>Встречные указатели</td><td>O(n)</td><td>O(n)</td><td>O(1)</td><td>O(1)</td><td>O(1) на элемент</td></tr>
-<tr><td>Одно направление</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(1)</td><td>O(1) на элемент</td></tr>
-<tr><td>Хеш-таблица (альтернатива)</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(1) на элемент</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Быстрый и медленный</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li>Быстрый указатель проходит максимум n элементов</li>
-<li>Медленный проходит максимум n/2 элементов</li>
-<li>Итого: O(n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(1)</li>
-</ul>
-<h3 id="сравнение-с-наивным-подходом-2"><a class="header" href="#сравнение-с-наивным-подходом-2">Сравнение с наивным подходом:</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Подход</th><th>Временная сложность</th><th>Пространственная сложность</th></tr>
-</thead>
-<tbody>
-<tr><td>Наивный (все пары)</td><td>O(n²)</td><td>O(1)</td></tr>
-<tr><td>Два указателя</td><td>O(n)</td><td>O(1)</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Выигрыш</strong>: O(n²) → O(n) — квадратичное улучшение!</p>
-<h2 id="примеры-задач-на-leetcode-1"><a class="header" href="#примеры-задач-на-leetcode-1">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие-1"><a class="header" href="#легкие-1">Легкие:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/">Two Sum II - Input array is sorted</a> - Две суммы в отсортированном массиве</li>
-<li><a href="https://leetcode.com/problems/valid-palindrome/">Valid Palindrome</a> - Валидный палиндром</li>
-<li><a href="https://leetcode.com/problems/remove-duplicates-from-sorted-array/">Remove Duplicates from Sorted Array</a> - Удаление дубликатов из отсортированного массива</li>
-</ul>
-<h3 id="средние-1"><a class="header" href="#средние-1">Средние:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/3sum/">3Sum</a> - Три суммы</li>
-<li><a href="https://leetcode.com/problems/container-with-most-water/">Container With Most Water</a> - Контейнер с наибольшим количеством воды</li>
-<li><a href="https://leetcode.com/problems/trapping-rain-water/">Trapping Rain Water</a> - Захват дождевой воды</li>
-<li><a href="https://leetcode.com/problems/squares-of-a-sorted-array/">Squares of a Sorted Array</a> - Квадраты отсортированного массива</li>
-</ul>
-<h3 id="сложные-1"><a class="header" href="#сложные-1">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/4sum/">4Sum</a> - Четыре суммы</li>
-<li><a href="https://leetcode.com/problems/3sum-closest/">3Sum Closest</a> - Ближайшая тройная сумма</li>
-<li><a href="https://leetcode.com/problems/partition-labels/">Partition Labels</a> - Разделение меток</li>
-</ul>
-<h2 id="сравнение-с-альтернативными-подходами-1"><a class="header" href="#сравнение-с-альтернативными-подходами-1">Сравнение с альтернативными подходами</a></h2>
-<h3 id="1-наивный-подход-перебор-всех-пар"><a class="header" href="#1-наивный-подход-перебор-всех-пар">1. Наивный подход (перебор всех пар):</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// O(n²) - проверяем все пары
+<p>arr[left’] + arr[right] ≥ arr[left] + arr[right] &gt; target</p>
+<pre><code>Следовательно, все пары `(left', right), left' &gt; left` также не подходят, и мы можем безопасно уменьшить `right`.
+
+**Теорема**: Алгоритм проверяет все возможные пары и находит решение, если оно существует.
+
+**Доказательство**: 
+- Начальное состояние: `left = 0, right = n-1` покрывает все возможные пары
+- На каждом шаге мы исключаем только те пары, которые заведомо не подходят (по леммам)
+- Когда `left &gt;= right`, все пары проверены
+- Если решение существует, оно будет найдено до завершения цикла
+
+### Почему сложность O(n)?
+
+**Инвариант сложности**: Каждый элемент массива посещается каждым указателем максимум один раз.
+
+- `left` начинается с 0 и может только увеличиваться → максимум n шагов
+- `right` начинается с n-1 и может только уменьшаться → максимум n шагов
+- На каждой итерации хотя бы один указатель перемещается
+- Всего максимум 2n шагов = O(n)
+
+## Временная и пространственная сложность
+
+### Детальный анализ:
+
+**Встречные указатели**:
+- **Временная сложность**: O(n)
+  - Каждый элемент посещается каждым указателем максимум один раз
+  - Всего максимум n итераций (когда указатели встречаются)
+- **Пространственная сложность**: O(1)
+  - Используем только константное количество переменных
+
+**Указатели в одном направлении**:
+- **Временная сложность**: O(n)
+  - `fast` проходит весь массив один раз: O(n)
+  - `slow` также проходит максимум n элементов: O(n)
+  - Итого: O(n)
+- **Пространственная сложность**: O(1)
+  - Только переменные для указателей
+
+**Быстрый и медленный**:
+- **Временная сложность**: O(n)
+
+### Амортизированная сложность
+
+**Амортизированный анализ** для двух указателей:
+
+#### Встречные указатели:
+- **Амортизированная временная сложность**: O(1) на элемент
+  - Каждый элемент посещается максимум один раз каждым указателем
+  - Амортизированная стоимость: O(2n) / n = O(1) на элемент
+
+#### Указатели в одном направлении:
+- **Амортизированная временная сложность**: O(1) на элемент
+  - `fast` проходит каждый элемент один раз: O(1) на элемент
+  - `slow` проходит подмножество элементов: O(1) на элемент в среднем
+
+### Worst/Average/Best Case анализ
+
+#### Встречные указатели:
+
+| Случай | Временная сложность | Описание |
+|--------|---------------------|-----------|
+| **Best Case** | O(1) | Пара найдена сразу (первые два элемента) |
+| **Average Case** | O(n) | Пара найдена в середине массива |
+| **Worst Case** | O(n) | Пара не найдена или найдена в конце |
+
+#### Указатели в одном направлении:
+
+| Случай | Временная сложность | Описание |
+|--------|---------------------|-----------|
+| **Best Case** | O(n) | Все элементы уникальны, `slow` движется вместе с `fast` |
+| **Average Case** | O(n) | Некоторые дубликаты, `slow` периодически отстает |
+| **Worst Case** | O(n) | Все элементы одинаковые, `slow` остается на месте |
+
+**Примечание**: Для двух указателей все случаи имеют O(n), так как алгоритм всегда проходит по массиву один раз.
+
+### Таблица сравнения сложностей
+
+| Алгоритм | Время (Worst) | Время (Average) | Время (Best) | Память | Амортизированное время |
+|----------|---------------|-----------------|--------------|--------|------------------------|
+| Встречные указатели | O(n) | O(n) | O(1) | O(1) | O(1) на элемент |
+| Одно направление | O(n) | O(n) | O(n) | O(1) | O(1) на элемент |
+| Хеш-таблица (альтернатива) | O(n) | O(n) | O(n) | O(n) | O(1) на элемент |
+
+**Быстрый и медленный**:
+- **Временная сложность**: O(n)
+  - Быстрый указатель проходит максимум n элементов
+  - Медленный проходит максимум n/2 элементов
+  - Итого: O(n)
+- **Пространственная сложность**: O(1)
+
+### Сравнение с наивным подходом:
+
+| Подход | Временная сложность | Пространственная сложность |
+|--------|---------------------|----------------------------|
+| Наивный (все пары) | O(n²) | O(1) |
+| Два указателя | O(n) | O(1) |
+
+**Выигрыш**: O(n²) → O(n) — квадратичное улучшение!
+
+## Примеры задач на LeetCode
+
+### Легкие:
+- [Two Sum II - Input array is sorted](https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/) - Две суммы в отсортированном массиве
+- [Valid Palindrome](https://leetcode.com/problems/valid-palindrome/) - Валидный палиндром
+- [Remove Duplicates from Sorted Array](https://leetcode.com/problems/remove-duplicates-from-sorted-array/) - Удаление дубликатов из отсортированного массива
+
+### Средние:
+- [3Sum](https://leetcode.com/problems/3sum/) - Три суммы
+- [Container With Most Water](https://leetcode.com/problems/container-with-most-water/) - Контейнер с наибольшим количеством воды
+- [Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) - Захват дождевой воды
+- [Squares of a Sorted Array](https://leetcode.com/problems/squares-of-a-sorted-array/) - Квадраты отсортированного массива
+
+### Сложные:
+- [4Sum](https://leetcode.com/problems/4sum/) - Четыре суммы
+- [3Sum Closest](https://leetcode.com/problems/3sum-closest/) - Ближайшая тройная сумма
+- [Partition Labels](https://leetcode.com/problems/partition-labels/) - Разделение меток
+
+## Сравнение с альтернативными подходами
+
+### 1. Наивный подход (перебор всех пар):
+
+**Go**:
+```go
+// O(n²) - проверяем все пары
 for i := 0; i &lt; n; i++ {
     for j := i + 1; j &lt; n; j++ {
         if arr[i] + arr[j] == target {
@@ -6004,7 +6063,7 @@ go test -bench=. -benchmem
 <li>Нулевые аллокации</li>
 <li>Оптимально для задач фильтрации</li>
 </ul>
-<h4 id="сравнение-с-альтернативными-подходами-1-1"><a class="header" href="#сравнение-с-альтернативными-подходами-1-1">Сравнение с альтернативными подходами:</a></h4>
+<h4 id="сравнение-с-альтернативными-подходами-1"><a class="header" href="#сравнение-с-альтернативными-подходами-1">Сравнение с альтернативными подходами:</a></h4>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -6875,49 +6934,96 @@ func detectCycle(head *ListNode) *ListNode {
 </ol>
 <h2 id="визуализация-2"><a class="header" href="#визуализация-2">Визуализация</a></h2>
 <h3 id="обнаружение-цикла"><a class="header" href="#обнаружение-цикла">Обнаружение цикла:</a></h3>
-<pre><code>Список с циклом: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; 3 (цикл)
-
-Шаг 1: slow=1, fast=1
-        S,F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-                    ↑________|
-
-Шаг 2: slow=2, fast=3
-           S     F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-                    ↑________|
-
-Шаг 3: slow=3, fast=5
-              S         F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-                    ↑________|
-
-Шаг 4: slow=4, fast=3
-                 S  F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-                    ↑________|
-
-Шаг 5: slow=5, fast=5 (встретились - цикл обнаружен!)
-                    S,F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-                    ↑________|
+<p>Список с циклом: 1 → 2 → 3 → 4 → 5 → 3 (цикл)</p>
+<pre><code class="language-mermaid">graph LR
+    A[1] --&gt; B[2]
+    B --&gt; C[3]
+    C --&gt; D[4]
+    D --&gt; E[5]
+    E --&gt; C
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#bbf,stroke:#333,stroke-width:3px
+    style E fill:#fbb,stroke:#333,stroke-width:2px
 </code></pre>
+<p><strong>Процесс обнаружения цикла:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant S as slow
+    participant L as Список
+    participant F as fast
+    
+    Note over S,F: Инициализация: slow=head, fast=head
+    
+    loop Пока fast != null и fast.next != null
+        S-&gt;&gt;L: slow = slow.next (1 шаг)
+        F-&gt;&gt;L: fast = fast.next.next (2 шага)
+        alt slow == fast
+            Note over S,F: Встретились! Цикл обнаружен
+            L--&gt;&gt;S: Вернуть true
+        end
+    end
+    
+    Note over L: Цикл не обнаружен
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>slow позиция</th><th>fast позиция</th><th>slow значение</th><th>fast значение</th><th>Состояние</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>1</td><td>1</td><td>1</td><td>1</td><td>Начало</td></tr>
+<tr><td>1</td><td>2</td><td>3</td><td>2</td><td>3</td><td>slow: 1 шаг, fast: 2 шага</td></tr>
+<tr><td>2</td><td>3</td><td>5</td><td>3</td><td>5</td><td>slow: 1 шаг, fast: 2 шага</td></tr>
+<tr><td>3</td><td>4</td><td>3</td><td>4</td><td>3</td><td>slow: 1 шаг, fast: 2 шага (в цикле)</td></tr>
+<tr><td>4</td><td>5</td><td>5</td><td>5</td><td>5</td><td>slow: 1 шаг, fast: 2 шага</td></tr>
+<tr><td>5</td><td>5</td><td>5</td><td>5</td><td>5</td><td><strong>Встретились! Цикл обнаружен</strong></td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="поиск-середины-списка-1"><a class="header" href="#поиск-середины-списка-1">Поиск середины списка:</a></h3>
-<pre><code>Список: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-
-Шаг 1: slow=1, fast=1
-        S,F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-
-Шаг 2: slow=2, fast=3
-           S     F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-
-Шаг 3: slow=3, fast=5 (fast достиг конца, slow в середине)
-              S         F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
+<p>Список: 1 → 2 → 3 → 4 → 5</p>
+<pre><code class="language-mermaid">graph LR
+    A[1] --&gt; B[2]
+    B --&gt; C[3]
+    C --&gt; D[4]
+    D --&gt; E[5]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#bfb,stroke:#333,stroke-width:3px
+    style E fill:#fbb,stroke:#333,stroke-width:2px
 </code></pre>
-<h2 id="математическое-обоснование-2"><a class="header" href="#математическое-обоснование-2">Математическое обоснование</a></h2>
+<p><strong>Процесс поиска середины:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant S as slow
+    participant L as Список
+    participant F as fast
+    
+    Note over S,F: Инициализация: slow=head, fast=head
+    
+    loop Пока fast != null и fast.next != null
+        S-&gt;&gt;L: slow = slow.next (1 шаг)
+        F-&gt;&gt;L: fast = fast.next.next (2 шага)
+    end
+    
+    Note over S: slow указывает на середину
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>slow позиция</th><th>fast позиция</th><th>slow значение</th><th>fast значение</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>1</td><td>1</td><td>1</td><td>1</td><td>Начало</td></tr>
+<tr><td>1</td><td>2</td><td>3</td><td>2</td><td>3</td><td>slow: 1 шаг, fast: 2 шага</td></tr>
+<tr><td>2</td><td>3</td><td>5</td><td>3</td><td>5</td><td>slow: 1 шаг, fast: 2 шага</td></tr>
+<tr><td>3</td><td>3</td><td>null</td><td>3</td><td>-</td><td>fast достиг конца, slow в середине</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> slow указывает на узел 3 (середина списка)</p>
+<h2 id="математическое-обоснование-1"><a class="header" href="#математическое-обоснование-1">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-обнаружения-цикла-работает"><a class="header" href="#почему-алгоритм-обнаружения-цикла-работает">Почему алгоритм обнаружения цикла работает?</a></h3>
 <p><strong>Теорема Флойда</strong>: Если в связанном списке есть цикл длины L, и мы начинаем с двух указателей в одной точке, где медленный указатель движется на 1 шаг, а быстрый на 2 шага, то они встретятся через максимум L шагов после входа в цикл.</p>
 <p><strong>Доказательство</strong>:</p>
@@ -6946,8 +7052,8 @@ func detectCycle(head *ListNode) *ListNode {
 <li>fast пройдет x шагов от точки встречи, что равно (k-1)L + z шагов</li>
 <li>Это приведет fast точно в начало цикла!</li>
 </ul>
-<h2 id="временная-и-пространственная-сложность-2"><a class="header" href="#временная-и-пространственная-сложность-2">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-2"><a class="header" href="#детальный-анализ-2">Детальный анализ:</a></h3>
+<h2 id="временная-и-пространственная-сложность-1"><a class="header" href="#временная-и-пространственная-сложность-1">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ-1"><a class="header" href="#детальный-анализ-1">Детальный анализ:</a></h3>
 <p><strong>Обнаружение цикла</strong>:</p>
 <ul>
 <li><strong>Временная сложность</strong>: O(n)
@@ -6981,7 +7087,7 @@ func detectCycle(head *ListNode) *ListNode {
 </ul>
 </li>
 </ul>
-<h3 id="амортизированная-сложность-2"><a class="header" href="#амортизированная-сложность-2">Амортизированная сложность</a></h3>
+<h3 id="амортизированная-сложность-1"><a class="header" href="#амортизированная-сложность-1">Амортизированная сложность</a></h3>
 <p><strong>Амортизированный анализ</strong> для быстрых и медленных указателей:</p>
 <h4 id="обнаружение-цикла-1"><a class="header" href="#обнаружение-цикла-1">Обнаружение цикла:</a></h4>
 <ul>
@@ -7001,7 +7107,7 @@ func detectCycle(head *ListNode) *ListNode {
 </ul>
 </li>
 </ul>
-<h3 id="worstaveragebest-case-анализ-2"><a class="header" href="#worstaveragebest-case-анализ-2">Worst/Average/Best Case анализ</a></h3>
+<h3 id="worstaveragebest-case-анализ-1"><a class="header" href="#worstaveragebest-case-анализ-1">Worst/Average/Best Case анализ</a></h3>
 <h4 id="обнаружение-цикла-2"><a class="header" href="#обнаружение-цикла-2">Обнаружение цикла:</a></h4>
 <div class="table-wrapper">
 <table>
@@ -7028,7 +7134,7 @@ func detectCycle(head *ListNode) *ListNode {
 </tbody>
 </table>
 </div>
-<h3 id="таблица-сравнения-сложностей-2"><a class="header" href="#таблица-сравнения-сложностей-2">Таблица сравнения сложностей</a></h3>
+<h3 id="таблица-сравнения-сложностей-1"><a class="header" href="#таблица-сравнения-сложностей-1">Таблица сравнения сложностей</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -7066,20 +7172,20 @@ func detectCycle(head *ListNode) *ListNode {
 </tbody>
 </table>
 </div>
-<h2 id="примеры-задач-на-leetcode-2"><a class="header" href="#примеры-задач-на-leetcode-2">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие-2"><a class="header" href="#легкие-2">Легкие:</a></h3>
+<h2 id="примеры-задач-на-leetcode-1"><a class="header" href="#примеры-задач-на-leetcode-1">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие-1"><a class="header" href="#легкие-1">Легкие:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/linked-list-cycle/">Linked List Cycle</a> - Цикл в связанном списке</li>
 <li><a href="https://leetcode.com/problems/middle-of-the-linked-list/">Middle of the Linked List</a> - Середина связанного списка</li>
 <li><a href="https://leetcode.com/problems/palindrome-linked-list/">Palindrome Linked List</a> - Палиндромный связанный список</li>
 </ul>
-<h3 id="средние-2"><a class="header" href="#средние-2">Средние:</a></h3>
+<h3 id="средние-1"><a class="header" href="#средние-1">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/linked-list-cycle-ii/">Linked List Cycle II</a> - Начало цикла в связанном списке</li>
 <li><a href="https://leetcode.com/problems/remove-nth-node-from-end-of-list/">Remove Nth Node From End of List</a> - Удаление N-го узла с конца</li>
 <li><a href="https://leetcode.com/problems/reorder-list/">Reorder List</a> - Переупорядочивание списка</li>
 </ul>
-<h3 id="сложные-2"><a class="header" href="#сложные-2">Сложные:</a></h3>
+<h3 id="сложные-1"><a class="header" href="#сложные-1">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/find-the-duplicate-number/">Find the Duplicate Number</a> - Поиск дубликата числа</li>
 <li><a href="https://leetcode.com/problems/sort-list/">Sort List</a> - Сортировка списка</li>
@@ -8003,7 +8109,7 @@ criterion_main!(benches);
 <li>Нулевые аллокации</li>
 <li>Оптимально для поиска середины</li>
 </ul>
-<h4 id="сравнение-с-альтернативными-подходами-1-2"><a class="header" href="#сравнение-с-альтернативными-подходами-1-2">Сравнение с альтернативными подходами:</a></h4>
+<h4 id="сравнение-с-альтернативными-подходами-1-1"><a class="header" href="#сравнение-с-альтернативными-подходами-1-1">Сравнение с альтернативными подходами:</a></h4>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -8913,33 +9019,65 @@ func max(a, b int) int {
 <p>При объединении: <code>[min(a, c), max(b, d)]</code></p>
 <h2 id="визуализация-3"><a class="header" href="#визуализация-3">Визуализация</a></h2>
 <h3 id="слияние-перекрывающихся-интервалов"><a class="header" href="#слияние-перекрывающихся-интервалов">Слияние перекрывающихся интервалов:</a></h3>
-<pre><code>Исходные интервалы: [[1,3], [2,6], [8,10], [15,18]]
-
-Шаг 1: Сортировка (уже отсортированы)
-        [1,3]  [2,6]  [8,10]  [15,18]
-
-Шаг 2: Результат = [[1,3]]
-        [1,3]  [2,6]  [8,10]  [15,18]
-        ^
-        Результат: [[1,3]]
-
-Шаг 3: [2,6] перекрывается с [1,3] → объединяем
-        [1,3]  [2,6]  [8,10]  [15,18]
-        [----] [----]
-        Результат: [[1,6]]
-
-Шаг 4: [8,10] не перекрывается → добавляем
-        [1,6]  [8,10]  [15,18]
-               ^
-        Результат: [[1,6], [8,10]]
-
-Шаг 5: [15,18] не перекрывается → добавляем
-        [1,6]  [8,10]  [15,18]
-                      ^
-        Результат: [[1,6], [8,10], [15,18]]
+<p>Исходные интервалы: <code>[[1,3], [2,6], [8,10], [15,18]]</code></p>
+<pre><code class="language-mermaid">gantt
+    title Временная шкала интервалов
+    dateFormat X
+    axisFormat %s
+    
+    section Исходные
+    [1,3]     :0, 3
+    [2,6]     :2, 6
+    [8,10]    :8, 10
+    [15,18]   :15, 18
+    
+    section Результат
+    [1,6]     :0, 6
+    [8,10]    :8, 10
+    [15,18]   :15, 18
 </code></pre>
-<h2 id="математическое-обоснование-3"><a class="header" href="#математическое-обоснование-3">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает-2"><a class="header" href="#почему-алгоритм-работает-2">Почему алгоритм работает?</a></h3>
+<p><strong>Процесс слияния:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant I as Интервалы
+    participant S as Сортировка
+    participant M as Слияние
+    participant R as Результат
+    
+    I-&gt;&gt;S: [[1,3], [2,6], [8,10], [15,18]]
+    S-&gt;&gt;S: Сортировка по началу
+    S-&gt;&gt;M: Отсортированные интервалы
+    
+    M-&gt;&gt;R: Добавить первый интервал [1,3]
+    
+    loop Для каждого следующего интервала
+        M-&gt;&gt;M: Проверить перекрытие с последним
+        alt Перекрывается
+            M-&gt;&gt;R: Объединить интервалы
+        else Не перекрывается
+            M-&gt;&gt;R: Добавить новый интервал
+        end
+    end
+    
+    Note over R: Результат: [[1,6], [8,10], [15,18]]
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Текущий интервал</th><th>Последний в результате</th><th>Перекрытие?</th><th>Действие</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>-</td><td>-</td><td>-</td><td>Сортировка по началу</td><td>[[1,3], [2,6], [8,10], [15,18]]</td></tr>
+<tr><td>1</td><td>[1,3]</td><td>-</td><td>-</td><td>Добавить первый</td><td>[[1,3]]</td></tr>
+<tr><td>2</td><td>[2,6]</td><td>[1,3]</td><td>Да (2 ≤ 3)</td><td>Объединить: [1, max(3,6)]</td><td>[[1,6]]</td></tr>
+<tr><td>3</td><td>[8,10]</td><td>[1,6]</td><td>Нет (8 &gt; 6)</td><td>Добавить новый</td><td>[[1,6], [8,10]]</td></tr>
+<tr><td>4</td><td>[15,18]</td><td>[8,10]</td><td>Нет (15 &gt; 10)</td><td>Добавить новый</td><td>[[1,6], [8,10], [15,18]]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> <code>[[1,6], [8,10], [15,18]]</code></p>
+<h2 id="математическое-обоснование-2"><a class="header" href="#математическое-обоснование-2">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает-1"><a class="header" href="#почему-алгоритм-работает-1">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: После обработки i интервалов, результирующий список содержит все объединенные интервалы из первых i интервалов, отсортированные по начальной точке и не перекрывающиеся.</p>
 <p><strong>Доказательство корректности</strong>:</p>
 <ol>
@@ -8955,8 +9093,8 @@ func max(a, b int) int {
 </ol>
 <p><strong>Почему достаточно проверять только последний интервал?</strong></p>
 <p>После сортировки, если интервал [a,b] не перекрывается с [c,d] (где c ≥ b), то он не может перекрываться ни с каким более ранним интервалом, так как все они заканчиваются не позже d, а a ≥ c ≥ b.</p>
-<h2 id="временная-и-пространственная-сложность-3"><a class="header" href="#временная-и-пространственная-сложность-3">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-3"><a class="header" href="#детальный-анализ-3">Детальный анализ:</a></h3>
+<h2 id="временная-и-пространственная-сложность-2"><a class="header" href="#временная-и-пространственная-сложность-2">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ-2"><a class="header" href="#детальный-анализ-2">Детальный анализ:</a></h3>
 <p><strong>Слияние интервалов</strong>:</p>
 <ul>
 <li><strong>Временная сложность</strong>: O(n log n)
@@ -8983,7 +9121,7 @@ func max(a, b int) int {
 </li>
 <li><strong>Пространственная сложность</strong>: O(n)</li>
 </ul>
-<h3 id="амортизированная-сложность-3"><a class="header" href="#амортизированная-сложность-3">Амортизированная сложность</a></h3>
+<h3 id="амортизированная-сложность-2"><a class="header" href="#амортизированная-сложность-2">Амортизированная сложность</a></h3>
 <p><strong>Амортизированный анализ</strong> для слияния интервалов:</p>
 <h4 id="слияние-интервалов"><a class="header" href="#слияние-интервалов">Слияние интервалов:</a></h4>
 <ul>
@@ -8995,7 +9133,7 @@ func max(a, b int) int {
 </ul>
 </li>
 </ul>
-<h3 id="worstaveragebest-case-анализ-3"><a class="header" href="#worstaveragebest-case-анализ-3">Worst/Average/Best Case анализ</a></h3>
+<h3 id="worstaveragebest-case-анализ-2"><a class="header" href="#worstaveragebest-case-анализ-2">Worst/Average/Best Case анализ</a></h3>
 <h4 id="слияние-интервалов-1"><a class="header" href="#слияние-интервалов-1">Слияние интервалов:</a></h4>
 <div class="table-wrapper">
 <table>
@@ -9023,7 +9161,7 @@ func max(a, b int) int {
 </tbody>
 </table>
 </div>
-<h3 id="таблица-сравнения-сложностей-3"><a class="header" href="#таблица-сравнения-сложностей-3">Таблица сравнения сложностей</a></h3>
+<h3 id="таблица-сравнения-сложностей-2"><a class="header" href="#таблица-сравнения-сложностей-2">Таблица сравнения сложностей</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -9036,7 +9174,7 @@ func max(a, b int) int {
 </table>
 </div>
 <p>*С бинарным поиском для позиции вставки</p>
-<h3 id="сравнение-с-наивным-подходом-3"><a class="header" href="#сравнение-с-наивным-подходом-3">Сравнение с наивным подходом:</a></h3>
+<h3 id="сравнение-с-наивным-подходом-2"><a class="header" href="#сравнение-с-наивным-подходом-2">Сравнение с наивным подходом:</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -9049,19 +9187,19 @@ func max(a, b int) int {
 </table>
 </div>
 <p><strong>Выигрыш</strong>: O(n²) → O(n log n) - значительное улучшение для больших n</p>
-<h2 id="примеры-задач-на-leetcode-3"><a class="header" href="#примеры-задач-на-leetcode-3">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие-3"><a class="header" href="#легкие-3">Легкие:</a></h3>
+<h2 id="примеры-задач-на-leetcode-2"><a class="header" href="#примеры-задач-на-leetcode-2">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие-2"><a class="header" href="#легкие-2">Легкие:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/merge-intervals/">Merge Intervals</a> - Слияние интервалов</li>
 <li><a href="https://leetcode.com/problems/insert-interval/">Insert Interval</a> - Вставка интервала</li>
 </ul>
-<h3 id="средние-3"><a class="header" href="#средние-3">Средние:</a></h3>
+<h3 id="средние-2"><a class="header" href="#средние-2">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/non-overlapping-intervals/">Non-overlapping Intervals</a> - Неперекрывающиеся интервалы</li>
 <li><a href="https://leetcode.com/problems/meeting-rooms-ii/">Meeting Rooms II</a> - Комнаты для встреч II</li>
 <li><a href="https://leetcode.com/problems/interval-list-intersections/">Interval List Intersections</a> - Пересечения интервалов</li>
 </ul>
-<h3 id="сложные-3"><a class="header" href="#сложные-3">Сложные:</a></h3>
+<h3 id="сложные-2"><a class="header" href="#сложные-2">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/employee-free-time/">Employee Free Time</a> - Свободное время сотрудников</li>
 <li><a href="https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/">Minimum Number of Arrows to Burst Balloons</a> - Минимальное количество стрел</li>
@@ -10779,30 +10917,51 @@ func mergeMeetings(meetings []Meeting) []Meeting {
 </ul>
 <h2 id="визуализация-4"><a class="header" href="#визуализация-4">Визуализация</a></h2>
 <h3 id="сортировка-массива-3-1-5-4-2"><a class="header" href="#сортировка-массива-3-1-5-4-2">Сортировка массива [3, 1, 5, 4, 2]:</a></h3>
-<pre><code>Исходный массив: [3, 1, 5, 4, 2]
-Индексы:         0  1  2  3  4
-
-Шаг 1: i=0, arr[0]=3
-       3 должен быть на позиции 2 (3-1)
-       Меняем arr[0] и arr[2]: [5, 1, 3, 4, 2]
-       5 должен быть на позиции 4 (5-1)
-       Меняем arr[0] и arr[4]: [2, 1, 3, 4, 5]
-       2 должен быть на позиции 1 (2-1)
-       Меняем arr[0] и arr[1]: [1, 2, 3, 4, 5]
-       1 на правильной позиции → i++
-
-Шаг 2: i=1, arr[1]=2 (уже на месте) → i++
-
-Шаг 3: i=2, arr[2]=3 (уже на месте) → i++
-
-Шаг 4: i=3, arr[3]=4 (уже на месте) → i++
-
-Шаг 5: i=4, arr[4]=5 (уже на месте) → завершение
-
-Результат: [1, 2, 3, 4, 5]
+<p>Исходный массив: <code>[3, 1, 5, 4, 2]</code> (диапазон [1, 5])</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant I as Индекс i
+    participant A as Массив
+    participant P as Правильная позиция
+    
+    Note over I,P: Инициализация: i=0
+    
+    loop Пока i &lt; len(arr)
+        I-&gt;&gt;A: arr[i]
+        A-&gt;&gt;P: correctPos = arr[i] - 1
+        alt arr[i] != arr[correctPos]
+            Note over A: Элемент не на месте
+            A-&gt;&gt;A: Поменять arr[i] и arr[correctPos]
+            Note over I: Продолжаем с тем же i
+        else arr[i] == arr[correctPos]
+            Note over I: Элемент на месте
+            I-&gt;&gt;I: i++
+        end
+    end
+    
+    Note over A: Результат: [1, 2, 3, 4, 5]
 </code></pre>
-<h2 id="математическое-обоснование-4"><a class="header" href="#математическое-обоснование-4">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает-3"><a class="header" href="#почему-алгоритм-работает-3">Почему алгоритм работает?</a></h3>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>i</th><th>arr[i]</th><th>Правильная позиция</th><th>arr[correctPos]</th><th>Сравнение</th><th>Массив</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>0</td><td>3</td><td>2</td><td>5</td><td>3 ≠ 5</td><td>[3,1,5,4,2]</td><td>Поменять arr[0] и arr[2]</td></tr>
+<tr><td>1</td><td>0</td><td>5</td><td>4</td><td>2</td><td>5 ≠ 2</td><td>[5,1,3,4,2]</td><td>Поменять arr[0] и arr[4]</td></tr>
+<tr><td>2</td><td>0</td><td>2</td><td>1</td><td>1</td><td>2 ≠ 1</td><td>[2,1,3,4,5]</td><td>Поменять arr[0] и arr[1]</td></tr>
+<tr><td>3</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1 == 1</td><td>[1,2,3,4,5]</td><td>На месте → i++</td></tr>
+<tr><td>4</td><td>1</td><td>2</td><td>1</td><td>2</td><td>2 == 2</td><td>[1,2,3,4,5]</td><td>На месте → i++</td></tr>
+<tr><td>5</td><td>2</td><td>3</td><td>2</td><td>3</td><td>3 == 3</td><td>[1,2,3,4,5]</td><td>На месте → i++</td></tr>
+<tr><td>6</td><td>3</td><td>4</td><td>3</td><td>4</td><td>4 == 4</td><td>[1,2,3,4,5]</td><td>На месте → i++</td></tr>
+<tr><td>7</td><td>4</td><td>5</td><td>4</td><td>5</td><td>5 == 5</td><td>[1,2,3,4,5]</td><td>На месте → i++</td></tr>
+<tr><td>8</td><td>5</td><td>-</td><td>-</td><td>-</td><td>-</td><td>[1,2,3,4,5]</td><td>i &gt;= len → завершение</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> [1, 2, 3, 4, 5]</p>
+<h2 id="математическое-обоснование-3"><a class="header" href="#математическое-обоснование-3">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает-2"><a class="header" href="#почему-алгоритм-работает-2">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: После обработки позиции i, все элементы на позициях [0..i-1] находятся на своих правильных позициях.</p>
 <p><strong>Доказательство корректности</strong>:</p>
 <ol>
@@ -10819,8 +10978,8 @@ func mergeMeetings(meetings []Meeting) []Meeting {
 </ol>
 <p><strong>Почему сложность O(n)?</strong></p>
 <p>Каждый элемент перемещается максимум один раз на свою правильную позицию. После размещения элемента на правильной позиции, он больше не перемещается. Всего n элементов → максимум n перестановок → O(n).</p>
-<h2 id="временная-и-пространственная-сложность-4"><a class="header" href="#временная-и-пространственная-сложность-4">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-4"><a class="header" href="#детальный-анализ-4">Детальный анализ:</a></h3>
+<h2 id="временная-и-пространственная-сложность-3"><a class="header" href="#временная-и-пространственная-сложность-3">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ-3"><a class="header" href="#детальный-анализ-3">Детальный анализ:</a></h3>
 <ul>
 <li><strong>Временная сложность</strong>: O(n)
 <ul>
@@ -10835,7 +10994,7 @@ func mergeMeetings(meetings []Meeting) []Meeting {
 </ul>
 </li>
 </ul>
-<h3 id="амортизированная-сложность-4"><a class="header" href="#амортизированная-сложность-4">Амортизированная сложность</a></h3>
+<h3 id="амортизированная-сложность-3"><a class="header" href="#амортизированная-сложность-3">Амортизированная сложность</a></h3>
 <p><strong>Амортизированный анализ</strong> для циклической сортировки:</p>
 <ul>
 <li><strong>Амортизированная временная сложность</strong>: O(1) на элемент
@@ -10845,7 +11004,7 @@ func mergeMeetings(meetings []Meeting) []Meeting {
 </ul>
 </li>
 </ul>
-<h3 id="worstaveragebest-case-анализ-4"><a class="header" href="#worstaveragebest-case-анализ-4">Worst/Average/Best Case анализ</a></h3>
+<h3 id="worstaveragebest-case-анализ-3"><a class="header" href="#worstaveragebest-case-анализ-3">Worst/Average/Best Case анализ</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -10860,7 +11019,7 @@ func mergeMeetings(meetings []Meeting) []Meeting {
 </div>
 <p><strong>Примечание</strong>: Cyclic Sort всегда имеет O(n), так как каждый элемент обрабатывается максимум один раз.</p>
 <p><strong>Пространственная сложность</strong>: Всегда O(1), так как сортировка на месте.</p>
-<h3 id="таблица-сравнения-сложностей-4"><a class="header" href="#таблица-сравнения-сложностей-4">Таблица сравнения сложностей</a></h3>
+<h3 id="таблица-сравнения-сложностей-3"><a class="header" href="#таблица-сравнения-сложностей-3">Таблица сравнения сложностей</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -11641,19 +11800,19 @@ fn cyclic_sort_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-4"><a class="header" href="#примеры-задач-на-leetcode-4">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие-4"><a class="header" href="#легкие-4">Легкие:</a></h3>
+<h2 id="примеры-задач-на-leetcode-3"><a class="header" href="#примеры-задач-на-leetcode-3">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие-3"><a class="header" href="#легкие-3">Легкие:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/missing-number/">Missing Number</a> - Отсутствующее число</li>
 <li><a href="https://leetcode.com/problems/find-all-numbers-disappeared-in-an-array/">Find All Numbers Disappeared in an Array</a> - Все исчезнувшие числа</li>
 </ul>
-<h3 id="средние-4"><a class="header" href="#средние-4">Средние:</a></h3>
+<h3 id="средние-3"><a class="header" href="#средние-3">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/find-the-duplicate-number/">Find the Duplicate Number</a> - Поиск дубликата числа</li>
 <li><a href="https://leetcode.com/problems/find-all-duplicates-in-an-array/">Find All Duplicates in an Array</a> - Все дубликаты в массиве</li>
 <li><a href="https://leetcode.com/problems/first-missing-positive/">First Missing Positive</a> - Первое отсутствующее положительное число</li>
 </ul>
-<h3 id="сложные-4"><a class="header" href="#сложные-4">Сложные:</a></h3>
+<h3 id="сложные-3"><a class="header" href="#сложные-3">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/tag/array/">Cyclic Sort Pattern</a> - Различные задачи с циклической сортировкой</li>
 </ul>
@@ -12409,32 +12568,63 @@ func findFirstOccurrence(arr []int, target int) int {
 </ul>
 <h2 id="визуализация-5"><a class="header" href="#визуализация-5">Визуализация</a></h2>
 <h3 id="поиск-первого-вхождения"><a class="header" href="#поиск-первого-вхождения">Поиск первого вхождения:</a></h3>
-<pre><code>Массив: [1, 2, 2, 2, 3, 4, 5], target = 2
-
-Шаг 1: left=0, right=6, mid=3, arr[3]=2
-        [1, 2, 2, 2, 3, 4, 5]
-         ↑        ↑        ↑
-        left    mid     right
-        Найдено 2, но продолжаем влево для первого вхождения
-        right = mid - 1 = 2
-
-Шаг 2: left=0, right=2, mid=1, arr[1]=2
-        [1, 2, 2, 2, 3, 4, 5]
-         ↑  ↑  ↑
-        left mid right
-        Найдено 2, продолжаем влево
-        right = mid - 1 = 0
-
-Шаг 3: left=0, right=0, mid=0, arr[0]=1
-        [1, 2, 2, 2, 3, 4, 5]
-         ↑
-        left=right=mid
-        arr[0] != 2, left = mid + 1 = 1
-
-Результат: left = 1 (первое вхождение 2)
+<p>Массив: <code>[1, 2, 2, 2, 3, 4, 5]</code>, target = 2</p>
+<pre><code class="language-mermaid">graph LR
+    A["[0:6]&lt;br/&gt;Весь массив"] --&gt; B["[0:2]&lt;br/&gt;Левая половина"]
+    A --&gt; C["[3:6]&lt;br/&gt;Правая половина"]
+    B --&gt; D["[0:0]&lt;br/&gt;arr[0]=1 &lt; 2"]
+    B --&gt; E["[1:2]&lt;br/&gt;arr[1]=2 == 2"]
+    E --&gt; F["Результат: left=1"]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style E fill:#bfb,stroke:#333,stroke-width:2px
+    style F fill:#fbb,stroke:#333,stroke-width:3px
 </code></pre>
-<h2 id="математическое-обоснование-5"><a class="header" href="#математическое-обоснование-5">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает-4"><a class="header" href="#почему-алгоритм-работает-4">Почему алгоритм работает?</a></h3>
+<p><strong>Процесс поиска:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant L as left
+    participant M as mid
+    participant A as Массив
+    participant R as right
+    participant T as target
+    
+    Note over L,R: Инициализация: left=0, right=6
+    
+    loop Пока left &lt;= right
+        L-&gt;&gt;M: mid = (left + right) / 2
+        M-&gt;&gt;A: arr[mid]
+        alt arr[mid] == target
+            Note over R: Найдено! Продолжаем влево для первого вхождения
+            R-&gt;&gt;R: right = mid - 1
+        else arr[mid] &lt; target
+            Note over L: Ищем справа
+            L-&gt;&gt;L: left = mid + 1
+        else arr[mid] &gt; target
+            Note over R: Ищем слева
+            R-&gt;&gt;R: right = mid - 1
+        end
+    end
+    
+    Note over L: Результат: left = 1
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>left</th><th>right</th><th>mid</th><th>arr[mid]</th><th>Сравнение с target</th><th>Действие</th><th>Новый интервал</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>0</td><td>6</td><td>-</td><td>-</td><td>-</td><td>-</td><td>[0:6]</td></tr>
+<tr><td>1</td><td>0</td><td>6</td><td>3</td><td>2</td><td>== 2 ✓</td><td>Найдено, ищем первое вхождение</td><td>right = 2 → [0:2]</td></tr>
+<tr><td>2</td><td>0</td><td>2</td><td>1</td><td>2</td><td>== 2 ✓</td><td>Найдено, продолжаем влево</td><td>right = 0 → [0:0]</td></tr>
+<tr><td>3</td><td>0</td><td>0</td><td>0</td><td>1</td><td>&lt; 2</td><td>Ищем справа</td><td>left = 1 → [1:0] (завершение)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> left = 1 (первое вхождение 2)</p>
+<h2 id="математическое-обоснование-4"><a class="header" href="#математическое-обоснование-4">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает-3"><a class="header" href="#почему-алгоритм-работает-3">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант бинарного поиска</strong>: На каждом шаге интервал [left, right] содержит решение (если оно существует), и размер интервала уменьшается вдвое.</p>
 <p><strong>Доказательство корректности</strong>:</p>
 <ol>
@@ -12450,8 +12640,8 @@ func findFirstOccurrence(arr []int, target int) int {
 </ol>
 <p><strong>Почему сложность O(log n)?</strong></p>
 <p>На каждом шаге размер интервала уменьшается вдвое. Максимальное количество шагов = log₂(n) → O(log n).</p>
-<h2 id="временная-и-пространственная-сложность-5"><a class="header" href="#временная-и-пространственная-сложность-5">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-5"><a class="header" href="#детальный-анализ-5">Детальный анализ:</a></h3>
+<h2 id="временная-и-пространственная-сложность-4"><a class="header" href="#временная-и-пространственная-сложность-4">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ-4"><a class="header" href="#детальный-анализ-4">Детальный анализ:</a></h3>
 <ul>
 <li><strong>Временная сложность</strong>: O(log n)
 <ul>
@@ -12467,7 +12657,7 @@ func findFirstOccurrence(arr []int, target int) int {
 </ul>
 </li>
 </ul>
-<h3 id="амортизированная-сложность-5"><a class="header" href="#амортизированная-сложность-5">Амортизированная сложность</a></h3>
+<h3 id="амортизированная-сложность-4"><a class="header" href="#амортизированная-сложность-4">Амортизированная сложность</a></h3>
 <p><strong>Амортизированный анализ</strong> для бинарного поиска:</p>
 <ul>
 <li><strong>Амортизированная временная сложность</strong>: O(log n) на запрос
@@ -12478,7 +12668,7 @@ func findFirstOccurrence(arr []int, target int) int {
 </li>
 </ul>
 <p><strong>Примечание</strong>: Для бинарного поиска амортизированная сложность совпадает с обычной, так как каждый запрос независим.</p>
-<h3 id="worstaveragebest-case-анализ-5"><a class="header" href="#worstaveragebest-case-анализ-5">Worst/Average/Best Case анализ</a></h3>
+<h3 id="worstaveragebest-case-анализ-4"><a class="header" href="#worstaveragebest-case-анализ-4">Worst/Average/Best Case анализ</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -12492,7 +12682,7 @@ func findFirstOccurrence(arr []int, target int) int {
 </table>
 </div>
 <p><strong>Пространственная сложность</strong>: Всегда O(1), так как используется только константная память.</p>
-<h3 id="таблица-сравнения-сложностей-5"><a class="header" href="#таблица-сравнения-сложностей-5">Таблица сравнения сложностей</a></h3>
+<h3 id="таблица-сравнения-сложностей-4"><a class="header" href="#таблица-сравнения-сложностей-4">Таблица сравнения сложностей</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -13175,19 +13365,19 @@ fn binary_search_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-5"><a class="header" href="#примеры-задач-на-leetcode-5">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие-5"><a class="header" href="#легкие-5">Легкие:</a></h3>
+<h2 id="примеры-задач-на-leetcode-4"><a class="header" href="#примеры-задач-на-leetcode-4">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие-4"><a class="header" href="#легкие-4">Легкие:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/binary-search/">Binary Search</a> - Бинарный поиск</li>
 <li><a href="https://leetcode.com/problems/first-bad-version/">First Bad Version</a> - Первая плохая версия</li>
 </ul>
-<h3 id="средние-5"><a class="header" href="#средние-5">Средние:</a></h3>
+<h3 id="средние-4"><a class="header" href="#средние-4">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/search-in-rotated-sorted-array/">Search in Rotated Sorted Array</a> - Поиск в повернутом массиве</li>
 <li><a href="https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/">Find First and Last Position of Element in Sorted Array</a> - Первая и последняя позиция</li>
 <li><a href="https://leetcode.com/problems/search-a-2d-matrix/">Search a 2D Matrix</a> - Поиск в 2D матрице</li>
 </ul>
-<h3 id="сложные-5"><a class="header" href="#сложные-5">Сложные:</a></h3>
+<h3 id="сложные-4"><a class="header" href="#сложные-4">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/">Find Minimum in Rotated Sorted Array</a> - Минимум в повернутом массиве</li>
 <li><a href="https://leetcode.com/problems/median-of-two-sorted-arrays/">Median of Two Sorted Arrays</a> - Медиана двух отсортированных массивов</li>
@@ -13987,36 +14177,55 @@ func reverseListRecursive(head *ListNode) *ListNode {
 </code></pre>
 <h2 id="визуализация-6"><a class="header" href="#визуализация-6">Визуализация</a></h2>
 <h3 id="итеративный-разворот"><a class="header" href="#итеративный-разворот">Итеративный разворот:</a></h3>
-<pre><code>Исходный список: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; None
-
-Шаг 1: prev=None, curr=1, next=None
-        prev    curr
-        None &lt;- 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; None
-
-Шаг 2: prev=1, curr=2, next=2
-              prev  curr
-        None &lt;- 1 &lt;- 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; None
-
-Шаг 3: prev=2, curr=3, next=3
-                    prev  curr
-        None &lt;- 1 &lt;- 2 &lt;- 3 -&gt; 4 -&gt; 5 -&gt; None
-
-Шаг 4: prev=3, curr=4, next=4
-                          prev  curr
-        None &lt;- 1 &lt;- 2 &lt;- 3 &lt;- 4 -&gt; 5 -&gt; None
-
-Шаг 5: prev=4, curr=5, next=5
-                                prev  curr
-        None &lt;- 1 &lt;- 2 &lt;- 3 &lt;- 4 &lt;- 5 -&gt; None
-
-Шаг 6: prev=5, curr=None
-                                      prev
-        None &lt;- 1 &lt;- 2 &lt;- 3 &lt;- 4 &lt;- 5
-
-Результат: 5 -&gt; 4 -&gt; 3 -&gt; 2 -&gt; 1 -&gt; None
+<p>Исходный список: 1 → 2 → 3 → 4 → 5 → None</p>
+<pre><code class="language-mermaid">graph LR
+    A[1] --&gt; B[2]
+    B --&gt; C[3]
+    C --&gt; D[4]
+    D --&gt; E[5]
+    E --&gt; F[None]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style E fill:#bfb,stroke:#333,stroke-width:2px
 </code></pre>
-<h2 id="математическое-обоснование-6"><a class="header" href="#математическое-обоснование-6">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает-5"><a class="header" href="#почему-алгоритм-работает-5">Почему алгоритм работает?</a></h3>
+<p><strong>Процесс разворота:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant P as prev
+    participant C as curr
+    participant N as next
+    participant L as Список
+    
+    Note over P,L: Инициализация: prev=None, curr=head
+    
+    loop Пока curr != None
+        C-&gt;&gt;N: next = curr.next
+        C-&gt;&gt;L: curr.next = prev
+        P-&gt;&gt;C: prev = curr
+        C-&gt;&gt;N: curr = next
+    end
+    
+    Note over P: prev - новая голова списка
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>prev</th><th>curr</th><th>next</th><th>curr.next</th><th>Состояние списка</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>None</td><td>1</td><td>-</td><td>2</td><td>1→2→3→4→5→None</td><td>-</td></tr>
+<tr><td>1</td><td>None</td><td>1</td><td>2</td><td>None</td><td>None←1  2→3→4→5→None</td><td>Разворот указателя 1</td></tr>
+<tr><td>2</td><td>1</td><td>2</td><td>3</td><td>1</td><td>None←1←2  3→4→5→None</td><td>Разворот указателя 2</td></tr>
+<tr><td>3</td><td>2</td><td>3</td><td>4</td><td>2</td><td>None←1←2←3  4→5→None</td><td>Разворот указателя 3</td></tr>
+<tr><td>4</td><td>3</td><td>4</td><td>5</td><td>3</td><td>None←1←2←3←4  5→None</td><td>Разворот указателя 4</td></tr>
+<tr><td>5</td><td>4</td><td>5</td><td>None</td><td>4</td><td>None←1←2←3←4←5</td><td>Разворот указателя 5</td></tr>
+<tr><td>6</td><td>5</td><td>None</td><td>-</td><td>-</td><td>None←1←2←3←4←5</td><td>curr == None → завершение</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> 5 → 4 → 3 → 2 → 1 → None</p>
+<h2 id="математическое-обоснование-5"><a class="header" href="#математическое-обоснование-5">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает-4"><a class="header" href="#почему-алгоритм-работает-4">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: После обработки k узлов, первые k узлов развернуты и образуют корректный список, указывающий в обратном направлении.</p>
 <p><strong>Доказательство корректности</strong>:</p>
 <ol>
@@ -14031,8 +14240,8 @@ func reverseListRecursive(head *ListNode) *ListNode {
 </ol>
 <p><strong>Почему сложность O(n)?</strong></p>
 <p>Каждый узел посещается ровно один раз, и для каждого узла выполняется константное количество операций → O(n).</p>
-<h2 id="временная-и-пространственная-сложность-6"><a class="header" href="#временная-и-пространственная-сложность-6">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-6"><a class="header" href="#детальный-анализ-6">Детальный анализ:</a></h3>
+<h2 id="временная-и-пространственная-сложность-5"><a class="header" href="#временная-и-пространственная-сложность-5">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ-5"><a class="header" href="#детальный-анализ-5">Детальный анализ:</a></h3>
 <p><strong>Итеративный подход</strong>:</p>
 <ul>
 <li><strong>Временная сложность</strong>: O(n) - один проход по списку</li>
@@ -14043,7 +14252,7 @@ func reverseListRecursive(head *ListNode) *ListNode {
 <li><strong>Временная сложность</strong>: O(n) - один проход по списку</li>
 <li><strong>Пространственная сложность</strong>: O(n) - глубина рекурсии равна длине списка</li>
 </ul>
-<h3 id="амортизированная-сложность-6"><a class="header" href="#амортизированная-сложность-6">Амортизированная сложность</a></h3>
+<h3 id="амортизированная-сложность-5"><a class="header" href="#амортизированная-сложность-5">Амортизированная сложность</a></h3>
 <p><strong>Амортизированный анализ</strong> для разворота списка:</p>
 <ul>
 <li><strong>Амортизированная временная сложность</strong>: O(1) на узел
@@ -14053,7 +14262,7 @@ func reverseListRecursive(head *ListNode) *ListNode {
 </ul>
 </li>
 </ul>
-<h3 id="worstaveragebest-case-анализ-6"><a class="header" href="#worstaveragebest-case-анализ-6">Worst/Average/Best Case анализ</a></h3>
+<h3 id="worstaveragebest-case-анализ-5"><a class="header" href="#worstaveragebest-case-анализ-5">Worst/Average/Best Case анализ</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -14078,7 +14287,7 @@ func reverseListRecursive(head *ListNode) *ListNode {
 </tbody>
 </table>
 </div>
-<h3 id="таблица-сравнения-сложностей-6"><a class="header" href="#таблица-сравнения-сложностей-6">Таблица сравнения сложностей</a></h3>
+<h3 id="таблица-сравнения-сложностей-5"><a class="header" href="#таблица-сравнения-сложностей-5">Таблица сравнения сложностей</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -14742,19 +14951,19 @@ fn reverse_list_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-6"><a class="header" href="#примеры-задач-на-leetcode-6">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие-6"><a class="header" href="#легкие-6">Легкие:</a></h3>
+<h2 id="примеры-задач-на-leetcode-5"><a class="header" href="#примеры-задач-на-leetcode-5">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие-5"><a class="header" href="#легкие-5">Легкие:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/reverse-linked-list/">Reverse Linked List</a> - Разворот связанного списка</li>
 <li><a href="https://leetcode.com/problems/reverse-string/">Reverse String</a> - Разворот строки (аналогичный подход)</li>
 </ul>
-<h3 id="средние-6"><a class="header" href="#средние-6">Средние:</a></h3>
+<h3 id="средние-5"><a class="header" href="#средние-5">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/reverse-linked-list-ii/">Reverse Linked List II</a> - Разворот части списка</li>
 <li><a href="https://leetcode.com/problems/reverse-nodes-in-k-group/">Reverse Nodes in k-Group</a> - Разворот узлов группами по K</li>
 <li><a href="https://leetcode.com/problems/swap-nodes-in-pairs/">Swap Nodes in Pairs</a> - Обмен узлами парами</li>
 </ul>
-<h3 id="сложные-6"><a class="header" href="#сложные-6">Сложные:</a></h3>
+<h3 id="сложные-5"><a class="header" href="#сложные-5">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/reverse-nodes-in-even-length-groups/">Reverse Nodes in Even Length Groups</a> - Разворот узлов в группах четной длины</li>
 </ul>
@@ -15515,28 +15724,56 @@ func bfsSimple(root *TreeNode) []int {
 </code></pre>
 <h2 id="визуализация-7"><a class="header" href="#визуализация-7">Визуализация</a></h2>
 <h3 id="обход-дерева-в-ширину"><a class="header" href="#обход-дерева-в-ширину">Обход дерева в ширину:</a></h3>
-<pre><code>        1
-       / \
-      2   3
-     / \   \
-    4   5   6
-
-Уровень 0: [1]
-           Обрабатываем: 1
-           Добавляем: 2, 3
-           
-Уровень 1: [2, 3]
-           Обрабатываем: 2, 3
-           Добавляем: 4, 5, 6
-           
-Уровень 2: [4, 5, 6]
-           Обрабатываем: 4, 5, 6
-           Нет дочерних узлов
-           
-Порядок обхода: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; 6
+<pre><code class="language-mermaid">graph TD
+    A[1] --&gt; B[2]
+    A --&gt; C[3]
+    B --&gt; D[4]
+    B --&gt; E[5]
+    C --&gt; F[6]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:3px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#bbf,stroke:#333,stroke-width:2px
+    style D fill:#bfb,stroke:#333,stroke-width:2px
+    style E fill:#bfb,stroke:#333,stroke-width:2px
+    style F fill:#bfb,stroke:#333,stroke-width:2px
 </code></pre>
-<h2 id="математическое-обоснование-7"><a class="header" href="#математическое-обоснование-7">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает-6"><a class="header" href="#почему-алгоритм-работает-6">Почему алгоритм работает?</a></h3>
+<p><strong>Процесс обхода по уровням:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant Q as Очередь
+    participant T as Дерево
+    participant R as Результат
+    
+    Note over Q,R: Инициализация: queue = [1]
+    
+    loop Пока очередь не пуста
+        Q-&gt;&gt;T: Извлечь узел из очереди
+        T-&gt;&gt;R: Добавить узел в результат
+        T-&gt;&gt;Q: Добавить дочерние узлы в очередь
+    end
+    
+    Note over R: Результат: [1, 2, 3, 4, 5, 6]
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Уровень</th><th>Очередь (до обработки)</th><th>Обрабатываем</th><th>Добавляем в очередь</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td>[1]</td><td>1</td><td>2, 3</td><td>[1]</td></tr>
+<tr><td>1</td><td>[2, 3]</td><td>2</td><td>4, 5</td><td>[1, 2]</td></tr>
+<tr><td>1</td><td>[3, 4, 5]</td><td>3</td><td>6</td><td>[1, 2, 3]</td></tr>
+<tr><td>2</td><td>[4, 5, 6]</td><td>4</td><td>-</td><td>[1, 2, 3, 4]</td></tr>
+<tr><td>2</td><td>[5, 6]</td><td>5</td><td>-</td><td>[1, 2, 3, 4, 5]</td></tr>
+<tr><td>2</td><td>[6]</td><td>6</td><td>-</td><td>[1, 2, 3, 4, 5, 6]</td></tr>
+<tr><td>-</td><td>[]</td><td>-</td><td>-</td><td>Завершение</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Порядок обхода:</strong> 1 → 2 → 3 → 4 → 5 → 6</p>
+<h2 id="математическое-обоснование-6"><a class="header" href="#математическое-обоснование-6">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает-5"><a class="header" href="#почему-алгоритм-работает-5">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: На каждом шаге очередь содержит все узлы текущего уровня, отсортированные слева направо.</p>
 <p><strong>Доказательство корректности</strong>:</p>
 <ol>
@@ -15552,8 +15789,8 @@ func bfsSimple(root *TreeNode) []int {
 </ol>
 <p><strong>Почему сложность O(n)?</strong></p>
 <p>Каждый узел добавляется в очередь ровно один раз и извлекается ровно один раз. Для каждого узла выполняется константное количество операций → O(n).</p>
-<h2 id="временная-и-пространственная-сложность-7"><a class="header" href="#временная-и-пространственная-сложность-7">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-7"><a class="header" href="#детальный-анализ-7">Детальный анализ:</a></h3>
+<h2 id="временная-и-пространственная-сложность-6"><a class="header" href="#временная-и-пространственная-сложность-6">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ-6"><a class="header" href="#детальный-анализ-6">Детальный анализ:</a></h3>
 <ul>
 <li><strong>Временная сложность</strong>: O(n)
 <ul>
@@ -15569,7 +15806,7 @@ func bfsSimple(root *TreeNode) []int {
 </ul>
 </li>
 </ul>
-<h3 id="амортизированная-сложность-7"><a class="header" href="#амортизированная-сложность-7">Амортизированная сложность</a></h3>
+<h3 id="амортизированная-сложность-6"><a class="header" href="#амортизированная-сложность-6">Амортизированная сложность</a></h3>
 <p><strong>Амортизированный анализ</strong> для BFS:</p>
 <ul>
 <li><strong>Амортизированная временная сложность</strong>: O(1) на узел
@@ -15579,7 +15816,7 @@ func bfsSimple(root *TreeNode) []int {
 </ul>
 </li>
 </ul>
-<h3 id="worstaveragebest-case-анализ-7"><a class="header" href="#worstaveragebest-case-анализ-7">Worst/Average/Best Case анализ</a></h3>
+<h3 id="worstaveragebest-case-анализ-6"><a class="header" href="#worstaveragebest-case-анализ-6">Worst/Average/Best Case анализ</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -15592,7 +15829,7 @@ func bfsSimple(root *TreeNode) []int {
 </tbody>
 </table>
 </div>
-<h3 id="таблица-сравнения-сложностей-7"><a class="header" href="#таблица-сравнения-сложностей-7">Таблица сравнения сложностей</a></h3>
+<h3 id="таблица-сравнения-сложностей-6"><a class="header" href="#таблица-сравнения-сложностей-6">Таблица сравнения сложностей</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -16244,20 +16481,20 @@ fn tree_bfs_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-7"><a class="header" href="#примеры-задач-на-leetcode-7">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие-7"><a class="header" href="#легкие-7">Легкие:</a></h3>
+<h2 id="примеры-задач-на-leetcode-6"><a class="header" href="#примеры-задач-на-leetcode-6">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие-6"><a class="header" href="#легкие-6">Легкие:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/binary-tree-level-order-traversal/">Binary Tree Level Order Traversal</a> - Обход дерева по уровням</li>
 <li><a href="https://leetcode.com/problems/average-of-levels-in-binary-tree/">Average of Levels in Binary Tree</a> - Среднее значение уровней</li>
 <li><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/">Maximum Depth of Binary Tree</a> - Максимальная глубина дерева</li>
 </ul>
-<h3 id="средние-7"><a class="header" href="#средние-7">Средние:</a></h3>
+<h3 id="средние-6"><a class="header" href="#средние-6">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/binary-tree-zigzag-level-order-traversal/">Binary Tree Zigzag Level Order Traversal</a> - Зигзагообразный обход</li>
 <li><a href="https://leetcode.com/problems/binary-tree-right-side-view/">Right Side View</a> - Вид справа</li>
 <li><a href="https://leetcode.com/problems/cousins-in-binary-tree/">Cousins in Binary Tree</a> - Двоюродные братья в дереве</li>
 </ul>
-<h3 id="сложные-7"><a class="header" href="#сложные-7">Сложные:</a></h3>
+<h3 id="сложные-6"><a class="header" href="#сложные-6">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/serialize-and-deserialize-binary-tree/">Serialize and Deserialize Binary Tree</a> - Сериализация дерева</li>
 <li><a href="https://leetcode.com/problems/binary-tree-maximum-path-sum/">Binary Tree Maximum Path Sum</a> - Максимальная сумма пути</li>
@@ -17243,38 +17480,118 @@ func postorderTraversal(root *TreeNode) []int {
 <h3 id="итеративный-подход-2"><a class="header" href="#итеративный-подход-2">Итеративный подход:</a></h3>
 <p>Используйте стек для имитации рекурсии.</p>
 <h2 id="визуализация-8"><a class="header" href="#визуализация-8">Визуализация</a></h2>
-<h3 id="pre-order-обход"><a class="header" href="#pre-order-обход">Pre-order обход:</a></h3>
-<pre><code>        1
-       / \
-      2   3
-     / \   \
-    4   5   6
-
-Pre-order: 1 -&gt; 2 -&gt; 4 -&gt; 5 -&gt; 3 -&gt; 6
-(Корень, затем левое, затем правое)
+<h3 id="структура-дерева"><a class="header" href="#структура-дерева">Структура дерева:</a></h3>
+<pre><code class="language-mermaid">graph TD
+    A[1] --&gt; B[2]
+    A --&gt; C[3]
+    B --&gt; D[4]
+    B --&gt; E[5]
+    C --&gt; F[6]
 </code></pre>
-<h3 id="in-order-обход"><a class="header" href="#in-order-обход">In-order обход:</a></h3>
-<pre><code>        1
-       / \
-      2   3
-     / \   \
-    4   5   6
-
-In-order: 4 -&gt; 2 -&gt; 5 -&gt; 1 -&gt; 3 -&gt; 6
-(Левое, затем корень, затем правое)
+<h3 id="pre-order-обход-корень--левое--правое"><a class="header" href="#pre-order-обход-корень--левое--правое">Pre-order обход (Корень → Левое → Правое):</a></h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant F as Функция DFS
+    participant N as Узел
+    participant R as Результат
+    
+    Note over F,R: Pre-order: обрабатываем узел ДО рекурсии
+    
+    F-&gt;&gt;N: Посетить узел (корень)
+    N-&gt;&gt;R: Добавить значение
+    F-&gt;&gt;F: Рекурсия: левое поддерево
+    F-&gt;&gt;F: Рекурсия: правое поддерево
 </code></pre>
-<h3 id="post-order-обход"><a class="header" href="#post-order-обход">Post-order обход:</a></h3>
-<pre><code>        1
-       / \
-      2   3
-     / \   \
-    4   5   6
-
-Post-order: 4 -&gt; 5 -&gt; 2 -&gt; 6 -&gt; 3 -&gt; 1
-(Левое, затем правое, затем корень)
+<p><strong>Детальная таблица выполнения (Pre-order):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Текущий узел</th><th>Стек вызовов</th><th>Действие</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>1</td><td>[dfs(1)]</td><td>Обработать 1</td><td>[1]</td></tr>
+<tr><td>2</td><td>2</td><td>[dfs(1), dfs(2)]</td><td>Обработать 2</td><td>[1, 2]</td></tr>
+<tr><td>3</td><td>4</td><td>[dfs(1), dfs(2), dfs(4)]</td><td>Обработать 4</td><td>[1, 2, 4]</td></tr>
+<tr><td>4</td><td>4</td><td>[dfs(1), dfs(2)]</td><td>Возврат из dfs(4)</td><td>[1, 2, 4]</td></tr>
+<tr><td>5</td><td>5</td><td>[dfs(1), dfs(2), dfs(5)]</td><td>Обработать 5</td><td>[1, 2, 4, 5]</td></tr>
+<tr><td>6</td><td>5</td><td>[dfs(1), dfs(2)]</td><td>Возврат из dfs(5)</td><td>[1, 2, 4, 5]</td></tr>
+<tr><td>7</td><td>2</td><td>[dfs(1)]</td><td>Возврат из dfs(2)</td><td>[1, 2, 4, 5]</td></tr>
+<tr><td>8</td><td>3</td><td>[dfs(1), dfs(3)]</td><td>Обработать 3</td><td>[1, 2, 4, 5, 3]</td></tr>
+<tr><td>9</td><td>6</td><td>[dfs(1), dfs(3), dfs(6)]</td><td>Обработать 6</td><td>[1, 2, 4, 5, 3, 6]</td></tr>
+<tr><td>10</td><td>6</td><td>[dfs(1), dfs(3)]</td><td>Возврат из dfs(6)</td><td>[1, 2, 4, 5, 3, 6]</td></tr>
+<tr><td>11</td><td>3</td><td>[dfs(1)]</td><td>Возврат из dfs(3)</td><td>[1, 2, 4, 5, 3, 6]</td></tr>
+<tr><td>12</td><td>1</td><td>[]</td><td>Возврат из dfs(1)</td><td>[1, 2, 4, 5, 3, 6]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Порядок обхода:</strong> 1 → 2 → 4 → 5 → 3 → 6</p>
+<h3 id="in-order-обход-левое--корень--правое"><a class="header" href="#in-order-обход-левое--корень--правое">In-order обход (Левое → Корень → Правое):</a></h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant F as Функция DFS
+    participant N as Узел
+    participant R as Результат
+    
+    Note over F,R: In-order: обрабатываем узел МЕЖДУ рекурсиями
+    
+    F-&gt;&gt;F: Рекурсия: левое поддерево
+    F-&gt;&gt;N: Посетить узел (корень)
+    N-&gt;&gt;R: Добавить значение
+    F-&gt;&gt;F: Рекурсия: правое поддерево
 </code></pre>
-<h2 id="математическое-обоснование-8"><a class="header" href="#математическое-обоснование-8">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает-7"><a class="header" href="#почему-алгоритм-работает-7">Почему алгоритм работает?</a></h3>
+<p><strong>Детальная таблица выполнения (In-order):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Текущий узел</th><th>Стек вызовов</th><th>Действие</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>1</td><td>[dfs(1)]</td><td>Рекурсия: левое поддерево</td><td>[]</td></tr>
+<tr><td>2</td><td>2</td><td>[dfs(1), dfs(2)]</td><td>Рекурсия: левое поддерево</td><td>[]</td></tr>
+<tr><td>3</td><td>4</td><td>[dfs(1), dfs(2), dfs(4)]</td><td>Обработать 4</td><td>[4]</td></tr>
+<tr><td>4</td><td>2</td><td>[dfs(1), dfs(2)]</td><td>Обработать 2</td><td>[4, 2]</td></tr>
+<tr><td>5</td><td>5</td><td>[dfs(1), dfs(2), dfs(5)]</td><td>Обработать 5</td><td>[4, 2, 5]</td></tr>
+<tr><td>6</td><td>1</td><td>[dfs(1)]</td><td>Обработать 1</td><td>[4, 2, 5, 1]</td></tr>
+<tr><td>7</td><td>3</td><td>[dfs(1), dfs(3)]</td><td>Рекурсия: левое поддерево</td><td>[4, 2, 5, 1]</td></tr>
+<tr><td>8</td><td>6</td><td>[dfs(1), dfs(3), dfs(6)]</td><td>Обработать 6</td><td>[4, 2, 5, 1, 3, 6]</td></tr>
+<tr><td>9</td><td>3</td><td>[dfs(1), dfs(3)]</td><td>Обработать 3</td><td>[4, 2, 5, 1, 3, 6]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Порядок обхода:</strong> 4 → 2 → 5 → 1 → 3 → 6</p>
+<h3 id="post-order-обход-левое--правое--корень"><a class="header" href="#post-order-обход-левое--правое--корень">Post-order обход (Левое → Правое → Корень):</a></h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant F as Функция DFS
+    participant N as Узел
+    participant R as Результат
+    
+    Note over F,R: Post-order: обрабатываем узел ПОСЛЕ рекурсии
+    
+    F-&gt;&gt;F: Рекурсия: левое поддерево
+    F-&gt;&gt;F: Рекурсия: правое поддерево
+    F-&gt;&gt;N: Посетить узел (корень)
+    N-&gt;&gt;R: Добавить значение
+</code></pre>
+<p><strong>Детальная таблица выполнения (Post-order):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Текущий узел</th><th>Стек вызовов</th><th>Действие</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>1</td><td>[dfs(1)]</td><td>Рекурсия: левое поддерево</td><td>[]</td></tr>
+<tr><td>2</td><td>2</td><td>[dfs(1), dfs(2)]</td><td>Рекурсия: левое поддерево</td><td>[]</td></tr>
+<tr><td>3</td><td>4</td><td>[dfs(1), dfs(2), dfs(4)]</td><td>Обработать 4</td><td>[4]</td></tr>
+<tr><td>4</td><td>5</td><td>[dfs(1), dfs(2), dfs(5)]</td><td>Обработать 5</td><td>[4, 5]</td></tr>
+<tr><td>5</td><td>2</td><td>[dfs(1), dfs(2)]</td><td>Обработать 2</td><td>[4, 5, 2]</td></tr>
+<tr><td>6</td><td>3</td><td>[dfs(1), dfs(3)]</td><td>Рекурсия: левое поддерево</td><td>[4, 5, 2]</td></tr>
+<tr><td>7</td><td>6</td><td>[dfs(1), dfs(3), dfs(6)]</td><td>Обработать 6</td><td>[4, 5, 2, 6]</td></tr>
+<tr><td>8</td><td>3</td><td>[dfs(1), dfs(3)]</td><td>Обработать 3</td><td>[4, 5, 2, 6, 3]</td></tr>
+<tr><td>9</td><td>1</td><td>[dfs(1)]</td><td>Обработать 1</td><td>[4, 5, 2, 6, 3, 1]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Порядок обхода:</strong> 4 → 5 → 2 → 6 → 3 → 1</p>
+<h2 id="математическое-обоснование-7"><a class="header" href="#математическое-обоснование-7">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает-6"><a class="header" href="#почему-алгоритм-работает-6">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: После обработки поддерева с корнем в узле v, все узлы этого поддерева обработаны в правильном порядке.</p>
 <p><strong>Доказательство корректности</strong> (индукция по высоте дерева):</p>
 <ol>
@@ -17289,8 +17606,8 @@ Post-order: 4 -&gt; 5 -&gt; 2 -&gt; 6 -&gt; 3 -&gt; 1
 </ol>
 <p><strong>Почему сложность O(n)?</strong></p>
 <p>Каждый узел посещается ровно один раз, и для каждого узла выполняется константное количество операций → O(n).</p>
-<h2 id="временная-и-пространственная-сложность-8"><a class="header" href="#временная-и-пространственная-сложность-8">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-8"><a class="header" href="#детальный-анализ-8">Детальный анализ:</a></h3>
+<h2 id="временная-и-пространственная-сложность-7"><a class="header" href="#временная-и-пространственная-сложность-7">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ-7"><a class="header" href="#детальный-анализ-7">Детальный анализ:</a></h3>
 <ul>
 <li><strong>Временная сложность</strong>: O(n)
 <ul>
@@ -17308,7 +17625,7 @@ Post-order: 4 -&gt; 5 -&gt; 2 -&gt; 6 -&gt; 3 -&gt; 1
 </ul>
 </li>
 </ul>
-<h3 id="амортизированная-сложность-8"><a class="header" href="#амортизированная-сложность-8">Амортизированная сложность</a></h3>
+<h3 id="амортизированная-сложность-7"><a class="header" href="#амортизированная-сложность-7">Амортизированная сложность</a></h3>
 <p><strong>Амортизированный анализ</strong> для DFS:</p>
 <ul>
 <li><strong>Амортизированная временная сложность</strong>: O(1) на узел
@@ -17318,7 +17635,7 @@ Post-order: 4 -&gt; 5 -&gt; 2 -&gt; 6 -&gt; 3 -&gt; 1
 </ul>
 </li>
 </ul>
-<h3 id="worstaveragebest-case-анализ-8"><a class="header" href="#worstaveragebest-case-анализ-8">Worst/Average/Best Case анализ</a></h3>
+<h3 id="worstaveragebest-case-анализ-7"><a class="header" href="#worstaveragebest-case-анализ-7">Worst/Average/Best Case анализ</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -17331,7 +17648,7 @@ Post-order: 4 -&gt; 5 -&gt; 2 -&gt; 6 -&gt; 3 -&gt; 1
 </tbody>
 </table>
 </div>
-<h3 id="таблица-сравнения-сложностей-8"><a class="header" href="#таблица-сравнения-сложностей-8">Таблица сравнения сложностей</a></h3>
+<h3 id="таблица-сравнения-сложностей-7"><a class="header" href="#таблица-сравнения-сложностей-7">Таблица сравнения сложностей</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -18038,20 +18355,20 @@ fn tree_dfs_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-8"><a class="header" href="#примеры-задач-на-leetcode-8">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие-8"><a class="header" href="#легкие-8">Легкие:</a></h3>
+<h2 id="примеры-задач-на-leetcode-7"><a class="header" href="#примеры-задач-на-leetcode-7">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие-7"><a class="header" href="#легкие-7">Легкие:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/">Maximum Depth of Binary Tree</a> - Максимальная глубина дерева</li>
 <li><a href="https://leetcode.com/problems/same-tree/">Same Tree</a> - Одинаковые деревья</li>
 <li><a href="https://leetcode.com/problems/symmetric-tree/">Symmetric Tree</a> - Симметричное дерево</li>
 </ul>
-<h3 id="средние-8"><a class="header" href="#средние-8">Средние:</a></h3>
+<h3 id="средние-7"><a class="header" href="#средние-7">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/validate-binary-search-tree/">Validate Binary Search Tree</a> - Валидация BST</li>
 <li><a href="https://leetcode.com/problems/path-sum/">Path Sum</a> - Сумма пути</li>
 <li><a href="https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/">Construct Binary Tree from Preorder and Inorder Traversal</a> - Построение дерева</li>
 </ul>
-<h3 id="сложные-8"><a class="header" href="#сложные-8">Сложные:</a></h3>
+<h3 id="сложные-7"><a class="header" href="#сложные-7">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/binary-tree-maximum-path-sum/">Binary Tree Maximum Path Sum</a> - Максимальная сумма пути</li>
 <li><a href="https://leetcode.com/problems/serialize-and-deserialize-binary-tree/">Serialize and Deserialize Binary Tree</a> - Сериализация дерева</li>
@@ -18984,32 +19301,73 @@ func (mf *MedianFinder) FindMedian() float64 {
 </code></pre>
 <h2 id="визуализация-9"><a class="header" href="#визуализация-9">Визуализация</a></h2>
 <h3 id="поддержание-медианы"><a class="header" href="#поддержание-медианы">Поддержание медианы:</a></h3>
-<pre><code>Поток данных: [1, 5, 2, 3, 4]
-
-Шаг 1: Добавляем 1
-        max_heap: [1]          min_heap: []
-        Медиана: 1
-
-Шаг 2: Добавляем 5
-        max_heap: [1]          min_heap: [5]
-        Медиана: (1 + 5) / 2 = 3
-
-Шаг 3: Добавляем 2
-        max_heap: [2, 1]       min_heap: [5]
-        Медиана: 2
-
-Шаг 4: Добавляем 3
-        max_heap: [2, 1]       min_heap: [3, 5]
-        Медиана: (2 + 3) / 2 = 2.5
-
-Шаг 5: Добавляем 4
-        max_heap: [2, 1]       min_heap: [3, 4, 5]
-        Балансируем: перемещаем 3 в max_heap
-        max_heap: [3, 2, 1]    min_heap: [4, 5]
-        Медиана: 3
+<p>Поток данных: <code>[1, 5, 2, 3, 4]</code></p>
+<p><strong>Структура двух куч:</strong></p>
+<pre><code class="language-mermaid">graph TD
+    subgraph maxHeap["Max Heap (меньшая половина)"]
+        M1[3]
+        M2[2]
+        M3[1]
+        M1 --&gt; M2
+        M1 --&gt; M3
+    end
+    
+    subgraph minHeap["Min Heap (большая половина)"]
+        N1[4]
+        N2[5]
+        N1 --&gt; N2
+    end
+    
+    style M1 fill:#bfb,stroke:#333,stroke-width:2px
+    style N1 fill:#bbf,stroke:#333,stroke-width:2px
 </code></pre>
-<h2 id="математическое-обоснование-9"><a class="header" href="#математическое-обоснование-9">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает-8"><a class="header" href="#почему-алгоритм-работает-8">Почему алгоритм работает?</a></h3>
+<p><strong>Процесс добавления элементов:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant I as Входной элемент
+    participant M as Max Heap
+    participant N as Min Heap
+    participant R as Медиана
+    
+    loop Для каждого элемента
+        I-&gt;&gt;M: Проверить: элемент &lt;= maxHeap.peek()?
+        alt Да
+            M-&gt;&gt;M: Добавить в maxHeap
+        else Нет
+            N-&gt;&gt;N: Добавить в minHeap
+        end
+        
+        alt |maxHeap| &gt; |minHeap| + 1
+            M-&gt;&gt;N: Переместить вершину в minHeap
+        else |minHeap| &gt; |maxHeap|
+            N-&gt;&gt;M: Переместить вершину в maxHeap
+        end
+        
+        alt |maxHeap| == |minHeap|
+            M-&gt;&gt;R: Медиана = (maxHeap.peek() + minHeap.peek()) / 2
+        else
+            M-&gt;&gt;R: Медиана = maxHeap.peek()
+        end
+    end
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Элемент</th><th>maxHeap</th><th>minHeap</th><th>Размеры</th><th>Балансировка</th><th>Медиана</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>1</td><td>[1]</td><td>[]</td><td>1:0</td><td>-</td><td>1</td></tr>
+<tr><td>2</td><td>5</td><td>[1]</td><td>[5]</td><td>1:1</td><td>-</td><td>(1+5)/2 = 3</td></tr>
+<tr><td>3</td><td>2</td><td>[2,1]</td><td>[5]</td><td>2:1</td><td>-</td><td>2</td></tr>
+<tr><td>4</td><td>3</td><td>[2,1]</td><td>[3,5]</td><td>2:2</td><td>-</td><td>(2+3)/2 = 2.5</td></tr>
+<tr><td>5</td><td>4</td><td>[2,1]</td><td>[3,4,5]</td><td>2:3</td><td>Переместить 3 в maxHeap</td><td>3</td></tr>
+<tr><td>5 (после балансировки)</td><td>-</td><td>[3,2,1]</td><td>[4,5]</td><td>3:2</td><td>-</td><td>3</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> Медиана после каждого шага поддерживается корректно</p>
+<h2 id="математическое-обоснование-8"><a class="header" href="#математическое-обоснование-8">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает-7"><a class="header" href="#почему-алгоритм-работает-7">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: После каждой операции:</p>
 <ul>
 <li>Все элементы в max_heap ≤ все элементы в min_heap</li>
@@ -19031,8 +19389,8 @@ func (mf *MedianFinder) FindMedian() float64 {
 </ol>
 <p><strong>Почему сложность O(log n) для добавления?</strong></p>
 <p>Операции с кучей (добавление, удаление) имеют сложность O(log n), где n - размер кучи. Балансировка также требует O(log n) операций.</p>
-<h2 id="временная-и-пространственная-сложность-9"><a class="header" href="#временная-и-пространственная-сложность-9">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-9"><a class="header" href="#детальный-анализ-9">Детальный анализ:</a></h3>
+<h2 id="временная-и-пространственная-сложность-8"><a class="header" href="#временная-и-пространственная-сложность-8">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ-8"><a class="header" href="#детальный-анализ-8">Детальный анализ:</a></h3>
 <ul>
 <li><strong>Временная сложность</strong>:
 <ul>
@@ -19060,7 +19418,7 @@ func (mf *MedianFinder) FindMedian() float64 {
 </tbody>
 </table>
 </div>
-<h3 id="амортизированная-сложность-9"><a class="header" href="#амортизированная-сложность-9">Амортизированная сложность</a></h3>
+<h3 id="амортизированная-сложность-8"><a class="header" href="#амортизированная-сложность-8">Амортизированная сложность</a></h3>
 <p><strong>Амортизированный анализ</strong> для двух куч:</p>
 <ul>
 <li>
@@ -19079,7 +19437,7 @@ func (mf *MedianFinder) FindMedian() float64 {
 </ul>
 </li>
 </ul>
-<h3 id="worstaveragebest-case-анализ-9"><a class="header" href="#worstaveragebest-case-анализ-9">Worst/Average/Best Case анализ</a></h3>
+<h3 id="worstaveragebest-case-анализ-8"><a class="header" href="#worstaveragebest-case-анализ-8">Worst/Average/Best Case анализ</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -19092,7 +19450,7 @@ func (mf *MedianFinder) FindMedian() float64 {
 </table>
 </div>
 <p><strong>Примечание</strong>: Для двух куч все операции имеют предсказуемую сложность, так как структура данных гарантирует балансировку.</p>
-<h3 id="таблица-сравнения-сложностей-9"><a class="header" href="#таблица-сравнения-сложностей-9">Таблица сравнения сложностей</a></h3>
+<h3 id="таблица-сравнения-сложностей-8"><a class="header" href="#таблица-сравнения-сложностей-8">Таблица сравнения сложностей</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -19623,7 +19981,7 @@ criterion_main!(benches);
 <li>Нулевые аллокации</li>
 <li>Мгновенное получение медианы</li>
 </ul>
-<h4 id="сравнение-с-альтернативными-подходами-1-3"><a class="header" href="#сравнение-с-альтернативными-подходами-1-3">Сравнение с альтернативными подходами:</a></h4>
+<h4 id="сравнение-с-альтернативными-подходами-1-2"><a class="header" href="#сравнение-с-альтернативными-подходами-1-2">Сравнение с альтернативными подходами:</a></h4>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -19752,13 +20110,13 @@ fn two_heaps_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-9"><a class="header" href="#примеры-задач-на-leetcode-9">Примеры задач на LeetCode</a></h2>
-<h3 id="средние-9"><a class="header" href="#средние-9">Средние:</a></h3>
+<h2 id="примеры-задач-на-leetcode-8"><a class="header" href="#примеры-задач-на-leetcode-8">Примеры задач на LeetCode</a></h2>
+<h3 id="средние-8"><a class="header" href="#средние-8">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/find-median-from-data-stream/">Find Median from Data Stream</a> - Медиана из потока данных</li>
 <li><a href="https://leetcode.com/problems/sliding-window-median/">Sliding Window Median</a> - Медиана скользящего окна</li>
 </ul>
-<h3 id="сложные-9"><a class="header" href="#сложные-9">Сложные:</a></h3>
+<h3 id="сложные-8"><a class="header" href="#сложные-8">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/ipo/">IPO</a> - Первичное публичное размещение</li>
 <li><a href="https://leetcode.com/problems/design-twitter/">Design Twitter</a> - Дизайн Twitter</li>
@@ -20527,21 +20885,60 @@ func findBottomK(nums []int, k int) []int {
 </ul>
 <h2 id="визуализация-10"><a class="header" href="#визуализация-10">Визуализация</a></h2>
 <h3 id="поиск-топ-3-наибольших-элементов"><a class="header" href="#поиск-топ-3-наибольших-элементов">Поиск топ-3 наибольших элементов:</a></h3>
-<pre><code>Массив: [3, 1, 5, 12, 2, 11], K = 3
-
-Используем min-heap размера 3:
-
-Шаг 1: Добавляем 3 → [3]
-Шаг 2: Добавляем 1 → [1, 3]
-Шаг 3: Добавляем 5 → [1, 3, 5]
-Шаг 4: Добавляем 12 → [3, 5, 12] (удаляем 1)
-Шаг 5: Добавляем 2 → [3, 5, 12] (2 &lt; 3, не добавляем)
-Шаг 6: Добавляем 11 → [5, 11, 12] (удаляем 3)
-
-Результат: [5, 11, 12]
+<p>Массив: <code>[3, 1, 5, 12, 2, 11]</code>, K = 3</p>
+<p><strong>Структура min-heap (размер K=3):</strong></p>
+<pre><code class="language-mermaid">graph TD
+    subgraph heap["Min Heap (размер K=3)"]
+        H1[5]
+        H2[11]
+        H3[12]
+        H1 --&gt; H2
+        H1 --&gt; H3
+    end
+    
+    style H1 fill:#bfb,stroke:#333,stroke-width:2px
+    style H2 fill:#bbf,stroke:#333,stroke-width:2px
+    style H3 fill:#fbb,stroke:#333,stroke-width:2px
 </code></pre>
-<h2 id="математическое-обоснование-10"><a class="header" href="#математическое-обоснование-10">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает-9"><a class="header" href="#почему-алгоритм-работает-9">Почему алгоритм работает?</a></h3>
+<p><strong>Процесс добавления элементов:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant A as Массив
+    participant H as Min Heap (K=3)
+    participant R as Результат
+    
+    loop Для каждого элемента
+        A-&gt;&gt;H: Элемент
+        alt Размер кучи &lt; K
+            H-&gt;&gt;H: Добавить элемент
+        else Элемент &gt; min кучи
+            H-&gt;&gt;H: Удалить минимум
+            H-&gt;&gt;H: Добавить элемент
+        else Элемент &lt;= min кучи
+            Note over H: Пропустить элемент
+        end
+    end
+    
+    H-&gt;&gt;R: Извлечь все элементы из кучи
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Элемент</th><th>Куча (до)</th><th>Сравнение</th><th>Действие</th><th>Куча (после)</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>3</td><td>[]</td><td>Размер &lt; K</td><td>Добавить</td><td>[3]</td></tr>
+<tr><td>2</td><td>1</td><td>[3]</td><td>Размер &lt; K</td><td>Добавить</td><td>[1, 3]</td></tr>
+<tr><td>3</td><td>5</td><td>[1, 3]</td><td>Размер &lt; K</td><td>Добавить</td><td>[1, 3, 5]</td></tr>
+<tr><td>4</td><td>12</td><td>[1, 3, 5]</td><td>12 &gt; 1 (min)</td><td>Удалить 1, добавить 12</td><td>[3, 5, 12]</td></tr>
+<tr><td>5</td><td>2</td><td>[3, 5, 12]</td><td>2 &lt; 3 (min)</td><td>Пропустить</td><td>[3, 5, 12]</td></tr>
+<tr><td>6</td><td>11</td><td>[3, 5, 12]</td><td>11 &gt; 3 (min)</td><td>Удалить 3, добавить 11</td><td>[5, 11, 12]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> [5, 11, 12]</p>
+<h2 id="математическое-обоснование-9"><a class="header" href="#математическое-обоснование-9">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает-8"><a class="header" href="#почему-алгоритм-работает-8">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: После обработки i элементов, куча содержит K лучших элементов из первых i элементов.</p>
 <p><strong>Доказательство корректности</strong>:</p>
 <ol>
@@ -20560,8 +20957,8 @@ func findBottomK(nums []int, k int) []int {
 <li>Для каждого элемента: операции с кучей размера k = O(log k)</li>
 <li>Итого: O(n log k)</li>
 </ul>
-<h2 id="временная-и-пространственная-сложность-10"><a class="header" href="#временная-и-пространственная-сложность-10">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-10"><a class="header" href="#детальный-анализ-10">Детальный анализ:</a></h3>
+<h2 id="временная-и-пространственная-сложность-9"><a class="header" href="#временная-и-пространственная-сложность-9">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ-9"><a class="header" href="#детальный-анализ-9">Детальный анализ:</a></h3>
 <ul>
 <li><strong>Временная сложность</strong>: O(n log k)
 <ul>
@@ -20589,7 +20986,7 @@ func findBottomK(nums []int, k int) []int {
 </tbody>
 </table>
 </div>
-<h3 id="амортизированная-сложность-10"><a class="header" href="#амортизированная-сложность-10">Амортизированная сложность</a></h3>
+<h3 id="амортизированная-сложность-9"><a class="header" href="#амортизированная-сложность-9">Амортизированная сложность</a></h3>
 <p><strong>Амортизированный анализ</strong> для поиска топ-K элементов:</p>
 <ul>
 <li><strong>Амортизированная временная сложность</strong>: O(log k) на элемент
@@ -20599,7 +20996,7 @@ func findBottomK(nums []int, k int) []int {
 </ul>
 </li>
 </ul>
-<h3 id="worstaveragebest-case-анализ-10"><a class="header" href="#worstaveragebest-case-анализ-10">Worst/Average/Best Case анализ</a></h3>
+<h3 id="worstaveragebest-case-анализ-9"><a class="header" href="#worstaveragebest-case-анализ-9">Worst/Average/Best Case анализ</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -20613,7 +21010,7 @@ func findBottomK(nums []int, k int) []int {
 </table>
 </div>
 <p><strong>Пространственная сложность</strong>: Всегда O(k), так как куча имеет фиксированный размер k.</p>
-<h3 id="таблица-сравнения-сложностей-10"><a class="header" href="#таблица-сравнения-сложностей-10">Таблица сравнения сложностей</a></h3>
+<h3 id="таблица-сравнения-сложностей-9"><a class="header" href="#таблица-сравнения-сложностей-9">Таблица сравнения сложностей</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -21232,18 +21629,18 @@ fn top_k_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-10"><a class="header" href="#примеры-задач-на-leetcode-10">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие-9"><a class="header" href="#легкие-9">Легкие:</a></h3>
+<h2 id="примеры-задач-на-leetcode-9"><a class="header" href="#примеры-задач-на-leetcode-9">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие-8"><a class="header" href="#легкие-8">Легкие:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/kth-largest-element-in-an-array/">Kth Largest Element in an Array</a> - K-й наибольший элемент</li>
 <li><a href="https://leetcode.com/problems/top-k-frequent-elements/">Top K Frequent Elements</a> - Топ K частых элементов</li>
 </ul>
-<h3 id="средние-10"><a class="header" href="#средние-10">Средние:</a></h3>
+<h3 id="средние-9"><a class="header" href="#средние-9">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/k-closest-points-to-origin/">K Closest Points to Origin</a> - K ближайших точек к началу</li>
 <li><a href="https://leetcode.com/problems/sort-characters-by-frequency/">Sort Characters By Frequency</a> - Сортировка символов по частоте</li>
 </ul>
-<h3 id="сложные-10"><a class="header" href="#сложные-10">Сложные:</a></h3>
+<h3 id="сложные-9"><a class="header" href="#сложные-9">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/merge-k-sorted-lists/">Merge k Sorted Lists</a> - Слияние K отсортированных списков</li>
 <li><a href="https://leetcode.com/problems/find-k-pairs-with-smallest-sums/">Find K Pairs with Smallest Sums</a> - K пар с наименьшими суммами</li>
@@ -22070,31 +22467,78 @@ func mergeKSortedArrays(arrays [][]int) []int {
 </ul>
 <h2 id="визуализация-11"><a class="header" href="#визуализация-11">Визуализация</a></h2>
 <h3 id="слияние-3-отсортированных-массивов"><a class="header" href="#слияние-3-отсортированных-массивов">Слияние 3 отсортированных массивов:</a></h3>
-<pre><code>Массив 1: [1, 4, 7]
-Массив 2: [2, 5, 8]
-Массив 3: [3, 6, 9]
-
-Инициализация кучи:
-Heap: [(1, arr1, 0), (2, arr2, 0), (3, arr3, 0)]
-
-Шаг 1: Извлекаем 1, добавляем 4
-        Результат: [1]
-        Heap: [(2, arr2, 0), (3, arr3, 0), (4, arr1, 1)]
-
-Шаг 2: Извлекаем 2, добавляем 5
-        Результат: [1, 2]
-        Heap: [(3, arr3, 0), (4, arr1, 1), (5, arr2, 1)]
-
-Шаг 3: Извлекаем 3, добавляем 6
-        Результат: [1, 2, 3]
-        Heap: [(4, arr1, 1), (5, arr2, 1), (6, arr3, 1)]
-
-... и так далее
-
-Финальный результат: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+<p>Массив 1: <code>[1, 4, 7]</code><br>Массив 2: <code>[2, 5, 8]</code><br>Массив 3: <code>[3, 6, 9]</code></p>
+<p><strong>Структура K-way merge:</strong></p>
+<pre><code class="language-mermaid">graph TD
+    subgraph arrays["K массивов"]
+        A1["arr1: [1,4,7]"]
+        A2["arr2: [2,5,8]"]
+        A3["arr3: [3,6,9]"]
+    end
+    
+    subgraph heap["Min Heap"]
+        H1[1]
+        H2[2]
+        H3[3]
+        H1 --&gt; H2
+        H1 --&gt; H3
+    end
+    
+    subgraph result["Результат"]
+        R[1,2,3,4,5,6,7,8,9]
+    end
+    
+    A1 --&gt; H1
+    A2 --&gt; H2
+    A3 --&gt; H3
+    H1 --&gt; R
+    
+    style H1 fill:#bfb,stroke:#333,stroke-width:2px
+    style R fill:#fbb,stroke:#333,stroke-width:2px
 </code></pre>
-<h2 id="математическое-обоснование-11"><a class="header" href="#математическое-обоснование-11">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает-10"><a class="header" href="#почему-алгоритм-работает-10">Почему алгоритм работает?</a></h3>
+<p><strong>Процесс слияния:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant A as K массивов
+    participant H as Min Heap
+    participant R as Результат
+    
+    Note over A,R: Инициализация: добавить первые элементы всех массивов
+    
+    loop Пока куча не пуста
+        H-&gt;&gt;R: Извлечь минимум
+        H-&gt;&gt;A: Получить следующий элемент из того же массива
+        alt Массив не пуст
+            A-&gt;&gt;H: Добавить элемент в кучу
+        else Массив пуст
+            Note over H: Пропустить этот массив
+        end
+    end
+    
+    Note over R: Результат: объединенный отсортированный массив
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Куча (до)</th><th>Минимум</th><th>Массив</th><th>Следующий элемент</th><th>Куча (после)</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>[]</td><td>-</td><td>-</td><td>-</td><td>[(1,arr1,0), (2,arr2,0), (3,arr3,0)]</td><td>[]</td></tr>
+<tr><td>1</td><td>[(1,arr1,0), (2,arr2,0), (3,arr3,0)]</td><td>1</td><td>arr1</td><td>4</td><td>[(2,arr2,0), (3,arr3,0), (4,arr1,1)]</td><td>[1]</td></tr>
+<tr><td>2</td><td>[(2,arr2,0), (3,arr3,0), (4,arr1,1)]</td><td>2</td><td>arr2</td><td>5</td><td>[(3,arr3,0), (4,arr1,1), (5,arr2,1)]</td><td>[1,2]</td></tr>
+<tr><td>3</td><td>[(3,arr3,0), (4,arr1,1), (5,arr2,1)]</td><td>3</td><td>arr3</td><td>6</td><td>[(4,arr1,1), (5,arr2,1), (6,arr3,1)]</td><td>[1,2,3]</td></tr>
+<tr><td>4</td><td>[(4,arr1,1), (5,arr2,1), (6,arr3,1)]</td><td>4</td><td>arr1</td><td>7</td><td>[(5,arr2,1), (6,arr3,1), (7,arr1,2)]</td><td>[1,2,3,4]</td></tr>
+<tr><td>5</td><td>[(5,arr2,1), (6,arr3,1), (7,arr1,2)]</td><td>5</td><td>arr2</td><td>8</td><td>[(6,arr3,1), (7,arr1,2), (8,arr2,2)]</td><td>[1,2,3,4,5]</td></tr>
+<tr><td>6</td><td>[(6,arr3,1), (7,arr1,2), (8,arr2,2)]</td><td>6</td><td>arr3</td><td>9</td><td>[(7,arr1,2), (8,arr2,2), (9,arr3,2)]</td><td>[1,2,3,4,5,6]</td></tr>
+<tr><td>7</td><td>[(7,arr1,2), (8,arr2,2), (9,arr3,2)]</td><td>7</td><td>arr1</td><td>-</td><td>[(8,arr2,2), (9,arr3,2)]</td><td>[1,2,3,4,5,6,7]</td></tr>
+<tr><td>8</td><td>[(8,arr2,2), (9,arr3,2)]</td><td>8</td><td>arr2</td><td>-</td><td>[(9,arr3,2)]</td><td>[1,2,3,4,5,6,7,8]</td></tr>
+<tr><td>9</td><td>[(9,arr3,2)]</td><td>9</td><td>arr3</td><td>-</td><td>[]</td><td>[1,2,3,4,5,6,7,8,9]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Финальный результат:</strong> [1, 2, 3, 4, 5, 6, 7, 8, 9]</p>
+<h2 id="математическое-обоснование-10"><a class="header" href="#математическое-обоснование-10">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает-9"><a class="header" href="#почему-алгоритм-работает-9">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: На каждом шаге куча содержит минимальный непрочитанный элемент каждого массива, и мы всегда извлекаем глобальный минимум.</p>
 <p><strong>Доказательство корректности</strong>:</p>
 <ol>
@@ -22114,8 +22558,8 @@ Heap: [(1, arr1, 0), (2, arr2, 0), (3, arr3, 0)]
 <li>Для каждого элемента: операции с кучей размера k = O(log k)</li>
 <li>Итого: O(n log k)</li>
 </ul>
-<h2 id="временная-и-пространственная-сложность-11"><a class="header" href="#временная-и-пространственная-сложность-11">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-11"><a class="header" href="#детальный-анализ-11">Детальный анализ:</a></h3>
+<h2 id="временная-и-пространственная-сложность-10"><a class="header" href="#временная-и-пространственная-сложность-10">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ-10"><a class="header" href="#детальный-анализ-10">Детальный анализ:</a></h3>
 <ul>
 <li><strong>Временная сложность</strong>: O(n log k)
 <ul>
@@ -22131,7 +22575,7 @@ Heap: [(1, arr1, 0), (2, arr2, 0), (3, arr3, 0)]
 </ul>
 </li>
 </ul>
-<h3 id="сравнение-с-наивным-подходом-4"><a class="header" href="#сравнение-с-наивным-подходом-4">Сравнение с наивным подходом:</a></h3>
+<h3 id="сравнение-с-наивным-подходом-3"><a class="header" href="#сравнение-с-наивным-подходом-3">Сравнение с наивным подходом:</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -22143,7 +22587,7 @@ Heap: [(1, arr1, 0), (2, arr2, 0), (3, arr3, 0)]
 </tbody>
 </table>
 </div>
-<h3 id="амортизированная-сложность-11"><a class="header" href="#амортизированная-сложность-11">Амортизированная сложность</a></h3>
+<h3 id="амортизированная-сложность-10"><a class="header" href="#амортизированная-сложность-10">Амортизированная сложность</a></h3>
 <p><strong>Амортизированный анализ</strong> для K-way слияния:</p>
 <ul>
 <li><strong>Амортизированная временная сложность</strong>: O(log k) на элемент
@@ -22153,7 +22597,7 @@ Heap: [(1, arr1, 0), (2, arr2, 0), (3, arr3, 0)]
 </ul>
 </li>
 </ul>
-<h3 id="worstaveragebest-case-анализ-11"><a class="header" href="#worstaveragebest-case-анализ-11">Worst/Average/Best Case анализ</a></h3>
+<h3 id="worstaveragebest-case-анализ-10"><a class="header" href="#worstaveragebest-case-анализ-10">Worst/Average/Best Case анализ</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -22167,7 +22611,7 @@ Heap: [(1, arr1, 0), (2, arr2, 0), (3, arr3, 0)]
 </table>
 </div>
 <p><strong>Пространственная сложность</strong>: Всегда O(k), так как куча содержит максимум k элементов.</p>
-<h3 id="таблица-сравнения-сложностей-11"><a class="header" href="#таблица-сравнения-сложностей-11">Таблица сравнения сложностей</a></h3>
+<h3 id="таблица-сравнения-сложностей-10"><a class="header" href="#таблица-сравнения-сложностей-10">Таблица сравнения сложностей</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -22875,13 +23319,13 @@ fn k_way_merge_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-11"><a class="header" href="#примеры-задач-на-leetcode-11">Примеры задач на LeetCode</a></h2>
-<h3 id="средние-11"><a class="header" href="#средние-11">Средние:</a></h3>
+<h2 id="примеры-задач-на-leetcode-10"><a class="header" href="#примеры-задач-на-leetcode-10">Примеры задач на LeetCode</a></h2>
+<h3 id="средние-10"><a class="header" href="#средние-10">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/merge-k-sorted-lists/">Merge k Sorted Lists</a> - Слияние K отсортированных списков</li>
 <li><a href="https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/">Kth Smallest Element in a Sorted Matrix</a> - K-й наименьший элемент в матрице</li>
 </ul>
-<h3 id="сложные-11"><a class="header" href="#сложные-11">Сложные:</a></h3>
+<h3 id="сложные-10"><a class="header" href="#сложные-10">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/find-k-pairs-with-smallest-sums/">Find K Pairs with Smallest Sums</a> - K пар с наименьшими суммами</li>
 <li><a href="https://leetcode.com/problems/smallest-range-covering-elements-from-k-lists/">Smallest Range Covering Elements from K Lists</a> - Наименьший диапазон</li>
@@ -23732,26 +24176,90 @@ func subsetsIterative(nums []int) [][]int {
 <p>Начать с пустого подмножества и для каждого элемента добавлять его ко всем существующим подмножествам.</p>
 <h2 id="визуализация-12"><a class="header" href="#визуализация-12">Визуализация</a></h2>
 <h3 id="генерация-подмножеств-для-1-2-3"><a class="header" href="#генерация-подмножеств-для-1-2-3">Генерация подмножеств для [1, 2, 3]:</a></h3>
-<pre><code>Рекурсивное дерево:
-
-                    []
-                  /    \
-               [1]      []
-              /  \     /  \
-          [1,2] [1]  [2]  []
-          /  \   / \  / \  / \
-    [1,2,3][1,2][1,3][1][2,3][2][3][]
-
-Результат: [[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]
+<p><strong>Рекурсивное дерево (backtracking):</strong></p>
+<pre><code class="language-mermaid">graph TD
+    A["[]&lt;br/&gt;start=0"] --&gt; B["[1]&lt;br/&gt;start=1"]
+    A --&gt; C["[]&lt;br/&gt;start=1"]
+    B --&gt; D["[1,2]&lt;br/&gt;start=2"]
+    B --&gt; E["[1]&lt;br/&gt;start=2"]
+    C --&gt; F["[2]&lt;br/&gt;start=2"]
+    C --&gt; G["[]&lt;br/&gt;start=2"]
+    D --&gt; H["[1,2,3]&lt;br/&gt;start=3"]
+    D --&gt; I["[1,2]&lt;br/&gt;start=3"]
+    E --&gt; J["[1,3]&lt;br/&gt;start=3"]
+    E --&gt; K["[1]&lt;br/&gt;start=3"]
+    F --&gt; L["[2,3]&lt;br/&gt;start=3"]
+    F --&gt; M["[2]&lt;br/&gt;start=3"]
+    G --&gt; N["[3]&lt;br/&gt;start=3"]
+    G --&gt; O["[]&lt;br/&gt;start=3"]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style H fill:#bfb,stroke:#333,stroke-width:2px
+    style I fill:#bfb,stroke:#333,stroke-width:2px
+    style J fill:#bfb,stroke:#333,stroke-width:2px
+    style K fill:#bfb,stroke:#333,stroke-width:2px
+    style L fill:#bfb,stroke:#333,stroke-width:2px
+    style M fill:#bfb,stroke:#333,stroke-width:2px
+    style N fill:#bfb,stroke:#333,stroke-width:2px
+    style O fill:#bfb,stroke:#333,stroke-width:2px
 </code></pre>
-<h3 id="итеративный-подход-1-2"><a class="header" href="#итеративный-подход-1-2">Итеративный подход:</a></h3>
-<pre><code>Шаг 1: [[]]
-Шаг 2: [[], [1]]                    (добавляем 1)
-Шаг 3: [[], [1], [2], [1,2]]        (добавляем 2)
-Шаг 4: [[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]  (добавляем 3)
+<p><strong>Процесс backtracking:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant F as Функция backtrack
+    participant C as Текущее подмножество
+    participant R as Результат
+    
+    Note over F,R: Инициализация: current=[], start=0
+    
+    F-&gt;&gt;R: Добавить копию current в результат
+    
+    loop Для i от start до len(nums)
+        C-&gt;&gt;C: Добавить nums[i]
+        F-&gt;&gt;F: Рекурсия: backtrack(i+1)
+        C-&gt;&gt;C: Backtrack: удалить nums[i]
+    end
+    
+    Note over R: Результат: все подмножества
 </code></pre>
-<h2 id="математическое-обоснование-12"><a class="header" href="#математическое-обоснование-12">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает-11"><a class="header" href="#почему-алгоритм-работает-11">Почему алгоритм работает?</a></h3>
+<p><strong>Детальная таблица выполнения (backtracking):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Текущее подмножество</th><th>start</th><th>Действие</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>[]</td><td>0</td><td>Добавить []</td><td>[[]]</td></tr>
+<tr><td>2</td><td>[1]</td><td>1</td><td>Добавить [1]</td><td>[[], [1]]</td></tr>
+<tr><td>3</td><td>[1,2]</td><td>2</td><td>Добавить [1,2]</td><td>[[], [1], [1,2]]</td></tr>
+<tr><td>4</td><td>[1,2,3]</td><td>3</td><td>Добавить [1,2,3]</td><td>[[], [1], [1,2], [1,2,3]]</td></tr>
+<tr><td>5</td><td>[1,2]</td><td>3</td><td>Backtrack, добавить [1,2]</td><td>[[], [1], [1,2], [1,2,3], [1,2]]</td></tr>
+<tr><td>6</td><td>[1,3]</td><td>3</td><td>Добавить [1,3]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3]]</td></tr>
+<tr><td>7</td><td>[1]</td><td>3</td><td>Backtrack, добавить [1]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1]]</td></tr>
+<tr><td>8</td><td>[2]</td><td>2</td><td>Добавить [2]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2]]</td></tr>
+<tr><td>9</td><td>[2,3]</td><td>3</td><td>Добавить [2,3]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3]]</td></tr>
+<tr><td>10</td><td>[2]</td><td>3</td><td>Backtrack, добавить [2]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3], [2]]</td></tr>
+<tr><td>11</td><td>[3]</td><td>3</td><td>Добавить [3]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3], [2], [3]]</td></tr>
+<tr><td>12</td><td>[]</td><td>3</td><td>Backtrack, добавить []</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3], [2], [3], []]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Итеративный подход:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Элемент</th><th>Результат (до)</th><th>Действие</th><th>Результат (после)</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>-</td><td>[]</td><td>Инициализация</td><td>[[]]</td></tr>
+<tr><td>2</td><td>1</td><td>[[]]</td><td>Добавить 1 к каждому</td><td>[[], [1]]</td></tr>
+<tr><td>3</td><td>2</td><td>[[], [1]]</td><td>Добавить 2 к каждому</td><td>[[], [1], [2], [1,2]]</td></tr>
+<tr><td>4</td><td>3</td><td>[[], [1], [2], [1,2]]</td><td>Добавить 3 к каждому</td><td>[[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> [[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]</p>
+<h2 id="математическое-обоснование-11"><a class="header" href="#математическое-обоснование-11">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает-10"><a class="header" href="#почему-алгоритм-работает-10">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: После обработки k элементов, текущее подмножество содержит решение для первых k элементов, и мы генерируем все возможные комбинации включения/исключения оставшихся элементов.</p>
 <p><strong>Доказательство корректности</strong> (индукция по n):</p>
 <ol>
@@ -23770,8 +24278,8 @@ func subsetsIterative(nums []int) [][]int {
 <li>Каждое подмножество требует O(n) времени для копирования</li>
 <li>Итого: O(2^n × n)</li>
 </ul>
-<h2 id="временная-и-пространственная-сложность-12"><a class="header" href="#временная-и-пространственная-сложность-12">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-12"><a class="header" href="#детальный-анализ-12">Детальный анализ:</a></h3>
+<h2 id="временная-и-пространственная-сложность-11"><a class="header" href="#временная-и-пространственная-сложность-11">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ-11"><a class="header" href="#детальный-анализ-11">Детальный анализ:</a></h3>
 <ul>
 <li><strong>Временная сложность</strong>: O(2^n × n)
 <ul>
@@ -23788,7 +24296,7 @@ func subsetsIterative(nums []int) [][]int {
 </ul>
 </li>
 </ul>
-<h3 id="амортизированная-сложность-12"><a class="header" href="#амортизированная-сложность-12">Амортизированная сложность</a></h3>
+<h3 id="амортизированная-сложность-11"><a class="header" href="#амортизированная-сложность-11">Амортизированная сложность</a></h3>
 <p><strong>Амортизированный анализ</strong> для генерации подмножеств:</p>
 <ul>
 <li><strong>Амортизированная временная сложность</strong>: O(n) на подмножество
@@ -23798,7 +24306,7 @@ func subsetsIterative(nums []int) [][]int {
 </ul>
 </li>
 </ul>
-<h3 id="worstaveragebest-case-анализ-12"><a class="header" href="#worstaveragebest-case-анализ-12">Worst/Average/Best Case анализ</a></h3>
+<h3 id="worstaveragebest-case-анализ-11"><a class="header" href="#worstaveragebest-case-анализ-11">Worst/Average/Best Case анализ</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -23812,7 +24320,7 @@ func subsetsIterative(nums []int) [][]int {
 </table>
 </div>
 <p><strong>Пространственная сложность</strong>: Всегда O(2^n × n) для результата, O(n) для стека.</p>
-<h3 id="таблица-сравнения-сложностей-12"><a class="header" href="#таблица-сравнения-сложностей-12">Таблица сравнения сложностей</a></h3>
+<h3 id="таблица-сравнения-сложностей-11"><a class="header" href="#таблица-сравнения-сложностей-11">Таблица сравнения сложностей</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -24441,19 +24949,19 @@ fn subsets_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-12"><a class="header" href="#примеры-задач-на-leetcode-12">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие-10"><a class="header" href="#легкие-10">Легкие:</a></h3>
+<h2 id="примеры-задач-на-leetcode-11"><a class="header" href="#примеры-задач-на-leetcode-11">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие-9"><a class="header" href="#легкие-9">Легкие:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/subsets/">Subsets</a> - Все подмножества</li>
 <li><a href="https://leetcode.com/problems/subsets-ii/">Subsets II</a> - Подмножества с дубликатами</li>
 </ul>
-<h3 id="средние-12"><a class="header" href="#средние-12">Средние:</a></h3>
+<h3 id="средние-11"><a class="header" href="#средние-11">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/combination-sum/">Combination Sum</a> - Сумма комбинаций</li>
 <li><a href="https://leetcode.com/problems/permutations/">Permutations</a> - Перестановки</li>
 <li><a href="https://leetcode.com/problems/letter-combinations-of-a-phone-number/">Letter Combinations of a Phone Number</a> - Комбинации букв телефона</li>
 </ul>
-<h3 id="сложные-12"><a class="header" href="#сложные-12">Сложные:</a></h3>
+<h3 id="сложные-11"><a class="header" href="#сложные-11">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/word-search-ii/">Word Search II</a> - Поиск слов II</li>
 <li><a href="https://leetcode.com/problems/n-queens/">N-Queens</a> - N ферзей</li>
@@ -25275,37 +25783,33 @@ func topologicalSort(numCourses int, prerequisites [][]int) []int {
 <h3 id="что-такое-in-degree-и-out-degree"><a class="header" href="#что-такое-in-degree-и-out-degree">Что такое in-degree и out-degree?</a></h3>
 <p><strong>In-degree (входящая степень)</strong> — количество ребер, входящих в вершину (сколько вершин зависят от этой вершины как предшественника).</p>
 <p><strong>Out-degree (исходящая степень)</strong> — количество ребер, выходящих из вершины (от скольких вершин зависит эта вершина).</p>
-<p><strong>Визуализация:</strong></p>
-<pre><code>Граф зависимостей:
-A → B → D
-A → C → D
-B → C
-
-Визуализация in-degree и out-degree:
-
-    A (in: 0, out: 2)  ← нет входящих, 2 исходящих (к B и C)
-   / \
-  B   C (in: 2, out: 1)  ← 2 входящих (от A и B), 1 исходящий (к D)
-   \ /
-    D (in: 2, out: 0)  ← 2 входящих (от B и C), нет исходящих
-
-Подробный разбор:
-- Вершина A: 
-  - In-degree = 0 (нет входящих ребер)
-  - Out-degree = 2 (ребра A→B и A→C)
-  
-- Вершина B:
-  - In-degree = 1 (ребро A→B)
-  - Out-degree = 2 (ребра B→C и B→D)
-  
-- Вершина C:
-  - In-degree = 2 (ребра A→C и B→C)
-  - Out-degree = 1 (ребро C→D)
-  
-- Вершина D:
-  - In-degree = 2 (ребра B→D и C→D)
-  - Out-degree = 0 (нет исходящих ребер)
+<p><strong>Визуализация графа зависимостей:</strong></p>
+<pre><code class="language-mermaid">graph TD
+    A[A&lt;br/&gt;in: 0&lt;br/&gt;out: 2] --&gt; B[B&lt;br/&gt;in: 1&lt;br/&gt;out: 2]
+    A --&gt; C[C&lt;br/&gt;in: 2&lt;br/&gt;out: 1]
+    B --&gt; C
+    B --&gt; D[D&lt;br/&gt;in: 2&lt;br/&gt;out: 0]
+    C --&gt; D
+    
+    style A fill:#bfb,stroke:#333,stroke-width:3px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#fbb,stroke:#333,stroke-width:2px
+    style D fill:#fbf,stroke:#333,stroke-width:2px
 </code></pre>
+<p><strong>Таблица in-degree и out-degree:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Вершина</th><th>In-degree</th><th>Out-degree</th><th>Описание</th></tr>
+</thead>
+<tbody>
+<tr><td>A</td><td>0</td><td>2</td><td>Нет входящих, 2 исходящих (A→B, A→C)</td></tr>
+<tr><td>B</td><td>1</td><td>2</td><td>1 входящий (A→B), 2 исходящих (B→C, B→D)</td></tr>
+<tr><td>C</td><td>2</td><td>1</td><td>2 входящих (A→C, B→C), 1 исходящий (C→D)</td></tr>
+<tr><td>D</td><td>2</td><td>0</td><td>2 входящих (B→D, C→D), нет исходящих</td></tr>
+</tbody>
+</table>
+</div>
 <p><strong>Почему in-degree важен для топологической сортировки?</strong></p>
 <p>Вершины с in-degree = 0 не имеют зависимостей и могут быть обработаны первыми. После их обработки мы “удаляем” их из графа (уменьшаем in-degree соседних вершин), что может сделать другие вершины готовыми к обработке (их in-degree станет 0).</p>
 <h3 id="dfs-подход"><a class="header" href="#dfs-подход">DFS подход:</a></h3>
@@ -25316,40 +25820,61 @@ B → C
 </ol>
 <h2 id="визуализация-13"><a class="header" href="#визуализация-13">Визуализация</a></h2>
 <h3 id="пример-графа-зависимостей"><a class="header" href="#пример-графа-зависимостей">Пример графа зависимостей:</a></h3>
-<pre><code>Задачи: A -&gt; B -&gt; D
-        A -&gt; C -&gt; D
-        B -&gt; C
-
-Граф:
-    A
-   / \
-  B   C
-   \ /
-    D
-
-In-degrees:
-A: 0, B: 1, C: 2, D: 2
-
-Шаг 1: Очередь = [A], Результат = []
-        Обрабатываем A: уменьшаем in-degree B и C
-        B: 0, C: 1, D: 2
-        Очередь = [B]
-
-Шаг 2: Обрабатываем B: уменьшаем in-degree C и D
-        C: 0, D: 1
-        Очередь = [C]
-
-Шаг 3: Обрабатываем C: уменьшаем in-degree D
-        D: 0
-        Очередь = [D]
-
-Шаг 4: Обрабатываем D
-        Очередь = []
-
-Результат: [A, B, C, D]
+<p>Задачи: A → B → D, A → C → D, B → C</p>
+<pre><code class="language-mermaid">graph TD
+    A[A] --&gt; B[B]
+    A --&gt; C[C]
+    B --&gt; C
+    B --&gt; D[D]
+    C --&gt; D
+    
+    style A fill:#bfb,stroke:#333,stroke-width:3px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#fbb,stroke:#333,stroke-width:2px
+    style D fill:#fbf,stroke:#333,stroke-width:2px
 </code></pre>
-<h2 id="математическое-обоснование-13"><a class="header" href="#математическое-обоснование-13">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает-12"><a class="header" href="#почему-алгоритм-работает-12">Почему алгоритм работает?</a></h3>
+<p><strong>Процесс алгоритма Кана:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant Q as Очередь
+    participant G as Граф
+    participant I as In-degree
+    participant R as Результат
+    
+    Note over Q,R: Инициализация: очередь содержит вершины с in-degree=0
+    
+    loop Пока очередь не пуста
+        Q-&gt;&gt;G: Извлечь вершину из очереди
+        G-&gt;&gt;R: Добавить в результат
+        G-&gt;&gt;I: Уменьшить in-degree соседей
+        alt in-degree соседа стал 0
+            I-&gt;&gt;Q: Добавить соседа в очередь
+        end
+    end
+    
+    alt Все вершины обработаны
+        Note over R: Успех: топологический порядок найден
+    else Остались вершины
+        Note over R: Ошибка: цикл в графе
+    end
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Очередь (до обработки)</th><th>Обрабатываем</th><th>In-degree до</th><th>Уменьшаем in-degree</th><th>In-degree после</th><th>Очередь (после)</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>[A]</td><td>-</td><td>A:0, B:1, C:2, D:2</td><td>-</td><td>-</td><td>[A]</td><td>[]</td></tr>
+<tr><td>1</td><td>[A]</td><td>A</td><td>B:1, C:2</td><td>B–, C–</td><td>B:0, C:1</td><td>[B]</td><td>[A]</td></tr>
+<tr><td>2</td><td>[B]</td><td>B</td><td>C:1, D:2</td><td>C–, D–</td><td>C:0, D:1</td><td>[C]</td><td>[A, B]</td></tr>
+<tr><td>3</td><td>[C]</td><td>C</td><td>D:1</td><td>D–</td><td>D:0</td><td>[D]</td><td>[A, B, C]</td></tr>
+<tr><td>4</td><td>[D]</td><td>D</td><td>-</td><td>-</td><td>-</td><td>[]</td><td>[A, B, C, D]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> [A, B, C, D]</p>
+<h2 id="математическое-обоснование-12"><a class="header" href="#математическое-обоснование-12">Математическое обоснование</a></h2>
+<h3 id="почему-алгоритм-работает-11"><a class="header" href="#почему-алгоритм-работает-11">Почему алгоритм работает?</a></h3>
 <p><strong>Теорема</strong>: В любом DAG существует хотя бы одна топологическая сортировка.</p>
 <p><strong>Доказательство</strong> (алгоритм Кана):</p>
 <ol>
@@ -25370,7 +25895,7 @@ A: 0, B: 1, C: 2, D: 2
 <li>Каждое ребро рассматривается один раз: O(E)</li>
 <li>Итого: O(V + E)</li>
 </ul>
-<h3 id="амортизированная-сложность-13"><a class="header" href="#амортизированная-сложность-13">Амортизированная сложность</a></h3>
+<h3 id="амортизированная-сложность-12"><a class="header" href="#амортизированная-сложность-12">Амортизированная сложность</a></h3>
 <p><strong>Амортизированный анализ</strong> для топологической сортировки:</p>
 <ul>
 <li><strong>Амортизированная временная сложность</strong>: O(1) на вершину
@@ -25382,7 +25907,7 @@ A: 0, B: 1, C: 2, D: 2
 </ul>
 </li>
 </ul>
-<h3 id="worstaveragebest-case-анализ-13"><a class="header" href="#worstaveragebest-case-анализ-13">Worst/Average/Best Case анализ</a></h3>
+<h3 id="worstaveragebest-case-анализ-12"><a class="header" href="#worstaveragebest-case-анализ-12">Worst/Average/Best Case анализ</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -25396,7 +25921,7 @@ A: 0, B: 1, C: 2, D: 2
 </table>
 </div>
 <p><strong>Пространственная сложность</strong>: Всегда O(V + E) для графа, O(V) для очереди и результата.</p>
-<h3 id="таблица-сравнения-сложностей-13"><a class="header" href="#таблица-сравнения-сложностей-13">Таблица сравнения сложностей</a></h3>
+<h3 id="таблица-сравнения-сложностей-12"><a class="header" href="#таблица-сравнения-сложностей-12">Таблица сравнения сложностей</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -25408,8 +25933,8 @@ A: 0, B: 1, C: 2, D: 2
 </tbody>
 </table>
 </div>
-<h2 id="временная-и-пространственная-сложность-13"><a class="header" href="#временная-и-пространственная-сложность-13">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ-13"><a class="header" href="#детальный-анализ-13">Детальный анализ:</a></h3>
+<h2 id="временная-и-пространственная-сложность-12"><a class="header" href="#временная-и-пространственная-сложность-12">Временная и пространственная сложность</a></h2>
+<h3 id="детальный-анализ-12"><a class="header" href="#детальный-анализ-12">Детальный анализ:</a></h3>
 <p><strong>Алгоритм Кана</strong>:</p>
 <ul>
 <li><strong>Временная сложность</strong>: O(V + E)
@@ -26123,14 +26648,14 @@ fn topological_sort_benchmark(c: &amp;mut Criterion) {
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-13"><a class="header" href="#примеры-задач-на-leetcode-13">Примеры задач на LeetCode</a></h2>
-<h3 id="средние-13"><a class="header" href="#средние-13">Средние:</a></h3>
+<h2 id="примеры-задач-на-leetcode-12"><a class="header" href="#примеры-задач-на-leetcode-12">Примеры задач на LeetCode</a></h2>
+<h3 id="средние-12"><a class="header" href="#средние-12">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/course-schedule/">Course Schedule</a> - Расписание курсов</li>
 <li><a href="https://leetcode.com/problems/course-schedule-ii/">Course Schedule II</a> - Расписание курсов II</li>
 <li><a href="https://leetcode.com/problems/alien-dictionary/">Alien Dictionary</a> - Словарь инопланетян</li>
 </ul>
-<h3 id="сложные-13"><a class="header" href="#сложные-13">Сложные:</a></h3>
+<h3 id="сложные-12"><a class="header" href="#сложные-12">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/minimum-height-trees/">Minimum Height Trees</a> - Деревья минимальной высоты</li>
 <li><a href="https://leetcode.com/problems/sequence-reconstruction/">Sequence Reconstruction</a> - Реконструкция последовательности</li>

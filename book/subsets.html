@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dacd1ff1.js";
+            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -322,24 +322,88 @@ func subsetsIterative(nums []int) [][]int {
 <p>Начать с пустого подмножества и для каждого элемента добавлять его ко всем существующим подмножествам.</p>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="генерация-подмножеств-для-1-2-3"><a class="header" href="#генерация-подмножеств-для-1-2-3">Генерация подмножеств для [1, 2, 3]:</a></h3>
-<pre><code>Рекурсивное дерево:
-
-                    []
-                  /    \
-               [1]      []
-              /  \     /  \
-          [1,2] [1]  [2]  []
-          /  \   / \  / \  / \
-    [1,2,3][1,2][1,3][1][2,3][2][3][]
-
-Результат: [[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]
+<p><strong>Рекурсивное дерево (backtracking):</strong></p>
+<pre><code class="language-mermaid">graph TD
+    A["[]&lt;br/&gt;start=0"] --&gt; B["[1]&lt;br/&gt;start=1"]
+    A --&gt; C["[]&lt;br/&gt;start=1"]
+    B --&gt; D["[1,2]&lt;br/&gt;start=2"]
+    B --&gt; E["[1]&lt;br/&gt;start=2"]
+    C --&gt; F["[2]&lt;br/&gt;start=2"]
+    C --&gt; G["[]&lt;br/&gt;start=2"]
+    D --&gt; H["[1,2,3]&lt;br/&gt;start=3"]
+    D --&gt; I["[1,2]&lt;br/&gt;start=3"]
+    E --&gt; J["[1,3]&lt;br/&gt;start=3"]
+    E --&gt; K["[1]&lt;br/&gt;start=3"]
+    F --&gt; L["[2,3]&lt;br/&gt;start=3"]
+    F --&gt; M["[2]&lt;br/&gt;start=3"]
+    G --&gt; N["[3]&lt;br/&gt;start=3"]
+    G --&gt; O["[]&lt;br/&gt;start=3"]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style H fill:#bfb,stroke:#333,stroke-width:2px
+    style I fill:#bfb,stroke:#333,stroke-width:2px
+    style J fill:#bfb,stroke:#333,stroke-width:2px
+    style K fill:#bfb,stroke:#333,stroke-width:2px
+    style L fill:#bfb,stroke:#333,stroke-width:2px
+    style M fill:#bfb,stroke:#333,stroke-width:2px
+    style N fill:#bfb,stroke:#333,stroke-width:2px
+    style O fill:#bfb,stroke:#333,stroke-width:2px
 </code></pre>
-<h3 id="итеративный-подход-1"><a class="header" href="#итеративный-подход-1">Итеративный подход:</a></h3>
-<pre><code>Шаг 1: [[]]
-Шаг 2: [[], [1]]                    (добавляем 1)
-Шаг 3: [[], [1], [2], [1,2]]        (добавляем 2)
-Шаг 4: [[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]  (добавляем 3)
+<p><strong>Процесс backtracking:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant F as Функция backtrack
+    participant C as Текущее подмножество
+    participant R as Результат
+    
+    Note over F,R: Инициализация: current=[], start=0
+    
+    F-&gt;&gt;R: Добавить копию current в результат
+    
+    loop Для i от start до len(nums)
+        C-&gt;&gt;C: Добавить nums[i]
+        F-&gt;&gt;F: Рекурсия: backtrack(i+1)
+        C-&gt;&gt;C: Backtrack: удалить nums[i]
+    end
+    
+    Note over R: Результат: все подмножества
 </code></pre>
+<p><strong>Детальная таблица выполнения (backtracking):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Текущее подмножество</th><th>start</th><th>Действие</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>[]</td><td>0</td><td>Добавить []</td><td>[[]]</td></tr>
+<tr><td>2</td><td>[1]</td><td>1</td><td>Добавить [1]</td><td>[[], [1]]</td></tr>
+<tr><td>3</td><td>[1,2]</td><td>2</td><td>Добавить [1,2]</td><td>[[], [1], [1,2]]</td></tr>
+<tr><td>4</td><td>[1,2,3]</td><td>3</td><td>Добавить [1,2,3]</td><td>[[], [1], [1,2], [1,2,3]]</td></tr>
+<tr><td>5</td><td>[1,2]</td><td>3</td><td>Backtrack, добавить [1,2]</td><td>[[], [1], [1,2], [1,2,3], [1,2]]</td></tr>
+<tr><td>6</td><td>[1,3]</td><td>3</td><td>Добавить [1,3]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3]]</td></tr>
+<tr><td>7</td><td>[1]</td><td>3</td><td>Backtrack, добавить [1]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1]]</td></tr>
+<tr><td>8</td><td>[2]</td><td>2</td><td>Добавить [2]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2]]</td></tr>
+<tr><td>9</td><td>[2,3]</td><td>3</td><td>Добавить [2,3]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3]]</td></tr>
+<tr><td>10</td><td>[2]</td><td>3</td><td>Backtrack, добавить [2]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3], [2]]</td></tr>
+<tr><td>11</td><td>[3]</td><td>3</td><td>Добавить [3]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3], [2], [3]]</td></tr>
+<tr><td>12</td><td>[]</td><td>3</td><td>Backtrack, добавить []</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3], [2], [3], []]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Итеративный подход:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Элемент</th><th>Результат (до)</th><th>Действие</th><th>Результат (после)</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>-</td><td>[]</td><td>Инициализация</td><td>[[]]</td></tr>
+<tr><td>2</td><td>1</td><td>[[]]</td><td>Добавить 1 к каждому</td><td>[[], [1]]</td></tr>
+<tr><td>3</td><td>2</td><td>[[], [1]]</td><td>Добавить 2 к каждому</td><td>[[], [1], [2], [1,2]]</td></tr>
+<tr><td>4</td><td>3</td><td>[[], [1], [2], [1,2]]</td><td>Добавить 3 к каждому</td><td>[[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> [[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]</p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: После обработки k элементов, текущее подмножество содержит решение для первых k элементов, и мы генерируем все возможные комбинации включения/исключения оставшихся элементов.</p>

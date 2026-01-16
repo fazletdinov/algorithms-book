@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dacd1ff1.js";
+            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -280,48 +280,95 @@ func detectCycle(head *ListNode) *ListNode {
 </ol>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="обнаружение-цикла"><a class="header" href="#обнаружение-цикла">Обнаружение цикла:</a></h3>
-<pre><code>Список с циклом: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; 3 (цикл)
-
-Шаг 1: slow=1, fast=1
-        S,F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-                    ↑________|
-
-Шаг 2: slow=2, fast=3
-           S     F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-                    ↑________|
-
-Шаг 3: slow=3, fast=5
-              S         F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-                    ↑________|
-
-Шаг 4: slow=4, fast=3
-                 S  F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-                    ↑________|
-
-Шаг 5: slow=5, fast=5 (встретились - цикл обнаружен!)
-                    S,F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-                    ↑________|
+<p>Список с циклом: 1 → 2 → 3 → 4 → 5 → 3 (цикл)</p>
+<pre><code class="language-mermaid">graph LR
+    A[1] --&gt; B[2]
+    B --&gt; C[3]
+    C --&gt; D[4]
+    D --&gt; E[5]
+    E --&gt; C
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#bbf,stroke:#333,stroke-width:3px
+    style E fill:#fbb,stroke:#333,stroke-width:2px
 </code></pre>
+<p><strong>Процесс обнаружения цикла:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant S as slow
+    participant L as Список
+    participant F as fast
+    
+    Note over S,F: Инициализация: slow=head, fast=head
+    
+    loop Пока fast != null и fast.next != null
+        S-&gt;&gt;L: slow = slow.next (1 шаг)
+        F-&gt;&gt;L: fast = fast.next.next (2 шага)
+        alt slow == fast
+            Note over S,F: Встретились! Цикл обнаружен
+            L--&gt;&gt;S: Вернуть true
+        end
+    end
+    
+    Note over L: Цикл не обнаружен
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>slow позиция</th><th>fast позиция</th><th>slow значение</th><th>fast значение</th><th>Состояние</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>1</td><td>1</td><td>1</td><td>1</td><td>Начало</td></tr>
+<tr><td>1</td><td>2</td><td>3</td><td>2</td><td>3</td><td>slow: 1 шаг, fast: 2 шага</td></tr>
+<tr><td>2</td><td>3</td><td>5</td><td>3</td><td>5</td><td>slow: 1 шаг, fast: 2 шага</td></tr>
+<tr><td>3</td><td>4</td><td>3</td><td>4</td><td>3</td><td>slow: 1 шаг, fast: 2 шага (в цикле)</td></tr>
+<tr><td>4</td><td>5</td><td>5</td><td>5</td><td>5</td><td>slow: 1 шаг, fast: 2 шага</td></tr>
+<tr><td>5</td><td>5</td><td>5</td><td>5</td><td>5</td><td><strong>Встретились! Цикл обнаружен</strong></td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="поиск-середины-списка-1"><a class="header" href="#поиск-середины-списка-1">Поиск середины списка:</a></h3>
-<pre><code>Список: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-
-Шаг 1: slow=1, fast=1
-        S,F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-
-Шаг 2: slow=2, fast=3
-           S     F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
-
-Шаг 3: slow=3, fast=5 (fast достиг конца, slow в середине)
-              S         F
-        1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5
+<p>Список: 1 → 2 → 3 → 4 → 5</p>
+<pre><code class="language-mermaid">graph LR
+    A[1] --&gt; B[2]
+    B --&gt; C[3]
+    C --&gt; D[4]
+    D --&gt; E[5]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#bfb,stroke:#333,stroke-width:3px
+    style E fill:#fbb,stroke:#333,stroke-width:2px
 </code></pre>
+<p><strong>Процесс поиска середины:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant S as slow
+    participant L as Список
+    participant F as fast
+    
+    Note over S,F: Инициализация: slow=head, fast=head
+    
+    loop Пока fast != null и fast.next != null
+        S-&gt;&gt;L: slow = slow.next (1 шаг)
+        F-&gt;&gt;L: fast = fast.next.next (2 шага)
+    end
+    
+    Note over S: slow указывает на середину
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>slow позиция</th><th>fast позиция</th><th>slow значение</th><th>fast значение</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>1</td><td>1</td><td>1</td><td>1</td><td>Начало</td></tr>
+<tr><td>1</td><td>2</td><td>3</td><td>2</td><td>3</td><td>slow: 1 шаг, fast: 2 шага</td></tr>
+<tr><td>2</td><td>3</td><td>5</td><td>3</td><td>5</td><td>slow: 1 шаг, fast: 2 шага</td></tr>
+<tr><td>3</td><td>3</td><td>null</td><td>3</td><td>-</td><td>fast достиг конца, slow в середине</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> slow указывает на узел 3 (середина списка)</p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-обнаружения-цикла-работает"><a class="header" href="#почему-алгоритм-обнаружения-цикла-работает">Почему алгоритм обнаружения цикла работает?</a></h3>
 <p><strong>Теорема Флойда</strong>: Если в связанном списке есть цикл длины L, и мы начинаем с двух указателей в одной точке, где медленный указатель движется на 1 шаг, а быстрый на 2 шага, то они встретятся через максимум L шагов после входа в цикл.</p>

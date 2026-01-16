@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dacd1ff1.js";
+            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -276,307 +276,321 @@
 <p><strong>Применение</strong>: Удаление дубликатов, поиск подмассивов, слияние отсортированных массивов</p>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="поиск-пары-с-заданной-суммой-встречные-указатели"><a class="header" href="#поиск-пары-с-заданной-суммой-встречные-указатели">Поиск пары с заданной суммой (встречные указатели):</a></h3>
-<pre><code>Отсортированный массив: [1, 2, 3, 4, 5, 6], цель = 7
-
-Инициализация:
-left = 0, right = 5
-
-Шаг 1:  [1, 2, 3, 4, 5, 6]
-         ↑              ↑
-        left=0         right=5
-        sum = 1 + 6 = 7 ✓ (найдено!)
-        Можно вернуть (0, 5) или продолжить поиск всех пар
-
-Шаг 2:  [1, 2, 3, 4, 5, 6]
-         ↑           ↑
-        left=0      right=4
-        sum = 1 + 5 = 6 &lt; 7
-        Исключаем все пары (0, j) для j &lt; 4, так как они тоже &lt; 7
-        left++ → left=1
-
-Шаг 3:  [1, 2, 3, 4, 5, 6]
-            ↑        ↑
-           left=1    right=4
-           sum = 2 + 5 = 7 ✓ (найдено!)
-
-Шаг 4:  [1, 2, 3, 4, 5, 6]
-            ↑     ↑
-           left=1 right=3
-           sum = 2 + 4 = 6 &lt; 7
-           left++ → left=2
-
-Шаг 5:  [1, 2, 3, 4, 5, 6]
-               ↑  ↑
-           left=2 right=3
-           sum = 3 + 4 = 7 ✓ (найдено!)
-
-Шаг 6:  left=2, right=2 → left &gt;= right, завершение
-
-Результат: Найдены пары (0,5), (1,4), (2,3)
+<p>Отсортированный массив: <code>[1, 2, 3, 4, 5, 6]</code>, цель = 7</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant L as left
+    participant A as Массив
+    participant R as right
+    participant T as target
+    
+    Note over L,R: Инициализация: left=0, right=5
+    
+    loop Пока left &lt; right
+        L-&gt;&gt;A: arr[left]
+        R-&gt;&gt;A: arr[right]
+        A-&gt;&gt;A: sum = arr[left] + arr[right]
+        alt sum == target
+            A--&gt;&gt;T: Найдена пара! (left, right)
+            Note over L: left++ (продолжаем поиск)
+        else sum &lt; target
+            Note over L: Нужна большая сумма
+            L-&gt;&gt;L: left++
+        else sum &gt; target
+            Note over R: Нужна меньшая сумма
+            R-&gt;&gt;R: right--
+        end
+    end
+    
+    Note over T: Результат: пары (0,5), (1,4), (2,3)
 </code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>left</th><th>right</th><th>arr[left]</th><th>arr[right]</th><th>sum</th><th>Сравнение с target</th><th>Действие</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>0</td><td>5</td><td>1</td><td>6</td><td>-</td><td>-</td><td>Установка начальных позиций</td><td>-</td></tr>
+<tr><td>1</td><td>0</td><td>5</td><td>1</td><td>6</td><td>7</td><td>== 7 ✓</td><td>Найдена пара!</td><td>(0, 5)</td></tr>
+<tr><td>2</td><td>0</td><td>4</td><td>1</td><td>5</td><td>6</td><td>&lt; 7</td><td>left++</td><td>-</td></tr>
+<tr><td>3</td><td>1</td><td>4</td><td>2</td><td>5</td><td>7</td><td>== 7 ✓</td><td>Найдена пара!</td><td>(1, 4)</td></tr>
+<tr><td>4</td><td>1</td><td>3</td><td>2</td><td>4</td><td>6</td><td>&lt; 7</td><td>left++</td><td>-</td></tr>
+<tr><td>5</td><td>2</td><td>3</td><td>3</td><td>4</td><td>7</td><td>== 7 ✓</td><td>Найдена пара!</td><td>(2, 3)</td></tr>
+<tr><td>6</td><td>2</td><td>2</td><td>-</td><td>-</td><td>-</td><td>left &gt;= right</td><td>Завершение</td><td>-</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> Найдены пары (0,5), (1,4), (2,3)</p>
 <h3 id="контейнер-с-наибольшим-количеством-воды"><a class="header" href="#контейнер-с-наибольшим-количеством-воды">Контейнер с наибольшим количеством воды:</a></h3>
-<pre><code>Высоты: [1, 8, 6, 2, 5, 4, 8, 3, 7]
-
-Шаг 1:  [1, 8, 6, 2, 5, 4, 8, 3, 7]
-         ↑                        ↑
-        left=0                  right=8
-        height = min(1, 7) = 1
-        width = 8 - 0 = 8
-        area = 1 × 8 = 8
-        maxArea = 8
-        Так как height[left] &lt; height[right], left++
-
-Шаг 2:  [1, 8, 6, 2, 5, 4, 8, 3, 7]
-            ↑                    ↑
-           left=1               right=8
-           height = min(8, 7) = 7
-           width = 8 - 1 = 7
-           area = 7 × 7 = 49
-           maxArea = 49
-           Так как height[left] &gt; height[right], right--
-
-... продолжаем ...
-
-Финальный результат: maxArea = 49
+<p>Высоты: <code>[1, 8, 6, 2, 5, 4, 8, 3, 7]</code></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant L as left
+    participant H as Высоты
+    participant R as right
+    participant A as Площадь
+    
+    Note over L,R: Инициализация: left=0, right=8
+    
+    loop Пока left &lt; right
+        L-&gt;&gt;H: height[left]
+        R-&gt;&gt;H: height[right]
+        H-&gt;&gt;A: height = min(height[left], height[right])
+        H-&gt;&gt;A: width = right - left
+        A-&gt;&gt;A: area = height × width
+        A-&gt;&gt;A: Обновить maxArea
+        
+        alt height[left] &lt; height[right]
+            Note over L: Увеличиваем меньшую высоту
+            L-&gt;&gt;L: left++
+        else height[left] &gt;= height[right]
+            Note over R: Увеличиваем меньшую высоту
+            R-&gt;&gt;R: right--
+        end
+    end
+    
+    Note over A: Результат: maxArea = 49
 </code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>left</th><th>right</th><th>height[left]</th><th>height[right]</th><th>height</th><th>width</th><th>area</th><th>maxArea</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>0</td><td>8</td><td>1</td><td>7</td><td>1</td><td>8</td><td>8</td><td>8</td><td>height[left] &lt; height[right] → left++</td></tr>
+<tr><td>2</td><td>1</td><td>8</td><td>8</td><td>7</td><td>7</td><td>7</td><td>49</td><td>49</td><td>height[left] &gt; height[right] → right–</td></tr>
+<tr><td>3</td><td>1</td><td>7</td><td>8</td><td>3</td><td>3</td><td>6</td><td>18</td><td>49</td><td>height[left] &gt; height[right] → right–</td></tr>
+<tr><td>4</td><td>1</td><td>6</td><td>8</td><td>8</td><td>8</td><td>5</td><td>40</td><td>49</td><td>height[left] == height[right] → right–</td></tr>
+<tr><td>5</td><td>1</td><td>5</td><td>8</td><td>4</td><td>4</td><td>4</td><td>16</td><td>49</td><td>height[left] &gt; height[right] → right–</td></tr>
+<tr><td>6</td><td>1</td><td>4</td><td>8</td><td>5</td><td>5</td><td>3</td><td>15</td><td>49</td><td>height[left] &gt; height[right] → right–</td></tr>
+<tr><td>7</td><td>1</td><td>3</td><td>8</td><td>2</td><td>2</td><td>2</td><td>4</td><td>49</td><td>height[left] &gt; height[right] → right–</td></tr>
+<tr><td>8</td><td>1</td><td>2</td><td>8</td><td>6</td><td>6</td><td>1</td><td>6</td><td>49</td><td>height[left] &gt; height[right] → right–</td></tr>
+<tr><td>9</td><td>1</td><td>1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>49</td><td>left &gt;= right → завершение</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Финальный результат:</strong> maxArea = 49</p>
 <h3 id="удаление-дубликатов-указатели-в-одном-направлении"><a class="header" href="#удаление-дубликатов-указатели-в-одном-направлении">Удаление дубликатов (указатели в одном направлении):</a></h3>
-<pre><code>Массив: [1, 1, 2, 2, 3, 4, 4, 5]
-
-Инвариант: arr[0..slow] содержит уникальные элементы в отсортированном порядке
-
-Шаг 1:  [1, 1, 2, 2, 3, 4, 4, 5]
-         ↑  ↑
-        slow=0 fast=1
-        arr[slow] == arr[fast] → fast++ (пропускаем дубликат)
-
-Шаг 2:  [1, 1, 2, 2, 3, 4, 4, 5]
-         ↑     ↑
-        slow=0 fast=2
-        arr[slow] != arr[fast] → arr[++slow] = arr[fast]
-        Результат: [1, 2, 2, 2, 3, 4, 4, 5]
-                   ↑  ↑
-                  slow=1
-
-Шаг 3:  [1, 2, 2, 2, 3, 4, 4, 5]
-            ↑     ↑
-           slow=1 fast=3
-           arr[slow] == arr[fast] → fast++
-
-Шаг 4:  [1, 2, 2, 2, 3, 4, 4, 5]
-            ↑        ↑
-           slow=1    fast=4
-           arr[slow] != arr[fast] → arr[++slow] = arr[fast]
-           Результат: [1, 2, 3, 2, 3, 4, 4, 5]
-                      ↑     ↑
-                     slow=2
-
-... продолжаем до конца ...
-
-Финальный результат: [1, 2, 3, 4, 5] (первые 5 элементов)
+<p>Массив: <code>[1, 1, 2, 2, 3, 4, 4, 5]</code></p>
+<p><strong>Инвариант:</strong> <code>arr[0..slow]</code> содержит уникальные элементы в отсортированном порядке</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant S as slow
+    participant A as Массив
+    participant F as fast
+    
+    Note over S,F: Инициализация: slow=0, fast=1
+    
+    loop Пока fast &lt; len(arr)
+        S-&gt;&gt;A: arr[slow]
+        F-&gt;&gt;A: arr[fast]
+        alt arr[slow] == arr[fast]
+            Note over F: Дубликат, пропускаем
+            F-&gt;&gt;F: fast++
+        else arr[slow] != arr[fast]
+            Note over S: Новый уникальный элемент
+            S-&gt;&gt;S: slow++
+            A-&gt;&gt;A: arr[slow] = arr[fast]
+            F-&gt;&gt;F: fast++
+        end
+    end
+    
+    Note over A: Результат: arr[0..slow] содержит уникальные элементы
 </code></pre>
-<h3 id="захват-дождевой-воды-встречные-указатели-с-максимумами"><a class="header" href="#захват-дождевой-воды-встречные-указатели-с-максимумами">Захват дождевой воды (встречные указатели с максимумами):</a></h3>
-<pre><code>Высоты: [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>slow</th><th>fast</th><th>arr[slow]</th><th>arr[fast]</th><th>Сравнение</th><th>Массив</th><th>Действие</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>0</td><td>1</td><td>1</td><td>1</td><td>-</td><td>[1,1,2,2,3,4,4,5]</td><td>-</td></tr>
+<tr><td>1</td><td>0</td><td>1</td><td>1</td><td>1</td><td>==</td><td>[1,1,2,2,3,4,4,5]</td><td>Дубликат → fast++</td></tr>
+<tr><td>2</td><td>0</td><td>2</td><td>1</td><td>2</td><td>!=</td><td>[1,2,2,2,3,4,4,5]</td><td>slow++, arr[slow]=arr[fast], fast++</td></tr>
+<tr><td>3</td><td>1</td><td>3</td><td>2</td><td>2</td><td>==</td><td>[1,2,2,2,3,4,4,5]</td><td>Дубликат → fast++</td></tr>
+<tr><td>4</td><td>1</td><td>4</td><td>2</td><td>3</td><td>!=</td><td>[1,2,3,2,3,4,4,5]</td><td>slow++, arr[slow]=arr[fast], fast++</td></tr>
+<tr><td>5</td><td>2</td><td>5</td><td>3</td><td>4</td><td>!=</td><td>[1,2,3,4,4,4,4,5]</td><td>slow++, arr[slow]=arr[fast], fast++</td></tr>
+<tr><td>6</td><td>3</td><td>6</td><td>4</td><td>4</td><td>==</td><td>[1,2,3,4,4,4,4,5]</td><td>Дубликат → fast++</td></tr>
+<tr><td>7</td><td>3</td><td>7</td><td>4</td><td>5</td><td>!=</td><td>[1,2,3,4,5,4,4,5]</td><td>slow++, arr[slow]=arr[fast], fast++</td></tr>
+<tr><td>8</td><td>4</td><td>8</td><td>5</td><td>-</td><td>-</td><td>[1,2,3,4,5,4,4,5]</td><td>fast &gt;= len → завершение</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Результат:</strong> <code>arr[0..slow] = [1, 2, 3, 4, 5]</code> содержит 5 уникальных элементов
+arr[slow] != arr[fast] → arr[++slow] = arr[fast]
+Результат: [1, 2, 3, 2, 3, 4, 4, 5]
+↑     ↑
+slow=2</p>
+<p>… продолжаем до конца …</p>
+<p>Финальный результат: [1, 2, 3, 4, 5] (первые 5 элементов)</p>
+<pre><code>
+### Захват дождевой воды (встречные указатели с максимумами):
 
-leftMax = 0, rightMax = 0
+</code></pre>
+<p>Высоты: [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]</p>
+<p>leftMax = 0, rightMax = 0
 left = 0, right = 11
-water = 0
+water = 0</p>
+<p>Шаг 1:  left=0, right=11
+height[left]=0 &lt; height[right]=1
+Так как height[left] &lt; height[right]:
+leftMax = max(0, 0) = 0
+water += max(0, 0 - 0) = 0
+left++</p>
+<p>Шаг 2:  left=1, right=11
+height[left]=1 &lt; height[right]=1
+leftMax = max(0, 1) = 1
+water += max(0, 1 - 1) = 0
+left++</p>
+<p>Шаг 3:  left=2, right=11
+height[left]=0 &lt; height[right]=1
+leftMax = 1
+water += max(0, 1 - 0) = 1
+left++</p>
+<p>… продолжаем …</p>
+<p>Финальный результат: water = 6</p>
+<pre><code>
+## Математическое обоснование
 
-Шаг 1:  left=0, right=11
-        height[left]=0 &lt; height[right]=1
-        Так как height[left] &lt; height[right]:
-          leftMax = max(0, 0) = 0
-          water += max(0, 0 - 0) = 0
-          left++
+### Почему алгоритм работает?
 
-Шаг 2:  left=1, right=11
-        height[left]=1 &lt; height[right]=1
-        leftMax = max(0, 1) = 1
-        water += max(0, 1 - 1) = 0
-        left++
+**Ключевой инвариант**: На каждом шаге мы исключаем из рассмотрения все пары, которые заведомо не могут быть решением.
 
-Шаг 3:  left=2, right=11
-        height[left]=0 &lt; height[right]=1
-        leftMax = 1
-        water += max(0, 1 - 0) = 1
-        left++
+**Доказательство корректности для встречных указателей**:
 
-... продолжаем ...
+Предположим, массив отсортирован: `arr[0] ≤ arr[1] ≤ ... ≤ arr[n-1]`
 
-Финальный результат: water = 6
+**Лемма 1**: Если `arr[left] + arr[right] &lt; target`, то для любого `right' &lt; right`:
 </code></pre>
-<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
-<p><strong>Ключевой инвариант</strong>: На каждом шаге мы исключаем из рассмотрения все пары, которые заведомо не могут быть решением.</p>
-<p><strong>Доказательство корректности для встречных указателей</strong>:</p>
-<p>Предположим, массив отсортирован: <code>arr[0] ≤ arr[1] ≤ ... ≤ arr[n-1]</code></p>
-<p><strong>Лемма 1</strong>: Если <code>arr[left] + arr[right] &lt; target</code>, то для любого <code>right' &lt; right</code>:</p>
-<pre><code>arr[left] + arr[right'] ≤ arr[left] + arr[right] &lt; target
+<p>arr[left] + arr[right’] ≤ arr[left] + arr[right] &lt; target</p>
+<pre><code>Следовательно, все пары `(left, right'), right' &lt; right` также не подходят, и мы можем безопасно увеличить `left`.
+
+**Лемма 2**: Если `arr[left] + arr[right] &gt; target`, то для любого `left' &gt; left`:
 </code></pre>
-<p>Следовательно, все пары <code>(left, right'), right' &lt; right</code> также не подходят, и мы можем безопасно увеличить <code>left</code>.</p>
-<p><strong>Лемма 2</strong>: Если <code>arr[left] + arr[right] &gt; target</code>, то для любого <code>left' &gt; left</code>:</p>
-<pre><code>arr[left'] + arr[right] ≥ arr[left] + arr[right] &gt; target
-</code></pre>
-<p>Следовательно, все пары <code>(left', right), left' &gt; left</code> также не подходят, и мы можем безопасно уменьшить <code>right</code>.</p>
-<p><strong>Теорема</strong>: Алгоритм проверяет все возможные пары и находит решение, если оно существует.</p>
-<p><strong>Доказательство</strong>:</p>
-<ul>
-<li>Начальное состояние: <code>left = 0, right = n-1</code> покрывает все возможные пары</li>
-<li>На каждом шаге мы исключаем только те пары, которые заведомо не подходят (по леммам)</li>
-<li>Когда <code>left &gt;= right</code>, все пары проверены</li>
-<li>Если решение существует, оно будет найдено до завершения цикла</li>
-</ul>
-<h3 id="почему-сложность-on"><a class="header" href="#почему-сложность-on">Почему сложность O(n)?</a></h3>
-<p><strong>Инвариант сложности</strong>: Каждый элемент массива посещается каждым указателем максимум один раз.</p>
-<ul>
-<li><code>left</code> начинается с 0 и может только увеличиваться → максимум n шагов</li>
-<li><code>right</code> начинается с n-1 и может только уменьшаться → максимум n шагов</li>
-<li>На каждой итерации хотя бы один указатель перемещается</li>
-<li>Всего максимум 2n шагов = O(n)</li>
-</ul>
-<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
-<p><strong>Встречные указатели</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li>Каждый элемент посещается каждым указателем максимум один раз</li>
-<li>Всего максимум n итераций (когда указатели встречаются)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(1)
-<ul>
-<li>Используем только константное количество переменных</li>
-</ul>
-</li>
-</ul>
-<p><strong>Указатели в одном направлении</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li><code>fast</code> проходит весь массив один раз: O(n)</li>
-<li><code>slow</code> также проходит максимум n элементов: O(n)</li>
-<li>Итого: O(n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(1)
-<ul>
-<li>Только переменные для указателей</li>
-</ul>
-</li>
-</ul>
-<p><strong>Быстрый и медленный</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)</li>
-</ul>
-<h3 id="амортизированная-сложность"><a class="header" href="#амортизированная-сложность">Амортизированная сложность</a></h3>
-<p><strong>Амортизированный анализ</strong> для двух указателей:</p>
-<h4 id="встречные-указатели"><a class="header" href="#встречные-указатели">Встречные указатели:</a></h4>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(1) на элемент
-<ul>
-<li>Каждый элемент посещается максимум один раз каждым указателем</li>
-<li>Амортизированная стоимость: O(2n) / n = O(1) на элемент</li>
-</ul>
-</li>
-</ul>
-<h4 id="указатели-в-одном-направлении"><a class="header" href="#указатели-в-одном-направлении">Указатели в одном направлении:</a></h4>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(1) на элемент
-<ul>
-<li><code>fast</code> проходит каждый элемент один раз: O(1) на элемент</li>
-<li><code>slow</code> проходит подмножество элементов: O(1) на элемент в среднем</li>
-</ul>
-</li>
-</ul>
-<h3 id="worstaveragebest-case-анализ"><a class="header" href="#worstaveragebest-case-анализ">Worst/Average/Best Case анализ</a></h3>
-<h4 id="встречные-указатели-1"><a class="header" href="#встречные-указатели-1">Встречные указатели:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(1)</td><td>Пара найдена сразу (первые два элемента)</td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(n)</td><td>Пара найдена в середине массива</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(n)</td><td>Пара не найдена или найдена в конце</td></tr>
-</tbody>
-</table>
-</div>
-<h4 id="указатели-в-одном-направлении-1"><a class="header" href="#указатели-в-одном-направлении-1">Указатели в одном направлении:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(n)</td><td>Все элементы уникальны, <code>slow</code> движется вместе с <code>fast</code></td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(n)</td><td>Некоторые дубликаты, <code>slow</code> периодически отстает</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(n)</td><td>Все элементы одинаковые, <code>slow</code> остается на месте</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Примечание</strong>: Для двух указателей все случаи имеют O(n), так как алгоритм всегда проходит по массиву один раз.</p>
-<h3 id="таблица-сравнения-сложностей"><a class="header" href="#таблица-сравнения-сложностей">Таблица сравнения сложностей</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Алгоритм</th><th>Время (Worst)</th><th>Время (Average)</th><th>Время (Best)</th><th>Память</th><th>Амортизированное время</th></tr>
-</thead>
-<tbody>
-<tr><td>Встречные указатели</td><td>O(n)</td><td>O(n)</td><td>O(1)</td><td>O(1)</td><td>O(1) на элемент</td></tr>
-<tr><td>Одно направление</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(1)</td><td>O(1) на элемент</td></tr>
-<tr><td>Хеш-таблица (альтернатива)</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(1) на элемент</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Быстрый и медленный</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li>Быстрый указатель проходит максимум n элементов</li>
-<li>Медленный проходит максимум n/2 элементов</li>
-<li>Итого: O(n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(1)</li>
-</ul>
-<h3 id="сравнение-с-наивным-подходом"><a class="header" href="#сравнение-с-наивным-подходом">Сравнение с наивным подходом:</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Подход</th><th>Временная сложность</th><th>Пространственная сложность</th></tr>
-</thead>
-<tbody>
-<tr><td>Наивный (все пары)</td><td>O(n²)</td><td>O(1)</td></tr>
-<tr><td>Два указателя</td><td>O(n)</td><td>O(1)</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Выигрыш</strong>: O(n²) → O(n) — квадратичное улучшение!</p>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/">Two Sum II - Input array is sorted</a> - Две суммы в отсортированном массиве</li>
-<li><a href="https://leetcode.com/problems/valid-palindrome/">Valid Palindrome</a> - Валидный палиндром</li>
-<li><a href="https://leetcode.com/problems/remove-duplicates-from-sorted-array/">Remove Duplicates from Sorted Array</a> - Удаление дубликатов из отсортированного массива</li>
-</ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/3sum/">3Sum</a> - Три суммы</li>
-<li><a href="https://leetcode.com/problems/container-with-most-water/">Container With Most Water</a> - Контейнер с наибольшим количеством воды</li>
-<li><a href="https://leetcode.com/problems/trapping-rain-water/">Trapping Rain Water</a> - Захват дождевой воды</li>
-<li><a href="https://leetcode.com/problems/squares-of-a-sorted-array/">Squares of a Sorted Array</a> - Квадраты отсортированного массива</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/4sum/">4Sum</a> - Четыре суммы</li>
-<li><a href="https://leetcode.com/problems/3sum-closest/">3Sum Closest</a> - Ближайшая тройная сумма</li>
-<li><a href="https://leetcode.com/problems/partition-labels/">Partition Labels</a> - Разделение меток</li>
-</ul>
-<h2 id="сравнение-с-альтернативными-подходами"><a class="header" href="#сравнение-с-альтернативными-подходами">Сравнение с альтернативными подходами</a></h2>
-<h3 id="1-наивный-подход-перебор-всех-пар"><a class="header" href="#1-наивный-подход-перебор-всех-пар">1. Наивный подход (перебор всех пар):</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// O(n²) - проверяем все пары
+<p>arr[left’] + arr[right] ≥ arr[left] + arr[right] &gt; target</p>
+<pre><code>Следовательно, все пары `(left', right), left' &gt; left` также не подходят, и мы можем безопасно уменьшить `right`.
+
+**Теорема**: Алгоритм проверяет все возможные пары и находит решение, если оно существует.
+
+**Доказательство**: 
+- Начальное состояние: `left = 0, right = n-1` покрывает все возможные пары
+- На каждом шаге мы исключаем только те пары, которые заведомо не подходят (по леммам)
+- Когда `left &gt;= right`, все пары проверены
+- Если решение существует, оно будет найдено до завершения цикла
+
+### Почему сложность O(n)?
+
+**Инвариант сложности**: Каждый элемент массива посещается каждым указателем максимум один раз.
+
+- `left` начинается с 0 и может только увеличиваться → максимум n шагов
+- `right` начинается с n-1 и может только уменьшаться → максимум n шагов
+- На каждой итерации хотя бы один указатель перемещается
+- Всего максимум 2n шагов = O(n)
+
+## Временная и пространственная сложность
+
+### Детальный анализ:
+
+**Встречные указатели**:
+- **Временная сложность**: O(n)
+  - Каждый элемент посещается каждым указателем максимум один раз
+  - Всего максимум n итераций (когда указатели встречаются)
+- **Пространственная сложность**: O(1)
+  - Используем только константное количество переменных
+
+**Указатели в одном направлении**:
+- **Временная сложность**: O(n)
+  - `fast` проходит весь массив один раз: O(n)
+  - `slow` также проходит максимум n элементов: O(n)
+  - Итого: O(n)
+- **Пространственная сложность**: O(1)
+  - Только переменные для указателей
+
+**Быстрый и медленный**:
+- **Временная сложность**: O(n)
+
+### Амортизированная сложность
+
+**Амортизированный анализ** для двух указателей:
+
+#### Встречные указатели:
+- **Амортизированная временная сложность**: O(1) на элемент
+  - Каждый элемент посещается максимум один раз каждым указателем
+  - Амортизированная стоимость: O(2n) / n = O(1) на элемент
+
+#### Указатели в одном направлении:
+- **Амортизированная временная сложность**: O(1) на элемент
+  - `fast` проходит каждый элемент один раз: O(1) на элемент
+  - `slow` проходит подмножество элементов: O(1) на элемент в среднем
+
+### Worst/Average/Best Case анализ
+
+#### Встречные указатели:
+
+| Случай | Временная сложность | Описание |
+|--------|---------------------|-----------|
+| **Best Case** | O(1) | Пара найдена сразу (первые два элемента) |
+| **Average Case** | O(n) | Пара найдена в середине массива |
+| **Worst Case** | O(n) | Пара не найдена или найдена в конце |
+
+#### Указатели в одном направлении:
+
+| Случай | Временная сложность | Описание |
+|--------|---------------------|-----------|
+| **Best Case** | O(n) | Все элементы уникальны, `slow` движется вместе с `fast` |
+| **Average Case** | O(n) | Некоторые дубликаты, `slow` периодически отстает |
+| **Worst Case** | O(n) | Все элементы одинаковые, `slow` остается на месте |
+
+**Примечание**: Для двух указателей все случаи имеют O(n), так как алгоритм всегда проходит по массиву один раз.
+
+### Таблица сравнения сложностей
+
+| Алгоритм | Время (Worst) | Время (Average) | Время (Best) | Память | Амортизированное время |
+|----------|---------------|-----------------|--------------|--------|------------------------|
+| Встречные указатели | O(n) | O(n) | O(1) | O(1) | O(1) на элемент |
+| Одно направление | O(n) | O(n) | O(n) | O(1) | O(1) на элемент |
+| Хеш-таблица (альтернатива) | O(n) | O(n) | O(n) | O(n) | O(1) на элемент |
+
+**Быстрый и медленный**:
+- **Временная сложность**: O(n)
+  - Быстрый указатель проходит максимум n элементов
+  - Медленный проходит максимум n/2 элементов
+  - Итого: O(n)
+- **Пространственная сложность**: O(1)
+
+### Сравнение с наивным подходом:
+
+| Подход | Временная сложность | Пространственная сложность |
+|--------|---------------------|----------------------------|
+| Наивный (все пары) | O(n²) | O(1) |
+| Два указателя | O(n) | O(1) |
+
+**Выигрыш**: O(n²) → O(n) — квадратичное улучшение!
+
+## Примеры задач на LeetCode
+
+### Легкие:
+- [Two Sum II - Input array is sorted](https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/) - Две суммы в отсортированном массиве
+- [Valid Palindrome](https://leetcode.com/problems/valid-palindrome/) - Валидный палиндром
+- [Remove Duplicates from Sorted Array](https://leetcode.com/problems/remove-duplicates-from-sorted-array/) - Удаление дубликатов из отсортированного массива
+
+### Средние:
+- [3Sum](https://leetcode.com/problems/3sum/) - Три суммы
+- [Container With Most Water](https://leetcode.com/problems/container-with-most-water/) - Контейнер с наибольшим количеством воды
+- [Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) - Захват дождевой воды
+- [Squares of a Sorted Array](https://leetcode.com/problems/squares-of-a-sorted-array/) - Квадраты отсортированного массива
+
+### Сложные:
+- [4Sum](https://leetcode.com/problems/4sum/) - Четыре суммы
+- [3Sum Closest](https://leetcode.com/problems/3sum-closest/) - Ближайшая тройная сумма
+- [Partition Labels](https://leetcode.com/problems/partition-labels/) - Разделение меток
+
+## Сравнение с альтернативными подходами
+
+### 1. Наивный подход (перебор всех пар):
+
+**Go**:
+```go
+// O(n²) - проверяем все пары
 for i := 0; i &lt; n; i++ {
     for j := i + 1; j &lt; n; j++ {
         if arr[i] + arr[j] == target {
@@ -1858,7 +1872,7 @@ go test -bench=. -benchmem
 <li>Нулевые аллокации</li>
 <li>Оптимально для задач фильтрации</li>
 </ul>
-<h4 id="сравнение-с-альтернативными-подходами-1"><a class="header" href="#сравнение-с-альтернативными-подходами-1">Сравнение с альтернативными подходами:</a></h4>
+<h4 id="сравнение-с-альтернативными-подходами"><a class="header" href="#сравнение-с-альтернативными-подходами">Сравнение с альтернативными подходами:</a></h4>
 <div class="table-wrapper">
 <table>
 <thead>

@@ -115,52 +115,98 @@ func detectCycle(head *ListNode) *ListNode {
 
 ### Обнаружение цикла:
 
+Список с циклом: 1 → 2 → 3 → 4 → 5 → 3 (цикл)
+
+```mermaid
+graph LR
+    A[1] --> B[2]
+    B --> C[3]
+    C --> D[4]
+    D --> E[5]
+    E --> C
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#bbf,stroke:#333,stroke-width:3px
+    style E fill:#fbb,stroke:#333,stroke-width:2px
 ```
-Список с циклом: 1 -> 2 -> 3 -> 4 -> 5 -> 3 (цикл)
 
-Шаг 1: slow=1, fast=1
-        S,F
-        1 -> 2 -> 3 -> 4 -> 5
-                    ↑________|
+**Процесс обнаружения цикла:**
 
-Шаг 2: slow=2, fast=3
-           S     F
-        1 -> 2 -> 3 -> 4 -> 5
-                    ↑________|
-
-Шаг 3: slow=3, fast=5
-              S         F
-        1 -> 2 -> 3 -> 4 -> 5
-                    ↑________|
-
-Шаг 4: slow=4, fast=3
-                 S  F
-        1 -> 2 -> 3 -> 4 -> 5
-                    ↑________|
-
-Шаг 5: slow=5, fast=5 (встретились - цикл обнаружен!)
-                    S,F
-        1 -> 2 -> 3 -> 4 -> 5
-                    ↑________|
+```mermaid
+sequenceDiagram
+    participant S as slow
+    participant L as Список
+    participant F as fast
+    
+    Note over S,F: Инициализация: slow=head, fast=head
+    
+    loop Пока fast != null и fast.next != null
+        S->>L: slow = slow.next (1 шаг)
+        F->>L: fast = fast.next.next (2 шага)
+        alt slow == fast
+            Note over S,F: Встретились! Цикл обнаружен
+            L-->>S: Вернуть true
+        end
+    end
+    
+    Note over L: Цикл не обнаружен
 ```
+
+**Детальная таблица выполнения:**
+
+| Шаг | slow позиция | fast позиция | slow значение | fast значение | Состояние |
+|-----|--------------|-------------|---------------|---------------|-----------|
+| Инициализация | 1 | 1 | 1 | 1 | Начало |
+| 1 | 2 | 3 | 2 | 3 | slow: 1 шаг, fast: 2 шага |
+| 2 | 3 | 5 | 3 | 5 | slow: 1 шаг, fast: 2 шага |
+| 3 | 4 | 3 | 4 | 3 | slow: 1 шаг, fast: 2 шага (в цикле) |
+| 4 | 5 | 5 | 5 | 5 | slow: 1 шаг, fast: 2 шага |
+| 5 | 5 | 5 | 5 | 5 | **Встретились! Цикл обнаружен** |
 
 ### Поиск середины списка:
 
+Список: 1 → 2 → 3 → 4 → 5
+
+```mermaid
+graph LR
+    A[1] --> B[2]
+    B --> C[3]
+    C --> D[4]
+    D --> E[5]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#bfb,stroke:#333,stroke-width:3px
+    style E fill:#fbb,stroke:#333,stroke-width:2px
 ```
-Список: 1 -> 2 -> 3 -> 4 -> 5
 
-Шаг 1: slow=1, fast=1
-        S,F
-        1 -> 2 -> 3 -> 4 -> 5
+**Процесс поиска середины:**
 
-Шаг 2: slow=2, fast=3
-           S     F
-        1 -> 2 -> 3 -> 4 -> 5
-
-Шаг 3: slow=3, fast=5 (fast достиг конца, slow в середине)
-              S         F
-        1 -> 2 -> 3 -> 4 -> 5
+```mermaid
+sequenceDiagram
+    participant S as slow
+    participant L as Список
+    participant F as fast
+    
+    Note over S,F: Инициализация: slow=head, fast=head
+    
+    loop Пока fast != null и fast.next != null
+        S->>L: slow = slow.next (1 шаг)
+        F->>L: fast = fast.next.next (2 шага)
+    end
+    
+    Note over S: slow указывает на середину
 ```
+
+**Детальная таблица выполнения:**
+
+| Шаг | slow позиция | fast позиция | slow значение | fast значение | Действие |
+|-----|--------------|-------------|---------------|---------------|----------|
+| Инициализация | 1 | 1 | 1 | 1 | Начало |
+| 1 | 2 | 3 | 2 | 3 | slow: 1 шаг, fast: 2 шага |
+| 2 | 3 | 5 | 3 | 5 | slow: 1 шаг, fast: 2 шага |
+| 3 | 3 | null | 3 | - | fast достиг конца, slow в середине |
+
+**Результат:** slow указывает на узел 3 (середина списка)
 
 ## Математическое обоснование
 

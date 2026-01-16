@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dacd1ff1.js";
+            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -302,26 +302,54 @@ func bfsSimple(root *TreeNode) []int {
 </code></pre>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="обход-дерева-в-ширину"><a class="header" href="#обход-дерева-в-ширину">Обход дерева в ширину:</a></h3>
-<pre><code>        1
-       / \
-      2   3
-     / \   \
-    4   5   6
-
-Уровень 0: [1]
-           Обрабатываем: 1
-           Добавляем: 2, 3
-           
-Уровень 1: [2, 3]
-           Обрабатываем: 2, 3
-           Добавляем: 4, 5, 6
-           
-Уровень 2: [4, 5, 6]
-           Обрабатываем: 4, 5, 6
-           Нет дочерних узлов
-           
-Порядок обхода: 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; 6
+<pre><code class="language-mermaid">graph TD
+    A[1] --&gt; B[2]
+    A --&gt; C[3]
+    B --&gt; D[4]
+    B --&gt; E[5]
+    C --&gt; F[6]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:3px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#bbf,stroke:#333,stroke-width:2px
+    style D fill:#bfb,stroke:#333,stroke-width:2px
+    style E fill:#bfb,stroke:#333,stroke-width:2px
+    style F fill:#bfb,stroke:#333,stroke-width:2px
 </code></pre>
+<p><strong>Процесс обхода по уровням:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant Q as Очередь
+    participant T as Дерево
+    participant R as Результат
+    
+    Note over Q,R: Инициализация: queue = [1]
+    
+    loop Пока очередь не пуста
+        Q-&gt;&gt;T: Извлечь узел из очереди
+        T-&gt;&gt;R: Добавить узел в результат
+        T-&gt;&gt;Q: Добавить дочерние узлы в очередь
+    end
+    
+    Note over R: Результат: [1, 2, 3, 4, 5, 6]
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Уровень</th><th>Очередь (до обработки)</th><th>Обрабатываем</th><th>Добавляем в очередь</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td>[1]</td><td>1</td><td>2, 3</td><td>[1]</td></tr>
+<tr><td>1</td><td>[2, 3]</td><td>2</td><td>4, 5</td><td>[1, 2]</td></tr>
+<tr><td>1</td><td>[3, 4, 5]</td><td>3</td><td>6</td><td>[1, 2, 3]</td></tr>
+<tr><td>2</td><td>[4, 5, 6]</td><td>4</td><td>-</td><td>[1, 2, 3, 4]</td></tr>
+<tr><td>2</td><td>[5, 6]</td><td>5</td><td>-</td><td>[1, 2, 3, 4, 5]</td></tr>
+<tr><td>2</td><td>[6]</td><td>6</td><td>-</td><td>[1, 2, 3, 4, 5, 6]</td></tr>
+<tr><td>-</td><td>[]</td><td>-</td><td>-</td><td>Завершение</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Порядок обхода:</strong> 1 → 2 → 3 → 4 → 5 → 6</p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: На каждом шаге очередь содержит все узлы текущего уровня, отсортированные слева направо.</p>

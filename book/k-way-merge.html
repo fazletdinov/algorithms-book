@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dacd1ff1.js";
+            window.path_to_searchindex_js = "searchindex-02da4dc4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6bdcd01b.js"></script>
@@ -282,29 +282,76 @@ func mergeKSortedArrays(arrays [][]int) []int {
 </ul>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="слияние-3-отсортированных-массивов"><a class="header" href="#слияние-3-отсортированных-массивов">Слияние 3 отсортированных массивов:</a></h3>
-<pre><code>Массив 1: [1, 4, 7]
-Массив 2: [2, 5, 8]
-Массив 3: [3, 6, 9]
-
-Инициализация кучи:
-Heap: [(1, arr1, 0), (2, arr2, 0), (3, arr3, 0)]
-
-Шаг 1: Извлекаем 1, добавляем 4
-        Результат: [1]
-        Heap: [(2, arr2, 0), (3, arr3, 0), (4, arr1, 1)]
-
-Шаг 2: Извлекаем 2, добавляем 5
-        Результат: [1, 2]
-        Heap: [(3, arr3, 0), (4, arr1, 1), (5, arr2, 1)]
-
-Шаг 3: Извлекаем 3, добавляем 6
-        Результат: [1, 2, 3]
-        Heap: [(4, arr1, 1), (5, arr2, 1), (6, arr3, 1)]
-
-... и так далее
-
-Финальный результат: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+<p>Массив 1: <code>[1, 4, 7]</code><br>Массив 2: <code>[2, 5, 8]</code><br>Массив 3: <code>[3, 6, 9]</code></p>
+<p><strong>Структура K-way merge:</strong></p>
+<pre><code class="language-mermaid">graph TD
+    subgraph arrays["K массивов"]
+        A1["arr1: [1,4,7]"]
+        A2["arr2: [2,5,8]"]
+        A3["arr3: [3,6,9]"]
+    end
+    
+    subgraph heap["Min Heap"]
+        H1[1]
+        H2[2]
+        H3[3]
+        H1 --&gt; H2
+        H1 --&gt; H3
+    end
+    
+    subgraph result["Результат"]
+        R[1,2,3,4,5,6,7,8,9]
+    end
+    
+    A1 --&gt; H1
+    A2 --&gt; H2
+    A3 --&gt; H3
+    H1 --&gt; R
+    
+    style H1 fill:#bfb,stroke:#333,stroke-width:2px
+    style R fill:#fbb,stroke:#333,stroke-width:2px
 </code></pre>
+<p><strong>Процесс слияния:</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant A as K массивов
+    participant H as Min Heap
+    participant R as Результат
+    
+    Note over A,R: Инициализация: добавить первые элементы всех массивов
+    
+    loop Пока куча не пуста
+        H-&gt;&gt;R: Извлечь минимум
+        H-&gt;&gt;A: Получить следующий элемент из того же массива
+        alt Массив не пуст
+            A-&gt;&gt;H: Добавить элемент в кучу
+        else Массив пуст
+            Note over H: Пропустить этот массив
+        end
+    end
+    
+    Note over R: Результат: объединенный отсортированный массив
+</code></pre>
+<p><strong>Детальная таблица выполнения:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаг</th><th>Куча (до)</th><th>Минимум</th><th>Массив</th><th>Следующий элемент</th><th>Куча (после)</th><th>Результат</th></tr>
+</thead>
+<tbody>
+<tr><td>Инициализация</td><td>[]</td><td>-</td><td>-</td><td>-</td><td>[(1,arr1,0), (2,arr2,0), (3,arr3,0)]</td><td>[]</td></tr>
+<tr><td>1</td><td>[(1,arr1,0), (2,arr2,0), (3,arr3,0)]</td><td>1</td><td>arr1</td><td>4</td><td>[(2,arr2,0), (3,arr3,0), (4,arr1,1)]</td><td>[1]</td></tr>
+<tr><td>2</td><td>[(2,arr2,0), (3,arr3,0), (4,arr1,1)]</td><td>2</td><td>arr2</td><td>5</td><td>[(3,arr3,0), (4,arr1,1), (5,arr2,1)]</td><td>[1,2]</td></tr>
+<tr><td>3</td><td>[(3,arr3,0), (4,arr1,1), (5,arr2,1)]</td><td>3</td><td>arr3</td><td>6</td><td>[(4,arr1,1), (5,arr2,1), (6,arr3,1)]</td><td>[1,2,3]</td></tr>
+<tr><td>4</td><td>[(4,arr1,1), (5,arr2,1), (6,arr3,1)]</td><td>4</td><td>arr1</td><td>7</td><td>[(5,arr2,1), (6,arr3,1), (7,arr1,2)]</td><td>[1,2,3,4]</td></tr>
+<tr><td>5</td><td>[(5,arr2,1), (6,arr3,1), (7,arr1,2)]</td><td>5</td><td>arr2</td><td>8</td><td>[(6,arr3,1), (7,arr1,2), (8,arr2,2)]</td><td>[1,2,3,4,5]</td></tr>
+<tr><td>6</td><td>[(6,arr3,1), (7,arr1,2), (8,arr2,2)]</td><td>6</td><td>arr3</td><td>9</td><td>[(7,arr1,2), (8,arr2,2), (9,arr3,2)]</td><td>[1,2,3,4,5,6]</td></tr>
+<tr><td>7</td><td>[(7,arr1,2), (8,arr2,2), (9,arr3,2)]</td><td>7</td><td>arr1</td><td>-</td><td>[(8,arr2,2), (9,arr3,2)]</td><td>[1,2,3,4,5,6,7]</td></tr>
+<tr><td>8</td><td>[(8,arr2,2), (9,arr3,2)]</td><td>8</td><td>arr2</td><td>-</td><td>[(9,arr3,2)]</td><td>[1,2,3,4,5,6,7,8]</td></tr>
+<tr><td>9</td><td>[(9,arr3,2)]</td><td>9</td><td>arr3</td><td>-</td><td>[]</td><td>[1,2,3,4,5,6,7,8,9]</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Финальный результат:</strong> [1, 2, 3, 4, 5, 6, 7, 8, 9]</p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант</strong>: На каждом шаге куча содержит минимальный непрочитанный элемент каждого массива, и мы всегда извлекаем глобальный минимум.</p>
