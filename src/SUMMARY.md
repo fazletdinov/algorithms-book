@@ -18,6 +18,7 @@
 - [Merge Intervals (Слияние интервалов)](merge-intervals.md)
 - [Cyclic Sort (Циклическая сортировка)](cyclic-sort.md)
 - [Modified Binary Search (Модифицированный бинарный поиск)](modified-binary-search.md)
+- [Bit Manipulation (Битовые операции)](bit-manipulation.md)
 
 ## Группа 3: Структуры данных - списки
 

@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1c99952b.js";
+            window.path_to_searchindex_js = "searchindex-66cd6b86.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6bdcd01b.js"></script>
+        <script src="toc-09075738.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -193,6 +193,15 @@
 <li>Требуется найти подмножества с определенными свойствами</li>
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
+<h3 id="что-такое-backtracking"><a class="header" href="#что-такое-backtracking">Что такое Backtracking?</a></h3>
+<p><strong>Backtracking (возврат, откат)</strong> — это техника решения задач, при которой мы строим решение пошагово, и если на каком-то шаге понимаем, что текущий путь не ведет к решению, мы “откатываемся” назад и пробуем другой путь.</p>
+<p><strong>Ключевая идея backtracking:</strong></p>
+<ul>
+<li>Мы используем один и тот же массив для хранения текущего решения</li>
+<li>Когда делаем выбор (включаем элемент), добавляем его в массив</li>
+<li>После обработки всех вариантов с этим выбором, “откатываемся” — удаляем элемент</li>
+<li>Это позволяет переиспользовать память и избежать создания множества копий</li>
+</ul>
 <h3 id="рекурсивный-подход"><a class="header" href="#рекурсивный-подход">Рекурсивный подход:</a></h3>
 <pre><code class="language-go">// Генерация всех подмножеств с использованием backtracking
 func subsets(nums []int) [][]int {
@@ -260,15 +269,6 @@ func subsetsIterative(nums []int) [][]int {
     return result
 }
 </code></pre>
-<h3 id="что-такое-backtracking"><a class="header" href="#что-такое-backtracking">Что такое Backtracking?</a></h3>
-<p><strong>Backtracking (возврат, откат)</strong> — это техника решения задач, при которой мы строим решение пошагово, и если на каком-то шаге понимаем, что текущий путь не ведет к решению, мы “откатываемся” назад и пробуем другой путь.</p>
-<p><strong>Ключевая идея backtracking:</strong></p>
-<ul>
-<li>Мы используем один и тот же массив для хранения текущего решения</li>
-<li>Когда делаем выбор (включаем элемент), добавляем его в массив</li>
-<li>После обработки всех вариантов с этим выбором, “откатываемся” — удаляем элемент</li>
-<li>Это позволяет переиспользовать память и избежать создания множества копий</li>
-</ul>
 <p><strong>Пошаговый пример backtracking для [1, 2, 3]:</strong></p>
 <pre><code>Инициализация: current = [], index = 0
 
@@ -397,14 +397,14 @@ start = 2
 <tr><td>2</td><td>[1]</td><td>1</td><td>Добавить [1]</td><td>[[], [1]]</td></tr>
 <tr><td>3</td><td>[1,2]</td><td>2</td><td>Добавить [1,2]</td><td>[[], [1], [1,2]]</td></tr>
 <tr><td>4</td><td>[1,2,3]</td><td>3</td><td>Добавить [1,2,3]</td><td>[[], [1], [1,2], [1,2,3]]</td></tr>
-<tr><td>5</td><td>[1,2]</td><td>3</td><td>Backtrack, добавить [1,2]</td><td>[[], [1], [1,2], [1,2,3], [1,2]]</td></tr>
-<tr><td>6</td><td>[1,3]</td><td>3</td><td>Добавить [1,3]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3]]</td></tr>
-<tr><td>7</td><td>[1]</td><td>3</td><td>Backtrack, добавить [1]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1]]</td></tr>
+<tr><td>5</td><td>[1,2]</td><td>3</td><td>Backtrack: удаляем 3, current=[1,2]</td><td>[[], [1], [1,2], [1,2,3]]</td></tr>
+<tr><td>6</td><td>[1,3]</td><td>3</td><td>Добавляем 3, добавляем [1,3]</td><td>[[], [1], [1,2], [1,2,3], [1,3]]</td></tr>
+<tr><td>7</td><td>[1]</td><td>3</td><td>Backtrack: удаляем 3, current=[1]</td><td>[[], [1], [1,2], [1,2,3], [1,3]]</td></tr>
 <tr><td>8</td><td>[2]</td><td>2</td><td>Добавить [2]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2]]</td></tr>
 <tr><td>9</td><td>[2,3]</td><td>3</td><td>Добавить [2,3]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3]]</td></tr>
-<tr><td>10</td><td>[2]</td><td>3</td><td>Backtrack, добавить [2]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3], [2]]</td></tr>
-<tr><td>11</td><td>[3]</td><td>3</td><td>Добавить [3]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3], [2], [3]]</td></tr>
-<tr><td>12</td><td>[]</td><td>3</td><td>Backtrack, добавить []</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3], [2], [3], []]</td></tr>
+<tr><td>10</td><td>[2]</td><td>3</td><td>Backtrack: удаляем 3, current=[2]</td><td>[[], [1], [1,2], [1,2,3], [1,3], [2], [2,3]]</td></tr>
+<tr><td>11</td><td>[3]</td><td>3</td><td>Добавляем 3, добавляем [3]</td><td>[[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]]</td></tr>
+<tr><td>12</td><td>[]</td><td>3</td><td>Backtrack: удаляем 3, current=[]</td><td>[[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]]</td></tr>
 </tbody>
 </table>
 </div>
@@ -592,10 +592,10 @@ for i := start; i &lt; len(nums); i++ {
 <h3 id="используемые-структуры-данных-в-subsets"><a class="header" href="#используемые-структуры-данных-в-subsets">Используемые структуры данных в Subsets</a></h3>
 <p>В шаблоне Subsets используются следующие структуры данных:</p>
 <ul>
-<li>****: Для хранения всех подмножеств</li>
-<li>****: Для текущего подмножества (backtracking)</li>
+<li><strong>[][]int</strong>: Для хранения всех подмножеств</li>
+<li><strong>[]int</strong>: Для текущего подмножества (backtracking)</li>
 </ul>
-<h3 id="---t-go"><a class="header" href="#---t-go">&gt;  / [][]T (Go)</a></h3>
+<h3 id="int--t-go"><a class="header" href="#int--t-go">[][]int / [][]T (Go)</a></h3>
 <h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
 <p><strong>Vec&lt;Vec&lt;i32&gt;&gt;</strong>:</p>
 <pre><code>Результат (все подмножества):
@@ -1491,22 +1491,6 @@ func generateFeatureCombinations(features []string) [][]string {
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
         <script>

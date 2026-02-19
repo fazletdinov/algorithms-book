@@ -99,6 +99,40 @@ func reverseListRecursive(head *ListNode) *ListNode {
 }
 ```
 
+### Схема разворота (до и после):
+
+```mermaid
+flowchart LR
+    subgraph before [До: head]
+        A1[1] --> A2[2] --> A3[3] --> A4[nil]
+    end
+    
+    subgraph after [После: prev]
+        B3[3] --> B2[2] --> B1[1] --> B4[nil]
+    end
+```
+
+Итеративно: prev/curr двигаются вдоль списка, каждый узел переключает next на prev.
+
+### Рекурсивный разворот — стек вызовов для 1→2→3:
+
+```
+reverse(1):
+  reverse(2):
+    reverse(3):  ← базовый случай (3.Next == nil)
+      return 3   (newHead = 3)
+    2.Next.Next = 2  → 3.Next = 2
+    2.Next = nil
+    return 3
+  1.Next.Next = 1  → 2.Next = 1
+  1.Next = nil
+  return 3
+
+Итог: 3 → 2 → 1 → nil. newHead = 3.
+```
+
+Каждый вызов «доверяет» рекурсии разворот хвоста, затем переключает один указатель.
+
 ## Визуализация
 
 ### Итеративный разворот:

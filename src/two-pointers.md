@@ -101,6 +101,21 @@ func twoPointersSameDirection(arr []int, condition func(int, int) bool, process 
 
 **Применение**: Удаление дубликатов, поиск подмассивов, слияние отсортированных массивов
 
+### Схема алгоритма (встречные указатели):
+
+```mermaid
+flowchart TD
+    A[left, right на краях] --> B{sum vs target?}
+    B -->|sum == target| C[Сохранить, left++ или right--]
+    B -->|sum < target| D[left++]
+    B -->|sum > target| E[right--]
+    C --> F{left < right?}
+    D --> F
+    E --> F
+    F -->|Да| B
+    F -->|Нет| G[Конец]
+```
+
 ## Визуализация
 
 ### Поиск пары с заданной суммой (встречные указатели):

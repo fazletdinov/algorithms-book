@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1c99952b.js";
+            window.path_to_searchindex_js = "searchindex-66cd6b86.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6bdcd01b.js"></script>
+        <script src="toc-09075738.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,6 +194,7 @@
 <li>Задача связана с поиском в отсортированных данных с условиями</li>
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
+<p><strong>Стандартный бинарный поиск:</strong> делим интервал [left, right] пополам, сравниваем средний элемент с target и отбрасываем половину, где target заведомо не может быть. Сложность O(log n). Модификации меняют условие сравнения и правило обновления границ.</p>
 <h3 id="базовый-модифицированный-бинарный-поиск"><a class="header" href="#базовый-модифицированный-бинарный-поиск">Базовый модифицированный бинарный поиск:</a></h3>
 <pre><code class="language-go">// Базовый шаблон модифицированного бинарного поиска
 func modifiedBinarySearch(arr []int, target int) int {
@@ -270,6 +271,19 @@ func findFirstOccurrence(arr []int, target int) int {
 <li><strong>Последнее вхождение</strong>: Продолжать поиск вправо при равенстве</li>
 <li><strong>Повернутый массив</strong>: Проверять, какая часть отсортирована</li>
 </ul>
+<h3 id="схема-алгоритма"><a class="header" href="#схема-алгоритма">Схема алгоритма:</a></h3>
+<pre><code class="language-mermaid">flowchart TD
+    A[left, right границы] --&gt; B{left &lt;= right?}
+    B --&gt;|Нет| C[Не найдено]
+    B --&gt;|Да| D[mid = center]
+    D --&gt; E{arr[mid] vs target?}
+    E --&gt;|Равно| F[Найдено или продолжаем влево/вправо]
+    E --&gt;|Меньше| G[left = mid+1]
+    E --&gt;|Больше| H[right = mid-1]
+    F --&gt; B
+    G --&gt; B
+    H --&gt; B
+</code></pre>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
 <h3 id="поиск-первого-вхождения"><a class="header" href="#поиск-первого-вхождения">Поиск первого вхождения:</a></h3>
 <p><strong>Исходные данные:</strong> Массив <code>[1, 2, 2, 2, 3, 4, 5]</code>, target = 2</p>
@@ -324,6 +338,21 @@ func findFirstOccurrence(arr []int, target int) int {
 </table>
 </div>
 <p><strong>Результат:</strong> left = 1 (первое вхождение 2)</p>
+<h3 id="search-in-rotated-sorted-array"><a class="header" href="#search-in-rotated-sorted-array">Search in Rotated Sorted Array:</a></h3>
+<p><strong>Исходные данные:</strong> <code>[4,5,6,7,0,1,2]</code>, target = 0 (массив повёрнут, pivot между 7 и 0)</p>
+<pre><code>Ключевая идея: одна половина [left..mid] или [mid..right] всегда отсортирована.
+
+Шаг 1: left=0, right=6, mid=3, arr[mid]=7
+  arr[0]=4 &lt;= 7 — левая половина [4,5,6,7] отсортирована
+  target=0 не в [4..7] → ищем справа: left=4
+
+Шаг 2: left=4, right=6, mid=5, arr[mid]=1
+  arr[mid]=1 &lt; target=0? Нет. arr[mid]=1 &gt; 0
+  Правая половина [1,2] отсортирована, 0 не в ней → ищем слева: right=4
+
+Шаг 3: left=4, right=4, mid=4, arr[mid]=0 ✓ Найдено
+</code></pre>
+<p>Проверяем, какая половина отсортирована: <code>arr[left] &lt;= arr[mid]</code> → левая; иначе — правая. Ищем target только в отсортированной половине.</p>
 <h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
 <h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
 <p><strong>Инвариант бинарного поиска</strong>: На каждом шаге интервал [left, right] содержит решение (если оно существует), и размер интервала уменьшается вдвое.</p>
@@ -512,10 +541,10 @@ mid := (left + right) / 2 // Может переполниться
 <h3 id="используемые-структуры-данных-в-modified-binary-search"><a class="header" href="#используемые-структуры-данных-в-modified-binary-search">Используемые структуры данных в Modified Binary Search</a></h3>
 <p>В шаблоне Modified Binary Search используются следующие структуры данных:</p>
 <ul>
-<li>****: Отсортированный массив для поиска</li>
+<li><strong>[]int</strong>: Отсортированный массив для поиска</li>
 <li><strong>Индексы</strong>: left, right, mid для навигации (хранятся на стеке)</li>
 </ul>
-<h3 id="-slice-go"><a class="header" href="#-slice-go">/ Slice (Go)</a></h3>
+<h3 id="int--slice-go"><a class="header" href="#int--slice-go">[]int / Slice (Go)</a></h3>
 <h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
 <p><strong>Vec&lt;T&gt;</strong>:</p>
 <pre><code>Отсортированный массив:
@@ -1204,7 +1233,7 @@ func btreeSearch(node *BTreeNode, key int) *Record {
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="reverse-linked-list.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="bit-manipulation.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -1218,7 +1247,7 @@ func btreeSearch(node *BTreeNode, key int) *Record {
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="reverse-linked-list.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="bit-manipulation.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -1231,22 +1260,6 @@ func btreeSearch(node *BTreeNode, key int) *Record {
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
         <script>
