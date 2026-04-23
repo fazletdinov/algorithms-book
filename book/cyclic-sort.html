@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Go">
+        <meta name="description" content="Подробное изучение 15 основных алгоритмических шаблонов с примерами на Go">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-66cd6b86.js";
+            window.path_to_searchindex_js = "searchindex-7633d133.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-09075738.js"></script>
@@ -192,18 +192,28 @@
 <li>Задача связана с массивами, где каждое число должно быть на определенной позиции</li>
 </ul>
 <h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
+<h3 id="предусловия"><a class="header" href="#предусловия">Предусловия</a></h3>
+<p>Базовый цикл ниже предполагает, что каждый <code>nums[i]</code> лежит в диапазоне <strong>от 1 до N</strong> (где <code>N = len(nums)</code>), иначе <code>correctPos := nums[i]-1</code> выходит за границы слайса или алгоритм зацикливается. В задачах с числами вне диапазона или без гарантии перестановки <code>1..N</code> нужен <strong>guard</strong> (пропуск таких индексов) или другой вариант цикла — см. код.</p>
 <h3 id="базовый-алгоритм"><a class="header" href="#базовый-алгоритм">Базовый алгоритм:</a></h3>
 <pre><code class="language-go">func cyclicSort(nums []int) {
     i := 0
-    
+    n := len(nums)
+
     // Шаг 1: Итерация по массиву
     // Используем while вместо for, так как не всегда увеличиваем i
-    for i &lt; len(nums) {
+    for i &lt; n {
+        v := nums[i]
+        // Guard: значение вне [1, n] нельзя поставить на «свою» позицию — пропускаем
+        if v &lt; 1 || v &gt; n {
+            i++
+            continue
+        }
+
         // Шаг 2: Проверка позиции - вычисляем правильную позицию для текущего элемента
         // Для массива с числами от 1 до N: число x должно быть на индексе x-1
         // Например, число 3 должно быть на индексе 2 (3-1=2)
-        correctPos := nums[i] - 1
-        
+        correctPos := v - 1
+
         // Проверяем, находится ли элемент на правильной позиции
         // Если nums[i] уже на правильной позиции, переходим к следующему элементу
         if nums[i] != nums[correctPos] {

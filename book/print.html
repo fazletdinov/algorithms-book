@@ -9,7 +9,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Go">
+        <meta name="description" content="Подробное изучение 15 основных алгоритмических шаблонов с примерами на Go">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-66cd6b86.js";
+            window.path_to_searchindex_js = "searchindex-7633d133.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-09075738.js"></script>
@@ -938,6 +938,7 @@ mdbook build
     return maxLen
 }
 </code></pre>
+<p><strong>Замечание (Go):</strong> пример иллюстрирует идею «окно как слайс». В Go <code>window = window[1:]</code> — это новый заголовок слайса над тем же массивом, <strong>без копирования элементов</strong>, по времени <strong>O(1)</strong>. Дорого может обойтись другое: <strong><code>append</code></strong>, если при росте окна срабатывают перевыделения (копирование в новый массив); <strong><code>condition(window)</code></strong>, если на каждом шаге обходится весь текущий слайс — тогда суммарно легко получить <strong>O(n·k)</strong> или хуже. В задачах обычно задают окно <strong>двумя индексами</strong> <code>left</code>/<code>right</code> по исходному массиву и поддерживают сумму, счётчики или <code>map</code> по содержимому окна — так достигают типичных <strong>O(n)</strong> по времени и <strong>O(1)</strong> или <strong>O(σ)</strong> дополнительной памяти (σ — размер алфавита для символов).</p>
 <h3 id="детальный-разбор-шагов"><a class="header" href="#детальный-разбор-шагов">Детальный разбор шагов:</a></h3>
 <ol>
 <li>
@@ -8153,18 +8154,28 @@ func mergeMeetings(meetings []Meeting) []Meeting {
 <li>Задача связана с массивами, где каждое число должно быть на определенной позиции</li>
 </ul>
 <h2 id="алгоритмподход-4"><a class="header" href="#алгоритмподход-4">Алгоритм/Подход</a></h2>
+<h3 id="предусловия"><a class="header" href="#предусловия">Предусловия</a></h3>
+<p>Базовый цикл ниже предполагает, что каждый <code>nums[i]</code> лежит в диапазоне <strong>от 1 до N</strong> (где <code>N = len(nums)</code>), иначе <code>correctPos := nums[i]-1</code> выходит за границы слайса или алгоритм зацикливается. В задачах с числами вне диапазона или без гарантии перестановки <code>1..N</code> нужен <strong>guard</strong> (пропуск таких индексов) или другой вариант цикла — см. код.</p>
 <h3 id="базовый-алгоритм"><a class="header" href="#базовый-алгоритм">Базовый алгоритм:</a></h3>
 <pre><code class="language-go">func cyclicSort(nums []int) {
     i := 0
-    
+    n := len(nums)
+
     // Шаг 1: Итерация по массиву
     // Используем while вместо for, так как не всегда увеличиваем i
-    for i &lt; len(nums) {
+    for i &lt; n {
+        v := nums[i]
+        // Guard: значение вне [1, n] нельзя поставить на «свою» позицию — пропускаем
+        if v &lt; 1 || v &gt; n {
+            i++
+            continue
+        }
+
         // Шаг 2: Проверка позиции - вычисляем правильную позицию для текущего элемента
         // Для массива с числами от 1 до N: число x должно быть на индексе x-1
         // Например, число 3 должно быть на индексе 2 (3-1=2)
-        correctPos := nums[i] - 1
-        
+        correctPos := v - 1
+
         // Проверяем, находится ли элемент на правильной позиции
         // Если nums[i] уже на правильной позиции, переходим к следующему элементу
         if nums[i] != nums[correctPos] {
@@ -10278,7 +10289,7 @@ func btreeSearch(node *BTreeNode, key int) *Record {
 <tr><td>AND</td><td><code>&amp;</code></td><td>1 только если оба бита 1</td></tr>
 <tr><td>OR</td><td><code>|</code></td><td>1 если хотя бы один бит 1</td></tr>
 <tr><td>XOR</td><td><code>^</code></td><td>1 если биты разные</td></tr>
-<tr><td>NOT</td><td><code>^x</code> (в Go для unsigned)</td><td>Инверсия битов</td></tr>
+<tr><td>NOT</td><td><code>^x</code> (унарный в Go)</td><td>Побитовое дополнение всех битов (для <code>int</code>, <code>uint</code> и др.; у знаковых типов — по правилам дополнения до двух)</td></tr>
 <tr><td>Сдвиг влево</td><td><code>&lt;&lt;</code></td><td>Умножение на 2^n</td></tr>
 <tr><td>Сдвиг вправо</td><td><code>&gt;&gt;</code></td><td>Целочисленное деление на 2^n</td></tr>
 </tbody>
@@ -10289,7 +10300,7 @@ func btreeSearch(node *BTreeNode, key int) *Record {
 <li><code>a ^ a = 0</code> — одинаковые значения обнуляются</li>
 <li><code>a ^ 0 = a</code> — нейтральный элемент</li>
 <li><code>a ^ b ^ a = b</code> — коммутативность и ассоциативность</li>
-<li><code>a ^ b</code> — swap без временной переменной: <code>a, b = a^b, a^b^a</code></li>
+<li>Обмен значениями в Go: идиоматично <code>a, b = b, a</code>. Трюк XOR — три последовательных шага (одной строкой с параллельным присваиванием <strong>нельзя</strong> — получится неверный результат): <code>a ^= b; b ^= a; a ^= b</code></li>
 </ul>
 <h3 id="схема-свойств-xor"><a class="header" href="#схема-свойств-xor">Схема свойств XOR:</a></h3>
 <pre><code class="language-mermaid">flowchart LR

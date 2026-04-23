@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="Подробное изучение 14 основных алгоритмических шаблонов с примерами на Go">
+        <meta name="description" content="Подробное изучение 15 основных алгоритмических шаблонов с примерами на Go">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-66cd6b86.js";
+            window.path_to_searchindex_js = "searchindex-7633d133.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-09075738.js"></script>
@@ -247,6 +247,7 @@
     return maxLen
 }
 </code></pre>
+<p><strong>Замечание (Go):</strong> пример иллюстрирует идею «окно как слайс». В Go <code>window = window[1:]</code> — это новый заголовок слайса над тем же массивом, <strong>без копирования элементов</strong>, по времени <strong>O(1)</strong>. Дорого может обойтись другое: <strong><code>append</code></strong>, если при росте окна срабатывают перевыделения (копирование в новый массив); <strong><code>condition(window)</code></strong>, если на каждом шаге обходится весь текущий слайс — тогда суммарно легко получить <strong>O(n·k)</strong> или хуже. В задачах обычно задают окно <strong>двумя индексами</strong> <code>left</code>/<code>right</code> по исходному массиву и поддерживают сумму, счётчики или <code>map</code> по содержимому окна — так достигают типичных <strong>O(n)</strong> по времени и <strong>O(1)</strong> или <strong>O(σ)</strong> дополнительной памяти (σ — размер алфавита для символов).</p>
 <h3 id="детальный-разбор-шагов"><a class="header" href="#детальный-разбор-шагов">Детальный разбор шагов:</a></h3>
 <ol>
 <li>
