@@ -570,6 +570,108 @@
     });
   }
 
+  // ===== BFS по сетке =========================================================
+  function renderGridBfs(el) {
+    var grid = (el.getAttribute("data-grid") || "").split(";").map(function (r) { return r.split(",").map(Number); });
+    var R = grid.length; if (!R) return; var C = grid[0].length;
+    var dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    var dist = Array.from({ length: R }, function () { return new Array(C).fill(-1); });
+    var visitStep = Array.from({ length: R }, function () { return new Array(C).fill(-1); });
+    var steps = [];
+    function push(s) { if (s.cur) visitStep[s.cur[0]][s.cur[1]] = steps.length; steps.push(s); }
+
+    if (grid[0][0] === 1 || grid[R - 1][C - 1] === 1) {
+      push({ cur: null, done: true, info: "Старт или цель — препятствие, пути нет." });
+    } else {
+      var q = [[0, 0]]; dist[0][0] = 0;
+      push({ cur: [0, 0], info: "Старт (0,0), расстояние 0." });
+      var reached = false;
+      while (q.length) {
+        var cell = q.shift(), r = cell[0], c = cell[1];
+        if (r === R - 1 && c === C - 1) { push({ cur: [r, c], done: true, info: "Цель достигнута за " + dist[r][c] + " шагов." }); reached = true; break; }
+        for (var d = 0; d < dirs.length; d++) {
+          var nr = r + dirs[d][0], nc = c + dirs[d][1];
+          if (nr >= 0 && nr < R && nc >= 0 && nc < C && grid[nr][nc] === 0 && dist[nr][nc] < 0) { dist[nr][nc] = dist[r][c] + 1; q.push([nr, nc]); }
+        }
+        if (!(r === 0 && c === 0)) push({ cur: [r, c], info: "Обрабатываем (" + r + "," + c + "), расстояние " + dist[r][c] + "." });
+      }
+      if (!reached) push({ cur: null, done: true, info: "Цель недостижима." });
+    }
+
+    el.classList.add("algo-viz--ready"); el.innerHTML = "";
+    var wrap = document.createElement("div"); wrap.className = "algo-viz__grid";
+    wrap.style.gridTemplateColumns = "repeat(" + C + ", 2em)";
+    var cells = [];
+    for (var r = 0; r < R; r++) {
+      cells.push([]);
+      for (var c = 0; c < C; c++) {
+        var cd = document.createElement("div");
+        cd.className = "algo-viz__gcell" + (grid[r][c] === 1 ? " algo-viz__gcell--wall" : "");
+        if (r === 0 && c === 0) cd.textContent = "S"; else if (r === R - 1 && c === C - 1) cd.textContent = "G";
+        wrap.appendChild(cd); cells[r].push(cd);
+      }
+    }
+    el.appendChild(wrap);
+    attachStepper(el, steps.length, function (i) {
+      var s = steps[i];
+      for (var r = 0; r < R; r++) for (var c = 0; c < C; c++) {
+        var vs = visitStep[r][c];
+        cells[r][c].classList.toggle("algo-viz__gcell--visited", vs >= 0 && vs <= i && grid[r][c] === 0);
+        cells[r][c].classList.toggle("algo-viz__gcell--current", !!s.cur && s.cur[0] === r && s.cur[1] === c);
+      }
+      return { info: s.info, done: s.done };
+    });
+  }
+
+  // ===== Backtracking: генерация подмножеств =================================
+  function renderSubsetsBt(el) {
+    var set = nums(el.getAttribute("data-set")), n = set.length;
+    var steps = [], result = [], current = [];
+    function snap(extra) {
+      var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }) };
+      for (var k in extra) s[k] = extra[k];
+      steps.push(s);
+    }
+    (function bt(start) {
+      result.push(current.slice());
+      snap({ action: "record", info: "Записываем подмножество [" + current.join(", ") + "]" });
+      for (var i = start; i < n; i++) {
+        current.push(set[i]);
+        snap({ action: "choose", pick: i, info: "Берём " + set[i] + " → рекурсия" });
+        bt(i + 1);
+        current.pop();
+        snap({ action: "back", pick: i, info: "Откат: убираем " + set[i] });
+      }
+    })(0);
+    snap({ done: true, info: "Готово: " + result.length + " подмножеств" });
+
+    el.classList.add("algo-viz--ready"); el.innerHTML = "";
+    var inp = makeCells(set); el.appendChild(inp.row);
+    var cap1 = document.createElement("div"); cap1.className = "algo-viz__cap"; cap1.textContent = "Текущее подмножество:"; el.appendChild(cap1);
+    var curRow = document.createElement("div"); curRow.className = "algo-viz__row"; el.appendChild(curRow);
+    var cap2 = document.createElement("div"); cap2.className = "algo-viz__cap"; cap2.textContent = "Найденные подмножества:"; el.appendChild(cap2);
+    var chips = document.createElement("div"); chips.className = "algo-viz__chips"; el.appendChild(chips);
+
+    attachStepper(el, steps.length, function (i) {
+      var s = steps[i];
+      inp.cells.forEach(function (c, j) {
+        c.classList.toggle("algo-viz__cell--active", s.action === "choose" && s.pick === j);
+        c.classList.toggle("algo-viz__cell--mid", s.action === "back" && s.pick === j);
+      });
+      curRow.innerHTML = "";
+      if (!s.current.length) { var e = document.createElement("div"); e.className = "algo-viz__cap"; e.textContent = "∅"; curRow.appendChild(e); }
+      s.current.forEach(function (v) { var c = document.createElement("div"); c.className = "algo-viz__cell algo-viz__cell--active"; c.innerHTML = "<span class='algo-viz__val'>" + v + "</span>"; curRow.appendChild(c); });
+      chips.innerHTML = "";
+      s.results.forEach(function (sub, k) {
+        var ch = document.createElement("span"); ch.className = "algo-viz__chip";
+        if (s.action === "record" && k === s.results.length - 1) ch.classList.add("algo-viz__chip--new");
+        ch.textContent = "{" + sub.join(",") + "}";
+        chips.appendChild(ch);
+      });
+      return { info: s.info, done: s.done };
+    });
+  }
+
   // ===== Диспетчер ============================================================
   function render(el) {
     var t = el.getAttribute("data-viz") || "";
@@ -580,6 +682,8 @@
     else if (t === "kmp") renderKMP(el);
     else if (t === "merge-intervals") renderIntervals(el);
     else if (t === "topo-kahn") renderTopoKahn(el);
+    else if (t === "grid-bfs") renderGridBfs(el);
+    else if (t === "subsets-bt") renderSubsetsBt(el);
     else if (t.indexOf("tree-") === 0) renderTree(el);
     else if (t === "graph-bfs") renderGraph(el);
   }

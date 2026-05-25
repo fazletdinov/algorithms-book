@@ -29,7 +29,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="assets/algo-viz-544363e9.css">
+        <link rel="stylesheet" href="assets/algo-viz-a35eff30.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -39,7 +39,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9bf17bd0.js";
+            window.path_to_searchindex_js = "searchindex-6462228f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-da8af5e2.js"></script>
@@ -2744,6 +2744,14 @@ func mergeKSortedArrays(arrays [][]int) []int {
 <p>Всего 2^n подмножеств, и каждое копируется за O(n). Backtracking не меняет время, но
 переиспользует один массив вместо хранения всех путей.</p>
 <h2 id="визуализация-13"><a class="header" href="#визуализация-13">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: видно паттерн backtracking —
+<strong>берём</strong> элемент (синий) → рекурсия → <strong>откатываемся</strong> (жёлтый). Снизу копятся
+найденные подмножества. (Виджет работает в собранной книге <code>mdbook serve</code>/<code>mdbook build</code>,
+а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="subsets-bt" data-set="1,2,3"></div>
+
 <p>Дерево решений для <code>[1, 2, 3]</code> (зелёные узлы — сохранённые подмножества):</p>
 <pre><code class="language-mermaid">graph TD
     A["[]&lt;br/&gt;start=0"] --&gt; B["[1]&lt;br/&gt;start=1"]
@@ -2910,6 +2918,15 @@ func mergeKSortedArrays(arrays [][]int) []int {
 <p>Backtracking почти всегда <strong>экспоненциален</strong> — это нормально, ведь решений
 экспоненциально много. Главный рычаг ускорения — <strong>раннее отсечение</strong> (pruning):
 чем раньше отбрасываем недопустимую ветку, тем меньше реальный перебор.</p>
+<h2 id="визуализация-14"><a class="header" href="#визуализация-14">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация на примере подмножеств.</strong> Нажимайте «▶»: ядро
+backtracking — <strong>выбор</strong> (берём элемент, синий) → <strong>рекурсия</strong> → <strong>отмена выбора</strong>
+(откат, жёлтый). Снизу копятся готовые результаты. (Виджет работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="subsets-bt" data-set="1,2,3"></div>
+
 <h2 id="типичные-ошибки-14"><a class="header" href="#типичные-ошибки-14">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Забыли скопировать срез перед добавлением в результат.</strong> В Go срез — это
@@ -3123,7 +3140,7 @@ func (uf *UnionFind) Union(x, y int) bool {
 </tbody>
 </table>
 </div>
-<h2 id="визуализация-14"><a class="header" href="#визуализация-14">Визуализация</a></h2>
+<h2 id="визуализация-15"><a class="header" href="#визуализация-15">Визуализация</a></h2>
 <blockquote>
 <p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: жёлтая вершина — текущая
 (извлечённая из очереди), синие — уже посещённые. Видно, как BFS расходится волной
@@ -3319,6 +3336,15 @@ func dijkstra(n int, adj [][][2]int, src int) []int {
 </tbody>
 </table>
 </div>
+<h2 id="визуализация-16"><a class="header" href="#визуализация-16">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация (BFS по сетке).</strong> Нажимайте «▶»: волна BFS
+распространяется от <code>S</code> к <code>G</code>, огибая препятствия (тёмные клетки). Жёлтая — текущая
+клетка, синие — уже посещённые. (Виджет работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="grid-bfs" data-grid="0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0"></div>
+
 <h2 id="типичные-ошибки-16"><a class="header" href="#типичные-ошибки-16">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Нет проверки границ сетки</strong> перед доступом к <code>grid[nr][nc]</code> — паника
@@ -3632,7 +3658,7 @@ func topologicalSort(numCourses int, prerequisites [][]int) []int {
 </div>
 <p>Каждая вершина обрабатывается один раз (O(V)), каждое ребро рассматривается один раз
 (O(E)).</p>
-<h2 id="визуализация-15"><a class="header" href="#визуализация-15">Визуализация</a></h2>
+<h2 id="визуализация-17"><a class="header" href="#визуализация-17">Визуализация</a></h2>
 <blockquote>
 <p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: рядом с вершиной показана входящая
 степень (<code>in:</code>). Алгоритм Кана убирает вершину со степенью 0 (жёлтая → синяя) и
@@ -3945,7 +3971,7 @@ go test -tags solution ./greedy/  # эталон
 </table>
 </div>
 <p>Общая формула: <strong>время ≈ (число состояний) × (стоимость перехода)</strong>.</p>
-<h2 id="визуализация-16"><a class="header" href="#визуализация-16">Визуализация</a></h2>
+<h2 id="визуализация-18"><a class="header" href="#визуализация-18">Визуализация</a></h2>
 <blockquote>
 <p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: таблица <code>dp</code> заполняется слева
 направо. Синяя ячейка — текущая сумма, жёлтая — состояние-источник <code>dp[a−монета]</code>,
@@ -4111,7 +4137,7 @@ func kmpSearch(text, pattern string) int {
 </tbody>
 </table>
 </div>
-<h2 id="визуализация-17"><a class="header" href="#визуализация-17">Визуализация</a></h2>
+<h2 id="визуализация-19"><a class="header" href="#визуализация-19">Визуализация</a></h2>
 <blockquote>
 <p>💡 <strong>Интерактивная демонстрация (KMP).</strong> Нажимайте «▶»: образец скользит под текстом,
 зелёным отмечено совпадение символа, красным — несовпадение. При несовпадении образец
@@ -4896,7 +4922,7 @@ go tool pprof cpu.prof   # команда top покажет самые «дор
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="assets/algo-viz-f91ed25e.js"></script>
+        <script src="assets/algo-viz-5a3fdcf7.js"></script>
 
         <script>
         window.addEventListener('load', function() {
