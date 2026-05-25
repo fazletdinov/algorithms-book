@@ -60,6 +60,7 @@ go test -tags solution ./slidingwindow/   # прогнать тесты на э�
 | `trie`          | `Trie.Insert` / `Search` / `StartsWith`      |
 | `segtree`       | `NewSegmentTree`, `Update`, `Query`          |
 | `greedy`        | `MaxNonOverlapping`, `CanJump`               |
+| `fenwick`       | `NewFenwick`, `Update`, `PrefixSum`, `RangeSum` |
 
 ## Как добавить свой шаблон
 

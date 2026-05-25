@@ -39,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-84caa3e5.js";
+            window.path_to_searchindex_js = "searchindex-0f275890.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-30728bf8.js"></script>
+        <script src="toc-da8af5e2.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -21459,6 +21459,136 @@ go test -tags solution ./segtree/  # эталон
 k-го элемента родственен бинарному поиску.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="fenwick-tree-дерево-фенвика-bit"><a class="header" href="#fenwick-tree-дерево-фенвика-bit">Fenwick Tree (Дерево Фенвика, BIT)</a></h1>
+<h2 id="описание-шаблона-21"><a class="header" href="#описание-шаблона-21">Описание шаблона</a></h2>
+<p><strong>Дерево Фенвика</strong> (Binary Indexed Tree, BIT) — компактная структура для <strong>префиксных
+сумм с обновлениями</strong>: и точечное обновление, и запрос префиксной суммы выполняются за
+O(log n), используя всего один массив размера <code>n+1</code>.</p>
+<p>По возможностям оно уже, чем <a href="#segment-tree-дерево-отрезков">дерево отрезков</a> (только обратимые
+операции вроде суммы, без min/max в общем случае), зато <strong>проще в коде, меньше по памяти
+и с меньшей константой</strong>. Если задача — «сумма на диапазоне + точечные изменения», BIT
+обычно лучший выбор.</p>
+<h2 id="когда-применять-21"><a class="header" href="#когда-применять-21">Когда применять</a></h2>
+<ul>
+<li>Префиксные/диапазонные <strong>суммы</strong> при частых точечных обновлениях.</li>
+<li>Подсчёт инверсий, «сколько меньших элементов слева/справа».</li>
+<li>Везде, где хватает обратимой операции (сумма, xor) и не нужен min/max.</li>
+</ul>
+<h2 id="идея-младший-установленный-бит"><a class="header" href="#идея-младший-установленный-бит">Идея: младший установленный бит</a></h2>
+<p>Вся магия — в трюке <code>i &amp; (-i)</code>, выделяющем <strong>младший установленный бит</strong> числа. Узел <code>i</code>
+отвечает за <code>i &amp; (-i)</code> элементов, заканчивающихся на позиции <code>i</code>. Поэтому:</p>
+<ul>
+<li>при <strong>обновлении</strong> идём вверх, прибавляя младший бит: <code>i += i &amp; (-i)</code>;</li>
+<li>при <strong>запросе</strong> префикса идём вниз, вычитая его: <code>i -= i &amp; (-i)</code>.</li>
+</ul>
+<p>Дерево использует <strong>1-индексацию</strong> внутри; наружу удобно отдавать привычную 0-индексацию.</p>
+<pre><code class="language-go">type Fenwick struct {
+    n    int
+    tree []int // 1-индексация: tree[0] не используется
+}
+
+// NewFenwick строит дерево по массиву.
+func NewFenwick(arr []int) *Fenwick {
+    f := &amp;Fenwick{n: len(arr), tree: make([]int, len(arr)+1)}
+    for i, v := range arr {
+        f.add(i+1, v)
+    }
+    return f
+}
+
+// add прибавляет delta к 1-индексированной позиции i, обновляя предков.
+func (f *Fenwick) add(i, delta int) {
+    for ; i &lt;= f.n; i += i &amp; (-i) {
+        f.tree[i] += delta
+    }
+}
+
+// Update прибавляет delta к элементу с 0-индексом i (это ДОБАВЛЕНИЕ, не запись).
+func (f *Fenwick) Update(i, delta int) {
+    f.add(i+1, delta)
+}
+
+// prefix возвращает сумму 1-индексированных элементов [1..i].
+func (f *Fenwick) prefix(i int) int {
+    sum := 0
+    for ; i &gt; 0; i -= i &amp; (-i) {
+        sum += f.tree[i]
+    }
+    return sum
+}
+
+// PrefixSum возвращает сумму элементов [0..i] (0-индексация, включительно).
+func (f *Fenwick) PrefixSum(i int) int {
+    return f.prefix(i + 1)
+}
+
+// RangeSum возвращает сумму на включительном диапазоне [l, r].
+func (f *Fenwick) RangeSum(l, r int) int {
+    return f.PrefixSum(r) - f.PrefixSum(l-1) // при l=0 PrefixSum(-1)=0
+}
+</code></pre>
+<h2 id="временная-и-пространственная-сложность-21"><a class="header" href="#временная-и-пространственная-сложность-21">Временная и пространственная сложность</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>Время</th><th>Память</th></tr>
+</thead>
+<tbody>
+<tr><td>Построение</td><td>O(n log n)</td><td>O(n)</td></tr>
+<tr><td>Update (точечное)</td><td>O(log n)</td><td>—</td></tr>
+<tr><td>PrefixSum / RangeSum</td><td>O(log n)</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+<p>(Построение можно сделать и за O(n), но цикл из <code>Update</code> нагляднее.)</p>
+<h2 id="bit-против-дерева-отрезков"><a class="header" href="#bit-против-дерева-отрезков">BIT против дерева отрезков</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Критерий</th><th>Fenwick (BIT)</th><th>Segment Tree</th></tr>
+</thead>
+<tbody>
+<tr><td>Код</td><td>очень компактный</td><td>объёмнее</td></tr>
+<tr><td>Память</td><td><code>n+1</code></td><td><code>2n</code>–<code>4n</code></td></tr>
+<tr><td>Операции</td><td>сумма, xor (обратимые)</td><td>любые (min/max/gcd, lazy)</td></tr>
+<tr><td>Диапазонные обновления</td><td>сложнее (нужны два BIT)</td><td>через lazy propagation</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="типичные-ошибки-20"><a class="header" href="#типичные-ошибки-20">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Путаница 0- и 1-индексации</strong> — самая частая ошибка; держите 1-индексацию строго
+внутри, конвертируйте на границе.</li>
+<li><strong><code>Update</code> как «запись» вместо «прибавления»</strong> — BIT хранит дельты; чтобы
+<em>установить</em> значение, прибавьте <code>(новое − старое)</code>.</li>
+<li><strong>Попытка хранить min/max</strong> — обычный BIT не поддерживает необратимые операции на
+произвольных диапазонах.</li>
+<li><strong>Цикл <code>i -= i &amp; (-i)</code> при <code>i = 0</code></strong> — не зайдёт в тело (условие <code>i &gt; 0</code>), это
+корректно возвращает 0.</li>
+</ol>
+<h2 id="примеры-задач-на-leetcode-23"><a class="header" href="#примеры-задач-на-leetcode-23">Примеры задач на LeetCode</a></h2>
+<ul>
+<li><a href="https://leetcode.com/problems/range-sum-query-mutable/">Range Sum Query - Mutable</a></li>
+<li><a href="https://leetcode.com/problems/count-of-smaller-numbers-after-self/">Count of Smaller Numbers After Self</a></li>
+<li><a href="https://leetcode.com/problems/reverse-pairs/">Reverse Pairs</a></li>
+<li><a href="https://leetcode.com/problems/create-sorted-array-through-instructions/">Create Sorted Array through Instructions</a></li>
+</ul>
+<h2 id="упражнения-23"><a class="header" href="#упражнения-23">Упражнения</a></h2>
+<p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
+есть пакет <code>fenwick</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./fenwick/                 # ваши решения
+go test -tags solution ./fenwick/  # эталон
+</code></pre>
+<p>Реализуйте <code>NewFenwick</code>, <code>Update</code>, <code>PrefixSum</code> и <code>RangeSum</code>.</p>
+<h2 id="связанные-шаблоны-24"><a class="header" href="#связанные-шаблоны-24">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="#segment-tree-дерево-отрезков">Segment Tree</a></strong> — более универсальная, но более тяжёлая
+альтернатива.</li>
+<li><strong><a href="#bit-manipulation-битовые-операции">Bit Manipulation</a></strong> — трюк <code>i &amp; (-i)</code> для младшего бита.</li>
+<li><strong>[Merge Sort / подсчёт инверсий]</strong> — классическое применение BIT.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="приложение-память-gc-и-профилирование-в-go"><a class="header" href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a></h1>
 <p>Эта страница — единый справочник по особенностям Go, которые упоминаются во многих
 главах: модель памяти, escape analysis, сборщик мусора и инструменты профилирования.
@@ -21714,22 +21844,6 @@ go tool pprof cpu.prof   # команда top покажет самые «дор
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
         <script>

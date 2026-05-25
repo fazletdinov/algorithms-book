@@ -35,6 +35,7 @@
 22. [Строковые алгоритмы](book/string-algorithms.html) - KMP, Rabin–Karp
 23. [Trie (Префиксное дерево)](book/trie.html) - Поиск по префиксу
 24. [Segment Tree (Дерево отрезков)](book/segment-tree.html) - Диапазонные запросы с обновлением
+25. [Fenwick Tree (Дерево Фенвика, BIT)](book/fenwick-tree.html) - Префиксные суммы за O(log n)
 
 Дополнительно: [Приложение: память, GC и профилирование в Go](book/appendix-go-memory.html).
 
