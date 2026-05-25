@@ -300,6 +300,20 @@
   outline: 3px solid #e0a500;
 }
 
+/* узлы дерева отрезков: состояния запроса */
+.algo-viz__tnode--seg { font-size: 0.85em; }
+.algo-viz__tnode--take { background: #2e9b57; border-color: #2e9b57; color: #fff; }
+.algo-viz__tnode--split { background: var(--links, #4c84c4); border-color: var(--links, #4c84c4); color: #fff; }
+.algo-viz__tnode--skip { opacity: 0.4; }
+
+/* конец слова в Trie */
+.algo-viz__tnode--end { border-style: double; border-width: 4px; }
+
+/* рёбра MST */
+.algo-viz__gedge--mst { stroke: #2e9b57; stroke-width: 3.5; }
+.algo-viz__gedge--skip { stroke-dasharray: 4 3; opacity: 0.45; }
+.algo-viz__gedge--cur { stroke: #e0a500; stroke-width: 3.5; }
+
 .algo-viz__info {
   min-height: 1.4em;
   text-align: center;

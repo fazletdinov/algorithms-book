@@ -99,6 +99,12 @@ func hammingWeight(n uint32) int {
 
 ## Визуализация
 
+> 💡 **Интерактивная демонстрация (Single Number).** Нажимайте «▶»: XOR накапливается по
+> массиву, пары взаимно уничтожаются (a^a=0), остаётся уникальное число. (Виджет работает
+> в собранной книге `mdbook serve`/`mdbook build`, а не при просмотре `.md` на GitHub.)
+
+<div class="algo-viz" data-viz="bit-xor" data-array="4,1,2,1,2"></div>
+
 ```mermaid
 flowchart LR
     A["a ^ a = 0"] --> B[Пары обнуляются]

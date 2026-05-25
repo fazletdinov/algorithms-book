@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="assets/algo-viz-e655ee3b.css">
+        <link rel="stylesheet" href="assets/algo-viz-b363db2f.css">
         <link rel="stylesheet" href="assets/quiz-7aebf16b.css">
 
         <!-- MathJax -->
@@ -39,7 +39,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-98f375b0.js";
+            window.path_to_searchindex_js = "searchindex-2799386e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6b3e4b80.js"></script>
@@ -364,6 +364,15 @@ func (l *LazySegmentTree) query(node, lo, hi, ql, qr int) int {
 </code></pre>
 <p>Ключевое правило: <strong>перед спуском к детям всегда <code>push</code></strong>, иначе они вернут устаревшие
 данные. И <code>update</code>, и <code>query</code> соблюдают это.</p>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация (запрос суммы).</strong> Нажимайте «▶»: запрос диапазона
+разбивается на O(log n) узлов. Зелёные — взяты целиком, синие — спускаемся глубже,
+бледные — вне запроса. (Виджет работает в собранной книге <code>mdbook serve</code>/<code>mdbook build</code>,
+а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="segtree-query" data-array="1,3,5,7,9,11,13,15" data-l="2" data-r="5"></div>
+
 <h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Путаница включительного/полуоткрытого диапазона</strong> — в <code>Query</code> здесь <code>r</code> сдвигается
@@ -455,7 +464,7 @@ k-го элемента родственен бинарному поиску.</l
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="assets/algo-viz-b18fb360.js"></script>
+        <script src="assets/algo-viz-f6dee78c.js"></script>
         <script src="assets/quiz-0d58c129.js"></script>
         <script src="assets/progress-8bf0c880.js"></script>
 
