@@ -48,6 +48,12 @@
 
 - [Dynamic Programming (Динамическое программирование)](dynamic-programming.md)
 
+## Группа 8: Строки и структуры данных
+
+- [Строковые алгоритмы: поиск подстроки](string-algorithms.md)
+- [Trie (Префиксное дерево)](trie.md)
+- [Segment Tree (Дерево отрезков)](segment-tree.md)
+
 ## Дополнительные материалы
 
 - [Приложение: память, GC и профилирование в Go](appendix-go-memory.md)

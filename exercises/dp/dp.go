@@ -40,3 +40,40 @@ func LongestCommonSubsequence(a, b string) int {
 	// иначе — максимум из двух соседних состояний.
 	panic("TODO: реализуйте LongestCommonSubsequence")
 }
+
+// EditDistance возвращает минимальное число операций (вставка, удаление,
+// замена символа), чтобы превратить строку a в b (расстояние Левенштейна).
+//
+// Пример: a="horse", b="ros" -> 3.
+//
+// Ожидаемая сложность: O(len(a) · len(b)).
+func EditDistance(a, b string) int {
+	// TODO: dp[i][j] — расстояние между префиксами; база dp[i][0]=i,
+	// dp[0][j]=j; при несовпадении символов берём 1 + минимум из трёх соседей.
+	panic("TODO: реализуйте EditDistance")
+}
+
+// LongestIncreasingSubsequence возвращает длину наибольшей строго
+// возрастающей подпоследовательности.
+//
+// Пример: [10,9,2,5,3,7,101,18] -> 4 ([2,3,7,101]).
+//
+// Ожидаемая сложность: O(n log n) (или O(n²) простым ДП).
+func LongestIncreasingSubsequence(nums []int) int {
+	// TODO: ведите массив tails, где tails[k] — наименьший возможный «хвост»
+	// возрастающей подпоследовательности длины k+1; обновляйте бинарным поиском.
+	panic("TODO: реализуйте LongestIncreasingSubsequence")
+}
+
+// Knapsack01 решает задачу о рюкзаке 0/1: максимальная суммарная ценность
+// предметов (weights[i], values[i]), помещающихся в рюкзак вместимости
+// capacity. Каждый предмет можно взять не более одного раза.
+//
+// Пример: weights=[1,3,4,5], values=[1,4,5,7], capacity=7 -> 9.
+//
+// Ожидаемая сложность: O(n · capacity).
+func Knapsack01(weights, values []int, capacity int) int {
+	// TODO: 1D-массив dp[w]; для каждого предмета идите по w СВЕРХУ ВНИЗ
+	// (от capacity к weights[i]), чтобы не взять предмет повторно.
+	panic("TODO: реализуйте Knapsack01")
+}

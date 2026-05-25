@@ -31,6 +31,9 @@
 18. [Графы: сетки и кратчайшие пути](book/grids-and-shortest-paths.html) - Острова, Дейкстра
 19. [Графы: продвинутые алгоритмы](book/advanced-graph-algorithms.html) - Bellman–Ford, A*, MST
 20. [Dynamic Programming (Динамическое программирование)](book/dynamic-programming.html) - Мемоизация, табуляция, рюкзак, LCS
+21. [Строковые алгоритмы](book/string-algorithms.html) - KMP, Rabin–Karp
+22. [Trie (Префиксное дерево)](book/trie.html) - Поиск по префиксу
+23. [Segment Tree (Дерево отрезков)](book/segment-tree.html) - Диапазонные запросы с обновлением
 
 Дополнительно: [Приложение: память, GC и профилирование в Go](book/appendix-go-memory.html).
 

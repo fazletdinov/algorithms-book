@@ -39,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-61fde2e1.js";
+            window.path_to_searchindex_js = "searchindex-b551d91f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-1809d059.js"></script>
+        <script src="toc-7d98a722.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -20933,14 +20933,410 @@ func buildOrder(modules []Module) []string {
 go test ./dp/                 # ваши решения
 go test -tags solution ./dp/  # эталон
 </code></pre>
-<p>Реализуйте <code>ClimbStairs</code> (1D), <code>CoinChange</code> (1D с выбором) и
-<code>LongestCommonSubsequence</code> (2D).</p>
+<p>Реализуйте <code>ClimbStairs</code> (1D), <code>CoinChange</code> (1D с выбором),
+<code>LongestCommonSubsequence</code> и <code>EditDistance</code> (2D), <code>LongestIncreasingSubsequence</code>
+(ДП + бинарный поиск) и <code>Knapsack01</code> (0/1 рюкзак со свёрнутым массивом).</p>
 <h2 id="связанные-шаблоны-19"><a class="header" href="#связанные-шаблоны-19">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#backtracking-поиск-с-возвратом">Backtracking</a></strong> — когда подзадачи перекрываются, перебор с
 возвратом превращается в ДП добавлением мемоизации.</li>
 <li><strong><a href="#modified-binary-search-модифицированный-бинарный-поиск">Modified Binary Search</a></strong> — ускоряет некоторые ДП
 (например, Longest Increasing Subsequence до O(n log n)).</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="строковые-алгоритмы-поиск-подстроки"><a class="header" href="#строковые-алгоритмы-поиск-подстроки">Строковые алгоритмы: поиск подстроки</a></h1>
+<h2 id="описание"><a class="header" href="#описание">Описание</a></h2>
+<p>Задача поиска подстроки — найти первое вхождение образца <code>pattern</code> (длины <code>m</code>) в текст
+<code>text</code> (длины <code>n</code>). <strong>Наивный</strong> подход сравнивает образец с каждой позицией текста за
+O(n · m): при несовпадении он «забывает» всё, что уже сравнил, и начинает заново.</p>
+<p>Два классических алгоритма доводят это до <strong>O(n + m)</strong>, по-разному переиспользуя
+информацию: <strong>KMP</strong> — через предвычисленную префикс-функцию, <strong>Rabin–Karp</strong> — через
+скользящий хеш.</p>
+<h2 id="knuthmorrispratt-kmp"><a class="header" href="#knuthmorrispratt-kmp">Knuth–Morris–Pratt (KMP)</a></h2>
+<p>Идея: при несовпадении не возвращать указатель текста назад, а сдвинуть образец на
+максимально возможную величину, используя уже совпавший префикс. Для этого считают
+<strong>префикс-функцию</strong> (LPS, <em>longest proper prefix which is also suffix</em>): <code>lps[i]</code> —
+длина наибольшего собственного префикса <code>pattern[0..i]</code>, совпадающего с его суффиксом.</p>
+<pre><code class="language-go">// lps[i] — длина наибольшего префикса-суффикса для pattern[:i+1]
+func buildLPS(pattern string) []int {
+    lps := make([]int, len(pattern))
+    length := 0
+    for i := 1; i &lt; len(pattern); {
+        if pattern[i] == pattern[length] {
+            length++
+            lps[i] = length
+            i++
+        } else if length &gt; 0 {
+            length = lps[length-1] // откатываемся по уже посчитанным префиксам
+        } else {
+            lps[i] = 0
+            i++
+        }
+    }
+    return lps
+}
+
+func kmpSearch(text, pattern string) int {
+    if len(pattern) == 0 {
+        return 0
+    }
+    lps := buildLPS(pattern)
+    i, j := 0, 0 // i — по тексту, j — по образцу
+    for i &lt; len(text) {
+        if text[i] == pattern[j] {
+            i++
+            j++
+            if j == len(pattern) {
+                return i - j // нашли вхождение
+            }
+        } else if j &gt; 0 {
+            j = lps[j-1] // сдвигаем образец, НЕ трогая i
+        } else {
+            i++
+        }
+    }
+    return -1
+}
+</code></pre>
+<p><strong>Сложность:</strong> O(n + m) по времени, O(m) на массив <code>lps</code>. Указатель текста <code>i</code> никогда
+не уменьшается — в этом весь выигрыш.</p>
+<h2 id="rabinkarp"><a class="header" href="#rabinkarp">Rabin–Karp</a></h2>
+<p>Идея: сравнивать не символы, а <strong>хеши</strong>. Считаем полиномиальный хеш образца и хеш
+каждого окна длины <code>m</code> в тексте. Хеш окна обновляется за O(1) по принципу <strong>скользящего
+окна</strong> (rolling hash): убрали левый символ, добавили правый. Совпали хеши — проверяем
+строки посимвольно (защита от коллизий).</p>
+<pre><code class="language-go">func rabinKarp(text, pattern string) int {
+    n, m := len(text), len(pattern)
+    if m == 0 {
+        return 0
+    }
+    if m &gt; n {
+        return -1
+    }
+    const base, mod = 256, 1_000_000_007
+
+    power := 1 // base^(m-1) % mod — вклад самого левого символа окна
+    for i := 0; i &lt; m-1; i++ {
+        power = power * base % mod
+    }
+
+    var patHash, winHash int
+    for i := 0; i &lt; m; i++ {
+        patHash = (patHash*base + int(pattern[i])) % mod
+        winHash = (winHash*base + int(text[i])) % mod
+    }
+
+    for i := 0; i+m &lt;= n; i++ {
+        if patHash == winHash &amp;&amp; text[i:i+m] == pattern {
+            return i
+        }
+        if i+m &lt; n { // сдвигаем окно вправо
+            remove := int(text[i]) * power % mod
+            winHash = ((winHash-remove+mod)*base + int(text[i+m])) % mod
+        }
+    }
+    return -1
+}
+</code></pre>
+<p><strong>Сложность:</strong> O(n + m) в среднем; в худшем случае (много коллизий) — O(n · m), но при
+хорошем <code>mod</code> это редкость. Rabin–Karp особенно удобен для поиска <strong>нескольких</strong> образцов
+сразу и для задач со сравнением подстрок по хешу.</p>
+<h2 id="сравнение"><a class="header" href="#сравнение">Сравнение</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Алгоритм</th><th>Время (средн.)</th><th>Время (худш.)</th><th>Память</th><th>Когда выбирать</th></tr>
+</thead>
+<tbody>
+<tr><td>Наивный</td><td>O(n · m)</td><td>O(n · m)</td><td>O(1)</td><td>короткие строки, разовый поиск</td></tr>
+<tr><td>KMP</td><td>O(n + m)</td><td>O(n + m)</td><td>O(m)</td><td>гарантированно линейный поиск одного образца</td></tr>
+<tr><td>Rabin–Karp</td><td>O(n + m)</td><td>O(n · m)</td><td>O(1)</td><td>несколько образцов, сравнение по хешу</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="типичные-ошибки-16"><a class="header" href="#типичные-ошибки-16">Типичные ошибки</a></h2>
+<ol>
+<li><strong>В KMP двигают указатель текста назад</strong> — теряется весь смысл; назад откатывается
+только <code>j</code> через <code>lps</code>.</li>
+<li><strong>Неверная префикс-функция</strong> — самая частая ошибка; протестируйте <code>buildLPS</code>
+отдельно (например, <code>"aabaab"</code> → <code>[0,1,0,1,2,3]</code>).</li>
+<li><strong>Rabin–Karp без проверки строк при совпадении хешей</strong> — коллизии дадут ложные
+срабатывания.</li>
+<li><strong>Переполнение/отрицательные значения хеша</strong> — берите остаток по модулю и
+добавляйте <code>mod</code> перед <code>%</code>, чтобы избежать отрицательных чисел.</li>
+<li><strong>Пустой образец</strong> — договоритесь о соглашении (здесь — возвращаем 0).</li>
+</ol>
+<h2 id="примеры-задач-на-leetcode-19"><a class="header" href="#примеры-задач-на-leetcode-19">Примеры задач на LeetCode</a></h2>
+<ul>
+<li><a href="https://leetcode.com/problems/find-the-index-of-the-first-occurrence-in-a-string/">Find the Index of the First Occurrence in a String</a> — strStr (KMP)</li>
+<li><a href="https://leetcode.com/problems/repeated-string-match/">Repeated String Match</a></li>
+<li><a href="https://leetcode.com/problems/shortest-palindrome/">Shortest Palindrome</a> — префикс-функция</li>
+<li><a href="https://leetcode.com/problems/longest-happy-prefix/">Longest Happy Prefix</a> — прямое применение LPS</li>
+</ul>
+<h2 id="упражнения-19"><a class="header" href="#упражнения-19">Упражнения</a></h2>
+<p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
+есть пакет <code>strmatch</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./strmatch/                 # ваши решения
+go test -tags solution ./strmatch/  # эталон
+</code></pre>
+<p>Реализуйте <code>KMPSearch</code> и <code>RabinKarp</code> — обе ищут первое вхождение образца.</p>
+<h2 id="связанные-шаблоны-20"><a class="header" href="#связанные-шаблоны-20">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="#sliding-window-скользящее-окно">Sliding Window</a></strong> — Rabin–Karp это скользящее окно по хешу.</li>
+<li><strong><a href="#two-pointers-два-указателя">Two Pointers</a></strong> — базовая техника движения указателей по строке.</li>
+<li><strong><a href="#trie-префиксное-дерево">Trie</a></strong> — для поиска множества образцов одновременно.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="trie-префиксное-дерево"><a class="header" href="#trie-префиксное-дерево">Trie (Префиксное дерево)</a></h1>
+<h2 id="описание-шаблона-18"><a class="header" href="#описание-шаблона-18">Описание шаблона</a></h2>
+<p><strong>Trie</strong> (префиксное дерево, бор) — это древовидная структура для хранения набора строк,
+где <strong>каждый узел соответствует символу</strong>, а путь от корня до узла образует префикс.
+Строки с общим префиксом разделяют общий путь, поэтому Trie особенно эффективен для
+операций «по префиксу».</p>
+<p>В отличие от хеш-таблицы, Trie даёт не только проверку «есть ли слово», но и
+«есть ли слова с таким префиксом» — за время, пропорциональное длине запроса, <strong>не</strong>
+зависящее от числа хранимых строк.</p>
+<h2 id="когда-применять-18"><a class="header" href="#когда-применять-18">Когда применять</a></h2>
+<ul>
+<li><strong>Автодополнение</strong> и подсказки по префиксу.</li>
+<li><strong>Проверка словаря</strong>: быстро узнать, есть ли слово/префикс.</li>
+<li><strong>Поиск множества образцов</strong> в тексте одновременно.</li>
+<li>Задачи на сетках со словарём (Word Search II) и на XOR-максимум (бинарный Trie).</li>
+</ul>
+<h2 id="структура-и-операции"><a class="header" href="#структура-и-операции">Структура и операции</a></h2>
+<p>Для строчных латинских букв узел хранит до 26 ссылок на детей и флаг «здесь кончается
+слово».</p>
+<pre><code class="language-go">type Trie struct {
+    children [26]*Trie
+    isEnd    bool // в этом узле заканчивается какое-то вставленное слово
+}
+
+func NewTrie() *Trie { return &amp;Trie{} }
+
+// Insert добавляет слово, создавая недостающие узлы по пути.
+func (t *Trie) Insert(word string) {
+    node := t
+    for i := 0; i &lt; len(word); i++ {
+        c := word[i] - 'a'
+        if node.children[c] == nil {
+            node.children[c] = &amp;Trie{}
+        }
+        node = node.children[c]
+    }
+    node.isEnd = true
+}
+
+// find возвращает узел, соответствующий строке s, или nil.
+func (t *Trie) find(s string) *Trie {
+    node := t
+    for i := 0; i &lt; len(s); i++ {
+        c := s[i] - 'a'
+        if node.children[c] == nil {
+            return nil
+        }
+        node = node.children[c]
+    }
+    return node
+}
+
+// Search: слово есть, если путь существует И в конце стоит флаг isEnd.
+func (t *Trie) Search(word string) bool {
+    node := t.find(word)
+    return node != nil &amp;&amp; node.isEnd
+}
+
+// StartsWith: достаточно, чтобы существовал путь префикса.
+func (t *Trie) StartsWith(prefix string) bool {
+    return t.find(prefix) != nil
+}
+</code></pre>
+<blockquote>
+<p>⚠️ Разница между <code>Search</code> и <code>StartsWith</code> — только в проверке <code>isEnd</code>. Без флага вы не
+отличите вставленное слово <code>"app"</code> от просто префикса слова <code>"apple"</code>.</p>
+</blockquote>
+<h2 id="временная-и-пространственная-сложность-18"><a class="header" href="#временная-и-пространственная-сложность-18">Временная и пространственная сложность</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>Время</th><th>Память</th></tr>
+</thead>
+<tbody>
+<tr><td>Insert / Search / StartsWith</td><td>O(L)</td><td>—</td></tr>
+<tr><td>Хранение N слов</td><td>—</td><td>O(ALPHABET · N · L) в худшем случае</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>L</code> — длина строки запроса. Время <strong>не зависит</strong> от числа хранимых слов — это главное
+преимущество перед перебором словаря. Платим памятью: каждый узел держит массив ссылок
+(для разреженных алфавитов используют <code>map[byte]*Trie</code> вместо массива).</p>
+<h2 id="типичные-ошибки-17"><a class="header" href="#типичные-ошибки-17">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Забыли флаг <code>isEnd</code></strong> — тогда <code>Search</code> неотличим от <code>StartsWith</code>.</li>
+<li><strong>Массив фиксированного размера для большого алфавита</strong> — для Unicode/смешанных
+символов берите <code>map[rune]*Trie</code>.</li>
+<li><strong>Не проверяют <code>nil</code>-ребёнка</strong> перед переходом — паника.</li>
+<li><strong>Удаление узлов</strong> реализуют небрежно: нельзя удалять узел, у которого остались дети
+или который является концом другого слова.</li>
+</ol>
+<h2 id="примеры-задач-на-leetcode-20"><a class="header" href="#примеры-задач-на-leetcode-20">Примеры задач на LeetCode</a></h2>
+<ul>
+<li><a href="https://leetcode.com/problems/implement-trie-prefix-tree/">Implement Trie (Prefix Tree)</a></li>
+<li><a href="https://leetcode.com/problems/design-add-and-search-words-data-structure/">Design Add and Search Words Data Structure</a> — Trie с <code>.</code> (wildcard)</li>
+<li><a href="https://leetcode.com/problems/word-search-ii/">Word Search II</a> — Trie + DFS по сетке</li>
+<li><a href="https://leetcode.com/problems/maximum-xor-of-two-numbers-in-an-array/">Maximum XOR of Two Numbers in an Array</a> — бинарный Trie</li>
+</ul>
+<h2 id="упражнения-20"><a class="header" href="#упражнения-20">Упражнения</a></h2>
+<p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
+есть пакет <code>trie</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./trie/                 # ваши решения
+go test -tags solution ./trie/  # эталон
+</code></pre>
+<p>Реализуйте методы <code>Insert</code>, <code>Search</code> и <code>StartsWith</code> структуры <code>Trie</code>.</p>
+<h2 id="связанные-шаблоны-21"><a class="header" href="#связанные-шаблоны-21">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> — Trie это дерево; обход по нему — тот же DFS.</li>
+<li><strong><a href="#строковые-алгоритмы-поиск-подстроки">Строковые алгоритмы</a></strong> — Trie позволяет искать сразу
+множество образцов.</li>
+<li><strong><a href="#backtracking-поиск-с-возвратом">Backtracking</a></strong> — Word Search II = backtracking по сетке с
+отсечением через Trie.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="segment-tree-дерево-отрезков"><a class="header" href="#segment-tree-дерево-отрезков">Segment Tree (Дерево отрезков)</a></h1>
+<h2 id="описание-шаблона-19"><a class="header" href="#описание-шаблона-19">Описание шаблона</a></h2>
+<p><strong>Дерево отрезков</strong> — структура для задач, где нужно одновременно <strong>запрашивать
+агрегат на диапазоне</strong> (сумму, минимум, максимум, НОД…) и <strong>обновлять элементы</strong>, причём
+обе операции — за O(log n).</p>
+<p>Сравните с альтернативами:</p>
+<ul>
+<li><strong>Массив</strong>: запрос суммы на диапазоне O(n), обновление O(1).</li>
+<li><strong>Префиксные суммы</strong>: запрос O(1), но обновление O(n) (нужно пересчитать хвост).</li>
+<li><strong>Дерево отрезков</strong>: и запрос, и обновление O(log n) — баланс, выигрывающий, когда
+обновления и запросы <strong>чередуются</strong>.</li>
+</ul>
+<h2 id="когда-применять-19"><a class="header" href="#когда-применять-19">Когда применять</a></h2>
+<ul>
+<li>Много запросов «сумма/мин/макс на [l, r]» <strong>вперемешку</strong> с изменениями элементов.</li>
+<li>Динамические задачи на диапазонах: подсчёт инверсий, «сколько меньших справа».</li>
+<li>Когда префиксных сумм не хватает из-за частых обновлений.</li>
+</ul>
+<h2 id="идея"><a class="header" href="#идея">Идея</a></h2>
+<p>Лист дерева хранит элемент массива, внутренний узел — агрегат своих двух детей. Запрос
+на диапазоне разбивается на O(log n) узлов, целиком покрывающих этот диапазон.</p>
+<pre><code>arr = [1, 3, 5, 7]            сумма на [1,3] = 3+5+7 = 15
+
+                 [0..3]=16
+                /         \
+         [0..1]=4         [2..3]=12
+         /     \          /      \
+     [0]=1   [1]=3    [2]=5    [3]=7
+</code></pre>
+<h2 id="реализация-итеративная-сумма"><a class="header" href="#реализация-итеративная-сумма">Реализация (итеративная, сумма)</a></h2>
+<p>Компактный вариант: массив <code>tree</code> размера <code>2n</code>, листья в <code>[n, 2n)</code>, родитель узла <code>i</code> —
+это <code>i/2</code>.</p>
+<pre><code class="language-go">type SegmentTree struct {
+    n    int
+    tree []int
+}
+
+// NewSegmentTree строит дерево за O(n).
+func NewSegmentTree(arr []int) *SegmentTree {
+    n := len(arr)
+    st := &amp;SegmentTree{n: n, tree: make([]int, 2*n)}
+    for i := 0; i &lt; n; i++ {
+        st.tree[n+i] = arr[i] // листья
+    }
+    for i := n - 1; i &gt; 0; i-- {
+        st.tree[i] = st.tree[2*i] + st.tree[2*i+1] // агрегат снизу вверх
+    }
+    return st
+}
+
+// Update устанавливает arr[i] = val за O(log n).
+func (st *SegmentTree) Update(i, val int) {
+    i += st.n
+    st.tree[i] = val
+    for i &gt; 1 {
+        i /= 2
+        st.tree[i] = st.tree[2*i] + st.tree[2*i+1] // обновляем предков
+    }
+}
+
+// Query возвращает сумму на ВКЛЮЧИТЕЛЬНОМ диапазоне [l, r] за O(log n).
+func (st *SegmentTree) Query(l, r int) int {
+    res := 0
+    l += st.n
+    r += st.n + 1 // полуинтервал [l, r)
+    for l &lt; r {
+        if l&amp;1 == 1 { // l — правый ребёнок: берём его и сдвигаемся
+            res += st.tree[l]
+            l++
+        }
+        if r&amp;1 == 1 { // r — правый ребёнок: берём левого соседа
+            r--
+            res += st.tree[r]
+        }
+        l /= 2
+        r /= 2
+    }
+    return res
+}
+</code></pre>
+<p>Чтобы получить дерево минимумов/максимумов, замените <code>+</code> на <code>min</code>/<code>max</code> в трёх местах
+(построение, обновление, запрос) и нейтральный элемент <code>0</code> на <code>+∞</code>/<code>−∞</code>.</p>
+<h2 id="временная-и-пространственная-сложность-19"><a class="header" href="#временная-и-пространственная-сложность-19">Временная и пространственная сложность</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>Время</th><th>Память</th></tr>
+</thead>
+<tbody>
+<tr><td>Построение</td><td>O(n)</td><td>O(n)</td></tr>
+<tr><td>Query</td><td>O(log n)</td><td>—</td></tr>
+<tr><td>Update</td><td>O(log n)</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="варианты"><a class="header" href="#варианты">Варианты</a></h2>
+<ul>
+<li><strong>Lazy propagation</strong> (отложенные обновления) — позволяет обновлять <strong>целый диапазон</strong>
+за O(log n), откладывая применение в узлах. Нужен для задач «прибавить ко всему [l, r]».</li>
+<li><strong>Fenwick (BIT)</strong> — дерево Фенвика проще и быстрее для сумм с точечным обновлением, но
+менее универсально, чем дерево отрезков.</li>
+</ul>
+<h2 id="типичные-ошибки-18"><a class="header" href="#типичные-ошибки-18">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Путаница включительного/полуоткрытого диапазона</strong> — в <code>Query</code> здесь <code>r</code> сдвигается
+на <code>+1</code>, превращая <code>[l, r]</code> в <code>[l, r)</code>.</li>
+<li><strong>Забыли обновить предков</strong> в <code>Update</code> — запрос вернёт устаревшие данные.</li>
+<li><strong>Неверный нейтральный элемент</strong> для min/max-дерева (<code>0</code> вместо <code>±∞</code>).</li>
+<li><strong>Выход за границы</strong> при <code>l</code>/<code>r</code> вне <code>[0, n)</code> — добавьте проверки на вызывающей
+стороне.</li>
+</ol>
+<h2 id="примеры-задач-на-leetcode-21"><a class="header" href="#примеры-задач-на-leetcode-21">Примеры задач на LeetCode</a></h2>
+<ul>
+<li><a href="https://leetcode.com/problems/range-sum-query-mutable/">Range Sum Query - Mutable</a></li>
+<li><a href="https://leetcode.com/problems/count-of-smaller-numbers-after-self/">Count of Smaller Numbers After Self</a></li>
+<li><a href="https://leetcode.com/problems/the-skyline-problem/">The Skyline Problem</a></li>
+<li><a href="https://leetcode.com/problems/range-sum-query-2d-mutable/">Range Sum Query 2D - Mutable</a></li>
+</ul>
+<h2 id="упражнения-21"><a class="header" href="#упражнения-21">Упражнения</a></h2>
+<p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
+есть пакет <code>segtree</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./segtree/                 # ваши решения
+go test -tags solution ./segtree/  # эталон
+</code></pre>
+<p>Реализуйте <code>NewSegmentTree</code>, <code>Update</code> и <code>Query</code> для суммы на диапазоне.</p>
+<h2 id="связанные-шаблоны-22"><a class="header" href="#связанные-шаблоны-22">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> — рекурсивная версия дерева отрезков строится обходом в
+глубину.</li>
+<li><strong><a href="#bit-manipulation-битовые-операции">Bit Manipulation</a></strong> — дерево Фенвика опирается на битовые
+трюки с индексами.</li>
+<li><strong><a href="#modified-binary-search-модифицированный-бинарный-поиск">Modified Binary Search</a></strong> — «спуск по дереву» для поиска
+k-го элемента родственен бинарному поиску.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="приложение-память-gc-и-профилирование-в-go"><a class="header" href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a></h1>

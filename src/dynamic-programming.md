@@ -192,8 +192,9 @@ go test ./dp/                 # ваши решения
 go test -tags solution ./dp/  # эталон
 ```
 
-Реализуйте `ClimbStairs` (1D), `CoinChange` (1D с выбором) и
-`LongestCommonSubsequence` (2D).
+Реализуйте `ClimbStairs` (1D), `CoinChange` (1D с выбором),
+`LongestCommonSubsequence` и `EditDistance` (2D), `LongestIncreasingSubsequence`
+(ДП + бинарный поиск) и `Knapsack01` (0/1 рюкзак со свёрнутым массивом).
 
 ## Связанные шаблоны
 
