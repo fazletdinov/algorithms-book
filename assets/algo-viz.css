@@ -45,6 +45,51 @@
   border-color: #2e9b57;
 }
 
+/* mid-указатель бинарного поиска */
+.algo-viz__cell--mid {
+  outline: 3px solid #e0a500;
+  outline-offset: 1px;
+}
+
+/* дерево: уровни и узлы */
+.algo-viz__tree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 0.9em;
+}
+
+.algo-viz__trow {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+}
+
+.algo-viz__tnode {
+  width: 2.4em;
+  height: 2.4em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--quote-border, #aaa);
+  border-radius: 50%;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.algo-viz__tnode--visited {
+  background: var(--links, #4c84c4);
+  color: #fff;
+  border-color: var(--links, #4c84c4);
+}
+
+.algo-viz__tnode--current {
+  transform: scale(1.18);
+  outline: 3px solid #e0a500;
+}
+
 .algo-viz__info {
   min-height: 1.4em;
   text-align: center;

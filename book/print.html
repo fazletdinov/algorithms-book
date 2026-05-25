@@ -29,7 +29,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="assets/algo-viz-89ac050c.css">
+        <link rel="stylesheet" href="assets/algo-viz-85fba13a.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -39,7 +39,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9e1ecdd5.js";
+            window.path_to_searchindex_js = "searchindex-62d9cddd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-da8af5e2.js"></script>
@@ -8915,6 +8915,13 @@ func findFirstOccurrence(arr []int, target int) int {
     H --&gt; B
 </code></pre>
 <h2 id="визуализация-5"><a class="header" href="#визуализация-5">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: жёлтой рамкой отмечен <code>mid</code>,
+синим — текущий диапазон поиска <code>[lo, hi]</code>. (Виджет работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="binary-search" data-array="1,3,5,7,9,11,13" data-target="9"></div>
+
 <h3 id="поиск-первого-вхождения"><a class="header" href="#поиск-первого-вхождения">Поиск первого вхождения:</a></h3>
 <p><strong>Исходные данные:</strong> Массив <code>[1, 2, 2, 2, 3, 4, 5]</code>, target = 2</p>
 <p><strong>Шаг 1: Инициализация</strong></p>
@@ -11177,6 +11184,13 @@ func bfsSimple(root *TreeNode) []int {
     F --&gt; B
 </code></pre>
 <h2 id="визуализация-8"><a class="header" href="#визуализация-8">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: узлы подсвечиваются в порядке
+обхода в ширину, уровень за уровнем. (Виджет работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="tree-bfs" data-tree="1,2,3,4,5,null,6"></div>
+
 <h3 id="обход-дерева-в-ширину"><a class="header" href="#обход-дерева-в-ширину">Обход дерева в ширину:</a></h3>
 <p><strong>Исходные данные:</strong> Дерево</p>
 <pre><code>        1
@@ -21950,7 +21964,7 @@ go tool pprof cpu.prof   # команда top покажет самые «дор
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="assets/algo-viz-1edcf6b9.js"></script>
+        <script src="assets/algo-viz-36e22e08.js"></script>
 
         <script>
         window.addEventListener('load', function() {
