@@ -3,6 +3,7 @@
 [Введение](README.md)
 
 - [Руководство по выбору шаблона](pattern-selection-guide.md)
+- [Шпаргалка и прогресс](cheatsheet.md)
 - [Тренажёр: распознавание шаблонов](quiz.md)
 - [Глоссарий](glossary.md)
 

@@ -29,8 +29,8 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="assets/algo-viz-a35eff30.css">
-        <link rel="stylesheet" href="assets/quiz-2d5e0e16.css">
+        <link rel="stylesheet" href="assets/algo-viz-e655ee3b.css">
+        <link rel="stylesheet" href="assets/quiz-7aebf16b.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -40,10 +40,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c7095899.js";
+            window.path_to_searchindex_js = "searchindex-98f375b0.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-eca8cce2.js"></script>
+        <script src="toc-6b3e4b80.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -779,6 +779,59 @@ mdbook build
 </ol>
 <h2 id="заключение"><a class="header" href="#заключение">Заключение</a></h2>
 <p>Выбор правильного алгоритмического шаблона - это навык, который развивается с практикой. Используйте это руководство как отправную точку, но помните, что многие задачи могут решаться несколькими способами. Главное - понять суть задачи и выбрать наиболее подходящий подход.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="шпаргалка-и-прогресс"><a class="header" href="#шпаргалка-и-прогресс">Шпаргалка и прогресс</a></h1>
+<p>Страница для повторения: отметьте пройденные главы и держите перед глазами сводную
+таблицу «триггер → шаблон → сложность».</p>
+<h2 id="мой-прогресс"><a class="header" href="#мой-прогресс">Мой прогресс</a></h2>
+<blockquote>
+<p>💡 Отметки сохраняются в браузере (localStorage) и переживут перезагрузку. (Работает в
+собранной книге <code>mdbook serve</code>/<code>mdbook build</code>.)</p>
+</blockquote>
+<div class="algo-progress"></div>
+
+<h2 id="сводная-таблица-шаблонов"><a class="header" href="#сводная-таблица-шаблонов">Сводная таблица шаблонов</a></h2>
+<p>Ключевой навык — по <strong>триггерам в условии</strong> мгновенно выбрать подход. Потренировать выбор
+можно в <a href="#тренажёр-распознавание-шаблонов">тренажёре распознавания шаблонов</a>.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Шаблон</th><th>Триггеры в условии</th><th>Сложность</th><th>Ключевая идея</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="#sliding-window-скользящее-окно">Sliding Window</a></td><td>подмассив/подстрока, «самый длинный/короткий при условии»</td><td>O(n)</td><td>окно: +новый −старый</td></tr>
+<tr><td><a href="#two-pointers-два-указателя">Two Pointers</a></td><td>отсортированный массив, пары/тройки, палиндром</td><td>O(n)</td><td>два указателя навстречу/в одну сторону</td></tr>
+<tr><td><a href="#fast--slow-pointers-быстрые-и-медленные-указатели">Fast &amp; Slow Pointers</a></td><td>цикл в списке, середина, O(1) памяти</td><td>O(n)</td><td>указатели ×1 и ×2 (Флойд)</td></tr>
+<tr><td><a href="#merge-intervals-слияние-интервалов">Merge Intervals</a></td><td>перекрывающиеся интервалы</td><td>O(n log n)</td><td>сортировка по началу + слияние</td></tr>
+<tr><td><a href="#cyclic-sort-циклическая-сортировка">Cyclic Sort</a></td><td>числа 1..n, пропавшие/дубликаты, O(1) памяти</td><td>O(n)</td><td>число v → индекс v−1</td></tr>
+<tr><td><a href="#modified-binary-search-модифицированный-бинарный-поиск">Modified Binary Search</a></td><td>отсортировано (м.б. повёрнуто), граница/вставка</td><td>O(log n)</td><td>деление пополам по предикату</td></tr>
+<tr><td><a href="#bit-manipulation-битовые-операции">Bit Manipulation</a></td><td>пары/маски, «единственное число»</td><td>O(n)</td><td>XOR, сдвиги, маски</td></tr>
+<tr><td><a href="#reverse-linked-list-разворот-связанного-списка">Reverse Linked List</a></td><td>разворот списка/подсписка на месте</td><td>O(n), O(1)</td><td>prev / curr / next</td></tr>
+<tr><td><a href="#tree-bfs-обход-дерева-в-ширину">Tree BFS</a></td><td>по уровням, кратчайший по рёбрам</td><td>O(n)</td><td>очередь, уровень за уровнем</td></tr>
+<tr><td><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></td><td>пути, валидация, свойства поддеревьев, LCA</td><td>O(n)</td><td>рекурсия pre/in/post</td></tr>
+<tr><td><a href="#two-heaps-две-кучи">Two Heaps</a></td><td>медиана потока, разделение на половины</td><td>O(log n)/вставка</td><td>max-heap + min-heap</td></tr>
+<tr><td><a href="#top-k-elements-топ-k-элементов">Top-K Elements</a></td><td>K наибольших/наименьших, K-й по величине</td><td>O(n log k)</td><td>heap размера K</td></tr>
+<tr><td><a href="#k-way-merge-k-way-слияние">K-way Merge</a></td><td>слить K отсортированных источников</td><td>O(n log k)</td><td>min-heap из голов</td></tr>
+<tr><td><a href="#subsets-подмножества">Subsets</a> / <a href="#backtracking-поиск-с-возвратом">Backtracking</a></td><td>«все комбинации/перестановки»</td><td>экспонента</td><td>выбор → рекурсия → откат</td></tr>
+<tr><td><a href="#graphs-обход-графов">Graphs (обход)</a></td><td>обход, связность, компоненты</td><td>O(V+E)</td><td>visited + очередь/рекурсия</td></tr>
+<tr><td><a href="#graphs-обход-графов">Union-Find</a></td><td>динамическая связность, цикл (неориент.)</td><td>~O(1)/опер.</td><td>сжатие пути + ранг</td></tr>
+<tr><td><a href="#topological-sort-топологическая-сортировка">Topological Sort</a></td><td>зависимости/порядок, DAG</td><td>O(V+E)</td><td>Кан: убираем вершины с in-degree 0</td></tr>
+<tr><td>BFS / <a href="#графы-сетки-и-кратчайшие-пути">Dijkstra</a></td><td>кратчайший путь (1 / неотриц. веса)</td><td>O(V+E) / O((V+E)log V)</td><td>очередь / приоритетная очередь</td></tr>
+<tr><td><a href="#графы-продвинутые-алгоритмы">Bellman–Ford / A*/ MST</a></td><td>отрицат. веса / эвристика / остов</td><td>O(V·E) / — / O(E log E)</td><td>релаксация / f=g+h / жадно+DSU</td></tr>
+<tr><td><a href="#greedy-жадные-алгоритмы">Greedy</a></td><td>макс/мин с доказуемым локальным выбором</td><td>O(n log n)</td><td>локально оптимальный шаг</td></tr>
+<tr><td><a href="#dynamic-programming-динамическое-программирование">Dynamic Programming</a></td><td>мин/макс/счёт + перекрыв. подзадачи</td><td>завис. от состояний</td><td>состояние + переход + мемоизация</td></tr>
+<tr><td><a href="#строковые-алгоритмы-поиск-подстроки">Строковые алгоритмы</a></td><td>поиск подстроки/образца</td><td>O(n+m)</td><td>префикс-функция (KMP) / rolling hash</td></tr>
+<tr><td><a href="#trie-префиксное-дерево">Trie</a></td><td>префикс, автодополнение, словарь</td><td>O(длины)</td><td>префиксное дерево</td></tr>
+<tr><td><a href="#segment-tree-дерево-отрезков">Segment Tree</a> / <a href="#fenwick-tree-дерево-фенвика-bit">Fenwick</a></td><td>сумма/мин на диапазоне + обновления</td><td>O(log n)</td><td>дерево агрегатов</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="как-готовиться-по-этой-странице"><a class="header" href="#как-готовиться-по-этой-странице">Как готовиться по этой странице</a></h2>
+<ol>
+<li>Изучили главу — отметьте её в трекере.</li>
+<li>Раз в несколько дней пробегайте таблицу: по триггеру вспоминайте идею и сложность.</li>
+<li>Закрепляйте в <a href="#тренажёр-распознавание-шаблонов">тренажёре распознавания</a> и в <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>.</li>
+</ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="тренажёр-распознавание-шаблонов"><a class="header" href="#тренажёр-распознавание-шаблонов">Тренажёр: распознавание шаблонов</a></h1>
 <p>На собеседовании главная сложность — не написать код, а <strong>понять, какой шаблон
@@ -4945,8 +4998,9 @@ go tool pprof cpu.prof   # команда top покажет самые «дор
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="assets/algo-viz-5a3fdcf7.js"></script>
-        <script src="assets/quiz-7283dd26.js"></script>
+        <script src="assets/algo-viz-b18fb360.js"></script>
+        <script src="assets/quiz-0d58c129.js"></script>
+        <script src="assets/progress-8bf0c880.js"></script>
 
         <script>
         window.addEventListener('load', function() {

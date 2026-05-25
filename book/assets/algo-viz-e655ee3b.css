@@ -8,6 +8,11 @@
   background: var(--quote-bg, #00000008);
 }
 
+.algo-viz:focus {
+  outline: 2px solid var(--links, #4c84c4);
+  outline-offset: 2px;
+}
+
 .algo-viz__row {
   display: flex;
   flex-wrap: wrap;

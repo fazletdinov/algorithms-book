@@ -64,6 +64,15 @@
     bPrev.onclick = function () { show(idx - 1); };
     bNext.onclick = function () { show(idx + 1); };
     bLast.onclick = function () { show(count - 1); };
+
+    // навигация с клавиатуры: ←/→ листают шаги, когда виджет в фокусе
+    el.setAttribute("tabindex", "0");
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft") { show(idx - 1); e.preventDefault(); }
+      else if (e.key === "ArrowRight") { show(idx + 1); e.preventDefault(); }
+      else if (e.key === "Home") { show(0); e.preventDefault(); }
+      else if (e.key === "End") { show(count - 1); e.preventDefault(); }
+    });
     show(0);
   }
   function mkBtn(label, title) {

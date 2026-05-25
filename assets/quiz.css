@@ -99,3 +99,53 @@
   opacity: 0.45;
   cursor: default;
 }
+
+/* трекер прогресса */
+.algo-progress {
+  margin: 1.4em 0;
+  padding: 1.1em;
+  border: 1px solid var(--quote-border, #cccccc44);
+  border-radius: 8px;
+  background: var(--quote-bg, #00000008);
+}
+
+.algo-prog__label {
+  font-weight: 600;
+  margin-bottom: 0.4em;
+}
+
+.algo-prog__barwrap {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--quote-border, #aaa3);
+  overflow: hidden;
+  margin-bottom: 1em;
+}
+
+.algo-prog__bar {
+  height: 100%;
+  width: 0;
+  background: #2e9b57;
+  transition: width 0.25s;
+}
+
+.algo-prog__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 14px;
+  margin-bottom: 1em;
+}
+
+.algo-prog__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.95em;
+}
+
+.algo-prog__item--done .algo-prog__link {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+

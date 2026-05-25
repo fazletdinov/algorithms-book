@@ -149,6 +149,62 @@
       correct: "Dijkstra",
       explain: "Триггеры: «кратчайший путь» + «веса неотрицательны». Дейкстра с приоритетной очередью. Обычный BFS подошёл бы только при единичных весах, Bellman–Ford нужен при отрицательных.",
       href: "grids-and-shortest-paths.html"
+    },
+    {
+      q: "Найти кратчайший путь в НЕвзвешенном графе (все рёбра равнозначны).",
+      options: ["BFS по графу", "Dijkstra", "Tree DFS", "Dynamic Programming"],
+      correct: "BFS по графу",
+      explain: "Триггеры: «кратчайший путь» + «невзвешенный». При единичных весах обычный BFS даёт ответ за O(V+E) — Дейкстра здесь избыточна.",
+      href: "graphs.html"
+    },
+    {
+      q: "Определить, образует ли набор рёбер цикл в НЕориентированном графе.",
+      options: ["Union-Find (DSU)", "Topological Sort", "Tree DFS", "Binary Search"],
+      correct: "Union-Find (DSU)",
+      explain: "Триггеры: «цикл» + «неориентированный» + «динамически». Если оба конца ребра уже в одном множестве — ребро замыкает цикл. Топосортировка — для ориентированных графов.",
+      href: "graphs.html"
+    },
+    {
+      q: "Найти K-й по величине элемент в неотсортированном массиве.",
+      options: ["Top-K Elements", "Two Heaps", "Sorting", "Binary Search"],
+      correct: "Top-K Elements",
+      explain: "Триггеры: «K-й по величине». Min-heap размера K за O(n log k); сортировка O(n log n) избыточна, когда нужен лишь один порядковый элемент.",
+      href: "top-k-elements.html"
+    },
+    {
+      q: "Развернуть участок связного списка между позициями m и n (остальное не трогать).",
+      options: ["Reverse Linked List", "Two Pointers", "Fast & Slow Pointers", "Cyclic Sort"],
+      correct: "Reverse Linked List",
+      explain: "Триггеры: «развернуть (под)список на месте». Перенаправляем указатели внутри окна [m, n], держа три указателя prev/curr/next.",
+      href: "reverse-linked-list.html"
+    },
+    {
+      q: "Найти максимальную сумму подмассива ровно из k подряд идущих элементов.",
+      options: ["Sliding Window", "Two Pointers", "Prefix Sum", "Dynamic Programming"],
+      correct: "Sliding Window",
+      explain: "Триггеры: «подмассив фиксированного размера k». Окно размера k со сдвигом: +новый −старый за O(1), всего O(n).",
+      href: "sliding-window.html"
+    },
+    {
+      q: "Проверить, можно ли разбить массив на два подмножества с равной суммой.",
+      options: ["Dynamic Programming", "Greedy", "Backtracking", "Two Pointers"],
+      correct: "Dynamic Programming",
+      explain: "Триггеры: «можно ли набрать сумму S/2 подмножеством» — это 0/1 рюкзак (subset sum). Жадность не работает, чистый перебор экспоненциален.",
+      href: "dynamic-programming.html"
+    },
+    {
+      q: "Найти все начальные индексы анаграмм образца p внутри строки s.",
+      options: ["Sliding Window", "Trie", "Two Pointers", "Hashing"],
+      correct: "Sliding Window",
+      explain: "Триггеры: «подстроки фиксированной длины |p|» + «совпадение по составу символов». Окно длины |p| со счётчиком частот, сравниваем с частотами p.",
+      href: "sliding-window.html"
+    },
+    {
+      q: "Найти наименьшего общего предка (LCA) двух узлов в бинарном дереве.",
+      options: ["Tree DFS", "Tree BFS", "Two Heaps", "Binary Search"],
+      correct: "Tree DFS",
+      explain: "Триггеры: «предок / структура поддерева». Рекурсивный обход в глубину: узел, из чьих разных поддеревьев приходят оба искомых, и есть LCA.",
+      href: "tree-dfs.html"
     }
   ];
 
