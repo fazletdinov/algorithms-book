@@ -39,6 +39,7 @@
 
 - [Subsets (Подмножества)](subsets.md)
 - [Backtracking (Поиск с возвратом)](backtracking.md)
+- [Graphs (Обход графов)](graphs.md)
 - [Topological Sort (Топологическая сортировка)](topological-sort.md)
 
 ## Дополнительные материалы

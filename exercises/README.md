@@ -49,6 +49,7 @@ go test -tags solution ./slidingwindow/   # прогнать тесты на э�
 | `backtracking`  | `Permutations`, `GenerateParentheses`        |
 | `treebfs`       | `LevelOrder`                                 |
 | `linkedlist`    | `ReverseList`                                |
+| `graphs`        | `CountComponents`, `HasCycleUndirected`      |
 
 ## Как добавить свой шаблон
 
