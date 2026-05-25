@@ -55,6 +55,7 @@ go test -tags solution ./slidingwindow/   # прогнать тесты на э�
 | `bellmanford`   | `ShortestPath` (отрицательные веса)          |
 | `astar`         | `ShortestPath` (поиск на сетке с эвристикой) |
 | `mst`           | `MSTWeight` (Краскал)                        |
+| `dp`            | `ClimbStairs`, `CoinChange`, `LongestCommonSubsequence` |
 
 ## Как добавить свой шаблон
 

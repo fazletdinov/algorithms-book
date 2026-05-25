@@ -44,6 +44,10 @@
 - [Графы: продвинутые алгоритмы](advanced-graph-algorithms.md)
 - [Topological Sort (Топологическая сортировка)](topological-sort.md)
 
+## Группа 7: Динамическое программирование
+
+- [Dynamic Programming (Динамическое программирование)](dynamic-programming.md)
+
 ## Дополнительные материалы
 
 - [Приложение: память, GC и профилирование в Go](appendix-go-memory.md)

@@ -39,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7d22a7be.js";
+            window.path_to_searchindex_js = "searchindex-61fde2e1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5e0b6b0a.js"></script>
+        <script src="toc-1809d059.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -20765,6 +20765,182 @@ func buildOrder(modules []Module) []string {
 <li><a href="https://leetcode.com/tag/topological-sort/">Topological Sorting - LeetCode Tag</a> - Коллекция задач на топологическую сортировку</li>
 <li><a href="https://www.geeksforgeeks.org/topological-sorting/">Topological Sort - GeeksforGeeks</a> - Подробное объяснение алгоритма</li>
 <li><a href="https://en.wikipedia.org/wiki/Topological_sorting">Topological Sorting - Wikipedia</a> - Математическая теория и приложения</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="dynamic-programming-динамическое-программирование"><a class="header" href="#dynamic-programming-динамическое-программирование">Dynamic Programming (Динамическое программирование)</a></h1>
+<h2 id="описание-шаблона-17"><a class="header" href="#описание-шаблона-17">Описание шаблона</a></h2>
+<p><strong>Динамическое программирование</strong> (ДП) — это техника решения задач путём разбиения их
+на <strong>перекрывающиеся подзадачи</strong> и сохранения результатов уже решённых подзадач, чтобы
+не вычислять их повторно. Если <a href="#backtracking-поиск-с-возвратом">backtracking</a> перебирает все варианты,
+то ДП превращает экспоненциальный перебор в полиномиальное решение за счёт <strong>запоминания</strong>.</p>
+<p>Задача поддаётся ДП, когда есть два свойства:</p>
+<ol>
+<li><strong>Перекрывающиеся подзадачи</strong> (overlapping subproblems) — одни и те же подзадачи
+встречаются многократно. Наивная рекурсия Фибоначчи пересчитывает <code>fib(2)</code> десятки раз.</li>
+<li><strong>Оптимальная подструктура</strong> (optimal substructure) — оптимальное решение задачи
+строится из оптимальных решений её подзадач.</li>
+</ol>
+<h2 id="когда-применять-17"><a class="header" href="#когда-применять-17">Когда применять</a></h2>
+<p>Признаки-маркеры в условии:</p>
+<ul>
+<li>«Сколькими <strong>способами</strong>…» (подсчёт вариантов).</li>
+<li>«Найдите <strong>минимум / максимум / самый длинный</strong>…» при последовательности выборов.</li>
+<li>«<strong>Можно ли</strong> достичь…» (достижимость через комбинацию шагов).</li>
+<li>Каждый шаг — выбор с последствиями, и варианты перекрываются.</li>
+</ul>
+<p>Если же все подзадачи <strong>уникальны</strong> (не повторяются) — это обычная рекурсия или
+<a href="#backtracking-поиск-с-возвратом">backtracking</a>, а не ДП.</p>
+<h2 id="два-подхода"><a class="header" href="#два-подхода">Два подхода</a></h2>
+<h3 id="мемоизация-сверху-вниз"><a class="header" href="#мемоизация-сверху-вниз">Мемоизация (сверху вниз)</a></h3>
+<p>Обычная рекурсия + кэш уже посчитанных значений. Пишется естественно, считает только
+нужные подзадачи.</p>
+<pre><code class="language-go">func fibMemo(n int) int {
+    memo := make(map[int]int)
+    var f func(int) int
+    f = func(k int) int {
+        if k &lt; 2 {
+            return k
+        }
+        if v, ok := memo[k]; ok {
+            return v // подзадача уже решена
+        }
+        memo[k] = f(k-1) + f(k-2)
+        return memo[k]
+    }
+    return f(n)
+}
+</code></pre>
+<h3 id="табуляция-снизу-вверх"><a class="header" href="#табуляция-снизу-вверх">Табуляция (снизу вверх)</a></h3>
+<p>Заполняем таблицу от базовых случаев к ответу, без рекурсии. Обычно эффективнее по
+памяти и без риска переполнения стека.</p>
+<pre><code class="language-go">func fibTab(n int) int {
+    if n &lt; 2 {
+        return n
+    }
+    prev, cur := 0, 1
+    for i := 2; i &lt;= n; i++ {
+        prev, cur = cur, prev+cur // храним только два последних значения
+    }
+    return cur
+}
+</code></pre>
+<p>Здесь видна и <strong>оптимизация памяти</strong>: вместо массива на <code>n</code> элементов достаточно двух
+переменных — O(1) памяти.</p>
+<h2 id="как-построить-дп-решение"><a class="header" href="#как-построить-дп-решение">Как построить ДП-решение</a></h2>
+<ol>
+<li><strong>Состояние</strong> — что описывает подзадачу? (например, <code>dp[i]</code> = ответ для префикса
+длины <code>i</code>).</li>
+<li><strong>Переход</strong> — как ответ для состояния выражается через меньшие состояния? (рекуррента).</li>
+<li><strong>База</strong> — тривиальные случаи (<code>dp[0]</code>, <code>dp[1]</code>).</li>
+<li><strong>Порядок вычисления</strong> — такой, чтобы нужные подзадачи были посчитаны раньше.</li>
+</ol>
+<h2 id="примеры"><a class="header" href="#примеры">Примеры</a></h2>
+<h3 id="1d-дп-climbing-stairs--house-robber"><a class="header" href="#1d-дп-climbing-stairs--house-robber">1D ДП: Climbing Stairs / House Robber</a></h3>
+<p>«На сколько ступеней можно подняться, делая шаги по 1 или 2?» — это Фибоначчи:
+<code>dp[i] = dp[i-1] + dp[i-2]</code>. Тот же приём — в House Robber, где
+<code>dp[i] = max(dp[i-1], dp[i-2] + nums[i])</code>.</p>
+<h3 id="coin-change-минимум-монет"><a class="header" href="#coin-change-минимум-монет">Coin Change (минимум монет)</a></h3>
+<p>Состояние <code>dp[a]</code> — минимум монет, чтобы набрать сумму <code>a</code>. Переход: пробуем каждую
+монету <code>c</code>: <code>dp[a] = min(dp[a], dp[a-c] + 1)</code>.</p>
+<pre><code class="language-go">func coinChange(coins []int, amount int) int {
+    const INF = 1 &lt;&lt; 30
+    dp := make([]int, amount+1)
+    for i := 1; i &lt;= amount; i++ {
+        dp[i] = INF
+        for _, c := range coins {
+            if c &lt;= i &amp;&amp; dp[i-c]+1 &lt; dp[i] {
+                dp[i] = dp[i-c] + 1
+            }
+        }
+    }
+    if dp[amount] &gt;= INF {
+        return -1 // сумму набрать нельзя
+    }
+    return dp[amount]
+}
+</code></pre>
+<h3 id="2d-дп-longest-common-subsequence-lcs"><a class="header" href="#2d-дп-longest-common-subsequence-lcs">2D ДП: Longest Common Subsequence (LCS)</a></h3>
+<p>Состояние <code>dp[i][j]</code> — длина наибольшей общей подпоследовательности префиксов <code>a[:i]</code> и
+<code>b[:j]</code>. Если символы совпали — берём диагональ +1, иначе — лучшее из двух соседей.</p>
+<pre><code class="language-go">func lcs(a, b string) int {
+    m, n := len(a), len(b)
+    dp := make([][]int, m+1)
+    for i := range dp {
+        dp[i] = make([]int, n+1)
+    }
+    for i := 1; i &lt;= m; i++ {
+        for j := 1; j &lt;= n; j++ {
+            if a[i-1] == b[j-1] {
+                dp[i][j] = dp[i-1][j-1] + 1
+            } else {
+                dp[i][j] = max(dp[i-1][j], dp[i][j-1])
+            }
+        }
+    }
+    return dp[m][n]
+}
+</code></pre>
+<h3 id="01-рюкзак-knapsack"><a class="header" href="#01-рюкзак-knapsack">0/1 Рюкзак (knapsack)</a></h3>
+<p>Состояние <code>dp[i][w]</code> — максимальная ценность из первых <code>i</code> предметов при вместимости <code>w</code>.
+Для каждого предмета выбор «взять / не взять»: <code>dp[i][w] = max(dp[i-1][w], dp[i-1][w-weight[i]] + value[i])</code>. Часто сворачивается до 1D-массива по <code>w</code> (идём по <code>w</code>
+в обратную сторону).</p>
+<h2 id="временная-и-пространственная-сложность-17"><a class="header" href="#временная-и-пространственная-сложность-17">Временная и пространственная сложность</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Задача</th><th>Состояний</th><th>Переход</th><th>Время</th><th>Память (после оптимизации)</th></tr>
+</thead>
+<tbody>
+<tr><td>Фибоначчи / лестница</td><td>O(n)</td><td>O(1)</td><td>O(n)</td><td>O(1)</td></tr>
+<tr><td>Coin Change</td><td>O(amount)</td><td>O(монет)</td><td>O(amount·k)</td><td>O(amount)</td></tr>
+<tr><td>LCS</td><td>O(m·n)</td><td>O(1)</td><td>O(m·n)</td><td>O(min(m, n))</td></tr>
+<tr><td>0/1 Рюкзак</td><td>O(n·W)</td><td>O(1)</td><td>O(n·W)</td><td>O(W)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Общая формула: <strong>время ≈ (число состояний) × (стоимость перехода)</strong>.</p>
+<h2 id="типичные-ошибки-15"><a class="header" href="#типичные-ошибки-15">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Неправильная база</strong> — забыли <code>dp[0]</code> или задали неверно; вся таблица «съезжает».</li>
+<li><strong>Неверный порядок обхода</strong> — состояние используется раньше, чем посчитано.</li>
+<li><strong>Путаница индексов строк и таблицы</strong> — для строк длины <code>m</code> таблица размера <code>m+1</code>,
+символ <code>a[i-1]</code> соответствует <code>dp[i]</code>.</li>
+<li><strong>Мемоизация без кэша на самом деле</strong> — забыли записать результат перед <code>return</code>,
+экспонента осталась.</li>
+<li><strong>0/1-рюкзак: проход по <code>w</code> в прямом порядке</strong> при свёрнутом массиве — предмет
+ошибочно берётся несколько раз (это уже unbounded knapsack).</li>
+</ol>
+<h2 id="примеры-задач-на-leetcode-18"><a class="header" href="#примеры-задач-на-leetcode-18">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие--средние-1"><a class="header" href="#легкие--средние-1">Легкие / средние</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/climbing-stairs/">Climbing Stairs</a></li>
+<li><a href="https://leetcode.com/problems/house-robber/">House Robber</a></li>
+<li><a href="https://leetcode.com/problems/coin-change/">Coin Change</a></li>
+<li><a href="https://leetcode.com/problems/longest-common-subsequence/">Longest Common Subsequence</a></li>
+<li><a href="https://leetcode.com/problems/unique-paths/">Unique Paths</a> — 2D ДП на сетке</li>
+<li><a href="https://leetcode.com/problems/word-break/">Word Break</a></li>
+</ul>
+<h3 id="сложные-16"><a class="header" href="#сложные-16">Сложные</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/edit-distance/">Edit Distance</a></li>
+<li><a href="https://leetcode.com/problems/longest-increasing-subsequence/">Longest Increasing Subsequence</a></li>
+<li><a href="https://leetcode.com/problems/partition-equal-subset-sum/">Partition Equal Subset Sum</a> — 0/1 рюкзак</li>
+</ul>
+<h2 id="упражнения-18"><a class="header" href="#упражнения-18">Упражнения</a></h2>
+<p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
+есть пакет <code>dp</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./dp/                 # ваши решения
+go test -tags solution ./dp/  # эталон
+</code></pre>
+<p>Реализуйте <code>ClimbStairs</code> (1D), <code>CoinChange</code> (1D с выбором) и
+<code>LongestCommonSubsequence</code> (2D).</p>
+<h2 id="связанные-шаблоны-19"><a class="header" href="#связанные-шаблоны-19">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="#backtracking-поиск-с-возвратом">Backtracking</a></strong> — когда подзадачи перекрываются, перебор с
+возвратом превращается в ДП добавлением мемоизации.</li>
+<li><strong><a href="#modified-binary-search-модифицированный-бинарный-поиск">Modified Binary Search</a></strong> — ускоряет некоторые ДП
+(например, Longest Increasing Subsequence до O(n log n)).</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="приложение-память-gc-и-профилирование-в-go"><a class="header" href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a></h1>
