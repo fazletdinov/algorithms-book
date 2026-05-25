@@ -50,6 +50,8 @@ go test -tags solution ./slidingwindow/   # прогнать тесты на э�
 | `treebfs`       | `LevelOrder`                                 |
 | `linkedlist`    | `ReverseList`                                |
 | `graphs`        | `CountComponents`, `HasCycleUndirected`      |
+| `grids`         | `NumIslands`                                 |
+| `dijkstra`      | `ShortestPath`                               |
 
 ## Как добавить свой шаблон
 

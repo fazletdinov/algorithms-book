@@ -39,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7d37a71c.js";
+            window.path_to_searchindex_js = "searchindex-0a11ae3a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-33b004f3.js"></script>
+        <script src="toc-01f568d5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -18980,6 +18980,193 @@ go test -tags solution ./graphs/  # эталон
 ациклического графа (DAG).</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="графы-сетки-и-кратчайшие-пути"><a class="header" href="#графы-сетки-и-кратчайшие-пути">Графы: сетки и кратчайшие пути</a></h1>
+<p>Это продолжение главы <a href="#graphs-обход-графов">«Обход графов»</a>. Здесь — два частых на собеседованиях
+расширения: <strong>сетки</strong> (двумерные поля как графы) и <strong>взвешенные кратчайшие пути</strong>
+(алгоритм Дейкстры).</p>
+<h2 id="сетки-как-графы"><a class="header" href="#сетки-как-графы">Сетки как графы</a></h2>
+<p>Двумерная сетка (матрица) — это граф, где <strong>вершина</strong> — клетка <code>(r, c)</code>, а <strong>рёбра</strong>
+ведут к соседним клеткам. Чаще всего соседей четыре (вверх/вниз/влево/вправо), иногда
+восемь (с диагоналями).</p>
+<pre><code class="language-go">// Четыре направления: смещения по строке и столбцу
+var dirs = [4][2]int{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
+
+func neighbors(r, c, rows, cols int) [][2]int {
+    var res [][2]int
+    for _, d := range dirs {
+        nr, nc := r+d[0], c+d[1]
+        if nr &gt;= 0 &amp;&amp; nr &lt; rows &amp;&amp; nc &gt;= 0 &amp;&amp; nc &lt; cols { // проверка границ!
+            res = append(res, [2]int{nr, nc})
+        }
+    }
+    return res
+}
+</code></pre>
+<h3 id="number-of-islands-подсчёт-островов"><a class="header" href="#number-of-islands-подсчёт-островов">Number of Islands («подсчёт островов»)</a></h3>
+<p>Классическая задача: в сетке из <code>1</code> (суша) и <code>0</code> (вода) посчитать число «островов» —
+связных групп суши. Это <strong>подсчёт компонент связности</strong> на сетке: запускаем обход из
+каждой ещё не посещённой клетки-суши, «затапливая» весь остров.</p>
+<pre><code class="language-go">func numIslands(grid [][]int) int {
+    rows := len(grid)
+    if rows == 0 {
+        return 0
+    }
+    cols := len(grid[0])
+    visited := make([][]bool, rows)
+    for i := range visited {
+        visited[i] = make([]bool, cols)
+    }
+
+    var dfs func(r, c int)
+    dfs = func(r, c int) {
+        // выходим, если за границей, вода или уже посещали
+        if r &lt; 0 || r &gt;= rows || c &lt; 0 || c &gt;= cols || grid[r][c] == 0 || visited[r][c] {
+            return
+        }
+        visited[r][c] = true
+        dfs(r-1, c)
+        dfs(r+1, c)
+        dfs(r, c-1)
+        dfs(r, c+1)
+    }
+
+    count := 0
+    for r := 0; r &lt; rows; r++ {
+        for c := 0; c &lt; cols; c++ {
+            if grid[r][c] == 1 &amp;&amp; !visited[r][c] {
+                count++
+                dfs(r, c) // затапливаем весь остров
+            }
+        }
+    }
+    return count
+}
+</code></pre>
+<p><strong>Сложность:</strong> O(R · C) — каждую клетку посещаем один раз.</p>
+<blockquote>
+<p>💡 <strong>Multi-source BFS.</strong> Если фронт распространяется одновременно из нескольких точек
+(гниющие апельсины, пожар, вода), загрузите в очередь BFS <strong>сразу все</strong> стартовые
+клетки и обходите по уровням — каждый уровень это «шаг времени». Так считается
+минимальное время до заполнения всей сетки.</p>
+</blockquote>
+<h2 id="взвешенные-кратчайшие-пути-алгоритм-дейкстры"><a class="header" href="#взвешенные-кратчайшие-пути-алгоритм-дейкстры">Взвешенные кратчайшие пути: алгоритм Дейкстры</a></h2>
+<p>В <strong>невзвешенном</strong> графе кратчайший путь по числу рёбер находит обычный BFS (все рёбра
+«стоят» 1). Но если у рёбер <strong>разные веса</strong> (расстояния, цены, время), BFS не подходит:
+путь с большим числом рёбер может оказаться дешевле.</p>
+<p><strong>Алгоритм Дейкстры</strong> находит кратчайшие пути от источника до всех вершин в графе с
+<strong>неотрицательными</strong> весами. Идея: жадно расширяем границу, каждый раз выбирая ещё не
+финализированную вершину с <strong>минимальным</strong> известным расстоянием — для этого нужна
+<strong>приоритетная очередь</strong> (мин-куча, см. <a href="#two-heaps-две-кучи">Two Heaps</a>).</p>
+<pre><code class="language-go">import "container/heap"
+
+// Элемент очереди: вершина и текущее расстояние до неё
+type item struct{ node, dist int }
+type pq []item
+
+func (p pq) Len() int            { return len(p) }
+func (p pq) Less(i, j int) bool  { return p[i].dist &lt; p[j].dist } // мин-куча по dist
+func (p pq) Swap(i, j int)       { p[i], p[j] = p[j], p[i] }
+func (p *pq) Push(x any)         { *p = append(*p, x.(item)) }
+func (p *pq) Pop() any {
+    old := *p
+    n := len(old)
+    it := old[n-1]
+    *p = old[:n-1]
+    return it
+}
+
+// adj[u] = список соседей вида {to, weight}
+func dijkstra(n int, adj [][][2]int, src int) []int {
+    const INF = 1 &lt;&lt; 62
+    dist := make([]int, n)
+    for i := range dist {
+        dist[i] = INF
+    }
+    dist[src] = 0
+
+    h := &amp;pq{{node: src, dist: 0}}
+    for h.Len() &gt; 0 {
+        cur := heap.Pop(h).(item)
+        if cur.dist &gt; dist[cur.node] {
+            continue // устаревшая запись — уже нашли путь короче
+        }
+        for _, e := range adj[cur.node] {
+            to, w := e[0], e[1]
+            if nd := cur.dist + w; nd &lt; dist[to] {
+                dist[to] = nd
+                heap.Push(h, item{node: to, dist: nd})
+            }
+        }
+    }
+    return dist // dist[v] == INF означает «недостижима»
+}
+</code></pre>
+<p><strong>Сложность:</strong> O((V + E) · log V) — каждое ребро может добавить запись в кучу,
+а операции с кучей — логарифмические.</p>
+<h3 id="ключевые-моменты"><a class="header" href="#ключевые-моменты">Ключевые моменты</a></h3>
+<ul>
+<li><strong>Только неотрицательные веса.</strong> При отрицательных рёбрах Дейкстра ломается — нужен
+<strong>Bellman–Ford</strong> (O(V · E), умеет находить отрицательные циклы).</li>
+<li><strong>«Ленивое» удаление.</strong> В Go у <code>container/heap</code> нет операции «уменьшить ключ», поэтому
+мы просто кладём новую запись, а устаревшие отбрасываем проверкой
+<code>cur.dist &gt; dist[cur.node]</code>.</li>
+<li><strong>Все рёбра веса 1?</strong> Не тратьте время на Дейкстру — обычный BFS даст ответ за O(V+E).</li>
+</ul>
+<h2 id="сравнение-алгоритмов-кратчайшего-пути"><a class="header" href="#сравнение-алгоритмов-кратчайшего-пути">Сравнение алгоритмов кратчайшего пути</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Алгоритм</th><th>Веса рёбер</th><th>Сложность</th><th>Когда применять</th></tr>
+</thead>
+<tbody>
+<tr><td>BFS</td><td>все равны (1)</td><td>O(V + E)</td><td>невзвешенный граф, сетки</td></tr>
+<tr><td>Дейкстра</td><td>неотрицательные</td><td>O((V+E) log V)</td><td>взвешенный граф без отрицат. рёбер</td></tr>
+<tr><td>Bellman–Ford</td><td>любые</td><td>O(V · E)</td><td>есть отрицательные рёбра/циклы</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="типичные-ошибки-12"><a class="header" href="#типичные-ошибки-12">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Нет проверки границ сетки</strong> перед доступом к <code>grid[nr][nc]</code> — паника
+index-out-of-range.</li>
+<li><strong>Дейкстра с отрицательными весами</strong> — даёт неверный результат; используйте
+Bellman–Ford.</li>
+<li><strong>Не отбрасываются устаревшие записи</strong> в куче — алгоритм всё равно корректен, но
+медленнее; проверка <code>cur.dist &gt; dist[cur.node]</code> важна для производительности.</li>
+<li><strong>BFS вместо Дейкстры на взвешенном графе</strong> — кратчайший по числу рёбер ≠ кратчайший
+по сумме весов.</li>
+<li><strong>Сетка с диагоналями.</strong> Если соседей восемь — не забудьте 4 диагональных смещения.</li>
+</ol>
+<h2 id="примеры-задач-на-leetcode-15"><a class="header" href="#примеры-задач-на-leetcode-15">Примеры задач на LeetCode</a></h2>
+<h3 id="сетки"><a class="header" href="#сетки">Сетки</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/number-of-islands/">Number of Islands</a></li>
+<li><a href="https://leetcode.com/problems/max-area-of-island/">Max Area of Island</a></li>
+<li><a href="https://leetcode.com/problems/rotting-oranges/">Rotting Oranges</a> — multi-source BFS</li>
+<li><a href="https://leetcode.com/problems/walls-and-gates/">Walls and Gates</a></li>
+</ul>
+<h3 id="кратчайшие-пути"><a class="header" href="#кратчайшие-пути">Кратчайшие пути</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/network-delay-time/">Network Delay Time</a> — Дейкстра</li>
+<li><a href="https://leetcode.com/problems/path-with-minimum-effort/">Path with Minimum Effort</a></li>
+<li><a href="https://leetcode.com/problems/cheapest-flights-within-k-stops/">Cheapest Flights Within K Stops</a> — Bellman–Ford / BFS</li>
+</ul>
+<h2 id="упражнения-15"><a class="header" href="#упражнения-15">Упражнения</a></h2>
+<p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
+есть пакеты <code>grids</code> и <code>dijkstra</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./grids/ ./dijkstra/                 # ваши решения
+go test -tags solution ./grids/ ./dijkstra/  # эталон
+</code></pre>
+<p>Реализуйте <code>NumIslands</code> (обход сетки) и <code>ShortestPath</code> (Дейкстра).</p>
+<h2 id="связанные-шаблоны-16"><a class="header" href="#связанные-шаблоны-16">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="#graphs-обход-графов">Обход графов</a></strong> — BFS/DFS и Union-Find, на которых всё строится.</li>
+<li><strong><a href="#two-heaps-две-кучи">Two Heaps</a></strong> — приоритетная очередь, сердце алгоритма Дейкстры.</li>
+<li><strong><a href="#topological-sort-топологическая-сортировка">Topological Sort</a></strong> — кратчайшие пути в DAG можно считать в
+порядке топосортировки за O(V + E).</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="topological-sort-топологическая-сортировка"><a class="header" href="#topological-sort-топологическая-сортировка">Topological Sort (Топологическая сортировка)</a></h1>
 <h2 id="описание-шаблона-16"><a class="header" href="#описание-шаблона-16">Описание шаблона</a></h2>
 <p>Шаблон <strong>Topological Sort</strong> используется для нахождения линейного порядка элементов в ориентированном ациклическом графе (DAG), где каждое ребро представляет зависимость. Если элемент A зависит от элемента B, то B должен появиться перед A в топологическом порядке.</p>
@@ -19355,7 +19542,7 @@ for _, prereq := range prerequisites {
     }
 }
 </code></pre>
-<h2 id="типичные-ошибки-12"><a class="header" href="#типичные-ошибки-12">Типичные ошибки</a></h2>
+<h2 id="типичные-ошибки-13"><a class="header" href="#типичные-ошибки-13">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Неправильный подсчет in-degree</strong>: Убедитесь, что считаете входящие, а не исходящие ребра</li>
 <li><strong>Забывание проверки циклов</strong>: Если результат содержит меньше V вершин, есть цикл</li>
@@ -19770,7 +19957,7 @@ go test -bench=. -benchmem
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-15"><a class="header" href="#примеры-задач-на-leetcode-15">Примеры задач на LeetCode</a></h2>
+<h2 id="примеры-задач-на-leetcode-16"><a class="header" href="#примеры-задач-на-leetcode-16">Примеры задач на LeetCode</a></h2>
 <h3 id="средние-14"><a class="header" href="#средние-14">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/course-schedule/">Course Schedule</a> - Расписание курсов</li>
@@ -20251,7 +20438,7 @@ func buildOrder(modules []Module) []string {
 <li><strong>Message Ordering</strong>: Определение порядка сообщений</li>
 <li><strong>Distributed Systems</strong>: Определение порядка операций</li>
 </ul>
-<h2 id="упражнения-15"><a class="header" href="#упражнения-15">Упражнения</a></h2>
+<h2 id="упражнения-16"><a class="header" href="#упражнения-16">Упражнения</a></h2>
 <p>Практикуйтесь на задачах разной сложности для закрепления материала:</p>
 <h3 id="легкие-задачи-для-начинающих-13"><a class="header" href="#легкие-задачи-для-начинающих-13">Легкие задачи (для начинающих)</a></h3>
 <ol>
@@ -20358,7 +20545,7 @@ func buildOrder(modules []Module) []string {
 <li><strong>Отслеживайте in-degree</strong>: Правильно подсчитывайте входящие степени</li>
 <li><strong>Обрабатывайте множественные источники</strong>: Убедитесь, что обрабатываете все вершины с in-degree = 0</li>
 </ol>
-<h2 id="связанные-шаблоны-16"><a class="header" href="#связанные-шаблоны-16">Связанные шаблоны</a></h2>
+<h2 id="связанные-шаблоны-17"><a class="header" href="#связанные-шаблоны-17">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#tree-bfs-обход-дерева-в-ширину">Tree BFS</a></strong> - Использует похожий подход с очередью</li>
 <li><strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> - Альтернативный подход для топологической сортировки</li>
