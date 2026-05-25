@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="assets/algo-viz-85fba13a.css">
+        <link rel="stylesheet" href="assets/algo-viz-8de79df5.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fe9e7241.js";
+            window.path_to_searchindex_js = "searchindex-e7ff6989.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-da8af5e2.js"></script>
@@ -346,6 +346,15 @@ func (uf *UnionFind) Union(x, y int) bool {
 </tbody>
 </table>
 </div>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: жёлтая вершина — текущая
+(извлечённая из очереди), синие — уже посещённые. Видно, как BFS расходится волной
+по уровням от старта. (Виджет работает в собранной книге <code>mdbook serve</code>/<code>mdbook build</code>,
+а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="graph-bfs" data-nodes="0,1,2,3,4,5" data-edges="0-1,0-2,1-3,2-3,2-4,4-5" data-start="0"></div>
+
 <h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Забыли <code>visited</code></strong> — на графе с циклом обход уходит в бесконечность.</li>
@@ -444,7 +453,7 @@ go test -tags solution ./graphs/  # эталон
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="assets/algo-viz-36e22e08.js"></script>
+        <script src="assets/algo-viz-e4d130b1.js"></script>
 
 
 

@@ -96,6 +96,12 @@ func postorderTraversal(root *TreeNode) []int {
 
 ## Визуализация
 
+> 💡 **Интерактивная демонстрация.** Нажимайте «▶»: узлы подсвечиваются в порядке
+> обхода в глубину (preorder: корень → левое поддерево → правое). (Виджет работает в
+> собранной книге `mdbook serve`/`mdbook build`, а не при просмотре `.md` на GitHub.)
+
+<div class="algo-viz" data-viz="tree-dfs" data-tree="1,2,3,4,5,null,6"></div>
+
 Дерево:
 
 ```

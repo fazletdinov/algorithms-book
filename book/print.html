@@ -29,7 +29,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="assets/algo-viz-85fba13a.css">
+        <link rel="stylesheet" href="assets/algo-viz-8de79df5.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -39,7 +39,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fe9e7241.js";
+            window.path_to_searchindex_js = "searchindex-e7ff6989.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-da8af5e2.js"></script>
@@ -1462,6 +1462,13 @@ func hasCycle(head *ListNode) bool {
 <p>Cyclic Sort всегда линеен: каждый элемент перемещается максимум один раз на своё
 место, перестановка стоит O(1).</p>
 <h2 id="визуализация-4"><a class="header" href="#визуализация-4">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: синяя ячейка — текущий индекс <code>i</code>,
+жёлтая — куда уходит элемент при обмене. (Виджет работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="cyclic-sort" data-array="3,1,5,4,2"></div>
+
 <p>Сортировка <code>[3, 1, 5, 4, 2]</code>, диапазон [1, 5]. Правило: число <code>x</code> → индекс <code>x - 1</code>.</p>
 <pre><code>[3, 1, 5, 4, 2]  i=0: 3→поз.2, swap с nums[2]=5
 [5, 1, 3, 4, 2]  i=0: 5→поз.4, swap с nums[4]=2
@@ -2138,6 +2145,13 @@ func postorderTraversal(root *TreeNode) []int {
 </table>
 </div>
 <h2 id="визуализация-9"><a class="header" href="#визуализация-9">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: узлы подсвечиваются в порядке
+обхода в глубину (preorder: корень → левое поддерево → правое). (Виджет работает в
+собранной книге <code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="tree-dfs" data-tree="1,2,3,4,5,null,6"></div>
+
 <p>Дерево:</p>
 <pre><code>        1
        / \
@@ -3088,6 +3102,15 @@ func (uf *UnionFind) Union(x, y int) bool {
 </tbody>
 </table>
 </div>
+<h2 id="визуализация-14"><a class="header" href="#визуализация-14">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: жёлтая вершина — текущая
+(извлечённая из очереди), синие — уже посещённые. Видно, как BFS расходится волной
+по уровням от старта. (Виджет работает в собранной книге <code>mdbook serve</code>/<code>mdbook build</code>,
+а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="graph-bfs" data-nodes="0,1,2,3,4,5" data-edges="0-1,0-2,1-3,2-3,2-4,4-5" data-start="0"></div>
+
 <h2 id="типичные-ошибки-15"><a class="header" href="#типичные-ошибки-15">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Забыли <code>visited</code></strong> — на графе с циклом обход уходит в бесконечность.</li>
@@ -3588,7 +3611,7 @@ func topologicalSort(numCourses int, prerequisites [][]int) []int {
 </div>
 <p>Каждая вершина обрабатывается один раз (O(V)), каждое ребро рассматривается один раз
 (O(E)).</p>
-<h2 id="визуализация-14"><a class="header" href="#визуализация-14">Визуализация</a></h2>
+<h2 id="визуализация-15"><a class="header" href="#визуализация-15">Визуализация</a></h2>
 <p>Граф зависимостей: A → B, A → C, B → C, B → D, C → D.</p>
 <pre><code class="language-mermaid">graph TD
     A[A] --&gt; B[B]
@@ -3893,6 +3916,17 @@ go test -tags solution ./greedy/  # эталон
 </table>
 </div>
 <p>Общая формула: <strong>время ≈ (число состояний) × (стоимость перехода)</strong>.</p>
+<h2 id="визуализация-16"><a class="header" href="#визуализация-16">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: таблица <code>dp</code> заполняется слева
+направо. Синяя ячейка — текущая сумма, жёлтая — состояние-источник <code>dp[a−монета]</code>,
+из которого получен ответ. (Виджет работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="dp-coins" data-coins="1,2,5" data-amount="11"></div>
+
+<p>Пример выше — Coin Change для монет <code>{1, 2, 5}</code> и суммы <code>11</code>: каждая ячейка <code>dp[a]</code> это
+минимум монет на сумму <code>a</code>, и она опирается на уже посчитанную меньшую сумму.</p>
 <h2 id="типичные-ошибки-20"><a class="header" href="#типичные-ошибки-20">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Неправильная база</strong> — забыли <code>dp[0]</code> или задали неверно; вся таблица «съезжает».</li>
@@ -4824,7 +4858,7 @@ go tool pprof cpu.prof   # команда top покажет самые «дор
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="assets/algo-viz-36e22e08.js"></script>
+        <script src="assets/algo-viz-e4d130b1.js"></script>
 
         <script>
         window.addEventListener('load', function() {

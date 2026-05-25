@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="assets/algo-viz-85fba13a.css">
+        <link rel="stylesheet" href="assets/algo-viz-8de79df5.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fe9e7241.js";
+            window.path_to_searchindex_js = "searchindex-e7ff6989.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-da8af5e2.js"></script>
@@ -309,6 +309,17 @@
 </table>
 </div>
 <p>Общая формула: <strong>время ≈ (число состояний) × (стоимость перехода)</strong>.</p>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: таблица <code>dp</code> заполняется слева
+направо. Синяя ячейка — текущая сумма, жёлтая — состояние-источник <code>dp[a−монета]</code>,
+из которого получен ответ. (Виджет работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="dp-coins" data-coins="1,2,5" data-amount="11"></div>
+
+<p>Пример выше — Coin Change для монет <code>{1, 2, 5}</code> и суммы <code>11</code>: каждая ячейка <code>dp[a]</code> это
+минимум монет на сумму <code>a</code>, и она опирается на уже посчитанную меньшую сумму.</p>
 <h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Неправильная база</strong> — забыли <code>dp[0]</code> или задали неверно; вся таблица «съезжает».</li>
@@ -410,7 +421,7 @@ go test -tags solution ./dp/  # эталон
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="assets/algo-viz-36e22e08.js"></script>
+        <script src="assets/algo-viz-e4d130b1.js"></script>
 
 
 
