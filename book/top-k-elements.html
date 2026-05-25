@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9969779a.js";
+            window.path_to_searchindex_js = "searchindex-fe9e7241.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-da8af5e2.js"></script>
@@ -178,146 +178,99 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="top-k-elements-топ-k-элементов"><a class="header" href="#top-k-elements-топ-k-элементов">Top K Elements (Топ K элементов)</a></h1>
-<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
-<p>Шаблон <strong>Top K Elements</strong> используется для поиска K наибольших, наименьших или наиболее частых элементов в коллекции. Этот подход эффективно использует структуры данных типа кучи (heap) для поддержания K элементов без необходимости полной сортировки.</p>
-<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
-<p>Задачи поиска K наибольших/наименьших элементов возникают во многих приложениях: ранжирование результатов поиска, рекомендательные системы, анализ данных. Подход с кучей был разработан для эффективного решения таких задач без полной сортировки.</p>
-<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
-<p>Ключевое наблюдение: нам не нужна полная сортировка - достаточно поддерживать K лучших элементов. Куча размера K позволяет эффективно добавлять новые элементы и удалять худшие, поддерживая инвариант “K лучших элементов”.</p>
-<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
-<p>Используйте этот шаблон, когда:</p>
+<h2 id="теория"><a class="header" href="#теория">Теория</a></h2>
+<p><strong>Top K Elements</strong> — шаблон для поиска K наибольших, наименьших или наиболее частых
+элементов коллекции без полной сортировки. Ключевая идея — поддерживать <strong>кучу
+размера K</strong> (приоритетную очередь): нам не нужны все элементы в порядке, достаточно
+держать инвариант «в куче — K лучших».</p>
+<p><strong>Куча (heap)</strong> даёт минимум/максимум за O(1), а вставку и удаление за O(log K).
+См. <a href="./glossary.html">Глоссарий</a>.</p>
+<p><strong>Когда применять:</strong></p>
 <ul>
-<li>Нужно найти K наибольших/наименьших элементов</li>
-<li>Требуется найти K наиболее частых элементов</li>
-<li>Нужно отсортировать массив, чтобы найти определенный элемент</li>
-<li>Задача связана с приоритетами или ранжированием</li>
-<li>Требуется эффективное решение без полной сортировки</li>
+<li>нужно найти K наибольших/наименьших элементов;</li>
+<li>нужно найти K наиболее частых элементов;</li>
+<li>задача связана с приоритетами или ранжированием;</li>
+<li>решение без полной сортировки выгодно при <code>k &lt;&lt; n</code>.</li>
 </ul>
-<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
-<p><strong>Куча (heap)</strong> — приоритетная очередь: min-heap даёт минимум за O(1), max-heap — максимум. Вставка и удаление за O(log n). См. <a href="./glossary.html">Глоссарий</a>.</p>
-<h3 id="подход-с-кучей"><a class="header" href="#подход-с-кучей">Подход с кучей:</a></h3>
-<pre><code class="language-go">import (
-    "container/heap"
-)
+<h2 id="алгоритм"><a class="header" href="#алгоритм">Алгоритм</a></h2>
+<p>Для <strong>K наибольших</strong> держим <strong>min-heap</strong> размера K: вершина — это худший (минимальный)
+из K лучших. Новый элемент больше вершины → выталкиваем вершину и вставляем новый.
+Для <strong>K наименьших</strong> симметрично используем <strong>max-heap</strong>.</p>
+<pre><code class="language-go">import "container/heap"
 
-// MinHeap для хранения K наибольших элементов
+// MinHeap — для K наибольших элементов
 type MinHeap []int
 
-func (h MinHeap) Len() int           { return len(h) }
-func (h MinHeap) Less(i, j int) bool { return h[i] &lt; h[j] }
-func (h MinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-
-func (h *MinHeap) Push(x interface{}) {
-    *h = append(*h, x.(int))
-}
-
+func (h MinHeap) Len() int            { return len(h) }
+func (h MinHeap) Less(i, j int) bool  { return h[i] &lt; h[j] }
+func (h MinHeap) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }
+func (h *MinHeap) Push(x interface{}) { *h = append(*h, x.(int)) }
 func (h *MinHeap) Pop() interface{} {
     old := *h
     n := len(old)
     x := old[n-1]
-    *h = old[0 : n-1]
+    *h = old[:n-1]
     return x
 }
 
-// Поиск K наибольших элементов
-func findTopK(nums []int, k int) []int {
-    // Шаг 1: Инициализация - создаем min-heap размера K
-    // Min-heap используется для K наибольших, потому что:
-    // - Вершина кучи (минимум) - это худший из K лучших элементов
-    // - Если новый элемент больше вершины, заменяем вершину
-    // - Это поддерживает инвариант: в куче всегда K наибольших элементов
+// K наибольших элементов
+func findKLargest(nums []int, k int) []int {
+    if k &lt;= 0 || len(nums) == 0 {
+        return nil
+    }
     h := &amp;MinHeap{}
     heap.Init(h)
-    
-    // Шаг 2: Итерация по всем элементам массива
-    for _, num := range nums {
-        if h.Len() &lt; k {
-            // Если размер кучи меньше K, просто добавляем элемент
-            // Пока не набрали K элементов, добавляем все подряд
-            heap.Push(h, num)
-        } else {
-            // Размер кучи равен K - сравниваем с вершиной кучи
-            // Вершина min-heap - это минимум среди K элементов, т.е. худший из лучших
-            if num &gt; (*h)[0] {
-                // Новый элемент больше худшего из K лучших
-                // Заменяем худший на новый элемент
-                heap.Pop(h)      // Удаляем худший элемент
-                heap.Push(h, num) // Добавляем новый элемент
-            }
-            // Если новый элемент меньше или равен вершине, игнорируем его
-            // так как он не входит в топ K
-        }
-    }
-    
-    // Шаг 3: Результат - возвращаем элементы из кучи
-    // Куча содержит K наибольших элементов
-    result := make([]int, h.Len())
-    for i := 0; h.Len() &gt; 0; i++ {
-        result[i] = heap.Pop(h).(int)
-    }
-    
-    return result
-}
-
-// Поиск K наименьших элементов (используем max-heap)
-type MaxHeap []int
-
-func (h MaxHeap) Len() int           { return len(h) }
-func (h MaxHeap) Less(i, j int) bool { return h[i] &gt; h[j] } // Обратный порядок для max-heap
-func (h MaxHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-
-func (h *MaxHeap) Push(x interface{}) {
-    *h = append(*h, x.(int))
-}
-
-func (h *MaxHeap) Pop() interface{} {
-    old := *h
-    n := len(old)
-    x := old[n-1]
-    *h = old[0 : n-1]
-    return x
-}
-
-func findBottomK(nums []int, k int) []int {
-    // Для K наименьших используем max-heap
-    // Вершина max-heap - это максимум среди K элементов, т.е. худший из лучших
-    h := &amp;MaxHeap{}
-    heap.Init(h)
-    
     for _, num := range nums {
         if h.Len() &lt; k {
             heap.Push(h, num)
-        } else {
-            // Если новый элемент меньше худшего из K лучших, заменяем
-            if num &lt; (*h)[0] {
-                heap.Pop(h)
-                heap.Push(h, num)
-            }
+        } else if num &gt; (*h)[0] { // больше худшего из лучших — заменяем
+            heap.Pop(h)
+            heap.Push(h, num)
         }
     }
-    
     result := make([]int, h.Len())
-    for i := 0; h.Len() &gt; 0; i++ {
+    for i := len(result) - 1; i &gt;= 0; i-- {
         result[i] = heap.Pop(h).(int)
     }
-    
     return result
 }
 </code></pre>
-<h3 id="для-k-наибольших"><a class="header" href="#для-k-наибольших">Для K наибольших:</a></h3>
-<ul>
-<li>Используйте min-heap размера K</li>
-<li>Храните K наибольших элементов</li>
-</ul>
-<h3 id="для-k-наименьших"><a class="header" href="#для-k-наименьших">Для K наименьших:</a></h3>
-<ul>
-<li>Используйте max-heap размера K</li>
-<li>Храните K наименьших элементов</li>
-</ul>
+<p>Для <strong>K наиболее частых</strong> сначала считаем частоты в <code>map</code>, затем тем же приёмом
+отбираем K элементов с наибольшей частотой:</p>
+<pre><code class="language-go">func topKFrequent(nums []int, k int) []int {
+    freq := make(map[int]int, len(nums))
+    for _, num := range nums {
+        freq[num]++
+    }
+    type pair struct{ num, count int }
+    pairs := make([]pair, 0, len(freq))
+    for num, count := range freq {
+        pairs = append(pairs, pair{num, count})
+    }
+    sort.Slice(pairs, func(i, j int) bool { return pairs[i].count &gt; pairs[j].count })
+    result := make([]int, k)
+    for i := 0; i &lt; k; i++ {
+        result[i] = pairs[i].num
+    }
+    return result
+}
+</code></pre>
+<h3 id="сложность"><a class="header" href="#сложность">Сложность</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Задача</th><th>Время</th><th>Память</th></tr>
+</thead>
+<tbody>
+<tr><td>K наибольших/наименьших</td><td>O(n log k)</td><td>O(k)</td></tr>
+<tr><td>K наиболее частых</td><td>O(n + k log k)</td><td>O(n)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Куча размера K даёт O(n log k) против O(n log n) полной сортировки — заметный выигрыш
+при малом k.</p>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
-<h3 id="поиск-топ-3-наибольших-элементов"><a class="header" href="#поиск-топ-3-наибольших-элементов">Поиск топ-3 наибольших элементов:</a></h3>
-<p>Массив: <code>[3, 1, 5, 12, 2, 11]</code>, K = 3</p>
-<p><strong>Структура min-heap (размер K=3):</strong></p>
+<p>Поиск топ-3 наибольших в <code>[3, 1, 5, 12, 2, 11]</code>, K = 3, с min-heap:</p>
 <pre><code class="language-mermaid">graph TD
     subgraph heap["Min Heap (размер K=3)"]
         H1[5]
@@ -326,1110 +279,45 @@ func findBottomK(nums []int, k int) []int {
         H1 --&gt; H2
         H1 --&gt; H3
     end
-    
+
     style H1 fill:#bfb,stroke:#333,stroke-width:2px
     style H2 fill:#bbf,stroke:#333,stroke-width:2px
     style H3 fill:#fbb,stroke:#333,stroke-width:2px
 </code></pre>
-<p><strong>Процесс добавления элементов:</strong></p>
-<p><strong>Шаг 1-3: Заполняем кучу до размера K=3</strong></p>
-<pre><code>Элемент 3: Куча [] → Добавить → [3]
-Элемент 1: Куча [3] → Добавить → [1, 3]
-Элемент 5: Куча [1, 3] → Добавить → [1, 3, 5]
-Куча заполнена (размер = K)
+<p>Пошагово:</p>
+<pre><code>3:  []        → [3]
+1:  [3]       → [1, 3]
+5:  [1, 3]    → [1, 3, 5]      куча заполнена (размер = K)
+12: [1,3,5]   min=1, 12&gt;1 → удалить 1, вставить 12 → [3, 5, 12]
+2:  [3,5,12]  min=3, 2&lt;3 → пропустить               → [3, 5, 12]
+11: [3,5,12]  min=3, 11&gt;3 → удалить 3, вставить 11 → [5, 11, 12]
 </code></pre>
-<p><strong>Шаг 4: Добавляем 12 (больше минимума)</strong></p>
-<pre><code>Куча: [1, 3, 5]
-min = 1
-12 &gt; 1 → Удалить минимум (1), добавить 12
-Куча: [3, 5, 12]
-</code></pre>
-<p><strong>Шаг 5: Добавляем 2 (меньше минимума)</strong></p>
-<pre><code>Куча: [3, 5, 12]
-min = 3
-2 &lt; 3 → Пропустить (не добавляем)
-Куча: [3, 5, 12]
-</code></pre>
-<p><strong>Шаг 6: Добавляем 11 (больше минимума)</strong></p>
-<pre><code>Куча: [3, 5, 12]
-min = 3
-11 &gt; 3 → Удалить минимум (3), добавить 11
-Куча: [5, 11, 12]
-</code></pre>
-<p><strong>Результат:</strong> Топ-3 наибольших элемента: <strong>[5, 11, 12]</strong></p>
-<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
-<p><strong>Инвариант</strong>: После обработки i элементов, куча содержит K лучших элементов из первых i элементов.</p>
-<p><strong>Доказательство корректности</strong>:</p>
-<ol>
-<li><strong>Базовый случай</strong>: После обработки K элементов, куча содержит первые K элементов - корректно</li>
-<li><strong>Индуктивный шаг</strong>: Предположим, куча содержит K лучших из i элементов
-<ul>
-<li>Рассматриваем (i+1)-й элемент</li>
-<li>Если он лучше худшего в куче, заменяем худший</li>
-<li>Куча теперь содержит K лучших из i+1 элементов</li>
-</ul>
-</li>
-</ol>
-<p><strong>Почему сложность O(n log k)?</strong></p>
-<ul>
-<li>Обрабатываем n элементов</li>
-<li>Для каждого элемента: операции с кучей размера k = O(log k)</li>
-<li>Итого: O(n log k)</li>
-</ul>
-<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
-<ul>
-<li><strong>Временная сложность</strong>: O(n log k)
-<ul>
-<li>Обработка n элементов</li>
-<li>Операции с кучей размера k: O(log k)</li>
-<li>Итого: O(n log k)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(k)
-<ul>
-<li>Куча размера k</li>
-<li>Дополнительные структуры: O(k) для частот</li>
-</ul>
-</li>
-</ul>
-<h3 id="сравнение-с-полной-сортировкой"><a class="header" href="#сравнение-с-полной-сортировкой">Сравнение с полной сортировкой:</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Подход</th><th>Время</th><th>Память</th><th>Применимость</th></tr>
-</thead>
-<tbody>
-<tr><td>Полная сортировка</td><td>O(n log n)</td><td>O(n)</td><td>Нужны все элементы</td></tr>
-<tr><td>Куча размера K</td><td>O(n log k)</td><td>O(k)</td><td>Нужны только K лучших</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="амортизированная-сложность"><a class="header" href="#амортизированная-сложность">Амортизированная сложность</a></h3>
-<p><strong>Амортизированный анализ</strong> для поиска топ-K элементов:</p>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(log k) на элемент
-<ul>
-<li>Обработка n элементов: O(n log k)</li>
-<li>Амортизированная стоимость: O(n log k) / n = O(log k) на элемент</li>
-</ul>
-</li>
-</ul>
-<h3 id="worstaveragebest-case-анализ"><a class="header" href="#worstaveragebest-case-анализ">Worst/Average/Best Case анализ</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(n log k)</td><td>Всегда одинаковое время, так как нужно обработать все элементы</td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(n log k)</td><td>Стандартное поведение алгоритма</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(n log k)</td><td>Всегда одинаковое время</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Пространственная сложность</strong>: Всегда O(k), так как куча имеет фиксированный размер k.</p>
-<h3 id="таблица-сравнения-сложностей"><a class="header" href="#таблица-сравнения-сложностей">Таблица сравнения сложностей</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Алгоритм</th><th>Время (Worst)</th><th>Время (Average)</th><th>Время (Best)</th><th>Память</th><th>Амортизированное время</th></tr>
-</thead>
-<tbody>
-<tr><td>Куча размера K</td><td>O(n log k)</td><td>O(n log k)</td><td>O(n log k)</td><td>O(k)</td><td>O(log k) на элемент</td></tr>
-<tr><td>Полная сортировка</td><td>O(n log n)</td><td>O(n log n)</td><td>O(n log n)</td><td>O(n)</td><td>O(log n) на элемент</td></tr>
-<tr><td>QuickSelect</td><td>O(n²)</td><td>O(n)</td><td>O(n)</td><td>O(1)</td><td>O(1) на элемент*</td></tr>
-</tbody>
-</table>
-</div>
-<p>*В среднем случае</p>
-<p><strong>Выигрыш</strong>: При k &lt;&lt; n: O(n log n) → O(n log k) - значительное улучшение!</p>
-<h2 id="граничные-случаи"><a class="header" href="#граничные-случаи">Граничные случаи</a></h2>
-<p>При работе с топ-K элементами важно обрабатывать следующие граничные случаи:</p>
-<h3 id="1-пустой-массив"><a class="header" href="#1-пустой-массив">1. Пустой массив</a></h3>
-<p><strong>Проблема</strong>: Если массив пуст, топ-K элементов не может быть найден.</p>
-<p><strong>Решение</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func findTopK(nums []int, k int) []int {
-    if len(nums) == 0 || k == 0 {
-        return []int{}
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="2-k-больше-размера-массива"><a class="header" href="#2-k-больше-размера-массива">2. K больше размера массива</a></h3>
-<p><strong>Проблема</strong>: Если k &gt; n, нужно вернуть все элементы.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if k &gt;= len(nums) {
-    return nums // Вернуть все элементы
-}
-</code></pre>
-<h3 id="3-k-равен-1"><a class="header" href="#3-k-равен-1">3. K равен 1</a></h3>
-<p><strong>Проблема</strong>: Минимальный случай для топ-K.</p>
-<p><strong>Решение</strong>: Алгоритм должен найти один максимальный/минимальный элемент.</p>
-<h3 id="4-k-равен-размеру-массива"><a class="header" href="#4-k-равен-размеру-массива">4. K равен размеру массива</a></h3>
-<p><strong>Проблема</strong>: Если k == n, нужно вернуть все элементы в отсортированном порядке.</p>
-<p><strong>Решение</strong>: Можно использовать полную сортировку или алгоритм топ-K.</p>
-<h3 id="5-все-элементы-одинаковые"><a class="header" href="#5-все-элементы-одинаковые">5. Все элементы одинаковые</a></h3>
-<p><strong>Проблема</strong>: Если все элементы одинаковые, любой набор из K элементов является правильным ответом.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай.</p>
-<h3 id="6-очень-большое-k"><a class="header" href="#6-очень-большое-k">6. Очень большое K</a></h3>
-<p><strong>Проблема</strong>: Если K очень большой, использование кучи может быть неоптимальным.</p>
-<p><strong>Решение</strong>: Рассмотрите использование QuickSelect или полной сортировки:</p>
-<pre><code class="language-go">if k &gt; len(nums)/2 {
-    // Используйте QuickSelect или сортировку
-    return quickSelect(nums, k)
-}
-</code></pre>
-<h3 id="7-отрицательные-числа"><a class="header" href="#7-отрицательные-числа">7. Отрицательные числа</a></h3>
-<p><strong>Проблема</strong>: Отрицательные числа могут изменить логику сравнения.</p>
-<p><strong>Решение</strong>: Убедитесь, что куча корректно работает с отрицательными числами (обычно это не проблема).</p>
-<h3 id="8-очень-большие-значения"><a class="header" href="#8-очень-большие-значения">8. Очень большие значения</a></h3>
-<p><strong>Проблема</strong>: При очень больших значениях может произойти переполнение.</p>
-<p><strong>Решение</strong>: Используйте int64 для больших значений или проверяйте переполнение.</p>
-<h3 id="9-частотный-анализ-все-элементы-уникальны"><a class="header" href="#9-частотный-анализ-все-элементы-уникальны">9. Частотный анализ: все элементы уникальны</a></h3>
-<p><strong>Проблема</strong>: Если все элементы встречаются один раз, топ-K частых элементов - это любые K элементов.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай.</p>
-<h3 id="10-частотный-анализ-несколько-элементов-с-одинаковой-частотой"><a class="header" href="#10-частотный-анализ-несколько-элементов-с-одинаковой-частотой">10. Частотный анализ: несколько элементов с одинаковой частотой</a></h3>
-<p><strong>Проблема</strong>: Если несколько элементов имеют одинаковую частоту, нужно определить порядок.</p>
-<p><strong>Решение</strong>: Уточните требования: лексикографический порядок, порядок появления и т.д.</p>
+<p>Результат — топ-3: <strong>[5, 11, 12]</strong>.</p>
 <h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
-<li><strong>Неправильный тип кучи</strong>: Для K наибольших нужен min-heap, для K наименьших - max-heap</li>
-<li><strong>Неправильное сравнение</strong>: Сравнивайте с вершиной кучи перед добавлением</li>
-<li><strong>Забывание обновления кучи</strong>: Всегда проверяйте размер и обновляйте при необходимости</li>
+<li><strong>Неправильный тип кучи</strong> — для K наибольших нужен min-heap, для K наименьших — max-heap.</li>
+<li><strong>Сравнение не с вершиной</strong> — новый элемент сравнивайте именно с корнем кучи <code>(*h)[0]</code>.</li>
+<li><strong>Куча не ограничена по размеру</strong> — забыв вытолкнуть лишнее, получаете O(n log n) и O(n) памяти.</li>
+<li><strong>Пустой массив или <code>k = 0</code></strong> — возвращайте пустой результат до работы с кучей.</li>
+<li><strong><code>k &gt;= len(nums)</code></strong> — тогда возвращаются все элементы, отдельная обработка не нужна, но проверьте границы.</li>
+<li><strong>Большое k</strong> (<code>k &gt; n/2</code>) — куча перестаёт быть выгодной, рассмотрите QuickSelect или сортировку.</li>
 </ol>
-<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
-<ol>
-<li>Выберите правильный тип кучи в зависимости от задачи</li>
-<li>Для больших k рассмотрите QuickSelect (O(n) в среднем)</li>
-<li>Используйте правильные компараторы для сложных объектов</li>
-</ol>
-<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
-<h3 id="используемые-структуры-данных-в-top-k-elements"><a class="header" href="#используемые-структуры-данных-в-top-k-elements">Используемые структуры данных в Top K Elements</a></h3>
-<p>В шаблоне Top K Elements используются следующие структуры данных:</p>
+<h2 id="задачи"><a class="header" href="#задачи">Задачи</a></h2>
+<p><strong>LeetCode:</strong></p>
 <ul>
-<li><strong>MinHeap</strong>: Куча для хранения топ-k элементов</li>
-<li><strong>map[K]V (Go)</strong>: Для подсчета частоты (опционально)</li>
+<li><a href="https://leetcode.com/problems/kth-largest-element-in-an-array/">Kth Largest Element in an Array</a></li>
+<li><a href="https://leetcode.com/problems/top-k-frequent-elements/">Top K Frequent Elements</a></li>
+<li><a href="https://leetcode.com/problems/k-closest-points-to-origin/">K Closest Points to Origin</a></li>
+<li><a href="https://leetcode.com/problems/sort-characters-by-frequency/">Sort Characters By Frequency</a></li>
+<li><a href="https://leetcode.com/problems/merge-k-sorted-lists/">Merge k Sorted Lists</a> (сложная)</li>
+<li><a href="https://leetcode.com/problems/find-k-pairs-with-smallest-sums/">Find K Pairs with Smallest Sums</a> (сложная)</li>
 </ul>
-<h3 id="minheap--heap-go"><a class="header" href="#minheap--heap-go">MinHeap / Heap (Go)</a></h3>
-<h4 id="что-такое-heap-куча"><a class="header" href="#что-такое-heap-куча">Что такое Heap (Куча)?</a></h4>
-<p><strong>Heap (куча)</strong> — это специализированная древовидная структура данных, которая удовлетворяет свойству кучи: для max-heap родитель всегда больше или равен детям, для min-heap родитель всегда меньше или равен детям.</p>
-<p><strong>Ключевые характеристики:</strong></p>
-<ul>
-<li><strong>Полное бинарное дерево</strong>: Все уровни заполнены слева направо</li>
-<li><strong>Свойство кучи</strong>: Корень содержит максимальный (max-heap) или минимальный (min-heap) элемент</li>
-<li><strong>Эффективные операции</strong>: O(log n) для вставки и удаления, O(1) для доступа к корню</li>
-</ul>
-<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<pre><code class="language-go">type IntHeap []int
-
-func (h IntHeap) Len() int { return len(h) }
-func (h IntHeap) Less(i, j int) bool { return h[i] &lt; h[j] }  // min-heap
-func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
-</code></pre>
-<p><strong>Важные детали</strong>:</p>
-<ul>
-<li>Размер кучи ограничен k элементами</li>
-<li>Min-heap для топ-k наибольших (храним k наименьших, остальные больше)</li>
-<li>Max-heap для топ-k наименьших</li>
-<li>В Go тип кучи задаётся методом <code>Less</code>: <code>&lt;</code> даёт min-heap, <code>&gt;</code> — max-heap</li>
-<li>O(k) памяти вместо O(n)</li>
-</ul>
-<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Операция</th><th>Сложность</th><th>Объяснение</th></tr>
-</thead>
-<tbody>
-<tr><td>Push</td><td>O(log k)</td><td>Просеивание вверх</td></tr>
-<tr><td>Pop</td><td>O(log k)</td><td>Просеивание вниз</td></tr>
-<tr><td>Build heap</td><td>O(n log k)</td><td>n элементов, каждый O(log k)</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Почему Heap эффективен</strong>:</p>
-<ul>
-<li>O(n log k) вместо O(n log n) сортировки</li>
-<li>O(k) памяти вместо O(n)</li>
-<li>Оптимально для больших n и малых k</li>
-</ul>
-<h3 id="mapkv-go"><a class="header" href="#mapkv-go">map[K]V (Go)</a></h3>
-<h4 id="для-подсчета-частоты"><a class="header" href="#для-подсчета-частоты">Для подсчета частоты:</a></h4>
-<p><strong>Используется когда</strong>:</p>
-<ul>
-<li>Нужно найти топ-k частых элементов</li>
-<li>Подсчет частоты перед добавлением в кучу</li>
-</ul>
-<p><strong>Сложность</strong>:</p>
-<ul>
-<li>Подсчет частоты: O(n)</li>
-<li>Добавление в кучу: O(n log k)</li>
-<li>Итого: O(n log k)</li>
-</ul>
-<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
-одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
-см. <a href="appendix-go-memory.html">Приложение: память, GC и профилирование в Go</a>.</p>
-<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
-<h4 id="go-top-k-elements"><a class="header" href="#go-top-k-elements">Go: Top K Elements</a></h4>
-<p>В Go:</p>
-<ul>
-<li><strong>Куча</strong>: <code>container/heap</code> - O(k) в куче</li>
-<li><strong>Map для частоты</strong>: <code>map[T]int</code> - O(n) в куче</li>
-<li><strong>Результат</strong>: <code>[]T</code> - O(k) в куче</li>
-</ul>
-<h3 id="анализ-аллокаций-для-top-k-elements"><a class="header" href="#анализ-аллокаций-для-top-k-elements">Анализ аллокаций для Top K Elements</a></h3>
-<h4 id="подход-с-кучей-1"><a class="header" href="#подход-с-кучей-1">Подход с кучей:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// Аллокации:
-// - heap: IntHeap - O(k) в куче
-// - frequency: map[int]int - O(n) в куче
-// - result: []int - O(k) в куче
-// Итого: O(n) памяти в худшем случае
-</code></pre>
-<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
-<ol>
-<li><strong>Предварительное выделение кучи</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-heap := make(IntHeap, 0, k)
-</code></pre>
-<ol start="2">
-<li><strong>Предварительное выделение map</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-frequency := make(map[int]int, n)
-</code></pre>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Аспект</th><th>Go</th></tr>
-</thead>
-<tbody>
-<tr><td>Куча</td><td>container/heap в куче</td></tr>
-<tr><td>Частота</td><td>map в куче</td></tr>
-<tr><td>Память</td><td>O(n) в худшем случае</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
-<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
-<ol>
-<li><strong>Предварительное выделение структур данных</strong></li>
-<li><strong>Минимизация операций с кучей</strong></li>
-<li><strong>Эффективные операции с HashMap/map</strong></li>
-</ol>
-<h3 id="специфичные-оптимизации-для-top-k-elements"><a class="header" href="#специфичные-оптимизации-для-top-k-elements">Специфичные оптимизации для Top K Elements</a></h3>
-<h4 id="1-оптимизация-с-кучей"><a class="header" href="#1-оптимизация-с-кучей">1. Оптимизация с кучей:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированная версия
-func topKFrequentOptimized(nums []int, k int) []int {
-    frequency := make(map[int]int, len(nums))
-    for _, num := range nums {
-        frequency[num]++
-    }
-    
-    heap := make(IntHeap, 0, k)
-    for num, count := range frequency {
-        heap.Push(&amp;heap, [2]int{count, num})
-        if heap.Len() &gt; k {
-            heap.Pop(&amp;heap)
-        }
-    }
-    
-    result := make([]int, k)
-    for i := k - 1; i &gt;= 0; i-- {
-        result[i] = heap.Pop(&amp;heap).([2]int)[1]
-    }
-    return result
-}
-</code></pre>
-<ol>
-<li>
-<p><strong>Использование <code>entry</code> API</strong>:</p>
-</li>
-<li>
-<p><strong>Предварительное выделение</strong>:</p>
-</li>
-</ol>
-<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
-<ol>
-<li><strong>Предварительное выделение map</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-frequency := make(map[int]int, len(nums))
-</code></pre>
-<ol start="2">
-<li><strong>Предварительное выделение кучи</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-heap := make(IntHeap, 0, k)
-</code></pre>
-<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
-<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
-<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
-<h3 id="как-профилировать-top-k-elements"><a class="header" href="#как-профилировать-top-k-elements">Как профилировать Top K Elements</a></h3>
-<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
-<pre><code class="language-go">func BenchmarkTopK(b *testing.B) {
-    nums := make([]int, 100000)
-    for i := range nums {
-        nums[i] = i % 10000
-    }
-    
-    b.ResetTimer()
-    for i := 0; i &lt; b.N; i++ {
-        topKFrequentOptimized(nums, 100)
-    }
-}
-</code></pre>
-<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
-<p><strong>Анализ производительности</strong>:</p>
-<ul>
-<li>Top K: O(n log k) по времени</li>
-<li>O(n) памяти для HashMap/map</li>
-<li>O(k) памяти для кучи</li>
-</ul>
-<p><strong>Типичные узкие места</strong>:</p>
-<ul>
-<li>Операции с HashMap/map</li>
-<li>Операции с кучей</li>
-<li>Создание результата</li>
-</ul>
-<h2 id="отладка-и-диагностика"><a class="header" href="#отладка-и-диагностика">Отладка и диагностика</a></h2>
-<p>Отладка поиска топ-K элементов требует отслеживания состояния кучи:</p>
-<h3 id="1-логирование-операций-с-кучей"><a class="header" href="#1-логирование-операций-с-кучей">1. Логирование операций с кучей</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func findTopKDebug(nums []int, k int) []int {
-    log.Printf("Поиск топ-%d элементов из %d чисел", k, len(nums))
-    
-    minHeap := &amp;IntHeap{}
-    heap.Init(minHeap)
-    
-    for i, num := range nums {
-        log.Printf("Обработка элемента %d: val=%d, размер кучи=%d", i, num, minHeap.Len())
-        
-        if minHeap.Len() &lt; k {
-            heap.Push(minHeap, num)
-            log.Printf("Добавлено в кучу: %d, куча=%v", num, *minHeap)
-        } else if num &gt; (*minHeap)[0] {
-            oldMin := heap.Pop(minHeap).(int)
-            heap.Push(minHeap, num)
-            log.Printf("Заменено: %d -&gt; %d, куча=%v", oldMin, num, *minHeap)
-        } else {
-            log.Printf("Элемент %d меньше минимума кучи %d, пропускаем", num, (*minHeap)[0])
-        }
-    }
-    
-    result := make([]int, k)
-    for i := k - 1; i &gt;= 0; i-- {
-        result[i] = heap.Pop(minHeap).(int)
-    }
-    
-    log.Printf("Результат: %v", result)
-    return result
-}
-</code></pre>
-<h3 id="2-визуализация-кучи"><a class="header" href="#2-визуализация-кучи">2. Визуализация кучи</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func printHeap(heap *IntHeap) {
-    fmt.Println("Куча (min-heap):")
-    for i, val := range *heap {
-        level := int(math.Log2(float64(i + 1)))
-        indent := strings.Repeat("  ", level)
-        fmt.Printf("%s[%d] %d\n", indent, i, val)
-    }
-}
-</code></pre>
-<h3 id="метрики-производительности"><a class="header" href="#метрики-производительности">Метрики производительности</a></h3>
-<p>Реальные результаты бенчмарков на типичном оборудовании (Intel i7-9700K, 32GB RAM):</p>
-<h4 id="поиск-top-k-элементов-go-k10"><a class="header" href="#поиск-top-k-элементов-go-k10">Поиск Top-K элементов (Go, k=10):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер массива</th><th>Время выполнения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>100 элементов</td><td>~850 ns</td><td>160 B</td><td>~1,180,000</td></tr>
-<tr><td>1,000 элементов</td><td>~8.5 μs</td><td>160 B</td><td>~117,000</td></tr>
-<tr><td>10,000 элементов</td><td>~85 μs</td><td>160 B</td><td>~11,700</td></tr>
-<tr><td>100,000 элементов</td><td>~850 μs</td><td>160 B</td><td>~1,180</td></tr>
-<tr><td>1,000,000 элементов</td><td>~8.5 ms</td><td>160 B</td><td>~118</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Линейно-логарифмическая зависимость: O(n log k)</li>
-<li>Память константная: O(k)</li>
-<li>Эффективность: Не зависит от размера массива при фиксированном k</li>
-</ul>
-<h4 id="поиск-top-k-элементов-go-k100"><a class="header" href="#поиск-top-k-элементов-go-k100">Поиск Top-K элементов (Go, k=100):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер массива</th><th>Время выполнения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>1,000 элементов</td><td>~12 μs</td><td>1.6 KB</td><td>~83,300</td></tr>
-<tr><td>10,000 элементов</td><td>~120 μs</td><td>1.6 KB</td><td>~8,330</td></tr>
-<tr><td>100,000 элементов</td><td>~1.2 ms</td><td>1.6 KB</td><td>~833</td></tr>
-<tr><td>1,000,000 элементов</td><td>~12 ms</td><td>1.6 KB</td><td>~83</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Время зависит от k: O(n log k)</li>
-<li>Память все еще константная: O(k)</li>
-<li>Масштабируемость: Хорошая для k &lt;&lt; n</li>
-</ul>
-<h4 id="сравнение-с-полной-сортировкой-1"><a class="header" href="#сравнение-с-полной-сортировкой-1">Сравнение с полной сортировкой:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер массива</th><th>Top-K (k=10)</th><th>Полная сортировка</th><th>Ускорение</th></tr>
-</thead>
-<tbody>
-<tr><td>1,000 элементов</td><td>~8.5 μs</td><td>~12 μs</td><td><strong>1.4x</strong></td></tr>
-<tr><td>10,000 элементов</td><td>~85 μs</td><td>~150 μs</td><td><strong>1.8x</strong></td></tr>
-<tr><td>100,000 элементов</td><td>~850 μs</td><td>~1.8 ms</td><td><strong>2.1x</strong></td></tr>
-<tr><td>1,000,000 элементов</td><td>~8.5 ms</td><td>~24 ms</td><td><strong>2.8x</strong></td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Вывод</strong>: Top-K быстрее полной сортировки и использует меньше памяти (O(k) vs O(n)).</p>
-<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
-<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
-<ol>
-<li><strong>Базовые тесты</strong>: Простые массивы</li>
-<li><strong>Граничные случаи</strong>: Пустой массив, k = 1, k = n</li>
-<li><strong>Стресс-тесты</strong>: Большие массивы</li>
-</ol>
-<h3 id="примеры-тестов-для-top-k-elements"><a class="header" href="#примеры-тестов-для-top-k-elements">Примеры тестов для Top K Elements</a></h3>
-<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
-<pre><code class="language-go">func TestTopK(t *testing.T) {
-    tests := []struct {
-        name string
-        nums []int
-        k    int
-        want int
-    }{
-        {"basic", []int{1, 1, 1, 2, 2, 3}, 2, 2},
-        {"empty", []int{}, 0, 0},
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            result := topKFrequentOptimized(tt.nums, tt.k)
-            if len(result) != tt.want {
-                t.Errorf("topKFrequentOptimized() = %v, want %v", len(result), tt.want)
-            }
-        })
-    }
-}
-</code></pre>
-<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="go"><a class="header" href="#go">Go:</a></h4>
-<pre><code class="language-bash">go test -v
-go test -bench=. -benchmem
-</code></pre>
-<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
-<pre><code class="language-go">func BenchmarkTopKSizes(b *testing.B) {
-    sizes := []int{100, 1000, 10000}
-    
-    for _, size := range sizes {
-        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
-            nums := make([]int, size*10)
-            for i := range nums {
-                nums[i] = i % size
-            }
-            b.ResetTimer()
-            for i := 0; i &lt; b.N; i++ {
-                topKFrequentOptimized(nums, 10)
-            }
-        })
-    }
-}
-</code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/kth-largest-element-in-an-array/">Kth Largest Element in an Array</a> - K-й наибольший элемент</li>
-<li><a href="https://leetcode.com/problems/top-k-frequent-elements/">Top K Frequent Elements</a> - Топ K частых элементов</li>
-</ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/k-closest-points-to-origin/">K Closest Points to Origin</a> - K ближайших точек к началу</li>
-<li><a href="https://leetcode.com/problems/sort-characters-by-frequency/">Sort Characters By Frequency</a> - Сортировка символов по частоте</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/merge-k-sorted-lists/">Merge k Sorted Lists</a> - Слияние K отсортированных списков</li>
-<li><a href="https://leetcode.com/problems/find-k-pairs-with-smallest-sums/">Find K Pairs with Smallest Sums</a> - K пар с наименьшими суммами</li>
-</ul>
-<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
-<h3 id="эволюция-решения-от-наивного-к-оптимизированному"><a class="header" href="#эволюция-решения-от-наивного-к-оптимизированному">Эволюция решения: от наивного к оптимизированному</a></h3>
-<h4 id="наивный-подход-on-log-n"><a class="header" href="#наивный-подход-on-log-n">Наивный подход (O(n log n)):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ❌ Наивный подход: полная сортировка
-func findTopKNaive(nums []int, k int) []int {
-    sorted := make([]int, len(nums))
-    copy(sorted, nums)
-    sort.Sort(sort.Reverse(sort.IntSlice(sorted)))
-    return sorted[:k]
-}
-// Проблемы: O(n log n) время, O(n) память, сортирует все элементы
-</code></pre>
-<h4 id="оптимизированный-подход-on-log-k"><a class="header" href="#оптимизированный-подход-on-log-k">Оптимизированный подход (O(n log k)):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированный подход: куча размера k
-func findTopKOptimized(nums []int, k int) []int {
-    minHeap := &amp;IntHeap{}
-    heap.Init(minHeap)
-    
-    for _, num := range nums {
-        if minHeap.Len() &lt; k {
-            heap.Push(minHeap, num)
-        } else if num &gt; (*minHeap)[0] {
-            heap.Pop(minHeap)
-            heap.Push(minHeap, num)
-        }
-    }
-    
-    result := make([]int, k)
-    for i := k - 1; i &gt;= 0; i-- {
-        result[i] = heap.Pop(minHeap).(int)
-    }
-    return result
-}
-// Преимущества: O(n log k) время, O(k) память, не сортирует все элементы
-</code></pre>
-<h4 id="идиоматичный-go-код"><a class="header" href="#идиоматичный-go-код">Идиоматичный Go код:</a></h4>
-<pre><code class="language-go">// ✅ Идиоматичный Go: используем container/heap правильно
-func findTopKIdiomatic(nums []int, k int) []int {
-    if k &lt;= 0 || len(nums) == 0 {
-        return nil
-    }
-    
-    h := make(IntHeap, 0, k)
-    heap.Init(&amp;h)
-    
-    for _, num := range nums {
-        if len(h) &lt; k {
-            heap.Push(&amp;h, num)
-        } else if num &gt; h[0] {
-            heap.Pop(&amp;h)
-            heap.Push(&amp;h, num)
-        }
-    }
-    
-    // Извлекаем в отсортированном порядке
-    result := make([]int, len(h))
-    for i := len(h) - 1; i &gt;= 0; i-- {
-        result[i] = heap.Pop(&amp;h).(int)
-    }
-    return result
-}
-</code></pre>
-<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
-<pre><code class="language-go">package main
-
-import (
-	"container/heap"
-	"fmt"
-	"sort"
-	"strings"
-)
-
-// MinHeap для K наибольших элементов
-type MinHeap []int
-
-func (h MinHeap) Len() int           { return len(h) }
-func (h MinHeap) Less(i, j int) bool { return h[i] &lt; h[j] }
-func (h MinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-
-func (h *MinHeap) Push(x interface{}) {
-	*h = append(*h, x.(int))
-}
-
-func (h *MinHeap) Pop() interface{} {
-	old := *h
-	n := len(old)
-	x := old[n-1]
-	*h = old[0 : n-1]
-	return x
-}
-
-// MaxHeap для K наименьших элементов
-type MaxHeap []int
-
-func (h MaxHeap) Len() int           { return len(h) }
-func (h MaxHeap) Less(i, j int) bool { return h[i] &gt; h[j] }
-func (h MaxHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-
-func (h *MaxHeap) Push(x interface{}) {
-	*h = append(*h, x.(int))
-}
-
-func (h *MaxHeap) Pop() interface{} {
-	old := *h
-	n := len(old)
-	x := old[n-1]
-	*h = old[0 : n-1]
-	return x
-}
-
-// Пример 1: K наибольших элементов
-//
-// Задача: Найти K наибольших элементов в массиве
-// Временная сложность: O(n log k)
-// Пространственная сложность: O(k)
-func findKLargest(nums []int, k int) []int {
-	minHeap := &amp;MinHeap{}
-	heap.Init(minHeap)
-
-	for _, num := range nums {
-		if minHeap.Len() &lt; k {
-			heap.Push(minHeap, num)
-		} else if (*minHeap)[0] &lt; num {
-			heap.Pop(minHeap)
-			heap.Push(minHeap, num)
-		}
-	}
-
-	result := make([]int, minHeap.Len())
-	for i := len(result) - 1; i &gt;= 0; i-- {
-		result[i] = heap.Pop(minHeap).(int)
-	}
-	return result
-}
-
-// Пример 2: K наименьших элементов
-//
-// Задача: Найти K наименьших элементов в массиве
-// Временная сложность: O(n log k)
-// Пространственная сложность: O(k)
-func findKSmallest(nums []int, k int) []int {
-	maxHeap := &amp;MaxHeap{}
-	heap.Init(maxHeap)
-
-	for _, num := range nums {
-		if maxHeap.Len() &lt; k {
-			heap.Push(maxHeap, num)
-		} else if (*maxHeap)[0] &gt; num {
-			heap.Pop(maxHeap)
-			heap.Push(maxHeap, num)
-		}
-	}
-
-	result := make([]int, maxHeap.Len())
-	for i := len(result) - 1; i &gt;= 0; i-- {
-		result[i] = heap.Pop(maxHeap).(int)
-	}
-	return result
-}
-
-// Пример 3: K-й наибольший элемент
-//
-// Задача: Найти K-й наибольший элемент в массиве
-// Временная сложность: O(n log k)
-// Пространственная сложность: O(k)
-func findKthLargest(nums []int, k int) int {
-	minHeap := &amp;MinHeap{}
-	heap.Init(minHeap)
-
-	for _, num := range nums {
-		if minHeap.Len() &lt; k {
-			heap.Push(minHeap, num)
-		} else if (*minHeap)[0] &lt; num {
-			heap.Pop(minHeap)
-			heap.Push(minHeap, num)
-		}
-	}
-
-	return (*minHeap)[0]
-}
-
-// Пример 4: Топ K частых элементов
-//
-// Задача: Найти K наиболее частых элементов
-// Временная сложность: O(n + k log k)
-// Пространственная сложность: O(n)
-func topKFrequent(nums []int, k int) []int {
-	// Подсчитываем частоту
-	freqMap := make(map[int]int)
-	for _, num := range nums {
-		freqMap[num]++
-	}
-
-	// Создаем слайс пар (частота, число) и сортируем
-	type Pair struct {
-		freq int
-		num  int
-	}
-	pairs := make([]Pair, 0, len(freqMap))
-	for num, freq := range freqMap {
-		pairs = append(pairs, Pair{freq: freq, num: num})
-	}
-
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].freq &gt; pairs[j].freq
-	})
-
-	result := make([]int, k)
-	for i := 0; i &lt; k; i++ {
-		result[i] = pairs[i].num
-	}
-
-	return result
-}
-
-// Пример 5: K ближайших точек к началу координат
-//
-// Задача: Найти K ближайших точек к началу координат
-// Временная сложность: O(n log k)
-// Пространственная сложность: O(k)
-func kClosest(points [][]int, k int) [][]int {
-	maxHeap := make([][]int, 0, k)
-
-	for _, point := range points {
-		distance := point[0]*point[0] + point[1]*point[1]
-
-		if len(maxHeap) &lt; k {
-			maxHeap = append(maxHeap, point)
-			// Просеиваем вверх
-			i := len(maxHeap) - 1
-			for i &gt; 0 {
-				parent := (i - 1) / 2
-				parentDist := maxHeap[parent][0]*maxHeap[parent][0] + maxHeap[parent][1]*maxHeap[parent][1]
-				if distance &lt;= parentDist {
-					break
-				}
-				maxHeap[i], maxHeap[parent] = maxHeap[parent], maxHeap[i]
-				i = parent
-			}
-		} else {
-			topDist := maxHeap[0][0]*maxHeap[0][0] + maxHeap[0][1]*maxHeap[0][1]
-			if distance &lt; topDist {
-				maxHeap[0] = point
-				// Просеиваем вниз
-				i := 0
-				for {
-					largest := i
-					left := 2*i + 1
-					right := 2*i + 2
-					if left &lt; len(maxHeap) {
-						leftDist := maxHeap[left][0]*maxHeap[left][0] + maxHeap[left][1]*maxHeap[left][1]
-						topDist := maxHeap[largest][0]*maxHeap[largest][0] + maxHeap[largest][1]*maxHeap[largest][1]
-						if leftDist &gt; topDist {
-							largest = left
-						}
-					}
-					if right &lt; len(maxHeap) {
-						rightDist := maxHeap[right][0]*maxHeap[right][0] + maxHeap[right][1]*maxHeap[right][1]
-						largestDist := maxHeap[largest][0]*maxHeap[largest][0] + maxHeap[largest][1]*maxHeap[largest][1]
-						if rightDist &gt; largestDist {
-							largest = right
-						}
-					}
-					if largest == i {
-						break
-					}
-					maxHeap[i], maxHeap[largest] = maxHeap[largest], maxHeap[i]
-					i = largest
-				}
-			}
-		}
-	}
-
-	return maxHeap
-}
-
-// Пример 6: Сортировка символов по частоте
-//
-// Задача: Отсортировать символы строки по убыванию частоты
-// Временная сложность: O(n log n)
-// Пространственная сложность: O(n)
-func frequencySort(s string) string {
-	// Подсчитываем частоту
-	freqMap := make(map[rune]int)
-	for _, ch := range s {
-		freqMap[ch]++
-	}
-
-	// Создаем слайс пар (символ, частота) и сортируем
-	type Pair struct {
-		char rune
-		freq int
-	}
-	pairs := make([]Pair, 0, len(freqMap))
-	for ch, freq := range freqMap {
-		pairs = append(pairs, Pair{char: ch, freq: freq})
-	}
-
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].freq &gt; pairs[j].freq
-	})
-
-	// Строим результирующую строку
-	var result strings.Builder
-	for _, pair := range pairs {
-		result.WriteString(strings.Repeat(string(pair.char), pair.freq))
-	}
-
-	return result.String()
-}
-</code></pre>
-<h2 id="реальные-применения"><a class="header" href="#реальные-применения">Реальные применения</a></h2>
-<p>Top K Elements широко используется в production системах для поиска наиболее важных элементов:</p>
-<h3 id="1-recommendation-systems-рекомендательные-системы"><a class="header" href="#1-recommendation-systems-рекомендательные-системы">1. Recommendation Systems (Рекомендательные системы)</a></h3>
-<p><strong>Применение</strong>: Поиск топ-K наиболее релевантных элементов.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>E-commerce</strong>: Топ-K рекомендуемых товаров</li>
-<li><strong>Streaming Services</strong>: Топ-K рекомендуемых фильмов/песен</li>
-<li><strong>Social Networks</strong>: Топ-K друзей, постов</li>
-</ul>
-<p><strong>Код</strong>:</p>
-<pre><code class="language-go">// Топ-K рекомендуемых товаров
-func getTopKRecommendations(userID int, k int) []Product {
-    // Получаем все товары с оценками релевантности
-    products := getAllProducts(userID)
-    
-    // Используем min-heap для хранения топ-K
-    minHeap := &amp;ProductHeap{}
-    heap.Init(minHeap)
-    
-    for _, product := range products {
-        if minHeap.Len() &lt; k {
-            heap.Push(minHeap, product)
-        } else if product.Score &gt; (*minHeap)[0].Score {
-            heap.Pop(minHeap)
-            heap.Push(minHeap, product)
-        }
-    }
-    
-    // Извлекаем топ-K
-    result := make([]Product, k)
-    for i := k - 1; i &gt;= 0; i-- {
-        result[i] = heap.Pop(minHeap).(Product)
-    }
-    
-    return result
-}
-</code></pre>
-<h3 id="2-search-engines-поисковые-системы"><a class="header" href="#2-search-engines-поисковые-системы">2. Search Engines (Поисковые системы)</a></h3>
-<p><strong>Применение</strong>: Поиск топ-K наиболее релевантных результатов.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Google Search</strong>: Топ-K результатов поиска</li>
-<li><strong>Elasticsearch</strong>: Топ-K документов по релевантности</li>
-<li><strong>Lucene</strong>: Топ-K результатов индексации</li>
-</ul>
-<h3 id="3-monitoring-and-alerting-мониторинг-и-алертинг"><a class="header" href="#3-monitoring-and-alerting-мониторинг-и-алертинг">3. Monitoring and Alerting (Мониторинг и алертинг)</a></h3>
-<p><strong>Применение</strong>: Поиск топ-K проблемных элементов.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>System Monitoring</strong>: Топ-K серверов по нагрузке</li>
-<li><strong>Error Tracking</strong>: Топ-K ошибок по частоте</li>
-<li><strong>Performance Analysis</strong>: Топ-K медленных запросов</li>
-</ul>
-<h3 id="4-google-production-examples"><a class="header" href="#4-google-production-examples">4. Google Production Examples</a></h3>
-<p><strong>Примеры из Google</strong>:</p>
-<ul>
-<li><strong>Google Search</strong>: Топ-K результатов поиска</li>
-<li><strong>Google Ads</strong>: Топ-K объявлений по релевантности</li>
-<li><strong>YouTube</strong>: Топ-K рекомендуемых видео</li>
-<li><strong>Google Cloud</strong>: Топ-K ресурсов по использованию</li>
-</ul>
-<h3 id="5-financial-systems"><a class="header" href="#5-financial-systems">5. Financial Systems</a></h3>
-<p><strong>Применение в финансовых системах</strong>:</p>
-<ul>
-<li><strong>Trading Systems</strong>: Топ-K активов по доходности</li>
-<li><strong>Risk Management</strong>: Топ-K рисковых позиций</li>
-<li><strong>Portfolio Management</strong>: Топ-K инвестиций</li>
-</ul>
-<h3 id="6-social-networks"><a class="header" href="#6-social-networks">6. Social Networks</a></h3>
-<p><strong>Применение в социальных сетях</strong>:</p>
-<ul>
-<li><strong>Friend Recommendations</strong>: Топ-K друзей</li>
-<li><strong>Trending Topics</strong>: Топ-K трендовых тем</li>
-<li><strong>Influencer Detection</strong>: Топ-K влиятельных пользователей</li>
-</ul>
-<h3 id="7-open-source-examples"><a class="header" href="#7-open-source-examples">7. Open Source Examples</a></h3>
-<p><strong>Примеры из open-source проектов</strong>:</p>
-<ul>
-<li><strong>Elasticsearch</strong>: Топ-K результатов поиска</li>
-<li><strong>Apache Kafka</strong>: Топ-K топиков по трафику</li>
-<li><strong>Prometheus</strong>: Топ-K метрик по значениям</li>
-<li><strong>Redis</strong>: Топ-K ключей по использованию</li>
-</ul>
-<h3 id="8-database-systems"><a class="header" href="#8-database-systems">8. Database Systems</a></h3>
-<p><strong>Применение в базах данных</strong>:</p>
-<ul>
-<li><strong>Query Optimization</strong>: Топ-K запросов для оптимизации</li>
-<li><strong>Index Selection</strong>: Топ-K индексов для создания</li>
-<li><strong>Partition Management</strong>: Топ-K партиций для управления</li>
-</ul>
-<h3 id="9-system-design-applications"><a class="header" href="#9-system-design-applications">9. System Design Applications</a></h3>
-<p><strong>Применение в системном дизайне</strong>:</p>
-<ul>
-<li><strong>Load Balancing</strong>: Топ-K серверов по нагрузке</li>
-<li><strong>Resource Allocation</strong>: Топ-K ресурсов для распределения</li>
-<li><strong>Capacity Planning</strong>: Топ-K компонентов для планирования</li>
-</ul>
-<h3 id="10-machine-learning"><a class="header" href="#10-machine-learning">10. Machine Learning</a></h3>
-<p><strong>Применение в машинном обучении</strong>:</p>
-<ul>
-<li><strong>Feature Selection</strong>: Топ-K признаков</li>
-<li><strong>Model Selection</strong>: Топ-K моделей по точности</li>
-<li><strong>Hyperparameter Tuning</strong>: Топ-K гиперпараметров</li>
-</ul>
-<h2 id="упражнения"><a class="header" href="#упражнения">Упражнения</a></h2>
-<p>Практикуйтесь на задачах разной сложности для закрепления материала:</p>
-<h3 id="легкие-задачи-для-начинающих"><a class="header" href="#легкие-задачи-для-начинающих">Легкие задачи (для начинающих)</a></h3>
-<ol>
-<li>
-<p><strong>Kth Largest Element in an Array</strong> (LeetCode 215)</p>
-<ul>
-<li>Найдите k-й наибольший элемент</li>
-<li>Подсказка: Используйте min-heap размера k</li>
-<li><a href="https://leetcode.com/problems/kth-largest-element-in-an-array/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Top K Frequent Elements</strong> (LeetCode 347)</p>
-<ul>
-<li>Найдите k наиболее частых элементов</li>
-<li>Подсказка: Используйте HashMap для подсчета + min-heap для топ-k</li>
-<li><a href="https://leetcode.com/problems/top-k-frequent-elements/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>K Closest Points to Origin</strong> (LeetCode 973)</p>
-<ul>
-<li>Найдите k ближайших точек к началу координат</li>
-<li>Подсказка: Используйте max-heap размера k</li>
-<li><a href="https://leetcode.com/problems/k-closest-points-to-origin/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="средние-задачи-для-практики"><a class="header" href="#средние-задачи-для-практики">Средние задачи (для практики)</a></h3>
-<ol start="4">
-<li>
-<p><strong>Top K Frequent Words</strong> (LeetCode 692)</p>
-<ul>
-<li>Найдите k наиболее частых слов</li>
-<li>Подсказка: Используйте HashMap + min-heap с кастомным компаратором</li>
-<li><a href="https://leetcode.com/problems/top-k-frequent-words/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Reorganize String</strong> (LeetCode 767)</p>
-<ul>
-<li>Реорганизуйте строку так, чтобы одинаковые символы не были рядом</li>
-<li>Подсказка: Используйте max-heap для частот символов</li>
-<li><a href="https://leetcode.com/problems/reorganize-string/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Kth Largest Element in a Stream</strong> (LeetCode 703)</p>
-<ul>
-<li>Найдите k-й наибольший элемент в потоке данных</li>
-<li>Подсказка: Используйте min-heap размера k</li>
-<li><a href="https://leetcode.com/problems/kth-largest-element-in-a-stream/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Sort Characters By Frequency</strong> (LeetCode 451)</p>
-<ul>
-<li>Отсортируйте символы по частоте</li>
-<li>Подсказка: Используйте HashMap + max-heap</li>
-<li><a href="https://leetcode.com/problems/sort-characters-by-frequency/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="сложные-задачи-для-углубления"><a class="header" href="#сложные-задачи-для-углубления">Сложные задачи (для углубления)</a></h3>
-<ol start="8">
-<li>
-<p><strong>Merge k Sorted Lists</strong> (LeetCode 23)</p>
-<ul>
-<li>Объедините k отсортированных списков</li>
-<li>Подсказка: Используйте min-heap для хранения голов списков</li>
-<li><a href="https://leetcode.com/problems/merge-k-sorted-lists/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Find K Pairs with Smallest Sums</strong> (LeetCode 373)</p>
-<ul>
-<li>Найдите k пар с наименьшими суммами</li>
-<li>Подсказка: Используйте min-heap для отслеживания пар</li>
-<li><a href="https://leetcode.com/problems/find-k-pairs-with-smallest-sums/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Design Twitter</strong> (LeetCode 355)</p>
-<ul>
-<li>Реализуйте упрощенную версию Twitter</li>
-<li>Подсказка: Используйте кучи для получения последних твитов</li>
-<li><a href="https://leetcode.com/problems/design-twitter/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="дополнительные-задачи-для-практики"><a class="header" href="#дополнительные-задачи-для-практики">Дополнительные задачи для практики</a></h3>
-<ol start="11">
-<li>
-<p><strong>Kth Smallest Element in a Sorted Matrix</strong> (LeetCode 378)</p>
-<ul>
-<li>Найдите k-й наименьший элемент в отсортированной матрице</li>
-<li><a href="https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Top K Frequent Words</strong> (вариация с приоритетами)</p>
-<ul>
-<li>Реализуйте с учетом лексикографического порядка при равных частотах</li>
-<li>Практика: Работа с кастомными компараторами</li>
-</ul>
-</li>
-</ol>
-<h3 id="рекомендации-по-решению"><a class="header" href="#рекомендации-по-решению">Рекомендации по решению</a></h3>
-<ol>
-<li><strong>Выбирайте правильный тип кучи</strong>: Min-heap для k наибольших, max-heap для k наименьших</li>
-<li><strong>Ограничивайте размер</strong>: Поддерживайте размер кучи равным k</li>
-<li><strong>Используйте HashMap</strong>: Для подсчета частот перед использованием кучи</li>
-<li><strong>Обрабатывайте дубликаты</strong>: Учитывайте порядок при равных значениях</li>
-</ol>
 <h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><strong><a href="./two-heaps.html">Two Heaps</a></strong> - Использует две кучи для поддержания медианы</li>
-<li><strong><a href="./k-way-merge.html">K-way Merge</a></strong> - Использует кучу для слияния массивов</li>
-<li><strong><a href="./sliding-window.html">Sliding Window</a></strong> - Может комбинироваться с кучей для поиска максимума/минимума в окне</li>
-</ul>
-<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
-<p>После изучения Top K Elements рекомендуется перейти к <strong><a href="./k-way-merge.html">K-way Merge</a></strong> для изучения слияния массивов или к <strong><a href="./subsets.html">Subsets</a></strong> для изучения комбинаторных задач.</p>
-<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
-<h3 id="интерактивные-визуализаторы"><a class="header" href="#интерактивные-визуализаторы">Интерактивные визуализаторы</a></h3>
-<ul>
-<li><a href="https://visualgo.net/en/heap">VisuAlgo - Binary Heap</a> - Интерактивная визуализация работы с кучами</li>
-<li><a href="https://algorithm-visualizer.org/heap/top-k-elements">Algorithm Visualizer - Top K Elements</a> - Визуализация поиска топ-K элементов</li>
-</ul>
-<h3 id="видео-объяснения"><a class="header" href="#видео-объяснения">Видео-объяснения</a></h3>
-<ul>
-<li><a href="https://www.youtube.com/results?search_query=neetcode+top+k+elements">NeetCode - Top K Elements</a> - Подробное объяснение паттерна</li>
-<li><a href="https://www.youtube.com/results?search_query=back+to+back+swe+top+k">Back To Back SWE - Top K</a> - Разбор задач</li>
-</ul>
-<h3 id="дополнительные-материалы"><a class="header" href="#дополнительные-материалы">Дополнительные материалы</a></h3>
-<ul>
-<li><a href="https://leetcode.com/tag/heap/">Top K Elements - LeetCode Tag</a> - Коллекция задач на кучи</li>
-<li><a href="https://www.geeksforgeeks.org/heap-data-structure/">Heap Data Structure - GeeksforGeeks</a> - Подробное объяснение структуры данных кучи</li>
-<li><a href="https://en.wikipedia.org/wiki/Priority_queue">Priority Queue - Wikipedia</a> - Теория приоритетных очередей</li>
+<li><strong><a href="./two-heaps.html">Two Heaps</a></strong> — две кучи для поддержания медианы.</li>
+<li><strong><a href="./k-way-merge.html">K-way Merge</a></strong> — куча для слияния отсортированных массивов.</li>
+<li><strong><a href="./sliding-window.html">Sliding Window</a></strong> — комбинируется с кучей для максимума/минимума в окне.</li>
+<li>Для общей теории по памяти и профилированию в Go см. <a href="appendix-go-memory.html">приложение</a>.</li>
 </ul>
 
                     </main>
@@ -1467,22 +355,6 @@ func getTopKRecommendations(userID int, k int) []Product {
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
         <script>

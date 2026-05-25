@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9969779a.js";
+            window.path_to_searchindex_js = "searchindex-fe9e7241.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-da8af5e2.js"></script>
@@ -178,1222 +178,147 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="tree-dfs-обход-дерева-в-глубину"><a class="header" href="#tree-dfs-обход-дерева-в-глубину">Tree DFS (Обход дерева в глубину)</a></h1>
-<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
-<p>Шаблон <strong>Tree DFS</strong> (Depth-First Search) используется для обхода дерева в глубину, то есть до конца каждой ветви перед переходом к следующей. Алгоритм использует рекурсию или стек для отслеживания пути. Существует три основных варианта DFS: Pre-order, In-order и Post-order.</p>
-<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
-<p>DFS является одним из фундаментальных алгоритмов обхода графов и деревьев, разработанным в контексте теории графов. Для деревьев DFS особенно эффективен, так как деревья не содержат циклов, что упрощает реализацию.</p>
-<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
-<p>Ключевое наблюдение: рекурсивная природа деревьев (дерево состоит из корня и поддеревьев) естественным образом приводит к рекурсивному обходу. Порядок обработки корня относительно поддеревьев определяет тип обхода (pre/in/post-order).</p>
-<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
-<p>Используйте этот шаблон, когда:</p>
+<h2 id="теория"><a class="header" href="#теория">Теория</a></h2>
+<p><strong>Tree DFS</strong> (Depth-First Search) идёт вглубь по каждой ветви до конца, прежде чем
+вернуться и перейти к следующей. Рекурсивная природа дерева (корень + поддеревья)
+естественно ложится на рекурсию; неявный стек вызовов хранит путь от корня. Порядок
+обработки корня относительно поддеревьев задаёт три варианта обхода:</p>
 <ul>
-<li>Нужно обработать все узлы дерева</li>
-<li>Требуется найти путь от корня до листа</li>
-<li>Нужно проверить свойства дерева (симметричность, валидность BST)</li>
-<li>Задача связана с накоплением значений при обходе</li>
-<li>Требуется рекурсивное решение задачи на дереве</li>
+<li><strong>Pre-order</strong>: корень → левое → правое (копирование дерева, префиксные выражения);</li>
+<li><strong>In-order</strong>: левое → корень → правое (для BST даёт <strong>отсортированную</strong> последовательность);</li>
+<li><strong>Post-order</strong>: левое → правое → корень (удаление дерева, постфиксные выражения).</li>
 </ul>
-<h3 id="что-такое-bst-binary-search-tree"><a class="header" href="#что-такое-bst-binary-search-tree">Что такое BST (Binary Search Tree)?</a></h3>
-<p><strong>BST (бинарное дерево поиска)</strong> — это бинарное дерево, где для каждого узла выполняется следующее свойство:</p>
+<p><strong>Когда применять:</strong></p>
 <ul>
-<li>Все значения в левом поддереве <strong>меньше</strong> значения узла</li>
-<li>Все значения в правом поддереве <strong>больше</strong> значения узла</li>
-<li>Это свойство должно выполняться рекурсивно для всех узлов дерева</li>
+<li>нужно обойти все узлы или найти путь от корня до листа;</li>
+<li>проверяются свойства дерева (симметричность, валидность BST);</li>
+<li>значение узла зависит от результатов поддеревьев (сумма, высота, путь).</li>
 </ul>
-<p><strong>Пример валидного BST</strong>:</p>
-<pre><code>        5
-       / \
-      3   7
-     / \ / \
-    2  4 6  8
-
-Проверка:
-- Узел 5: левое поддерево (3,2,4) &lt; 5, правое (7,6,8) &gt; 5 ✓
-- Узел 3: левое (2) &lt; 3, правое (4) &gt; 3 ✓
-- Узел 7: левое (6) &lt; 7, правое (8) &gt; 7 ✓
-</code></pre>
-<p><strong>Пример НЕ-валидного BST</strong>:</p>
-<pre><code>        5
-       / \
-      3   2  ← Ошибка: 2 &lt; 5, но находится справа
-</code></pre>
-<p><strong>Важное свойство</strong>: In-order обход (левое → корень → правое) валидного BST дает <strong>отсортированную последовательность</strong> значений. Это используется для проверки валидности BST.</p>
-<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
-<h3 id="три-типа-обхода"><a class="header" href="#три-типа-обхода">Три типа обхода:</a></h3>
-<ol>
-<li><strong>Pre-order (Прямой обход)</strong>: Корень → Левое поддерево → Правое поддерево</li>
-<li><strong>In-order (Симметричный обход)</strong>: Левое поддерево → Корень → Правое поддерево</li>
-<li><strong>Post-order (Обратный обход)</strong>: Левое поддерево → Правое поддерево → Корень</li>
-</ol>
-<h3 id="рекурсивный-подход"><a class="header" href="#рекурсивный-подход">Рекурсивный подход:</a></h3>
-<pre><code class="language-go">// Определение узла дерева
-type TreeNode struct {
+<h2 id="алгоритм"><a class="header" href="#алгоритм">Алгоритм</a></h2>
+<p>Все три обхода отличаются только моментом записи <code>node.Val</code> относительно рекурсивных
+вызовов.</p>
+<pre><code class="language-go">type TreeNode struct {
     Val   int
     Left  *TreeNode
     Right *TreeNode
 }
 
-// Pre-order обход: Корень → Левое поддерево → Правое поддерево
+// Pre-order: корень → левое → правое
 func preorderTraversal(root *TreeNode) []int {
     result := []int{}
-    
+
     var dfs func(*TreeNode)
     dfs = func(node *TreeNode) {
-        // Шаг 1: Базовый случай - если узел равен nil, возвращаемся
-        // Это означает, что мы достигли листа или пустого поддерева
-        if node == nil {
+        if node == nil { // базовый случай
             return
         }
-        
-        // Шаг 2: Обработка текущего узла (для pre-order - сначала корень)
-        // Добавляем значение узла в результат
-        result = append(result, node.Val)
-        
-        // Шаг 3: Рекурсия - рекурсивно обрабатываем левое и правое поддеревья
-        // Для pre-order: сначала левое, потом правое
-        dfs(node.Left)   // Рекурсивный вызов для левого поддерева
-        dfs(node.Right)  // Рекурсивный вызов для правого поддерева
+        result = append(result, node.Val) // обрабатываем ДО рекурсии
+        dfs(node.Left)
+        dfs(node.Right)
     }
-    
+
     dfs(root)
     return result
 }
 
-// In-order обход: Левое поддерево → Корень → Правое поддерево
+// In-order: левое → корень → правое
 func inorderTraversal(root *TreeNode) []int {
     result := []int{}
-    
+
     var dfs func(*TreeNode)
     dfs = func(node *TreeNode) {
         if node == nil {
             return
         }
-        
-        // Для in-order: сначала обрабатываем левое поддерево
         dfs(node.Left)
-        
-        // Потом обрабатываем корень (текущий узел)
-        result = append(result, node.Val)
-        
-        // Затем обрабатываем правое поддерево
+        result = append(result, node.Val) // обрабатываем МЕЖДУ рекурсиями
         dfs(node.Right)
     }
-    
+
     dfs(root)
     return result
 }
 
-// Post-order обход: Левое поддерево → Правое поддерево → Корень
+// Post-order: левое → правое → корень
 func postorderTraversal(root *TreeNode) []int {
     result := []int{}
-    
+
     var dfs func(*TreeNode)
     dfs = func(node *TreeNode) {
         if node == nil {
             return
         }
-        
-        // Для post-order: сначала обрабатываем оба поддерева
         dfs(node.Left)
         dfs(node.Right)
-        
-        // Потом обрабатываем корень (текущий узел)
-        result = append(result, node.Val)
+        result = append(result, node.Val) // обрабатываем ПОСЛЕ рекурсии
     }
-    
+
     dfs(root)
     return result
 }
 </code></pre>
-<h3 id="итеративный-подход"><a class="header" href="#итеративный-подход">Итеративный подход:</a></h3>
-<p>Используйте стек для имитации рекурсии.</p>
-<h3 id="схема-порядка-обхода-pre--in--post"><a class="header" href="#схема-порядка-обхода-pre--in--post">Схема порядка обхода (Pre / In / Post):</a></h3>
-<pre><code class="language-mermaid">flowchart TD
-    subgraph orders [Типы обхода]
-        P[Pre-order: корень → левое → правое]
-        I[In-order: левое → корень → правое]
-        Po[Post-order: левое → правое → корень]
-    end
-    P --&gt; R1[Результат: 1,2,4,5,3,6]
-    I --&gt; R2[Результат: 4,2,5,1,3,6]
-    Po --&gt; R3[Результат: 4,5,2,6,3,1]
-</code></pre>
+<p>Для очень глубоких деревьев рекурсия рискует переполнить стек — тогда используют
+итеративный обход с явным стеком <code>[]*TreeNode</code>.</p>
+<h3 id="сложность"><a class="header" href="#сложность">Сложность</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Метрика</th><th>Значение</th></tr>
+</thead>
+<tbody>
+<tr><td>Время</td><td>O(n) — каждый узел посещается один раз</td></tr>
+<tr><td>Память</td><td>O(h), где h — высота дерева (O(log n) сбалансированное, O(n) линейное)</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
-<h3 id="структура-дерева"><a class="header" href="#структура-дерева">Структура дерева:</a></h3>
+<p>Дерево:</p>
 <pre><code>        1
        / \
       2   3
      / \   \
     4   5   6
 </code></pre>
-<h3 id="pre-order-обход-корень--левое--правое"><a class="header" href="#pre-order-обход-корень--левое--правое">Pre-order обход (Корень → Левое → Правое):</a></h3>
-<p><strong>Правило:</strong> Обрабатываем узел ДО рекурсивных вызовов</p>
-<p><strong>Шаг 1: Обрабатываем корень (1)</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-            ↑
-          Обрабатываем: 1
-          Результат: [1]
-          Рекурсия: левое поддерево (2)
+<p>Один и тот же обход, разный момент записи узла:</p>
+<pre><code>Pre-order  (корень→левое→правое):  1 → 2 → 4 → 5 → 3 → 6
+In-order   (левое→корень→правое):  4 → 2 → 5 → 1 → 6 → 3
+Post-order (левое→правое→корень):  4 → 5 → 2 → 6 → 3 → 1
 </code></pre>
-<p><strong>Шаг 2: Обрабатываем узел 2</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-                ↑
-          Обрабатываем: 2
-          Результат: [1, 2]
-          Рекурсия: левое поддерево (4)
-</code></pre>
-<p><strong>Шаг 3: Обрабатываем узел 4 (лист)</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-            ↑
-          Обрабатываем: 4
-          Результат: [1, 2, 4]
-          Возврат (нет дочерних)
-</code></pre>
-<p><strong>Шаг 4: Обрабатываем узел 5</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-                ↑
-          Обрабатываем: 5
-          Результат: [1, 2, 4, 5]
-          Возврат (нет дочерних)
-</code></pre>
-<p><strong>Шаг 5: Возврат к узлу 1, обрабатываем правое поддерево (3)</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-                    ↑
-          Обрабатываем: 3
-          Результат: [1, 2, 4, 5, 3]
-          Рекурсия: левое поддерево (6)
-</code></pre>
-<p><strong>Шаг 6: Обрабатываем узел 6</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-                    ↑
-          Обрабатываем: 6
-          Результат: [1, 2, 4, 5, 3, 6]
-          Возврат (нет дочерних)
-</code></pre>
-<p><strong>Результат:</strong> Порядок обхода: <strong>1 → 2 → 4 → 5 → 3 → 6</strong></p>
-<h3 id="in-order-обход-левое--корень--правое"><a class="header" href="#in-order-обход-левое--корень--правое">In-order обход (Левое → Корень → Правое):</a></h3>
-<p><strong>Правило:</strong> Обрабатываем узел МЕЖДУ рекурсивными вызовами (сначала левое, потом узел, потом правое)</p>
-<p><strong>Шаг 1-2: Рекурсия в левое поддерево узла 1</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-            ↑
-          Рекурсия: левое поддерево (2)
-          Рекурсия: левое поддерево (4)
-</code></pre>
-<p><strong>Шаг 3: Обрабатываем лист 4</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-            ↑
-          Обрабатываем: 4
-          Результат: [4]
-          Возврат
-</code></pre>
-<p><strong>Шаг 4: Обрабатываем узел 2</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-                ↑
-          Обрабатываем: 2
-          Результат: [4, 2]
-          Рекурсия: правое поддерево (5)
-</code></pre>
-<p><strong>Шаг 5: Обрабатываем узел 5</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-                    ↑
-          Обрабатываем: 5
-          Результат: [4, 2, 5]
-          Возврат
-</code></pre>
-<p><strong>Шаг 6: Обрабатываем корень 1</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-            ↑
-          Обрабатываем: 1
-          Результат: [4, 2, 5, 1]
-          Рекурсия: правое поддерево (3)
-</code></pre>
-<p><strong>Шаг 7-9: Обрабатываем правое поддерево</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-                    ↑
-          Рекурсия: левое поддерево (6)
-          Обрабатываем: 6 → Результат: [4, 2, 5, 1, 6]
-          Обрабатываем: 3 → Результат: [4, 2, 5, 1, 6, 3]
-</code></pre>
-<p><strong>Результат:</strong> Порядок обхода: <strong>4 → 2 → 5 → 1 → 6 → 3</strong></p>
-<h3 id="post-order-обход-левое--правое--корень"><a class="header" href="#post-order-обход-левое--правое--корень">Post-order обход (Левое → Правое → Корень):</a></h3>
-<p><strong>Правило:</strong> Обрабатываем узел ПОСЛЕ рекурсивных вызовов (сначала левое, потом правое, потом узел)</p>
-<p><strong>Процесс обхода:</strong></p>
-<pre><code>Дерево:        1
-               / \
-              2   3
-             / \   \
-            4   5   6
-
-Шаг 1-2: Рекурсия в левое поддерево (2, затем 4)
-         Обрабатываем: 4 → Результат: [4]
-
-Шаг 3-4: Рекурсия в правое поддерево узла 2 (5)
-         Обрабатываем: 5 → Результат: [4, 5]
-         Обрабатываем: 2 → Результат: [4, 5, 2]
-
-Шаг 5-6: Рекурсия в правое поддерево корня (3, затем 6)
-         Обрабатываем: 6 → Результат: [4, 5, 2, 6]
-         Обрабатываем: 3 → Результат: [4, 5, 2, 6, 3]
-
-Шаг 7: Обрабатываем корень
-       Обрабатываем: 1 → Результат: [4, 5, 2, 6, 3, 1]
-</code></pre>
-<p><strong>Результат:</strong> Порядок обхода: <strong>4 → 5 → 2 → 6 → 3 → 1</strong></p>
-<p><strong>Детальная таблица выполнения (Post-order):</strong></p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Шаг</th><th>Текущий узел</th><th>Стек вызовов</th><th>Действие</th><th>Результат</th></tr>
-</thead>
-<tbody>
-<tr><td>1</td><td>1</td><td>[dfs(1)]</td><td>Рекурсия: левое поддерево</td><td>[]</td></tr>
-<tr><td>2</td><td>2</td><td>[dfs(1), dfs(2)]</td><td>Рекурсия: левое поддерево</td><td>[]</td></tr>
-<tr><td>3</td><td>4</td><td>[dfs(1), dfs(2), dfs(4)]</td><td>Обработать 4</td><td>[4]</td></tr>
-<tr><td>4</td><td>5</td><td>[dfs(1), dfs(2), dfs(5)]</td><td>Обработать 5</td><td>[4, 5]</td></tr>
-<tr><td>5</td><td>2</td><td>[dfs(1), dfs(2)]</td><td>Обработать 2</td><td>[4, 5, 2]</td></tr>
-<tr><td>6</td><td>3</td><td>[dfs(1), dfs(3)]</td><td>Рекурсия: левое поддерево</td><td>[4, 5, 2]</td></tr>
-<tr><td>7</td><td>6</td><td>[dfs(1), dfs(3), dfs(6)]</td><td>Обработать 6</td><td>[4, 5, 2, 6]</td></tr>
-<tr><td>8</td><td>3</td><td>[dfs(1), dfs(3)]</td><td>Обработать 3</td><td>[4, 5, 2, 6, 3]</td></tr>
-<tr><td>9</td><td>1</td><td>[dfs(1)]</td><td>Обработать 1</td><td>[4, 5, 2, 6, 3, 1]</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Порядок обхода:</strong> 4 → 5 → 2 → 6 → 3 → 1</p>
-<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
-<p><strong>Инвариант</strong>: После обработки поддерева с корнем в узле v, все узлы этого поддерева обработаны в правильном порядке.</p>
-<p><strong>Доказательство корректности</strong> (индукция по высоте дерева):</p>
-<ol>
-<li><strong>Базовый случай</strong>: Лист обрабатывается корректно (нет поддеревьев)</li>
-<li><strong>Индуктивный шаг</strong>: Предположим, поддеревья обрабатываются корректно
-<ul>
-<li>Обрабатываем корень (pre-order) или после поддеревьев (post-order)</li>
-<li>Рекурсивно обрабатываем поддеревья</li>
-<li>Результат корректен по индукции</li>
-</ul>
-</li>
-</ol>
-<p><strong>Почему сложность O(n)?</strong></p>
-<p>Каждый узел посещается ровно один раз, и для каждого узла выполняется константное количество операций → O(n).</p>
-<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li>Каждый узел посещается ровно один раз</li>
-<li>Операции с узлом: O(1)</li>
-<li>Итого: O(n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(h), где h - высота дерева
-<ul>
-<li>Рекурсивный: глубина стека вызовов = высота дерева</li>
-<li>Итеративный: размер стека = высота дерева</li>
-<li>В худшем случае (линейное дерево): h = n → O(n)</li>
-<li>В лучшем случае (сбалансированное): h = log n → O(log n)</li>
-</ul>
-</li>
-</ul>
-<h3 id="амортизированная-сложность"><a class="header" href="#амортизированная-сложность">Амортизированная сложность</a></h3>
-<p><strong>Амортизированный анализ</strong> для DFS:</p>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(1) на узел
-<ul>
-<li>Каждый узел обрабатывается один раз</li>
-<li>Амортизированная стоимость: O(n) / n = O(1) на узел</li>
-</ul>
-</li>
-</ul>
-<h3 id="worstaveragebest-case-анализ"><a class="header" href="#worstaveragebest-case-анализ">Worst/Average/Best Case анализ</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Пространственная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(n)</td><td>O(log n)</td><td>Сбалансированное дерево (высота = log n)</td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(n)</td><td>O(h)</td><td>Средняя высота дерева</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(n)</td><td>O(n)</td><td>Линейное дерево (высота = n)</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="таблица-сравнения-сложностей"><a class="header" href="#таблица-сравнения-сложностей">Таблица сравнения сложностей</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Алгоритм</th><th>Время (Worst)</th><th>Время (Average)</th><th>Время (Best)</th><th>Память (Worst)</th><th>Память (Average)</th><th>Амортизированное время</th></tr>
-</thead>
-<tbody>
-<tr><td>DFS (рекурсивный)</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(h)</td><td>O(1) на узел</td></tr>
-<tr><td>DFS (итеративный)</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(h)</td><td>O(1) на узел</td></tr>
-<tr><td>BFS</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(w)</td><td>O(1) на узел</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="сравнение-типов-обхода"><a class="header" href="#сравнение-типов-обхода">Сравнение типов обхода:</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Тип</th><th>Порядок обработки</th><th>Применение</th></tr>
-</thead>
-<tbody>
-<tr><td>Pre-order</td><td>Корень → Левое → Правое</td><td>Копирование дерева, префиксные выражения</td></tr>
-<tr><td>In-order</td><td>Левое → Корень → Правое</td><td>BST: отсортированный порядок</td></tr>
-<tr><td>Post-order</td><td>Левое → Правое → Корень</td><td>Удаление дерева, постфиксные выражения</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="граничные-случаи"><a class="header" href="#граничные-случаи">Граничные случаи</a></h2>
-<p>При работе с обходом дерева в глубину (DFS) важно обрабатывать следующие граничные случаи:</p>
-<h3 id="1-пустое-дерево"><a class="header" href="#1-пустое-дерево">1. Пустое дерево</a></h3>
-<p><strong>Проблема</strong>: Если дерево пусто (root == nil), обход должен вернуть пустой результат.</p>
-<p><strong>Решение</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func preorderTraversal(root *TreeNode) []int {
-    if root == nil {
-        return []int{}
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="2-дерево-из-одного-узла"><a class="header" href="#2-дерево-из-одного-узла">2. Дерево из одного узла</a></h3>
-<p><strong>Проблема</strong>: Если дерево содержит только корневой узел, результат должен содержать один элемент.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай.</p>
-<h3 id="3-вырожденное-дерево-linked-list"><a class="header" href="#3-вырожденное-дерево-linked-list">3. Вырожденное дерево (linked list)</a></h3>
-<p><strong>Проблема</strong>: Если дерево вырождено в связанный список, рекурсивный DFS может вызвать переполнение стека.</p>
-<p><strong>Решение</strong>: Используйте итеративный подход для очень глубоких деревьев:</p>
-<pre><code class="language-go">// Итеративный подход безопаснее для глубоких деревьев
-func dfsIterative(root *TreeNode) []int {
-    // ... итеративный код со стеком
-}
-</code></pre>
-<h3 id="4-очень-глубокое-дерево"><a class="header" href="#4-очень-глубокое-дерево">4. Очень глубокое дерево</a></h3>
-<p><strong>Проблема</strong>: При очень глубоком дереве рекурсивный подход может вызвать переполнение стека.</p>
-<p><strong>Решение</strong>: Используйте итеративный подход или увеличьте размер стека:</p>
-<pre><code class="language-go">// Итеративный подход
-func dfsIterative(root *TreeNode) []int {
-    stack := []*TreeNode{root}
-    // ... код
-}
-</code></pre>
-<h3 id="5-очень-широкое-дерево"><a class="header" href="#5-очень-широкое-дерево">5. Очень широкое дерево</a></h3>
-<p><strong>Проблема</strong>: При очень широком дереве стек может стать большим, но это менее критично, чем глубина.</p>
-<p><strong>Решение</strong>: DFS требует O(h) памяти, где h - высота. Это обычно меньше, чем O(w) для BFS.</p>
-<h3 id="6-bst-валидация-все-узлы-одинаковые"><a class="header" href="#6-bst-валидация-все-узлы-одинаковые">6. BST валидация: все узлы одинаковые</a></h3>
-<p><strong>Проблема</strong>: Если все узлы имеют одинаковое значение, дерево может быть валидным BST (если определено, что одинаковые значения идут влево или вправо).</p>
-<p><strong>Решение</strong>: Уточните определение BST для одинаковых значений.</p>
-<h3 id="7-построение-дерева-пустые-массивы"><a class="header" href="#7-построение-дерева-пустые-массивы">7. Построение дерева: пустые массивы</a></h3>
-<p><strong>Проблема</strong>: Если входные массивы пусты, дерево должно быть пустым.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">func buildTree(preorder, inorder []int) *TreeNode {
-    if len(preorder) == 0 || len(inorder) == 0 {
-        return nil
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="8-построение-дерева-несовпадающие-длины"><a class="header" href="#8-построение-дерева-несовпадающие-длины">8. Построение дерева: несовпадающие длины</a></h3>
-<p><strong>Проблема</strong>: Если длины массивов не совпадают, построение невозможно.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if len(preorder) != len(inorder) {
-    return nil // или ошибка
-}
-</code></pre>
-<h3 id="9-поиск-пути-узел-не-найден"><a class="header" href="#9-поиск-пути-узел-не-найден">9. Поиск пути: узел не найден</a></h3>
-<p><strong>Проблема</strong>: Если целевой узел не найден, алгоритм должен вернуть пустой путь.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">func findPath(root *TreeNode, target int) []int {
-    // ... DFS код
-    if targetNotFound {
-        return []int{} // или nil
-    }
-}
-</code></pre>
-<h3 id="10-максимальная-сумма-пути-все-отрицательные-значения"><a class="header" href="#10-максимальная-сумма-пути-все-отрицательные-значения">10. Максимальная сумма пути: все отрицательные значения</a></h3>
-<p><strong>Проблема</strong>: Если все значения отрицательные, максимальная сумма пути может быть отрицательной.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">// Инициализация с учетом отрицательных значений
-maxSum := math.MinInt // для Go
-// или
-maxSum := root.Val // начать с корня
-</code></pre>
+<p>Трассировка post-order: спускаемся к листу 4, записываем его; затем 5; возвращаемся в 2
+и записываем его (оба ребёнка готовы); далее правое поддерево даёт 6, потом 3; в конце —
+корень 1. Так post-order всегда обрабатывает узел только после всех его потомков.</p>
 <h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
-<li><strong>Неправильный порядок обработки</strong>: Убедитесь, что обрабатываете корень в правильный момент</li>
-<li><strong>Забывание базового случая</strong>: Всегда проверяйте <code>node == None</code></li>
-<li><strong>Изменение структуры во время обхода</strong>: Избегайте модификации дерева во время обхода</li>
+<li><strong>Забыт базовый случай</strong> — без проверки <code>node == nil</code> рекурсия разыменует nil-указатель.</li>
+<li><strong>Неправильный момент записи узла</strong> — место <code>append</code> относительно <code>dfs(node.Left)</code> и
+<code>dfs(node.Right)</code> определяет тип обхода; перепутали — получили не тот порядок.</li>
+<li><strong>Переполнение стека на глубоком дереве</strong> — вырожденное в список дерево даёт глубину n;
+используйте итеративный обход со стеком.</li>
+<li><strong>Модификация дерева во время обхода</strong> — меняет структуру под рекурсией и ломает её.</li>
+<li><strong>Неверная инициализация для путей</strong> — при максимальной сумме пути с отрицательными
+значениями начинайте с <code>math.MinInt</code>, а не с 0.</li>
 </ol>
-<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
-<ol>
-<li>Используйте рекурсию для простоты, итеративный подход для больших деревьев</li>
-<li>In-order обход для BST дает отсортированную последовательность</li>
-<li>Post-order полезен когда нужно обработать дочерние узлы перед родителем</li>
-</ol>
-<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
-<h3 id="используемые-структуры-данных-в-tree-dfs"><a class="header" href="#используемые-структуры-данных-в-tree-dfs">Используемые структуры данных в Tree DFS</a></h3>
-<p>В шаблоне Tree DFS используются следующие структуры данных:</p>
+<h2 id="задачи"><a class="header" href="#задачи">Задачи</a></h2>
+<p><strong>LeetCode:</strong></p>
 <ul>
-<li><strong>TreeNode</strong>: Узлы дерева (, указатели в Go)</li>
-<li><strong>Stack (неявный)</strong>: Стек вызовов для рекурсии или слайс (стек) для итеративного подхода</li>
+<li><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/">Maximum Depth of Binary Tree</a></li>
+<li><a href="https://leetcode.com/problems/same-tree/">Same Tree</a></li>
+<li><a href="https://leetcode.com/problems/symmetric-tree/">Symmetric Tree</a></li>
+<li><a href="https://leetcode.com/problems/binary-tree-inorder-traversal/">Binary Tree Inorder Traversal</a></li>
+<li><a href="https://leetcode.com/problems/validate-binary-search-tree/">Validate Binary Search Tree</a></li>
+<li><a href="https://leetcode.com/problems/path-sum/">Path Sum</a></li>
+<li><a href="https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/">Lowest Common Ancestor of a Binary Tree</a></li>
+<li><a href="https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/">Construct Binary Tree from Preorder and Inorder Traversal</a></li>
+<li><a href="https://leetcode.com/problems/binary-tree-maximum-path-sum/">Binary Tree Maximum Path Sum</a> (сложная)</li>
+<li><a href="https://leetcode.com/problems/serialize-and-deserialize-binary-tree/">Serialize and Deserialize Binary Tree</a> (сложная)</li>
 </ul>
-<h3 id="treenode-узел-дерева"><a class="header" href="#treenode-узел-дерева">TreeNode (Узел дерева)</a></h3>
-<p><strong>Что такое бинарное дерево (Binary Tree)?</strong></p>
-<p><strong>Бинарное дерево</strong> — это иерархическая структура данных, где каждый узел имеет максимум два потомка (левый и правый). Дерево начинается с корневого узла и может быть пустым.</p>
-<p><strong>Основные характеристики</strong>:</p>
-<ul>
-<li><strong>Корневой узел</strong>: Самый верхний узел дерева</li>
-<li><strong>Листья</strong>: Узлы без потомков</li>
-<li><strong>Высота</strong>: Максимальное расстояние от корня до листа</li>
-<li><strong>Уровень</strong>: Расстояние от корня (корень на уровне 0)</li>
-</ul>
-<p><strong>Структура узла (TreeNode)</strong>:</p>
-<ul>
-<li><strong>val</strong>: Значение узла (данные)</li>
-<li><strong>left</strong>: Указатель на левого потомка (или None/nil)</li>
-<li><strong>right</strong>: Указатель на правого потомка (или None/nil)</li>
-</ul>
-<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>Узел в куче (*TreeNode)</strong>:</p>
-<pre><code>Узел дерева:
-┌─────────────────────────────────────────┐
-│ *TreeNode                                │
-│ ┌─────────────┐                         │
-│ │ Val: int    │ Значение                │
-│ │ Left: *TreeNode │ Левый потомок (nil) │
-│ │ Right: *TreeNode│ Правый потомок (nil)│
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-</code></pre>
-<p><strong>Go (указатели)</strong>:</p>
-<pre><code>Узел дерева:
-┌─────────────────────────────────────────┐
-│ *TreeNode                                │
-│ ┌─────────────┐                         │
-│ │ Val: int    │ Значение                │
-│ │ Left: *TreeNode│ Левый потомок        │
-│ │ Right: *TreeNode│ Правый потомок      │
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-</code></pre>
-<h3 id="stack-стек"><a class="header" href="#stack-стек">Stack (Стек)</a></h3>
-<h4 id="рекурсивный-подход-неявный-стек"><a class="header" href="#рекурсивный-подход-неявный-стек">Рекурсивный подход (неявный стек):</a></h4>
-<p><strong>Стек вызовов</strong>:</p>
-<ul>
-<li>Каждый рекурсивный вызов добавляет фрейм в стек</li>
-<li>Глубина стека = высота дерева</li>
-<li>O(h) памяти, где h - высота дерева</li>
-</ul>
-<p><strong>Итеративный подход (явный стек)</strong>:</p>
-<p><strong>[]T как стек</strong>:</p>
-<p><strong>Go slice как стек</strong>:</p>
-<pre><code class="language-go">stack := []*TreeNode{root}
-for len(stack) &gt; 0 {
-    node := stack[len(stack)-1]
-    stack = stack[:len(stack)-1]
-    // обработка узла
-}
-</code></pre>
-<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Операция</th><th>Сложность</th><th>Объяснение</th></tr>
-</thead>
-<tbody>
-<tr><td>Push</td><td>O(1) амортизированная</td><td>Добавление в конец</td></tr>
-<tr><td>Pop</td><td>O(1)</td><td>Удаление из конца</td></tr>
-<tr><td>Обход дерева</td><td>O(n)</td><td>Посещение всех узлов</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Почему DFS эффективен</strong>:</p>
-<ul>
-<li>Рекурсивный: простой код, неявный стек</li>
-<li>Итеративный: контроль над стеком, избежание переполнения</li>
-<li>O(n) время для обхода всех узлов</li>
-</ul>
-<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
-одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
-см. <a href="appendix-go-memory.html">Приложение: память, GC и профилирование в Go</a>.</p>
-<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
-<h4 id="go-рекурсивный-обход"><a class="header" href="#go-рекурсивный-обход">Go: Рекурсивный обход</a></h4>
-<p>В Go:</p>
-<ul>
-<li><strong>Рекурсивный подход</strong>: Стек вызовов - O(h)</li>
-<li><strong>Итеративный подход</strong>: Стек (слайс) - O(h) в куче</li>
-<li><strong>Результат</strong>: <code>[]int</code> - O(n) в куче</li>
-</ul>
-<h3 id="анализ-аллокаций-для-tree-dfs"><a class="header" href="#анализ-аллокаций-для-tree-dfs">Анализ аллокаций для Tree DFS</a></h3>
-<h4 id="рекурсивный-подход-1"><a class="header" href="#рекурсивный-подход-1">Рекурсивный подход:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// Аллокации:
-// - Стек вызовов: O(h)
-// - Результат: []int - O(n) в куче
-// Итого: O(h) для стека + O(n) для результата
-</code></pre>
-<h4 id="итеративный-подход-1"><a class="header" href="#итеративный-подход-1">Итеративный подход:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// Аллокации:
-// - Стек: []*TreeNode - O(h) в куче
-// - Результат: []int - O(n) в куче
-// Итого: O(h) + O(n) памяти
-</code></pre>
-<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
-<ol>
-<li><strong>Использование итеративного подхода</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Избегаем переполнения стека
-stack := make([]*TreeNode, 0, maxDepth)
-</code></pre>
-<ol start="2">
-<li><strong>Предварительное выделение результата</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-result := make([]int, 0, n)
-</code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Рекурсивный | O(h) стек | O(h) стек |
-| Итеративный | O(h) + O(n) | O(h) + O(n) |
-| Производительность | Предсказуемая | Может быть паузы GC |</p>
-<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
-<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
-<ol>
-<li><strong>Выбор подхода</strong>: Рекурсия для простоты, итерация для больших деревьев</li>
-<li><strong>Предварительное выделение</strong>: Для стека и результата</li>
-<li><strong>Минимизация аллокаций</strong>: Переиспользование структур</li>
-</ol>
-<h3 id="специфичные-оптимизации-для-tree-dfs"><a class="header" href="#специфичные-оптимизации-для-tree-dfs">Специфичные оптимизации для Tree DFS</a></h3>
-<h4 id="1-оптимизация-рекурсивного-подхода"><a class="header" href="#1-оптимизация-рекурсивного-подхода">1. Оптимизация рекурсивного подхода:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированная версия
-func inorderTraversalOptimized(root *TreeNode) []int {
-    result := make([]int, 0)
-    inorderHelper(root, &amp;result)
-    return result
-}
-
-func inorderHelper(node *TreeNode, result *[]int) {
-    if node == nil {
-        return
-    }
-    inorderHelper(node.Left, result)
-    *result = append(*result, node.Val)
-    inorderHelper(node.Right, result)
-}
-</code></pre>
-<ol>
-<li>
-<p><strong>Использование ссылок</strong>:</p>
-</li>
-<li>
-<p><strong>Предварительное выделение</strong>:</p>
-</li>
-</ol>
-<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
-<ol>
-<li><strong>Передача указателя на слайс</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Избегаем копирования слайса
-func inorderHelper(node *TreeNode, result *[]int)
-</code></pre>
-<ol start="2">
-<li><strong>Предварительное выделение</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-result := make([]int, 0, n)
-</code></pre>
-<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
-<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
-<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
-<h3 id="как-профилировать-tree-dfs"><a class="header" href="#как-профилировать-tree-dfs">Как профилировать Tree DFS</a></h3>
-<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
-<pre><code class="language-go">func BenchmarkInorderTraversal(b *testing.B) {
-    tree := createTestTree(1000)
-    
-    b.ResetTimer()
-    for i := 0; i &lt; b.N; i++ {
-        inorderTraversalOptimized(tree)
-    }
-}
-</code></pre>
-<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
-<p><strong>Анализ производительности</strong>:</p>
-<ul>
-<li>Рекурсивный: O(n) по времени, O(h) для стека</li>
-<li>Итеративный: O(n) по времени, O(h) + O(n) памяти</li>
-<li>Высота дерева определяет размер стека</li>
-</ul>
-<p><strong>Типичные узкие места</strong>:</p>
-<ul>
-<li>Рекурсивные вызовы (может быть переполнение стека)</li>
-<li>Операции со стеком</li>
-<li>Создание векторов для результата</li>
-</ul>
-<h2 id="отладка-и-диагностика"><a class="header" href="#отладка-и-диагностика">Отладка и диагностика</a></h2>
-<p>Отладка DFS требует отслеживания стека вызовов и пути обхода:</p>
-<h3 id="1-логирование-рекурсивных-вызовов"><a class="header" href="#1-логирование-рекурсивных-вызовов">1. Логирование рекурсивных вызовов</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func preorderTraversalDebug(root *TreeNode) []int {
-    result := []int{}
-    depth := 0
-    
-    var dfs func(*TreeNode)
-    dfs = func(node *TreeNode) {
-        if node == nil {
-            return
-        }
-        
-        depth++
-        indent := strings.Repeat("  ", depth-1)
-        log.Printf("%sВход в узел: val=%d, depth=%d", indent, node.Val, depth)
-        
-        // Pre-order: обрабатываем корень
-        result = append(result, node.Val)
-        log.Printf("%sОбработан корень: val=%d", indent, node.Val)
-        
-        // Рекурсивно обрабатываем детей
-        if node.Left != nil {
-            log.Printf("%sПереход к левому потомку", indent)
-            dfs(node.Left)
-        }
-        if node.Right != nil {
-            log.Printf("%sПереход к правому потомку", indent)
-            dfs(node.Right)
-        }
-        
-        log.Printf("%sВыход из узла: val=%d", indent, node.Val)
-        depth--
-    }
-    
-    dfs(root)
-    return result
-}
-</code></pre>
-<h3 id="2-отслеживание-пути-обхода"><a class="header" href="#2-отслеживание-пути-обхода">2. Отслеживание пути обхода</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func dfsWithPath(root *TreeNode, target int) []int {
-    path := []int{}
-    
-    var dfs func(*TreeNode) bool
-    dfs = func(node *TreeNode) bool {
-        if node == nil {
-            return false
-        }
-        
-        path = append(path, node.Val)
-        log.Printf("Текущий путь: %v", path)
-        
-        if node.Val == target {
-            log.Printf("Цель найдена!")
-            return true
-        }
-        
-        if dfs(node.Left) || dfs(node.Right) {
-            return true
-        }
-        
-        path = path[:len(path)-1] // Backtrack
-        log.Printf("Backtrack: путь=%v", path)
-        return false
-    }
-    
-    dfs(root)
-    return path
-}
-</code></pre>
-<h3 id="метрики-производительности"><a class="header" href="#метрики-производительности">Метрики производительности</a></h3>
-<p>Реальные результаты бенчмарков на типичном оборудовании (Intel i7-9700K, 32GB RAM):</p>
-<h4 id="dfs-обход-go"><a class="header" href="#dfs-обход-go">DFS обход (Go):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Количество узлов</th><th>Время выполнения</th><th>Память (стек)</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>100 узлов</td><td>~2.2 μs</td><td>400 B</td><td>~455,000</td></tr>
-<tr><td>1,000 узлов</td><td>~25 μs</td><td>4 KB</td><td>~40,000</td></tr>
-<tr><td>10,000 узлов</td><td>~280 μs</td><td>40 KB</td><td>~3,570</td></tr>
-<tr><td>100,000 узлов</td><td>~2.8 ms</td><td>400 KB</td><td>~357</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Линейная зависимость: O(n)</li>
-<li>Память зависит от высоты дерева: O(h)</li>
-<li>Эффективность: Каждый узел посещается один раз</li>
-</ul>
-<h4 id="сравнение-типов-обхода-1"><a class="header" href="#сравнение-типов-обхода-1">Сравнение типов обхода:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Количество узлов</th><th>Pre-order</th><th>In-order</th><th>Post-order</th><th>Разница</th></tr>
-</thead>
-<tbody>
-<tr><td>1,000 узлов</td><td>~25 μs</td><td>~25 μs</td><td>~25 μs</td><td>Нет</td></tr>
-<tr><td>10,000 узлов</td><td>~280 μs</td><td>~280 μs</td><td>~280 μs</td><td>Нет</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Все типы обхода имеют одинаковую производительность</li>
-<li>Разница только в порядке обработки узлов</li>
-<li>Выбор зависит от задачи, а не от производительности</li>
-</ul>
-<h4 id="итеративный-vs-рекурсивный"><a class="header" href="#итеративный-vs-рекурсивный">Итеративный vs Рекурсивный:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Количество узлов</th><th>Рекурсивный</th><th>Итеративный</th><th>Разница</th></tr>
-</thead>
-<tbody>
-<tr><td>1,000 узлов</td><td>~25 μs</td><td>~28 μs</td><td>+12%</td></tr>
-<tr><td>10,000 узлов</td><td>~280 μs</td><td>~320 μs</td><td>+14%</td></tr>
-<tr><td>100,000 узлов</td><td>~2.8 ms</td><td>~3.2 ms</td><td>+14%</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Рекурсивный подход немного быстрее</li>
-<li>Итеративный безопаснее для глубоких деревьев</li>
-<li>Выбор зависит от глубины дерева</li>
-</ul>
-<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
-<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
-<ol>
-<li><strong>Базовые тесты</strong>: Простые деревья</li>
-<li><strong>Граничные случаи</strong>: Пустое дерево, один узел, вырожденное дерево</li>
-<li><strong>Стресс-тесты</strong>: Большие деревья, глубокие деревья</li>
-</ol>
-<h3 id="примеры-тестов-для-tree-dfs"><a class="header" href="#примеры-тестов-для-tree-dfs">Примеры тестов для Tree DFS</a></h3>
-<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
-<pre><code class="language-go">func TestInorderTraversal(t *testing.T) {
-    tests := []struct {
-        name string
-        tree *TreeNode
-        want []int
-    }{
-        {"basic", createTree([]int{1, -1, 2, 3}), []int{1, 3, 2}},
-        {"empty", nil, []int{}},
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            result := inorderTraversalOptimized(tt.tree)
-            if !reflect.DeepEqual(result, tt.want) {
-                t.Errorf("inorderTraversalOptimized() = %v, want %v", result, tt.want)
-            }
-        })
-    }
-}
-</code></pre>
-<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="go"><a class="header" href="#go">Go:</a></h4>
-<pre><code class="language-bash">go test -v
-go test -bench=. -benchmem
-</code></pre>
-<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
-<pre><code class="language-go">func BenchmarkTreeDFSSizes(b *testing.B) {
-    sizes := []int{100, 1000, 10000}
-    
-    for _, size := range sizes {
-        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
-            tree := createTestTree(size)
-            b.ResetTimer()
-            for i := 0; i &lt; b.N; i++ {
-                inorderTraversalOptimized(tree)
-            }
-        })
-    }
-}
-</code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/">Maximum Depth of Binary Tree</a> - Максимальная глубина дерева</li>
-<li><a href="https://leetcode.com/problems/same-tree/">Same Tree</a> - Одинаковые деревья</li>
-<li><a href="https://leetcode.com/problems/symmetric-tree/">Symmetric Tree</a> - Симметричное дерево</li>
-</ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/validate-binary-search-tree/">Validate Binary Search Tree</a> - Валидация BST</li>
-<li><a href="https://leetcode.com/problems/path-sum/">Path Sum</a> - Сумма пути</li>
-<li><a href="https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/">Construct Binary Tree from Preorder and Inorder Traversal</a> - Построение дерева</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/binary-tree-maximum-path-sum/">Binary Tree Maximum Path Sum</a> - Максимальная сумма пути</li>
-<li><a href="https://leetcode.com/problems/serialize-and-deserialize-binary-tree/">Serialize and Deserialize Binary Tree</a> - Сериализация дерева</li>
-</ul>
-<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
-<h3 id="эволюция-решения-от-наивного-к-оптимизированному"><a class="header" href="#эволюция-решения-от-наивного-к-оптимизированному">Эволюция решения: от наивного к оптимизированному</a></h3>
-<h4 id="наивный-подход-неэффективный"><a class="header" href="#наивный-подход-неэффективный">Наивный подход (неэффективный):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ❌ Наивный подход: создаем новый слайс на каждом уровне рекурсии
-func preorderTraversalNaive(root *TreeNode) []int {
-    if root == nil {
-        return []int{}
-    }
-    
-    result := []int{root.Val}
-    left := preorderTraversalNaive(root.Left)
-    right := preorderTraversalNaive(root.Right)
-    
-    // Много аллокаций из-за конкатенации
-    result = append(result, left...)
-    result = append(result, right...)
-    
-    return result
-}
-// Проблемы: Много аллокаций, неэффективная конкатенация
-</code></pre>
-<h4 id="оптимизированный-подход"><a class="header" href="#оптимизированный-подход">Оптимизированный подход:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированный подход: передаем указатель на результат
-func preorderTraversalOptimized(root *TreeNode) []int {
-    result := []int{}
-    
-    var dfs func(*TreeNode)
-    dfs = func(node *TreeNode) {
-        if node == nil {
-            return
-        }
-        result = append(result, node.Val)
-        dfs(node.Left)
-        dfs(node.Right)
-    }
-    
-    dfs(root)
-    return result
-}
-// Преимущества: Меньше аллокаций, более эффективно
-</code></pre>
-<h4 id="идиоматичный-go-код"><a class="header" href="#идиоматичный-go-код">Идиоматичный Go код:</a></h4>
-<pre><code class="language-go">// ✅ Идиоматичный Go: предварительно выделяем память
-func preorderTraversalIdiomatic(root *TreeNode) []int {
-    if root == nil {
-        return nil
-    }
-    
-    // Оцениваем размер результата (можно улучшить с помощью подсчета узлов)
-    result := make([]int, 0, estimateSize(root))
-    
-    var dfs func(*TreeNode)
-    dfs = func(node *TreeNode) {
-        if node == nil {
-            return
-        }
-        result = append(result, node.Val)
-        dfs(node.Left)
-        dfs(node.Right)
-    }
-    
-    dfs(root)
-    return result
-}
-
-func estimateSize(root *TreeNode) int {
-    if root == nil {
-        return 0
-    }
-    return 1 + estimateSize(root.Left) + estimateSize(root.Right)
-}
-</code></pre>
-<h2 id="реальные-применения"><a class="header" href="#реальные-применения">Реальные применения</a></h2>
-<p>Tree DFS широко используется в production системах для обхода деревьев и графов в глубину:</p>
-<h3 id="1-expression-evaluation-вычисление-выражений"><a class="header" href="#1-expression-evaluation-вычисление-выражений">1. Expression Evaluation (Вычисление выражений)</a></h3>
-<p><strong>Применение</strong>: Вычисление математических выражений, представленных в виде дерева.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Compilers</strong>: Вычисление выражений в AST</li>
-<li><strong>Spreadsheets</strong>: Вычисление формул</li>
-<li><strong>Query Engines</strong>: Вычисление запросов</li>
-</ul>
-<p><strong>Код</strong>:</p>
-<pre><code class="language-go">// Вычисление выражения через DFS
-func evaluateExpression(node *ExpressionNode) int {
-    if node.isLeaf() {
-        return node.value
-    }
-    
-    left := evaluateExpression(node.left)
-    right := evaluateExpression(node.right)
-    
-    switch node.operator {
-    case '+':
-        return left + right
-    case '-':
-        return left - right
-    case '*':
-        return left * right
-    case '/':
-        return left / right
-    }
-    return 0
-}
-</code></pre>
-<h3 id="2-file-system-operations-операции-с-файловой-системой"><a class="header" href="#2-file-system-operations-операции-с-файловой-системой">2. File System Operations (Операции с файловой системой)</a></h3>
-<p><strong>Применение</strong>: Рекурсивный обход директорий.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>File Managers</strong>: Рекурсивное копирование/удаление</li>
-<li><strong>Build Systems</strong>: Обход зависимостей</li>
-<li><strong>Package Managers</strong>: Обход зависимостей пакетов</li>
-</ul>
-<h3 id="3-dependency-resolution-разрешение-зависимостей"><a class="header" href="#3-dependency-resolution-разрешение-зависимостей">3. Dependency Resolution (Разрешение зависимостей)</a></h3>
-<p><strong>Применение</strong>: Обход графа зависимостей.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Package Managers</strong>: npm, pip, maven используют DFS</li>
-<li><strong>Build Systems</strong>: Make, CMake используют DFS</li>
-<li><strong>Module Systems</strong>: ES6 modules, Python imports</li>
-</ul>
-<h3 id="4-google-production-examples"><a class="header" href="#4-google-production-examples">4. Google Production Examples</a></h3>
-<p><strong>Примеры из Google</strong>:</p>
-<ul>
-<li><strong>Google Search</strong>: Обход графа ссылок (PageRank использует DFS)</li>
-<li><strong>Google Build System</strong>: Bazel использует DFS для зависимостей</li>
-<li><strong>Google Cloud</strong>: Обход ресурсов и зависимостей</li>
-<li><strong>Android Build System</strong>: Gradle использует DFS</li>
-</ul>
-<h3 id="5-database-systems"><a class="header" href="#5-database-systems">5. Database Systems</a></h3>
-<p><strong>Применение в базах данных</strong>:</p>
-<ul>
-<li><strong>Query Execution</strong>: Выполнение запросов через DFS</li>
-<li><strong>Transaction Management</strong>: Обход зависимостей транзакций</li>
-<li><strong>Index Traversal</strong>: Обход индексов</li>
-</ul>
-<h3 id="6-compiler-design"><a class="header" href="#6-compiler-design">6. Compiler Design</a></h3>
-<p><strong>Применение в компиляторах</strong>:</p>
-<ul>
-<li><strong>AST Traversal</strong>: Обход абстрактного синтаксического дерева</li>
-<li><strong>Code Generation</strong>: Генерация кода через DFS</li>
-<li><strong>Optimization</strong>: Оптимизация кода</li>
-</ul>
-<h3 id="7-web-development"><a class="header" href="#7-web-development">7. Web Development</a></h3>
-<p><strong>Применение в веб-разработке</strong>:</p>
-<ul>
-<li><strong>React</strong>: Обход компонентов через DFS</li>
-<li><strong>Vue</strong>: Обход компонентов</li>
-<li><strong>Angular</strong>: Обход компонентов и зависимостей</li>
-</ul>
-<h3 id="8-open-source-examples"><a class="header" href="#8-open-source-examples">8. Open Source Examples</a></h3>
-<p><strong>Примеры из open-source проектов</strong>:</p>
-<ul>
-<li><strong>Git</strong>: Обход графа коммитов</li>
-<li><strong>Docker</strong>: Обход зависимостей образов</li>
-<li><strong>Kubernetes</strong>: Обход зависимостей ресурсов</li>
-<li><strong>PostgreSQL</strong>: Обход плана запроса</li>
-</ul>
-<h3 id="9-system-design-applications"><a class="header" href="#9-system-design-applications">9. System Design Applications</a></h3>
-<p><strong>Применение в системном дизайне</strong>:</p>
-<ul>
-<li><strong>Microservices</strong>: Обход зависимостей сервисов</li>
-<li><strong>Dependency Injection</strong>: Разрешение зависимостей</li>
-<li><strong>Event Processing</strong>: Обработка событий</li>
-</ul>
-<h3 id="10-game-development"><a class="header" href="#10-game-development">10. Game Development</a></h3>
-<p><strong>Применение в разработке игр</strong>:</p>
-<ul>
-<li><strong>AI</strong>: Поиск в пространстве состояний</li>
-<li><strong>Pathfinding</strong>: Поиск пути</li>
-<li><strong>Decision Trees</strong>: Принятие решений</li>
-</ul>
-<h2 id="упражнения"><a class="header" href="#упражнения">Упражнения</a></h2>
-<p>Практикуйтесь на задачах разной сложности для закрепления материала:</p>
-<h3 id="легкие-задачи-для-начинающих"><a class="header" href="#легкие-задачи-для-начинающих">Легкие задачи (для начинающих)</a></h3>
-<ol>
-<li>
-<p><strong>Binary Tree Inorder Traversal</strong> (LeetCode 94)</p>
-<ul>
-<li>Верните значения узлов в порядке in-order</li>
-<li>Подсказка: Используйте рекурсивный или итеративный DFS</li>
-<li><a href="https://leetcode.com/problems/binary-tree-inorder-traversal/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Maximum Depth of Binary Tree</strong> (LeetCode 104)</p>
-<ul>
-<li>Найдите максимальную глубину дерева</li>
-<li>Подсказка: Используйте рекурсивный DFS, возвращая максимальную глубину поддеревьев</li>
-<li><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Same Tree</strong> (LeetCode 100)</p>
-<ul>
-<li>Определите, являются ли два дерева одинаковыми</li>
-<li>Подсказка: Используйте DFS для сравнения узлов</li>
-<li><a href="https://leetcode.com/problems/same-tree/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="средние-задачи-для-практики"><a class="header" href="#средние-задачи-для-практики">Средние задачи (для практики)</a></h3>
-<ol start="4">
-<li>
-<p><strong>Validate Binary Search Tree</strong> (LeetCode 98)</p>
-<ul>
-<li>Определите, является ли дерево валидным BST</li>
-<li>Подсказка: Используйте DFS с передачей диапазона значений</li>
-<li><a href="https://leetcode.com/problems/validate-binary-search-tree/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Path Sum</strong> (LeetCode 112)</p>
-<ul>
-<li>Определите, есть ли путь с суммой равной target</li>
-<li>Подсказка: Используйте DFS с отслеживанием текущей суммы</li>
-<li><a href="https://leetcode.com/problems/path-sum/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Construct Binary Tree from Preorder and Inorder Traversal</strong> (LeetCode 105)</p>
-<ul>
-<li>Постройте дерево из preorder и inorder обходов</li>
-<li>Подсказка: Используйте рекурсивный DFS с разделением массивов</li>
-<li><a href="https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Lowest Common Ancestor of a Binary Tree</strong> (LeetCode 236)</p>
-<ul>
-<li>Найдите наименьшего общего предка двух узлов</li>
-<li>Подсказка: Используйте DFS для поиска обоих узлов</li>
-<li><a href="https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="сложные-задачи-для-углубления"><a class="header" href="#сложные-задачи-для-углубления">Сложные задачи (для углубления)</a></h3>
-<ol start="8">
-<li>
-<p><strong>Binary Tree Maximum Path Sum</strong> (LeetCode 124)</p>
-<ul>
-<li>Найдите максимальную сумму пути в дереве</li>
-<li>Подсказка: Используйте DFS, возвращая максимальную сумму пути через узел</li>
-<li><a href="https://leetcode.com/problems/binary-tree-maximum-path-sum/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Serialize and Deserialize Binary Tree</strong> (LeetCode 297)</p>
-<ul>
-<li>Сериализуйте и десериализуйте дерево</li>
-<li>Подсказка: Используйте pre-order DFS для сериализации</li>
-<li><a href="https://leetcode.com/problems/serialize-and-deserialize-binary-tree/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Binary Tree Postorder Traversal</strong> (LeetCode 145)</p>
-<ul>
-<li>Верните значения узлов в порядке post-order</li>
-<li>Подсказка: Используйте рекурсивный или итеративный подход</li>
-<li><a href="https://leetcode.com/problems/binary-tree-postorder-traversal/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="дополнительные-задачи-для-практики"><a class="header" href="#дополнительные-задачи-для-практики">Дополнительные задачи для практики</a></h3>
-<ol start="11">
-<li>
-<p><strong>Sum Root to Leaf Numbers</strong> (LeetCode 129)</p>
-<ul>
-<li>Найдите сумму всех чисел от корня до листьев</li>
-<li><a href="https://leetcode.com/problems/sum-root-to-leaf-numbers/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Flatten Binary Tree to Linked List</strong> (LeetCode 114)</p>
-<ul>
-<li>Разверните дерево в связанный список</li>
-<li><a href="https://leetcode.com/problems/flatten-binary-tree-to-linked-list/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="рекомендации-по-решению"><a class="header" href="#рекомендации-по-решению">Рекомендации по решению</a></h3>
-<ol>
-<li><strong>Выбирайте правильный порядок</strong>: Pre-order, In-order или Post-order в зависимости от задачи</li>
-<li><strong>Используйте рекурсию</strong>: Для простоты, но будьте осторожны с глубокими деревьями</li>
-<li><strong>Передавайте состояние</strong>: Используйте параметры для передачи информации вниз по дереву</li>
-<li><strong>Возвращайте значения</strong>: Используйте возвращаемые значения для передачи информации вверх</li>
-</ol>
 <h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><strong><a href="./tree-bfs.html">Tree BFS</a></strong> - Альтернативный подход для обхода деревьев в ширину</li>
-<li><strong><a href="./subsets.html">Subsets</a></strong> - Использует похожий рекурсивный подход с backtracking</li>
-<li><strong><a href="./topological-sort.html">Topological Sort</a></strong> - Использует DFS для работы с графами</li>
-</ul>
-<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
-<p>После изучения Tree DFS рекомендуется перейти к <strong><a href="./two-heaps.html">Two Heaps</a></strong> для изучения продвинутых структур данных или к <strong><a href="./subsets.html">Subsets</a></strong> для изучения комбинаторных задач.</p>
-<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
-<h3 id="интерактивные-визуализаторы"><a class="header" href="#интерактивные-визуализаторы">Интерактивные визуализаторы</a></h3>
-<ul>
-<li><a href="https://visualgo.net/en/dfsbfs">VisuAlgo - DFS</a> - Интерактивная визуализация обхода в глубину</li>
-<li><a href="https://algorithm-visualizer.org/depth-first-search/dfs">Algorithm Visualizer - DFS</a> - Визуализация работы алгоритма</li>
-<li><a href="https://www.cs.usfca.edu/~galles/visualization/DFS.html">USFCA Algorithm Visualization - DFS</a> - Анимация DFS</li>
-</ul>
-<h3 id="видео-объяснения"><a class="header" href="#видео-объяснения">Видео-объяснения</a></h3>
-<ul>
-<li><a href="https://www.youtube.com/results?search_query=neetcode+tree+dfs">NeetCode - Tree DFS</a> - Подробное объяснение паттерна</li>
-<li><a href="https://www.youtube.com/results?search_query=back+to+back+swe+dfs">Back To Back SWE - DFS</a> - Разбор задач</li>
-</ul>
-<h3 id="дополнительные-материалы"><a class="header" href="#дополнительные-материалы">Дополнительные материалы</a></h3>
-<ul>
-<li><a href="https://leetcode.com/tag/tree/">Binary Tree Traversal - LeetCode Tag</a> - Коллекция задач на деревья</li>
-<li><a href="https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/">Depth-First Search - GeeksforGeeks</a> - Подробное объяснение алгоритма DFS</li>
-<li><a href="https://en.wikipedia.org/wiki/Tree_traversal">Tree Traversal - Wikipedia</a> - Теория обхода деревьев (Pre-order, In-order, Post-order)</li>
+<li><strong><a href="tree-bfs.html">Tree BFS</a></strong> — обход по уровням; память O(w) вместо O(h), нужен для
+задач на уровни и кратчайший путь.</li>
+<li><strong><a href="subsets.html">Subsets</a></strong> — тот же рекурсивный каркас с backtracking.</li>
+<li><strong><a href="topological-sort.html">Topological Sort</a></strong> — DFS по графу с post-order порядком.</li>
+<li>По работе со стеком, памятью и профилированию в Go см. <a href="appendix-go-memory.html">приложение</a>.</li>
 </ul>
 
                     </main>
@@ -1431,22 +356,6 @@ func evaluateExpression(node *ExpressionNode) int {
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
         <script>

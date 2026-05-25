@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9969779a.js";
+            window.path_to_searchindex_js = "searchindex-fe9e7241.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-da8af5e2.js"></script>
@@ -178,31 +178,22 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="bit-manipulation-битовые-операции"><a class="header" href="#bit-manipulation-битовые-операции">Bit Manipulation (Битовые операции)</a></h1>
-<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
-<p>Шаблон <strong>Bit Manipulation</strong> использует побитовые операции (AND, OR, XOR, сдвиги) для решения задач с минимальным использованием памяти. Многие задачи на собеседованиях требуют знания свойств битовых операций, особенно XOR, для поиска единственного элемента или работы с флагами.</p>
-<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
-<p>Битовые операции — фундамент машинной арифметики и системного программирования. В контексте алгоритмов они позволяют достичь O(1) дополнительной памяти и часто упрощают логику для задач с множествами, флагами и целыми числами.</p>
-<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
-<p>Ключевое наблюдение: XOR обладает свойством «самообнуления» — <code>a ^ a = 0</code> и <code>a ^ 0 = a</code>. Это позволяет находить единственный элемент среди пар, обменивать значения без временной переменной и работать с масками битов.</p>
-<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
-<p>Используйте этот шаблон, когда:</p>
+<h2 id="теория"><a class="header" href="#теория">Теория</a></h2>
+<p><strong>Bit Manipulation</strong> использует побитовые операции (AND, OR, XOR, сдвиги) для
+решения задач с минимальной памятью. Ключевое свойство — «самообнуление» XOR:
+<code>a ^ a = 0</code> и <code>a ^ 0 = a</code>. Это позволяет находить единственный элемент среди пар,
+работать с флагами и масками битов за <strong>O(1)</strong> дополнительной памяти.</p>
+<p><strong>Когда применять:</strong></p>
 <ul>
-<li>Нужно найти единственный элемент среди пар (каждый элемент встречается дважды, кроме одного)</li>
-<li>Требуется проверить или манипулировать отдельными битами числа</li>
-<li>Задача связана с множествами флагов (включено/выключено)</li>
-<li>Нужна оптимизация памяти до O(1)</li>
-<li>Задача упоминает «числа», «биты», «чётность», «степень двойки»</li>
+<li>нужно найти единственный элемент среди пар;</li>
+<li>проверить или изменить отдельные биты числа;</li>
+<li>работать с множеством флагов (включено/выключено);</li>
+<li>задача упоминает «биты», «чётность», «степень двойки», требует O(1) памяти.</li>
 </ul>
-<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
-<h3 id="двоичное-представление"><a class="header" href="#двоичное-представление">Двоичное представление</a></h3>
-<p>Целое число в памяти хранится в двоичном виде — последовательностью битов (0 или 1). Позиция бита нумеруется справа налево (младший бит — позиция 0).</p>
-<p><strong>Пример:</strong> число 5 в двоичной системе:</p>
-<pre><code>5 = 4 + 1 = 2² + 2⁰
-Двоично: 0101 (или 101)
-Позиции: 3 2 1 0
-Биты:    0 1 0 1  →  бит на позиции 0 и 2 установлены
-</code></pre>
-<p>Число 8 = 2³: <code>1000</code> — один установленный бит (степень двойки). Побитовые операции применяются к соответствующим битам двух чисел.</p>
+<h2 id="алгоритм"><a class="header" href="#алгоритм">Алгоритм</a></h2>
+<p>Целое число хранится как последовательность битов; позиции нумеруются справа
+налево с нуля. Например, <code>5 = 0101</code> — биты на позициях 0 и 2 установлены,
+<code>8 = 1000</code> — один бит (степень двойки).</p>
 <h3 id="базовые-операторы"><a class="header" href="#базовые-операторы">Базовые операторы</a></h3>
 <div class="table-wrapper">
 <table>
@@ -213,7 +204,7 @@
 <tr><td>AND</td><td><code>&amp;</code></td><td>1 только если оба бита 1</td></tr>
 <tr><td>OR</td><td><code>|</code></td><td>1 если хотя бы один бит 1</td></tr>
 <tr><td>XOR</td><td><code>^</code></td><td>1 если биты разные</td></tr>
-<tr><td>NOT</td><td><code>^x</code> (унарный в Go)</td><td>Побитовое дополнение всех битов (для <code>int</code>, <code>uint</code> и др.; у знаковых типов — по правилам дополнения до двух)</td></tr>
+<tr><td>NOT</td><td><code>^x</code> (унарный в Go)</td><td>Побитовое дополнение всех битов</td></tr>
 <tr><td>Сдвиг влево</td><td><code>&lt;&lt;</code></td><td>Умножение на 2^n</td></tr>
 <tr><td>Сдвиг вправо</td><td><code>&gt;&gt;</code></td><td>Целочисленное деление на 2^n</td></tr>
 </tbody>
@@ -221,56 +212,42 @@
 </div>
 <h3 id="свойства-xor"><a class="header" href="#свойства-xor">Свойства XOR</a></h3>
 <ul>
-<li><code>a ^ a = 0</code> — одинаковые значения обнуляются</li>
-<li><code>a ^ 0 = a</code> — нейтральный элемент</li>
-<li><code>a ^ b ^ a = b</code> — коммутативность и ассоциативность</li>
-<li>Обмен значениями в Go: идиоматично <code>a, b = b, a</code>. Трюк XOR — три последовательных шага (одной строкой с параллельным присваиванием <strong>нельзя</strong> — получится неверный результат): <code>a ^= b; b ^= a; a ^= b</code></li>
+<li><code>a ^ a = 0</code> — одинаковые значения обнуляются;</li>
+<li><code>a ^ 0 = a</code> — нейтральный элемент;</li>
+<li><code>a ^ b ^ a = b</code> — коммутативность и ассоциативность.</li>
 </ul>
-<h3 id="схема-свойств-xor"><a class="header" href="#схема-свойств-xor">Схема свойств XOR:</a></h3>
-<pre><code class="language-mermaid">flowchart LR
-    A["a ^ a = 0"] --&gt; B[Пары обнуляются]
-    C["a ^ 0 = a"] --&gt; D[Единственный остаётся]
-    B --&gt; E[Single Number]
-    D --&gt; E
-</code></pre>
-<h3 id="шаблон-поиск-единственного-числа-xor"><a class="header" href="#шаблон-поиск-единственного-числа-xor">Шаблон: поиск единственного числа (XOR)</a></h3>
-<pre><code class="language-go">// Single Number: единственный элемент встречается 1 раз, остальные — по 2 раза
+<p><strong>Поиск единственного числа.</strong> XOR всех элементов: пары обнуляются, остаётся
+непарный элемент.</p>
+<pre><code class="language-go">// Single Number: один элемент встречается 1 раз, остальные — по 2 раза
 func singleNumber(nums []int) int {
     result := 0
     for _, num := range nums {
-        result ^= num  // Пары обнуляются, остаётся единственный
+        result ^= num // пары обнуляются, остаётся единственный
     }
     return result
 }
 </code></pre>
-<h3 id="схема-single-number"><a class="header" href="#схема-single-number">Схема Single Number:</a></h3>
-<pre><code class="language-mermaid">flowchart TD
-    A[result = 0] --&gt; B{Есть элемент?}
-    B --&gt;|Нет| C[Вернуть result]
-    B --&gt;|Да| D[result ^= num]
-    D --&gt; B
-</code></pre>
-<h3 id="шаблон-проверка-степени-двойки"><a class="header" href="#шаблон-проверка-степени-двойки">Шаблон: проверка степени двойки</a></h3>
-<pre><code class="language-go">// Число является степенью двойки ⟺ имеет ровно один установленный бит
-// n &amp; (n-1) обнуляет младший единичный бит
-func isPowerOfTwo(n int) bool {
+<p><strong>Проверка степени двойки.</strong> У степени двойки ровно один установленный бит, а
+<code>n &amp; (n-1)</code> обнуляет младший единичный бит.</p>
+<pre><code class="language-go">func isPowerOfTwo(n int) bool {
     if n &lt;= 0 {
         return false
     }
     return n&amp;(n-1) == 0
 }
 </code></pre>
-<h3 id="шаблон-подсчёт-единичных-битов-brian-kernighan"><a class="header" href="#шаблон-подсчёт-единичных-битов-brian-kernighan">Шаблон: подсчёт единичных битов (Brian Kernighan)</a></h3>
+<p><strong>Подсчёт единичных битов (Brian Kernighan).</strong> Каждая итерация удаляет младший
+установленный бит, поэтому число итераций равно числу единиц.</p>
 <pre><code class="language-go">func hammingWeight(n uint32) int {
     count := 0
     for n != 0 {
-        n &amp;= n - 1  // Удаляем младший установленный бит
+        n &amp;= n - 1 // удаляем младший установленный бит
         count++
     }
     return count
 }
 </code></pre>
-<h3 id="манипуляции-с-отдельными-битами"><a class="header" href="#манипуляции-с-отдельными-битами">Манипуляции с отдельными битами:</a></h3>
+<h3 id="манипуляции-с-отдельными-битами"><a class="header" href="#манипуляции-с-отдельными-битами">Манипуляции с отдельными битами</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -282,57 +259,11 @@ func isPowerOfTwo(n int) bool {
 <tr><td>Сбросить i-й бит</td><td><code>n &amp;^ (1 &lt;&lt; i)</code></td><td>Выключить бит (AND NOT)</td></tr>
 <tr><td>Переключить i-й бит</td><td><code>n ^ (1 &lt;&lt; i)</code></td><td>XOR с маской</td></tr>
 <tr><td>Изолировать младший 1</td><td><code>n &amp; (-n)</code></td><td>Получить младший установленный бит</td></tr>
-<tr><td>Сбросить младший 1</td><td><code>n &amp; (n-1)</code></td><td>Удалить младший бит (Brian Kernighan)</td></tr>
+<tr><td>Сбросить младший 1</td><td><code>n &amp; (n-1)</code></td><td>Удалить младший бит</td></tr>
 </tbody>
 </table>
 </div>
-<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
-<h3 id="xor-для-single-number-4-1-2-1-2"><a class="header" href="#xor-для-single-number-4-1-2-1-2">XOR для Single Number [4, 1, 2, 1, 2]:</a></h3>
-<pre><code>nums: [4, 1, 2, 1, 2]
-result = 0
-
-result ^= 4  →  0 ^ 4 = 4     (binary: 0100)
-result ^= 1  →  4 ^ 1 = 5     (0100 ^ 0001 = 0101)
-result ^= 2  →  5 ^ 2 = 7     (0101 ^ 0010 = 0111)
-result ^= 1  →  7 ^ 1 = 6     (0111 ^ 0001 = 0110)
-result ^= 2  →  6 ^ 2 = 4     (0110 ^ 0010 = 0100)
-
-Пары (1,1) и (2,2) обнулились. Осталось 4.
-</code></pre>
-<h3 id="n--n-1-для-степени-двойки"><a class="header" href="#n--n-1-для-степени-двойки">n &amp; (n-1) для степени двойки:</a></h3>
-<pre><code>n = 8:  1000
-n-1=7:  0111
-8 &amp; 7 = 0000  →  степень двойки ✓
-
-n = 6:  0110
-n-1=5:  0101
-6 &amp; 5 = 0100  →  не степень двойки
-</code></pre>
-<h3 id="trace-hamming-weight-brian-kernighan-для-n11-1011"><a class="header" href="#trace-hamming-weight-brian-kernighan-для-n11-1011">Trace: Hamming Weight (Brian Kernighan) для n=11 (1011):</a></h3>
-<pre><code>n = 11 (binary: 1011)
-count = 0
-
-Итерация 1:
-  n &amp; (n-1) = 1011 &amp; 1010 = 1010
-  n = 1010, count = 1
-
-Итерация 2:
-  n &amp; (n-1) = 1010 &amp; 1001 = 1000
-  n = 1000, count = 2
-
-Итерация 3:
-  n &amp; (n-1) = 1000 &amp; 0111 = 0000
-  n = 0, count = 3
-
-Результат: 3 единичных бита
-</code></pre>
-<p>Каждая итерация удаляет ровно один младший установленный бит, поэтому число итераций = число единичных битов.</p>
-<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
-<h3 id="почему-xor-находит-единственный-элемент"><a class="header" href="#почему-xor-находит-единственный-элемент">Почему XOR находит единственный элемент?</a></h3>
-<p>XOR ассоциативен и коммутативен. При XOR всех элементов пары вида <code>(a, a)</code> дают 0. Единственный элемент без пары «не обнуляется» и остаётся в результате.</p>
-<h3 id="почему-n--n-1-проверяет-степень-двойки"><a class="header" href="#почему-n--n-1-проверяет-степень-двойки">Почему n &amp; (n-1) проверяет степень двойки?</a></h3>
-<p>Степень двойки имеет вид <code>1000...0</code> (один бит). Число <code>n-1</code> имеет вид <code>0111...1</code> (все младшие биты 1). Их AND всегда 0. Для любого другого числа найдётся хотя бы один общий установленный бит.</p>
-<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
+<h3 id="сложность"><a class="header" href="#сложность">Сложность</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -341,39 +272,64 @@ count = 0
 <tbody>
 <tr><td>Single Number (XOR)</td><td>O(n)</td><td>O(1)</td></tr>
 <tr><td>Power of Two</td><td>O(1)</td><td>O(1)</td></tr>
-<tr><td>Hamming Weight</td><td>O(k), k = кол-во единичных битов</td><td>O(1)</td></tr>
+<tr><td>Hamming Weight</td><td>O(k), k — число единичных битов</td><td>O(1)</td></tr>
 <tr><td>Проверка/установка бита</td><td>O(1)</td><td>O(1)</td></tr>
 </tbody>
 </table>
 </div>
-<h2 id="граничные-случаи"><a class="header" href="#граничные-случаи">Граничные случаи</a></h2>
-<h3 id="1-отрицательные-числа"><a class="header" href="#1-отрицательные-числа">1. Отрицательные числа</a></h3>
-<p>В Go побитовые операции для <code>int</code> работают с представлением в дополнительном коде. Для беззнаковой логики используйте <code>uint</code> или <code>uint32</code>.</p>
-<h3 id="2-переполнение-при-сдвиге"><a class="header" href="#2-переполнение-при-сдвиге">2. Переполнение при сдвиге</a></h3>
-<p>Сдвиг влево на количество битов &gt;= размера типа — неопределённое поведение в некоторых языках. В Go сдвиг ограничен: для <code>uint</code> сдвиг на <code>&gt;= 64</code> даёт 0.</p>
-<h3 id="3-single-number-при-пустом-массиве"><a class="header" href="#3-single-number-при-пустом-массиве">3. Single Number при пустом массиве</a></h3>
-<p>Если массив пуст, «единственного» элемента нет. Возвращайте 0 или специальное значение по соглашению.</p>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<pre><code class="language-mermaid">flowchart LR
+    A["a ^ a = 0"] --&gt; B[Пары обнуляются]
+    C["a ^ 0 = a"] --&gt; D[Единственный остаётся]
+    B --&gt; E[Single Number]
+    D --&gt; E
+</code></pre>
+<p>XOR для Single Number <code>[4, 1, 2, 1, 2]</code>:</p>
+<pre><code>result = 0
+result ^= 4  →  0 ^ 4 = 4   (0100)
+result ^= 1  →  4 ^ 1 = 5   (0100 ^ 0001 = 0101)
+result ^= 2  →  5 ^ 2 = 7   (0101 ^ 0010 = 0111)
+result ^= 1  →  7 ^ 1 = 6   (0111 ^ 0001 = 0110)
+result ^= 2  →  6 ^ 2 = 4   (0110 ^ 0010 = 0100)
+
+Пары (1,1) и (2,2) обнулились. Осталось 4.
+</code></pre>
+<p>Проверка степени двойки через <code>n &amp; (n-1)</code>:</p>
+<pre><code>n = 8:  1000      n = 6:  0110
+n-1=7:  0111      n-1=5:  0101
+8 &amp; 7 = 0000 ✓    6 &amp; 5 = 0100 ✗
+</code></pre>
 <h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
-<li><strong>Путаница <code>^</code> и <code>**</code></strong>: В Go <code>^</code> — XOR, не возведение в степень.</li>
-<li><strong>Приоритет операций</strong>: <code>n &amp; n-1</code> требует скобок: <code>n &amp; (n-1)</code>.</li>
-<li><strong>Сдвиг отрицательных</strong>: Результат сдвига вправо отрицательных <code>int</code> зависит от реализации (арифметический vs логический).</li>
+<li><strong>Путаница <code>^</code> и возведения в степень</strong>: в Go <code>^</code> — это XOR, а не степень.</li>
+<li><strong>Приоритет операций</strong>: <code>n &amp; n-1</code> требует скобок — пишите <code>n &amp; (n-1)</code>.</li>
+<li><strong>Сдвиг отрицательных</strong>: сдвиг вправо знакового <code>int</code> арифметический (сохраняет
+знак); для битовых масок используйте <code>uint</code>/<code>uint32</code>.</li>
+<li><strong>Отрицательные числа</strong>: побитовые операции над <code>int</code> работают в дополнительном
+коде — для беззнаковой логики берите <code>uint</code>.</li>
+<li><strong>Пустой массив в Single Number</strong>: непарного элемента нет, XOR вернёт 0 — обработайте
+по соглашению.</li>
 </ol>
+<h2 id="задачи"><a class="header" href="#задачи">Задачи</a></h2>
+<p><strong>LeetCode:</strong></p>
+<ul>
+<li><a href="https://leetcode.com/problems/single-number/">Single Number</a> (136)</li>
+<li><a href="https://leetcode.com/problems/single-number-ii/">Single Number II</a> (137)</li>
+<li><a href="https://leetcode.com/problems/single-number-iii/">Single Number III</a> (260)</li>
+<li><a href="https://leetcode.com/problems/number-of-1-bits/">Number of 1 Bits</a> (191)</li>
+<li><a href="https://leetcode.com/problems/power-of-two/">Power of Two</a> (231)</li>
+<li><a href="https://leetcode.com/problems/hamming-distance/">Hamming Distance</a> (461)</li>
+<li><a href="https://leetcode.com/problems/missing-number/">Missing Number</a> (268) — XOR-решение</li>
+<li><a href="https://leetcode.com/problems/reverse-bits/">Reverse Bits</a> (190)</li>
+</ul>
 <h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><strong><a href="modified-binary-search.html">Modified Binary Search</a></strong> — бинарный поиск по битам (bit position).</li>
-<li><strong><a href="cyclic-sort.html">Cyclic Sort</a></strong> — альтернатива для поиска отсутствующего числа (O(n) по времени, но модифицирует массив).</li>
-</ul>
-<h2 id="задачи-для-практики"><a class="header" href="#задачи-для-практики">Задачи для практики</a></h2>
-<ul>
-<li><a href="https://leetcode.com/problems/single-number/">Single Number</a> (LeetCode 136)</li>
-<li><a href="https://leetcode.com/problems/single-number-ii/">Single Number II</a> (LeetCode 137)</li>
-<li><a href="https://leetcode.com/problems/single-number-iii/">Single Number III</a> (LeetCode 260)</li>
-<li><a href="https://leetcode.com/problems/number-of-1-bits/">Number of 1 Bits</a> (LeetCode 191)</li>
-<li><a href="https://leetcode.com/problems/power-of-two/">Power of Two</a> (LeetCode 231)</li>
-<li><a href="https://leetcode.com/problems/hamming-distance/">Hamming Distance</a> (LeetCode 461)</li>
-<li><a href="https://leetcode.com/problems/missing-number/">Missing Number</a> (LeetCode 268) — XOR-решение</li>
-<li><a href="https://leetcode.com/problems/reverse-bits/">Reverse Bits</a> (LeetCode 190)</li>
+<li><strong><a href="modified-binary-search.html">Modified Binary Search</a></strong> — бинарный поиск по
+позиции бита.</li>
+<li><strong><a href="cyclic-sort.html">Cyclic Sort</a></strong> — альтернатива для поиска отсутствующего числа
+(O(n), но модифицирует массив).</li>
+<li>Для общей теории по памяти и профилированию в Go см.
+<a href="appendix-go-memory.html">приложение</a>.</li>
 </ul>
 
                     </main>
@@ -411,22 +367,6 @@ count = 0
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
         <script>
