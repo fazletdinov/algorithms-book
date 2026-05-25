@@ -69,6 +69,81 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ряд подписей-указателей (списки) */
+.algo-viz__ptrrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: -0.4em;
+  margin-bottom: 0.9em;
+}
+
+.algo-viz__ptr {
+  min-width: 2.4em;
+  text-align: center;
+  font-size: 0.72em;
+  font-weight: 600;
+  color: var(--links, #4c84c4);
+  white-space: nowrap;
+}
+
+.algo-viz__cell--cycle {
+  border-style: dashed;
+  border-color: #e0a500;
+}
+
+/* KMP: ряды символов */
+.algo-viz__charrow .algo-viz__cell {
+  min-width: 1.9em;
+}
+
+.algo-viz__cell--ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+.algo-viz__cell--match {
+  background: #2e9b57;
+  border-color: #2e9b57;
+  color: #fff;
+}
+
+.algo-viz__cell--mismatch {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: #fff;
+}
+
+/* интервалы */
+.algo-viz__intervals {
+  display: block;
+  width: 100%;
+  max-width: 380px;
+  height: auto;
+  margin: 0 auto 0.9em;
+}
+
+.algo-viz__ivbar {
+  fill: var(--quote-border, #bbb);
+  transition: fill 0.15s;
+}
+
+.algo-viz__ivbar--cur {
+  fill: #e0a500;
+}
+
+.algo-viz__ivbar--merged {
+  fill: var(--links, #4c84c4);
+}
+
+/* бейдж входящей степени (топосорт) */
+.algo-viz__gbadge {
+  fill: #e0a500;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 /* граф */
 .algo-viz__graph {
   display: block;

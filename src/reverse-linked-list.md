@@ -69,6 +69,12 @@ func reverseListRecursive(head *ListNode) *ListNode {
 
 ## Визуализация
 
+> 💡 **Интерактивная демонстрация.** Нажимайте «▶»: синяя ячейка — `curr`, жёлтая —
+> `next`, зелёные — уже развёрнутая часть. (Виджет работает в собранной книге
+> `mdbook serve`/`mdbook build`, а не при просмотре `.md` на GitHub.)
+
+<div class="algo-viz" data-viz="list-reverse" data-list="1,2,3,4,5"></div>
+
 Разворот `1 → 2 → 3 → 4 → 5` итеративно:
 
 ```

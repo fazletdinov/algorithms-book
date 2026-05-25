@@ -341,13 +341,247 @@
     });
   }
 
+  // ===== Вспомогательное: ряд ячеек и ряд подписей ===========================
+  function makeCells(values, extra) {
+    var row = document.createElement("div");
+    row.className = "algo-viz__row" + (extra ? " " + extra : "");
+    var cells = values.map(function (v) {
+      var c = document.createElement("div");
+      c.className = "algo-viz__cell";
+      c.innerHTML = "<span class='algo-viz__val'>" + v + "</span>";
+      row.appendChild(c);
+      return c;
+    });
+    return { row: row, cells: cells };
+  }
+  function makeLabelRow(n) {
+    var r = document.createElement("div");
+    r.className = "algo-viz__ptrrow";
+    var labs = [];
+    for (var i = 0; i < n; i++) {
+      var s = document.createElement("div");
+      s.className = "algo-viz__ptr";
+      s.innerHTML = "&nbsp;";
+      r.appendChild(s);
+      labs.push(s);
+    }
+    return { row: r, labs: labs };
+  }
+  function ptrText(j, map) {
+    var t = "";
+    for (var name in map) if (map[name] === j) t = t ? t + "/" + name : name;
+    return t || " ";
+  }
+
+  // ===== Разворот связного списка ============================================
+  function renderListReverse(el) {
+    var list = nums(el.getAttribute("data-list")), n = list.length;
+    var steps = [], prev = -1, curr = 0;
+    steps.push({ prev: prev, curr: curr, next: curr + 1 < n ? curr + 1 : -1, info: "prev = nil, curr = " + list[0] });
+    while (curr < n) {
+      var nxt = curr + 1;
+      steps.push({ prev: prev, curr: curr, next: nxt < n ? nxt : -1, info: (prev < 0 ? list[curr] + ".Next → nil" : list[curr] + ".Next → " + list[prev]) + "; сдвигаем prev, curr вправо" });
+      prev = curr; curr = nxt;
+    }
+    steps.push({ prev: prev, curr: -1, next: -1, done: true, info: "Новая голова — " + (prev >= 0 ? list[prev] : "nil") + ". Список развёрнут." });
+
+    el.classList.add("algo-viz--ready"); el.innerHTML = "";
+    var rc = makeCells(list); el.appendChild(rc.row);
+    var lr = makeLabelRow(n); el.appendChild(lr.row);
+    attachStepper(el, steps.length, function (i) {
+      var s = steps[i];
+      rc.cells.forEach(function (c, j) {
+        c.classList.toggle("algo-viz__cell--found", s.prev >= 0 && j <= s.prev);
+        c.classList.toggle("algo-viz__cell--active", j === s.curr);
+        c.classList.toggle("algo-viz__cell--mid", j === s.next);
+      });
+      lr.labs.forEach(function (p, j) { p.textContent = ptrText(j, { prev: s.prev, curr: s.curr, next: s.next }); });
+      return { info: s.info, done: s.done };
+    });
+  }
+
+  // ===== Быстрый/медленный указатели (поиск цикла) ===========================
+  function renderListCycle(el) {
+    var list = nums(el.getAttribute("data-list")), n = list.length;
+    var cyc = parseInt(el.getAttribute("data-cycle"), 10);
+    var hasCyc = !isNaN(cyc) && cyc >= 0 && cyc < n;
+    function nextIdx(i) { return i === n - 1 ? (hasCyc ? cyc : -1) : i + 1; }
+
+    var steps = [{ slow: 0, fast: 0, info: "Старт: slow и fast на голове " + list[0] }];
+    var slow = 0, fast = 0, guard = 0;
+    while (guard++ < 4 * n + 4) {
+      var f1 = nextIdx(fast); if (f1 < 0) { steps.push({ slow: slow, fast: -1, done: true, info: "fast дошёл до nil — цикла нет" }); break; }
+      var f2 = nextIdx(f1); if (f2 < 0) { steps.push({ slow: slow, fast: -1, done: true, info: "fast дошёл до nil — цикла нет" }); break; }
+      slow = nextIdx(slow); fast = f2;
+      if (slow === fast) { steps.push({ slow: slow, fast: fast, meet: true, done: true, info: "slow и fast встретились на " + list[slow] + " — цикл есть!" }); break; }
+      steps.push({ slow: slow, fast: fast, info: "slow → " + list[slow] + ", fast → " + list[fast] });
+    }
+
+    el.classList.add("algo-viz--ready"); el.innerHTML = "";
+    if (hasCyc) { var note = document.createElement("div"); note.className = "algo-viz__info"; note.textContent = "Цикл: " + list[n - 1] + " → " + list[cyc]; el.appendChild(note); }
+    var rc = makeCells(list); el.appendChild(rc.row);
+    if (hasCyc) rc.cells[cyc].classList.add("algo-viz__cell--cycle");
+    var lr = makeLabelRow(n); el.appendChild(lr.row);
+    attachStepper(el, steps.length, function (i) {
+      var s = steps[i];
+      rc.cells.forEach(function (c, j) {
+        c.classList.toggle("algo-viz__cell--active", j === s.slow);
+        c.classList.toggle("algo-viz__cell--mid", j === s.fast);
+        c.classList.toggle("algo-viz__cell--found", !!s.meet && j === s.slow);
+      });
+      lr.labs.forEach(function (p, j) { p.textContent = ptrText(j, { slow: s.slow, fast: s.fast }); });
+      return { info: s.info, done: s.done };
+    });
+  }
+
+  // ===== KMP: образец скользит под текстом ===================================
+  function renderKMP(el) {
+    var text = el.getAttribute("data-text") || "", pat = el.getAttribute("data-pattern") || "";
+    var lps = new Array(pat.length).fill(0);
+    (function () { var len = 0, i = 1; while (i < pat.length) { if (pat[i] === pat[len]) { len++; lps[i] = len; i++; } else if (len > 0) { len = lps[len - 1]; } else { lps[i] = 0; i++; } } })();
+
+    var steps = [], i = 0, j = 0, foundAt = -1;
+    while (i < text.length) {
+      var match = text[i] === pat[j];
+      steps.push({ i: i, j: j, shift: i - j, match: match, info: "text[" + i + "]='" + text[i] + "' vs pattern[" + j + "]='" + pat[j] + "' → " + (match ? "совпало" : "не совпало" + (j > 0 ? ", сдвиг по префикс-функции" : "")) });
+      if (match) { i++; j++; if (j === pat.length) { foundAt = i - j; steps.push({ i: i - 1, j: j - 1, shift: foundAt, found: true, done: true, info: "Образец найден на позиции " + foundAt }); break; } }
+      else if (j > 0) { j = lps[j - 1]; }
+      else { i++; }
+    }
+    if (!steps.length || !steps[steps.length - 1].done) steps.push({ i: text.length, j: j, shift: text.length - j, done: true, info: "Образец не найден" });
+
+    el.classList.add("algo-viz--ready"); el.innerHTML = "";
+    var tr = makeCells(text.split(""), "algo-viz__charrow"); el.appendChild(tr.row);
+    var prow = document.createElement("div"); prow.className = "algo-viz__row algo-viz__charrow"; el.appendChild(prow);
+    attachStepper(el, steps.length, function (idx) {
+      var s = steps[idx];
+      tr.cells.forEach(function (c, k) {
+        c.classList.toggle("algo-viz__cell--active", k === s.i && !s.done);
+        c.classList.toggle("algo-viz__cell--found", !!s.found && k >= s.shift && k < s.shift + pat.length);
+      });
+      prow.innerHTML = "";
+      for (var p = 0; p < s.shift; p++) { var g = document.createElement("div"); g.className = "algo-viz__cell algo-viz__cell--ghost"; g.innerHTML = "&nbsp;"; prow.appendChild(g); }
+      for (var q = 0; q < pat.length; q++) {
+        var pc = document.createElement("div"); pc.className = "algo-viz__cell";
+        if (q === s.j && !s.done) pc.classList.add(s.match ? "algo-viz__cell--match" : "algo-viz__cell--mismatch");
+        if (s.found) pc.classList.add("algo-viz__cell--found");
+        pc.innerHTML = "<span class='algo-viz__val'>" + pat[q] + "</span>"; prow.appendChild(pc);
+      }
+      return { info: s.info, done: s.done };
+    });
+  }
+
+  // ===== Слияние интервалов на числовой прямой ===============================
+  function renderIntervals(el) {
+    var raw = (el.getAttribute("data-intervals") || "").split(",").map(function (s) { return s.trim().split("-").map(Number); }).filter(function (p) { return p.length === 2; });
+    if (!raw.length) return;
+    var ivs = raw.slice().sort(function (a, b) { return a[0] - b[0]; });
+    function cl(p) { return [p[0], p[1]]; }
+    var steps = [{ cur: -1, merged: [], info: "Отсортировали интервалы по началу." }], merged = [];
+    for (var k = 0; k < ivs.length; k++) {
+      var iv = ivs[k];
+      if (merged.length && iv[0] <= merged[merged.length - 1][1]) {
+        var last = merged[merged.length - 1]; last[1] = Math.max(last[1], iv[1]);
+        steps.push({ cur: k, merged: merged.map(cl), info: "[" + iv[0] + "," + iv[1] + "] пересекается → расширяем до " + last[1] });
+      } else {
+        merged.push([iv[0], iv[1]]);
+        steps.push({ cur: k, merged: merged.map(cl), info: "[" + iv[0] + "," + iv[1] + "] не пересекается → новый интервал" });
+      }
+    }
+    steps.push({ cur: -1, merged: merged.map(cl), done: true, info: "Готово: " + merged.length + " интервал(ов)." });
+
+    var minX = Math.min.apply(null, ivs.map(function (p) { return p[0]; }));
+    var maxX = Math.max.apply(null, ivs.map(function (p) { return p[1]; }));
+    var W = 340, padL = 12, padR = 12, span = (maxX - minX) || 1, rowH = 20, H = 14 + ivs.length * rowH + 34;
+    function X(v) { return padL + (v - minX) / span * (W - padL - padR); }
+
+    el.classList.add("algo-viz--ready"); el.innerHTML = "";
+    var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-viz__intervals");
+    var inputRects = ivs.map(function (iv, idx) {
+      var r = document.createElementNS(SVGNS, "rect");
+      r.setAttribute("x", X(iv[0])); r.setAttribute("y", 8 + idx * rowH); r.setAttribute("width", Math.max(2, X(iv[1]) - X(iv[0]))); r.setAttribute("height", 13);
+      r.setAttribute("rx", 3); r.setAttribute("class", "algo-viz__ivbar"); svg.appendChild(r); return r;
+    });
+    var mg = document.createElementNS(SVGNS, "g"); svg.appendChild(mg);
+    el.appendChild(svg);
+    attachStepper(el, steps.length, function (i) {
+      var s = steps[i];
+      inputRects.forEach(function (r, idx) { r.classList.toggle("algo-viz__ivbar--cur", idx === s.cur); });
+      while (mg.firstChild) mg.removeChild(mg.firstChild);
+      s.merged.forEach(function (m) {
+        var r = document.createElementNS(SVGNS, "rect");
+        r.setAttribute("x", X(m[0])); r.setAttribute("y", 8 + ivs.length * rowH + 8); r.setAttribute("width", Math.max(2, X(m[1]) - X(m[0]))); r.setAttribute("height", 13);
+        r.setAttribute("rx", 3); r.setAttribute("class", "algo-viz__ivbar algo-viz__ivbar--merged"); mg.appendChild(r);
+      });
+      return { info: s.info, done: s.done };
+    });
+  }
+
+  // ===== Топологическая сортировка (алгоритм Кана) ===========================
+  function renderTopoKahn(el) {
+    var labels = (el.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); });
+    var edges = (el.getAttribute("data-edges") || "").split(",").map(function (e) { return e.trim().split("-"); })
+      .map(function (p) { return [labels.indexOf(p[0]), labels.indexOf(p[1])]; }).filter(function (p) { return p[0] >= 0 && p[1] >= 0; });
+    var n = labels.length; if (!n) return;
+    var adj = labels.map(function () { return []; }), indeg = new Array(n).fill(0);
+    edges.forEach(function (e) { adj[e[0]].push(e[1]); indeg[e[1]]++; });
+
+    var deg = indeg.slice(), removed = new Array(n).fill(false), order = [];
+    var steps = [{ removed: removed.slice(), deg: deg.slice(), cur: -1, info: "Посчитали входящие степени каждой вершины." }];
+    var guard = 0;
+    while (order.length < n && guard++ < n + 2) {
+      var pick = -1; for (var v = 0; v < n; v++) if (!removed[v] && deg[v] === 0) { pick = v; break; }
+      if (pick < 0) { steps.push({ removed: removed.slice(), deg: deg.slice(), cur: -1, done: true, info: "Нет вершины со степенью 0 → в графе цикл!" }); break; }
+      removed[pick] = true; order.push(pick);
+      adj[pick].forEach(function (w) { deg[w]--; });
+      steps.push({ removed: removed.slice(), deg: deg.slice(), cur: pick, info: "Убираем " + labels[pick] + " (входящая 0). Порядок: " + order.map(function (x) { return labels[x]; }).join(" → ") });
+    }
+    if (order.length === n) steps[steps.length - 1].done = true;
+
+    var W = 340, H = 270, cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 32;
+    var pos = labels.map(function (_, i) { var a = -Math.PI / 2 + 2 * Math.PI * i / n; return { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) }; });
+    el.classList.add("algo-viz--ready"); el.innerHTML = "";
+    var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-viz__graph");
+    var defs = document.createElementNS(SVGNS, "defs");
+    var marker = document.createElementNS(SVGNS, "marker");
+    marker.setAttribute("id", "algoarrow"); marker.setAttribute("viewBox", "0 0 10 10"); marker.setAttribute("refX", "9"); marker.setAttribute("refY", "5");
+    marker.setAttribute("markerWidth", "7"); marker.setAttribute("markerHeight", "7"); marker.setAttribute("orient", "auto-start-reverse");
+    var mpath = document.createElementNS(SVGNS, "path"); mpath.setAttribute("d", "M0,0 L10,5 L0,10 z"); mpath.setAttribute("fill", "#888");
+    marker.appendChild(mpath); defs.appendChild(marker); svg.appendChild(defs);
+    edges.forEach(function (e) {
+      var a = pos[e[0]], b = pos[e[1]], dx = b.x - a.x, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / len, uy = dy / len;
+      var ln = document.createElementNS(SVGNS, "line");
+      ln.setAttribute("x1", a.x + ux * 17); ln.setAttribute("y1", a.y + uy * 17);
+      ln.setAttribute("x2", b.x - ux * 20); ln.setAttribute("y2", b.y - uy * 20);
+      ln.setAttribute("class", "algo-viz__gedge"); ln.setAttribute("marker-end", "url(#algoarrow)"); svg.appendChild(ln);
+    });
+    var circles = [], badges = [];
+    labels.forEach(function (lab, i) {
+      var c = document.createElementNS(SVGNS, "circle"); c.setAttribute("cx", pos[i].x); c.setAttribute("cy", pos[i].y); c.setAttribute("r", 16); c.setAttribute("class", "algo-viz__gnode"); svg.appendChild(c); circles.push(c);
+      var t = document.createElementNS(SVGNS, "text"); t.setAttribute("x", pos[i].x); t.setAttribute("y", pos[i].y + 4); t.setAttribute("text-anchor", "middle"); t.setAttribute("class", "algo-viz__gtext"); t.textContent = lab; svg.appendChild(t);
+      var bt = document.createElementNS(SVGNS, "text"); bt.setAttribute("x", pos[i].x + 20); bt.setAttribute("y", pos[i].y - 14); bt.setAttribute("text-anchor", "middle"); bt.setAttribute("class", "algo-viz__gbadge"); svg.appendChild(bt); badges.push(bt);
+    });
+    el.appendChild(svg);
+    attachStepper(el, steps.length, function (i) {
+      var s = steps[i];
+      circles.forEach(function (c, j) { c.classList.toggle("algo-viz__gnode--visited", s.removed[j]); c.classList.toggle("algo-viz__gnode--current", j === s.cur); });
+      badges.forEach(function (b, j) { b.textContent = s.removed[j] ? "" : ("in:" + s.deg[j]); });
+      return { info: s.info, done: s.done };
+    });
+  }
+
   // ===== Диспетчер ============================================================
   function render(el) {
     var t = el.getAttribute("data-viz") || "";
     if (WINDOW[t]) renderWindow(el);
     else if (STATE[t]) renderState(el);
+    else if (t === "list-reverse") renderListReverse(el);
+    else if (t === "list-cycle") renderListCycle(el);
+    else if (t === "kmp") renderKMP(el);
+    else if (t === "merge-intervals") renderIntervals(el);
+    else if (t === "topo-kahn") renderTopoKahn(el);
     else if (t.indexOf("tree-") === 0) renderTree(el);
-    else if (t.indexOf("graph-") === 0) renderGraph(el);
+    else if (t === "graph-bfs") renderGraph(el);
   }
   function init() {
     Array.prototype.forEach.call(document.querySelectorAll(".algo-viz:not(.algo-viz--ready)"), render);

@@ -81,6 +81,13 @@ func topologicalSort(numCourses int, prerequisites [][]int) []int {
 
 ## Визуализация
 
+> 💡 **Интерактивная демонстрация.** Нажимайте «▶»: рядом с вершиной показана входящая
+> степень (`in:`). Алгоритм Кана убирает вершину со степенью 0 (жёлтая → синяя) и
+> уменьшает степени соседей. (Виджет работает в собранной книге `mdbook serve`/`mdbook build`,
+> а не при просмотре `.md` на GitHub.)
+
+<div class="algo-viz" data-viz="topo-kahn" data-nodes="A,B,C,D" data-edges="A-B,A-C,B-C,B-D,C-D"></div>
+
 Граф зависимостей: A → B, A → C, B → C, B → D, C → D.
 
 ```mermaid

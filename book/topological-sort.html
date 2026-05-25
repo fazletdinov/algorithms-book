@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="assets/algo-viz-8de79df5.css">
+        <link rel="stylesheet" href="assets/algo-viz-544363e9.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e7ff6989.js";
+            window.path_to_searchindex_js = "searchindex-9bf17bd0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-da8af5e2.js"></script>
@@ -253,6 +253,14 @@ func topologicalSort(numCourses int, prerequisites [][]int) []int {
 <p>Каждая вершина обрабатывается один раз (O(V)), каждое ребро рассматривается один раз
 (O(E)).</p>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: рядом с вершиной показана входящая
+степень (<code>in:</code>). Алгоритм Кана убирает вершину со степенью 0 (жёлтая → синяя) и
+уменьшает степени соседей. (Виджет работает в собранной книге <code>mdbook serve</code>/<code>mdbook build</code>,
+а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="topo-kahn" data-nodes="A,B,C,D" data-edges="A-B,A-C,B-C,B-D,C-D"></div>
+
 <p>Граф зависимостей: A → B, A → C, B → C, B → D, C → D.</p>
 <pre><code class="language-mermaid">graph TD
     A[A] --&gt; B[B]
@@ -361,7 +369,7 @@ in-degree = 0, очередь пуста с самого начала, <code>len
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="assets/algo-viz-e4d130b1.js"></script>
+        <script src="assets/algo-viz-f91ed25e.js"></script>
 
 
 
