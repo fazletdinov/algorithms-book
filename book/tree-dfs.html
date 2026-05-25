@@ -28,6 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-89ac050c.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -37,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-45549685.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-45d806d3.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -681,7 +682,7 @@ maxSum := root.Val // начать с корня
 <p>В шаблоне Tree DFS используются следующие структуры данных:</p>
 <ul>
 <li><strong>TreeNode</strong>: Узлы дерева (, указатели в Go)</li>
-<li><strong>Stack (неявный)</strong>: Стек вызовов для рекурсии или Vec/Stack для итеративного подхода</li>
+<li><strong>Stack (неявный)</strong>: Стек вызовов для рекурсии или слайс (стек) для итеративного подхода</li>
 </ul>
 <h3 id="treenode-узел-дерева"><a class="header" href="#treenode-узел-дерева">TreeNode (Узел дерева)</a></h3>
 <p><strong>Что такое бинарное дерево (Binary Tree)?</strong></p>
@@ -700,14 +701,14 @@ maxSum := root.Val // начать с корня
 <li><strong>right</strong>: Указатель на правого потомка (или None/nil)</li>
 </ul>
 <h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>(Box&lt;T&gt;)</strong>:</p>
+<p><strong>Узел в куче (*TreeNode)</strong>:</p>
 <pre><code>Узел дерева:
 ┌─────────────────────────────────────────┐
-│ Box&amp;lt;TreeNode&amp;gt;                            │
+│ *TreeNode                                │
 │ ┌─────────────┐                         │
-│ │ val: i32    │ Значение                │
-│ │ left: Option│ Левый потомок           │
-│ │ right: Option│ Правый потомок         │
+│ │ Val: int    │ Значение                │
+│ │ Left: *TreeNode │ Левый потомок (nil) │
+│ │ Right: *TreeNode│ Правый потомок (nil)│
 │ └─────────────┘                         │
 └─────────────────────────────────────────┘
 </code></pre>
@@ -731,7 +732,7 @@ maxSum := root.Val // начать с корня
 <li>O(h) памяти, где h - высота дерева</li>
 </ul>
 <p><strong>Итеративный подход (явный стек)</strong>:</p>
-<p><strong>Vec&lt;T&gt; как стек</strong>:</p>
+<p><strong>[]T как стек</strong>:</p>
 <p><strong>Go slice как стек</strong>:</p>
 <pre><code class="language-go">stack := []*TreeNode{root}
 for len(stack) &gt; 0 {
@@ -1462,6 +1463,7 @@ func evaluateExpression(node *ExpressionNode) int {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-1edcf6b9.js"></script>
 
 
 

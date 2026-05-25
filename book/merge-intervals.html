@@ -28,6 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-89ac050c.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -37,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-45549685.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-45d806d3.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -609,27 +610,27 @@ for i &lt; len(A) &amp;&amp; j &lt; len(B) {
 </ul>
 <h3 id="int--slice-go"><a class="header" href="#int--slice-go">[][]int / Slice (Go)</a></h3>
 <h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>Vec&lt;Vec&lt;i32&gt;&gt;</strong> (массив интервалов):</p>
+<p><strong>[][]int</strong> (массив интервалов):</p>
 <pre><code>┌─────────────────────────────────────────┐
-│ Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;                           │
+│ [][]int                                  │
 │ ┌─────────────┐                         │
-│ │ ptr: *mut   │ Указатель на массив     │
-│ │   Vec&amp;lt;i32&amp;gt;  │                         │
-│ │ len: usize  │ Количество интервалов  │
-│ │ cap: usize  │ Емкость                 │
+│ │ ptr: *[]int │ Указатель на массив     │
+│ │   []int     │                         │
+│ │ len: int    │ Количество интервалов   │
+│ │ cap: int    │ Емкость                 │
 │ └─────────────┘                         │
 └─────────────────────────────────────────┘
          │
          ▼
-    [Vec&amp;lt;i32&amp;gt;][Vec&amp;lt;i32&amp;gt;][Vec&amp;lt;i32&amp;gt;]...
+    [[]int][[]int][[]int]...
     ┌──────┐  ┌──────┐  ┌──────┐
     │[1,3] │  │[2,6] │  │[8,10]│
     └──────┘  └──────┘  └──────┘
 </code></pre>
 <p><strong>Важные детали</strong>:</p>
 <ul>
-<li>Каждый интервал - это отдельный Vec&lt;i32&gt; (или можно использовать tuple/struct)</li>
-<li>Интервалы хранятся в непрерывной памяти (массив указателей на Vec)</li>
+<li>Каждый интервал - это отдельный []int (или можно использовать struct)</li>
+<li>Интервалы хранятся в непрерывной памяти (массив заголовков слайсов)</li>
 <li>Сортировка интервалов - O(n log n), но затем линейный проход</li>
 </ul>
 <p><strong>Go [][]int</strong> (массив интервалов):</p>
@@ -663,7 +664,7 @@ for i &lt; len(A) &amp;&amp; j &lt; len(B) {
 </table>
 </div>
 <h4 id="когда-использовать"><a class="header" href="#когда-использовать">Когда использовать:</a></h4>
-<p><strong>Используйте Vec/Slice когда</strong>:</p>
+<p><strong>Используйте слайс когда</strong>:</p>
 <ul>
 <li>Нужна сортировка интервалов</li>
 <li>Нужен последовательный доступ</li>
@@ -672,15 +673,15 @@ for i &lt; len(A) &amp;&amp; j &lt; len(B) {
 <p><strong>Альтернативы</strong>:</p>
 <ul>
 <li>Interval Tree: для частых запросов пересечения (O(log n))</li>
-<li>Для Merge Intervals Vec/Slice оптимальны</li>
+<li>Для Merge Intervals слайс оптимален</li>
 </ul>
 <h3 id="структуры-интервалов"><a class="header" href="#структуры-интервалов">Структуры интервалов</a></h3>
-<p><strong>Tuple</strong>:</p>
+<p><strong>Массив [2]int</strong>:</p>
 <p><strong>Struct</strong> (более читаемо):</p>
 <p><strong>Память</strong>:</p>
 <ul>
-<li>Tuple: 8 байт (2 * i32)</li>
-<li>Struct: 8 байт (2 * i32)</li>
+<li>[2]int: 16 байт (2 * int)</li>
+<li>Struct: 16 байт (2 * int)</li>
 <li>Нет разницы в памяти, struct более читаем</li>
 </ul>
 <h4 id="go-slice-vs-struct"><a class="header" href="#go-slice-vs-struct">Go: Slice vs Struct</a></h4>
@@ -740,12 +741,12 @@ func merge(intervals [][]int) [][]int {
     return result
 }
 </code></pre>
-<h4 id="концепция-владения"><a class="header" href="#концепция-владения">Концепция владения:</a></h4>
+<h4 id="работа-со-слайсами"><a class="header" href="#работа-со-слайсами">Работа со слайсами:</a></h4>
 <p><strong>Для Merge Intervals</strong>:</p>
 <ul>
-<li>Входные данные: <code>&amp;[Vec&amp;lt;i32&amp;gt;]</code> (заимствование)</li>
-<li>Результат: <code>Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;</code> (новое владение)</li>
-<li>Сортировка может потребовать владения (если изменяем исходный массив)</li>
+<li>Входные данные: <code>[][]int</code> (слайс ссылается на исходный массив)</li>
+<li>Результат: <code>[][]int</code> (новый слайс)</li>
+<li>Сортировка изменяет исходный слайс in-place (если не копировать)</li>
 </ul>
 <p><strong>Пример</strong>:</p>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
@@ -753,8 +754,8 @@ func merge(intervals [][]int) [][]int {
 <p>В для Merge Intervals:</p>
 <ul>
 <li><strong>Сортировка</strong>: Может аллоцировать временную память (зависит от алгоритма)</li>
-<li><strong>Результат</strong>: <code>Vec&amp;lt;Interval&amp;gt;</code> - аллоцируется в куче</li>
-<li><strong>Входные данные</strong>: Обычно <code>&amp;[Interval]</code> - ссылка, не аллоцирует</li>
+<li><strong>Результат</strong>: <code>[]Interval</code> - слайс, аллоцируется в куче</li>
+<li><strong>Входные данные</strong>: Обычно <code>[]Interval</code> - слайс, ссылается на существующий массив</li>
 </ul>
 <h4 id="go-сборщик-мусора"><a class="header" href="#go-сборщик-мусора">Go: Сборщик мусора</a></h4>
 <p>В Go:</p>
@@ -802,13 +803,13 @@ result = result[:0]
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Аспект</th><th></th><th>Go</th></tr>
+<tr><th>Аспект</th><th>Go</th></tr>
 </thead>
 <tbody>
-<tr><td>Сортировка</td><td>Контролируемая память</td><td>GC управляет</td></tr>
-<tr><td>Результат</td><td>Vec в куче</td><td>Слайсы в куче</td></tr>
-<tr><td>In-place</td><td>Возможно с <code>&amp;mut</code></td><td>Возможно с указателями</td></tr>
-<tr><td>Производительность</td><td>Предсказуемая</td><td>Может быть паузы GC</td></tr>
+<tr><td>Сортировка</td><td>GC управляет</td></tr>
+<tr><td>Результат</td><td>Слайсы в куче</td></tr>
+<tr><td>In-place</td><td>Возможно через слайс/указатели</td></tr>
+<tr><td>Производительность</td><td>Может быть паузы GC</td></tr>
 </tbody>
 </table>
 </div>
@@ -1655,6 +1656,7 @@ func mergeMeetings(meetings []Meeting) []Meeting {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-1edcf6b9.js"></script>
 
 
 

@@ -444,7 +444,7 @@ func mergeKLists(lists []*ListNode) *ListNode {
 **Структура**:
 ```
 ┌─────────────────────────────────────────┐
-│ Vec&lt;Vec<i32&gt;>                          │
+│ [][]int                                 │
 │ ┌─────────────┐                        │
 │ │ [1,4,7]    │ Массив 0               │
 │ │ [2,5,8]    │ Массив 1               │
@@ -514,10 +514,10 @@ result := make([]int, 0, totalElements)
 ```
 
 | Аспект | Go |
-|--------|------|-----|
-| Куча | BinaryHeap в куче | container/heap в куче |
-| Результат | Vec в куче | Слайс в куче |
-| Память | O(k) + O(n) | O(k) + O(n) |
+|--------|------|
+| Куча | container/heap в куче |
+| Результат | Слайс в куче |
+| Память | O(k) + O(n) |
 
 ## Оптимизация производительности
 
@@ -562,7 +562,7 @@ func mergeKListsOptimized(lists []*ListNode) *ListNode {
 }
 ```
 
-1. **Использование `Reverse` для min heap**:
+1. **Min heap через метод `Less` (`h[i] < h[j]`)**:
 
 2. **Предварительное выделение**:
 
@@ -1218,6 +1218,7 @@ func mergeKSortedFiles(files []*os.File) []int {
 - **Standard Libraries**: std::merge в C++
 - **Java Collections**: Collections.merge
 - **Python heapq**: heapq.merge
+- **Go**: container/heap для k-way merge
 
 ### 10. Streaming Systems
 

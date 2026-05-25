@@ -29,6 +29,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-89ac050c.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -38,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-45549685.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-45d806d3.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -237,13 +238,13 @@
 <p>Каждая глава содержит:</p>
 <ul>
 <li>Теоретическое объяснение с визуализацией, анализом аллокаций, оптимизацией, профилированием и тестированием</li>
-<li>Примеры кода на Go (встроены в текст, можно запускать в Playground)</li>
+<li>Примеры кода на Go (встроены в текст; запускаются локально через <code>go run</code>/<code>go test</code>)</li>
 <li>Ссылки на задачи LeetCode для практики</li>
 </ul>
 <h2 id="-как-использовать"><a class="header" href="#-как-использовать">🚀 Как использовать</a></h2>
 <ol>
 <li>Изучите теорию в каждой главе</li>
-<li>Разберите примеры кода (запускайте их в Playground)</li>
+<li>Разберите примеры кода (копируйте и запускайте локально через <code>go run</code>)</li>
 <li>Изучите разделы об аллокациях памяти и оптимизации</li>
 <li>Практикуйтесь с профилированием и тестированием</li>
 <li>Решите задачи на LeetCode, указанные в каждом разделе</li>
@@ -322,7 +323,7 @@
 <h3 id="нужно-ли-знать-все-шаблоны-наизусть"><a class="header" href="#нужно-ли-знать-все-шаблоны-наизусть">Нужно ли знать все шаблоны наизусть?</a></h3>
 <p>Нет, не обязательно. Важнее понимать, когда использовать каждый шаблон. Используйте <a href="#руководство-по-выбору-алгоритмического-шаблона">Руководство по выбору шаблона</a> как справочник.</p>
 <h3 id="какой-язык-программирования-использовать"><a class="header" href="#какой-язык-программирования-использовать">Какой язык программирования использовать?</a></h3>
-<p>В книге представлены примеры на Go и . Выберите язык, который вам удобнее, или изучайте оба для лучшего понимания.</p>
+<p>В книге все примеры представлены на Go. Шаблоны универсальны — освоив идею, вы легко перенесёте её на любой другой язык.</p>
 <h3 id="сколько-задач-нужно-решить-для-каждого-шаблона"><a class="header" href="#сколько-задач-нужно-решить-для-каждого-шаблона">Сколько задач нужно решить для каждого шаблона?</a></h3>
 <p>Рекомендуется решить минимум 5-10 задач разной сложности для каждого шаблона. Для сложных шаблонов (Topological Sort, K-way Merge) может потребоваться больше практики.</p>
 <h3 id="как-комбинировать-шаблоны"><a class="header" href="#как-комбинировать-шаблоны">Как комбинировать шаблоны?</a></h3>
@@ -986,6 +987,13 @@ mdbook build
     D --&gt;|Нет| A
 </code></pre>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶», чтобы пошагово увидеть, как окно
+скользит по массиву и пересчитывает сумму за O(1). (Виджет работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="sliding-window-fixed" data-array="1,2,3,4,5,6" data-k="3"></div>
+
 <h3 id="фиксированное-окно-размера-k3-максимальная-сумма"><a class="header" href="#фиксированное-окно-размера-k3-максимальная-сумма">Фиксированное окно размера K=3 (максимальная сумма):</a></h3>
 <p><strong>Исходные данные:</strong> Массив <code>[1, 2, 3, 4, 5, 6]</code>, размер окна k = 3</p>
 <p><strong>Шаг 1: Инициализация - вычисляем сумму первого окна</strong></p>
@@ -1783,9 +1791,9 @@ m := make(map[string]int, expectedSize)
 <p><strong>Что такое кольцевой буфер (Ring Buffer)?</strong></p>
 <p><strong>Кольцевой буфер</strong> — это структура данных, которая использует массив фиксированного размера, но логически “заворачивает” индексы, создавая эффект бесконечного массива. Когда индекс достигает конца массива, он “переходит” в начало.</p>
 <pre><code>┌─────────────────────────────────────────┐
-│ head: usize  │ Индекс начала            │
-│ tail: usize  │ Индекс конца             │
-│ buf: Vec&amp;lt;T&amp;gt;  │ Буфер данных             │
+│ head: int    │ Индекс начала            │
+│ tail: int    │ Индекс конца             │
+│ buf: []T     │ Буфер данных             │
 └─────────────────────────────────────────┘
          │
          ▼
@@ -1795,7 +1803,7 @@ m := make(map[string]int, expectedSize)
 </code></pre>
 <p><strong>Как работает кольцевой буфер</strong>:</p>
 <ul>
-<li>Данные хранятся в обычном Vec, но индексы “заворачиваются” (wrap-around)</li>
+<li>Данные хранятся в обычном слайсе ([]T), но индексы “заворачиваются” (wrap-around)</li>
 <li><code>push_front</code>: уменьшаем head (с учетом wrap-around: если head == 0, переходим в конец массива)</li>
 <li><code>push_back</code>: увеличиваем tail (с учетом wrap-around: если tail == capacity, переходим в начало)</li>
 <li>Когда head == tail, буфер полон или пуст (нужно отслеживать отдельно через счетчик элементов)</li>
@@ -1816,7 +1824,7 @@ head = (0 - 1 + 8) % 8 = 7 (переход в конец)
 <ul>
 <li><code>push_front/pop_front</code>: просто изменение индекса head</li>
 <li><code>push_back/pop_back</code>: просто изменение индекса tail</li>
-<li>Нет необходимости сдвигать элементы (в отличие от Vec)</li>
+<li>Нет необходимости сдвигать элементы (в отличие от обычного слайса)</li>
 </ul>
 <p><strong>Что такое Deque (Double-Ended Queue)?</strong></p>
 <p><strong>Deque (двусторонняя очередь)</strong> — это структура данных, которая позволяет эффективно добавлять и удалять элементы с обоих концов (начала и конца).</p>
@@ -1824,7 +1832,7 @@ head = (0 - 1 + 8) % 8 = 7 (переход в конец)
 <ul>
 <li><strong>push_front/pop_front</strong>: Операции с началом (O(1) амортизированная)</li>
 <li><strong>push_back/pop_back</strong>: Операции с концом (O(1) амортизированная)</li>
-<li><strong>Доступ по индексу</strong>: O(1), но медленнее чем у Vec из-за вычисления индекса с учетом wrap-around</li>
+<li><strong>Доступ по индексу</strong>: O(1), но медленнее чем у обычного слайса из-за вычисления индекса с учетом wrap-around</li>
 </ul>
 <p><strong>Отличие от Queue и Stack</strong>:</p>
 <ul>
@@ -1832,8 +1840,9 @@ head = (0 - 1 + 8) % 8 = 7 (переход в конец)
 <li><strong>Stack (Стек)</strong>: Только push и pop с одного конца (LIFO - Last In, First Out)</li>
 <li><strong>Deque</strong>: Операции с обоих концов, более гибкая структура</li>
 </ul>
-<h4 id="когда-использовать-vecdeque"><a class="header" href="#когда-использовать-vecdeque">Когда использовать VecDeque:</a></h4>
-<p><strong>Используйте VecDeque когда</strong>:</p>
+<h4 id="когда-использовать-deque"><a class="header" href="#когда-использовать-deque">Когда использовать deque:</a></h4>
+<p>В Go нет встроенного типа deque — его реализуют через <code>container/list</code> или через срез (<code>[]T</code>) с индексами head/tail.</p>
+<p><strong>Используйте deque когда</strong>:</p>
 <ul>
 <li>Нужны операции с обоих концов (deque)</li>
 <li>Реализуете очередь (queue) — можно использовать как очередь</li>
@@ -1841,8 +1850,8 @@ head = (0 - 1 + 8) % 8 = 7 (переход в конец)
 </ul>
 <p><strong>Не используйте когда</strong>:</p>
 <ul>
-<li>Нужны только операции с одним концом (используйте Vec - проще и быстрее)</li>
-<li>Нужен частый произвольный доступ по индексу (VecDeque медленнее из-за вычисления индекса)</li>
+<li>Нужны только операции с одним концом (используйте обычный срез - проще и быстрее)</li>
+<li>Нужен частый произвольный доступ по индексу (deque медленнее из-за вычисления индекса)</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
 <h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
@@ -2249,18 +2258,6 @@ go tool pprof mem.prof
 </code></pre>
 <h3 id="как-профилировать-sliding-window"><a class="header" href="#как-профилировать-sliding-window">Как профилировать Sliding Window</a></h3>
 <h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
-<pre><code>    b.iter(|| max_sum_subarray_fixed_k(black_box(&amp;arr), 100))
-});
-</code></pre>
-<p>}</p>
-<p>criterion_group!(benches, bench_sliding_window);
-criterion_main!(benches);</p>
-<pre><code>
-**Запуск**:
-```bash
-cargo bench
-</code></pre>
-<h4 id="go-пример-1"><a class="header" href="#go-пример-1">Go пример:</a></h4>
 <pre><code class="language-go">// sliding_window_test.go
 func BenchmarkMaxSumSubarray(b *testing.B) {
     arr := make([]int, 10000)
@@ -2358,34 +2355,9 @@ func slidingWindowFixed(arr []int, k int) int {
     return maxSum
 }
 </code></pre>
-<pre><code>    eprintln!("Шаг {}: window_sum={:?}, arr[{}]={:?}", i, window_sum, i, arr[i]);
-}
-max_sum = window_sum;
-eprintln!("Первое окно: window_sum={:?}, max_sum={:?}", window_sum, max_sum);
-
-for i in k..arr.len() {
-    let old_sum = window_sum;
-    window_sum = window_sum + arr[i] - arr[i - k];
-    eprintln!(
-        "Шаг {}: window_sum={:?}-&gt;{:?} (добавили {:?}, убрали {:?}), max_sum={:?}",
-        i, old_sum, window_sum, arr[i], arr[i - k], max_sum
-    );
-    
-    if window_sum &gt; max_sum {
-        max_sum = window_sum;
-        eprintln!("Новый максимум: max_sum={:?}", max_sum);
-    }
-}
-
-max_sum
-</code></pre>
-<p>}</p>
-<pre><code>
-### 3. Визуализация состояния окна
-
-**Go**:
-```go
-func visualizeWindow(arr []int, left, right int) {
+<h3 id="3-визуализация-состояния-окна"><a class="header" href="#3-визуализация-состояния-окна">3. Визуализация состояния окна</a></h3>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">func visualizeWindow(arr []int, left, right int) {
     fmt.Print("Массив: [")
     for i, val := range arr {
         if i == left {
@@ -3507,6 +3479,13 @@ func (tw *TemperatureWindow) Average() float64 {
     F --&gt;|Нет| G[Конец]
 </code></pre>
 <h2 id="визуализация-1"><a class="header" href="#визуализация-1">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: указатели сходятся с краёв,
+а сумма подсказывает, какой из них сдвинуть. (Виджет работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="two-pointers-sum" data-array="1,2,3,4,5,6" data-target="7"></div>
+
 <h3 id="поиск-пары-с-заданной-суммой-встречные-указатели"><a class="header" href="#поиск-пары-с-заданной-суммой-встречные-указатели">Поиск пары с заданной суммой (встречные указатели):</a></h3>
 <p><strong>Исходные данные:</strong> Отсортированный массив <code>[1, 2, 3, 4, 5, 6]</code>, цель = 7</p>
 <p><strong>Шаг 1: Инициализация - указатели на краях массива</strong></p>
@@ -4116,57 +4095,61 @@ fast++
     }
 }
 </code></pre>
-<pre><code>if arr.len() &lt; 2 {
-    return None;
-}
-let mut left = 0;
-let mut right = arr.len() - 1;
-while left &lt; right {
-    // ...
-}
-</code></pre>
-<p>}</p>
-<pre><code>
-## Практические советы по применению
-
-1. **Определите тип задачи**:
-   - Поиск пары в отсортированном массиве → встречные указатели
-   - Удаление/фильтрация элементов → указатели в одном направлении
-   - Обнаружение циклов → быстрый и медленный
-
-2. **Проверьте отсортированность**:
-   - Метод встречных указателей требует отсортированный массив
-   - Если массив не отсортирован, рассмотрите сортировку (O(n log n)) или альтернативный подход
-
-3. **Правильный порядок операций**:
-   - Вычислите значение на основе текущих указателей
-   - Обновите результат (если нужно)
-   - Примите решение о движении указателей
-   - Обновите указатели
-
-4. **Обработка дубликатов**:
-   - Для задач типа 3Sum важно пропускать дубликаты
-   - После нахождения решения, пропустите все одинаковые элементы
-
-5. **Оптимизация для конкретных задач**:
-   - Для площади контейнера: всегда двигайте указатель с меньшей высотой
-   - Для захвата воды: используйте два указателя с отслеживанием максимумов
-   - Для палиндромов: проверяйте символы, пропуская не-алфавитные
-
-6. **Отладка**:
-   - Добавьте логирование позиций указателей на каждом шаге
-   - Проверьте инварианты: что должно быть истинно на каждом шаге
-   - Визуализируйте движение указателей на бумаге
-
-## Вариации и расширения
-
-### 1. Три указателя (3Sum):
-
-Расширение метода для поиска троек:
-
-**Go**:
-```go
-for i := 0; i &lt; n-2; i++ {
+<h2 id="практические-советы-по-применению-1"><a class="header" href="#практические-советы-по-применению-1">Практические советы по применению</a></h2>
+<ol>
+<li>
+<p><strong>Определите тип задачи</strong>:</p>
+<ul>
+<li>Поиск пары в отсортированном массиве → встречные указатели</li>
+<li>Удаление/фильтрация элементов → указатели в одном направлении</li>
+<li>Обнаружение циклов → быстрый и медленный</li>
+</ul>
+</li>
+<li>
+<p><strong>Проверьте отсортированность</strong>:</p>
+<ul>
+<li>Метод встречных указателей требует отсортированный массив</li>
+<li>Если массив не отсортирован, рассмотрите сортировку (O(n log n)) или альтернативный подход</li>
+</ul>
+</li>
+<li>
+<p><strong>Правильный порядок операций</strong>:</p>
+<ul>
+<li>Вычислите значение на основе текущих указателей</li>
+<li>Обновите результат (если нужно)</li>
+<li>Примите решение о движении указателей</li>
+<li>Обновите указатели</li>
+</ul>
+</li>
+<li>
+<p><strong>Обработка дубликатов</strong>:</p>
+<ul>
+<li>Для задач типа 3Sum важно пропускать дубликаты</li>
+<li>После нахождения решения, пропустите все одинаковые элементы</li>
+</ul>
+</li>
+<li>
+<p><strong>Оптимизация для конкретных задач</strong>:</p>
+<ul>
+<li>Для площади контейнера: всегда двигайте указатель с меньшей высотой</li>
+<li>Для захвата воды: используйте два указателя с отслеживанием максимумов</li>
+<li>Для палиндромов: проверяйте символы, пропуская не-алфавитные</li>
+</ul>
+</li>
+<li>
+<p><strong>Отладка</strong>:</p>
+<ul>
+<li>Добавьте логирование позиций указателей на каждом шаге</li>
+<li>Проверьте инварианты: что должно быть истинно на каждом шаге</li>
+<li>Визуализируйте движение указателей на бумаге</li>
+</ul>
+</li>
+</ol>
+<h2 id="вариации-и-расширения"><a class="header" href="#вариации-и-расширения">Вариации и расширения</a></h2>
+<h3 id="1-три-указателя-3sum"><a class="header" href="#1-три-указателя-3sum">1. Три указателя (3Sum):</a></h3>
+<p>Расширение метода для поиска троек:</p>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">for i := 0; i &lt; n-2; i++ {
     left, right := i+1, n-1
     for left &lt; right {
         sum := arr[i] + arr[left] + arr[right]
@@ -4279,7 +4262,7 @@ slice := arr[100:200]      // O(1) - только создание дескри�
 <li>Минимальные аллокации памяти (только для результата, если нужен)</li>
 </ul>
 <h4 id="когда-использовать-1"><a class="header" href="#когда-использовать-1">Когда использовать:</a></h4>
-<p><strong>Используйте Vec/Slice когда</strong>:</p>
+<p><strong>Используйте слайс когда</strong>:</p>
 <ul>
 <li>Нужен произвольный доступ по индексу</li>
 <li>Данные уже отсортированы или можно отсортировать</li>
@@ -4288,7 +4271,7 @@ slice := arr[100:200]      // O(1) - только создание дескри�
 <p><strong>Почему не LinkedList</strong>:</p>
 <ul>
 <li>LinkedList требует O(n) для доступа по индексу</li>
-<li>Two Pointers требует O(1) доступ, поэтому Vec/Slice оптимальны</li>
+<li>Two Pointers требует O(1) доступ, поэтому слайс оптимален</li>
 </ul>
 <h3 id="указатели-и-индексы"><a class="header" href="#указатели-и-индексы">Указатели и индексы</a></h3>
 <h4 id="как-хранятся-в-памяти"><a class="header" href="#как-хранятся-в-памяти">Как хранятся в памяти:</a></h4>
@@ -4497,7 +4480,7 @@ for i := range arr {
 <h3 id="инструменты-профилирования-1"><a class="header" href="#инструменты-профилирования-1">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-two-pointers"><a class="header" href="#как-профилировать-two-pointers">Как профилировать Two Pointers</a></h3>
-<h4 id="go-пример-2"><a class="header" href="#go-пример-2">Go пример:</a></h4>
+<h4 id="go-пример-1"><a class="header" href="#go-пример-1">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkTwoSum(b *testing.B) {
     arr := make([]int, 10000)
     for i := range arr {
@@ -5847,9 +5830,9 @@ for temp != slow {
 </ul>
 <p><strong>Не используйте когда</strong>:</p>
 <ul>
-<li>Нужен произвольный доступ (используйте Vec/Array)</li>
-<li>Важна cache locality (используйте Vec/Array)</li>
-<li>Нужна производительность (Vec обычно быстрее)</li>
+<li>Нужен произвольный доступ (используйте слайс/массив)</li>
+<li>Важна cache locality (используйте слайс/массив)</li>
+<li>Нужна производительность (слайс обычно быстрее)</li>
 </ul>
 <h3 id="указатели-в-связанных-списках"><a class="header" href="#указатели-в-связанных-списках">Указатели в связанных списках</a></h3>
 <p>*<em>Go: <em>ListNode и nil</em></em>:</p>
@@ -6015,7 +5998,7 @@ for fast != nil &amp;&amp; fast.Next != nil {
 <h3 id="инструменты-профилирования-2"><a class="header" href="#инструменты-профилирования-2">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-fast--slow-pointers"><a class="header" href="#как-профилировать-fast--slow-pointers">Как профилировать Fast &amp; Slow Pointers</a></h3>
-<h4 id="go-пример-3"><a class="header" href="#go-пример-3">Go пример:</a></h4>
+<h4 id="go-пример-2"><a class="header" href="#go-пример-2">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkHasCycle(b *testing.B) {
     list := createCyclicList(1000)
     
@@ -7148,27 +7131,27 @@ for i &lt; len(A) &amp;&amp; j &lt; len(B) {
 </ul>
 <h3 id="int--slice-go"><a class="header" href="#int--slice-go">[][]int / Slice (Go)</a></h3>
 <h4 id="как-хранится-в-памяти-5"><a class="header" href="#как-хранится-в-памяти-5">Как хранится в памяти:</a></h4>
-<p><strong>Vec&lt;Vec&lt;i32&gt;&gt;</strong> (массив интервалов):</p>
+<p><strong>[][]int</strong> (массив интервалов):</p>
 <pre><code>┌─────────────────────────────────────────┐
-│ Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;                           │
+│ [][]int                                  │
 │ ┌─────────────┐                         │
-│ │ ptr: *mut   │ Указатель на массив     │
-│ │   Vec&amp;lt;i32&amp;gt;  │                         │
-│ │ len: usize  │ Количество интервалов  │
-│ │ cap: usize  │ Емкость                 │
+│ │ ptr: *[]int │ Указатель на массив     │
+│ │   []int     │                         │
+│ │ len: int    │ Количество интервалов   │
+│ │ cap: int    │ Емкость                 │
 │ └─────────────┘                         │
 └─────────────────────────────────────────┘
          │
          ▼
-    [Vec&amp;lt;i32&amp;gt;][Vec&amp;lt;i32&amp;gt;][Vec&amp;lt;i32&amp;gt;]...
+    [[]int][[]int][[]int]...
     ┌──────┐  ┌──────┐  ┌──────┐
     │[1,3] │  │[2,6] │  │[8,10]│
     └──────┘  └──────┘  └──────┘
 </code></pre>
 <p><strong>Важные детали</strong>:</p>
 <ul>
-<li>Каждый интервал - это отдельный Vec&lt;i32&gt; (или можно использовать tuple/struct)</li>
-<li>Интервалы хранятся в непрерывной памяти (массив указателей на Vec)</li>
+<li>Каждый интервал - это отдельный []int (или можно использовать struct)</li>
+<li>Интервалы хранятся в непрерывной памяти (массив заголовков слайсов)</li>
 <li>Сортировка интервалов - O(n log n), но затем линейный проход</li>
 </ul>
 <p><strong>Go [][]int</strong> (массив интервалов):</p>
@@ -7202,7 +7185,7 @@ for i &lt; len(A) &amp;&amp; j &lt; len(B) {
 </table>
 </div>
 <h4 id="когда-использовать-2"><a class="header" href="#когда-использовать-2">Когда использовать:</a></h4>
-<p><strong>Используйте Vec/Slice когда</strong>:</p>
+<p><strong>Используйте слайс когда</strong>:</p>
 <ul>
 <li>Нужна сортировка интервалов</li>
 <li>Нужен последовательный доступ</li>
@@ -7211,15 +7194,15 @@ for i &lt; len(A) &amp;&amp; j &lt; len(B) {
 <p><strong>Альтернативы</strong>:</p>
 <ul>
 <li>Interval Tree: для частых запросов пересечения (O(log n))</li>
-<li>Для Merge Intervals Vec/Slice оптимальны</li>
+<li>Для Merge Intervals слайс оптимален</li>
 </ul>
 <h3 id="структуры-интервалов"><a class="header" href="#структуры-интервалов">Структуры интервалов</a></h3>
-<p><strong>Tuple</strong>:</p>
+<p><strong>Массив [2]int</strong>:</p>
 <p><strong>Struct</strong> (более читаемо):</p>
 <p><strong>Память</strong>:</p>
 <ul>
-<li>Tuple: 8 байт (2 * i32)</li>
-<li>Struct: 8 байт (2 * i32)</li>
+<li>[2]int: 16 байт (2 * int)</li>
+<li>Struct: 16 байт (2 * int)</li>
 <li>Нет разницы в памяти, struct более читаем</li>
 </ul>
 <h4 id="go-slice-vs-struct"><a class="header" href="#go-slice-vs-struct">Go: Slice vs Struct</a></h4>
@@ -7279,12 +7262,12 @@ func merge(intervals [][]int) [][]int {
     return result
 }
 </code></pre>
-<h4 id="концепция-владения"><a class="header" href="#концепция-владения">Концепция владения:</a></h4>
+<h4 id="работа-со-слайсами"><a class="header" href="#работа-со-слайсами">Работа со слайсами:</a></h4>
 <p><strong>Для Merge Intervals</strong>:</p>
 <ul>
-<li>Входные данные: <code>&amp;[Vec&amp;lt;i32&amp;gt;]</code> (заимствование)</li>
-<li>Результат: <code>Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;</code> (новое владение)</li>
-<li>Сортировка может потребовать владения (если изменяем исходный массив)</li>
+<li>Входные данные: <code>[][]int</code> (слайс ссылается на исходный массив)</li>
+<li>Результат: <code>[][]int</code> (новый слайс)</li>
+<li>Сортировка изменяет исходный слайс in-place (если не копировать)</li>
 </ul>
 <p><strong>Пример</strong>:</p>
 <h2 id="аллокации-памяти-и-управление-памятью-3"><a class="header" href="#аллокации-памяти-и-управление-памятью-3">Аллокации памяти и управление памятью</a></h2>
@@ -7292,8 +7275,8 @@ func merge(intervals [][]int) [][]int {
 <p>В для Merge Intervals:</p>
 <ul>
 <li><strong>Сортировка</strong>: Может аллоцировать временную память (зависит от алгоритма)</li>
-<li><strong>Результат</strong>: <code>Vec&amp;lt;Interval&amp;gt;</code> - аллоцируется в куче</li>
-<li><strong>Входные данные</strong>: Обычно <code>&amp;[Interval]</code> - ссылка, не аллоцирует</li>
+<li><strong>Результат</strong>: <code>[]Interval</code> - слайс, аллоцируется в куче</li>
+<li><strong>Входные данные</strong>: Обычно <code>[]Interval</code> - слайс, ссылается на существующий массив</li>
 </ul>
 <h4 id="go-сборщик-мусора-1"><a class="header" href="#go-сборщик-мусора-1">Go: Сборщик мусора</a></h4>
 <p>В Go:</p>
@@ -7341,13 +7324,13 @@ result = result[:0]
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Аспект</th><th></th><th>Go</th></tr>
+<tr><th>Аспект</th><th>Go</th></tr>
 </thead>
 <tbody>
-<tr><td>Сортировка</td><td>Контролируемая память</td><td>GC управляет</td></tr>
-<tr><td>Результат</td><td>Vec в куче</td><td>Слайсы в куче</td></tr>
-<tr><td>In-place</td><td>Возможно с <code>&amp;mut</code></td><td>Возможно с указателями</td></tr>
-<tr><td>Производительность</td><td>Предсказуемая</td><td>Может быть паузы GC</td></tr>
+<tr><td>Сортировка</td><td>GC управляет</td></tr>
+<tr><td>Результат</td><td>Слайсы в куче</td></tr>
+<tr><td>In-place</td><td>Возможно через слайс/указатели</td></tr>
+<tr><td>Производительность</td><td>Может быть паузы GC</td></tr>
 </tbody>
 </table>
 </div>
@@ -7426,7 +7409,7 @@ last[1] = max(last[1], current[1])
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-merge-intervals"><a class="header" href="#как-профилировать-merge-intervals">Как профилировать Merge Intervals</a></h3>
 <h4 id="пример"><a class="header" href="#пример">пример:</a></h4>
-<h4 id="go-пример-4"><a class="header" href="#go-пример-4">Go пример:</a></h4>
+<h4 id="go-пример-3"><a class="header" href="#go-пример-3">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkMergeIntervals(b *testing.B) {
     intervals := createTestIntervals(1000)
     
@@ -8477,13 +8460,13 @@ for i := range nums {
 </ul>
 <h3 id="slice-go---in-place-операции"><a class="header" href="#slice-go---in-place-операции">Slice (Go) - In-place операции</a></h3>
 <h4 id="как-хранится-в-памяти-6"><a class="header" href="#как-хранится-в-памяти-6">Как хранится в памяти:</a></h4>
-<p><strong>Vec&lt;T&gt;</strong>:</p>
+<p><strong>[]int</strong>:</p>
 <pre><code>┌─────────────────────────────────────────┐
-│ Vec&amp;lt;i32&amp;gt;                                 │
+│ []int                                    │
 │ ┌─────────────┐                         │
-│ │ ptr: *mut i32│ Указатель на данные    │
-│ │ len: usize  │ Количество элементов    │
-│ │ cap: usize  │ Емкость                 │
+│ │ ptr: *int   │ Указатель на данные     │
+│ │ len: int    │ Количество элементов    │
+│ │ cap: int    │ Емкость                 │
 │ └─────────────┘                         │
 └─────────────────────────────────────────┘
          │
@@ -8588,13 +8571,13 @@ for i := range nums {
 <h3 id="что-это-такое-1-1"><a class="header" href="#что-это-такое-1-1">Что это такое:</a></h3>
 <p><strong>Для Cyclic Sort</strong>:</p>
 <ul>
-<li>Используем <code>&amp;mut [T]</code> для in-place изменений</li>
-<li>Один mutable borrow разрешен</li>
+<li>Используем <code>[]T</code> (слайс) для in-place изменений</li>
+<li>Слайс ссылается на исходный массив, изменения видны вызывающему коду</li>
 <li>Проблемы редко возникают</li>
 </ul>
 <h4 id="примеры"><a class="header" href="#примеры">Примеры:</a></h4>
 <p><strong>Типичный паттерн</strong>:</p>
-<p><strong>Проблема: множественные borrows</strong>:</p>
+<p><strong>Проблема: одновременный доступ к слайсу из нескольких мест</strong>:</p>
 <p><strong>Решение</strong>:</p>
 <h3 id="garbage-collector-go-4"><a class="header" href="#garbage-collector-go-4">Garbage Collector (Go)</a></h3>
 <h4 id="как-работает-gc-4"><a class="header" href="#как-работает-gc-4">Как работает GC:</a></h4>
@@ -8612,12 +8595,12 @@ func cyclicSort(arr []int) {
     // Только перестановка элементов
 }
 </code></pre>
-<h2 id="концепция-владения-1"><a class="header" href="#концепция-владения-1">Концепция владения:</a></h2>
+<h2 id="работа-со-слайсами-1"><a class="header" href="#работа-со-слайсами-1">Работа со слайсами:</a></h2>
 <p><strong>Для Cyclic Sort</strong>:</p>
 <ul>
-<li>Входные данные: <code>&amp;mut [T]</code> (мутабельное заимствование)</li>
-<li>Не берем владение, только изменяем in-place</li>
-<li>Нет необходимости в новом Vec</li>
+<li>Входные данные: <code>[]T</code> (слайс)</li>
+<li>Не копируем данные, только изменяем in-place через слайс</li>
+<li>Нет необходимости в новом слайсе</li>
 </ul>
 <p><strong>Пример</strong>:</p>
 <p><strong>Почему это важно</strong>:</p>
@@ -8725,7 +8708,7 @@ if arr[i] != arr[correctPos] {
 <h3 id="инструменты-профилирования-4"><a class="header" href="#инструменты-профилирования-4">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-cyclic-sort"><a class="header" href="#как-профилировать-cyclic-sort">Как профилировать Cyclic Sort</a></h3>
-<h4 id="go-пример-5"><a class="header" href="#go-пример-5">Go пример:</a></h4>
+<h4 id="go-пример-4"><a class="header" href="#go-пример-4">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkCyclicSort(b *testing.B) {
     arr := createTestArray(1000)
     
@@ -9574,13 +9557,13 @@ mid := (left + right) / 2 // Может переполниться
 </ul>
 <h3 id="int--slice-go-1"><a class="header" href="#int--slice-go-1">[]int / Slice (Go)</a></h3>
 <h4 id="как-хранится-в-памяти-7"><a class="header" href="#как-хранится-в-памяти-7">Как хранится в памяти:</a></h4>
-<p><strong>Vec&lt;T&gt;</strong>:</p>
+<p><strong>[]int</strong>:</p>
 <pre><code>Отсортированный массив:
 ┌─────────────────────────────────────────┐
-│ Vec&amp;lt;i32&amp;gt;                                 │
+│ []int                                    │
 │ ┌─────────────┐                         │
-│ │ ptr: *mut i32│ Указатель на данные    │
-│ │ len: usize  │ Количество элементов    │
+│ │ ptr: *int   │ Указатель на данные     │
+│ │ len: int    │ Количество элементов    │
 │ └─────────────┘                         │
 └─────────────────────────────────────────┘
          │
@@ -9660,11 +9643,18 @@ mid := left + (right-left)/2
 <pre><code class="language-go">// ✅ Все операции на стеке
 left, right := 0, len(arr)-1
 </code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Память | O(1) константная | O(1) константная |
-| Индексы | usize на стеке | int на стеке |
-| Производительность | Предсказуемая | Предсказуемая |</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Память</td><td>O(1) константная</td></tr>
+<tr><td>Индексы</td><td>int на стеке</td></tr>
+<tr><td>Производительность</td><td>Предсказуемая</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="оптимизация-производительности-5"><a class="header" href="#оптимизация-производительности-5">Оптимизация производительности</a></h2>
 <h3 id="общие-техники-5"><a class="header" href="#общие-техники-5">Общие техники</a></h3>
 <ol>
@@ -9724,7 +9714,7 @@ for left &lt;= right {
 <h3 id="инструменты-профилирования-5"><a class="header" href="#инструменты-профилирования-5">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-modified-binary-search"><a class="header" href="#как-профилировать-modified-binary-search">Как профилировать Modified Binary Search</a></h3>
-<h4 id="go-пример-6"><a class="header" href="#go-пример-6">Go пример:</a></h4>
+<h4 id="go-пример-5"><a class="header" href="#go-пример-5">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkBinarySearch(b *testing.B) {
     arr := make([]int, 1000000)
     for i := range arr {
@@ -10815,21 +10805,21 @@ if count &lt; k {
 </ul>
 <h3 id="linkedlist-node-узел-связанного-списка-1"><a class="header" href="#linkedlist-node-узел-связанного-списка-1">LinkedList Node (Узел связанного списка)</a></h3>
 <h4 id="как-хранится-в-памяти-8"><a class="header" href="#как-хранится-в-памяти-8">Как хранится в памяти:</a></h4>
-<p><strong>(Box&lt;T&gt;)</strong>:</p>
+<p><strong>Узел в куче (*ListNode)</strong>:</p>
 <pre><code>Узел списка:
 ┌─────────────────────────────────────────┐
-│ Box&amp;lt;ListNode&amp;gt;                            │
+│ *ListNode                                │
 │ ┌─────────────┐                         │
-│ │ val: i32    │ Значение                │
-│ │ next: Option│ Указатель на следующий  │
-│ │   &lt;Box&amp;lt;...&amp;gt;&gt;│                         │
+│ │ Val: int    │ Значение                │
+│ │ Next:       │ Указатель на следующий  │
+│ │   *ListNode │ (nil в конце)           │
 │ └─────────────┘                         │
 └─────────────────────────────────────────┘
 </code></pre>
 <p><strong>Go (указатели)</strong>:</p>
 <pre><code>Узел списка:
 ┌─────────────────────────────────────────┐
-│ &amp;ListNode                                │
+│ *ListNode                                │
 │ ┌─────────────┐                         │
 │ │ Val: int    │ Значение                │
 │ │ Next: *ListNode│ Указатель            │
@@ -10985,7 +10975,7 @@ for curr != nil {
 <h3 id="инструменты-профилирования-6"><a class="header" href="#инструменты-профилирования-6">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-reverse-linked-list"><a class="header" href="#как-профилировать-reverse-linked-list">Как профилировать Reverse Linked List</a></h3>
-<h4 id="go-пример-7"><a class="header" href="#go-пример-7">Go пример:</a></h4>
+<h4 id="go-пример-6"><a class="header" href="#go-пример-6">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkReverseList(b *testing.B) {
     list := createList(1000)
     
@@ -11840,8 +11830,8 @@ func bfsSimple(root *TreeNode) []int {
 ┌─────────────────────────────────────────┐
 │ Queue (slice)                              │
 │ ┌─────────────┐                         │
-│ │ head: usize │ Индекс начала           │
-│ │ tail: usize │ Индекс конца            │
+│ │ head: int   │ Индекс начала           │
+│ │ tail: int   │ Индекс конца            │
 │ │ buf: []T │ Буфер данных            │
 │ └─────────────┘                         │
 └─────────────────────────────────────────┘
@@ -11857,9 +11847,9 @@ func bfsSimple(root *TreeNode) []int {
 <tr><th>Операция</th><th>Queue (slice)</th><th>Объяснение</th></tr>
 </thead>
 <tbody>
-<tr><td>Enqueue (push_back)</td><td>O(1) амортизированная</td><td>O(1) амортизированная</td></tr>
-<tr><td>Dequeue (pop_front)</td><td>O(1)</td><td>O(1)</td></tr>
-<tr><td>Размер</td><td>O(1)</td><td>O(1)</td></tr>
+<tr><td>Enqueue (добавление в конец)</td><td>O(1) амортизированная</td><td>Добавление в конец</td></tr>
+<tr><td>Dequeue (удаление из начала)</td><td>O(1)</td><td>Удаление из начала</td></tr>
+<tr><td>Размер</td><td>O(1)</td><td>Простое вычисление</td></tr>
 </tbody>
 </table>
 </div>
@@ -11994,7 +11984,7 @@ for i := 0; i &lt; levelSize; i++ {
 <h3 id="инструменты-профилирования-7"><a class="header" href="#инструменты-профилирования-7">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-tree-bfs"><a class="header" href="#как-профилировать-tree-bfs">Как профилировать Tree BFS</a></h3>
-<h4 id="go-пример-8"><a class="header" href="#go-пример-8">Go пример:</a></h4>
+<h4 id="go-пример-7"><a class="header" href="#go-пример-7">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkLevelOrder(b *testing.B) {
     tree := createTestTree(1000)
     
@@ -13298,7 +13288,7 @@ maxSum := root.Val // начать с корня
 <p>В шаблоне Tree DFS используются следующие структуры данных:</p>
 <ul>
 <li><strong>TreeNode</strong>: Узлы дерева (, указатели в Go)</li>
-<li><strong>Stack (неявный)</strong>: Стек вызовов для рекурсии или Vec/Stack для итеративного подхода</li>
+<li><strong>Stack (неявный)</strong>: Стек вызовов для рекурсии или слайс (стек) для итеративного подхода</li>
 </ul>
 <h3 id="treenode-узел-дерева-1"><a class="header" href="#treenode-узел-дерева-1">TreeNode (Узел дерева)</a></h3>
 <p><strong>Что такое бинарное дерево (Binary Tree)?</strong></p>
@@ -13317,14 +13307,14 @@ maxSum := root.Val // начать с корня
 <li><strong>right</strong>: Указатель на правого потомка (или None/nil)</li>
 </ul>
 <h4 id="как-хранится-в-памяти-10"><a class="header" href="#как-хранится-в-памяти-10">Как хранится в памяти:</a></h4>
-<p><strong>(Box&lt;T&gt;)</strong>:</p>
+<p><strong>Узел в куче (*TreeNode)</strong>:</p>
 <pre><code>Узел дерева:
 ┌─────────────────────────────────────────┐
-│ Box&amp;lt;TreeNode&amp;gt;                            │
+│ *TreeNode                                │
 │ ┌─────────────┐                         │
-│ │ val: i32    │ Значение                │
-│ │ left: Option│ Левый потомок           │
-│ │ right: Option│ Правый потомок         │
+│ │ Val: int    │ Значение                │
+│ │ Left: *TreeNode │ Левый потомок (nil) │
+│ │ Right: *TreeNode│ Правый потомок (nil)│
 │ └─────────────┘                         │
 └─────────────────────────────────────────┘
 </code></pre>
@@ -13348,7 +13338,7 @@ maxSum := root.Val // начать с корня
 <li>O(h) памяти, где h - высота дерева</li>
 </ul>
 <p><strong>Итеративный подход (явный стек)</strong>:</p>
-<p><strong>Vec&lt;T&gt; как стек</strong>:</p>
+<p><strong>[]T как стек</strong>:</p>
 <p><strong>Go slice как стек</strong>:</p>
 <pre><code class="language-go">stack := []*TreeNode{root}
 for len(stack) &gt; 0 {
@@ -13485,7 +13475,7 @@ result := make([]int, 0, n)
 <h3 id="инструменты-профилирования-8"><a class="header" href="#инструменты-профилирования-8">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-tree-dfs"><a class="header" href="#как-профилировать-tree-dfs">Как профилировать Tree DFS</a></h3>
-<h4 id="go-пример-9"><a class="header" href="#go-пример-9">Go пример:</a></h4>
+<h4 id="go-пример-8"><a class="header" href="#go-пример-8">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkInorderTraversal(b *testing.B) {
     tree := createTestTree(1000)
     
@@ -14382,16 +14372,21 @@ type MedianFinder struct {
 <h4 id="как-хранится-в-памяти-11"><a class="header" href="#как-хранится-в-памяти-11">Как хранится в памяти:</a></h4>
 <pre><code>Двоичная куча (массив):
 ┌─────────────────────────────────────────┐
-│ BinaryHeap&amp;lt;i32&amp;gt;                          │
+│ []int + heap.Interface                   │
 │ ┌─────────────┐                         │
-│ │ data: Vec&amp;lt;T&amp;gt;│ Массив элементов        │
+│ │ data: []T   │ Массив элементов        │
 │ └─────────────┘                         │
 └─────────────────────────────────────────┘
          │
          ▼
     [9][7][8][5][6][3][4]
     0  1  2  3  4  5  6
-    
+
+    В Go нет встроенного типа кучи: используется
+    срез ([]int), организованный как двоичная куча
+    через пакет container/heap (реализуется
+    heap.Interface).
+
     Индексация:
     - parent(i) = (i-1)/2
     - left(i) = 2*i + 1
@@ -14484,11 +14479,18 @@ minHeap := make(IntHeap, 0, n/2)
 maxHeap = maxHeap[:0]
 minHeap = minHeap[:0]
 </code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Кучи | BinaryHeap в куче | container/heap в куче |
-| Память | O(n) | O(n) |
-| Балансировка | O(log n) | O(log n) |</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Кучи</td><td>container/heap в куче</td></tr>
+<tr><td>Память</td><td>O(n)</td></tr>
+<tr><td>Балансировка</td><td>O(log n)</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="оптимизация-производительности-9"><a class="header" href="#оптимизация-производительности-9">Оптимизация производительности</a></h2>
 <h3 id="общие-техники-9"><a class="header" href="#общие-техники-9">Общие техники</a></h3>
 <ol>
@@ -14531,7 +14533,7 @@ func (mf *MedianFinder) AddNum(num int) {
 </code></pre>
 <ol>
 <li>
-<p><strong>Использование <code>Reverse</code> для min heap</strong>:</p>
+<p><strong>Min heap через метод <code>Less</code> (<code>h[i] &lt; h[j]</code>)</strong>:</p>
 </li>
 <li>
 <p><strong>Предварительное выделение</strong>:</p>
@@ -14554,7 +14556,7 @@ maxHeap := make(IntHeap, 0, n/2)
 <h3 id="инструменты-профилирования-9"><a class="header" href="#инструменты-профилирования-9">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-two-heaps"><a class="header" href="#как-профилировать-two-heaps">Как профилировать Two Heaps</a></h3>
-<h4 id="go-пример-10"><a class="header" href="#go-пример-10">Go пример:</a></h4>
+<h4 id="go-пример-9"><a class="header" href="#go-пример-9">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkMedianFinder(b *testing.B) {
     finder := NewMedianFinder()
     nums := make([]int, 1000)
@@ -15586,7 +15588,7 @@ min = 3
 <p>В шаблоне Top K Elements используются следующие структуры данных:</p>
 <ul>
 <li><strong>MinHeap</strong>: Куча для хранения топ-k элементов</li>
-<li><strong>HashMap&lt;K, V&gt;  / Map (Go)</strong>: Для подсчета частоты (опционально)</li>
+<li><strong>map[K]V (Go)</strong>: Для подсчета частоты (опционально)</li>
 </ul>
 <h3 id="minheap--heap-go"><a class="header" href="#minheap--heap-go">MinHeap / Heap (Go)</a></h3>
 <h4 id="что-такое-heap-куча"><a class="header" href="#что-такое-heap-куча">Что такое Heap (Куча)?</a></h4>
@@ -15609,7 +15611,7 @@ func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 <li>Размер кучи ограничен k элементами</li>
 <li>Min-heap для топ-k наибольших (храним k наименьших, остальные больше)</li>
 <li>Max-heap для топ-k наименьших</li>
-<li>BinaryHeap<code>по умолчанию max-heap, для min-heap используйте</code>Reverse`</li>
+<li>В Go тип кучи задаётся методом <code>Less</code>: <code>&lt;</code> даёт min-heap, <code>&gt;</code> — max-heap</li>
 <li>O(k) памяти вместо O(n)</li>
 </ul>
 <h4 id="операции-и-их-сложность-10"><a class="header" href="#операции-и-их-сложность-10">Операции и их сложность:</a></h4>
@@ -15631,7 +15633,7 @@ func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 <li>O(k) памяти вместо O(n)</li>
 <li>Оптимально для больших n и малых k</li>
 </ul>
-<h3 id="hashmapk-v---map-go"><a class="header" href="#hashmapk-v---map-go">HashMap&lt;K, V&gt;  / Map (Go)</a></h3>
+<h3 id="mapkv-go"><a class="header" href="#mapkv-go">map[K]V (Go)</a></h3>
 <h4 id="для-подсчета-частоты"><a class="header" href="#для-подсчета-частоты">Для подсчета частоты:</a></h4>
 <p><strong>Используется когда</strong>:</p>
 <ul>
@@ -15691,11 +15693,18 @@ heap := make(IntHeap, 0, k)
 <pre><code class="language-go">// ✅ Предварительное выделение
 frequency := make(map[int]int, n)
 </code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Куча | BinaryHeap в куче | container/heap в куче |
-| Частота | HashMap в куче | map в куче |
-| Память | O(n) в худшем случае | O(n) в худшем случае |</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Куча</td><td>container/heap в куче</td></tr>
+<tr><td>Частота</td><td>map в куче</td></tr>
+<tr><td>Память</td><td>O(n) в худшем случае</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="оптимизация-производительности-10"><a class="header" href="#оптимизация-производительности-10">Оптимизация производительности</a></h2>
 <h3 id="общие-техники-10"><a class="header" href="#общие-техники-10">Общие техники</a></h3>
 <ol>
@@ -15753,7 +15762,7 @@ heap := make(IntHeap, 0, k)
 <h3 id="инструменты-профилирования-10"><a class="header" href="#инструменты-профилирования-10">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-top-k-elements"><a class="header" href="#как-профилировать-top-k-elements">Как профилировать Top K Elements</a></h3>
-<h4 id="go-пример-11"><a class="header" href="#go-пример-11">Go пример:</a></h4>
+<h4 id="go-пример-10"><a class="header" href="#go-пример-10">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkTopK(b *testing.B) {
     nums := make([]int, 100000)
     for i := range nums {
@@ -16916,7 +16925,7 @@ if allEmpty {
 <h4 id="k-отсортированных-массивов"><a class="header" href="#k-отсортированных-массивов">K отсортированных массивов:</a></h4>
 <p><strong>Структура</strong>:</p>
 <pre><code>┌─────────────────────────────────────────┐
-│ Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;                          │
+│ [][]int                                 │
 │ ┌─────────────┐                        │
 │ │ [1,4,7]    │ Массив 0               │
 │ │ [2,5,8]    │ Массив 1               │
@@ -16976,11 +16985,18 @@ heap := make(ItemHeap, 0, k)
 <pre><code class="language-go">// ✅ Предварительное выделение
 result := make([]int, 0, totalElements)
 </code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Куча | BinaryHeap в куче | container/heap в куче |
-| Результат | Vec в куче | Слайс в куче |
-| Память | O(k) + O(n) | O(k) + O(n) |</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Куча</td><td>container/heap в куче</td></tr>
+<tr><td>Результат</td><td>Слайс в куче</td></tr>
+<tr><td>Память</td><td>O(k) + O(n)</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="оптимизация-производительности-11"><a class="header" href="#оптимизация-производительности-11">Оптимизация производительности</a></h2>
 <h3 id="общие-техники-11"><a class="header" href="#общие-техники-11">Общие техники</a></h3>
 <ol>
@@ -17021,7 +17037,7 @@ func mergeKListsOptimized(lists []*ListNode) *ListNode {
 </code></pre>
 <ol>
 <li>
-<p><strong>Использование <code>Reverse</code> для min heap</strong>:</p>
+<p><strong>Min heap через метод <code>Less</code> (<code>h[i] &lt; h[j]</code>)</strong>:</p>
 </li>
 <li>
 <p><strong>Предварительное выделение</strong>:</p>
@@ -17044,7 +17060,7 @@ heap.Push(&amp;heap, item)
 <h3 id="инструменты-профилирования-11"><a class="header" href="#инструменты-профилирования-11">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-k-way-merge"><a class="header" href="#как-профилировать-k-way-merge">Как профилировать K-way Merge</a></h3>
-<h4 id="go-пример-12"><a class="header" href="#go-пример-12">Go пример:</a></h4>
+<h4 id="go-пример-11"><a class="header" href="#go-пример-11">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkMergeKLists(b *testing.B) {
     lists := createTestLists(10, 1000)
     
@@ -17647,6 +17663,7 @@ func mergeKSortedFiles(files []*os.File) []int {
 <li><strong>Standard Libraries</strong>: std::merge в C++</li>
 <li><strong>Java Collections</strong>: Collections.merge</li>
 <li><strong>Python heapq</strong>: heapq.merge</li>
+<li><strong>Go</strong>: container/heap для k-way merge</li>
 </ul>
 <h3 id="10-streaming-systems"><a class="header" href="#10-streaming-systems">10. Streaming Systems</a></h3>
 <p><strong>Применение в потоковых системах</strong>:</p>
@@ -18208,19 +18225,19 @@ for i := start; i &lt; len(nums); i++ {
 </ul>
 <h3 id="int--t-go"><a class="header" href="#int--t-go">[][]int / [][]T (Go)</a></h3>
 <h4 id="как-хранится-в-памяти-14"><a class="header" href="#как-хранится-в-памяти-14">Как хранится в памяти:</a></h4>
-<p><strong>Vec&lt;Vec&lt;i32&gt;&gt;</strong>:</p>
+<p><strong>[][]int</strong>:</p>
 <pre><code>Результат (все подмножества):
 ┌─────────────────────────────────────────┐
-│ Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;                           │
+│ [][]int                                  │
 │ ┌─────────────┐                         │
-│ │ ptr: *mut   │ Указатель на массив     │
-│ │   Vec&amp;lt;i32&amp;gt;  │                         │
-│ │ len: usize  │ Количество подмножеств  │
+│ │ ptr: *[]int │ Указатель на массив     │
+│ │   []int     │                         │
+│ │ len: int    │ Количество подмножеств  │
 │ └─────────────┘                         │
 └─────────────────────────────────────────┘
          │
          ▼
-    [Vec&amp;lt;i32&amp;gt;][Vec&amp;lt;i32&amp;gt;][Vec&amp;lt;i32&amp;gt;]...
+    [[]int][[]int][[]int]...
     ┌────┐  ┌──────┐  ┌──────┐
     │[]  │  │[1]   │  │[1,2] │
     └────┘  └──────┘  └──────┘
@@ -18228,7 +18245,7 @@ for i := start; i &lt; len(nums); i++ {
 <p><strong>Важные детали</strong>:</p>
 <ul>
 <li>Количество подмножеств: 2^n</li>
-<li>Каждое подмножество - отдельный Vec</li>
+<li>Каждое подмножество - отдельный []int</li>
 <li>Backtracking экономит память (переиспользование текущего подмножества)</li>
 </ul>
 <h4 id="операции-и-их-сложность-12"><a class="header" href="#операции-и-их-сложность-12">Операции и их сложность:</a></h4>
@@ -18361,7 +18378,7 @@ result := make([][]int, 0, 1&lt;&lt;len(nums))
 <h3 id="инструменты-профилирования-12"><a class="header" href="#инструменты-профилирования-12">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-subsets"><a class="header" href="#как-профилировать-subsets">Как профилировать Subsets</a></h3>
-<h4 id="go-пример-13"><a class="header" href="#go-пример-13">Go пример:</a></h4>
+<h4 id="go-пример-12"><a class="header" href="#go-пример-12">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkSubsets(b *testing.B) {
     nums := make([]int, 10)
     for i := range nums {
@@ -19067,8 +19084,162 @@ func generateFeatureCombinations(features []string) [][]string {
 <li><a href="https://en.wikipedia.org/wiki/Power_set">Power Set - Wikipedia</a> - Математическая теория подмножеств</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="topological-sort-топологическая-сортировка"><a class="header" href="#topological-sort-топологическая-сортировка">Topological Sort (Топологическая сортировка)</a></h1>
+<h1 id="backtracking-поиск-с-возвратом"><a class="header" href="#backtracking-поиск-с-возвратом">Backtracking (Поиск с возвратом)</a></h1>
 <h2 id="описание-шаблона-14"><a class="header" href="#описание-шаблона-14">Описание шаблона</a></h2>
+<p><strong>Backtracking</strong> (поиск с возвратом) — это техника систематического перебора, при
+которой решение строится по одному элементу за раз. Как только становится понятно,
+что текущий частичный вариант не может привести к допустимому решению, алгоритм
+<strong>откатывается</strong> (backtrack) на шаг назад и пробует другой вариант.</p>
+<p>По сути это обход в глубину (DFS) по <strong>дереву решений</strong>: каждый узел — частичное
+решение, каждое ребро — выбор следующего элемента. Ключевая идея — <strong>«сделал выбор →
+рекурсивно продолжил → отменил выбор»</strong>.</p>
+<h2 id="когда-применять-14"><a class="header" href="#когда-применять-14">Когда применять</a></h2>
+<p>Используйте этот шаблон, когда нужно:</p>
+<ul>
+<li>Сгенерировать <strong>все</strong> комбинации, перестановки или подмножества.</li>
+<li>Найти <strong>все пути</strong> или конфигурации, удовлетворяющие ограничениям (судоку, N ферзей,
+расстановка скобок).</li>
+<li>Решить задачу вида «существует ли последовательность выборов, дающая результат».</li>
+</ul>
+<p>Признак-маркер: в условии есть слова «все возможные», «сгенерируйте», «найдите все
+комбинации/пути», а размер входа невелик (перебор экспоненциальный).</p>
+<h2 id="алгоритмподход-14"><a class="header" href="#алгоритмподход-14">Алгоритм/Подход</a></h2>
+<p>Общий каркас одинаков почти для всех задач:</p>
+<pre><code class="language-go">func backtrack(current []int, choices []int, result *[][]int) {
+    // 1. Базовый случай: текущий вариант — готовое решение
+    if isComplete(current) {
+        // важно копировать срез, иначе все решения будут ссылаться на один буфер
+        solution := make([]int, len(current))
+        copy(solution, current)
+        *result = append(*result, solution)
+        return
+    }
+
+    // 2. Перебираем варианты следующего шага
+    for _, choice := range choices {
+        if !isValid(current, choice) {
+            continue // отсечение недопустимых веток (pruning)
+        }
+        current = append(current, choice) // делаем выбор
+        backtrack(current, choices, result)
+        current = current[:len(current)-1] // ОТМЕНЯЕМ выбор (backtrack)
+    }
+}
+</code></pre>
+<p>Три обязательных компонента:</p>
+<ol>
+<li><strong>Выбор</strong> (<code>append</code>) — добавляем элемент в частичное решение.</li>
+<li><strong>Ограничения</strong> (<code>isValid</code>) — отсекаем заведомо тупиковые ветки как можно раньше.
+Чем раньше отсечение, тем меньше дерево перебора.</li>
+<li><strong>Цель</strong> (<code>isComplete</code>) — условие, при котором частичное решение становится полным.</li>
+</ol>
+<h3 id="схема-дерево-решений-для-перестановок-1-2-3"><a class="header" href="#схема-дерево-решений-для-перестановок-1-2-3">Схема: дерево решений для перестановок [1, 2, 3]</a></h3>
+<pre><code class="language-mermaid">flowchart TD
+    R["[]"] --&gt; A["[1]"]
+    R --&gt; B["[2]"]
+    R --&gt; C["[3]"]
+    A --&gt; A1["[1,2]"] --&gt; A1x["[1,2,3] ✓"]
+    A --&gt; A2["[1,3]"] --&gt; A2x["[1,3,2] ✓"]
+    B --&gt; B1["[2,1]"] --&gt; B1x["[2,1,3] ✓"]
+    B --&gt; B2["[2,3]"] --&gt; B2x["[2,3,1] ✓"]
+    C --&gt; C1["[3,1]"] --&gt; C1x["[3,1,2] ✓"]
+    C --&gt; C2["[3,2]"] --&gt; C2x["[3,2,1] ✓"]
+</code></pre>
+<p>Каждый лист — готовая перестановка. Спускаясь, мы делаем выбор; поднимаясь —
+отменяем его и пробуем следующий.</p>
+<h2 id="пример-генерация-всех-перестановок"><a class="header" href="#пример-генерация-всех-перестановок">Пример: генерация всех перестановок</a></h2>
+<pre><code class="language-go">func permute(nums []int) [][]int {
+    var result [][]int
+    used := make([]bool, len(nums))
+    var current []int
+
+    var backtrack func()
+    backtrack = func() {
+        if len(current) == len(nums) {
+            perm := make([]int, len(current))
+            copy(perm, current)
+            result = append(result, perm)
+            return
+        }
+        for i, n := range nums {
+            if used[i] {
+                continue
+            }
+            used[i] = true
+            current = append(current, n)
+            backtrack()
+            current = current[:len(current)-1]
+            used[i] = false
+        }
+    }
+
+    backtrack()
+    return result
+}
+</code></pre>
+<h2 id="временная-и-пространственная-сложность-14"><a class="header" href="#временная-и-пространственная-сложность-14">Временная и пространственная сложность</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Задача</th><th>Время</th><th>Память (без учёта вывода)</th></tr>
+</thead>
+<tbody>
+<tr><td>Подмножества</td><td>O(n · 2ⁿ)</td><td>O(n) — глубина рекурсии</td></tr>
+<tr><td>Перестановки</td><td>O(n · n!)</td><td>O(n)</td></tr>
+<tr><td>Комбинации C(n, k)</td><td>O(k · C(n,k))</td><td>O(k)</td></tr>
+<tr><td>Расстановка скобок</td><td>O(4ⁿ / √n)</td><td>O(n)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Backtracking почти всегда <strong>экспоненциален</strong> — это нормально, ведь решений
+экспоненциально много. Главный рычаг ускорения — <strong>раннее отсечение</strong> (pruning):
+чем раньше отбрасываем недопустимую ветку, тем меньше реальный перебор.</p>
+<h2 id="типичные-ошибки-10"><a class="header" href="#типичные-ошибки-10">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Забыли скопировать срез перед добавлением в результат.</strong> В Go срез — это
+дескриптор поверх общего массива; если положить в результат сам <code>current</code>, все
+записи будут указывать на один буфер и «испортятся» при следующем <code>append</code>.
+Всегда <code>make</code> + <code>copy</code>.</li>
+<li><strong>Забыли отменить выбор.</strong> Без <code>current = current[:len(current)-1]</code> состояние
+«протекает» в соседние ветки и решения становятся неверными.</li>
+<li><strong>Позднее отсечение.</strong> Проверяйте ограничения до рекурсивного вызова, а не в
+базовом случае — иначе дерево перебора раздувается.</li>
+<li><strong>Дубликаты.</strong> Для входа с повторами сначала отсортируйте и пропускайте
+<code>nums[i] == nums[i-1]</code> на одном уровне, иначе получите одинаковые решения.</li>
+</ol>
+<h2 id="примеры-задач-на-leetcode-13"><a class="header" href="#примеры-задач-на-leetcode-13">Примеры задач на LeetCode</a></h2>
+<h3 id="легкие--средние"><a class="header" href="#легкие--средние">Легкие / средние</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/subsets/">Subsets</a> — все подмножества</li>
+<li><a href="https://leetcode.com/problems/permutations/">Permutations</a> — все перестановки</li>
+<li><a href="https://leetcode.com/problems/combinations/">Combinations</a> — сочетания C(n, k)</li>
+<li><a href="https://leetcode.com/problems/generate-parentheses/">Generate Parentheses</a> — корректные скобки</li>
+<li><a href="https://leetcode.com/problems/letter-combinations-of-a-phone-number/">Letter Combinations of a Phone Number</a></li>
+</ul>
+<h3 id="сложные-13"><a class="header" href="#сложные-13">Сложные</a></h3>
+<ul>
+<li><a href="https://leetcode.com/problems/n-queens/">N-Queens</a> — расстановка ферзей</li>
+<li><a href="https://leetcode.com/problems/sudoku-solver/">Sudoku Solver</a> — решение судоку</li>
+<li><a href="https://leetcode.com/problems/word-search/">Word Search</a> — поиск слова в сетке</li>
+</ul>
+<h2 id="упражнения-13"><a class="header" href="#упражнения-13">Упражнения</a></h2>
+<p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
+есть пакет <code>backtracking</code> с заготовками и тестами:</p>
+<pre><code class="language-bash">cd exercises
+go test ./backtracking/                 # ваши решения
+go test -tags solution ./backtracking/  # эталон
+</code></pre>
+<p>Реализуйте <code>Permutations</code> и <code>GenerateParentheses</code> и добейтесь зелёных тестов.</p>
+<h2 id="связанные-шаблоны-14"><a class="header" href="#связанные-шаблоны-14">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="#subsets-подмножества">Subsets</a></strong> — частный случай backtracking (выбор «брать / не брать»).</li>
+<li><strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> — backtracking это и есть DFS по дереву выборов.</li>
+<li><strong>Dynamic Programming</strong> — когда подзадачи перекрываются, перебор с возвратом часто
+заменяется мемоизацией/DP для устранения повторных вычислений.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="topological-sort-топологическая-сортировка"><a class="header" href="#topological-sort-топологическая-сортировка">Topological Sort (Топологическая сортировка)</a></h1>
+<h2 id="описание-шаблона-15"><a class="header" href="#описание-шаблона-15">Описание шаблона</a></h2>
 <p>Шаблон <strong>Topological Sort</strong> используется для нахождения линейного порядка элементов в ориентированном ациклическом графе (DAG), где каждое ребро представляет зависимость. Если элемент A зависит от элемента B, то B должен появиться перед A в топологическом порядке.</p>
 <h3 id="что-такое-dag-directed-acyclic-graph"><a class="header" href="#что-такое-dag-directed-acyclic-graph">Что такое DAG (Directed Acyclic Graph)?</a></h3>
 <p><strong>DAG (Directed Acyclic Graph)</strong> — это ориентированный граф без циклов.</p>
@@ -19105,7 +19276,7 @@ B → C
 <p>Топологическая сортировка была разработана в контексте планирования задач и компиляции программ, где нужно определить порядок выполнения операций с учетом зависимостей. Алгоритм Кана был предложен в 1962 году, а DFS-подход является классическим применением обхода в глубину.</p>
 <h3 id="основная-идея-14"><a class="header" href="#основная-идея-14">Основная идея</a></h3>
 <p>Ключевое наблюдение: в DAG всегда есть хотя бы одна вершина без входящих ребер (источник). Обрабатывая источники и удаляя их из графа, мы получаем новые источники, что позволяет построить линейный порядок.</p>
-<h2 id="когда-применять-14"><a class="header" href="#когда-применять-14">Когда применять</a></h2>
+<h2 id="когда-применять-15"><a class="header" href="#когда-применять-15">Когда применять</a></h2>
 <p>Используйте этот шаблон, когда:</p>
 <ul>
 <li>Работаете с ориентированным ациклическим графом (DAG)</li>
@@ -19114,7 +19285,7 @@ B → C
 <li>Задача связана с планированием или последовательностью выполнения</li>
 <li>Нужно проверить, можно ли выполнить все задачи (нет циклов)</li>
 </ul>
-<h2 id="алгоритмподход-14"><a class="header" href="#алгоритмподход-14">Алгоритм/Подход</a></h2>
+<h2 id="алгоритмподход-15"><a class="header" href="#алгоритмподход-15">Алгоритм/Подход</a></h2>
 <h3 id="алгоритм-кана-kahns-algorithm"><a class="header" href="#алгоритм-кана-kahns-algorithm">Алгоритм Кана (Kahn’s Algorithm):</a></h3>
 <pre><code class="language-go">// Топологическая сортировка с использованием алгоритма Кана
 func topologicalSort(numCourses int, prerequisites [][]int) []int {
@@ -19345,7 +19516,7 @@ In-degree: A=1, B=1, C=1 (все &gt; 0)
 </tbody>
 </table>
 </div>
-<h2 id="временная-и-пространственная-сложность-14"><a class="header" href="#временная-и-пространственная-сложность-14">Временная и пространственная сложность</a></h2>
+<h2 id="временная-и-пространственная-сложность-15"><a class="header" href="#временная-и-пространственная-сложность-15">Временная и пространственная сложность</a></h2>
 <h3 id="детальный-анализ-13"><a class="header" href="#детальный-анализ-13">Детальный анализ:</a></h3>
 <p><strong>Алгоритм Кана</strong>:</p>
 <ul>
@@ -19442,7 +19613,7 @@ for _, prereq := range prerequisites {
     }
 }
 </code></pre>
-<h2 id="типичные-ошибки-10"><a class="header" href="#типичные-ошибки-10">Типичные ошибки</a></h2>
+<h2 id="типичные-ошибки-11"><a class="header" href="#типичные-ошибки-11">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Неправильный подсчет in-degree</strong>: Убедитесь, что считаете входящие, а не исходящие ребра</li>
 <li><strong>Забывание проверки циклов</strong>: Если результат содержит меньше V вершин, есть цикл</li>
@@ -19467,7 +19638,7 @@ for _, prereq := range prerequisites {
 <h4 id="представление-графа"><a class="header" href="#представление-графа">Представление графа:</a></h4>
 <p><strong>Список смежности (Adjacency List)</strong>:</p>
 <pre><code>┌─────────────────────────────────────────┐
-│ Vec&amp;lt;Vec&lt;usize&amp;gt;&gt;                         │
+│ [][]int                                 │
 │ ┌─────────────┐                        │
 │ │ [1,2]       │ Узел 0 → узлы 1,2     │
 │ │ [3]         │ Узел 1 → узел 3       │
@@ -19486,7 +19657,7 @@ for _, prereq := range prerequisites {
 <h4 id="массив-in-degree"><a class="header" href="#массив-in-degree">Массив in-degree:</a></h4>
 <p><strong>Структура</strong>:</p>
 <pre><code>┌─────────────────────────────────────────┐
-│ Vec&amp;lt;i32&amp;gt; / []int                        │
+│ []int                                   │
 │ ┌─────────────┐                        │
 │ │ [0]         │ Узел 0: 0 входящих     │
 │ │ [1]         │ Узел 1: 1 входящий    │
@@ -19578,11 +19749,18 @@ graph := make([][]int, numCourses)
 <pre><code class="language-go">// ✅ Предварительное выделение
 inDegree := make([]int, numCourses)
 </code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Граф | <code>Vec&amp;lt;Vec&lt;usize&amp;gt;&gt;</code> | [][]int |
-| Память | O(V + E) | O(V + E) |
-| Производительность | Предсказуемая | Может быть паузы GC |</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Граф</td><td>[][]int</td></tr>
+<tr><td>Память</td><td>O(V + E)</td></tr>
+<tr><td>Производительность</td><td>Может быть паузы GC</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="оптимизация-производительности-13"><a class="header" href="#оптимизация-производительности-13">Оптимизация производительности</a></h2>
 <h3 id="общие-техники-13"><a class="header" href="#общие-техники-13">Общие техники</a></h3>
 <ol>
@@ -19629,7 +19807,7 @@ func topologicalSortOptimized(numCourses int, prerequisites [][]int) []int {
 </code></pre>
 <ol>
 <li>
-<p><strong>Использование <code>VecDeque</code></strong>:</p>
+<p><strong>Использование очереди (слайс или container/list)</strong>:</p>
 </li>
 <li>
 <p><strong>Предварительное выделение</strong>:</p>
@@ -19653,7 +19831,7 @@ queue = queue[1:]  // Удаление первого элемента
 <h3 id="инструменты-профилирования-13"><a class="header" href="#инструменты-профилирования-13">Инструменты профилирования</a></h3>
 <p>См. раздел “Профилирование” в <a href="#профилирование">Sliding Window</a> для общих инструментов.</p>
 <h3 id="как-профилировать-topological-sort"><a class="header" href="#как-профилировать-topological-sort">Как профилировать Topological Sort</a></h3>
-<h4 id="go-пример-14"><a class="header" href="#go-пример-14">Go пример:</a></h4>
+<h4 id="go-пример-13"><a class="header" href="#go-пример-13">Go пример:</a></h4>
 <pre><code class="language-go">func BenchmarkTopologicalSort(b *testing.B) {
     prerequisites := createTestPrerequisites(1000, 5000)
     
@@ -19862,14 +20040,14 @@ go test -bench=. -benchmem
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-13"><a class="header" href="#примеры-задач-на-leetcode-13">Примеры задач на LeetCode</a></h2>
+<h2 id="примеры-задач-на-leetcode-14"><a class="header" href="#примеры-задач-на-leetcode-14">Примеры задач на LeetCode</a></h2>
 <h3 id="средние-13"><a class="header" href="#средние-13">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/course-schedule/">Course Schedule</a> - Расписание курсов</li>
 <li><a href="https://leetcode.com/problems/course-schedule-ii/">Course Schedule II</a> - Расписание курсов II</li>
 <li><a href="https://leetcode.com/problems/alien-dictionary/">Alien Dictionary</a> - Словарь инопланетян</li>
 </ul>
-<h3 id="сложные-13"><a class="header" href="#сложные-13">Сложные:</a></h3>
+<h3 id="сложные-14"><a class="header" href="#сложные-14">Сложные:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/minimum-height-trees/">Minimum Height Trees</a> - Деревья минимальной высоты</li>
 <li><a href="https://leetcode.com/problems/sequence-reconstruction/">Sequence Reconstruction</a> - Реконструкция последовательности</li>
@@ -20343,7 +20521,7 @@ func buildOrder(modules []Module) []string {
 <li><strong>Message Ordering</strong>: Определение порядка сообщений</li>
 <li><strong>Distributed Systems</strong>: Определение порядка операций</li>
 </ul>
-<h2 id="упражнения-13"><a class="header" href="#упражнения-13">Упражнения</a></h2>
+<h2 id="упражнения-14"><a class="header" href="#упражнения-14">Упражнения</a></h2>
 <p>Практикуйтесь на задачах разной сложности для закрепления материала:</p>
 <h3 id="легкие-задачи-для-начинающих-13"><a class="header" href="#легкие-задачи-для-начинающих-13">Легкие задачи (для начинающих)</a></h3>
 <ol>
@@ -20450,7 +20628,7 @@ func buildOrder(modules []Module) []string {
 <li><strong>Отслеживайте in-degree</strong>: Правильно подсчитывайте входящие степени</li>
 <li><strong>Обрабатывайте множественные источники</strong>: Убедитесь, что обрабатываете все вершины с in-degree = 0</li>
 </ol>
-<h2 id="связанные-шаблоны-14"><a class="header" href="#связанные-шаблоны-14">Связанные шаблоны</a></h2>
+<h2 id="связанные-шаблоны-15"><a class="header" href="#связанные-шаблоны-15">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#tree-bfs-обход-дерева-в-ширину">Tree BFS</a></strong> - Использует похожий подход с очередью</li>
 <li><strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> - Альтернативный подход для топологической сортировки</li>
@@ -20475,6 +20653,94 @@ func buildOrder(modules []Module) []string {
 <li><a href="https://www.geeksforgeeks.org/topological-sorting/">Topological Sort - GeeksforGeeks</a> - Подробное объяснение алгоритма</li>
 <li><a href="https://en.wikipedia.org/wiki/Topological_sorting">Topological Sorting - Wikipedia</a> - Математическая теория и приложения</li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="приложение-память-gc-и-профилирование-в-go"><a class="header" href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a></h1>
+<p>Эта страница — единый справочник по особенностям Go, которые упоминаются во многих
+главах: модель памяти, escape analysis, сборщик мусора и инструменты профилирования.
+Главы ссылаются сюда, чтобы не повторять одну и ту же теорию.</p>
+<h2 id="стек-и-куча"><a class="header" href="#стек-и-куча">Стек и куча</a></h2>
+<ul>
+<li><strong>Стек</strong> — локальные переменные, примитивы, небольшие структуры. Аллокация и
+освобождение почти бесплатны (сдвиг указателя стека).</li>
+<li><strong>Куча</strong> — данные, которые «переживают» функцию или имеют динамический размер.
+За освобождение отвечает сборщик мусора (GC).</li>
+</ul>
+<p>Куда поместить переменную, решает <strong>не программист, а компилятор</strong> — на основе escape
+analysis.</p>
+<h2 id="escape-analysis"><a class="header" href="#escape-analysis">Escape Analysis</a></h2>
+<p><strong>Escape analysis</strong> — статический анализ компилятора: «убегает» ли переменная за
+пределы функции. Если да — она аллоцируется в куче, если нет — остаётся на стеке.</p>
+<p>Типичные причины «побега» в кучу:</p>
+<ol>
+<li>Возврат указателя на локальную переменную (<code>return &amp;x</code>).</li>
+<li>Сохранение указателя в глобальную переменную или долгоживущую структуру.</li>
+<li>Упаковка значения в интерфейс (<code>var i any = x</code>).</li>
+<li>Слишком большой объект или срез с неизвестным на этапе компиляции размером.</li>
+</ol>
+<p>Проверить решения компилятора:</p>
+<pre><code class="language-bash">go build -gcflags=-m ./...
+</code></pre>
+<p>Вывод вида <code>moved to heap: x</code> или <code>x escapes to heap</code> показывает, что переменная
+ушла в кучу.</p>
+<p><strong>Как уменьшить аллокации:</strong></p>
+<pre><code class="language-go">// ❌ возвращаем указатель — побег в кучу
+func bad() *int { x := 42; return &amp;x }
+
+// ✅ возвращаем значение — остаётся на стеке
+func good() int { x := 42; return x }
+
+// ✅ заранее выделяем ёмкость среза — меньше перевыделений
+buf := make([]int, 0, expectedSize)
+</code></pre>
+<h2 id="сборщик-мусора-gc"><a class="header" href="#сборщик-мусора-gc">Сборщик мусора (GC)</a></h2>
+<p>Go использует <strong>конкурентный mark-and-sweep</strong> с трёхцветной маркировкой
+(белый/серый/чёрный), работающий параллельно с программой и минимизирующий паузы
+Stop-The-World.</p>
+<ul>
+<li><strong>Триггер</strong>: по умолчанию GC запускается, когда куча вырастает примерно вдвое
+относительно прошлого цикла. Регулируется переменной <code>GOGC</code> (меньше значение —
+агрессивнее GC, меньше памяти, больше пауз).</li>
+<li><strong>Принудительно</strong>: <code>runtime.GC()</code> (нужно редко, в основном для тестов/бенчмарков).</li>
+</ul>
+<p><strong>Снижение нагрузки на GC</strong> — это в первую очередь снижение числа аллокаций:</p>
+<pre><code class="language-go">// Переиспользование буфера вместо аллокации на каждой итерации
+buf := make([]int, 0, 1024)
+for ... {
+    buf = buf[:0] // очистка без новой аллокации
+    // ... работаем с buf
+}
+
+// sync.Pool для переиспользования временных объектов в горячих путях
+var pool = sync.Pool{New: func() any { return make([]byte, 0, 1024) }}
+</code></pre>
+<h2 id="профилирование-14"><a class="header" href="#профилирование-14">Профилирование</a></h2>
+<p>Профилирование — это <strong>измерение</strong> перед оптимизацией. Не оптимизируйте «на глаз»:
+сначала измерьте, найдите узкое место, потом улучшайте и снова измеряйте.</p>
+<h3 id="бенчмарки-14"><a class="header" href="#бенчмарки-14">Бенчмарки</a></h3>
+<pre><code class="language-go">func BenchmarkSolve(b *testing.B) {
+    data := makeInput(10000)
+    b.ResetTimer()
+    for i := 0; i &lt; b.N; i++ {
+        Solve(data)
+    }
+}
+</code></pre>
+<pre><code class="language-bash">go test -bench=. -benchmem
+</code></pre>
+<p>Вывод <code>1234 ns/op   0 B/op   0 allocs/op</code> читается так: среднее время на операцию,
+байт аллоцировано, число аллокаций. <strong>Идеал в горячем пути — 0 allocs/op.</strong></p>
+<h3 id="cpu-и-память-pprof"><a class="header" href="#cpu-и-память-pprof">CPU и память (pprof)</a></h3>
+<pre><code class="language-bash">go test -cpuprofile=cpu.prof -memprofile=mem.prof -bench=.
+go tool pprof cpu.prof   # команда top покажет самые «дорогие» функции
+</code></pre>
+<h3 id="чеклист-интерпретации"><a class="header" href="#чеклист-интерпретации">Чеклист интерпретации</a></h3>
+<ol>
+<li>Сравнивайте время с наивным подходом — есть ли реальный выигрыш.</li>
+<li>Минимизируйте <code>allocs/op</code> в горячем пути.</li>
+<li>Ищите функции, занимающие &gt;10% времени (<code>top</code> в pprof).</li>
+<li>Профилируйте на <strong>репрезентативных</strong> данных — результаты на игрушечных входах
+обманчивы.</li>
+</ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="заключение-1"><a class="header" href="#заключение-1">Заключение</a></h1>
 <p>Поздравляем! Вы изучили все 14 основных алгоритмических шаблонов для решения задач на собеседованиях. В этом заключении мы подведем итоги и дадим рекомендации по дальнейшему изучению.</p>
@@ -20664,6 +20930,7 @@ func buildOrder(modules []Module) []string {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-1edcf6b9.js"></script>
 
         <script>
         window.addEventListener('load', function() {

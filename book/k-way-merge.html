@@ -28,6 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-89ac050c.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -37,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-45549685.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-45d806d3.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -581,7 +582,7 @@ if allEmpty {
 <h4 id="k-отсортированных-массивов"><a class="header" href="#k-отсортированных-массивов">K отсортированных массивов:</a></h4>
 <p><strong>Структура</strong>:</p>
 <pre><code>┌─────────────────────────────────────────┐
-│ Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;                          │
+│ [][]int                                 │
 │ ┌─────────────┐                        │
 │ │ [1,4,7]    │ Массив 0               │
 │ │ [2,5,8]    │ Массив 1               │
@@ -641,11 +642,18 @@ heap := make(ItemHeap, 0, k)
 <pre><code class="language-go">// ✅ Предварительное выделение
 result := make([]int, 0, totalElements)
 </code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Куча | BinaryHeap в куче | container/heap в куче |
-| Результат | Vec в куче | Слайс в куче |
-| Память | O(k) + O(n) | O(k) + O(n) |</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Куча</td><td>container/heap в куче</td></tr>
+<tr><td>Результат</td><td>Слайс в куче</td></tr>
+<tr><td>Память</td><td>O(k) + O(n)</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
 <h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
 <ol>
@@ -686,7 +694,7 @@ func mergeKListsOptimized(lists []*ListNode) *ListNode {
 </code></pre>
 <ol>
 <li>
-<p><strong>Использование <code>Reverse</code> для min heap</strong>:</p>
+<p><strong>Min heap через метод <code>Less</code> (<code>h[i] &lt; h[j]</code>)</strong>:</p>
 </li>
 <li>
 <p><strong>Предварительное выделение</strong>:</p>
@@ -1312,6 +1320,7 @@ func mergeKSortedFiles(files []*os.File) []int {
 <li><strong>Standard Libraries</strong>: std::merge в C++</li>
 <li><strong>Java Collections</strong>: Collections.merge</li>
 <li><strong>Python heapq</strong>: heapq.merge</li>
+<li><strong>Go</strong>: container/heap для k-way merge</li>
 </ul>
 <h3 id="10-streaming-systems"><a class="header" href="#10-streaming-systems">10. Streaming Systems</a></h3>
 <p><strong>Применение в потоковых системах</strong>:</p>
@@ -1508,6 +1517,7 @@ func mergeKSortedFiles(files []*os.File) []int {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-1edcf6b9.js"></script>
 
 
 

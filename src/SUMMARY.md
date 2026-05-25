@@ -38,8 +38,10 @@
 ## Группа 6: Комбинаторика и графы
 
 - [Subsets (Подмножества)](subsets.md)
+- [Backtracking (Поиск с возвратом)](backtracking.md)
 - [Topological Sort (Топологическая сортировка)](topological-sort.md)
 
 ## Дополнительные материалы
 
+- [Приложение: память, GC и профилирование в Go](appendix-go-memory.md)
 - [Заключение](conclusion.md)

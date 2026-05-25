@@ -1,0 +1,93 @@
+/* algo-viz.css — стили интерактивных визуализаций. Подстраиваются под тему mdBook. */
+
+.algo-viz {
+  margin: 1.4em 0;
+  padding: 1em;
+  border: 1px solid var(--quote-border, #cccccc44);
+  border-radius: 8px;
+  background: var(--quote-bg, #00000008);
+}
+
+.algo-viz__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 0.9em;
+}
+
+.algo-viz__cell {
+  min-width: 2.4em;
+  height: 2.4em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--quote-border, #aaa);
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.algo-viz__cell--active {
+  background: var(--links, #4c84c4);
+  color: #fff;
+  border-color: var(--links, #4c84c4);
+}
+
+.algo-viz__cell--edge {
+  transform: translateY(-3px);
+  box-shadow: 0 3px 0 0 var(--links, #4c84c4);
+}
+
+.algo-viz__cell--found {
+  background: #2e9b57;
+  border-color: #2e9b57;
+}
+
+.algo-viz__info {
+  min-height: 1.4em;
+  text-align: center;
+  font-size: 0.95em;
+  margin-bottom: 0.8em;
+}
+
+.algo-viz__info--done {
+  font-weight: 700;
+  color: #2e9b57;
+}
+
+.algo-viz__ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.algo-viz__btn {
+  cursor: pointer;
+  border: 1px solid var(--quote-border, #aaa);
+  background: var(--sidebar-bg, #fff);
+  color: inherit;
+  border-radius: 6px;
+  padding: 0.25em 0.7em;
+  font-size: 1em;
+  line-height: 1;
+}
+
+.algo-viz__btn:hover:not(:disabled) {
+  background: var(--links, #4c84c4);
+  color: #fff;
+}
+
+.algo-viz__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.algo-viz__counter {
+  min-width: 4.5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}

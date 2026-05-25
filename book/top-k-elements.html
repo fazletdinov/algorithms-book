@@ -28,6 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-89ac050c.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -37,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-45549685.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-45d806d3.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -510,7 +511,7 @@ min = 3
 <p>В шаблоне Top K Elements используются следующие структуры данных:</p>
 <ul>
 <li><strong>MinHeap</strong>: Куча для хранения топ-k элементов</li>
-<li><strong>HashMap&lt;K, V&gt;  / Map (Go)</strong>: Для подсчета частоты (опционально)</li>
+<li><strong>map[K]V (Go)</strong>: Для подсчета частоты (опционально)</li>
 </ul>
 <h3 id="minheap--heap-go"><a class="header" href="#minheap--heap-go">MinHeap / Heap (Go)</a></h3>
 <h4 id="что-такое-heap-куча"><a class="header" href="#что-такое-heap-куча">Что такое Heap (Куча)?</a></h4>
@@ -533,7 +534,7 @@ func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 <li>Размер кучи ограничен k элементами</li>
 <li>Min-heap для топ-k наибольших (храним k наименьших, остальные больше)</li>
 <li>Max-heap для топ-k наименьших</li>
-<li>BinaryHeap<code>по умолчанию max-heap, для min-heap используйте</code>Reverse`</li>
+<li>В Go тип кучи задаётся методом <code>Less</code>: <code>&lt;</code> даёт min-heap, <code>&gt;</code> — max-heap</li>
 <li>O(k) памяти вместо O(n)</li>
 </ul>
 <h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
@@ -555,7 +556,7 @@ func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 <li>O(k) памяти вместо O(n)</li>
 <li>Оптимально для больших n и малых k</li>
 </ul>
-<h3 id="hashmapk-v---map-go"><a class="header" href="#hashmapk-v---map-go">HashMap&lt;K, V&gt;  / Map (Go)</a></h3>
+<h3 id="mapkv-go"><a class="header" href="#mapkv-go">map[K]V (Go)</a></h3>
 <h4 id="для-подсчета-частоты"><a class="header" href="#для-подсчета-частоты">Для подсчета частоты:</a></h4>
 <p><strong>Используется когда</strong>:</p>
 <ul>
@@ -615,11 +616,18 @@ heap := make(IntHeap, 0, k)
 <pre><code class="language-go">// ✅ Предварительное выделение
 frequency := make(map[int]int, n)
 </code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Куча | BinaryHeap в куче | container/heap в куче |
-| Частота | HashMap в куче | map в куче |
-| Память | O(n) в худшем случае | O(n) в худшем случае |</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Аспект</th><th>Go</th></tr>
+</thead>
+<tbody>
+<tr><td>Куча</td><td>container/heap в куче</td></tr>
+<tr><td>Частота</td><td>map в куче</td></tr>
+<tr><td>Память</td><td>O(n) в худшем случае</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
 <h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
 <ol>
@@ -1491,6 +1499,7 @@ func getTopKRecommendations(userID int, k int) []Product {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-1edcf6b9.js"></script>
 
 
 

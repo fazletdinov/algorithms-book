@@ -28,6 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-89ac050c.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -37,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-45549685.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-45d806d3.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -295,6 +296,13 @@
     D --&gt;|Нет| A
 </code></pre>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶», чтобы пошагово увидеть, как окно
+скользит по массиву и пересчитывает сумму за O(1). (Виджет работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="sliding-window-fixed" data-array="1,2,3,4,5,6" data-k="3"></div>
+
 <h3 id="фиксированное-окно-размера-k3-максимальная-сумма"><a class="header" href="#фиксированное-окно-размера-k3-максимальная-сумма">Фиксированное окно размера K=3 (максимальная сумма):</a></h3>
 <p><strong>Исходные данные:</strong> Массив <code>[1, 2, 3, 4, 5, 6]</code>, размер окна k = 3</p>
 <p><strong>Шаг 1: Инициализация - вычисляем сумму первого окна</strong></p>
@@ -1092,9 +1100,9 @@ m := make(map[string]int, expectedSize)
 <p><strong>Что такое кольцевой буфер (Ring Buffer)?</strong></p>
 <p><strong>Кольцевой буфер</strong> — это структура данных, которая использует массив фиксированного размера, но логически “заворачивает” индексы, создавая эффект бесконечного массива. Когда индекс достигает конца массива, он “переходит” в начало.</p>
 <pre><code>┌─────────────────────────────────────────┐
-│ head: usize  │ Индекс начала            │
-│ tail: usize  │ Индекс конца             │
-│ buf: Vec&amp;lt;T&amp;gt;  │ Буфер данных             │
+│ head: int    │ Индекс начала            │
+│ tail: int    │ Индекс конца             │
+│ buf: []T     │ Буфер данных             │
 └─────────────────────────────────────────┘
          │
          ▼
@@ -1104,7 +1112,7 @@ m := make(map[string]int, expectedSize)
 </code></pre>
 <p><strong>Как работает кольцевой буфер</strong>:</p>
 <ul>
-<li>Данные хранятся в обычном Vec, но индексы “заворачиваются” (wrap-around)</li>
+<li>Данные хранятся в обычном слайсе ([]T), но индексы “заворачиваются” (wrap-around)</li>
 <li><code>push_front</code>: уменьшаем head (с учетом wrap-around: если head == 0, переходим в конец массива)</li>
 <li><code>push_back</code>: увеличиваем tail (с учетом wrap-around: если tail == capacity, переходим в начало)</li>
 <li>Когда head == tail, буфер полон или пуст (нужно отслеживать отдельно через счетчик элементов)</li>
@@ -1125,7 +1133,7 @@ head = (0 - 1 + 8) % 8 = 7 (переход в конец)
 <ul>
 <li><code>push_front/pop_front</code>: просто изменение индекса head</li>
 <li><code>push_back/pop_back</code>: просто изменение индекса tail</li>
-<li>Нет необходимости сдвигать элементы (в отличие от Vec)</li>
+<li>Нет необходимости сдвигать элементы (в отличие от обычного слайса)</li>
 </ul>
 <p><strong>Что такое Deque (Double-Ended Queue)?</strong></p>
 <p><strong>Deque (двусторонняя очередь)</strong> — это структура данных, которая позволяет эффективно добавлять и удалять элементы с обоих концов (начала и конца).</p>
@@ -1133,7 +1141,7 @@ head = (0 - 1 + 8) % 8 = 7 (переход в конец)
 <ul>
 <li><strong>push_front/pop_front</strong>: Операции с началом (O(1) амортизированная)</li>
 <li><strong>push_back/pop_back</strong>: Операции с концом (O(1) амортизированная)</li>
-<li><strong>Доступ по индексу</strong>: O(1), но медленнее чем у Vec из-за вычисления индекса с учетом wrap-around</li>
+<li><strong>Доступ по индексу</strong>: O(1), но медленнее чем у обычного слайса из-за вычисления индекса с учетом wrap-around</li>
 </ul>
 <p><strong>Отличие от Queue и Stack</strong>:</p>
 <ul>
@@ -1141,8 +1149,9 @@ head = (0 - 1 + 8) % 8 = 7 (переход в конец)
 <li><strong>Stack (Стек)</strong>: Только push и pop с одного конца (LIFO - Last In, First Out)</li>
 <li><strong>Deque</strong>: Операции с обоих концов, более гибкая структура</li>
 </ul>
-<h4 id="когда-использовать-vecdeque"><a class="header" href="#когда-использовать-vecdeque">Когда использовать VecDeque:</a></h4>
-<p><strong>Используйте VecDeque когда</strong>:</p>
+<h4 id="когда-использовать-deque"><a class="header" href="#когда-использовать-deque">Когда использовать deque:</a></h4>
+<p>В Go нет встроенного типа deque — его реализуют через <code>container/list</code> или через срез (<code>[]T</code>) с индексами head/tail.</p>
+<p><strong>Используйте deque когда</strong>:</p>
 <ul>
 <li>Нужны операции с обоих концов (deque)</li>
 <li>Реализуете очередь (queue) — можно использовать как очередь</li>
@@ -1150,8 +1159,8 @@ head = (0 - 1 + 8) % 8 = 7 (переход в конец)
 </ul>
 <p><strong>Не используйте когда</strong>:</p>
 <ul>
-<li>Нужны только операции с одним концом (используйте Vec - проще и быстрее)</li>
-<li>Нужен частый произвольный доступ по индексу (VecDeque медленнее из-за вычисления индекса)</li>
+<li>Нужны только операции с одним концом (используйте обычный срез - проще и быстрее)</li>
+<li>Нужен частый произвольный доступ по индексу (deque медленнее из-за вычисления индекса)</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
 <h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
@@ -1558,18 +1567,6 @@ go tool pprof mem.prof
 </code></pre>
 <h3 id="как-профилировать-sliding-window"><a class="header" href="#как-профилировать-sliding-window">Как профилировать Sliding Window</a></h3>
 <h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
-<pre><code>    b.iter(|| max_sum_subarray_fixed_k(black_box(&amp;arr), 100))
-});
-</code></pre>
-<p>}</p>
-<p>criterion_group!(benches, bench_sliding_window);
-criterion_main!(benches);</p>
-<pre><code>
-**Запуск**:
-```bash
-cargo bench
-</code></pre>
-<h4 id="go-пример-1"><a class="header" href="#go-пример-1">Go пример:</a></h4>
 <pre><code class="language-go">// sliding_window_test.go
 func BenchmarkMaxSumSubarray(b *testing.B) {
     arr := make([]int, 10000)
@@ -1667,34 +1664,9 @@ func slidingWindowFixed(arr []int, k int) int {
     return maxSum
 }
 </code></pre>
-<pre><code>    eprintln!("Шаг {}: window_sum={:?}, arr[{}]={:?}", i, window_sum, i, arr[i]);
-}
-max_sum = window_sum;
-eprintln!("Первое окно: window_sum={:?}, max_sum={:?}", window_sum, max_sum);
-
-for i in k..arr.len() {
-    let old_sum = window_sum;
-    window_sum = window_sum + arr[i] - arr[i - k];
-    eprintln!(
-        "Шаг {}: window_sum={:?}-&gt;{:?} (добавили {:?}, убрали {:?}), max_sum={:?}",
-        i, old_sum, window_sum, arr[i], arr[i - k], max_sum
-    );
-    
-    if window_sum &gt; max_sum {
-        max_sum = window_sum;
-        eprintln!("Новый максимум: max_sum={:?}", max_sum);
-    }
-}
-
-max_sum
-</code></pre>
-<p>}</p>
-<pre><code>
-### 3. Визуализация состояния окна
-
-**Go**:
-```go
-func visualizeWindow(arr []int, left, right int) {
+<h3 id="3-визуализация-состояния-окна"><a class="header" href="#3-визуализация-состояния-окна">3. Визуализация состояния окна</a></h3>
+<p><strong>Go</strong>:</p>
+<pre><code class="language-go">func visualizeWindow(arr []int, left, right int) {
     fmt.Print("Массив: [")
     for i, val := range arr {
         if i == left {
@@ -2761,6 +2733,7 @@ func (tw *TemperatureWindow) Average() float64 {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-1edcf6b9.js"></script>
 
 
 

@@ -16,10 +16,11 @@ git-repository-url = ""
 edit-url-template = ""
 git-repository-icon = "fa-github"
 mathjax-support = true
-additional-css = []
-additional-js = []
+additional-css = ["assets/algo-viz.css"]
+additional-js = ["assets/algo-viz.js"]
 no-section-label = false
-playground = { editable = true, copyable = true, copy-js = true, line-numbers = false, runnable = true }
+# runnable = false: mdBook Playground выполняет только Rust; код на Go запускается локально (go run/go test)
+playground = { editable = true, copyable = true, copy-js = true, line-numbers = false, runnable = false }
 search = { enable = true, limit-results = 30, teaser-word-count = 30, use-boolean-and = true, boost-title = 2, boost-hierarchy = 1, boost-paragraph = 1, expand = true, heading-split-level = 3 }
 
 [preprocessor.links]
