@@ -44,8 +44,9 @@
 - [Графы: продвинутые алгоритмы](advanced-graph-algorithms.md)
 - [Topological Sort (Топологическая сортировка)](topological-sort.md)
 
-## Группа 7: Динамическое программирование
+## Группа 7: Оптимизация (жадность и ДП)
 
+- [Greedy (Жадные алгоритмы)](greedy.md)
 - [Dynamic Programming (Динамическое программирование)](dynamic-programming.md)
 
 ## Группа 8: Строки и структуры данных

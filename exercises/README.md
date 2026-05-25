@@ -59,6 +59,7 @@ go test -tags solution ./slidingwindow/   # прогнать тесты на э�
 | `strmatch`      | `KMPSearch`, `RabinKarp`                     |
 | `trie`          | `Trie.Insert` / `Search` / `StartsWith`      |
 | `segtree`       | `NewSegmentTree`, `Update`, `Query`          |
+| `greedy`        | `MaxNonOverlapping`, `CanJump`               |
 
 ## Как добавить свой шаблон
 

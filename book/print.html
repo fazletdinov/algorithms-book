@@ -39,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b551d91f.js";
+            window.path_to_searchindex_js = "searchindex-84caa3e5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-7d98a722.js"></script>
+        <script src="toc-30728bf8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -20767,8 +20767,128 @@ func buildOrder(modules []Module) []string {
 <li><a href="https://en.wikipedia.org/wiki/Topological_sorting">Topological Sorting - Wikipedia</a> - Математическая теория и приложения</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="dynamic-programming-динамическое-программирование"><a class="header" href="#dynamic-programming-динамическое-программирование">Dynamic Programming (Динамическое программирование)</a></h1>
+<h1 id="greedy-жадные-алгоритмы"><a class="header" href="#greedy-жадные-алгоритмы">Greedy (Жадные алгоритмы)</a></h1>
 <h2 id="описание-шаблона-17"><a class="header" href="#описание-шаблона-17">Описание шаблона</a></h2>
+<p><strong>Жадный алгоритм</strong> на каждом шаге делает <strong>локально оптимальный</strong> выбор в надежде, что
+последовательность таких выборов приведёт к <strong>глобальному оптимуму</strong>. Он никогда не
+пересматривает уже сделанный выбор — в этом его скорость и его опасность.</p>
+<p>Жадность работает <strong>не всегда</strong>. Она корректна, только когда задача обладает <strong>свойством
+жадного выбора</strong> (локально оптимальный выбор входит в некоторое глобально оптимальное
+решение) и <strong>оптимальной подструктурой</strong>. Если это не доказано — жадный ответ может быть
+неверным, и нужно <a href="#dynamic-programming-динамическое-программирование">динамическое программирование</a>.</p>
+<blockquote>
+<p>⚠️ Классический контрпример: размен суммы 6 монетами <code>[1, 3, 4]</code>. Жадность берёт
+<code>4 + 1 + 1 = 3</code> монеты, а оптимум — <code>3 + 3 = 2</code>. Поэтому Coin Change решается ДП, а не
+жадно.</p>
+</blockquote>
+<h2 id="когда-применять-17"><a class="header" href="#когда-применять-17">Когда применять</a></h2>
+<ul>
+<li>Задачи на <strong>расписание/интервалы</strong>: выбрать максимум непересекающихся событий.</li>
+<li><strong>Минимизация/максимизация</strong> с очевидным критерием сортировки.</li>
+<li>Задачи, где можно доказать «жадный остаётся впереди» (<em>greedy stays ahead</em>) или
+применить <strong>аргумент обмена</strong> (<em>exchange argument</em>).</li>
+</ul>
+<h2 id="как-доказать-корректность"><a class="header" href="#как-доказать-корректность">Как доказать корректность</a></h2>
+<p>Два стандартных приёма:</p>
+<ol>
+<li><strong>Greedy stays ahead</strong> — по индукции показываем, что после каждого шага жадное решение
+не хуже любого другого.</li>
+<li><strong>Exchange argument</strong> — берём оптимальное решение и показываем, что его можно
+«переставить» к жадному, не ухудшив.</li>
+</ol>
+<p>Без такого рассуждения жадность — лишь гипотеза.</p>
+<h2 id="пример-1-выбор-заявок-activity-selection"><a class="header" href="#пример-1-выбор-заявок-activity-selection">Пример 1: выбор заявок (Activity Selection)</a></h2>
+<p>Дан набор интервалов; нужно выбрать <strong>максимум</strong> взаимно непересекающихся. Жадный
+критерий: <strong>сортировка по времени окончания</strong> и выбор каждого следующего интервала,
+который начинается не раньше конца предыдущего.</p>
+<pre><code class="language-go">import "sort"
+
+func maxActivities(intervals [][]int) int {
+    if len(intervals) == 0 {
+        return 0
+    }
+    sort.Slice(intervals, func(i, j int) bool {
+        return intervals[i][1] &lt; intervals[j][1] // по концу
+    })
+    count := 1
+    lastEnd := intervals[0][1]
+    for _, iv := range intervals[1:] {
+        if iv[0] &gt;= lastEnd { // не пересекается с последним выбранным
+            count++
+            lastEnd = iv[1]
+        }
+    }
+    return count
+}
+</code></pre>
+<p><strong>Почему именно конец?</strong> Выбирая интервал, заканчивающийся раньше всех, мы оставляем
+максимум места для остальных — это и есть «жадный остаётся впереди».</p>
+<h2 id="пример-2-jump-game"><a class="header" href="#пример-2-jump-game">Пример 2: Jump Game</a></h2>
+<p>Можно ли из первого элемента массива допрыгнуть до последнего, если <code>nums[i]</code> — максимум
+шагов вперёд? Жадно ведём «самую дальнюю достижимую позицию».</p>
+<pre><code class="language-go">func canJump(nums []int) bool {
+    maxReach := 0
+    for i, v := range nums {
+        if i &gt; maxReach {
+            return false // сюда не допрыгнуть
+        }
+        if i+v &gt; maxReach {
+            maxReach = i + v
+        }
+    }
+    return true
+}
+</code></pre>
+<h2 id="временная-и-пространственная-сложность-17"><a class="header" href="#временная-и-пространственная-сложность-17">Временная и пространственная сложность</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Задача</th><th>Время</th><th>Память</th></tr>
+</thead>
+<tbody>
+<tr><td>Выбор заявок</td><td>O(n log n)</td><td>O(1)</td></tr>
+<tr><td>Jump Game</td><td>O(n)</td><td>O(1)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Чаще всего стоимость жадного алгоритма определяется <strong>сортировкой</strong> O(n log n); сам
+проход — линейный.</p>
+<h2 id="типичные-ошибки-15"><a class="header" href="#типичные-ошибки-15">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Неверный критерий жадности</strong> — для выбора заявок сортировка по началу или по
+длительности даёт неоптимум; правильно — по концу.</li>
+<li><strong>Применение жадности без доказательства</strong> — для многих задач (Coin Change,
+0/1 рюкзак) жадность неверна, нужно ДП.</li>
+<li><strong>Игнорирование граничных случаев</strong> — пустой вход, один элемент, совпадающие границы
+интервалов.</li>
+</ol>
+<h2 id="примеры-задач-на-leetcode-18"><a class="header" href="#примеры-задач-на-leetcode-18">Примеры задач на LeetCode</a></h2>
+<ul>
+<li><a href="https://leetcode.com/problems/jump-game/">Jump Game</a></li>
+<li><a href="https://leetcode.com/problems/non-overlapping-intervals/">Non-overlapping Intervals</a> — выбор заявок</li>
+<li><a href="https://leetcode.com/problems/gas-station/">Gas Station</a></li>
+<li><a href="https://leetcode.com/problems/task-scheduler/">Task Scheduler</a></li>
+<li><a href="https://leetcode.com/problems/partition-labels/">Partition Labels</a></li>
+</ul>
+<h2 id="упражнения-18"><a class="header" href="#упражнения-18">Упражнения</a></h2>
+<p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
+есть пакет <code>greedy</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./greedy/                 # ваши решения
+go test -tags solution ./greedy/  # эталон
+</code></pre>
+<p>Реализуйте <code>MaxNonOverlapping</code> (выбор заявок) и <code>CanJump</code> (Jump Game).</p>
+<h2 id="связанные-шаблоны-19"><a class="header" href="#связанные-шаблоны-19">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="#merge-intervals-слияние-интервалов">Merge Intervals</a></strong> — тоже о работе с интервалами, но без выбора
+оптимума.</li>
+<li><strong><a href="#dynamic-programming-динамическое-программирование">Dynamic Programming</a></strong> — когда жадность неверна, спасает ДП.</li>
+<li><strong><a href="#two-pointers-два-указателя">Two Pointers</a></strong> — часто сопровождает жадные проходы по
+отсортированным данным.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="dynamic-programming-динамическое-программирование"><a class="header" href="#dynamic-programming-динамическое-программирование">Dynamic Programming (Динамическое программирование)</a></h1>
+<h2 id="описание-шаблона-18"><a class="header" href="#описание-шаблона-18">Описание шаблона</a></h2>
 <p><strong>Динамическое программирование</strong> (ДП) — это техника решения задач путём разбиения их
 на <strong>перекрывающиеся подзадачи</strong> и сохранения результатов уже решённых подзадач, чтобы
 не вычислять их повторно. Если <a href="#backtracking-поиск-с-возвратом">backtracking</a> перебирает все варианты,
@@ -20780,7 +20900,7 @@ func buildOrder(modules []Module) []string {
 <li><strong>Оптимальная подструктура</strong> (optimal substructure) — оптимальное решение задачи
 строится из оптимальных решений её подзадач.</li>
 </ol>
-<h2 id="когда-применять-17"><a class="header" href="#когда-применять-17">Когда применять</a></h2>
+<h2 id="когда-применять-18"><a class="header" href="#когда-применять-18">Когда применять</a></h2>
 <p>Признаки-маркеры в условии:</p>
 <ul>
 <li>«Сколькими <strong>способами</strong>…» (подсчёт вариантов).</li>
@@ -20884,7 +21004,7 @@ func buildOrder(modules []Module) []string {
 <p>Состояние <code>dp[i][w]</code> — максимальная ценность из первых <code>i</code> предметов при вместимости <code>w</code>.
 Для каждого предмета выбор «взять / не взять»: <code>dp[i][w] = max(dp[i-1][w], dp[i-1][w-weight[i]] + value[i])</code>. Часто сворачивается до 1D-массива по <code>w</code> (идём по <code>w</code>
 в обратную сторону).</p>
-<h2 id="временная-и-пространственная-сложность-17"><a class="header" href="#временная-и-пространственная-сложность-17">Временная и пространственная сложность</a></h2>
+<h2 id="временная-и-пространственная-сложность-18"><a class="header" href="#временная-и-пространственная-сложность-18">Временная и пространственная сложность</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -20899,7 +21019,7 @@ func buildOrder(modules []Module) []string {
 </table>
 </div>
 <p>Общая формула: <strong>время ≈ (число состояний) × (стоимость перехода)</strong>.</p>
-<h2 id="типичные-ошибки-15"><a class="header" href="#типичные-ошибки-15">Типичные ошибки</a></h2>
+<h2 id="типичные-ошибки-16"><a class="header" href="#типичные-ошибки-16">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Неправильная база</strong> — забыли <code>dp[0]</code> или задали неверно; вся таблица «съезжает».</li>
 <li><strong>Неверный порядок обхода</strong> — состояние используется раньше, чем посчитано.</li>
@@ -20910,7 +21030,7 @@ func buildOrder(modules []Module) []string {
 <li><strong>0/1-рюкзак: проход по <code>w</code> в прямом порядке</strong> при свёрнутом массиве — предмет
 ошибочно берётся несколько раз (это уже unbounded knapsack).</li>
 </ol>
-<h2 id="примеры-задач-на-leetcode-18"><a class="header" href="#примеры-задач-на-leetcode-18">Примеры задач на LeetCode</a></h2>
+<h2 id="примеры-задач-на-leetcode-19"><a class="header" href="#примеры-задач-на-leetcode-19">Примеры задач на LeetCode</a></h2>
 <h3 id="легкие--средние-1"><a class="header" href="#легкие--средние-1">Легкие / средние</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/climbing-stairs/">Climbing Stairs</a></li>
@@ -20926,7 +21046,7 @@ func buildOrder(modules []Module) []string {
 <li><a href="https://leetcode.com/problems/longest-increasing-subsequence/">Longest Increasing Subsequence</a></li>
 <li><a href="https://leetcode.com/problems/partition-equal-subset-sum/">Partition Equal Subset Sum</a> — 0/1 рюкзак</li>
 </ul>
-<h2 id="упражнения-18"><a class="header" href="#упражнения-18">Упражнения</a></h2>
+<h2 id="упражнения-19"><a class="header" href="#упражнения-19">Упражнения</a></h2>
 <p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
 есть пакет <code>dp</code>:</p>
 <pre><code class="language-bash">cd exercises
@@ -20936,7 +21056,7 @@ go test -tags solution ./dp/  # эталон
 <p>Реализуйте <code>ClimbStairs</code> (1D), <code>CoinChange</code> (1D с выбором),
 <code>LongestCommonSubsequence</code> и <code>EditDistance</code> (2D), <code>LongestIncreasingSubsequence</code>
 (ДП + бинарный поиск) и <code>Knapsack01</code> (0/1 рюкзак со свёрнутым массивом).</p>
-<h2 id="связанные-шаблоны-19"><a class="header" href="#связанные-шаблоны-19">Связанные шаблоны</a></h2>
+<h2 id="связанные-шаблоны-20"><a class="header" href="#связанные-шаблоны-20">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#backtracking-поиск-с-возвратом">Backtracking</a></strong> — когда подзадачи перекрываются, перебор с
 возвратом превращается в ДП добавлением мемоизации.</li>
@@ -21054,7 +21174,7 @@ func kmpSearch(text, pattern string) int {
 </tbody>
 </table>
 </div>
-<h2 id="типичные-ошибки-16"><a class="header" href="#типичные-ошибки-16">Типичные ошибки</a></h2>
+<h2 id="типичные-ошибки-17"><a class="header" href="#типичные-ошибки-17">Типичные ошибки</a></h2>
 <ol>
 <li><strong>В KMP двигают указатель текста назад</strong> — теряется весь смысл; назад откатывается
 только <code>j</code> через <code>lps</code>.</li>
@@ -21066,14 +21186,14 @@ func kmpSearch(text, pattern string) int {
 добавляйте <code>mod</code> перед <code>%</code>, чтобы избежать отрицательных чисел.</li>
 <li><strong>Пустой образец</strong> — договоритесь о соглашении (здесь — возвращаем 0).</li>
 </ol>
-<h2 id="примеры-задач-на-leetcode-19"><a class="header" href="#примеры-задач-на-leetcode-19">Примеры задач на LeetCode</a></h2>
+<h2 id="примеры-задач-на-leetcode-20"><a class="header" href="#примеры-задач-на-leetcode-20">Примеры задач на LeetCode</a></h2>
 <ul>
 <li><a href="https://leetcode.com/problems/find-the-index-of-the-first-occurrence-in-a-string/">Find the Index of the First Occurrence in a String</a> — strStr (KMP)</li>
 <li><a href="https://leetcode.com/problems/repeated-string-match/">Repeated String Match</a></li>
 <li><a href="https://leetcode.com/problems/shortest-palindrome/">Shortest Palindrome</a> — префикс-функция</li>
 <li><a href="https://leetcode.com/problems/longest-happy-prefix/">Longest Happy Prefix</a> — прямое применение LPS</li>
 </ul>
-<h2 id="упражнения-19"><a class="header" href="#упражнения-19">Упражнения</a></h2>
+<h2 id="упражнения-20"><a class="header" href="#упражнения-20">Упражнения</a></h2>
 <p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
 есть пакет <code>strmatch</code>:</p>
 <pre><code class="language-bash">cd exercises
@@ -21081,7 +21201,7 @@ go test ./strmatch/                 # ваши решения
 go test -tags solution ./strmatch/  # эталон
 </code></pre>
 <p>Реализуйте <code>KMPSearch</code> и <code>RabinKarp</code> — обе ищут первое вхождение образца.</p>
-<h2 id="связанные-шаблоны-20"><a class="header" href="#связанные-шаблоны-20">Связанные шаблоны</a></h2>
+<h2 id="связанные-шаблоны-21"><a class="header" href="#связанные-шаблоны-21">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#sliding-window-скользящее-окно">Sliding Window</a></strong> — Rabin–Karp это скользящее окно по хешу.</li>
 <li><strong><a href="#two-pointers-два-указателя">Two Pointers</a></strong> — базовая техника движения указателей по строке.</li>
@@ -21089,7 +21209,7 @@ go test -tags solution ./strmatch/  # эталон
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="trie-префиксное-дерево"><a class="header" href="#trie-префиксное-дерево">Trie (Префиксное дерево)</a></h1>
-<h2 id="описание-шаблона-18"><a class="header" href="#описание-шаблона-18">Описание шаблона</a></h2>
+<h2 id="описание-шаблона-19"><a class="header" href="#описание-шаблона-19">Описание шаблона</a></h2>
 <p><strong>Trie</strong> (префиксное дерево, бор) — это древовидная структура для хранения набора строк,
 где <strong>каждый узел соответствует символу</strong>, а путь от корня до узла образует префикс.
 Строки с общим префиксом разделяют общий путь, поэтому Trie особенно эффективен для
@@ -21097,7 +21217,7 @@ go test -tags solution ./strmatch/  # эталон
 <p>В отличие от хеш-таблицы, Trie даёт не только проверку «есть ли слово», но и
 «есть ли слова с таким префиксом» — за время, пропорциональное длине запроса, <strong>не</strong>
 зависящее от числа хранимых строк.</p>
-<h2 id="когда-применять-18"><a class="header" href="#когда-применять-18">Когда применять</a></h2>
+<h2 id="когда-применять-19"><a class="header" href="#когда-применять-19">Когда применять</a></h2>
 <ul>
 <li><strong>Автодополнение</strong> и подсказки по префиксу.</li>
 <li><strong>Проверка словаря</strong>: быстро узнать, есть ли слово/префикс.</li>
@@ -21155,7 +21275,7 @@ func (t *Trie) StartsWith(prefix string) bool {
 <p>⚠️ Разница между <code>Search</code> и <code>StartsWith</code> — только в проверке <code>isEnd</code>. Без флага вы не
 отличите вставленное слово <code>"app"</code> от просто префикса слова <code>"apple"</code>.</p>
 </blockquote>
-<h2 id="временная-и-пространственная-сложность-18"><a class="header" href="#временная-и-пространственная-сложность-18">Временная и пространственная сложность</a></h2>
+<h2 id="временная-и-пространственная-сложность-19"><a class="header" href="#временная-и-пространственная-сложность-19">Временная и пространственная сложность</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -21170,7 +21290,7 @@ func (t *Trie) StartsWith(prefix string) bool {
 <p><code>L</code> — длина строки запроса. Время <strong>не зависит</strong> от числа хранимых слов — это главное
 преимущество перед перебором словаря. Платим памятью: каждый узел держит массив ссылок
 (для разреженных алфавитов используют <code>map[byte]*Trie</code> вместо массива).</p>
-<h2 id="типичные-ошибки-17"><a class="header" href="#типичные-ошибки-17">Типичные ошибки</a></h2>
+<h2 id="типичные-ошибки-18"><a class="header" href="#типичные-ошибки-18">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Забыли флаг <code>isEnd</code></strong> — тогда <code>Search</code> неотличим от <code>StartsWith</code>.</li>
 <li><strong>Массив фиксированного размера для большого алфавита</strong> — для Unicode/смешанных
@@ -21179,14 +21299,14 @@ func (t *Trie) StartsWith(prefix string) bool {
 <li><strong>Удаление узлов</strong> реализуют небрежно: нельзя удалять узел, у которого остались дети
 или который является концом другого слова.</li>
 </ol>
-<h2 id="примеры-задач-на-leetcode-20"><a class="header" href="#примеры-задач-на-leetcode-20">Примеры задач на LeetCode</a></h2>
+<h2 id="примеры-задач-на-leetcode-21"><a class="header" href="#примеры-задач-на-leetcode-21">Примеры задач на LeetCode</a></h2>
 <ul>
 <li><a href="https://leetcode.com/problems/implement-trie-prefix-tree/">Implement Trie (Prefix Tree)</a></li>
 <li><a href="https://leetcode.com/problems/design-add-and-search-words-data-structure/">Design Add and Search Words Data Structure</a> — Trie с <code>.</code> (wildcard)</li>
 <li><a href="https://leetcode.com/problems/word-search-ii/">Word Search II</a> — Trie + DFS по сетке</li>
 <li><a href="https://leetcode.com/problems/maximum-xor-of-two-numbers-in-an-array/">Maximum XOR of Two Numbers in an Array</a> — бинарный Trie</li>
 </ul>
-<h2 id="упражнения-20"><a class="header" href="#упражнения-20">Упражнения</a></h2>
+<h2 id="упражнения-21"><a class="header" href="#упражнения-21">Упражнения</a></h2>
 <p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
 есть пакет <code>trie</code>:</p>
 <pre><code class="language-bash">cd exercises
@@ -21194,7 +21314,7 @@ go test ./trie/                 # ваши решения
 go test -tags solution ./trie/  # эталон
 </code></pre>
 <p>Реализуйте методы <code>Insert</code>, <code>Search</code> и <code>StartsWith</code> структуры <code>Trie</code>.</p>
-<h2 id="связанные-шаблоны-21"><a class="header" href="#связанные-шаблоны-21">Связанные шаблоны</a></h2>
+<h2 id="связанные-шаблоны-22"><a class="header" href="#связанные-шаблоны-22">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> — Trie это дерево; обход по нему — тот же DFS.</li>
 <li><strong><a href="#строковые-алгоритмы-поиск-подстроки">Строковые алгоритмы</a></strong> — Trie позволяет искать сразу
@@ -21204,7 +21324,7 @@ go test -tags solution ./trie/  # эталон
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="segment-tree-дерево-отрезков"><a class="header" href="#segment-tree-дерево-отрезков">Segment Tree (Дерево отрезков)</a></h1>
-<h2 id="описание-шаблона-19"><a class="header" href="#описание-шаблона-19">Описание шаблона</a></h2>
+<h2 id="описание-шаблона-20"><a class="header" href="#описание-шаблона-20">Описание шаблона</a></h2>
 <p><strong>Дерево отрезков</strong> — структура для задач, где нужно одновременно <strong>запрашивать
 агрегат на диапазоне</strong> (сумму, минимум, максимум, НОД…) и <strong>обновлять элементы</strong>, причём
 обе операции — за O(log n).</p>
@@ -21215,7 +21335,7 @@ go test -tags solution ./trie/  # эталон
 <li><strong>Дерево отрезков</strong>: и запрос, и обновление O(log n) — баланс, выигрывающий, когда
 обновления и запросы <strong>чередуются</strong>.</li>
 </ul>
-<h2 id="когда-применять-19"><a class="header" href="#когда-применять-19">Когда применять</a></h2>
+<h2 id="когда-применять-20"><a class="header" href="#когда-применять-20">Когда применять</a></h2>
 <ul>
 <li>Много запросов «сумма/мин/макс на [l, r]» <strong>вперемешку</strong> с изменениями элементов.</li>
 <li>Динамические задачи на диапазонах: подсчёт инверсий, «сколько меньших справа».</li>
@@ -21285,7 +21405,7 @@ func (st *SegmentTree) Query(l, r int) int {
 </code></pre>
 <p>Чтобы получить дерево минимумов/максимумов, замените <code>+</code> на <code>min</code>/<code>max</code> в трёх местах
 (построение, обновление, запрос) и нейтральный элемент <code>0</code> на <code>+∞</code>/<code>−∞</code>.</p>
-<h2 id="временная-и-пространственная-сложность-19"><a class="header" href="#временная-и-пространственная-сложность-19">Временная и пространственная сложность</a></h2>
+<h2 id="временная-и-пространственная-сложность-20"><a class="header" href="#временная-и-пространственная-сложность-20">Временная и пространственная сложность</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -21305,7 +21425,7 @@ func (st *SegmentTree) Query(l, r int) int {
 <li><strong>Fenwick (BIT)</strong> — дерево Фенвика проще и быстрее для сумм с точечным обновлением, но
 менее универсально, чем дерево отрезков.</li>
 </ul>
-<h2 id="типичные-ошибки-18"><a class="header" href="#типичные-ошибки-18">Типичные ошибки</a></h2>
+<h2 id="типичные-ошибки-19"><a class="header" href="#типичные-ошибки-19">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Путаница включительного/полуоткрытого диапазона</strong> — в <code>Query</code> здесь <code>r</code> сдвигается
 на <code>+1</code>, превращая <code>[l, r]</code> в <code>[l, r)</code>.</li>
@@ -21314,14 +21434,14 @@ func (st *SegmentTree) Query(l, r int) int {
 <li><strong>Выход за границы</strong> при <code>l</code>/<code>r</code> вне <code>[0, n)</code> — добавьте проверки на вызывающей
 стороне.</li>
 </ol>
-<h2 id="примеры-задач-на-leetcode-21"><a class="header" href="#примеры-задач-на-leetcode-21">Примеры задач на LeetCode</a></h2>
+<h2 id="примеры-задач-на-leetcode-22"><a class="header" href="#примеры-задач-на-leetcode-22">Примеры задач на LeetCode</a></h2>
 <ul>
 <li><a href="https://leetcode.com/problems/range-sum-query-mutable/">Range Sum Query - Mutable</a></li>
 <li><a href="https://leetcode.com/problems/count-of-smaller-numbers-after-self/">Count of Smaller Numbers After Self</a></li>
 <li><a href="https://leetcode.com/problems/the-skyline-problem/">The Skyline Problem</a></li>
 <li><a href="https://leetcode.com/problems/range-sum-query-2d-mutable/">Range Sum Query 2D - Mutable</a></li>
 </ul>
-<h2 id="упражнения-21"><a class="header" href="#упражнения-21">Упражнения</a></h2>
+<h2 id="упражнения-22"><a class="header" href="#упражнения-22">Упражнения</a></h2>
 <p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
 есть пакет <code>segtree</code>:</p>
 <pre><code class="language-bash">cd exercises
@@ -21329,7 +21449,7 @@ go test ./segtree/                 # ваши решения
 go test -tags solution ./segtree/  # эталон
 </code></pre>
 <p>Реализуйте <code>NewSegmentTree</code>, <code>Update</code> и <code>Query</code> для суммы на диапазоне.</p>
-<h2 id="связанные-шаблоны-22"><a class="header" href="#связанные-шаблоны-22">Связанные шаблоны</a></h2>
+<h2 id="связанные-шаблоны-23"><a class="header" href="#связанные-шаблоны-23">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> — рекурсивная версия дерева отрезков строится обходом в
 глубину.</li>
@@ -21594,6 +21714,22 @@ go tool pprof cpu.prof   # команда top покажет самые «дор
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
         <script>
