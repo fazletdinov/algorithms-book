@@ -29,6 +29,7 @@
 16. [Backtracking (Поиск с возвратом)](book/backtracking.html) - Систематический перебор с откатом
 17. [Graphs (Обход графов)](book/graphs.html) - BFS/DFS, компоненты связности, Union-Find
 18. [Графы: сетки и кратчайшие пути](book/grids-and-shortest-paths.html) - Острова, Дейкстра
+19. [Графы: продвинутые алгоритмы](book/advanced-graph-algorithms.html) - Bellman–Ford, A*, MST
 
 Дополнительно: [Приложение: память, GC и профилирование в Go](book/appendix-go-memory.html).
 

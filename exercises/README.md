@@ -52,6 +52,9 @@ go test -tags solution ./slidingwindow/   # прогнать тесты на э�
 | `graphs`        | `CountComponents`, `HasCycleUndirected`      |
 | `grids`         | `NumIslands`                                 |
 | `dijkstra`      | `ShortestPath`                               |
+| `bellmanford`   | `ShortestPath` (отрицательные веса)          |
+| `astar`         | `ShortestPath` (поиск на сетке с эвристикой) |
+| `mst`           | `MSTWeight` (Краскал)                        |
 
 ## Как добавить свой шаблон
 

@@ -39,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0a11ae3a.js";
+            window.path_to_searchindex_js = "searchindex-7d22a7be.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-01f568d5.js"></script>
+        <script src="toc-5e0b6b0a.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -19167,6 +19167,202 @@ go test -tags solution ./grids/ ./dijkstra/  # эталон
 порядке топосортировки за O(V + E).</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="графы-продвинутые-алгоритмы"><a class="header" href="#графы-продвинутые-алгоритмы">Графы: продвинутые алгоритмы</a></h1>
+<p>Продолжение глав <a href="#graphs-обход-графов">«Обход графов»</a> и <a href="#графы-сетки-и-кратчайшие-пути">«Сетки и кратчайшие
+пути»</a>. Здесь — три алгоритма, которые часто отличают
+сильного кандидата: <strong>Bellman–Ford</strong> (кратчайшие пути с отрицательными весами), <strong>A*</strong>
+(направленный поиск с эвристикой) и <strong>минимальное остовное дерево</strong> (Kruskal/Prim).</p>
+<h2 id="bellmanford-кратчайшие-пути-с-отрицательными-весами"><a class="header" href="#bellmanford-кратчайшие-пути-с-отрицательными-весами">Bellman–Ford: кратчайшие пути с отрицательными весами</a></h2>
+<p><a href="#графы-сетки-и-кратчайшие-пути">Дейкстра</a> требует неотрицательных весов. <strong>Bellman–Ford</strong>
+работает при <strong>любых</strong> весах и умеет обнаруживать <strong>отрицательные циклы</strong> (по которым
+расстояние можно уменьшать бесконечно).</p>
+<p>Идея — <strong>релаксация</strong>: проходим по всем рёбрам и пытаемся улучшить расстояние
+<code>dist[v] = min(dist[v], dist[u] + w)</code>. Кратчайший путь содержит не более <code>V−1</code> рёбер,
+поэтому <code>V−1</code> полных проходов гарантируют сходимость. Если на <code>V</code>-м проходе расстояние
+всё ещё уменьшается — в графе есть отрицательный цикл.</p>
+<pre><code class="language-go">// edges — ориентированные рёбра [u, v, w]; w может быть отрицательным
+func bellmanFord(n int, edges [][]int, src int) (dist []int, hasNegCycle bool) {
+    const INF = 1 &lt;&lt; 62
+    dist = make([]int, n)
+    for i := range dist {
+        dist[i] = INF
+    }
+    dist[src] = 0
+
+    // V-1 проходов релаксации
+    for i := 0; i &lt; n-1; i++ {
+        for _, e := range edges {
+            u, v, w := e[0], e[1], e[2]
+            if dist[u] != INF &amp;&amp; dist[u]+w &lt; dist[v] {
+                dist[v] = dist[u] + w
+            }
+        }
+    }
+
+    // V-й проход: если что-то ещё улучшается — есть отрицательный цикл
+    for _, e := range edges {
+        u, v, w := e[0], e[1], e[2]
+        if dist[u] != INF &amp;&amp; dist[u]+w &lt; dist[v] {
+            return dist, true
+        }
+    }
+    return dist, false
+}
+</code></pre>
+<p><strong>Сложность:</strong> O(V · E). Медленнее Дейкстры, но единственный простой выбор при
+отрицательных весах. (Для графа без отрицательных рёбер используйте Дейкстру.)</p>
+<h2 id="a-направленный-поиск-с-эвристикой"><a class="header" href="#a-направленный-поиск-с-эвристикой">A*: направленный поиск с эвристикой</a></h2>
+<p><strong>A*</strong> — это Дейкстра, которому «подсказывают» направление. Кроме фактической стоимости
+пути <code>g(n)</code> от старта, используется <strong>эвристика</strong> <code>h(n)</code> — оценка оставшегося расстояния
+до цели. Из очереди выбираем вершину с минимальным <code>f(n) = g(n) + h(n)</code>.</p>
+<p>Если эвристика <strong>допустима</strong> (<code>admissible</code> — никогда не переоценивает реальное
+расстояние), A* находит оптимальный путь, но исследует <strong>меньше</strong> вершин, чем Дейкстра.
+На сетке с движением по 4 направлениям допустима <strong>манхэттенская</strong> эвристика
+<code>|Δr| + |Δc|</code>.</p>
+<pre><code class="language-go">import "container/heap"
+
+// grid: 0 — свободно, 1 — препятствие. Шаг по 4 направлениям стоит 1.
+// Возвращает минимальное число шагов из (0,0) в (R-1,C-1) или -1.
+func aStar(grid [][]int) int {
+    rows := len(grid)
+    if rows == 0 {
+        return -1
+    }
+    cols := len(grid[0])
+    gr, gc := rows-1, cols-1
+    if grid[0][0] == 1 || grid[gr][gc] == 1 {
+        return -1
+    }
+    h := func(r, c int) int { return abs(gr-r) + abs(gc-c) } // манхэттен
+
+    g := make([][]int, rows)
+    for i := range g {
+        g[i] = make([]int, cols)
+        for j := range g[i] {
+            g[i][j] = 1 &lt;&lt; 30
+        }
+    }
+    g[0][0] = 0
+
+    open := &amp;nodePQ{{r: 0, c: 0, f: h(0, 0)}}
+    dirs := [4][2]int{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
+    for open.Len() &gt; 0 {
+        cur := heap.Pop(open).(node)
+        if cur.r == gr &amp;&amp; cur.c == gc {
+            return g[gr][gc]
+        }
+        for _, d := range dirs {
+            nr, nc := cur.r+d[0], cur.c+d[1]
+            if nr &lt; 0 || nr &gt;= rows || nc &lt; 0 || nc &gt;= cols || grid[nr][nc] == 1 {
+                continue
+            }
+            if tentative := g[cur.r][cur.c] + 1; tentative &lt; g[nr][nc] {
+                g[nr][nc] = tentative
+                heap.Push(open, node{r: nr, c: nc, f: tentative + h(nr, nc)})
+            }
+        }
+    }
+    return -1
+}
+</code></pre>
+<p>При <code>h(n) = 0</code> A* вырождается в Дейкстру. Чем точнее (но всё ещё допустимая) эвристика,
+тем меньше вершин просматривается.</p>
+<h2 id="минимальное-остовное-дерево-mst"><a class="header" href="#минимальное-остовное-дерево-mst">Минимальное остовное дерево (MST)</a></h2>
+<p><strong>Остовное дерево</strong> связного неориентированного графа — это поддерево, соединяющее все
+<code>V</code> вершин ровно <code>V−1</code> ребром. <strong>Минимальное</strong> остовное дерево (MST) — то, у которого
+суммарный вес рёбер наименьший. Применения: прокладка сетей, кластеризация.</p>
+<h3 id="алгоритм-краскала-kruskal"><a class="header" href="#алгоритм-краскала-kruskal">Алгоритм Краскала (Kruskal)</a></h3>
+<p>Сортируем рёбра по весу и жадно добавляем самое лёгкое, <strong>если оно не образует цикл</strong>
+(проверка через <a href="#graphs-обход-графов">Union-Find</a>).</p>
+<pre><code class="language-go">func kruskalMST(n int, edges [][]int) int {
+    sort.Slice(edges, func(i, j int) bool { return edges[i][2] &lt; edges[j][2] })
+    uf := NewUnionFind(n) // см. главу «Обход графов»
+    total, used := 0, 0
+    for _, e := range edges {
+        if uf.Union(e[0], e[1]) { // ребро соединяет две разные компоненты
+            total += e[2]
+            used++
+        }
+    }
+    if used != n-1 {
+        return -1 // граф несвязный — остовного дерева нет
+    }
+    return total
+}
+</code></pre>
+<p><strong>Сложность:</strong> O(E · log E) — доминирует сортировка рёбер.</p>
+<h3 id="алгоритм-прима-prim"><a class="header" href="#алгоритм-прима-prim">Алгоритм Прима (Prim)</a></h3>
+<p>Выращиваем дерево из одной вершины, каждый раз добавляя <strong>самое лёгкое ребро</strong>, ведущее
+наружу из уже построенного дерева. Для выбора такого ребра используется мин-куча.</p>
+<pre><code class="language-go">func primMST(n int, adj [][][2]int) int { // adj[u] = {сосед, вес}
+    visited := make([]bool, n)
+    h := &amp;edgePQ{{node: 0, weight: 0}}
+    total := 0
+    for h.Len() &gt; 0 {
+        e := heap.Pop(h).(edge)
+        if visited[e.node] {
+            continue
+        }
+        visited[e.node] = true
+        total += e.weight
+        for _, nb := range adj[e.node] {
+            if !visited[nb[0]] {
+                heap.Push(h, edge{node: nb[0], weight: nb[1]})
+            }
+        }
+    }
+    return total
+}
+</code></pre>
+<p><strong>Сложность:</strong> O(E · log V). Прим выгоднее на <strong>плотных</strong> графах, Краскал — на
+<strong>разреженных</strong> и когда рёбра уже отсортированы.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Алгоритм</th><th>Подход</th><th>Сложность</th><th>Когда выбирать</th></tr>
+</thead>
+<tbody>
+<tr><td>Kruskal</td><td>сортировка рёбер + Union-Find</td><td>O(E log E)</td><td>разреженный граф</td></tr>
+<tr><td>Prim</td><td>растущее дерево + мин-куча</td><td>O(E log V)</td><td>плотный граф</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="типичные-ошибки-13"><a class="header" href="#типичные-ошибки-13">Типичные ошибки</a></h2>
+<ol>
+<li><strong>Дейкстра при отрицательных весах</strong> — берите Bellman–Ford.</li>
+<li><strong>Bellman–Ford: забыли проверку <code>dist[u] != INF</code></strong> перед релаксацией — переполнение
+при сложении с «бесконечностью».</li>
+<li><strong>A* с недопустимой (переоценивающей) эвристикой</strong> — путь может оказаться
+неоптимальным.</li>
+<li><strong>Kruskal без проверки <code>used == n-1</code></strong> — на несвязном графе вернёте вес остовного
+леса, а не дерева.</li>
+<li><strong>Prim: не пропускаете уже посещённые вершины</strong> при извлечении из кучи — лишняя
+работа или неверный результат.</li>
+</ol>
+<h2 id="примеры-задач-на-leetcode-16"><a class="header" href="#примеры-задач-на-leetcode-16">Примеры задач на LeetCode</a></h2>
+<ul>
+<li><a href="https://leetcode.com/problems/cheapest-flights-within-k-stops/">Cheapest Flights Within K Stops</a> — Bellman–Ford с ограничением на число рёбер</li>
+<li><a href="https://leetcode.com/problems/min-cost-to-connect-all-points/">Min Cost to Connect All Points</a> — MST (Prim/Kruskal)</li>
+<li><a href="https://leetcode.com/problems/connecting-cities-with-minimum-cost/">Connecting Cities With Minimum Cost</a> — MST</li>
+<li><a href="https://leetcode.com/problems/sliding-puzzle/">Sliding Puzzle</a> — A*/BFS по пространству состояний</li>
+</ul>
+<h2 id="упражнения-16"><a class="header" href="#упражнения-16">Упражнения</a></h2>
+<p>В <a href="https://github.com/fazletdinov/algorithms-book/tree/main/exercises">Go-тренажёре</a>
+есть пакеты <code>bellmanford</code>, <code>astar</code> и <code>mst</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./bellmanford/ ./astar/ ./mst/                 # ваши решения
+go test -tags solution ./bellmanford/ ./astar/ ./mst/  # эталон
+</code></pre>
+<p>Реализуйте <code>ShortestPath</code> (Bellman–Ford), <code>ShortestPath</code> на сетке (A*) и <code>MSTWeight</code>
+(Kruskal).</p>
+<h2 id="связанные-шаблоны-17"><a class="header" href="#связанные-шаблоны-17">Связанные шаблоны</a></h2>
+<ul>
+<li><strong><a href="#graphs-обход-графов">Обход графов</a></strong> — BFS/DFS и Union-Find (нужен для Kruskal).</li>
+<li><strong><a href="#графы-сетки-и-кратчайшие-пути">Сетки и кратчайшие пути</a></strong> — Дейкстра, частный случай
+A* при нулевой эвристике.</li>
+<li><strong><a href="#two-heaps-две-кучи">Two Heaps</a></strong> — приоритетная очередь для A* и Прима.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="topological-sort-топологическая-сортировка"><a class="header" href="#topological-sort-топологическая-сортировка">Topological Sort (Топологическая сортировка)</a></h1>
 <h2 id="описание-шаблона-16"><a class="header" href="#описание-шаблона-16">Описание шаблона</a></h2>
 <p>Шаблон <strong>Topological Sort</strong> используется для нахождения линейного порядка элементов в ориентированном ациклическом графе (DAG), где каждое ребро представляет зависимость. Если элемент A зависит от элемента B, то B должен появиться перед A в топологическом порядке.</p>
@@ -19542,7 +19738,7 @@ for _, prereq := range prerequisites {
     }
 }
 </code></pre>
-<h2 id="типичные-ошибки-13"><a class="header" href="#типичные-ошибки-13">Типичные ошибки</a></h2>
+<h2 id="типичные-ошибки-14"><a class="header" href="#типичные-ошибки-14">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Неправильный подсчет in-degree</strong>: Убедитесь, что считаете входящие, а не исходящие ребра</li>
 <li><strong>Забывание проверки циклов</strong>: Если результат содержит меньше V вершин, есть цикл</li>
@@ -19957,7 +20153,7 @@ go test -bench=. -benchmem
     }
 }
 </code></pre>
-<h2 id="примеры-задач-на-leetcode-16"><a class="header" href="#примеры-задач-на-leetcode-16">Примеры задач на LeetCode</a></h2>
+<h2 id="примеры-задач-на-leetcode-17"><a class="header" href="#примеры-задач-на-leetcode-17">Примеры задач на LeetCode</a></h2>
 <h3 id="средние-14"><a class="header" href="#средние-14">Средние:</a></h3>
 <ul>
 <li><a href="https://leetcode.com/problems/course-schedule/">Course Schedule</a> - Расписание курсов</li>
@@ -20438,7 +20634,7 @@ func buildOrder(modules []Module) []string {
 <li><strong>Message Ordering</strong>: Определение порядка сообщений</li>
 <li><strong>Distributed Systems</strong>: Определение порядка операций</li>
 </ul>
-<h2 id="упражнения-16"><a class="header" href="#упражнения-16">Упражнения</a></h2>
+<h2 id="упражнения-17"><a class="header" href="#упражнения-17">Упражнения</a></h2>
 <p>Практикуйтесь на задачах разной сложности для закрепления материала:</p>
 <h3 id="легкие-задачи-для-начинающих-13"><a class="header" href="#легкие-задачи-для-начинающих-13">Легкие задачи (для начинающих)</a></h3>
 <ol>
@@ -20545,7 +20741,7 @@ func buildOrder(modules []Module) []string {
 <li><strong>Отслеживайте in-degree</strong>: Правильно подсчитывайте входящие степени</li>
 <li><strong>Обрабатывайте множественные источники</strong>: Убедитесь, что обрабатываете все вершины с in-degree = 0</li>
 </ol>
-<h2 id="связанные-шаблоны-17"><a class="header" href="#связанные-шаблоны-17">Связанные шаблоны</a></h2>
+<h2 id="связанные-шаблоны-18"><a class="header" href="#связанные-шаблоны-18">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#tree-bfs-обход-дерева-в-ширину">Tree BFS</a></strong> - Использует похожий подход с очередью</li>
 <li><strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> - Альтернативный подход для топологической сортировки</li>

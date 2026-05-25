@@ -41,6 +41,7 @@
 - [Backtracking (Поиск с возвратом)](backtracking.md)
 - [Graphs (Обход графов)](graphs.md)
 - [Графы: сетки и кратчайшие пути](grids-and-shortest-paths.md)
+- [Графы: продвинутые алгоритмы](advanced-graph-algorithms.md)
 - [Topological Sort (Топологическая сортировка)](topological-sort.md)
 
 ## Дополнительные материалы
