@@ -30,6 +30,7 @@
 
         <!-- Custom theme stylesheets -->
         <link rel="stylesheet" href="assets/algo-viz-a35eff30.css">
+        <link rel="stylesheet" href="assets/quiz-2d5e0e16.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -39,10 +40,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6462228f.js";
+            window.path_to_searchindex_js = "searchindex-c7095899.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-da8af5e2.js"></script>
+        <script src="toc-eca8cce2.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -778,6 +779,28 @@ mdbook build
 </ol>
 <h2 id="заключение"><a class="header" href="#заключение">Заключение</a></h2>
 <p>Выбор правильного алгоритмического шаблона - это навык, который развивается с практикой. Используйте это руководство как отправную точку, но помните, что многие задачи могут решаться несколькими способами. Главное - понять суть задачи и выбрать наиболее подходящий подход.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="тренажёр-распознавание-шаблонов"><a class="header" href="#тренажёр-распознавание-шаблонов">Тренажёр: распознавание шаблонов</a></h1>
+<p>На собеседовании главная сложность — не написать код, а <strong>понять, какой шаблон
+применить</strong>. Этот тренажёр прокачивает именно переход «условие задачи → подходящий
+шаблон».</p>
+<blockquote>
+<p>💡 Прочитайте условие, выберите шаблон и нажмите «Проверить». После ответа появится
+разбор: какие слова в условии были триггерами и почему другие варианты не подходят.
+В конце — список тем, которые стоит повторить. (Тренажёр работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-quiz"></div>
+
+<h2 id="как-этим-пользоваться"><a class="header" href="#как-этим-пользоваться">Как этим пользоваться</a></h2>
+<ul>
+<li>Проходите тренажёр <strong>после</strong> изучения нескольких шаблонов — он связывает их воедино.</li>
+<li>Не угадывайте: сначала сформулируйте про себя триггеры в условии, потом отвечайте.</li>
+<li>Слабые места из итогового разбора — прямой список глав для повторения.</li>
+<li>Вопросы и варианты перемешиваются при каждом прохождении.</li>
+</ul>
+<p>Полезно сочетать с <a href="#руководство-по-выбору-алгоритмического-шаблона">Руководством по выбору шаблона</a>, где
+разобран decision tree и комбинирование шаблонов.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="глоссарий-терминов"><a class="header" href="#глоссарий-терминов">Глоссарий терминов</a></h1>
 <h2 id="а"><a class="header" href="#а">А</a></h2>
@@ -4923,6 +4946,7 @@ go tool pprof cpu.prof   # команда top покажет самые «дор
 
         <!-- Custom JS scripts -->
         <script src="assets/algo-viz-5a3fdcf7.js"></script>
+        <script src="assets/quiz-7283dd26.js"></script>
 
         <script>
         window.addEventListener('load', function() {

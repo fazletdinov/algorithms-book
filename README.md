@@ -37,7 +37,8 @@
 24. [Segment Tree (Дерево отрезков)](book/segment-tree.html) - Диапазонные запросы с обновлением
 25. [Fenwick Tree (Дерево Фенвика, BIT)](book/fenwick-tree.html) - Префиксные суммы за O(log n)
 
-Дополнительно: [Приложение: память, GC и профилирование в Go](book/appendix-go-memory.html).
+Дополнительно: [Приложение: память, GC и профилирование в Go](book/appendix-go-memory.html) ·
+[🎯 Тренажёр распознавания шаблонов](book/quiz.html) (интерактивный квиз).
 
 ## Структура книги
 
