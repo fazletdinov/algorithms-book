@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-45549685.js";
+            window.path_to_searchindex_js = "searchindex-4ed63227.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-45d806d3.js"></script>
@@ -597,20 +597,9 @@ if allEmpty {
 <li>O(n) общая память для всех массивов</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<p><strong>Для K-way Merge</strong>:</p>
-<ul>
-<li>Куча в куче</li>
-<li>Массивы в куче</li>
-<li>Результаты могут escape</li>
-</ul>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<p><strong>Для K-way Merge</strong>:</p>
-<ul>
-<li>Куча в куче</li>
-<li>Массивы в куче</li>
-<li>Минимизация k критична</li>
-</ul>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="appendix-go-memory.html">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
 <h4 id="go-k-way-merge"><a class="header" href="#go-k-way-merge">Go: K-way Merge</a></h4>

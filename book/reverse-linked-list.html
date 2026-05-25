@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-45549685.js";
+            window.path_to_searchindex_js = "searchindex-4ed63227.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-45d806d3.js"></script>
@@ -581,20 +581,9 @@ if count &lt; k {
 <li>O(n) время: один проход по списку</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<p><strong>Для Reverse Linked List</strong>:</p>
-<ul>
-<li>Узлы списка всегда в куче</li>
-<li>Указатели prev, curr, next - на стеке</li>
-<li>Результат может escape, если возвращается</li>
-</ul>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<p><strong>Для Reverse Linked List</strong>:</p>
-<ul>
-<li>Узлы в куче управляются GC</li>
-<li>In-place разворот не создает новых узлов</li>
-<li>Минимальное влияние на GC</li>
-</ul>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="appendix-go-memory.html">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
 <h4 id="go-in-place-разворот"><a class="header" href="#go-in-place-разворот">Go: In-place разворот</a></h4>

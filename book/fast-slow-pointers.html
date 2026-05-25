@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-45549685.js";
+            window.path_to_searchindex_js = "searchindex-4ed63227.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-45d806d3.js"></script>
@@ -830,47 +830,9 @@ for temp != slow {
 }
 </code></pre>
 <h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<h4 id="что-это-такое"><a class="header" href="#что-это-такое">Что это такое:</a></h4>
-<p><strong>Escape Analysis</strong> определяет, должны ли узлы списка быть в куче.</p>
-<p><strong>Для Fast &amp; Slow Pointers</strong>:</p>
-<ul>
-<li>Узлы списка всегда в куче (динамическое выделение)</li>
-<li>Указатели fast/slow - на стеке</li>
-<li>Результаты могут escape, если возвращаются</li>
-</ul>
-<h4 id="как-проверить"><a class="header" href="#как-проверить">Как проверить:</a></h4>
-<pre><code class="language-bash">go build -gcflags=-m main.go
-</code></pre>
-<p><strong>Пример</strong>:</p>
-<pre><code class="language-go">func createList() *ListNode {
-    node := &amp;ListNode{Val: 1}  // escape в кучу
-    return node
-}
-</code></pre>
-<p><strong>Вывод</strong>:</p>
-<pre><code>./main.go:5:6: moved to heap: node
-</code></pre>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
-<p><strong>Для Fast &amp; Slow Pointers</strong>:</p>
-<ul>
-<li>Узлы списка в куче - управляются GC</li>
-<li>Указатели fast/slow на стеке - не влияют на GC</li>
-<li>Циклические ссылки могут привести к утечкам памяти (если не разорвать цикл)</li>
-</ul>
-<h4 id="оптимизация"><a class="header" href="#оптимизация">Оптимизация:</a></h4>
-<p><strong>Избежание утечек памяти</strong>:</p>
-<pre><code class="language-go">// ✅ Разрываем цикл перед удалением
-func cleanup(head *ListNode) {
-    current := head
-    for current != nil {
-        next := current.Next
-        current.Next = nil  // разрываем ссылку
-        current = next
-    }
-}
-</code></pre>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="appendix-go-memory.html">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
 <h4 id="go-указатели-и-gc"><a class="header" href="#go-указатели-и-gc">Go: Указатели и GC</a></h4>

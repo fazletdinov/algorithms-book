@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-45549685.js";
+            window.path_to_searchindex_js = "searchindex-4ed63227.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-45d806d3.js"></script>
@@ -604,53 +604,9 @@ for i := range nums {
 <li>Компилятор оптимизирует</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<h4 id="что-это-такое"><a class="header" href="#что-это-такое">Что это такое:</a></h4>
-<p><strong>Escape Analysis</strong> определяет, должен ли массив быть в куче.</p>
-<p><strong>Для Cyclic Sort</strong>:</p>
-<ul>
-<li>Входной массив может быть на стеке (если небольшой) или в куче</li>
-<li>In-place операции не создают новых аллокаций</li>
-<li>Индексы всегда на стеке</li>
-</ul>
-<h4 id="как-проверить"><a class="header" href="#как-проверить">Как проверить:</a></h4>
-<pre><code class="language-bash">go build -gcflags=-m main.go
-</code></pre>
-<p><strong>Пример</strong>:</p>
-<pre><code class="language-go">func cyclicSort(arr []int) {
-    // arr - слайс, может быть на стеке или в куче
-    // Индексы i, j - на стеке
-    i := 0
-    // ...
-}
-</code></pre>
-<h3 id="что-это-такое-1"><a class="header" href="#что-это-такое-1">Что это такое:</a></h3>
-<p><strong>Для Cyclic Sort</strong>:</p>
-<ul>
-<li>Используем <code>[]T</code> (слайс) для in-place изменений</li>
-<li>Слайс ссылается на исходный массив, изменения видны вызывающему коду</li>
-<li>Проблемы редко возникают</li>
-</ul>
-<h4 id="примеры"><a class="header" href="#примеры">Примеры:</a></h4>
-<p><strong>Типичный паттерн</strong>:</p>
-<p><strong>Проблема: одновременный доступ к слайсу из нескольких мест</strong>:</p>
-<p><strong>Решение</strong>:</p>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
-<p><strong>Для Cyclic Sort</strong>:</p>
-<ul>
-<li>In-place операции не создают новых аллокаций</li>
-<li>Не влияет на GC (нет новых объектов в куче)</li>
-<li>Минимальное влияние на производительность</li>
-</ul>
-<h4 id="оптимизация"><a class="header" href="#оптимизация">Оптимизация:</a></h4>
-<p><strong>Избежание лишних аллокаций</strong>:</p>
-<pre><code class="language-go">// ✅ In-place операции
-func cyclicSort(arr []int) {
-    // Нет создания новых слайсов
-    // Только перестановка элементов
-}
-</code></pre>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="appendix-go-memory.html">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="работа-со-слайсами"><a class="header" href="#работа-со-слайсами">Работа со слайсами:</a></h2>
 <p><strong>Для Cyclic Sort</strong>:</p>
 <ul>

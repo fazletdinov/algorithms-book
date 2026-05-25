@@ -39,7 +39,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-45549685.js";
+            window.path_to_searchindex_js = "searchindex-4ed63227.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-45d806d3.js"></script>
@@ -1854,207 +1854,12 @@ head = (0 - 1 + 8) % 8 = 7 (переход в конец)
 <li>Нужен частый произвольный доступ по индексу (deque медленнее из-за вычисления индекса)</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<h4 id="что-это-такое"><a class="header" href="#что-это-такое">Что это такое:</a></h4>
-<p><strong>Escape Analysis</strong> - это статический анализ компилятора Go, который определяет, должна ли переменная быть аллоцирована в куче или может остаться на стеке.</p>
-<p><strong>Зачем это нужно</strong>:</p>
-<ul>
-<li>Переменные на стеке быстрее (нет аллокации/освобождения)</li>
-<li>Переменные в куче требуют работы GC</li>
-<li>Escape Analysis минимизирует аллокации в куче</li>
-</ul>
-<h4 id="как-работает"><a class="header" href="#как-работает">Как работает:</a></h4>
-<p><strong>Алгоритм Escape Analysis</strong>:</p>
-<ol>
-<li><strong>Анализ использования переменной</strong>: Компилятор отслеживает все места, где используется переменная</li>
-<li><strong>Определение “побега”</strong>: Если переменная “убегает” из функции, она должна быть в куче</li>
-<li><strong>Принятие решения</strong>: Если переменная остается локальной, она может быть на стеке</li>
-</ol>
-<p><strong>Когда переменная “убегает” (escape)</strong>:</p>
-<ol>
-<li><strong>Возврат указателя на локальную переменную</strong>:</li>
-</ol>
-<pre><code class="language-go">func escapeExample() *int {
-    x := 42  // escape: x убегает из функции
-    return &amp;x
-}
-</code></pre>
-<ol start="2">
-<li><strong>Сохранение в глобальную переменную</strong>:</li>
-</ol>
-<pre><code class="language-go">var global *int
-
-func escapeExample() {
-    x := 42
-    global = &amp;x  // escape: x убегает в глобальную область
-}
-</code></pre>
-<ol start="3">
-<li><strong>Передача в функцию, которая сохраняет указатель</strong>:</li>
-</ol>
-<pre><code class="language-go">func store(ptr *int) {
-    saved = ptr  // если saved - глобальная, то escape
-}
-
-func example() {
-    x := 42
-    store(&amp;x)  // escape, если store сохраняет указатель
-}
-</code></pre>
-<ol start="4">
-<li><strong>Интерфейсы</strong>:</li>
-</ol>
-<pre><code class="language-go">func example() {
-    x := 42
-    var i interface{} = x  // escape: интерфейсы всегда в куче
-}
-</code></pre>
-<ol start="5">
-<li><strong>Слайсы с неизвестным размером</strong>:</li>
-</ol>
-<pre><code class="language-go">func example() {
-    s := make([]int, 100)  // может escape, если размер большой
-    return s
-}
-</code></pre>
-<h4 id="как-проверить"><a class="header" href="#как-проверить">Как проверить:</a></h4>
-<p>Используйте флаг компилятора <code>-m</code>:</p>
-<pre><code class="language-bash">go build -gcflags=-m main.go
-</code></pre>
-<p><strong>Вывод</strong>:</p>
-<pre><code>./main.go:10:6: can inline example
-./main.go:10:6: moved to heap: x
-./main.go:15:6: x escapes to heap
-</code></pre>
-<p><strong>Интерпретация</strong>:</p>
-<ul>
-<li><code>moved to heap: x</code> - переменная x аллоцируется в куче</li>
-<li><code>x escapes to heap</code> - переменная x “убегает” в кучу</li>
-<li><code>can inline</code> - функция может быть встроена</li>
-</ul>
-<h4 id="оптимизация-как-избежать-escape"><a class="header" href="#оптимизация-как-избежать-escape">Оптимизация: как избежать escape</a></h4>
-<p><strong>Пример 1: Возврат значения вместо указателя</strong></p>
-<pre><code class="language-go">// ❌ Плохо: escape в кучу
-func bad() *int {
-    x := 42
-    return &amp;x  // escape!
-}
-
-// ✅ Хорошо: значение на стеке
-func good() int {
-    x := 42
-    return x  // не escape
-}
-</code></pre>
-<p><strong>Пример 2: Предварительное выделение слайса</strong></p>
-<pre><code class="language-go">// ❌ Плохо: может escape
-func bad() []int {
-    s := []int{}  // может escape
-    return s
-}
-
-// ✅ Хорошо: явное указание размера
-func good() []int {
-    s := make([]int, 0, 10)  // меньше вероятность escape
-    return s
-}
-</code></pre>
-<p><strong>Пример 3: Избежание интерфейсов в горячих путях</strong></p>
-<pre><code class="language-go">// ❌ Плохо: интерфейс всегда escape
-func bad() {
-    var i interface{} = 42  // escape в кучу
-}
-
-// ✅ Хорошо: конкретный тип
-func good() {
-    i := 42  // на стеке
-}
-</code></pre>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
-<p><strong>Алгоритм Mark-and-Sweep</strong>:</p>
-<ol>
-<li><strong>Mark (Маркировка)</strong>: GC проходит по всем достижимым объектам и помечает их как “живые”</li>
-<li><strong>Sweep (Очистка)</strong>: Все не помеченные объекты освобождаются</li>
-</ol>
-<p><strong>Триколорная маркировка</strong>:</p>
-<p>Go использует триколорную маркировку для concurrent GC:</p>
-<pre><code>Белый (White): Не посещенные объекты (кандидаты на удаление)
-Серый (Gray):  Посещенные, но их потомки еще не обработаны
-Черный (Black): Посещенные и все потомки обработаны
-</code></pre>
-<p><strong>Процесс</strong>:</p>
-<ol>
-<li>Все объекты начинают как белые</li>
-<li>Корневые объекты (глобальные переменные, стек) помечаются серыми</li>
-<li>GC обрабатывает серые объекты, помечая их потомков серыми, а сами объекты - черными</li>
-<li>После обработки всех серых, белые объекты удаляются</li>
-</ol>
-<p><strong>Concurrent GC</strong>:</p>
-<ul>
-<li>GC работает параллельно с программой (не останавливает выполнение полностью)</li>
-<li>Использует write barriers для отслеживания изменений во время GC</li>
-<li>Минимизирует STW (Stop The World) паузы</li>
-</ul>
-<h4 id="когда-запускается"><a class="header" href="#когда-запускается">Когда запускается:</a></h4>
-<p><strong>Триггеры GC</strong>:</p>
-<ol>
-<li>
-<p><strong>По достижению порога памяти</strong>:</p>
-<ul>
-<li>По умолчанию: когда выделенная память в 2 раза больше предыдущего GC</li>
-<li>Можно настроить через <code>GOGC</code> (например, <code>GOGC=100</code> означает запуск при 100% роста)</li>
-</ul>
-</li>
-<li>
-<p><strong>Принудительный вызов</strong>:</p>
-</li>
-</ol>
-<pre><code class="language-go">runtime.GC()  // Принудительный запуск GC
-</code></pre>
-<ol start="3">
-<li><strong>Недостаток памяти</strong>:
-<ul>
-<li>Если система испытывает нехватку памяти</li>
-</ul>
-</li>
-</ol>
-<h4 id="оптимизация-gc"><a class="header" href="#оптимизация-gc">Оптимизация GC:</a></h4>
-<p><strong>Минимизация аллокаций</strong>:</p>
-<pre><code class="language-go">// ❌ Плохо: много аллокаций
-func bad() {
-    for i := 0; i &lt; 1000; i++ {
-        s := make([]int, 100)  // 1000 аллокаций
-        // ...
-    }
-}
-
-// ✅ Хорошо: переиспользование
-func good() {
-    s := make([]int, 100)  // одна аллокация
-    for i := 0; i &lt; 1000; i++ {
-        s = s[:0]  // очистка без аллокации
-        // ...
-    }
-}
-</code></pre>
-<p><strong>Настройка GOGC</strong>:</p>
-<pre><code class="language-bash">GOGC=50 go run main.go   # Более агрессивный GC (меньше памяти, больше пауз)
-GOGC=200 go run main.go  # Менее агрессивный GC (больше памяти, меньше пауз)
-</code></pre>
-<p><strong>Использование sync.Pool</strong>:</p>
-<pre><code class="language-go">var pool = sync.Pool{
-    New: func() interface{} {
-        return make([]byte, 0, 1024)
-    },
-}
-
-func example() {
-    buf := pool.Get().([]byte)
-    defer pool.Put(buf)
-    // использование buf
-}
-</code></pre>
+<p>Escape analysis и работа сборщика мусора (GC) подробно разобраны в общем
+справочнике — см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
+<p>Применительно к скользящему окну важно лишь следующее: фиксированное окно
+(<code>int</code>-сумма) живёт на стеке и не нагружает GC, тогда как переменное окно с
+<code>map</code>-ом частот аллоцирует хеш-таблицу в куче — её стоит <strong>переиспользовать</strong>
+между вызовами (очищать, а не пересоздавать).</p>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
 <h4 id="go-сборщик-мусора-и-escape-analysis"><a class="header" href="#go-сборщик-мусора-и-escape-analysis">Go: Сборщик мусора и escape analysis</a></h4>
@@ -4301,68 +4106,9 @@ right := 10 // На стеке, 8 байт
 </table>
 </div>
 <h2 id="глубокое-понимание-сложные-концепции-1"><a class="header" href="#глубокое-понимание-сложные-концепции-1">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-1"><a class="header" href="#escape-analysis-go-1">Escape Analysis (Go)</a></h3>
-<h4 id="что-это-такое-1"><a class="header" href="#что-это-такое-1">Что это такое:</a></h4>
-<p><strong>Escape Analysis</strong> - это статический анализ компилятора Go, который определяет, должна ли переменная быть аллоцирована в куче или может остаться на стеке.</p>
-<p><strong>Для Two Pointers</strong>:</p>
-<ul>
-<li>Индексы (int) всегда на стеке</li>
-<li>Результирующие слайсы могут escape, если возвращаются из функции</li>
-</ul>
-<h4 id="как-проверить-1"><a class="header" href="#как-проверить-1">Как проверить:</a></h4>
-<pre><code class="language-bash">go build -gcflags=-m main.go
-</code></pre>
-<p><strong>Пример для Two Pointers</strong>:</p>
-<pre><code class="language-go">func twoSum(nums []int, target int) []int {
-    left, right := 0, len(nums)-1  // на стеке
-    result := make([]int, 2)       // может escape, если возвращается
-    // ...
-    return result  // escape в кучу
-}
-</code></pre>
-<p><strong>Вывод</strong>:</p>
-<pre><code>./main.go:5:6: moved to heap: result
-</code></pre>
-<h4 id="оптимизация-1"><a class="header" href="#оптимизация-1">Оптимизация:</a></h4>
-<p><strong>Избежание escape результата</strong>:</p>
-<pre><code class="language-go">// ❌ Плохо: создание нового слайса
-func bad() []int {
-    result := []int{1, 2}  // escape
-    return result
-}
-
-// ✅ Хорошо: использование переданного слайса
-func good(result []int) {
-    result[0] = 1
-    result[1] = 2
-    // result не escape, если передан извне
-}
-</code></pre>
-<h3 id="garbage-collector-go-1"><a class="header" href="#garbage-collector-go-1">Garbage Collector (Go)</a></h3>
-<h4 id="как-работает-gc-1"><a class="header" href="#как-работает-gc-1">Как работает GC:</a></h4>
-<p><strong>Для Two Pointers</strong>:</p>
-<ul>
-<li>Индексы на стеке - не влияют на GC</li>
-<li>Результирующие слайсы в куче - управляются GC</li>
-<li>Минимизация аллокаций критична для производительности</li>
-</ul>
-<h4 id="оптимизация-1-1"><a class="header" href="#оптимизация-1-1">Оптимизация:</a></h4>
-<p><strong>Предварительное выделение результата</strong>:</p>
-<pre><code class="language-go">// ✅ Хорошо: предварительное выделение
-func optimized() []int {
-    result := make([]int, 0, 2)  // capacity = 2
-    // ...
-    return result
-}
-</code></pre>
-<p><strong>Переиспользование слайсов</strong>:</p>
-<pre><code class="language-go">// ✅ Используем sync.Pool для переиспользования
-var resultPool = sync.Pool{
-    New: func() interface{} {
-        return make([]int, 0, 10)
-    },
-}
-</code></pre>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью-1"><a class="header" href="#аллокации-памяти-и-управление-памятью-1">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go-1"><a class="header" href="#теория-аллокаций-в-go-1">Теория аллокаций в Go</a></h3>
 <h4 id="go-сборщик-мусора"><a class="header" href="#go-сборщик-мусора">Go: Сборщик мусора</a></h4>
@@ -5855,47 +5601,9 @@ for temp != slow {
 }
 </code></pre>
 <h2 id="глубокое-понимание-сложные-концепции-2"><a class="header" href="#глубокое-понимание-сложные-концепции-2">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-2"><a class="header" href="#escape-analysis-go-2">Escape Analysis (Go)</a></h3>
-<h4 id="что-это-такое-2"><a class="header" href="#что-это-такое-2">Что это такое:</a></h4>
-<p><strong>Escape Analysis</strong> определяет, должны ли узлы списка быть в куче.</p>
-<p><strong>Для Fast &amp; Slow Pointers</strong>:</p>
-<ul>
-<li>Узлы списка всегда в куче (динамическое выделение)</li>
-<li>Указатели fast/slow - на стеке</li>
-<li>Результаты могут escape, если возвращаются</li>
-</ul>
-<h4 id="как-проверить-2"><a class="header" href="#как-проверить-2">Как проверить:</a></h4>
-<pre><code class="language-bash">go build -gcflags=-m main.go
-</code></pre>
-<p><strong>Пример</strong>:</p>
-<pre><code class="language-go">func createList() *ListNode {
-    node := &amp;ListNode{Val: 1}  // escape в кучу
-    return node
-}
-</code></pre>
-<p><strong>Вывод</strong>:</p>
-<pre><code>./main.go:5:6: moved to heap: node
-</code></pre>
-<h3 id="garbage-collector-go-2"><a class="header" href="#garbage-collector-go-2">Garbage Collector (Go)</a></h3>
-<h4 id="как-работает-gc-2"><a class="header" href="#как-работает-gc-2">Как работает GC:</a></h4>
-<p><strong>Для Fast &amp; Slow Pointers</strong>:</p>
-<ul>
-<li>Узлы списка в куче - управляются GC</li>
-<li>Указатели fast/slow на стеке - не влияют на GC</li>
-<li>Циклические ссылки могут привести к утечкам памяти (если не разорвать цикл)</li>
-</ul>
-<h4 id="оптимизация-2"><a class="header" href="#оптимизация-2">Оптимизация:</a></h4>
-<p><strong>Избежание утечек памяти</strong>:</p>
-<pre><code class="language-go">// ✅ Разрываем цикл перед удалением
-func cleanup(head *ListNode) {
-    current := head
-    for current != nil {
-        next := current.Next
-        current.Next = nil  // разрываем ссылку
-        current = next
-    }
-}
-</code></pre>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью-2"><a class="header" href="#аллокации-памяти-и-управление-памятью-2">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go-2"><a class="header" href="#теория-аллокаций-в-go-2">Теория аллокаций в Go</a></h3>
 <h4 id="go-указатели-и-gc"><a class="header" href="#go-указатели-и-gc">Go: Указатели и GC</a></h4>
@@ -7222,54 +6930,9 @@ for i &lt; len(A) &amp;&amp; j &lt; len(B) {
 <li>Struct эффективнее для представления интервала</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции-3"><a class="header" href="#глубокое-понимание-сложные-концепции-3">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-3"><a class="header" href="#escape-analysis-go-3">Escape Analysis (Go)</a></h3>
-<h4 id="что-это-такое-3"><a class="header" href="#что-это-такое-3">Что это такое:</a></h4>
-<p><strong>Escape Analysis</strong> определяет, должны ли интервалы быть в куче.</p>
-<p><strong>Для Merge Intervals</strong>:</p>
-<ul>
-<li>Результирующие интервалы могут escape, если возвращаются</li>
-<li>Временные структуры могут остаться на стеке</li>
-</ul>
-<h4 id="как-проверить-3"><a class="header" href="#как-проверить-3">Как проверить:</a></h4>
-<pre><code class="language-bash">go build -gcflags=-m main.go
-</code></pre>
-<p><strong>Пример</strong>:</p>
-<pre><code class="language-go">func merge(intervals [][]int) [][]int {
-    result := make([][]int, 0)  // может escape
-    // ...
-    return result  // escape в кучу
-}
-</code></pre>
-<h4 id="оптимизация-3"><a class="header" href="#оптимизация-3">Оптимизация:</a></h4>
-<p><strong>Предварительное выделение</strong>:</p>
-<pre><code class="language-go">// ✅ Хорошо: предварительное выделение
-result := make([][]int, 0, len(intervals))
-</code></pre>
-<h3 id="garbage-collector-go-3"><a class="header" href="#garbage-collector-go-3">Garbage Collector (Go)</a></h3>
-<h4 id="как-работает-gc-3"><a class="header" href="#как-работает-gc-3">Как работает GC:</a></h4>
-<p><strong>Для Merge Intervals</strong>:</p>
-<ul>
-<li>Интервалы в куче - управляются GC</li>
-<li>Результирующие интервалы также в куче</li>
-<li>Минимизация аллокаций критична</li>
-</ul>
-<h4 id="оптимизация-1-2"><a class="header" href="#оптимизация-1-2">Оптимизация:</a></h4>
-<p><strong>Переиспользование слайсов</strong>:</p>
-<pre><code class="language-go">// ✅ Избегаем создания новых слайсов
-func merge(intervals [][]int) [][]int {
-    result := make([][]int, 0, len(intervals))
-    // переиспользуем capacity
-    return result
-}
-</code></pre>
-<h4 id="работа-со-слайсами"><a class="header" href="#работа-со-слайсами">Работа со слайсами:</a></h4>
-<p><strong>Для Merge Intervals</strong>:</p>
-<ul>
-<li>Входные данные: <code>[][]int</code> (слайс ссылается на исходный массив)</li>
-<li>Результат: <code>[][]int</code> (новый слайс)</li>
-<li>Сортировка изменяет исходный слайс in-place (если не копировать)</li>
-</ul>
-<p><strong>Пример</strong>:</p>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью-3"><a class="header" href="#аллокации-памяти-и-управление-памятью-3">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go-3"><a class="header" href="#теория-аллокаций-в-go-3">Теория аллокаций в Go</a></h3>
 <p>В для Merge Intervals:</p>
@@ -8548,54 +8211,10 @@ for i := range nums {
 <li>Компилятор оптимизирует</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции-4"><a class="header" href="#глубокое-понимание-сложные-концепции-4">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-4"><a class="header" href="#escape-analysis-go-4">Escape Analysis (Go)</a></h3>
-<h4 id="что-это-такое-4"><a class="header" href="#что-это-такое-4">Что это такое:</a></h4>
-<p><strong>Escape Analysis</strong> определяет, должен ли массив быть в куче.</p>
-<p><strong>Для Cyclic Sort</strong>:</p>
-<ul>
-<li>Входной массив может быть на стеке (если небольшой) или в куче</li>
-<li>In-place операции не создают новых аллокаций</li>
-<li>Индексы всегда на стеке</li>
-</ul>
-<h4 id="как-проверить-4"><a class="header" href="#как-проверить-4">Как проверить:</a></h4>
-<pre><code class="language-bash">go build -gcflags=-m main.go
-</code></pre>
-<p><strong>Пример</strong>:</p>
-<pre><code class="language-go">func cyclicSort(arr []int) {
-    // arr - слайс, может быть на стеке или в куче
-    // Индексы i, j - на стеке
-    i := 0
-    // ...
-}
-</code></pre>
-<h3 id="что-это-такое-1-1"><a class="header" href="#что-это-такое-1-1">Что это такое:</a></h3>
-<p><strong>Для Cyclic Sort</strong>:</p>
-<ul>
-<li>Используем <code>[]T</code> (слайс) для in-place изменений</li>
-<li>Слайс ссылается на исходный массив, изменения видны вызывающему коду</li>
-<li>Проблемы редко возникают</li>
-</ul>
-<h4 id="примеры"><a class="header" href="#примеры">Примеры:</a></h4>
-<p><strong>Типичный паттерн</strong>:</p>
-<p><strong>Проблема: одновременный доступ к слайсу из нескольких мест</strong>:</p>
-<p><strong>Решение</strong>:</p>
-<h3 id="garbage-collector-go-4"><a class="header" href="#garbage-collector-go-4">Garbage Collector (Go)</a></h3>
-<h4 id="как-работает-gc-4"><a class="header" href="#как-работает-gc-4">Как работает GC:</a></h4>
-<p><strong>Для Cyclic Sort</strong>:</p>
-<ul>
-<li>In-place операции не создают новых аллокаций</li>
-<li>Не влияет на GC (нет новых объектов в куче)</li>
-<li>Минимальное влияние на производительность</li>
-</ul>
-<h4 id="оптимизация-4"><a class="header" href="#оптимизация-4">Оптимизация:</a></h4>
-<p><strong>Избежание лишних аллокаций</strong>:</p>
-<pre><code class="language-go">// ✅ In-place операции
-func cyclicSort(arr []int) {
-    // Нет создания новых слайсов
-    // Только перестановка элементов
-}
-</code></pre>
-<h2 id="работа-со-слайсами-1"><a class="header" href="#работа-со-слайсами-1">Работа со слайсами:</a></h2>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
+<h2 id="работа-со-слайсами"><a class="header" href="#работа-со-слайсами">Работа со слайсами:</a></h2>
 <p><strong>Для Cyclic Sort</strong>:</p>
 <ul>
 <li>Входные данные: <code>[]T</code> (слайс)</li>
@@ -9598,20 +9217,9 @@ mid := (left + right) / 2 // Может переполниться
 <li>Cache-friendly доступ к памяти</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции-5"><a class="header" href="#глубокое-понимание-сложные-концепции-5">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-5"><a class="header" href="#escape-analysis-go-5">Escape Analysis (Go)</a></h3>
-<p><strong>Для Modified Binary Search</strong>:</p>
-<ul>
-<li>Входной массив может быть на стеке (если небольшой) или в куче</li>
-<li>Индексы left, right, mid - на стеке</li>
-<li>Результаты могут escape</li>
-</ul>
-<h3 id="garbage-collector-go-5"><a class="header" href="#garbage-collector-go-5">Garbage Collector (Go)</a></h3>
-<p><strong>Для Modified Binary Search</strong>:</p>
-<ul>
-<li>In-place поиск, не создает новых структур</li>
-<li>Минимальное влияние на GC</li>
-<li>Только индексы на стеке</li>
-</ul>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью-5"><a class="header" href="#аллокации-памяти-и-управление-памятью-5">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go-5"><a class="header" href="#теория-аллокаций-в-go-5">Теория аллокаций в Go</a></h3>
 <h4 id="go-бинарный-поиск"><a class="header" href="#go-бинарный-поиск">Go: Бинарный поиск</a></h4>
@@ -10846,20 +10454,9 @@ if count &lt; k {
 <li>O(n) время: один проход по списку</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции-6"><a class="header" href="#глубокое-понимание-сложные-концепции-6">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-6"><a class="header" href="#escape-analysis-go-6">Escape Analysis (Go)</a></h3>
-<p><strong>Для Reverse Linked List</strong>:</p>
-<ul>
-<li>Узлы списка всегда в куче</li>
-<li>Указатели prev, curr, next - на стеке</li>
-<li>Результат может escape, если возвращается</li>
-</ul>
-<h3 id="garbage-collector-go-6"><a class="header" href="#garbage-collector-go-6">Garbage Collector (Go)</a></h3>
-<p><strong>Для Reverse Linked List</strong>:</p>
-<ul>
-<li>Узлы в куче управляются GC</li>
-<li>In-place разворот не создает новых узлов</li>
-<li>Минимальное влияние на GC</li>
-</ul>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью-6"><a class="header" href="#аллокации-памяти-и-управление-памятью-6">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go-6"><a class="header" href="#теория-аллокаций-в-go-6">Теория аллокаций в Go</a></h3>
 <h4 id="go-in-place-разворот"><a class="header" href="#go-in-place-разворот">Go: In-place разворот</a></h4>
@@ -11860,20 +11457,9 @@ func bfsSimple(root *TreeNode) []int {
 <li>Эффективнее чем LinkedList для очереди</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции-7"><a class="header" href="#глубокое-понимание-сложные-концепции-7">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-7"><a class="header" href="#escape-analysis-go-7">Escape Analysis (Go)</a></h3>
-<p><strong>Для Tree BFS</strong>:</p>
-<ul>
-<li>Узлы дерева в куче</li>
-<li>Очередь может escape, если возвращается</li>
-<li>Указатели на узлы - на стеке</li>
-</ul>
-<h3 id="garbage-collector-go-7"><a class="header" href="#garbage-collector-go-7">Garbage Collector (Go)</a></h3>
-<p><strong>Для Tree BFS</strong>:</p>
-<ul>
-<li>Узлы дерева в куче</li>
-<li>Очередь также в куче</li>
-<li>Минимизация размера очереди критична</li>
-</ul>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью-7"><a class="header" href="#аллокации-памяти-и-управление-памятью-7">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go-7"><a class="header" href="#теория-аллокаций-в-go-7">Теория аллокаций в Go</a></h3>
 <h4 id="go-очередь-для-bfs"><a class="header" href="#go-очередь-для-bfs">Go: Очередь для BFS</a></h4>
@@ -13367,20 +12953,9 @@ for len(stack) &gt; 0 {
 <li>O(n) время для обхода всех узлов</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции-8"><a class="header" href="#глубокое-понимание-сложные-концепции-8">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-8"><a class="header" href="#escape-analysis-go-8">Escape Analysis (Go)</a></h3>
-<p><strong>Для Tree DFS</strong>:</p>
-<ul>
-<li>Узлы дерева в куче</li>
-<li>Стек вызовов на стеке (рекурсия)</li>
-<li>Результаты могут escape</li>
-</ul>
-<h3 id="garbage-collector-go-8"><a class="header" href="#garbage-collector-go-8">Garbage Collector (Go)</a></h3>
-<p><strong>Для Tree DFS</strong>:</p>
-<ul>
-<li>Узлы дерева в куче</li>
-<li>Стек вызовов на стеке</li>
-<li>Минимальное влияние на GC</li>
-</ul>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью-8"><a class="header" href="#аллокации-памяти-и-управление-памятью-8">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go-8"><a class="header" href="#теория-аллокаций-в-go-8">Теория аллокаций в Go</a></h3>
 <h4 id="go-рекурсивный-обход"><a class="header" href="#go-рекурсивный-обход">Go: Рекурсивный обход</a></h4>
@@ -14432,20 +14007,9 @@ func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 <li>Balanced BST: O(log n), но сложнее реализация</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции-9"><a class="header" href="#глубокое-понимание-сложные-концепции-9">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-9"><a class="header" href="#escape-analysis-go-9">Escape Analysis (Go)</a></h3>
-<p><strong>Для Two Heaps</strong>:</p>
-<ul>
-<li>Кучи в куче (динамическое выделение)</li>
-<li>Элементы в куче</li>
-<li>Результаты могут escape</li>
-</ul>
-<h3 id="garbage-collector-go-9"><a class="header" href="#garbage-collector-go-9">Garbage Collector (Go)</a></h3>
-<p><strong>Для Two Heaps</strong>:</p>
-<ul>
-<li>Кучи в куче</li>
-<li>Элементы в куче</li>
-<li>Минимизация размера куч критична</li>
-</ul>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью-9"><a class="header" href="#аллокации-памяти-и-управление-памятью-9">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go-9"><a class="header" href="#теория-аллокаций-в-go-9">Теория аллокаций в Go</a></h3>
 <h4 id="go-две-кучи"><a class="header" href="#go-две-кучи">Go: Две кучи</a></h4>
@@ -15647,20 +15211,9 @@ func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 <li>Итого: O(n log k)</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции-10"><a class="header" href="#глубокое-понимание-сложные-концепции-10">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-10"><a class="header" href="#escape-analysis-go-10">Escape Analysis (Go)</a></h3>
-<p><strong>Для Top K Elements</strong>:</p>
-<ul>
-<li>Куча в куче</li>
-<li>HashMap в куче (если используется)</li>
-<li>Результаты могут escape</li>
-</ul>
-<h3 id="garbage-collector-go-10"><a class="header" href="#garbage-collector-go-10">Garbage Collector (Go)</a></h3>
-<p><strong>Для Top K Elements</strong>:</p>
-<ul>
-<li>Куча в куче</li>
-<li>HashMap в куче</li>
-<li>Минимизация размера k критична</li>
-</ul>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью-10"><a class="header" href="#аллокации-памяти-и-управление-памятью-10">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go-10"><a class="header" href="#теория-аллокаций-в-go-10">Теория аллокаций в Go</a></h3>
 <h4 id="go-top-k-elements"><a class="header" href="#go-top-k-elements">Go: Top K Elements</a></h4>
@@ -16940,20 +16493,9 @@ if allEmpty {
 <li>O(n) общая память для всех массивов</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции-11"><a class="header" href="#глубокое-понимание-сложные-концепции-11">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-11"><a class="header" href="#escape-analysis-go-11">Escape Analysis (Go)</a></h3>
-<p><strong>Для K-way Merge</strong>:</p>
-<ul>
-<li>Куча в куче</li>
-<li>Массивы в куче</li>
-<li>Результаты могут escape</li>
-</ul>
-<h3 id="garbage-collector-go-11"><a class="header" href="#garbage-collector-go-11">Garbage Collector (Go)</a></h3>
-<p><strong>Для K-way Merge</strong>:</p>
-<ul>
-<li>Куча в куче</li>
-<li>Массивы в куче</li>
-<li>Минимизация k критична</li>
-</ul>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью-11"><a class="header" href="#аллокации-памяти-и-управление-памятью-11">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go-11"><a class="header" href="#теория-аллокаций-в-go-11">Теория аллокаций в Go</a></h3>
 <h4 id="go-k-way-merge"><a class="header" href="#go-k-way-merge">Go: K-way Merge</a></h4>
@@ -18268,20 +17810,9 @@ for i := start; i &lt; len(nums); i++ {
 <li>Экономия памяти</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции-12"><a class="header" href="#глубокое-понимание-сложные-концепции-12">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-12"><a class="header" href="#escape-analysis-go-12">Escape Analysis (Go)</a></h3>
-<p><strong>Для Subsets</strong>:</p>
-<ul>
-<li>Результирующие подмножества в куче</li>
-<li>Текущее подмножество может остаться на стеке (если небольшое)</li>
-<li>Результат escape при возврате</li>
-</ul>
-<h3 id="garbage-collector-go-12"><a class="header" href="#garbage-collector-go-12">Garbage Collector (Go)</a></h3>
-<p><strong>Для Subsets</strong>:</p>
-<ul>
-<li>Все подмножества в куче</li>
-<li>2^n подмножеств - много аллокаций</li>
-<li>Минимизация копирований критична</li>
-</ul>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью-12"><a class="header" href="#аллокации-памяти-и-управление-памятью-12">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go-12"><a class="header" href="#теория-аллокаций-в-go-12">Теория аллокаций в Go</a></h3>
 <h4 id="go-генерация-подмножеств"><a class="header" href="#go-генерация-подмножеств">Go: Генерация подмножеств</a></h4>
@@ -19700,21 +19231,9 @@ for _, prereq := range prerequisites {
 <li>Линейная сложность</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции-13"><a class="header" href="#глубокое-понимание-сложные-концепции-13">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go-13"><a class="header" href="#escape-analysis-go-13">Escape Analysis (Go)</a></h3>
-<p><strong>Для Topological Sort</strong>:</p>
-<ul>
-<li>Граф в куче</li>
-<li>Очередь в куче</li>
-<li>In-degree массив может быть на стеке (если небольшой)</li>
-<li>Результаты могут escape</li>
-</ul>
-<h3 id="garbage-collector-go-13"><a class="header" href="#garbage-collector-go-13">Garbage Collector (Go)</a></h3>
-<p><strong>Для Topological Sort</strong>:</p>
-<ul>
-<li>Граф в куче</li>
-<li>Очередь в куче</li>
-<li>Минимизация размера графа критична</li>
-</ul>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="#приложение-память-gc-и-профилирование-в-go">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью-13"><a class="header" href="#аллокации-памяти-и-управление-памятью-13">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go-13"><a class="header" href="#теория-аллокаций-в-go-13">Теория аллокаций в Go</a></h3>
 <h4 id="go-topological-sort"><a class="header" href="#go-topological-sort">Go: Topological Sort</a></h4>

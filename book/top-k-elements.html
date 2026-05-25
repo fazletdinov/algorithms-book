@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-45549685.js";
+            window.path_to_searchindex_js = "searchindex-4ed63227.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-45d806d3.js"></script>
@@ -570,20 +570,9 @@ func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 <li>Итого: O(n log k)</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<p><strong>Для Top K Elements</strong>:</p>
-<ul>
-<li>Куча в куче</li>
-<li>HashMap в куче (если используется)</li>
-<li>Результаты могут escape</li>
-</ul>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<p><strong>Для Top K Elements</strong>:</p>
-<ul>
-<li>Куча в куче</li>
-<li>HashMap в куче</li>
-<li>Минимизация размера k критична</li>
-</ul>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="appendix-go-memory.html">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
 <h4 id="go-top-k-elements"><a class="header" href="#go-top-k-elements">Go: Top K Elements</a></h4>

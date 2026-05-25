@@ -47,6 +47,8 @@ go test -tags solution ./slidingwindow/   # прогнать тесты на э�
 | `binarysearch`  | `Search`, `FindCeiling`                      |
 | `cyclicsort`    | `CyclicSort`, `FindMissingNumber`            |
 | `backtracking`  | `Permutations`, `GenerateParentheses`        |
+| `treebfs`       | `LevelOrder`                                 |
+| `linkedlist`    | `ReverseList`                                |
 
 ## Как добавить свой шаблон
 

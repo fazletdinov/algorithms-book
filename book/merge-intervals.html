@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-45549685.js";
+            window.path_to_searchindex_js = "searchindex-4ed63227.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-45d806d3.js"></script>
@@ -701,54 +701,9 @@ for i &lt; len(A) &amp;&amp; j &lt; len(B) {
 <li>Struct эффективнее для представления интервала</li>
 </ul>
 <h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<h4 id="что-это-такое"><a class="header" href="#что-это-такое">Что это такое:</a></h4>
-<p><strong>Escape Analysis</strong> определяет, должны ли интервалы быть в куче.</p>
-<p><strong>Для Merge Intervals</strong>:</p>
-<ul>
-<li>Результирующие интервалы могут escape, если возвращаются</li>
-<li>Временные структуры могут остаться на стеке</li>
-</ul>
-<h4 id="как-проверить"><a class="header" href="#как-проверить">Как проверить:</a></h4>
-<pre><code class="language-bash">go build -gcflags=-m main.go
-</code></pre>
-<p><strong>Пример</strong>:</p>
-<pre><code class="language-go">func merge(intervals [][]int) [][]int {
-    result := make([][]int, 0)  // может escape
-    // ...
-    return result  // escape в кучу
-}
-</code></pre>
-<h4 id="оптимизация"><a class="header" href="#оптимизация">Оптимизация:</a></h4>
-<p><strong>Предварительное выделение</strong>:</p>
-<pre><code class="language-go">// ✅ Хорошо: предварительное выделение
-result := make([][]int, 0, len(intervals))
-</code></pre>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
-<p><strong>Для Merge Intervals</strong>:</p>
-<ul>
-<li>Интервалы в куче - управляются GC</li>
-<li>Результирующие интервалы также в куче</li>
-<li>Минимизация аллокаций критична</li>
-</ul>
-<h4 id="оптимизация-1"><a class="header" href="#оптимизация-1">Оптимизация:</a></h4>
-<p><strong>Переиспользование слайсов</strong>:</p>
-<pre><code class="language-go">// ✅ Избегаем создания новых слайсов
-func merge(intervals [][]int) [][]int {
-    result := make([][]int, 0, len(intervals))
-    // переиспользуем capacity
-    return result
-}
-</code></pre>
-<h4 id="работа-со-слайсами"><a class="header" href="#работа-со-слайсами">Работа со слайсами:</a></h4>
-<p><strong>Для Merge Intervals</strong>:</p>
-<ul>
-<li>Входные данные: <code>[][]int</code> (слайс ссылается на исходный массив)</li>
-<li>Результат: <code>[][]int</code> (новый слайс)</li>
-<li>Сортировка изменяет исходный слайс in-place (если не копировать)</li>
-</ul>
-<p><strong>Пример</strong>:</p>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="appendix-go-memory.html">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
 <p>В для Merge Intervals:</p>

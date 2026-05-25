@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-45549685.js";
+            window.path_to_searchindex_js = "searchindex-4ed63227.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-45d806d3.js"></script>
@@ -1110,68 +1110,9 @@ right := 10 // На стеке, 8 байт
 </table>
 </div>
 <h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<h4 id="что-это-такое"><a class="header" href="#что-это-такое">Что это такое:</a></h4>
-<p><strong>Escape Analysis</strong> - это статический анализ компилятора Go, который определяет, должна ли переменная быть аллоцирована в куче или может остаться на стеке.</p>
-<p><strong>Для Two Pointers</strong>:</p>
-<ul>
-<li>Индексы (int) всегда на стеке</li>
-<li>Результирующие слайсы могут escape, если возвращаются из функции</li>
-</ul>
-<h4 id="как-проверить"><a class="header" href="#как-проверить">Как проверить:</a></h4>
-<pre><code class="language-bash">go build -gcflags=-m main.go
-</code></pre>
-<p><strong>Пример для Two Pointers</strong>:</p>
-<pre><code class="language-go">func twoSum(nums []int, target int) []int {
-    left, right := 0, len(nums)-1  // на стеке
-    result := make([]int, 2)       // может escape, если возвращается
-    // ...
-    return result  // escape в кучу
-}
-</code></pre>
-<p><strong>Вывод</strong>:</p>
-<pre><code>./main.go:5:6: moved to heap: result
-</code></pre>
-<h4 id="оптимизация"><a class="header" href="#оптимизация">Оптимизация:</a></h4>
-<p><strong>Избежание escape результата</strong>:</p>
-<pre><code class="language-go">// ❌ Плохо: создание нового слайса
-func bad() []int {
-    result := []int{1, 2}  // escape
-    return result
-}
-
-// ✅ Хорошо: использование переданного слайса
-func good(result []int) {
-    result[0] = 1
-    result[1] = 2
-    // result не escape, если передан извне
-}
-</code></pre>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
-<p><strong>Для Two Pointers</strong>:</p>
-<ul>
-<li>Индексы на стеке - не влияют на GC</li>
-<li>Результирующие слайсы в куче - управляются GC</li>
-<li>Минимизация аллокаций критична для производительности</li>
-</ul>
-<h4 id="оптимизация-1"><a class="header" href="#оптимизация-1">Оптимизация:</a></h4>
-<p><strong>Предварительное выделение результата</strong>:</p>
-<pre><code class="language-go">// ✅ Хорошо: предварительное выделение
-func optimized() []int {
-    result := make([]int, 0, 2)  // capacity = 2
-    // ...
-    return result
-}
-</code></pre>
-<p><strong>Переиспользование слайсов</strong>:</p>
-<pre><code class="language-go">// ✅ Используем sync.Pool для переиспользования
-var resultPool = sync.Pool{
-    New: func() interface{} {
-        return make([]int, 0, 10)
-    },
-}
-</code></pre>
+<p>Escape analysis (что попадает на стек, а что в кучу) и работа сборщика мусора (GC)
+одинаковы для всех шаблонов и подробно разобраны в общем справочнике —
+см. <a href="appendix-go-memory.html">Приложение: память, GC и профилирование в Go</a>.</p>
 <h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
 <h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
 <h4 id="go-сборщик-мусора"><a class="header" href="#go-сборщик-мусора">Go: Сборщик мусора</a></h4>
