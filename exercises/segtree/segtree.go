@@ -31,3 +31,29 @@ func (st *SegmentTree) Query(l, r int) int {
 	// попадающие в диапазон (классический итеративный обход).
 	panic("TODO: реализуйте Query")
 }
+
+// LazySegmentTree — дерево отрезков с отложенными обновлениями
+// (диапазонная прибавка + диапазонная сумма).
+type LazySegmentTree struct {
+	n          int
+	tree, lazy []int
+}
+
+// NewLazySegmentTree строит дерево по массиву.
+func NewLazySegmentTree(arr []int) *LazySegmentTree {
+	// TODO: рекурсивно постройте дерево; tree и lazy размера 4n.
+	panic("TODO: реализуйте NewLazySegmentTree")
+}
+
+// RangeUpdate прибавляет delta ко всем элементам включительного [l, r].
+func (t *LazySegmentTree) RangeUpdate(l, r, delta int) {
+	// TODO: если узел целиком в диапазоне — примените прибавку и отложите её
+	// детям (lazy); иначе спускайтесь, не забыв push.
+	panic("TODO: реализуйте RangeUpdate")
+}
+
+// RangeQuery возвращает сумму на включительном [l, r].
+func (t *LazySegmentTree) RangeQuery(l, r int) int {
+	// TODO: перед спуском к детям проталкивайте отложенные значения (push).
+	panic("TODO: реализуйте RangeQuery")
+}

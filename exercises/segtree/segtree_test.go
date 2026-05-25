@@ -32,3 +32,26 @@ func TestSegmentTreeSingle(t *testing.T) {
 		t.Errorf("после Update Query(0,0) = %d, ожидалось 8", got)
 	}
 }
+
+func TestLazySegmentTree(t *testing.T) {
+	lt := NewLazySegmentTree([]int{1, 2, 3, 4, 5})
+
+	assert := func(name string, got, want int) {
+		if got != want {
+			t.Errorf("%s = %d, ожидалось %d", name, got, want)
+		}
+	}
+
+	assert("RangeQuery(0,4)", lt.RangeQuery(0, 4), 15)
+	assert("RangeQuery(1,3)", lt.RangeQuery(1, 3), 9)
+
+	lt.RangeUpdate(1, 3, 10) // +10 к индексам 1,2,3 -> [1,12,13,14,5]
+	assert("после RangeUpdate(1,3,+10) RangeQuery(0,4)", lt.RangeQuery(0, 4), 45)
+	assert("RangeQuery(1,3)", lt.RangeQuery(1, 3), 39)
+	assert("RangeQuery(0,0)", lt.RangeQuery(0, 0), 1)
+	assert("RangeQuery(2,2)", lt.RangeQuery(2, 2), 13)
+
+	lt.RangeUpdate(0, 4, 1) // +1 ко всем -> [2,13,14,15,6]
+	assert("после RangeUpdate(0,4,+1) RangeQuery(0,4)", lt.RangeQuery(0, 4), 50)
+	assert("RangeQuery(4,4)", lt.RangeQuery(4, 4), 6)
+}

@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0f275890.js";
+            window.path_to_searchindex_js = "searchindex-9e1ecdd5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-da8af5e2.js"></script>
@@ -275,10 +275,94 @@ func (st *SegmentTree) Query(l, r int) int {
 <h2 id="варианты"><a class="header" href="#варианты">Варианты</a></h2>
 <ul>
 <li><strong>Lazy propagation</strong> (отложенные обновления) — позволяет обновлять <strong>целый диапазон</strong>
-за O(log n), откладывая применение в узлах. Нужен для задач «прибавить ко всему [l, r]».</li>
-<li><strong>Fenwick (BIT)</strong> — дерево Фенвика проще и быстрее для сумм с точечным обновлением, но
-менее универсально, чем дерево отрезков.</li>
+за O(log n), откладывая применение в узлах (см. раздел ниже).</li>
+<li><strong>Fenwick (BIT)</strong> — <a href="fenwick-tree.html">дерево Фенвика</a> проще и быстрее для сумм с
+точечным обновлением, но менее универсально, чем дерево отрезков.</li>
 </ul>
+<h2 id="lazy-propagation-обновление-диапазона"><a class="header" href="#lazy-propagation-обновление-диапазона">Lazy propagation: обновление диапазона</a></h2>
+<p>Точечного обновления мало для задач вида «прибавить значение ко всем элементам [l, r]».
+Наивно это O(n) на запрос. <strong>Отложенные обновления</strong> решают проблему: если узел целиком
+покрыт диапазоном обновления, мы применяем изменение к нему <strong>сразу</strong>, а к детям — позже
+(«проталкиваем» лениво, только когда в них спускаемся). Так range-update и range-query
+оба становятся O(log n).</p>
+<p>Хранятся два массива: <code>tree</code> (агрегаты) и <code>lazy</code> (отложенная прибавка для поддерева).
+Удобнее рекурсивная реализация.</p>
+<pre><code class="language-go">type LazySegmentTree struct {
+    n          int
+    tree, lazy []int
+}
+
+func NewLazySegmentTree(arr []int) *LazySegmentTree {
+    n := len(arr)
+    l := &amp;LazySegmentTree{n: n, tree: make([]int, 4*n), lazy: make([]int, 4*n)}
+    if n &gt; 0 {
+        l.build(1, 0, n-1, arr)
+    }
+    return l
+}
+
+func (l *LazySegmentTree) build(node, lo, hi int, arr []int) {
+    if lo == hi {
+        l.tree[node] = arr[lo]
+        return
+    }
+    mid := (lo + hi) / 2
+    l.build(2*node, lo, mid, arr)
+    l.build(2*node+1, mid+1, hi, arr)
+    l.tree[node] = l.tree[2*node] + l.tree[2*node+1]
+}
+
+// apply применяет прибавку delta ко всему отрезку [lo, hi] узла.
+func (l *LazySegmentTree) apply(node, lo, hi, delta int) {
+    l.tree[node] += (hi - lo + 1) * delta // вклад в сумму
+    l.lazy[node] += delta                 // запоминаем для детей
+}
+
+// push проталкивает отложенное значение детям.
+func (l *LazySegmentTree) push(node, lo, hi int) {
+    if l.lazy[node] != 0 {
+        mid := (lo + hi) / 2
+        l.apply(2*node, lo, mid, l.lazy[node])
+        l.apply(2*node+1, mid+1, hi, l.lazy[node])
+        l.lazy[node] = 0
+    }
+}
+
+// RangeUpdate прибавляет delta ко всем элементам [ql, qr].
+func (l *LazySegmentTree) RangeUpdate(ql, qr, delta int) { l.update(1, 0, l.n-1, ql, qr, delta) }
+
+func (l *LazySegmentTree) update(node, lo, hi, ql, qr, delta int) {
+    if qr &lt; lo || hi &lt; ql { // не пересекается
+        return
+    }
+    if ql &lt;= lo &amp;&amp; hi &lt;= qr { // целиком внутри — применяем и не спускаемся
+        l.apply(node, lo, hi, delta)
+        return
+    }
+    l.push(node, lo, hi)
+    mid := (lo + hi) / 2
+    l.update(2*node, lo, mid, ql, qr, delta)
+    l.update(2*node+1, mid+1, hi, ql, qr, delta)
+    l.tree[node] = l.tree[2*node] + l.tree[2*node+1]
+}
+
+// RangeQuery возвращает сумму на [ql, qr].
+func (l *LazySegmentTree) RangeQuery(ql, qr int) int { return l.query(1, 0, l.n-1, ql, qr) }
+
+func (l *LazySegmentTree) query(node, lo, hi, ql, qr int) int {
+    if qr &lt; lo || hi &lt; ql {
+        return 0
+    }
+    if ql &lt;= lo &amp;&amp; hi &lt;= qr {
+        return l.tree[node]
+    }
+    l.push(node, lo, hi)
+    mid := (lo + hi) / 2
+    return l.query(2*node, lo, mid, ql, qr) + l.query(2*node+1, mid+1, hi, ql, qr)
+}
+</code></pre>
+<p>Ключевое правило: <strong>перед спуском к детям всегда <code>push</code></strong>, иначе они вернут устаревшие
+данные. И <code>update</code>, и <code>query</code> соблюдают это.</p>
 <h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
 <li><strong>Путаница включительного/полуоткрытого диапазона</strong> — в <code>Query</code> здесь <code>r</code> сдвигается
@@ -302,7 +386,8 @@ func (st *SegmentTree) Query(l, r int) int {
 go test ./segtree/                 # ваши решения
 go test -tags solution ./segtree/  # эталон
 </code></pre>
-<p>Реализуйте <code>NewSegmentTree</code>, <code>Update</code> и <code>Query</code> для суммы на диапазоне.</p>
+<p>Реализуйте <code>NewSegmentTree</code>, <code>Update</code> и <code>Query</code> для суммы на диапазоне, а также
+<code>LazySegmentTree</code> (<code>RangeUpdate</code> / <code>RangeQuery</code>) с отложенными обновлениями.</p>
 <h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="tree-dfs.html">Tree DFS</a></strong> — рекурсивная версия дерева отрезков строится обходом в
