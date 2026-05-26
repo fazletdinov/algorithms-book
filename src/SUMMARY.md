@@ -3,6 +3,8 @@
 [Введение](README.md)
 
 - [Руководство по выбору шаблона](pattern-selection-guide.md)
+- [Шпаргалка и прогресс](cheatsheet.md)
+- [Тренажёр: распознавание шаблонов](quiz.md)
 - [Глоссарий](glossary.md)
 
 # Шаблоны
@@ -38,8 +40,25 @@
 ## Группа 6: Комбинаторика и графы
 
 - [Subsets (Подмножества)](subsets.md)
+- [Backtracking (Поиск с возвратом)](backtracking.md)
+- [Graphs (Обход графов)](graphs.md)
+- [Графы: сетки и кратчайшие пути](grids-and-shortest-paths.md)
+- [Графы: продвинутые алгоритмы](advanced-graph-algorithms.md)
 - [Topological Sort (Топологическая сортировка)](topological-sort.md)
+
+## Группа 7: Оптимизация (жадность и ДП)
+
+- [Greedy (Жадные алгоритмы)](greedy.md)
+- [Dynamic Programming (Динамическое программирование)](dynamic-programming.md)
+
+## Группа 8: Строки и структуры данных
+
+- [Строковые алгоритмы: поиск подстроки](string-algorithms.md)
+- [Trie (Префиксное дерево)](trie.md)
+- [Segment Tree (Дерево отрезков)](segment-tree.md)
+- [Fenwick Tree (Дерево Фенвика, BIT)](fenwick-tree.md)
 
 ## Дополнительные материалы
 
+- [Приложение: память, GC и профилирование в Go](appendix-go-memory.md)
 - [Заключение](conclusion.md)

@@ -28,6 +28,8 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-b363db2f.css">
+        <link rel="stylesheet" href="assets/quiz-7aebf16b.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -37,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-2799386e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-6b3e4b80.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,30 +179,25 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="cyclic-sort-циклическая-сортировка"><a class="header" href="#cyclic-sort-циклическая-сортировка">Cyclic Sort (Циклическая сортировка)</a></h1>
-<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
-<p>Шаблон <strong>Cyclic Sort</strong> используется для сортировки массивов, содержащих числа в определенном диапазоне (обычно от 1 до N). Алгоритм работает на месте, используя тот факт, что каждое число должно находиться на позиции, равной его значению минус один (для диапазона 1..N).</p>
-<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
-<p>Cyclic Sort является специализированным алгоритмом сортировки, оптимизированным для массивов с ограниченным диапазоном значений. Он основан на идее циклических перестановок и особенно эффективен когда известно, что каждое число от 1 до N встречается ровно один раз (или с дубликатами).</p>
-<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
-<p>Ключевое наблюдение: если массив содержит числа от 1 до N, то число <code>x</code> должно находиться на позиции <code>x - 1</code>. Алгоритм использует это свойство для размещения каждого элемента на правильной позиции за один цикл перестановок.</p>
-<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
-<p>Используйте этот шаблон, когда:</p>
+<h2 id="теория"><a class="header" href="#теория">Теория</a></h2>
+<p><strong>Cyclic Sort</strong> — сортировка массива на месте, когда числа лежат в известном
+диапазоне (обычно от 1 до N). Алгоритм использует то, что число <code>x</code> должно стоять на
+позиции <code>x - 1</code> (для диапазона 1..N) или на позиции <code>x</code> (для 0..N-1).</p>
+<p>Каждый элемент за один цикл перестановок «отправляется» на своё место. Поскольку
+после размещения элемент больше не двигается, всего происходит не более N перестановок —
+это даёт <strong>O(n)</strong> времени и <strong>O(1)</strong> памяти.</p>
+<p><strong>Когда применять:</strong></p>
 <ul>
-<li>Массив содержит числа в диапазоне от 1 до N (или от 0 до N-1)</li>
-<li>Нужно отсортировать массив на месте с минимальными затратами памяти</li>
-<li>Требуется найти отсутствующие, дублирующиеся или неправильно расположенные числа</li>
-<li>Задача связана с массивами, где каждое число должно быть на определенной позиции</li>
+<li>массив содержит числа в диапазоне 1..N (или 0..N-1);</li>
+<li>нужна сортировка на месте без дополнительной памяти;</li>
+<li>требуется найти отсутствующее, дублирующееся или неправильно расположенное число.</li>
 </ul>
-<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
-<h3 id="предусловия"><a class="header" href="#предусловия">Предусловия</a></h3>
-<p>Базовый цикл ниже предполагает, что каждый <code>nums[i]</code> лежит в диапазоне <strong>от 1 до N</strong> (где <code>N = len(nums)</code>), иначе <code>correctPos := nums[i]-1</code> выходит за границы слайса или алгоритм зацикливается. В задачах с числами вне диапазона или без гарантии перестановки <code>1..N</code> нужен <strong>guard</strong> (пропуск таких индексов) или другой вариант цикла — см. код.</p>
-<h3 id="базовый-алгоритм"><a class="header" href="#базовый-алгоритм">Базовый алгоритм:</a></h3>
+<h2 id="алгоритм"><a class="header" href="#алгоритм">Алгоритм</a></h2>
+<p>Идём по массиву индексом <code>i</code>. Если <code>nums[i]</code> не на своём месте — меняем его с
+элементом на правильной позиции и <strong>не</strong> увеличиваем <code>i</code> (нужно проверить новый
+элемент). Если на месте — переходим дальше.</p>
 <pre><code class="language-go">func cyclicSort(nums []int) {
-    i := 0
-    n := len(nums)
-
-    // Шаг 1: Итерация по массиву
-    // Используем while вместо for, так как не всегда увеличиваем i
+    i, n := 0, len(nums)
     for i &lt; n {
         v := nums[i]
         // Guard: значение вне [1, n] нельзя поставить на «свою» позицию — пропускаем
@@ -208,1038 +205,99 @@
             i++
             continue
         }
-
-        // Шаг 2: Проверка позиции - вычисляем правильную позицию для текущего элемента
-        // Для массива с числами от 1 до N: число x должно быть на индексе x-1
-        // Например, число 3 должно быть на индексе 2 (3-1=2)
-        correctPos := v - 1
-
-        // Проверяем, находится ли элемент на правильной позиции
-        // Если nums[i] уже на правильной позиции, переходим к следующему элементу
+        correctPos := v - 1 // число x должно стоять на индексе x-1
         if nums[i] != nums[correctPos] {
-            // Шаг 3: Циклическая замена - элемент не на правильной позиции
-            // Меняем текущий элемент с элементом на правильной позиции
-            // Это гарантирует, что элемент на правильной позиции попадет на свое место
             nums[i], nums[correctPos] = nums[correctPos], nums[i]
-            
-            // После замены на позиции i находится новый элемент
-            // НЕ увеличиваем i - нужно проверить этот новый элемент
-            // Повторяем проверку для нового элемента на текущей позиции
+            // i не увеличиваем — на позиции i теперь новый элемент
         } else {
-            // Шаг 4: Продолжение - элемент на правильной позиции
-            // Только теперь переходим к следующему индексу
-            // Это гарантирует, что все элементы до индекса i находятся на правильных позициях
             i++
         }
     }
 }
 </code></pre>
-<h3 id="правильная-позиция"><a class="header" href="#правильная-позиция">Правильная позиция:</a></h3>
-<p>Для массива с числами от 1 до N:</p>
-<ul>
-<li>Число <code>x</code> должно находиться на индексе <code>x - 1</code></li>
-<li>Для массива с числами от 0 до N-1: число <code>x</code> на индексе <code>x</code></li>
-</ul>
-<h3 id="схема-алгоритма"><a class="header" href="#схема-алгоритма">Схема алгоритма:</a></h3>
-<pre><code class="language-mermaid">flowchart TD
-    A[i = 0] --&gt; B{i &lt; n?}
-    B --&gt;|Нет| C[Конец]
-    B --&gt;|Да| D{arr[i] на месте?}
-    D --&gt;|Да| E[i++]
-    D --&gt;|Нет| F[swap arr[i], arr[correctPos]]
-    E --&gt; B
-    F --&gt; B
-</code></pre>
-<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
-<h3 id="сортировка-массива-3-1-5-4-2"><a class="header" href="#сортировка-массива-3-1-5-4-2">Сортировка массива [3, 1, 5, 4, 2]:</a></h3>
-<p><strong>Исходные данные:</strong> Массив <code>[3, 1, 5, 4, 2]</code> (диапазон [1, 5])</p>
-<p><strong>Правило:</strong> Число <code>x</code> должно быть на позиции <code>x - 1</code></p>
-<p><strong>Шаг 1: i=0, arr[0]=3 не на месте</strong></p>
-<pre><code>Массив: [3, 1, 5, 4, 2]
-Индексы: 0  1  2  3  4
-         ↑
-         i=0
-       arr[0] = 3
-       Правильная позиция для 3: 3-1 = 2
-       arr[2] = 5 ≠ 3 → меняем местами
-       
-Массив: [5, 1, 3, 4, 2]
-         ↑     ↑
-         i   correctPos
-       Продолжаем с i=0 (не увеличиваем)
-</code></pre>
-<p><strong>Шаг 2: i=0, arr[0]=5 не на месте</strong></p>
-<pre><code>Массив: [5, 1, 3, 4, 2]
-Индексы: 0  1  2  3  4
-         ↑
-         i=0
-       arr[0] = 5
-       Правильная позиция для 5: 5-1 = 4
-       arr[4] = 2 ≠ 5 → меняем местами
-       
-Массив: [2, 1, 3, 4, 5]
-         ↑        ↑
-         i     correctPos
-       Продолжаем с i=0
-</code></pre>
-<p><strong>Шаг 3: i=0, arr[0]=2 не на месте</strong></p>
-<pre><code>Массив: [2, 1, 3, 4, 5]
-Индексы: 0  1  2  3  4
-         ↑
-         i=0
-       arr[0] = 2
-       Правильная позиция для 2: 2-1 = 1
-       arr[1] = 1 ≠ 2 → меняем местами
-       
-Массив: [1, 2, 3, 4, 5]
-         ↑  ↑
-         i correctPos
-</code></pre>
-<p><strong>Шаг 4: i=0, arr[0]=1 на месте!</strong></p>
-<pre><code>Массив: [1, 2, 3, 4, 5]
-Индексы: 0  1  2  3  4
-         ↑
-         i=0
-       arr[0] = 1
-       Правильная позиция для 1: 1-1 = 0
-       arr[0] = 1 == 1 ✓ На месте!
-       i++ → i=1
-</code></pre>
-<p><strong>Шаг 5-8: Остальные элементы уже на местах</strong></p>
-<pre><code>Массив: [1, 2, 3, 4, 5]
-Индексы: 0  1  2  3  4
-            ↑  ↑  ↑  ↑
-          все на местах
-       i=1: arr[1]=2 на позиции 1 ✓
-       i=2: arr[2]=3 на позиции 2 ✓
-       i=3: arr[3]=4 на позиции 3 ✓
-       i=4: arr[4]=5 на позиции 4 ✓
-       i &gt;= len → завершение
-</code></pre>
-<p><strong>Результат:</strong> <code>[1, 2, 3, 4, 5]</code> - массив отсортирован</p>
-<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
-<p><strong>Инвариант</strong>: После обработки позиции i, все элементы на позициях [0..i-1] находятся на своих правильных позициях.</p>
-<p><strong>Доказательство корректности</strong>:</p>
-<ol>
-<li><strong>Базовый случай</strong>: Пустой массив уже отсортирован</li>
-<li><strong>Индуктивный шаг</strong>: Предположим, элементы [0..i-1] на правильных позициях
-<ul>
-<li>Рассмотрим элемент на позиции i</li>
-<li>Если он на правильной позиции, переходим к i+1</li>
-<li>Если нет, меняем его с элементом на правильной позиции</li>
-<li>Новый элемент на позиции i также будет обработан (циклически)</li>
-<li>После конечного числа перестановок элемент попадет на правильную позицию</li>
-</ul>
-</li>
-</ol>
-<p><strong>Почему сложность O(n)?</strong></p>
-<p>Каждый элемент перемещается максимум один раз на свою правильную позицию. После размещения элемента на правильной позиции, он больше не перемещается. Всего n элементов → максимум n перестановок → O(n).</p>
-<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li>Каждый элемент обрабатывается максимум один раз</li>
-<li>Каждая перестановка занимает O(1)</li>
-<li>Итого: O(n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(1)
-<ul>
-<li>Сортировка на месте, только константная память</li>
-</ul>
-</li>
-</ul>
-<h3 id="амортизированная-сложность"><a class="header" href="#амортизированная-сложность">Амортизированная сложность</a></h3>
-<p><strong>Амортизированный анализ</strong> для циклической сортировки:</p>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(1) на элемент
-<ul>
-<li>Каждый элемент перемещается максимум один раз на правильную позицию</li>
-<li>Амортизированная стоимость: O(n) / n = O(1) на элемент</li>
-</ul>
-</li>
-</ul>
-<h3 id="worstaveragebest-case-анализ"><a class="header" href="#worstaveragebest-case-анализ">Worst/Average/Best Case анализ</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(n)</td><td>Массив уже отсортирован, но нужно проверить все элементы</td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(n)</td><td>Элементы в случайном порядке</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(n)</td><td>Каждый элемент не на своей позиции, но все равно O(n)</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Примечание</strong>: Cyclic Sort всегда имеет O(n), так как каждый элемент обрабатывается максимум один раз.</p>
-<p><strong>Пространственная сложность</strong>: Всегда O(1), так как сортировка на месте.</p>
-<h3 id="таблица-сравнения-сложностей"><a class="header" href="#таблица-сравнения-сложностей">Таблица сравнения сложностей</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Алгоритм</th><th>Время (Worst)</th><th>Время (Average)</th><th>Время (Best)</th><th>Память</th><th>Амортизированное время</th></tr>
-</thead>
-<tbody>
-<tr><td>Cyclic Sort</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(1)</td><td>O(1) на элемент</td></tr>
-<tr><td>Quick Sort</td><td>O(n²)</td><td>O(n log n)</td><td>O(n log n)</td><td>O(log n)</td><td>O(log n) на элемент</td></tr>
-<tr><td>Counting Sort</td><td>O(n+k)</td><td>O(n+k)</td><td>O(n+k)</td><td>O(k)</td><td>O(1) на элемент*</td></tr>
-</tbody>
-</table>
-</div>
-<p>*При условии k = O(n)</p>
-<h3 id="сравнение-с-другими-алгоритмами"><a class="header" href="#сравнение-с-другими-алгоритмами">Сравнение с другими алгоритмами:</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Алгоритм</th><th>Время</th><th>Память</th><th>Применимость</th></tr>
-</thead>
-<tbody>
-<tr><td>Quick Sort</td><td>O(n log n)</td><td>O(log n)</td><td>Общий случай</td></tr>
-<tr><td>Counting Sort</td><td>O(n+k)</td><td>O(k)</td><td>Ограниченный диапазон</td></tr>
-<tr><td>Cyclic Sort</td><td>O(n)</td><td>O(1)</td><td>Диапазон 1..N</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="граничные-случаи"><a class="header" href="#граничные-случаи">Граничные случаи</a></h2>
-<p>При работе с циклической сортировкой важно обрабатывать следующие граничные случаи:</p>
-<h3 id="1-пустой-массив"><a class="header" href="#1-пустой-массив">1. Пустой массив</a></h3>
-<p><strong>Проблема</strong>: Если массив пуст, алгоритм может упасть или вернуть неверный результат.</p>
-<p><strong>Решение</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func cyclicSort(nums []int) {
-    if len(nums) == 0 {
-        return
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="2-массив-из-одного-элемента"><a class="header" href="#2-массив-из-одного-элемента">2. Массив из одного элемента</a></h3>
-<p><strong>Проблема</strong>: Если массив содержит только один элемент, он уже на правильной позиции.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if len(nums) == 1 {
-    return // Уже отсортирован
-}
-</code></pre>
-<h3 id="3-массив-уже-отсортирован"><a class="header" href="#3-массив-уже-отсортирован">3. Массив уже отсортирован</a></h3>
-<p><strong>Проблема</strong>: Если массив уже отсортирован, алгоритм все равно должен работать корректно.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай, просто пропуская элементы, которые уже на правильных позициях.</p>
-<h3 id="4-все-элементы-одинаковые"><a class="header" href="#4-все-элементы-одинаковые">4. Все элементы одинаковые</a></h3>
-<p><strong>Проблема</strong>: Если все элементы одинаковые, алгоритм может работать неоптимально.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай, так как каждый элемент уже на правильной позиции.</p>
-<h3 id="5-элементы-вне-диапазона-1-n"><a class="header" href="#5-элементы-вне-диапазона-1-n">5. Элементы вне диапазона [1, n]</a></h3>
-<p><strong>Проблема</strong>: Если элементы не в диапазоне [1, n], алгоритм может работать некорректно.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">// Валидация диапазона
-for _, num := range nums {
-    if num &lt; 1 || num &gt; len(nums) {
-        // Обработка элемента вне диапазона
-        // Например, пропустить или обработать отдельно
-    }
-}
-</code></pre>
-<h3 id="6-дубликаты"><a class="header" href="#6-дубликаты">6. Дубликаты</a></h3>
-<p><strong>Проблема</strong>: Если есть дубликаты, алгоритм может зациклиться.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">// Проверка перед обменом
-if nums[i] != nums[nums[i]-1] {
-    // Обмениваем только если элементы разные
-    nums[i], nums[nums[i]-1] = nums[nums[i]-1], nums[i]
-} else {
-    // Дубликат найден, пропускаем
-    i++
-}
-</code></pre>
-<h3 id="7-очень-большой-массив"><a class="header" href="#7-очень-большой-массив">7. Очень большой массив</a></h3>
-<p><strong>Проблема</strong>: При очень больших массивах может быть проблема с производительностью.</p>
-<p><strong>Решение</strong>: Алгоритм имеет O(n) сложность, что оптимально. Убедитесь, что используете эффективные структуры данных.</p>
-<h3 id="8-отрицательные-числа"><a class="header" href="#8-отрицательные-числа">8. Отрицательные числа</a></h3>
-<p><strong>Проблема</strong>: Если массив содержит отрицательные числа, стандартный алгоритм не работает.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">// Сдвиг всех чисел в положительный диапазон
-minVal := findMin(nums)
-for i := range nums {
-    nums[i] -= minVal - 1 // Сдвигаем в диапазон [1, n]
-}
-// Применяем cyclic sort
-// Затем сдвигаем обратно
-</code></pre>
-<h3 id="9-поиск-отсутствующего-числа-все-числа-присутствуют"><a class="header" href="#9-поиск-отсутствующего-числа-все-числа-присутствуют">9. Поиск отсутствующего числа: все числа присутствуют</a></h3>
-<p><strong>Проблема</strong>: Если все числа от 1 до n присутствуют, отсутствующего числа нет.</p>
-<p><strong>Решение</strong>:</p>
+<p>Сравнение <code>nums[i] != nums[correctPos]</code> (а не <code>i != correctPos</code>) защищает от
+бесконечного цикла на дубликатах: если на целевой позиции уже такое же значение,
+обмен бессмыслен — двигаемся дальше.</p>
+<p>После сортировки легко найти первое число, стоящее не на своём месте, — это и есть
+отсутствующее (или лишнее).</p>
 <pre><code class="language-go">func findMissingNumber(nums []int) int {
     cyclicSort(nums)
-    // Проверяем, есть ли отсутствующее число
     for i := 0; i &lt; len(nums); i++ {
         if nums[i] != i+1 {
             return i + 1
         }
     }
-    return len(nums) + 1 // Все числа присутствуют
+    return len(nums) + 1 // все числа 1..n на месте
 }
 </code></pre>
-<h3 id="10-поиск-дубликатов-нет-дубликатов"><a class="header" href="#10-поиск-дубликатов-нет-дубликатов">10. Поиск дубликатов: нет дубликатов</a></h3>
-<p><strong>Проблема</strong>: Если дубликатов нет, алгоритм должен вернуть пустой результат.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">func findDuplicates(nums []int) []int {
-    result := []int{}
-    cyclicSort(nums)
-    for i := 0; i &lt; len(nums); i++ {
-        if nums[i] != i+1 {
-            result = append(result, nums[i])
-        }
-    }
-    return result
-}
+<h3 id="сложность"><a class="header" href="#сложность">Сложность</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Случай</th><th>Время</th><th>Память</th></tr>
+</thead>
+<tbody>
+<tr><td>Любой</td><td>O(n)</td><td>O(1)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Cyclic Sort всегда линеен: каждый элемент перемещается максимум один раз на своё
+место, перестановка стоит O(1).</p>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: синяя ячейка — текущий индекс <code>i</code>,
+жёлтая — куда уходит элемент при обмене. (Виджет работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="cyclic-sort" data-array="3,1,5,4,2"></div>
+
+<p>Сортировка <code>[3, 1, 5, 4, 2]</code>, диапазон [1, 5]. Правило: число <code>x</code> → индекс <code>x - 1</code>.</p>
+<pre><code>[3, 1, 5, 4, 2]  i=0: 3→поз.2, swap с nums[2]=5
+[5, 1, 3, 4, 2]  i=0: 5→поз.4, swap с nums[4]=2
+[2, 1, 3, 4, 5]  i=0: 2→поз.1, swap с nums[1]=1
+[1, 2, 3, 4, 5]  i=0: 1 на месте → i++
+[1, 2, 3, 4, 5]  i=1..4: все на местах → i++
 </code></pre>
+<p>Пока <code>nums[0]</code> не встал на место, индекс <code>i</code> не двигается — отсюда «циклические»
+перестановки. Результат: <code>[1, 2, 3, 4, 5]</code>.</p>
 <h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
-<li><strong>Неправильное определение правильной позиции</strong>: Для диапазона 0..N-1 используйте <code>x</code>, для 1..N используйте <code>x-1</code></li>
-<li><strong>Бесконечный цикл</strong>: Убедитесь, что элемент действительно не на правильной позиции перед перестановкой</li>
-<li><strong>Выход за границы</strong>: Проверяйте границы массива перед доступом</li>
+<li><strong>Неверная формула позиции</strong> — для диапазона 1..N это <code>x-1</code>, для 0..N-1 это <code>x</code>.</li>
+<li><strong>Бесконечный цикл на дубликатах</strong> — сравнивайте <em>значения</em>
+(<code>nums[i] != nums[correctPos]</code>), а не индексы.</li>
+<li><strong>Выход за границы</strong> — добавляйте guard для значений вне <code>[1, n]</code>, иначе
+<code>nums[v-1]</code> упадёт.</li>
+<li><strong>Увеличение <code>i</code> после обмена</strong> — после swap на позиции <code>i</code> стоит новый элемент,
+его тоже нужно проверить; <code>i++</code> только когда элемент уже на месте.</li>
+<li><strong>Не обработан пустой массив</strong> — цикл <code>i &lt; n</code> это покрывает, но проверьте, что
+постобработка (поиск пропуска) не падает на пустом входе.</li>
 </ol>
-<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
-<ol>
-<li>Определите диапазон значений перед применением алгоритма</li>
-<li>Используйте правильную формулу для вычисления правильной позиции</li>
-<li>Обрабатывайте дубликаты отдельно (пропускайте их или обрабатывайте специально)</li>
-</ol>
-<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
-<h3 id="используемые-структуры-данных-в-cyclic-sort"><a class="header" href="#используемые-структуры-данных-в-cyclic-sort">Используемые структуры данных в Cyclic Sort</a></h3>
-<p>В шаблоне Cyclic Sort используются следующие структуры данных:</p>
+<h2 id="задачи"><a class="header" href="#задачи">Задачи</a></h2>
+<p><strong>LeetCode:</strong></p>
 <ul>
-<li><strong>Slice ([]int)</strong>: Для in-place сортировки массива</li>
-<li><strong>Индексы</strong>: Для навигации по массиву (хранятся на стеке)</li>
+<li><a href="https://leetcode.com/problems/missing-number/">Missing Number</a></li>
+<li><a href="https://leetcode.com/problems/find-all-numbers-disappeared-in-an-array/">Find All Numbers Disappeared in an Array</a></li>
+<li><a href="https://leetcode.com/problems/find-the-duplicate-number/">Find the Duplicate Number</a></li>
+<li><a href="https://leetcode.com/problems/find-all-duplicates-in-an-array/">Find All Duplicates in an Array</a></li>
+<li><a href="https://leetcode.com/problems/set-mismatch/">Set Mismatch</a></li>
+<li><a href="https://leetcode.com/problems/first-missing-positive/">First Missing Positive</a> (сложная)</li>
+<li><a href="https://leetcode.com/problems/kth-missing-positive-number/">Kth Missing Positive Number</a></li>
 </ul>
-<h3 id="slice-go---in-place-операции"><a class="header" href="#slice-go---in-place-операции">Slice (Go) - In-place операции</a></h3>
-<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>Vec&lt;T&gt;</strong>:</p>
-<pre><code>┌─────────────────────────────────────────┐
-│ Vec&amp;lt;i32&amp;gt;                                 │
-│ ┌─────────────┐                         │
-│ │ ptr: *mut i32│ Указатель на данные    │
-│ │ len: usize  │ Количество элементов    │
-│ │ cap: usize  │ Емкость                 │
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-         │
-         ▼
-    [данные в куче]
-    [3][1][4][2][5]  ← in-place перестановка
+<p><strong>Тренажёр</strong> — пакет <code>cyclicsort</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./cyclicsort/                 # ваши решения
+go test -tags solution ./cyclicsort/  # эталон
 </code></pre>
-<p><strong>Важные детали для Cyclic Sort</strong>:</p>
-<ul>
-<li>In-place означает: сортировка происходит в том же массиве</li>
-<li>Не создаются новые структуры данных</li>
-<li>Только перестановка элементов через swap</li>
-<li>O(1) дополнительная память (только индексы)</li>
-</ul>
-<p><strong>Go Slice</strong>:</p>
-<pre><code>┌─────────────────────────────────────────┐
-│ []int                                   │
-│ ┌─────────────┐                         │
-│ │ ptr: *int    │ Указатель на данные    │
-│ │ len: int     │ Длина                  │
-│ │ cap: int     │ Емкость                │
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-         │
-         ▼
-    [данные в куче]
-    [3][1][4][2][5]  ← in-place перестановка
-</code></pre>
-<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Операция</th><th>Сложность</th><th>Объяснение</th></tr>
-</thead>
-<tbody>
-<tr><td>Доступ по индексу</td><td>O(1)</td><td>Прямой доступ к памяти</td></tr>
-<tr><td>Swap элементов</td><td>O(1)</td><td>Перестановка двух значений</td></tr>
-<tr><td>Циклическая перестановка</td><td>O(n)</td><td>Каждый элемент перемещается максимум один раз</td></tr>
-<tr><td>Общая сложность</td><td>O(n)</td><td>Линейная сложность</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Почему Cyclic Sort эффективен</strong>:</p>
-<ul>
-<li>In-place: не требует дополнительной памяти</li>
-<li>O(n) время: каждый элемент обрабатывается один раз</li>
-<li>Минимальные аллокации: только индексы на стеке</li>
-</ul>
-<h4 id="когда-использовать"><a class="header" href="#когда-использовать">Когда использовать:</a></h4>
-<p><strong>Используйте Cyclic Sort когда</strong>:</p>
-<ul>
-<li>Массив содержит числа от 1 до n (или известный диапазон)</li>
-<li>Нужна in-place сортировка</li>
-<li>Важна экономия памяти</li>
-</ul>
-<p><strong>Не используйте когда</strong>:</p>
-<ul>
-<li>Диапазон значений неизвестен</li>
-<li>Нужна стабильная сортировка</li>
-<li>Элементы не уникальны (нужна специальная обработка)</li>
-</ul>
-<h3 id="in-place-операции"><a class="header" href="#in-place-операции">In-place операции</a></h3>
-<p><strong>swap</strong>:</p>
-<p><strong>Как работает</strong>:</p>
-<ul>
-<li>Временная переменная для хранения значения</li>
-<li>Три операции присваивания</li>
-<li>Не требует дополнительной аллокации</li>
-</ul>
-<p><strong>Мутабельные ссылки</strong>:</p>
-<h4 id="go-swap-через-временную-переменную"><a class="header" href="#go-swap-через-временную-переменную">Go: swap через временную переменную</a></h4>
-<p><strong>swap</strong>:</p>
-<pre><code class="language-go">arr[i], arr[j] = arr[j], arr[i]  // O(1) операция
-</code></pre>
-<p><strong>Как работает</strong>:</p>
-<ul>
-<li>Go использует временные переменные для swap</li>
-<li>Не требует дополнительной аллокации</li>
-<li>Компилятор оптимизирует</li>
-</ul>
-<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<h4 id="что-это-такое"><a class="header" href="#что-это-такое">Что это такое:</a></h4>
-<p><strong>Escape Analysis</strong> определяет, должен ли массив быть в куче.</p>
-<p><strong>Для Cyclic Sort</strong>:</p>
-<ul>
-<li>Входной массив может быть на стеке (если небольшой) или в куче</li>
-<li>In-place операции не создают новых аллокаций</li>
-<li>Индексы всегда на стеке</li>
-</ul>
-<h4 id="как-проверить"><a class="header" href="#как-проверить">Как проверить:</a></h4>
-<pre><code class="language-bash">go build -gcflags=-m main.go
-</code></pre>
-<p><strong>Пример</strong>:</p>
-<pre><code class="language-go">func cyclicSort(arr []int) {
-    // arr - слайс, может быть на стеке или в куче
-    // Индексы i, j - на стеке
-    i := 0
-    // ...
-}
-</code></pre>
-<h3 id="что-это-такое-1"><a class="header" href="#что-это-такое-1">Что это такое:</a></h3>
-<p><strong>Для Cyclic Sort</strong>:</p>
-<ul>
-<li>Используем <code>&amp;mut [T]</code> для in-place изменений</li>
-<li>Один mutable borrow разрешен</li>
-<li>Проблемы редко возникают</li>
-</ul>
-<h4 id="примеры"><a class="header" href="#примеры">Примеры:</a></h4>
-<p><strong>Типичный паттерн</strong>:</p>
-<p><strong>Проблема: множественные borrows</strong>:</p>
-<p><strong>Решение</strong>:</p>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
-<p><strong>Для Cyclic Sort</strong>:</p>
-<ul>
-<li>In-place операции не создают новых аллокаций</li>
-<li>Не влияет на GC (нет новых объектов в куче)</li>
-<li>Минимальное влияние на производительность</li>
-</ul>
-<h4 id="оптимизация"><a class="header" href="#оптимизация">Оптимизация:</a></h4>
-<p><strong>Избежание лишних аллокаций</strong>:</p>
-<pre><code class="language-go">// ✅ In-place операции
-func cyclicSort(arr []int) {
-    // Нет создания новых слайсов
-    // Только перестановка элементов
-}
-</code></pre>
-<h2 id="концепция-владения"><a class="header" href="#концепция-владения">Концепция владения:</a></h2>
-<p><strong>Для Cyclic Sort</strong>:</p>
-<ul>
-<li>Входные данные: <code>&amp;mut [T]</code> (мутабельное заимствование)</li>
-<li>Не берем владение, только изменяем in-place</li>
-<li>Нет необходимости в новом Vec</li>
-</ul>
-<p><strong>Пример</strong>:</p>
-<p><strong>Почему это важно</strong>:</p>
-<ul>
-<li>Не требуется копирование данных</li>
-<li>Эффективное использование памяти</li>
-<li>Безопасность гарантируется компилятором</li>
-</ul>
-<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
-<h4 id="go-in-place-сортировка"><a class="header" href="#go-in-place-сортировка">Go: In-place сортировка</a></h4>
-<p>В Go:</p>
-<ul>
-<li><strong>Сортировка на месте</strong>: Модифицирует входной слайс</li>
-<li><strong>Только индексы</strong>: <code>int</code> на стеке - O(1)</li>
-<li><strong>Временные переменные</strong>: Для swap - O(1)</li>
-</ul>
-<h3 id="анализ-аллокаций-для-cyclic-sort"><a class="header" href="#анализ-аллокаций-для-cyclic-sort">Анализ аллокаций для Cyclic Sort</a></h3>
-<h4 id="базовый-алгоритм-1"><a class="header" href="#базовый-алгоритм-1">Базовый алгоритм:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// Аллокации:
-// - i, correctPos: int (стек) - O(1)
-// - Временные переменные для swap: O(1)
-// Итого: O(1) памяти, никаких аллокаций в куче
-</code></pre>
-<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
-<ol>
-<li><strong>Использование встроенного swap</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Эффективный swap
-arr[i], arr[correctPos] = arr[correctPos], arr[i]
-</code></pre>
-<ol start="2">
-<li><strong>Модификация на месте</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Модифицируем входной слайс
-func cyclicSort(arr []int) {
-    // ...
-}
-</code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Память | O(1) константная | O(1) константная |
-| In-place | Да, через <code>&amp;mut</code> | Да, слайсы |
-| Производительность | Предсказуемая | Предсказуемая |</p>
-<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
-<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
-<ol>
-<li>
-<p><strong>Минимизация перестановок</strong>:</p>
-<ul>
-<li>Проверяйте позицию перед swap</li>
-<li>Избегайте лишних операций</li>
-</ul>
-</li>
-<li>
-<p><strong>Оптимизация условий</strong>:</p>
-<ul>
-<li>Ранние выходы</li>
-<li>Минимизация проверок в цикле</li>
-</ul>
-</li>
-</ol>
-<h3 id="специфичные-оптимизации-для-cyclic-sort"><a class="header" href="#специфичные-оптимизации-для-cyclic-sort">Специфичные оптимизации для Cyclic Sort</a></h3>
-<h4 id="1-оптимизация-проверки-позиции"><a class="header" href="#1-оптимизация-проверки-позиции">1. Оптимизация проверки позиции:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированная версия
-func cyclicSortOptimized(arr []int) {
-    i := 0
-    for i &lt; len(arr) {
-        correctPos := arr[i] - 1
-        if arr[i] != arr[correctPos] {
-            arr[i], arr[correctPos] = arr[correctPos], arr[i]
-        } else {
-            i++
-        }
-    }
-}
-</code></pre>
-<ol>
-<li>
-<p><strong>Использование <code>swap</code></strong>:</p>
-</li>
-<li>
-<p><strong>Избежание лишних проверок</strong>:</p>
-</li>
-</ol>
-<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
-<ol>
-<li><strong>Множественное присваивание</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Эффективный swap
-arr[i], arr[correctPos] = arr[correctPos], arr[i]
-</code></pre>
-<ol start="2">
-<li><strong>Минимизация проверок</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Проверяем только когда необходимо
-if arr[i] != arr[correctPos] {
-    arr[i], arr[correctPos] = arr[correctPos], arr[i]
-}
-</code></pre>
-<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
-<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
-<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
-<h3 id="как-профилировать-cyclic-sort"><a class="header" href="#как-профилировать-cyclic-sort">Как профилировать Cyclic Sort</a></h3>
-<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
-<pre><code class="language-go">func BenchmarkCyclicSort(b *testing.B) {
-    arr := createTestArray(1000)
-    
-    b.ResetTimer()
-    for i := 0; i &lt; b.N; i++ {
-        cyclicSortOptimized(arr)
-    }
-}
-</code></pre>
-<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
-<p><strong>Анализ производительности</strong>:</p>
-<ul>
-<li>Cyclic Sort: O(n) по времени</li>
-<li>O(1) дополнительной памяти</li>
-<li>Минимальные аллокации (только индексы)</li>
-</ul>
-<p><strong>Типичные узкие места</strong>:</p>
-<ul>
-<li>Проверки позиций</li>
-<li>Swap операции</li>
-<li>Условные операторы</li>
-</ul>
-<h2 id="отладка-и-диагностика"><a class="header" href="#отладка-и-диагностика">Отладка и диагностика</a></h2>
-<p>Отладка циклической сортировки требует отслеживания позиций элементов и циклов перестановок:</p>
-<h3 id="1-логирование-перестановок"><a class="header" href="#1-логирование-перестановок">1. Логирование перестановок</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func cyclicSortDebug(nums []int) {
-    log.Printf("Начало сортировки: %v", nums)
-    
-    i := 0
-    swaps := 0
-    
-    for i &lt; len(nums) {
-        correctPos := nums[i] - 1
-        
-        log.Printf("Шаг %d: i=%d, nums[i]=%d, correctPos=%d", i, i, nums[i], correctPos)
-        
-        if nums[i] != nums[correctPos] {
-            log.Printf("Перестановка: nums[%d]=%d &lt;-&gt; nums[%d]=%d",
-                i, nums[i], correctPos, nums[correctPos])
-            nums[i], nums[correctPos] = nums[correctPos], nums[i]
-            swaps++
-            log.Printf("После перестановки: %v", nums)
-        } else {
-            log.Printf("Элемент на правильной позиции, переходим к следующему")
-            i++
-        }
-    }
-    
-    log.Printf("Сортировка завершена за %d перестановок: %v", swaps, nums)
-}
-</code></pre>
-<h3 id="2-обнаружение-циклов-перестановок"><a class="header" href="#2-обнаружение-циклов-перестановок">2. Обнаружение циклов перестановок</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func detectCycles(nums []int) [][]int {
-    cycles := [][]int{}
-    visited := make([]bool, len(nums))
-    
-    for i := 0; i &lt; len(nums); i++ {
-        if !visited[i] &amp;&amp; nums[i] != i+1 {
-            cycle := []int{}
-            current := i
-            
-            for !visited[current] {
-                visited[current] = true
-                cycle = append(cycle, current)
-                current = nums[current] - 1
-            }
-            
-            if len(cycle) &gt; 1 {
-                cycles = append(cycles, cycle)
-                log.Printf("Обнаружен цикл: %v", cycle)
-            }
-        }
-    }
-    
-    return cycles
-}
-</code></pre>
-<h3 id="метрики-производительности"><a class="header" href="#метрики-производительности">Метрики производительности</a></h3>
-<p>Реальные результаты бенчмарков на типичном оборудовании (Intel i7-9700K, 32GB RAM):</p>
-<h4 id="cyclic-sort-go"><a class="header" href="#cyclic-sort-go">Cyclic Sort (Go):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер массива</th><th>Время выполнения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>100 элементов</td><td>~180 ns</td><td>0 B</td><td>~5,500,000</td></tr>
-<tr><td>1,000 элементов</td><td>~1.8 μs</td><td>0 B</td><td>~555,000</td></tr>
-<tr><td>10,000 элементов</td><td>~18 μs</td><td>0 B</td><td>~55,500</td></tr>
-<tr><td>100,000 элементов</td><td>~180 μs</td><td>0 B</td><td>~5,550</td></tr>
-<tr><td>1,000,000 элементов</td><td>~1.8 ms</td><td>0 B</td><td>~556</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Линейная зависимость: O(n)</li>
-<li>Нулевые аллокации: O(1) память (in-place)</li>
-<li>Эффективность: Каждый элемент перемещается максимум один раз</li>
-</ul>
-<h4 id="сравнение-с-другими-алгоритмами-сортировки"><a class="header" href="#сравнение-с-другими-алгоритмами-сортировки">Сравнение с другими алгоритмами сортировки:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер массива</th><th>Cyclic Sort</th><th>Quick Sort</th><th>Counting Sort</th><th>Выигрыш</th></tr>
-</thead>
-<tbody>
-<tr><td>1,000 элементов</td><td>~1.8 μs</td><td>~12 μs</td><td>~2.5 μs</td><td><strong>6.7x</strong> vs Quick Sort</td></tr>
-<tr><td>10,000 элементов</td><td>~18 μs</td><td>~150 μs</td><td>~25 μs</td><td><strong>8.3x</strong> vs Quick Sort</td></tr>
-<tr><td>100,000 элементов</td><td>~180 μs</td><td>~1.8 ms</td><td>~250 μs</td><td><strong>10x</strong> vs Quick Sort</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Вывод</strong>: Cyclic Sort оптимален для диапазона [1, n] - быстрее Quick Sort и использует меньше памяти.</p>
-<h4 id="поиск-отсутствующих-чисел-go"><a class="header" href="#поиск-отсутствующих-чисел-go">Поиск отсутствующих чисел (Go):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер массива</th><th>Время выполнения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>100 элементов</td><td>~200 ns</td><td>0 B</td><td>~5,000,000</td></tr>
-<tr><td>1,000 элементов</td><td>~2 μs</td><td>0 B</td><td>~500,000</td></tr>
-<tr><td>10,000 элементов</td><td>~20 μs</td><td>0 B</td><td>~50,000</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>O(n) время для сортировки + O(n) для поиска = O(n)</li>
-<li>In-place операция</li>
-<li>Эффективно для известного диапазона</li>
-</ul>
-<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
-<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
-<ol>
-<li><strong>Базовые тесты</strong>: Простые случаи сортировки</li>
-<li><strong>Граничные случаи</strong>: Пустой массив, один элемент, уже отсортированный</li>
-<li><strong>Стресс-тесты</strong>: Большие массивы</li>
-</ol>
-<h3 id="примеры-тестов-для-cyclic-sort"><a class="header" href="#примеры-тестов-для-cyclic-sort">Примеры тестов для Cyclic Sort</a></h3>
-<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
-<pre><code class="language-go">func TestCyclicSort(t *testing.T) {
-    tests := []struct {
-        name string
-        arr  []int
-        want []int
-    }{
-        {"basic", []int{3, 1, 5, 4, 2}, []int{1, 2, 3, 4, 5}},
-        {"empty", []int{}, []int{}},
-        {"sorted", []int{1, 2, 3, 4, 5}, []int{1, 2, 3, 4, 5}},
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            cyclicSortOptimized(tt.arr)
-            if !reflect.DeepEqual(tt.arr, tt.want) {
-                t.Errorf("cyclicSortOptimized() = %v, want %v", tt.arr, tt.want)
-            }
-        })
-    }
-}
-</code></pre>
-<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="go"><a class="header" href="#go">Go:</a></h4>
-<pre><code class="language-bash">go test -v
-go test -bench=. -benchmem
-</code></pre>
-<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
-<pre><code class="language-go">func BenchmarkCyclicSortSizes(b *testing.B) {
-    sizes := []int{100, 1000, 10000, 100000}
-    
-    for _, size := range sizes {
-        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
-            arr := createTestArray(size)
-            b.ResetTimer()
-            for i := 0; i &lt; b.N; i++ {
-                cyclicSortOptimized(arr)
-            }
-        })
-    }
-}
-</code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/missing-number/">Missing Number</a> - Отсутствующее число</li>
-<li><a href="https://leetcode.com/problems/find-all-numbers-disappeared-in-an-array/">Find All Numbers Disappeared in an Array</a> - Все исчезнувшие числа</li>
-</ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/find-the-duplicate-number/">Find the Duplicate Number</a> - Поиск дубликата числа</li>
-<li><a href="https://leetcode.com/problems/find-all-duplicates-in-an-array/">Find All Duplicates in an Array</a> - Все дубликаты в массиве</li>
-<li><a href="https://leetcode.com/problems/first-missing-positive/">First Missing Positive</a> - Первое отсутствующее положительное число</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/tag/array/">Cyclic Sort Pattern</a> - Различные задачи с циклической сортировкой</li>
-</ul>
-<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
-<h3 id="эволюция-решения-от-наивного-к-оптимизированному"><a class="header" href="#эволюция-решения-от-наивного-к-оптимизированному">Эволюция решения: от наивного к оптимизированному</a></h3>
-<h4 id="наивный-подход-on²"><a class="header" href="#наивный-подход-on²">Наивный подход (O(n²)):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ❌ Наивный подход: используем дополнительный массив
-func cyclicSortNaive(nums []int) {
-    result := make([]int, len(nums))
-    
-    for _, num := range nums {
-        if num &gt;= 1 &amp;&amp; num &lt;= len(nums) {
-            result[num-1] = num  // Размещаем на правильной позиции
-        }
-    }
-    
-    copy(nums, result)
-}
-// Проблемы: O(n) дополнительная память, не in-place
-</code></pre>
-<h4 id="оптимизированный-подход-on-o1-память"><a class="header" href="#оптимизированный-подход-on-o1-память">Оптимизированный подход (O(n), O(1) память):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированный подход: in-place сортировка
-func cyclicSortOptimized(nums []int) {
-    i := 0
-    for i &lt; len(nums) {
-        correctPos := nums[i] - 1
-        
-        // Если элемент не на правильной позиции, перемещаем его
-        if nums[i] != nums[correctPos] {
-            nums[i], nums[correctPos] = nums[correctPos], nums[i]
-        } else {
-            i++  // Элемент на месте, переходим к следующему
-        }
-    }
-}
-// Преимущества: O(1) память, O(n) время, in-place
-</code></pre>
-<h4 id="идиоматичный-go-код"><a class="header" href="#идиоматичный-go-код">Идиоматичный Go код:</a></h4>
-<pre><code class="language-go">// ✅ Идиоматичный Go: используем именованные возвращаемые значения
-func cyclicSortIdiomatic(nums []int) {
-    for i := range nums {
-        // Продолжаем перемещать элемент, пока он не окажется на правильной позиции
-        for nums[i] != nums[nums[i]-1] {
-            nums[i], nums[nums[i]-1] = nums[nums[i]-1], nums[i]
-        }
-    }
-}
-</code></pre>
-<h2 id="реальные-применения"><a class="header" href="#реальные-применения">Реальные применения</a></h2>
-<p>Cyclic Sort широко используется в production системах для эффективной работы с массивами в известном диапазоне:</p>
-<h3 id="1-index-based-operations-операции-на-основе-индексов"><a class="header" href="#1-index-based-operations-операции-на-основе-индексов">1. Index-based Operations (Операции на основе индексов)</a></h3>
-<p><strong>Применение</strong>: Использование индексов как хеш-таблицы для экономии памяти.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Database Systems</strong>: Управление индексами в известном диапазоне</li>
-<li><strong>Memory Management</strong>: Оптимизация размещения данных</li>
-<li><strong>Cache Systems</strong>: Управление кэшем с известным диапазоном ключей</li>
-</ul>
-<p><strong>Код</strong>:</p>
-<pre><code class="language-go">// Поиск отсутствующих чисел в диапазоне [1, n]
-func findMissingNumbers(nums []int) []int {
-    n := len(nums)
-    i := 0
-    
-    // Cyclic sort
-    for i &lt; n {
-        correctPos := nums[i] - 1
-        if nums[i] != nums[correctPos] {
-            nums[i], nums[correctPos] = nums[correctPos], nums[i]
-        } else {
-            i++
-        }
-    }
-    
-    // Находим отсутствующие числа
-    missing := []int{}
-    for i := 0; i &lt; n; i++ {
-        if nums[i] != i+1 {
-            missing = append(missing, i+1)
-        }
-    }
-    
-    return missing
-}
-</code></pre>
-<h3 id="2-duplicate-detection-обнаружение-дубликатов"><a class="header" href="#2-duplicate-detection-обнаружение-дубликатов">2. Duplicate Detection (Обнаружение дубликатов)</a></h3>
-<p><strong>Применение</strong>: Эффективное обнаружение дубликатов в массивах с известным диапазоном.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Data Validation</strong>: Проверка уникальности идентификаторов</li>
-<li><strong>Database Integrity</strong>: Проверка уникальных ограничений</li>
-<li><strong>ID Generation</strong>: Проверка доступности идентификаторов</li>
-</ul>
-<h3 id="3-permutation-problems-задачи-на-перестановки"><a class="header" href="#3-permutation-problems-задачи-на-перестановки">3. Permutation Problems (Задачи на перестановки)</a></h3>
-<p><strong>Применение</strong>: Работа с перестановками и циклическими структурами.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Cryptography</strong>: Генерация перестановок для шифрования</li>
-<li><strong>Game Development</strong>: Перемешивание элементов</li>
-<li><strong>Randomization</strong>: Генерация случайных перестановок</li>
-</ul>
-<h3 id="4-google-production-examples"><a class="header" href="#4-google-production-examples">4. Google Production Examples</a></h3>
-<p><strong>Примеры из Google</strong>:</p>
-<ul>
-<li><strong>Google Search</strong>: Управление индексами документов</li>
-<li><strong>Google Cloud</strong>: Управление идентификаторами ресурсов</li>
-<li><strong>Google Maps</strong>: Оптимизация индексов для геоданных</li>
-<li><strong>Google Ads</strong>: Управление идентификаторами кампаний</li>
-</ul>
-<h3 id="5-database-systems"><a class="header" href="#5-database-systems">5. Database Systems</a></h3>
-<p><strong>Применение в базах данных</strong>:</p>
-<ul>
-<li><strong>Index Management</strong>: Управление индексами в известном диапазоне</li>
-<li><strong>Primary Key Generation</strong>: Генерация уникальных ключей</li>
-<li><strong>Partition Management</strong>: Управление партициями</li>
-</ul>
-<h3 id="6-memory-management"><a class="header" href="#6-memory-management">6. Memory Management</a></h3>
-<p><strong>Применение в управлении памятью</strong>:</p>
-<ul>
-<li><strong>Memory Pools</strong>: Управление пулами памяти фиксированного размера</li>
-<li><strong>Object Pools</strong>: Переиспользование объектов с известными идентификаторами</li>
-<li><strong>Cache Management</strong>: Управление кэшем с известным диапазоном</li>
-</ul>
-<h3 id="7-system-design-applications"><a class="header" href="#7-system-design-applications">7. System Design Applications</a></h3>
-<p><strong>Применение в системном дизайне</strong>:</p>
-<ul>
-<li><strong>ID Generation</strong>: Генерация уникальных идентификаторов</li>
-<li><strong>Resource Management</strong>: Управление ресурсами с известным диапазоном</li>
-<li><strong>Load Balancing</strong>: Распределение нагрузки с использованием индексов</li>
-</ul>
-<h3 id="8-open-source-examples"><a class="header" href="#8-open-source-examples">8. Open Source Examples</a></h3>
-<p><strong>Примеры из open-source проектов</strong>:</p>
-<ul>
-<li><strong>PostgreSQL</strong>: Управление индексами в известном диапазоне</li>
-<li><strong>Redis</strong>: Управление ключами в известном диапазоне</li>
-<li><strong>Kubernetes</strong>: Управление идентификаторами подов</li>
-<li><strong>Docker</strong>: Управление идентификаторами контейнеров</li>
-</ul>
-<h3 id="9-algorithm-optimization"><a class="header" href="#9-algorithm-optimization">9. Algorithm Optimization</a></h3>
-<p><strong>Применение в оптимизации алгоритмов</strong>:</p>
-<ul>
-<li><strong>In-place Sorting</strong>: Сортировка без дополнительной памяти</li>
-<li><strong>Space Optimization</strong>: Оптимизация использования памяти</li>
-<li><strong>Cache Efficiency</strong>: Улучшение локальности данных</li>
-</ul>
-<h3 id="10-data-structures"><a class="header" href="#10-data-structures">10. Data Structures</a></h3>
-<p><strong>Применение в структурах данных</strong>:</p>
-<ul>
-<li><strong>Array-based Structures</strong>: Оптимизация массивов с известным диапазоном</li>
-<li><strong>Hash Tables</strong>: Использование индексов как хеш-таблицы</li>
-<li><strong>Bit Arrays</strong>: Работа с битовыми массивами</li>
-</ul>
-<h2 id="упражнения"><a class="header" href="#упражнения">Упражнения</a></h2>
-<p>Практикуйтесь на задачах разной сложности для закрепления материала:</p>
-<h3 id="легкие-задачи-для-начинающих"><a class="header" href="#легкие-задачи-для-начинающих">Легкие задачи (для начинающих)</a></h3>
-<ol>
-<li>
-<p><strong>Cyclic Sort</strong> (базовая задача)</p>
-<ul>
-<li>Отсортируйте массив чисел от 1 до n используя cyclic sort</li>
-<li>Подсказка: Каждое число должно быть на позиции (число - 1)</li>
-<li>Практика: Реализуйте базовый алгоритм cyclic sort</li>
-</ul>
-</li>
-<li>
-<p><strong>Find All Numbers Disappeared in an Array</strong> (LeetCode 448)</p>
-<ul>
-<li>Найдите все числа от 1 до n, которых нет в массиве</li>
-<li>Подсказка: Используйте cyclic sort, затем найдите отсутствующие</li>
-<li><a href="https://leetcode.com/problems/find-all-numbers-disappeared-in-an-array/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="средние-задачи-для-практики"><a class="header" href="#средние-задачи-для-практики">Средние задачи (для практики)</a></h3>
-<ol start="3">
-<li>
-<p><strong>Find the Duplicate Number</strong> (LeetCode 287)</p>
-<ul>
-<li>Найдите дубликат в массиве с числами от 1 до n</li>
-<li>Подсказка: Используйте cyclic sort или подход быстрого/медленного указателя</li>
-<li><a href="https://leetcode.com/problems/find-the-duplicate-number/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Find All Duplicates in an Array</strong> (LeetCode 442)</p>
-<ul>
-<li>Найдите все дубликаты в массиве</li>
-<li>Подсказка: Используйте cyclic sort, элементы не на своих позициях - дубликаты</li>
-<li><a href="https://leetcode.com/problems/find-all-duplicates-in-an-array/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>First Missing Positive</strong> (LeetCode 41)</p>
-<ul>
-<li>Найдите первое отсутствующее положительное число</li>
-<li>Подсказка: Используйте cyclic sort для чисел от 1 до n</li>
-<li><a href="https://leetcode.com/problems/first-missing-positive/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Set Mismatch</strong> (LeetCode 645)</p>
-<ul>
-<li>Найдите дубликат и отсутствующее число</li>
-<li>Подсказка: Используйте cyclic sort</li>
-<li><a href="https://leetcode.com/problems/set-mismatch/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="сложные-задачи-для-углубления"><a class="header" href="#сложные-задачи-для-углубления">Сложные задачи (для углубления)</a></h3>
-<ol start="7">
-<li>
-<p><strong>Kth Missing Positive Number</strong> (LeetCode 1539)</p>
-<ul>
-<li>Найдите k-е отсутствующее положительное число</li>
-<li>Подсказка: Используйте бинарный поиск или cyclic sort</li>
-<li><a href="https://leetcode.com/problems/kth-missing-positive-number/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Missing Number</strong> (LeetCode 268)</p>
-<ul>
-<li>Найдите отсутствующее число в массиве от 0 до n</li>
-<li>Подсказка: Используйте cyclic sort или математику (сумма)</li>
-<li><a href="https://leetcode.com/problems/missing-number/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="дополнительные-задачи-для-практики"><a class="header" href="#дополнительные-задачи-для-практики">Дополнительные задачи для практики</a></h3>
-<ol start="9">
-<li>
-<p><strong>Find the Smallest Missing Positive</strong> (вариация)</p>
-<ul>
-<li>Найдите наименьшее отсутствующее положительное число</li>
-<li>Практика: Реализуйте с cyclic sort</li>
-</ul>
-</li>
-<li>
-<p><strong>Sort Array By Parity</strong> (LeetCode 905)</p>
-<ul>
-<li>Отсортируйте массив так, чтобы четные числа были перед нечетными</li>
-<li><a href="https://leetcode.com/problems/sort-array-by-parity/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="рекомендации-по-решению"><a class="header" href="#рекомендации-по-решению">Рекомендации по решению</a></h3>
-<ol>
-<li><strong>Проверяйте диапазон</strong>: Убедитесь, что числа в диапазоне [1, n]</li>
-<li><strong>Избегайте бесконечных циклов</strong>: Проверяйте, что элемент не на правильной позиции перед обменом</li>
-<li><strong>Обрабатывайте дубликаты</strong>: Пропускайте дубликаты, чтобы избежать циклов</li>
-<li><strong>Используйте правильную позицию</strong>: Для диапазона [1, n] позиция = число - 1</li>
-</ol>
+<p>Реализуйте <code>CyclicSort</code> (сортировка на месте) и <code>FindMissingNumber</code> (поиск
+отсутствующего числа из диапазона 1..N).</p>
 <h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><strong><a href="./merge-intervals.html">Merge Intervals</a></strong> - Работа с отсортированными данными</li>
-<li><strong><a href="./modified-binary-search.html">Modified Binary Search</a></strong> - Поиск в отсортированных массивах</li>
-<li><strong><a href="./two-pointers.html">Two Pointers</a></strong> - Работа с массивами</li>
-</ul>
-<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
-<p>После изучения Cyclic Sort рекомендуется перейти к <strong><a href="./modified-binary-search.html">Modified Binary Search</a></strong> для работы с отсортированными данными или к <strong><a href="./reverse-linked-list.html">Reverse Linked List</a></strong> для изучения работы со списками.</p>
-<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
-<h3 id="интерактивные-визуализаторы"><a class="header" href="#интерактивные-визуализаторы">Интерактивные визуализаторы</a></h3>
-<ul>
-<li><a href="https://visualgo.net/en/sorting">VisuAlgo - Sorting</a> - Интерактивная визуализация сортировок, включая Cycle Sort</li>
-<li><a href="https://algorithm-visualizer.org/brute-force/cyclic-sort">Algorithm Visualizer - Cyclic Sort</a> - Визуализация алгоритма</li>
-</ul>
-<h3 id="видео-объяснения"><a class="header" href="#видео-объяснения">Видео-объяснения</a></h3>
-<ul>
-<li><a href="https://www.youtube.com/results?search_query=neetcode+cyclic+sort">NeetCode - Cyclic Sort</a> - Подробное объяснение паттерна</li>
-<li><a href="https://www.youtube.com/results?search_query=back+to+back+swe+cyclic+sort">Back To Back SWE - Cyclic Sort</a> - Разбор задач</li>
-</ul>
-<h3 id="дополнительные-материалы"><a class="header" href="#дополнительные-материалы">Дополнительные материалы</a></h3>
-<ul>
-<li><a href="https://leetcode.com/tag/array/">Cyclic Sort Pattern - LeetCode Tag</a> - Коллекция задач на циклическую сортировку</li>
-<li><a href="https://www.geeksforgeeks.org/cycle-sort/">Cycle Sort - GeeksforGeeks</a> - Подробное объяснение алгоритма</li>
-<li><a href="https://en.wikipedia.org/wiki/In-place_algorithm">In-place Algorithm - Wikipedia</a> - Теория алгоритмов на месте</li>
+<li><strong><a href="merge-intervals.html">Merge Intervals</a></strong> — другой шаблон для упорядоченных данных.</li>
+<li><strong><a href="two-pointers.html">Two Pointers</a></strong> — родственная работа с индексами массива.</li>
+<li><strong><a href="modified-binary-search.html">Modified Binary Search</a></strong> — поиск в отсортированных
+массивах.</li>
+<li>Для общей теории по памяти и профилированию в Go см.
+<a href="appendix-go-memory.html">приложение</a>.</li>
 </ul>
 
                     </main>
@@ -1298,6 +356,9 @@ func findMissingNumbers(nums []int) []int {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-f6dee78c.js"></script>
+        <script src="assets/quiz-0d58c129.js"></script>
+        <script src="assets/progress-8bf0c880.js"></script>
 
 
 

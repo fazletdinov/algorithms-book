@@ -28,6 +28,8 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-b363db2f.css">
+        <link rel="stylesheet" href="assets/quiz-7aebf16b.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -37,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-2799386e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-6b3e4b80.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,1426 +179,148 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="merge-intervals-слияние-интервалов"><a class="header" href="#merge-intervals-слияние-интервалов">Merge Intervals (Слияние интервалов)</a></h1>
-<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
-<p>Шаблон <strong>Merge Intervals</strong> используется для работы с перекрывающимися интервалами. Он эффективно объединяет пересекающиеся интервалы и обрабатывает задачи, связанные с временными интервалами, диапазонами или сегментами данных.</p>
-<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
-<p>Задачи на интервалы часто возникают в реальных приложениях: планирование встреч, управление ресурсами, обработка временных рядов, анализ покрытия. Алгоритм слияния интервалов является фундаментальным для таких задач.</p>
-<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
-<p>Ключевое наблюдение: если интервалы отсортированы по начальной точке, то для определения перекрытия достаточно сравнить начало текущего интервала с концом последнего объединенного интервала. Это позволяет обработать все интервалы за один проход после сортировки.</p>
-<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
-<p>Используйте этот шаблон, когда:</p>
+<h2 id="теория"><a class="header" href="#теория">Теория</a></h2>
+<p><strong>Merge Intervals</strong> — техника для работы с перекрывающимися интервалами: их слияния,
+поиска пересечений и вставки новых интервалов в отсортированный список.</p>
+<p>Ключевая идея: если интервалы отсортированы по начальной точке, то для проверки
+перекрытия достаточно сравнить начало текущего интервала с концом последнего
+объединённого. Два интервала <code>[a, b]</code> и <code>[c, d]</code> перекрываются при <code>a &lt;= d &amp;&amp; c &lt;= b</code>;
+при слиянии получаем <code>[min(a, c), max(b, d)]</code>. Сортировка превращает задачу из O(n²)
+(проверка всех пар) в O(n log n).</p>
+<p><strong>Когда применять:</strong></p>
 <ul>
-<li>Работаете с интервалами, которые могут перекрываться</li>
-<li>Нужно объединить перекрывающиеся интервалы</li>
-<li>Требуется найти пересечения интервалов</li>
-<li>Задача связана с временными диапазонами или сегментами</li>
-<li>Нужно вставить новый интервал в отсортированный список интервалов</li>
+<li>работаете с интервалами, которые могут перекрываться;</li>
+<li>нужно объединить перекрытия или найти их пересечения;</li>
+<li>задача связана с временными диапазонами, расписаниями или сегментами;</li>
+<li>нужно вставить новый интервал в отсортированный список.</li>
 </ul>
-<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
-<h3 id="базовый-алгоритм-слияния"><a class="header" href="#базовый-алгоритм-слияния">Базовый алгоритм слияния:</a></h3>
+<h2 id="алгоритм"><a class="header" href="#алгоритм">Алгоритм</a></h2>
+<p>Сортируем по началу, затем идём в один проход, сравнивая текущий интервал только с
+последним в результате.</p>
 <pre><code class="language-go">func mergeIntervals(intervals [][]int) [][]int {
-    // Шаг 1: Сортировка интервалов по начальной точке
-    // Это необходимо, чтобы гарантировать, что мы обрабатываем интервалы
-    // в порядке возрастания их начала, что упрощает проверку перекрытий
-    // После сортировки достаточно проверять только последний интервал в результате
+    if len(intervals) == 0 {
+        return [][]int{}
+    }
+    // Сортировка по началу — после неё достаточно смотреть только на последний интервал
     sort.Slice(intervals, func(i, j int) bool {
         return intervals[i][0] &lt; intervals[j][0]
     })
-    
-    // Шаг 2: Инициализация - создаем результирующий список с первым интервалом
-    // Первый интервал всегда будет в результате, так как он самый ранний
-    // и не может перекрываться с более ранними интервалами (их нет)
-    result := [][]int{intervals[0]}
-    
-    // Шаг 3: Итерация по остальным интервалам
-    // Начинаем со второго интервала (индекс 1), так как первый уже добавлен
-    for i := 1; i &lt; len(intervals); i++ {
-        current := intervals[i]  // Текущий интервал для обработки
-        last := result[len(result)-1]  // Последний интервал в результате
-        
-        // Проверка перекрытия: интервалы перекрываются, если начало текущего
-        // меньше или равно концу последнего (current[0] &lt;= last[1])
-        // Это работает благодаря сортировке - мы знаем, что current[0] &gt;= last[0]
-        if current[0] &lt;= last[1] {
-            // Интервалы перекрываются - объединяем их
-            // Берем минимум начал (уже есть в last[0], так как отсортированы)
-            // и максимум концов для получения объединенного интервала
-            result[len(result)-1][1] = max(last[1], current[1])
-        } else {
-            // Интервалы не перекрываются - добавляем текущий как новый интервал
-            // Это означает, что между last и current есть разрыв
-            result = append(result, current)
-        }
-    }
-    
-    // Шаг 4: Возврат объединенного списка интервалов
-    return result
-}
 
-// Вспомогательная функция для нахождения максимума
-func max(a, b int) int {
-    if a &gt; b {
-        return a
-    }
-    return b
-}
-</code></pre>
-<h3 id="проверка-перекрытия"><a class="header" href="#проверка-перекрытия">Проверка перекрытия:</a></h3>
-<p>Два интервала <code>[a, b]</code> и <code>[c, d]</code> перекрываются, если:</p>
-<ul>
-<li><code>a &lt;= d</code> и <code>c &lt;= b</code></li>
-</ul>
-<p>При объединении: <code>[min(a, c), max(b, d)]</code></p>
-<h3 id="схема-алгоритма"><a class="header" href="#схема-алгоритма">Схема алгоритма:</a></h3>
-<pre><code class="language-mermaid">flowchart TD
-    A[Сортировка по start] --&gt; B[result = первый интервал]
-    B --&gt; C{Есть следующий?}
-    C --&gt;|Нет| D[Конец]
-    C --&gt;|Да| E{current перекрывает last?}
-    E --&gt;|Да| F[last.end = max last.end, current.end]
-    E --&gt;|Нет| G[append current в result]
-    F --&gt; C
-    G --&gt; C
-</code></pre>
-<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
-<h3 id="слияние-перекрывающихся-интервалов"><a class="header" href="#слияние-перекрывающихся-интервалов">Слияние перекрывающихся интервалов:</a></h3>
-<p><strong>Исходные данные:</strong> Интервалы <code>[[1,3], [2,6], [8,10], [15,18]]</code></p>
-<p><strong>Шаг 1: Сортировка по начальной точке</strong></p>
-<pre><code>Исходные:  [1,3]  [2,6]  [8,10]  [15,18]
-            └─┘    └──┘    └───┘    └────┘
-            
-После сортировки (уже отсортированы):
-           [1,3]  [2,6]  [8,10]  [15,18]
-</code></pre>
-<p><strong>Шаг 2: Добавляем первый интервал</strong></p>
-<pre><code>Результат: [1,3]
-            └─┘
-       Добавлен первый интервал
-</code></pre>
-<p><strong>Шаг 3: Проверяем [2,6] - перекрывается с [1,3]</strong></p>
-<pre><code>Текущий:   [1,3]  [2,6]
-            └─┘    └──┘
-            └──────┘
-          Перекрытие! (2 ≤ 3)
-          
-Объединяем: [1, max(3,6)] = [1,6]
-Результат:  [1,6]
-             └──┘
-</code></pre>
-<p><strong>Шаг 4: Проверяем [8,10] - не перекрывается</strong></p>
-<pre><code>Текущий:   [1,6]  [8,10]
-            └──┘    └───┘
-            ────┘  └────
-          Нет перекрытия (8 &gt; 6)
-          
-Результат:  [1,6]  [8,10]
-             └──┘   └───┘
-</code></pre>
-<p><strong>Шаг 5: Проверяем [15,18] - не перекрывается</strong></p>
-<pre><code>Текущий:   [1,6]  [8,10]  [15,18]
-            └──┘   └───┘    └────┘
-            ────┘  ─────┘  └─────
-          Нет перекрытия (15 &gt; 10)
-          
-Результат:  [1,6]  [8,10]  [15,18]
-             └──┘   └───┘    └────┘
-</code></pre>
-<p><strong>Результат:</strong> <code>[[1,6], [8,10], [15,18]]</code> - три неперекрывающихся интервала</p>
-<h3 id="insert-interval--пошаговый-разбор"><a class="header" href="#insert-interval--пошаговый-разбор">Insert Interval — пошаговый разбор:</a></h3>
-<p><strong>Исходные данные:</strong> <code>[[1,3], [6,9]]</code>, новый интервал <code>[2,5]</code></p>
-<pre><code>Шаг 1: [1,3] перекрывается с [2,5] (3 &gt;= 2)
-  Объединяем: newInterval = [min(1,2), max(3,5)] = [1,5]
-  result: []
-  
-Шаг 2: [6,9] не перекрывается (6 &gt; 5) — newInterval вставлен
-  Добавляем [1,5], затем [6,9]
-  result: [[1,5], [6,9]]
-</code></pre>
-<p>Идея: intervals, заканчивающиеся до newInterval, добавляем как есть; при перекрытии расширяем newInterval; intervals, начинающиеся после newInterval, добавляем.</p>
-<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
-<p><strong>Инвариант</strong>: После обработки i интервалов, результирующий список содержит все объединенные интервалы из первых i интервалов, отсортированные по начальной точке и не перекрывающиеся.</p>
-<p><strong>Доказательство корректности</strong>:</p>
-<ol>
-<li><strong>Базовый случай</strong>: После обработки первого интервала, результат корректен (один интервал)</li>
-<li><strong>Индуктивный шаг</strong>: Предположим, результат корректен после i интервалов
-<ul>
-<li>Рассмотрим (i+1)-й интервал</li>
-<li>Если он перекрывается с последним в результате, объединение корректно (берем min начал, max концов)</li>
-<li>Если не перекрывается, добавление также корректно</li>
-<li>Результат остается отсортированным и не перекрывающимся</li>
-</ul>
-</li>
-</ol>
-<p><strong>Почему достаточно проверять только последний интервал?</strong></p>
-<p>После сортировки, если интервал [a,b] не перекрывается с [c,d] (где c ≥ b), то он не может перекрываться ни с каким более ранним интервалом, так как все они заканчиваются не позже d, а a ≥ c ≥ b.</p>
-<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
-<p><strong>Слияние интервалов</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n log n)
-<ul>
-<li>Сортировка: O(n log n) - доминирующая операция</li>
-<li>Один проход по интервалам: O(n)</li>
-<li>Итого: O(n log n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(n)
-<ul>
-<li>Результирующий список: O(n) в худшем случае (нет перекрытий)</li>
-<li>Стек вызовов сортировки: O(log n)</li>
-</ul>
-</li>
-</ul>
-<p><strong>Вставка интервала</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li>Поиск позиции вставки: O(n) (можно оптимизировать до O(log n) бинарным поиском)</li>
-<li>Объединение: O(n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(n)</li>
-</ul>
-<h3 id="амортизированная-сложность"><a class="header" href="#амортизированная-сложность">Амортизированная сложность</a></h3>
-<p><strong>Амортизированный анализ</strong> для слияния интервалов:</p>
-<h4 id="слияние-интервалов"><a class="header" href="#слияние-интервалов">Слияние интервалов:</a></h4>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(log n) на интервал
-<ul>
-<li>Сортировка: O(n log n) для n интервалов</li>
-<li>Обработка: O(n) для n интервалов</li>
-<li>Амортизированная стоимость: O(n log n) / n = O(log n) на интервал</li>
-</ul>
-</li>
-</ul>
-<h3 id="worstaveragebest-case-анализ"><a class="header" href="#worstaveragebest-case-анализ">Worst/Average/Best Case анализ</a></h3>
-<h4 id="слияние-интервалов-1"><a class="header" href="#слияние-интервалов-1">Слияние интервалов:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(n log n)</td><td>Все интервалы перекрываются, но нужна сортировка</td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(n log n)</td><td>Стандартное поведение с частичным перекрытием</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(n log n)</td><td>Все интервалы не перекрываются, но нужна сортировка</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Примечание</strong>: Сортировка всегда доминирует, поэтому все случаи имеют O(n log n).</p>
-<p><strong>Пространственная сложность по случаям</strong>:</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Пространственная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(1)</td><td>Все интервалы объединяются в один</td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(n)</td><td>Частичное объединение интервалов</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(n)</td><td>Никакие интервалы не перекрываются</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="таблица-сравнения-сложностей"><a class="header" href="#таблица-сравнения-сложностей">Таблица сравнения сложностей</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Алгоритм</th><th>Время (Worst)</th><th>Время (Average)</th><th>Время (Best)</th><th>Память (Worst)</th><th>Память (Average)</th><th>Амортизированное время</th></tr>
-</thead>
-<tbody>
-<tr><td>Слияние интервалов</td><td>O(n log n)</td><td>O(n log n)</td><td>O(n log n)</td><td>O(n)</td><td>O(n)</td><td>O(log n) на интервал</td></tr>
-<tr><td>Вставка интервала</td><td>O(n)</td><td>O(n)</td><td>O(log n)*</td><td>O(n)</td><td>O(n)</td><td>O(1) на операцию</td></tr>
-</tbody>
-</table>
-</div>
-<p>*С бинарным поиском для позиции вставки</p>
-<h3 id="сравнение-с-наивным-подходом"><a class="header" href="#сравнение-с-наивным-подходом">Сравнение с наивным подходом:</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Подход</th><th>Время</th><th>Память</th></tr>
-</thead>
-<tbody>
-<tr><td>Наивный (проверка всех пар)</td><td>O(n²)</td><td>O(n)</td></tr>
-<tr><td>Сортировка + один проход</td><td>O(n log n)</td><td>O(n)</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Выигрыш</strong>: O(n²) → O(n log n) - значительное улучшение для больших n</p>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/merge-intervals/">Merge Intervals</a> - Слияние интервалов</li>
-<li><a href="https://leetcode.com/problems/insert-interval/">Insert Interval</a> - Вставка интервала</li>
-</ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/non-overlapping-intervals/">Non-overlapping Intervals</a> - Неперекрывающиеся интервалы</li>
-<li><a href="https://leetcode.com/problems/meeting-rooms-ii/">Meeting Rooms II</a> - Комнаты для встреч II</li>
-<li><a href="https://leetcode.com/problems/interval-list-intersections/">Interval List Intersections</a> - Пересечения интервалов</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/employee-free-time/">Employee Free Time</a> - Свободное время сотрудников</li>
-<li><a href="https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/">Minimum Number of Arrows to Burst Balloons</a> - Минимальное количество стрел</li>
-</ul>
-<h2 id="граничные-случаи"><a class="header" href="#граничные-случаи">Граничные случаи</a></h2>
-<p>При работе со слиянием интервалов важно обрабатывать следующие граничные случаи:</p>
-<h3 id="1-пустой-массив-интервалов"><a class="header" href="#1-пустой-массив-интервалов">1. Пустой массив интервалов</a></h3>
-<p><strong>Проблема</strong>: Если массив пуст, алгоритм может упасть или вернуть неверный результат.</p>
-<p><strong>Решение</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func mergeIntervals(intervals [][]int) [][]int {
-    if len(intervals) == 0 {
-        return [][]int{}
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="2-один-интервал"><a class="header" href="#2-один-интервал">2. Один интервал</a></h3>
-<p><strong>Проблема</strong>: Если есть только один интервал, слияние не требуется.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if len(intervals) == 1 {
-    return intervals
-}
-</code></pre>
-<h3 id="3-непересекающиеся-интервалы"><a class="header" href="#3-непересекающиеся-интервалы">3. Непересекающиеся интервалы</a></h3>
-<p><strong>Проблема</strong>: Если все интервалы не пересекаются, результат должен содержать все интервалы.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай, просто добавляя все интервалы в результат.</p>
-<h3 id="4-все-интервалы-перекрываются"><a class="header" href="#4-все-интервалы-перекрываются">4. Все интервалы перекрываются</a></h3>
-<p><strong>Проблема</strong>: Если все интервалы перекрываются, результат должен быть одним интервалом.</p>
-<p><strong>Решение</strong>: Алгоритм корректно объединяет все интервалы в один.</p>
-<h3 id="5-отрицательные-числа-в-интервалах"><a class="header" href="#5-отрицательные-числа-в-интервалах">5. Отрицательные числа в интервалах</a></h3>
-<p><strong>Проблема</strong>: Интервалы могут содержать отрицательные числа.</p>
-<p><strong>Решение</strong>: Убедитесь, что сравнение работает корректно с отрицательными числами (обычно это не проблема).</p>
-<h3 id="6-очень-большие-числа"><a class="header" href="#6-очень-большие-числа">6. Очень большие числа</a></h3>
-<p><strong>Проблема</strong>: Интервалы могут содержать очень большие числа (близкие к MaxInt).</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">// Используйте int64 для больших интервалов
-type Interval struct {
-    Start int64
-    End   int64
-}
-</code></pre>
-<h3 id="7-интервал-с-start--end"><a class="header" href="#7-интервал-с-start--end">7. Интервал с start &gt; end</a></h3>
-<p><strong>Проблема</strong>: Некорректный интервал, где начало больше конца.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">// Валидация интервалов
-for _, interval := range intervals {
-    if interval[0] &gt; interval[1] {
-        return nil, errors.New("invalid interval")
-    }
-}
-</code></pre>
-<h3 id="8-дубликаты-интервалов"><a class="header" href="#8-дубликаты-интервалов">8. Дубликаты интервалов</a></h3>
-<p><strong>Проблема</strong>: Массив может содержать одинаковые интервалы.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает дубликаты, объединяя их.</p>
-<h3 id="9-интервалы-с-одинаковым-началом"><a class="header" href="#9-интервалы-с-одинаковым-началом">9. Интервалы с одинаковым началом</a></h3>
-<p><strong>Проблема</strong>: Несколько интервалов могут начинаться с одного значения.</p>
-<p><strong>Решение</strong>: При сортировке по началу интервалы с одинаковым началом будут обработаны последовательно, что корректно.</p>
-<h3 id="10-вставка-интервала-интервал-до-всех-существующих"><a class="header" href="#10-вставка-интервала-интервал-до-всех-существующих">10. Вставка интервала: интервал до всех существующих</a></h3>
-<p><strong>Проблема</strong>: Новый интервал может быть до всех существующих.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if newInterval[1] &lt; intervals[0][0] {
-    // Вставляем в начало
-    return append([][]int{newInterval}, intervals...)
-}
-</code></pre>
-<h3 id="11-вставка-интервала-интервал-после-всех-существующих"><a class="header" href="#11-вставка-интервала-интервал-после-всех-существующих">11. Вставка интервала: интервал после всех существующих</a></h3>
-<p><strong>Проблема</strong>: Новый интервал может быть после всех существующих.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if newInterval[0] &gt; intervals[len(intervals)-1][1] {
-    // Вставляем в конец
-    return append(intervals, newInterval)
-}
-</code></pre>
-<h2 id="типичные-ошибки-и-подводные-камни"><a class="header" href="#типичные-ошибки-и-подводные-камни">Типичные ошибки и подводные камни</a></h2>
-<h3 id="1-неправильная-проверка-перекрытия"><a class="header" href="#1-неправильная-проверка-перекрытия">1. Неправильная проверка перекрытия</a></h3>
-<p>❌ <strong>Неправильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">if current[0] &lt;= last[1] {  // Не учитывает случай, когда current полностью справа
-    merge()
-}
-</code></pre>
-<p>✅ <strong>Правильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">if current[0] &lt;= last[1] {  // Перекрытие: начало текущего &lt;= конец последнего
-    if current[1] &gt; last[1] {
-        last[1] = current[1]  // Берем максимум
-    }
-}
-</code></pre>
-<h3 id="2-забывание-сортировки"><a class="header" href="#2-забывание-сортировки">2. Забывание сортировки</a></h3>
-<p>❌ <strong>Неправильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">result := [][]int{intervals[0]}
-for _, interval := range intervals[1:] {  // Не отсортированы!
-    // ...
-}
-</code></pre>
-<p>✅ <strong>Правильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">sort.Slice(intervals, func(i, j int) bool {
-    return intervals[i][0] &lt; intervals[j][0]
-})
-result := [][]int{intervals[0]}
-for _, interval := range intervals[1:] {
-    // ...
-}
-</code></pre>
-<h3 id="3-неправильное-объединение-интервалов"><a class="header" href="#3-неправильное-объединение-интервалов">3. Неправильное объединение интервалов</a></h3>
-<p>❌ <strong>Неправильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">last[1] = current[1]  // Может уменьшить интервал!
-</code></pre>
-<p>✅ <strong>Правильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">if current[1] &gt; last[1] {
-    last[1] = current[1]  // Берем максимум
-}
-</code></pre>
-<h3 id="4-обработка-пустого-списка"><a class="header" href="#4-обработка-пустого-списка">4. Обработка пустого списка</a></h3>
-<p>❌ <strong>Неправильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">result := [][]int{intervals[0]}  // Ошибка если intervals пуст
-</code></pre>
-<p>✅ <strong>Правильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">if len(intervals) == 0 {
-    return [][]int{}
-}
-result := [][]int{intervals[0]}
-</code></pre>
-<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
-<ol>
-<li><strong>Всегда сортируйте по начальной точке</strong> перед обработкой</li>
-<li><strong>Используйте правильную проверку перекрытия</strong>: <code>current[0] &lt;= last[1]</code></li>
-<li><strong>При объединении берите максимум концов</strong>: <code>max(last[1], current[1])</code></li>
-<li><strong>Обрабатывайте граничные случаи</strong>: пустой список, один интервал, все перекрываются</li>
-</ol>
-<h2 id="вариации"><a class="header" href="#вариации">Вариации</a></h2>
-<h3 id="поиск-пересечений-интервалов"><a class="header" href="#поиск-пересечений-интервалов">Поиск пересечений интервалов:</a></h3>
-<p>Используйте два указателя на разных списках интервалов:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">i, j := 0, 0
-for i &lt; len(A) &amp;&amp; j &lt; len(B) {
-    start := A[i][0]
-    if B[j][0] &gt; start {
-        start = B[j][0]
-    }
-    end := A[i][1]
-    if B[j][1] &lt; end {
-        end = B[j][1]
-    }
-    if start &lt;= end {
-        result = append(result, []int{start, end})
-    }
-    if A[i][1] &lt; B[j][1] {
-        i++
-    } else {
-        j++
-    }
-}
-</code></pre>
-<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
-<h3 id="используемые-структуры-данных-в-merge-intervals"><a class="header" href="#используемые-структуры-данных-в-merge-intervals">Используемые структуры данных в Merge Intervals</a></h3>
-<p>В шаблоне Merge Intervals используются следующие структуры данных:</p>
-<ul>
-<li><strong>[][]int</strong>: Для хранения входных интервалов</li>
-<li><strong>[][]int</strong>: Для хранения результата (объединённых интервалов)</li>
-<li><strong>Структуры интервалов</strong>: Tuple/Struct для представления интервала [start, end]</li>
-</ul>
-<h3 id="int--slice-go"><a class="header" href="#int--slice-go">[][]int / Slice (Go)</a></h3>
-<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>Vec&lt;Vec&lt;i32&gt;&gt;</strong> (массив интервалов):</p>
-<pre><code>┌─────────────────────────────────────────┐
-│ Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;                           │
-│ ┌─────────────┐                         │
-│ │ ptr: *mut   │ Указатель на массив     │
-│ │   Vec&amp;lt;i32&amp;gt;  │                         │
-│ │ len: usize  │ Количество интервалов  │
-│ │ cap: usize  │ Емкость                 │
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-         │
-         ▼
-    [Vec&amp;lt;i32&amp;gt;][Vec&amp;lt;i32&amp;gt;][Vec&amp;lt;i32&amp;gt;]...
-    ┌──────┐  ┌──────┐  ┌──────┐
-    │[1,3] │  │[2,6] │  │[8,10]│
-    └──────┘  └──────┘  └──────┘
-</code></pre>
-<p><strong>Важные детали</strong>:</p>
-<ul>
-<li>Каждый интервал - это отдельный Vec&lt;i32&gt; (или можно использовать tuple/struct)</li>
-<li>Интервалы хранятся в непрерывной памяти (массив указателей на Vec)</li>
-<li>Сортировка интервалов - O(n log n), но затем линейный проход</li>
-</ul>
-<p><strong>Go [][]int</strong> (массив интервалов):</p>
-<pre><code>┌─────────────────────────────────────────┐
-│ [][]int                                  │
-│ ┌─────────────┐                         │
-│ │ ptr: *[]int │ Указатель на массив     │
-│ │ len: int    │ Количество интервалов   │
-│ │ cap: int    │ Емкость                 │
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-         │
-         ▼
-    [][]int
-    ┌──────┐  ┌──────┐  ┌──────┐
-    │[1,3] │  │[2,6] │  │[8,10]│
-    └──────┘  └──────┘  └──────┘
-</code></pre>
-<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Операция</th><th>Сложность</th><th>Объяснение</th></tr>
-</thead>
-<tbody>
-<tr><td>Сортировка интервалов</td><td>O(n log n)</td><td>Нужна для правильного слияния</td></tr>
-<tr><td>Проход по интервалам</td><td>O(n)</td><td>Линейный проход после сортировки</td></tr>
-<tr><td>Сравнение интервалов</td><td>O(1)</td><td>Сравнение start и end</td></tr>
-<tr><td>Слияние интервалов</td><td>O(1)</td><td>Просто обновление end</td></tr>
-</tbody>
-</table>
-</div>
-<h4 id="когда-использовать"><a class="header" href="#когда-использовать">Когда использовать:</a></h4>
-<p><strong>Используйте Vec/Slice когда</strong>:</p>
-<ul>
-<li>Нужна сортировка интервалов</li>
-<li>Нужен последовательный доступ</li>
-<li>Интервалы могут перекрываться</li>
-</ul>
-<p><strong>Альтернативы</strong>:</p>
-<ul>
-<li>Interval Tree: для частых запросов пересечения (O(log n))</li>
-<li>Для Merge Intervals Vec/Slice оптимальны</li>
-</ul>
-<h3 id="структуры-интервалов"><a class="header" href="#структуры-интервалов">Структуры интервалов</a></h3>
-<p><strong>Tuple</strong>:</p>
-<p><strong>Struct</strong> (более читаемо):</p>
-<p><strong>Память</strong>:</p>
-<ul>
-<li>Tuple: 8 байт (2 * i32)</li>
-<li>Struct: 8 байт (2 * i32)</li>
-<li>Нет разницы в памяти, struct более читаем</li>
-</ul>
-<h4 id="go-slice-vs-struct"><a class="header" href="#go-slice-vs-struct">Go: Slice vs Struct</a></h4>
-<p><strong>Slice</strong>:</p>
-<pre><code class="language-go">interval := []int{1, 3}  // [start, end]
-</code></pre>
-<p><strong>Struct</strong> (более читаемо):</p>
-<pre><code class="language-go">type Interval struct {
-    Start int
-    End   int
-}
-</code></pre>
-<p><strong>Память</strong>:</p>
-<ul>
-<li>Slice: 24 байта (3 поля: ptr, len, cap) + данные</li>
-<li>Struct: 16 байт (2 * int)</li>
-<li>Struct эффективнее для представления интервала</li>
-</ul>
-<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<h4 id="что-это-такое"><a class="header" href="#что-это-такое">Что это такое:</a></h4>
-<p><strong>Escape Analysis</strong> определяет, должны ли интервалы быть в куче.</p>
-<p><strong>Для Merge Intervals</strong>:</p>
-<ul>
-<li>Результирующие интервалы могут escape, если возвращаются</li>
-<li>Временные структуры могут остаться на стеке</li>
-</ul>
-<h4 id="как-проверить"><a class="header" href="#как-проверить">Как проверить:</a></h4>
-<pre><code class="language-bash">go build -gcflags=-m main.go
-</code></pre>
-<p><strong>Пример</strong>:</p>
-<pre><code class="language-go">func merge(intervals [][]int) [][]int {
-    result := make([][]int, 0)  // может escape
-    // ...
-    return result  // escape в кучу
-}
-</code></pre>
-<h4 id="оптимизация"><a class="header" href="#оптимизация">Оптимизация:</a></h4>
-<p><strong>Предварительное выделение</strong>:</p>
-<pre><code class="language-go">// ✅ Хорошо: предварительное выделение
-result := make([][]int, 0, len(intervals))
-</code></pre>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
-<p><strong>Для Merge Intervals</strong>:</p>
-<ul>
-<li>Интервалы в куче - управляются GC</li>
-<li>Результирующие интервалы также в куче</li>
-<li>Минимизация аллокаций критична</li>
-</ul>
-<h4 id="оптимизация-1"><a class="header" href="#оптимизация-1">Оптимизация:</a></h4>
-<p><strong>Переиспользование слайсов</strong>:</p>
-<pre><code class="language-go">// ✅ Избегаем создания новых слайсов
-func merge(intervals [][]int) [][]int {
-    result := make([][]int, 0, len(intervals))
-    // переиспользуем capacity
-    return result
-}
-</code></pre>
-<h4 id="концепция-владения"><a class="header" href="#концепция-владения">Концепция владения:</a></h4>
-<p><strong>Для Merge Intervals</strong>:</p>
-<ul>
-<li>Входные данные: <code>&amp;[Vec&amp;lt;i32&amp;gt;]</code> (заимствование)</li>
-<li>Результат: <code>Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;</code> (новое владение)</li>
-<li>Сортировка может потребовать владения (если изменяем исходный массив)</li>
-</ul>
-<p><strong>Пример</strong>:</p>
-<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
-<p>В для Merge Intervals:</p>
-<ul>
-<li><strong>Сортировка</strong>: Может аллоцировать временную память (зависит от алгоритма)</li>
-<li><strong>Результат</strong>: <code>Vec&amp;lt;Interval&amp;gt;</code> - аллоцируется в куче</li>
-<li><strong>Входные данные</strong>: Обычно <code>&amp;[Interval]</code> - ссылка, не аллоцирует</li>
-</ul>
-<h4 id="go-сборщик-мусора"><a class="header" href="#go-сборщик-мусора">Go: Сборщик мусора</a></h4>
-<p>В Go:</p>
-<ul>
-<li><strong>Сортировка</strong>: Может аллоцировать временную память</li>
-<li><strong>Результат</strong>: <code>[][]int</code> - слайс слайсов в куче</li>
-<li><strong>Входные данные</strong>: <code>[][]int</code> - уже в куче</li>
-</ul>
-<h3 id="анализ-аллокаций-для-merge-intervals"><a class="header" href="#анализ-аллокаций-для-merge-intervals">Анализ аллокаций для Merge Intervals</a></h3>
-<h4 id="базовое-слияние"><a class="header" href="#базовое-слияние">Базовое слияние:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// Аллокации:
-// - Сортировка: O(log n) для стека рекурсии
-// - result: [][]int - O(n) в куче
-// Итого: O(n) памяти в куче
-</code></pre>
-<h4 id="оптимизация-in-place-слияние"><a class="header" href="#оптимизация-in-place-слияние">Оптимизация: In-place слияние:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ In-place: модифицируем входной слайс
-sort.Slice(intervals, func(i, j int) bool {
-    return intervals[i][0] &lt; intervals[j][0]
-})
-result := make([][]int, 0, len(intervals))
-</code></pre>
-<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
-<ol>
-<li><strong>Предварительное выделение</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-result := make([][]int, 0, len(intervals))
-</code></pre>
-<ol start="2">
-<li><strong>Избежание создания новых слайсов</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Модифицируем последний элемент вместо создания нового
-result[len(result)-1][1] = max(result[len(result)-1][1], current[1])
-</code></pre>
-<ol start="3">
-<li><strong>Переиспользование слайсов</strong>:</li>
-</ol>
-<pre><code class="language-go">// Очистка и переиспользование
-result = result[:0]
-</code></pre>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Аспект</th><th></th><th>Go</th></tr>
-</thead>
-<tbody>
-<tr><td>Сортировка</td><td>Контролируемая память</td><td>GC управляет</td></tr>
-<tr><td>Результат</td><td>Vec в куче</td><td>Слайсы в куче</td></tr>
-<tr><td>In-place</td><td>Возможно с <code>&amp;mut</code></td><td>Возможно с указателями</td></tr>
-<tr><td>Производительность</td><td>Предсказуемая</td><td>Может быть паузы GC</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
-<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
-<ol>
-<li>
-<p><strong>Оптимизация сортировки</strong>:</p>
-<ul>
-<li>Используйте нестабильную сортировку если порядок не важен</li>
-<li>Предварительно выделяйте память</li>
-</ul>
-</li>
-<li>
-<p><strong>Минимизация аллокаций</strong>:</p>
-<ul>
-<li>Предварительно выделяйте результат</li>
-<li>Модифицируйте на месте когда возможно</li>
-</ul>
-</li>
-</ol>
-<h3 id="специфичные-оптимизации-для-merge-intervals"><a class="header" href="#специфичные-оптимизации-для-merge-intervals">Специфичные оптимизации для Merge Intervals</a></h3>
-<h4 id="1-оптимизация-слияния"><a class="header" href="#1-оптимизация-слияния">1. Оптимизация слияния:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированная версия
-func mergeIntervalsOptimized(intervals [][]int) [][]int {
-    if len(intervals) == 0 {
-        return [][]int{}
-    }
-    
-    sort.Slice(intervals, func(i, j int) bool {
-        return intervals[i][0] &lt; intervals[j][0]
-    })
-    
-    result := make([][]int, 0, len(intervals))
-    result = append(result, intervals[0])
-    
-    for i := 1; i &lt; len(intervals); i++ {
-        last := result[len(result)-1]
-        if intervals[i][0] &lt;= last[1] {
-            if intervals[i][1] &gt; last[1] {
-                last[1] = intervals[i][1]
-            }
-        } else {
-            result = append(result, intervals[i])
-        }
-    }
-    
-    return result
-}
-</code></pre>
-<ol>
-<li>
-<p><strong>Использование <code>sort_unstable</code></strong>:</p>
-</li>
-<li>
-<p><strong>Избежание лишних аллокаций</strong>:</p>
-</li>
-</ol>
-<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
-<ol>
-<li><strong>Предварительное выделение</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-result := make([][]int, 0, len(intervals))
-</code></pre>
-<ol start="2">
-<li><strong>Модификация на месте</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Модифицируем последний элемент
-last := result[len(result)-1]
-last[1] = max(last[1], current[1])
-</code></pre>
-<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
-<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
-<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
-<h3 id="как-профилировать-merge-intervals"><a class="header" href="#как-профилировать-merge-intervals">Как профилировать Merge Intervals</a></h3>
-<h4 id="пример"><a class="header" href="#пример">пример:</a></h4>
-<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
-<pre><code class="language-go">func BenchmarkMergeIntervals(b *testing.B) {
-    intervals := createTestIntervals(1000)
-    
-    b.ResetTimer()
-    for i := 0; i &lt; b.N; i++ {
-        mergeIntervalsOptimized(intervals)
-    }
-}
-</code></pre>
-<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
-<p><strong>Анализ производительности</strong>:</p>
-<ul>
-<li>Сортировка: O(n log n) - доминирующая операция</li>
-<li>Слияние: O(n) - один проход</li>
-<li>Память: O(n) для результата</li>
-</ul>
-<p><strong>Типичные узкие места</strong>:</p>
-<ul>
-<li>Сортировка (особенно для больших массивов)</li>
-<li>Аллокации результата</li>
-<li>Проверки перекрытия</li>
-</ul>
-<h2 id="отладка-и-диагностика"><a class="header" href="#отладка-и-диагностика">Отладка и диагностика</a></h2>
-<p>Отладка алгоритмов слияния интервалов требует отслеживания состояния интервалов на каждом шаге:</p>
-<h3 id="1-логирование-процесса-слияния"><a class="header" href="#1-логирование-процесса-слияния">1. Логирование процесса слияния</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func mergeIntervalsDebug(intervals [][]int) [][]int {
-    if len(intervals) == 0 {
-        return [][]int{}
-    }
-    
-    log.Printf("Входные интервалы: %v", intervals)
-    
-    // Сортировка
-    sort.Slice(intervals, func(i, j int) bool {
-        return intervals[i][0] &lt; intervals[j][0]
-    })
-    log.Printf("Отсортированные интервалы: %v", intervals)
-    
     result := [][]int{intervals[0]}
-    log.Printf("Начальный результат: %v", result)
-    
     for i := 1; i &lt; len(intervals); i++ {
-        last := result[len(result)-1]
         current := intervals[i]
-        
-        log.Printf("Шаг %d: last=%v, current=%v", i, last, current)
-        
-        if current[0] &lt;= last[1] {
-            // Перекрытие
+        last := result[len(result)-1]
+        if current[0] &lt;= last[1] { // перекрытие
             if current[1] &gt; last[1] {
-                last[1] = current[1]
-                log.Printf("Объединение: новый last=%v", last)
-            } else {
-                log.Printf("Текущий интервал полностью внутри последнего, пропускаем")
+                last[1] = current[1] // расширяем конец до максимума
             }
         } else {
-            // Нет перекрытия
-            result = append(result, current)
-            log.Printf("Добавлен новый интервал: %v", current)
+            result = append(result, current) // разрыв — новый интервал
         }
     }
-    
-    log.Printf("Финальный результат: %v", result)
     return result
 }
 </code></pre>
-<h3 id="2-визуализация-интервалов"><a class="header" href="#2-визуализация-интервалов">2. Визуализация интервалов</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func visualizeIntervals(intervals [][]int) {
-    fmt.Println("Интервалы:")
-    for i, interval := range intervals {
-        start, end := interval[0], interval[1]
-        fmt.Printf("%d: ", i)
-        for j := 0; j &lt; start; j++ {
-            fmt.Print(" ")
-        }
-        for j := start; j &lt;= end; j++ {
-            fmt.Print("-")
-        }
-        fmt.Printf(" [%d,%d]\n", start, end)
-    }
-}
-</code></pre>
-<h3 id="метрики-производительности"><a class="header" href="#метрики-производительности">Метрики производительности</a></h3>
-<p>Реальные результаты бенчмарков на типичном оборудовании (Intel i7-9700K, 32GB RAM):</p>
-<h4 id="слияние-интервалов-go"><a class="header" href="#слияние-интервалов-go">Слияние интервалов (Go):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Количество интервалов</th><th>Время выполнения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>100 интервалов</td><td>~8.5 μs</td><td>2.5 KB</td><td>~117,000</td></tr>
-<tr><td>1,000 интервалов</td><td>~125 μs</td><td>25 KB</td><td>~8,000</td></tr>
-<tr><td>10,000 интервалов</td><td>~1.8 ms</td><td>250 KB</td><td>~556</td></tr>
-<tr><td>100,000 интервалов</td><td>~24 ms</td><td>2.5 MB</td><td>~42</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Доминирует сортировка: O(n log n)</li>
-<li>Память для результата: O(n) в худшем случае</li>
-<li>Эффективность: Линейный проход после сортировки</li>
-</ul>
-<h4 id="вставка-интервала-go"><a class="header" href="#вставка-интервала-go">Вставка интервала (Go):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Количество интервалов</th><th>Время выполнения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>100 интервалов</td><td>~2.5 μs</td><td>2.5 KB</td><td>~400,000</td></tr>
-<tr><td>1,000 интервалов</td><td>~25 μs</td><td>25 KB</td><td>~40,000</td></tr>
-<tr><td>10,000 интервалов</td><td>~250 μs</td><td>250 KB</td><td>~4,000</td></tr>
-<tr><td>100,000 интервалов</td><td>~2.5 ms</td><td>2.5 MB</td><td>~400</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Линейный поиск: O(n)</li>
-<li>Можно оптимизировать до O(log n) бинарным поиском</li>
-<li>Память: O(n) для результата</li>
-</ul>
-<h4 id="сравнение-с-наивным-подходом-1"><a class="header" href="#сравнение-с-наивным-подходом-1">Сравнение с наивным подходом:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Количество интервалов</th><th>Merge Intervals</th><th>Наивный подход</th><th>Ускорение</th></tr>
-</thead>
-<tbody>
-<tr><td>1,000 интервалов</td><td>~125 μs</td><td>~450 μs</td><td><strong>3.6x</strong></td></tr>
-<tr><td>10,000 интервалов</td><td>~1.8 ms</td><td>~45 ms</td><td><strong>25x</strong></td></tr>
-<tr><td>100,000 интервалов</td><td>~24 ms</td><td>~4.5 s</td><td><strong>187x</strong></td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Вывод</strong>: Сортировка + один проход значительно эффективнее множественных проверок.</p>
-<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
-<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
-<ol>
-<li><strong>Базовые тесты</strong>: Простые случаи слияния</li>
-<li><strong>Граничные случаи</strong>: Пустой список, один интервал, все перекрываются</li>
-<li><strong>Стресс-тесты</strong>: Большие списки интервалов</li>
-</ol>
-<h3 id="примеры-тестов-для-merge-intervals"><a class="header" href="#примеры-тестов-для-merge-intervals">Примеры тестов для Merge Intervals</a></h3>
-<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
-<pre><code class="language-go">func TestMergeIntervals(t *testing.T) {
-    tests := []struct {
-        name      string
-        intervals [][]int
-        want      int
-    }{
-        {"basic", [][]int{{1, 3}, {2, 6}, {8, 10}}, 2},
-        {"empty", [][]int{}, 0},
-        {"all_overlap", [][]int{{1, 4}, {2, 5}, {3, 6}}, 1},
-    }
+<p>Для <strong>вставки</strong> нового интервала в уже отсортированный список делаем один проход:
+интервалы, заканчивающиеся до нового, копируем как есть; пересекающиеся поглощаем,
+расширяя границы нового; остальные добавляем после.</p>
+<pre><code class="language-go">func insertInterval(intervals [][]int, newInterval []int) [][]int {
+    var result [][]int
+    i, n := 0, len(intervals)
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            result := mergeIntervalsOptimized(tt.intervals)
-            if len(result) != tt.want {
-                t.Errorf("mergeIntervalsOptimized() = %v, want %v", len(result), tt.want)
-            }
-        })
+    for i &lt; n &amp;&amp; intervals[i][1] &lt; newInterval[0] { // целиком слева
+        result = append(result, intervals[i])
+        i++
     }
-}
-</code></pre>
-<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="go"><a class="header" href="#go">Go:</a></h4>
-<pre><code class="language-bash">go test -v
-go test -bench=. -benchmem
-</code></pre>
-<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
-<pre><code class="language-go">func BenchmarkMergeIntervalsSizes(b *testing.B) {
-    sizes := []int{100, 1000, 10000, 100000}
-    
-    for _, size := range sizes {
-        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
-            intervals := createTestIntervals(size)
-            b.ResetTimer()
-            for i := 0; i &lt; b.N; i++ {
-                mergeIntervalsOptimized(intervals)
-            }
-        })
-    }
-}
-</code></pre>
-<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
-<h3 id="эволюция-решения-от-наивного-к-оптимизированному"><a class="header" href="#эволюция-решения-от-наивного-к-оптимизированному">Эволюция решения: от наивного к оптимизированному</a></h3>
-<h4 id="наивный-подход-on²"><a class="header" href="#наивный-подход-on²">Наивный подход (O(n²)):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ❌ Наивный подход: проверяем каждый интервал со всеми остальными
-func mergeIntervalsNaive(intervals [][]int) [][]int {
-    result := [][]int{}
-    
-    for _, current := range intervals {
-        merged := false
-        for i := range result {
-            // Проверяем перекрытие с каждым интервалом в результате
-            if overlaps(result[i], current) {
-                result[i] = mergeTwo(result[i], current)
-                merged = true
-                break
-            }
+    merged := []int{newInterval[0], newInterval[1]}
+    for i &lt; n &amp;&amp; intervals[i][0] &lt;= merged[1] { // перекрытие — поглощаем
+        if intervals[i][0] &lt; merged[0] {
+            merged[0] = intervals[i][0]
         }
-        if !merged {
-            result = append(result, current)
+        if intervals[i][1] &gt; merged[1] {
+            merged[1] = intervals[i][1]
         }
+        i++
     }
-    
+    result = append(result, merged)
+
+    for i &lt; n { // целиком справа
+        result = append(result, intervals[i])
+        i++
+    }
     return result
 }
-// Проблемы: O(n²) время, не гарантирует отсортированность результата
 </code></pre>
-<h4 id="оптимизированный-подход-on-log-n"><a class="header" href="#оптимизированный-подход-on-log-n">Оптимизированный подход (O(n log n)):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированный подход: сортировка + один проход
-func mergeIntervalsOptimized(intervals [][]int) [][]int {
-    if len(intervals) == 0 {
-        return [][]int{}
-    }
-    
-    // Сортируем по началу интервала
-    sort.Slice(intervals, func(i, j int) bool {
-        return intervals[i][0] &lt; intervals[j][0]
-    })
-    
-    result := [][]int{intervals[0]}
-    
-    // Один проход: проверяем только последний интервал
-    for i := 1; i &lt; len(intervals); i++ {
-        last := &amp;result[len(result)-1]
-        current := intervals[i]
-        
-        if current[0] &lt;= last[1] {
-            // Перекрытие: объединяем
-            last[1] = max(last[1], current[1])
-        } else {
-            // Нет перекрытия: добавляем новый
-            result = append(result, current)
-        }
-    }
-    
-    return result
-}
-// Преимущества: O(n log n) время, гарантирует отсортированность
+<h3 id="сложность"><a class="header" href="#сложность">Сложность</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>Время</th><th>Память</th></tr>
+</thead>
+<tbody>
+<tr><td>Слияние интервалов</td><td>O(n log n)</td><td>O(n)</td></tr>
+<tr><td>Вставка интервала</td><td>O(n)</td><td>O(n)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Для слияния доминирует сортировка O(n log n), сам проход линеен. Вставка не требует
+сортировки — вход уже упорядочен.</p>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: сверху — исходные интервалы (жёлтым
+подсвечен текущий), снизу — результат слияния, который растёт по мере прохода. (Виджет
+работает в собранной книге <code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="merge-intervals" data-intervals="1-3,2-6,8-10,15-18"></div>
+
+<p>Слияние <code>[[1,3], [2,6], [8,10], [15,18]]</code> (уже отсортированы по началу):</p>
+<pre><code>[1,3]                       result: [1,3]
+[2,6]   2 ≤ 3 → перекрытие  result: [1,6]   (конец = max(3,6))
+[8,10]  8 &gt; 6 → разрыв      result: [1,6] [8,10]
+[15,18] 15 &gt; 10 → разрыв    result: [1,6] [8,10] [15,18]
 </code></pre>
-<h4 id="идиоматичный-go-код"><a class="header" href="#идиоматичный-go-код">Идиоматичный Go код:</a></h4>
-<pre><code class="language-go">// ✅ Идиоматичный Go: используем type alias и методы
-type Interval struct {
-    Start, End int
-}
-
-func mergeIntervalsIdiomatic(intervals []Interval) []Interval {
-    if len(intervals) == 0 {
-        return nil
-    }
-    
-    // Используем sort.Slice с кастомным компаратором
-    sort.Slice(intervals, func(i, j int) bool {
-        return intervals[i].Start &lt; intervals[j].Start
-    })
-    
-    merged := []Interval{intervals[0]}
-    
-    for _, curr := range intervals[1:] {
-        last := &amp;merged[len(merged)-1]
-        if curr.Start &lt;= last.End {
-            last.End = max(last.End, curr.End)
-        } else {
-            merged = append(merged, curr)
-        }
-    }
-    
-    return merged
-}
+<p>На числовой оси первые два интервала сливаются, остальные стоят отдельно:</p>
+<pre><code>        1   3
+        └───┘
+          2     6
+          └─────┘   →  [1────6]   [8──10]      [15───18]
+                 8  10
+                 └──┘
+                            15    18
+                            └─────┘
 </code></pre>
-<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
-<pre><code class="language-go">package main
-
-import (
-	"fmt"
-	"sort"
-)
-
-// Пример 1: Слияние перекрывающихся интервалов
-//
-// Задача: Объединить все перекрывающиеся интервалы
-// Временная сложность: O(n log n)
-// Пространственная сложность: O(n)
-func mergeIntervals(intervals [][]int) [][]int {
-	if len(intervals) == 0 {
-		return [][]int{}
-	}
-
-	// Сортируем интервалы по начальной точке
-	sort.Slice(intervals, func(i, j int) bool {
-		return intervals[i][0] &lt; intervals[j][0]
-	})
-
-	merged := [][]int{intervals[0]}
-
-	for i := 1; i &lt; len(intervals); i++ {
-		current := intervals[i]
-		last := merged[len(merged)-1]
-
-		// Если текущий интервал перекрывается с последним, объединяем
-		if current[0] &lt;= last[1] {
-			if current[1] &gt; last[1] {
-				last[1] = current[1]
-			}
-		} else {
-			// Иначе добавляем новый интервал
-			merged = append(merged, current)
-		}
-	}
-
-	return merged
-}
-
-// Пример 2: Вставка нового интервала
-//
-// Задача: Вставить новый интервал в отсортированный список неперекрывающихся интервалов
-// Временная сложность: O(n)
-// Пространственная сложность: O(n)
-func insertInterval(intervals [][]int, newInterval []int) [][]int {
-	var result [][]int
-	i := 0
-	n := len(intervals)
-
-	// Добавляем все интервалы, которые заканчиваются до начала нового интервала
-	for i &lt; n &amp;&amp; intervals[i][1] &lt; newInterval[0] {
-		result = append(result, intervals[i])
-		i++
-	}
-
-	// Объединяем все перекрывающиеся интервалы
-	mergedInterval := []int{newInterval[0], newInterval[1]}
-	for i &lt; n &amp;&amp; intervals[i][0] &lt;= mergedInterval[1] {
-		if intervals[i][0] &lt; mergedInterval[0] {
-			mergedInterval[0] = intervals[i][0]
-		}
-		if intervals[i][1] &gt; mergedInterval[1] {
-			mergedInterval[1] = intervals[i][1]
-		}
-		i++
-	}
-	result = append(result, mergedInterval)
-
-	// Добавляем оставшиеся интервалы
-	for i &lt; n {
-		result = append(result, intervals[i])
-		i++
-	}
-
-	return result
-}
-
-// Пример 3: Поиск неперекрывающихся интервалов
-//
-// Задача: Найти минимальное количество интервалов для удаления,
-// чтобы сделать остальные неперекрывающимися
-// Временная сложность: O(n log n)
-// Пространственная сложность: O(1)
-func eraseOverlapIntervals(intervals [][]int) int {
-	if len(intervals) == 0 {
-		return 0
-	}
-
-	// Сортируем по конечной точке
-	sort.Slice(intervals, func(i, j int) bool {
-		return intervals[i][1] &lt; intervals[j][1]
-	})
-
-	count := 0
-	end := intervals[0][1]
-
-	for i := 1; i &lt; len(intervals); i++ {
-		// Если интервал перекрывается с предыдущим, удаляем его
-		if intervals[i][0] &lt; end {
-			count++
-		} else {
-			end = intervals[i][1]
-		}
-	}
-
-	return count
-}
-
-// Пример 4: Пересечения двух списков интервалов
-//
-// Задача: Найти пересечения интервалов из двух списков
-// Временная сложность: O(n + m)
-// Пространственная сложность: O(k), где k - количество пересечений
-func intervalIntersection(firstList [][]int, secondList [][]int) [][]int {
-	var result [][]int
-	i, j := 0, 0
-
-	for i &lt; len(firstList) &amp;&amp; j &lt; len(secondList) {
-		first := firstList[i]
-		second := secondList[j]
-
-		// Находим пересечение
-		start := max(first[0], second[0])
-		end := min(first[1], second[1])
-
-		if start &lt;= end {
-			result = append(result, []int{start, end})
-		}
-
-		// Перемещаем указатель с меньшей конечной точкой
-		if first[1] &lt; second[1] {
-			i++
-		} else {
-			j++
-		}
-	}
-
-	return result
-}
-
-// Пример 5: Комнаты для встреч II (Meeting Rooms II)
-//
-// Задача: Найти минимальное количество комнат, необходимое для всех встреч
-// Временная сложность: O(n log n)
-// Пространственная сложность: O(n)
-func minMeetingRooms(intervals [][]int) int {
-	if len(intervals) == 0 {
-		return 0
-	}
-
-	// Извлекаем времена начала и конца
-	starts := make([]int, len(intervals))
-	ends := make([]int, len(intervals))
-
-	for i, interval := range intervals {
-		starts[i] = interval[0]
-		ends[i] = interval[1]
-	}
-
-	sort.Ints(starts)
-	sort.Ints(ends)
-
-	rooms := 0
-	endPtr := 0
-
-	// Проходим по временам начала
-	for _, start := range starts {
-		// Если текущее время начала &gt;= времени окончания,
-		// освобождаем комнату
-		if start &gt;= ends[endPtr] {
-			endPtr++
-		} else {
-			// Иначе нужна новая комната
-			rooms++
-		}
-	}
-
-	return rooms
-}
-
-// Вспомогательные функции
-func min(a, b int) int {
-	if a &lt; b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a &gt; b {
-		return a
-	}
-	return b
-}
-</code></pre>
-<h2 id="реальные-применения"><a class="header" href="#реальные-применения">Реальные применения</a></h2>
-<p>Merge Intervals широко используется в production системах для работы с временными интервалами и диапазонами:</p>
-<h3 id="1-calendar-and-scheduling-systems-календари-и-планировщики"><a class="header" href="#1-calendar-and-scheduling-systems-календари-и-планировщики">1. Calendar and Scheduling Systems (Календари и планировщики)</a></h3>
-<p><strong>Применение</strong>: Управление встречами, событиями, задачами.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Google Calendar</strong>: Объединение перекрывающихся событий</li>
-<li><strong>Microsoft Outlook</strong>: Управление доступностью времени</li>
-<li><strong>Scheduling Systems</strong>: Оптимизация расписаний</li>
-</ul>
-<p><strong>Код</strong>:</p>
-<pre><code class="language-go">// Объединение перекрывающихся встреч
-type Meeting struct {
-    Start time.Time
-    End   time.Time
-}
-
-func mergeMeetings(meetings []Meeting) []Meeting {
-    // Сортировка по времени начала
-    sort.Slice(meetings, func(i, j int) bool {
-        return meetings[i].Start.Before(meetings[j].Start)
-    })
-    
-    merged := []Meeting{meetings[0]}
-    for i := 1; i &lt; len(meetings); i++ {
-        last := &amp;merged[len(merged)-1]
-        if meetings[i].Start.Before(last.End) || meetings[i].Start.Equal(last.End) {
-            // Перекрытие: объединяем
-            if meetings[i].End.After(last.End) {
-                last.End = meetings[i].End
-            }
-        } else {
-            // Нет перекрытия: добавляем новый интервал
-            merged = append(merged, meetings[i])
-        }
-    }
-    
-    return merged
-}
-</code></pre>
-<h3 id="2-resource-allocation-распределение-ресурсов"><a class="header" href="#2-resource-allocation-распределение-ресурсов">2. Resource Allocation (Распределение ресурсов)</a></h3>
-<p><strong>Применение</strong>: Управление доступностью ресурсов во времени.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Cloud Computing</strong>: Управление доступностью инстансов</li>
-<li><strong>Hotel Booking</strong>: Управление доступностью номеров</li>
-<li><strong>Car Rental</strong>: Управление доступностью автомобилей</li>
-</ul>
-<h3 id="3-network-management-управление-сетями"><a class="header" href="#3-network-management-управление-сетями">3. Network Management (Управление сетями)</a></h3>
-<p><strong>Применение</strong>: Управление IP-адресами, портами, диапазонами.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>IP Address Management</strong>: Объединение диапазонов IP-адресов</li>
-<li><strong>Port Management</strong>: Управление диапазонами портов</li>
-<li><strong>VLAN Management</strong>: Управление виртуальными сетями</li>
-</ul>
-<h3 id="4-database-systems"><a class="header" href="#4-database-systems">4. Database Systems</a></h3>
-<p><strong>Применение в базах данных</strong>:</p>
-<ul>
-<li><strong>Time-series Data</strong>: Объединение временных интервалов</li>
-<li><strong>Range Queries</strong>: Оптимизация запросов с диапазонами</li>
-<li><strong>Partition Management</strong>: Управление партициями по времени</li>
-</ul>
-<h3 id="5-google-production-examples"><a class="header" href="#5-google-production-examples">5. Google Production Examples</a></h3>
-<p><strong>Примеры из Google</strong>:</p>
-<ul>
-<li><strong>Google Calendar</strong>: Объединение перекрывающихся событий</li>
-<li><strong>Google Cloud</strong>: Управление доступностью ресурсов</li>
-<li><strong>Google Maps</strong>: Объединение временных интервалов для маршрутов</li>
-<li><strong>Google Ads</strong>: Управление рекламными кампаниями во времени</li>
-</ul>
-<h3 id="6-financial-systems"><a class="header" href="#6-financial-systems">6. Financial Systems</a></h3>
-<p><strong>Применение в финансовых системах</strong>:</p>
-<ul>
-<li><strong>Trading Systems</strong>: Управление торговыми сессиями</li>
-<li><strong>Risk Management</strong>: Анализ рисков во времени</li>
-<li><strong>Compliance</strong>: Отслеживание соответствия требованиям</li>
-</ul>
-<h3 id="7-monitoring-and-alerting"><a class="header" href="#7-monitoring-and-alerting">7. Monitoring and Alerting</a></h3>
-<p><strong>Применение в мониторинге</strong>:</p>
-<ul>
-<li><strong>System Monitoring</strong>: Объединение периодов недоступности</li>
-<li><strong>Alert Management</strong>: Группировка связанных алертов</li>
-<li><strong>Incident Management</strong>: Отслеживание инцидентов во времени</li>
-</ul>
-<h3 id="8-open-source-examples"><a class="header" href="#8-open-source-examples">8. Open Source Examples</a></h3>
-<p><strong>Примеры из open-source проектов</strong>:</p>
-<ul>
-<li><strong>Kubernetes</strong>: Управление доступностью подов</li>
-<li><strong>Prometheus</strong>: Объединение временных интервалов для метрик</li>
-<li><strong>Grafana</strong>: Визуализация временных интервалов</li>
-<li><strong>Elasticsearch</strong>: Range queries с объединением интервалов</li>
-</ul>
-<h3 id="9-system-design-applications"><a class="header" href="#9-system-design-applications">9. System Design Applications</a></h3>
-<p><strong>Применение в системном дизайне</strong>:</p>
-<ul>
-<li><strong>Load Balancing</strong>: Управление доступностью серверов</li>
-<li><strong>Auto-scaling</strong>: Управление масштабированием во времени</li>
-<li><strong>Capacity Planning</strong>: Планирование емкости на основе интервалов</li>
-</ul>
-<h3 id="10-event-processing"><a class="header" href="#10-event-processing">10. Event Processing</a></h3>
-<p><strong>Применение в обработке событий</strong>:</p>
-<ul>
-<li><strong>Event Sourcing</strong>: Объединение событий во времени</li>
-<li><strong>Stream Processing</strong>: Обработка потоков событий</li>
-<li><strong>CQRS</strong>: Управление временными интервалами для чтения/записи</li>
-</ul>
-<h2 id="упражнения"><a class="header" href="#упражнения">Упражнения</a></h2>
-<p>Практикуйтесь на задачах разной сложности для закрепления материала:</p>
-<h3 id="легкие-задачи-для-начинающих"><a class="header" href="#легкие-задачи-для-начинающих">Легкие задачи (для начинающих)</a></h3>
+<p>Результат: <code>[[1,6], [8,10], [15,18]]</code>.</p>
+<h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
-<li>
-<p><strong>Merge Intervals</strong> (LeetCode 56)</p>
-<ul>
-<li>Объедините перекрывающиеся интервалы</li>
-<li>Подсказка: Отсортируйте по началу, затем объединяйте перекрывающиеся</li>
-<li><a href="https://leetcode.com/problems/merge-intervals/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Insert Interval</strong> (LeetCode 57)</p>
-<ul>
-<li>Вставьте новый интервал в отсортированный список интервалов</li>
-<li>Подсказка: Найдите позицию вставки, затем объедините перекрывающиеся</li>
-<li><a href="https://leetcode.com/problems/insert-interval/">Решение</a></li>
-</ul>
-</li>
+<li><strong>Забыли отсортировать</strong> перед проходом — без сортировки сравнение только с
+последним интервалом некорректно.</li>
+<li><strong>Неверное объединение концов</strong> — берите <code>max(last[1], current[1])</code>, иначе
+присваивание <code>last[1] = current[1]</code> может <em>уменьшить</em> интервал.</li>
+<li><strong>Неправильная проверка перекрытия</strong> — условие именно <code>current[0] &lt;= last[1]</code>
+(с учётом равенства, если касание считается перекрытием).</li>
+<li><strong>Пустой вход</strong> — обращение к <code>intervals[0]</code> упадёт; обработайте <code>len == 0</code>.</li>
+<li><strong>Некорректный интервал</strong> (<code>start &gt; end</code>) — при необходимости валидируйте вход.</li>
 </ol>
-<h3 id="средние-задачи-для-практики"><a class="header" href="#средние-задачи-для-практики">Средние задачи (для практики)</a></h3>
-<ol start="3">
-<li>
-<p><strong>Non-overlapping Intervals</strong> (LeetCode 435)</p>
+<h2 id="задачи"><a class="header" href="#задачи">Задачи</a></h2>
+<p><strong>LeetCode:</strong></p>
 <ul>
-<li>Найдите минимальное количество интервалов для удаления</li>
-<li>Подсказка: Используйте жадный подход - удаляйте интервалы с большим концом</li>
-<li><a href="https://leetcode.com/problems/non-overlapping-intervals/">Решение</a></li>
+<li><a href="https://leetcode.com/problems/merge-intervals/">Merge Intervals</a></li>
+<li><a href="https://leetcode.com/problems/insert-interval/">Insert Interval</a></li>
+<li><a href="https://leetcode.com/problems/non-overlapping-intervals/">Non-overlapping Intervals</a></li>
+<li><a href="https://leetcode.com/problems/meeting-rooms-ii/">Meeting Rooms II</a></li>
+<li><a href="https://leetcode.com/problems/interval-list-intersections/">Interval List Intersections</a></li>
+<li><a href="https://leetcode.com/problems/employee-free-time/">Employee Free Time</a> (сложная)</li>
+<li><a href="https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/">Minimum Number of Arrows to Burst Balloons</a></li>
 </ul>
-</li>
-<li>
-<p><strong>Meeting Rooms II</strong> (LeetCode 253)</p>
-<ul>
-<li>Найдите минимальное количество комнат для всех встреч</li>
-<li>Подсказка: Используйте сортировку событий начала/конца</li>
-<li><a href="https://leetcode.com/problems/meeting-rooms-ii/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Interval List Intersections</strong> (LeetCode 986)</p>
-<ul>
-<li>Найдите пересечения двух списков интервалов</li>
-<li>Подсказка: Используйте два указателя для обхода обоих списков</li>
-<li><a href="https://leetcode.com/problems/interval-list-intersections/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Remove Covered Intervals</strong> (LeetCode 1288)</p>
-<ul>
-<li>Удалите интервалы, которые полностью покрыты другими</li>
-<li>Подсказка: Отсортируйте и проверьте покрытие</li>
-<li><a href="https://leetcode.com/problems/remove-covered-intervals/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="сложные-задачи-для-углубления"><a class="header" href="#сложные-задачи-для-углубления">Сложные задачи (для углубления)</a></h3>
-<ol start="7">
-<li>
-<p><strong>Employee Free Time</strong> (LeetCode 759)</p>
-<ul>
-<li>Найдите свободное время всех сотрудников</li>
-<li>Подсказка: Объедините все интервалы, затем найдите пробелы</li>
-<li><a href="https://leetcode.com/problems/employee-free-time/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Minimum Number of Arrows to Burst Balloons</strong> (LeetCode 452)</p>
-<ul>
-<li>Найдите минимальное количество стрел для лопания всех шаров</li>
-<li>Подсказка: Используйте жадный подход с сортировкой по концу</li>
-<li><a href="https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="дополнительные-задачи-для-практики"><a class="header" href="#дополнительные-задачи-для-практики">Дополнительные задачи для практики</a></h3>
-<ol start="9">
-<li>
-<p><strong>Partition Labels</strong> (LeetCode 763)</p>
-<ul>
-<li>Разделите строку на максимальное количество частей</li>
-<li><a href="https://leetcode.com/problems/partition-labels/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Merge Sorted Array</strong> (LeetCode 88)</p>
-<ul>
-<li>Объедините два отсортированных массива</li>
-<li><a href="https://leetcode.com/problems/merge-sorted-array/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="рекомендации-по-решению"><a class="header" href="#рекомендации-по-решению">Рекомендации по решению</a></h3>
-<ol>
-<li><strong>Всегда сортируйте</strong>: Интервалы должны быть отсортированы по началу</li>
-<li><strong>Проверяйте перекрытие</strong>: <code>current.start &lt;= last.end</code></li>
-<li><strong>Объединяйте правильно</strong>: <code>max(last.end, current.end)</code></li>
-<li><strong>Обрабатывайте граничные случаи</strong>: Пустой список, один интервал</li>
-</ol>
 <h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><strong><a href="./two-pointers.html">Two Pointers</a></strong> - Похожий подход для работы с отсортированными данными</li>
-<li><strong><a href="./cyclic-sort.html">Cyclic Sort</a></strong> - Работа с массивами в определенном диапазоне</li>
-<li><strong><a href="./modified-binary-search.html">Modified Binary Search</a></strong> - Поиск в отсортированных данных</li>
-</ul>
-<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
-<p>После изучения Merge Intervals рекомендуется перейти к <strong><a href="./cyclic-sort.html">Cyclic Sort</a></strong> для работы с массивами в определенном диапазоне или к <strong><a href="./modified-binary-search.html">Modified Binary Search</a></strong> для работы с отсортированными данными.</p>
-<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
-<h3 id="интерактивные-визуализаторы"><a class="header" href="#интерактивные-визуализаторы">Интерактивные визуализаторы</a></h3>
-<ul>
-<li><a href="https://visualgo.net/en/interval">VisuAlgo - Interval Scheduling</a> - Интерактивная визуализация работы с интервалами</li>
-<li><a href="https://algorithm-visualizer.org/brute-force/merge-intervals">Algorithm Visualizer - Merge Intervals</a> - Визуализация алгоритма</li>
-</ul>
-<h3 id="видео-объяснения"><a class="header" href="#видео-объяснения">Видео-объяснения</a></h3>
-<ul>
-<li><a href="https://www.youtube.com/results?search_query=neetcode+merge+intervals">NeetCode - Merge Intervals</a> - Подробное объяснение паттерна</li>
-<li><a href="https://www.youtube.com/results?search_query=back+to+back+swe+merge+intervals">Back To Back SWE - Merge Intervals</a> - Разбор задач</li>
-</ul>
-<h3 id="дополнительные-материалы"><a class="header" href="#дополнительные-материалы">Дополнительные материалы</a></h3>
-<ul>
-<li><a href="https://en.wikipedia.org/wiki/Interval_scheduling">Interval Scheduling - Wikipedia</a> - Теоретическая база</li>
-<li><a href="https://leetcode.com/tag/array/">LeetCode Interval Problems</a> - Практика</li>
+<li><strong><a href="two-pointers.html">Two Pointers</a></strong> — пересечение двух списков интервалов удобно
+искать двумя указателями.</li>
+<li><strong><a href="cyclic-sort.html">Cyclic Sort</a></strong> — другой шаблон для работы с упорядоченными данными.</li>
+<li><strong><a href="modified-binary-search.html">Modified Binary Search</a></strong> — позицию вставки интервала
+можно искать бинарным поиском.</li>
+<li>Для общей теории по памяти и профилированию в Go см.
+<a href="appendix-go-memory.html">приложение</a>.</li>
 </ul>
 
                     </main>
@@ -1655,6 +379,9 @@ func mergeMeetings(meetings []Meeting) []Meeting {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-f6dee78c.js"></script>
+        <script src="assets/quiz-0d58c129.js"></script>
+        <script src="assets/progress-8bf0c880.js"></script>
 
 
 

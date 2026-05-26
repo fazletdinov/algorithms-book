@@ -1,0 +1,151 @@
+/* quiz.css — стили тренажёра распознавания шаблонов */
+
+.algo-quiz {
+  margin: 1.4em 0;
+  padding: 1.1em;
+  border: 1px solid var(--quote-border, #cccccc44);
+  border-radius: 8px;
+  background: var(--quote-bg, #00000008);
+}
+
+.algo-quiz__head {
+  font-size: 0.85em;
+  opacity: 0.7;
+  margin-bottom: 0.6em;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+
+.algo-quiz__q {
+  font-weight: 600;
+  font-size: 1.05em;
+  margin-bottom: 0.9em;
+}
+
+.algo-quiz__opts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 0.9em;
+}
+
+.algo-quiz__opt {
+  text-align: left;
+  padding: 0.55em 0.8em;
+  border: 1px solid var(--quote-border, #aaa);
+  border-radius: 6px;
+  background: var(--sidebar-bg, #fff);
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.97em;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+
+.algo-quiz__opt:hover:not(:disabled) {
+  border-color: var(--links, #4c84c4);
+}
+
+.algo-quiz__opt--sel {
+  border-color: var(--links, #4c84c4);
+  box-shadow: inset 0 0 0 1px var(--links, #4c84c4);
+}
+
+.algo-quiz__opt--correct {
+  background: #2e9b57;
+  border-color: #2e9b57;
+  color: #fff;
+}
+
+.algo-quiz__opt--wrong {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: #fff;
+}
+
+.algo-quiz__opt:disabled {
+  cursor: default;
+}
+
+.algo-quiz__explain {
+  display: none;
+}
+
+.algo-quiz__explain--show {
+  display: block;
+  padding: 0.7em 0.9em;
+  border-radius: 6px;
+  margin-bottom: 0.9em;
+  font-size: 0.95em;
+  background: var(--sidebar-bg, #ffffff10);
+  border: 1px solid var(--quote-border, #aaa);
+}
+
+.algo-quiz__explain--ok { border-left: 4px solid #2e9b57; }
+.algo-quiz__explain--bad { border-left: 4px solid #c0392b; }
+
+.algo-quiz__weak { font-weight: 600; margin-bottom: 0.3em; }
+
+.algo-quiz__btn {
+  cursor: pointer;
+  border: 1px solid var(--links, #4c84c4);
+  background: var(--links, #4c84c4);
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.5em 1.2em;
+  font-size: 0.97em;
+}
+
+.algo-quiz__btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* трекер прогресса */
+.algo-progress {
+  margin: 1.4em 0;
+  padding: 1.1em;
+  border: 1px solid var(--quote-border, #cccccc44);
+  border-radius: 8px;
+  background: var(--quote-bg, #00000008);
+}
+
+.algo-prog__label {
+  font-weight: 600;
+  margin-bottom: 0.4em;
+}
+
+.algo-prog__barwrap {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--quote-border, #aaa3);
+  overflow: hidden;
+  margin-bottom: 1em;
+}
+
+.algo-prog__bar {
+  height: 100%;
+  width: 0;
+  background: #2e9b57;
+  transition: width 0.25s;
+}
+
+.algo-prog__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 14px;
+  margin-bottom: 1em;
+}
+
+.algo-prog__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.95em;
+}
+
+.algo-prog__item--done .algo-prog__link {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+

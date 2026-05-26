@@ -28,6 +28,8 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-b363db2f.css">
+        <link rel="stylesheet" href="assets/quiz-7aebf16b.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -37,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-2799386e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-6b3e4b80.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,152 +179,97 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="subsets-подмножества"><a class="header" href="#subsets-подмножества">Subsets (Подмножества)</a></h1>
-<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
-<p>Шаблон <strong>Subsets</strong> используется для генерации всех возможных подмножеств заданного множества. Этот подход основан на рекурсии и backtracking, где мы решаем, включать или не включать каждый элемент в текущее подмножество.</p>
-<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
-<p>Генерация всех подмножеств множества - классическая задача комбинаторики. Для множества из n элементов существует 2^n подмножеств (включая пустое множество). Алгоритм основан на принципе включения-исключения и является фундаментальным для многих задач перебора.</p>
-<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
-<p>Ключевое наблюдение: для каждого элемента у нас есть два выбора - включить его в подмножество или не включать. Это создает бинарное дерево решений с 2^n листьями, каждый из которых представляет одно подмножество.</p>
-<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
-<p>Используйте этот шаблон, когда:</p>
+<h2 id="теория"><a class="header" href="#теория">Теория</a></h2>
+<p>Шаблон <strong>Subsets</strong> генерирует все возможные подмножества множества. Для каждого
+элемента есть два выбора — <strong>включить</strong> его в подмножество или <strong>не включать</strong>. Это
+образует бинарное дерево решений с 2^n листьями, по одному на каждое подмножество.</p>
+<p>Основной приём — <strong>backtracking</strong> (откат): строим решение пошагово в одном общем
+массиве, после обработки варианта «откатываемся» — убираем добавленный элемент. Это
+экономит память, не создавая 2^n промежуточных копий.</p>
+<p><strong>Когда применять:</strong></p>
 <ul>
-<li>Нужно сгенерировать все возможные подмножества множества</li>
-<li>Требуется найти все комбинации элементов</li>
-<li>Задача связана с перебором всех возможных вариантов</li>
-<li>Нужно решить задачу методом “включить/исключить” для каждого элемента</li>
-<li>Требуется найти подмножества с определенными свойствами</li>
+<li>нужно сгенерировать все подмножества или комбинации;</li>
+<li>задача — перебор всех вариантов по принципу «включить/исключить»;</li>
+<li>нужны подмножества с определёнными свойствами (комбинации, перестановки, сумма).</li>
 </ul>
-<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
-<h3 id="что-такое-backtracking"><a class="header" href="#что-такое-backtracking">Что такое Backtracking?</a></h3>
-<p><strong>Backtracking (возврат, откат)</strong> — это техника решения задач, при которой мы строим решение пошагово, и если на каком-то шаге понимаем, что текущий путь не ведет к решению, мы “откатываемся” назад и пробуем другой путь.</p>
-<p><strong>Ключевая идея backtracking:</strong></p>
-<ul>
-<li>Мы используем один и тот же массив для хранения текущего решения</li>
-<li>Когда делаем выбор (включаем элемент), добавляем его в массив</li>
-<li>После обработки всех вариантов с этим выбором, “откатываемся” — удаляем элемент</li>
-<li>Это позволяет переиспользовать память и избежать создания множества копий</li>
-</ul>
-<h3 id="рекурсивный-подход"><a class="header" href="#рекурсивный-подход">Рекурсивный подход:</a></h3>
-<pre><code class="language-go">// Генерация всех подмножеств с использованием backtracking
-func subsets(nums []int) [][]int {
-    result := [][]int{}
-    current := []int{}  // Текущее подмножество, которое мы строим
-    
-    var backtrack func(int)
-    backtrack = func(index int) {
-        // Шаг 1: Базовый случай - если достигнут конец массива
-        // Добавляем текущее подмножество в результат
-        // Важно: создаем копию current, так как мы будем изменять его дальше
-        if index == len(nums) {
-            subset := make([]int, len(current))
-            copy(subset, current)
-            result = append(result, subset)
-            return
+<h2 id="алгоритм"><a class="header" href="#алгоритм">Алгоритм</a></h2>
+<p>На каждом шаге добавляем элемент в <code>current</code>, рекурсивно обрабатываем остаток, затем
+откатываемся. Текущее подмножество сохраняем в результат <strong>копией</strong>, так как <code>current</code>
+будет меняться дальше.</p>
+<pre><code class="language-go">func subsets(nums []int) [][]int {
+    var result [][]int
+    var current []int
+
+    var backtrack func(start int)
+    backtrack = func(start int) {
+        // Сохраняем копию текущего подмножества
+        subset := make([]int, len(current))
+        copy(subset, current)
+        result = append(result, subset)
+
+        for i := start; i &lt; len(nums); i++ {
+            current = append(current, nums[i]) // выбор: включить nums[i]
+            backtrack(i + 1)
+            current = current[:len(current)-1] // откат: убрать nums[i]
         }
-        
-        // Шаг 2: Рекурсия - для каждого элемента у нас два выбора
-        
-        // Вариант 1: Включить элемент в подмножество
-        // Добавляем текущий элемент в current
-        current = append(current, nums[index])
-        // Рекурсивно обрабатываем следующий элемент
-        backtrack(index + 1)
-        
-        // Шаг 3: Backtracking - удаляем элемент из текущего подмножества
-        // Это критически важно: после обработки всех вариантов с включенным элементом,
-        // мы должны "откатиться" к состоянию до включения элемента
-        current = current[:len(current)-1]  // Удаляем последний элемент (backtrack)
-        
-        // Вариант 2: Исключить элемент из подмножества
-        // Не добавляем элемент и рекурсивно обрабатываем следующий
-        backtrack(index + 1)
     }
-    
-    // Начинаем с индекса 0
+
     backtrack(0)
     return result
 }
+</code></pre>
+<p>Для подмножеств с дубликатами сортируем массив и пропускаем повторы на одном уровне:</p>
+<pre><code class="language-go">func subsetsWithDup(nums []int) [][]int {
+    sort.Ints(nums)
+    var result [][]int
+    var current []int
 
-// Альтернативный подход: итеративная генерация
-func subsetsIterative(nums []int) [][]int {
-    // Начинаем с пустого подмножества
-    result := [][]int{{}}
-    
-    // Для каждого элемента добавляем его ко всем существующим подмножествам
-    for _, num := range nums {
-        // Сохраняем текущий размер результата
-        // Это важно, так как мы будем добавлять новые подмножества
-        size := len(result)
-        
-        // Для каждого существующего подмножества создаем новое с текущим элементом
-        for i := 0; i &lt; size; i++ {
-            // Создаем новое подмножество на основе существующего
-            newSubset := make([]int, len(result[i]))
-            copy(newSubset, result[i])
-            // Добавляем текущий элемент
-            newSubset = append(newSubset, num)
-            // Добавляем в результат
-            result = append(result, newSubset)
+    var backtrack func(start int)
+    backtrack = func(start int) {
+        subset := make([]int, len(current))
+        copy(subset, current)
+        result = append(result, subset)
+
+        for i := start; i &lt; len(nums); i++ {
+            if i &gt; start &amp;&amp; nums[i] == nums[i-1] {
+                continue // пропускаем дубликат на этом уровне
+            }
+            current = append(current, nums[i])
+            backtrack(i + 1)
+            current = current[:len(current)-1]
         }
     }
-    
+
+    backtrack(0)
     return result
 }
 </code></pre>
-<p><strong>Пошаговый пример backtracking для [1, 2, 3]:</strong></p>
-<pre><code>Инициализация: current = [], index = 0
-
-Шаг 1: Обрабатываем элемент 1 (index = 0)
-  ├─ Включаем 1: current = [1]
-  │   └─ Рекурсивный вызов для index = 1
-  │       ├─ Включаем 2: current = [1, 2]
-  │       │   └─ Рекурсивный вызов для index = 2
-  │       │       ├─ Включаем 3: current = [1, 2, 3]
-  │       │       │   └─ index = 3 (конец) → сохраняем [1, 2, 3]
-  │       │       └─ BACKTRACK: удаляем 3 → current = [1, 2]
-  │       │       └─ Исключаем 3: current = [1, 2]
-  │       │           └─ index = 3 (конец) → сохраняем [1, 2]
-  │       └─ BACKTRACK: удаляем 2 → current = [1]
-  │       └─ Исключаем 2: current = [1]
-  │           └─ Рекурсивный вызов для index = 2
-  │               ├─ Включаем 3: current = [1, 3]
-  │               │   └─ index = 3 (конец) → сохраняем [1, 3]
-  │               └─ BACKTRACK: удаляем 3 → current = [1]
-  │               └─ Исключаем 3: current = [1]
-  │                   └─ index = 3 (конец) → сохраняем [1]
-  └─ BACKTRACK: удаляем 1 → current = []
-  └─ Исключаем 1: current = []
-      └─ Рекурсивный вызов для index = 1
-          ├─ Включаем 2: current = [2]
-          │   └─ Рекурсивный вызов для index = 2
-          │       ├─ Включаем 3: current = [2, 3]
-          │       │   └─ index = 3 (конец) → сохраняем [2, 3]
-          │       └─ BACKTRACK: удаляем 3 → current = [2]
-          │       └─ Исключаем 3: current = [2]
-          │           └─ index = 3 (конец) → сохраняем [2]
-          └─ BACKTRACK: удаляем 2 → current = []
-          └─ Исключаем 2: current = []
-              └─ Рекурсивный вызов для index = 2
-                  ├─ Включаем 3: current = [3]
-                  │   └─ index = 3 (конец) → сохраняем [3]
-                  └─ BACKTRACK: удаляем 3 → current = []
-                  └─ Исключаем 3: current = []
-                      └─ index = 3 (конец) → сохраняем []
-
-Результат: [[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]
-</code></pre>
-<p><strong>Почему backtracking эффективен?</strong></p>
-<ol>
-<li><strong>Экономия памяти</strong>: Вместо создания 2^n копий массивов, мы используем один массив и изменяем его</li>
-<li><strong>Естественная структура</strong>: Соответствует дереву решений — каждый узел представляет состояние</li>
-<li><strong>Простота реализации</strong>: Легко понять и реализовать рекурсивно</li>
-</ol>
-<p><strong>Ключевой момент:</strong> После каждого рекурсивного вызова мы должны “откатиться” к предыдущему состоянию, удалив элемент, который мы добавили. Это гарантирует, что при возврате из рекурсии массив находится в том же состоянии, что и до вызова.</p>
-<h3 id="итеративный-подход"><a class="header" href="#итеративный-подход">Итеративный подход:</a></h3>
-<p>Начать с пустого подмножества и для каждого элемента добавлять его ко всем существующим подмножествам.</p>
+<p>Альтернатива — <strong>итеративный</strong> подход: начать с <code>[[]]</code> и для каждого элемента добавить
+его ко всем существующим подмножествам.</p>
+<h3 id="сложность"><a class="header" href="#сложность">Сложность</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Подход</th><th>Время</th><th>Память</th></tr>
+</thead>
+<tbody>
+<tr><td>Рекурсивный (backtracking)</td><td>O(2^n · n)</td><td>O(2^n · n), стек O(n)</td></tr>
+<tr><td>Итеративный</td><td>O(2^n · n)</td><td>O(2^n · n)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Всего 2^n подмножеств, и каждое копируется за O(n). Backtracking не меняет время, но
+переиспользует один массив вместо хранения всех путей.</p>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
-<h3 id="генерация-подмножеств-для-1-2-3"><a class="header" href="#генерация-подмножеств-для-1-2-3">Генерация подмножеств для [1, 2, 3]:</a></h3>
-<p><strong>Рекурсивное дерево (backtracking):</strong></p>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: видно паттерн backtracking —
+<strong>берём</strong> элемент (синий) → рекурсия → <strong>откатываемся</strong> (жёлтый). Снизу копятся
+найденные подмножества. (Виджет работает в собранной книге <code>mdbook serve</code>/<code>mdbook build</code>,
+а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="subsets-bt" data-set="1,2,3"></div>
+
+<p>Дерево решений для <code>[1, 2, 3]</code> (зелёные узлы — сохранённые подмножества):</p>
 <pre><code class="language-mermaid">graph TD
     A["[]&lt;br/&gt;start=0"] --&gt; B["[1]&lt;br/&gt;start=1"]
     A --&gt; C["[]&lt;br/&gt;start=1"]
@@ -338,7 +285,7 @@ func subsetsIterative(nums []int) [][]int {
     F --&gt; M["[2]&lt;br/&gt;start=3"]
     G --&gt; N["[3]&lt;br/&gt;start=3"]
     G --&gt; O["[]&lt;br/&gt;start=3"]
-    
+
     style A fill:#f9f,stroke:#333,stroke-width:2px
     style H fill:#bfb,stroke:#333,stroke-width:2px
     style I fill:#bfb,stroke:#333,stroke-width:2px
@@ -349,1111 +296,33 @@ func subsetsIterative(nums []int) [][]int {
     style N fill:#bfb,stroke:#333,stroke-width:2px
     style O fill:#bfb,stroke:#333,stroke-width:2px
 </code></pre>
-<p><strong>Процесс backtracking:</strong></p>
-<p><strong>Шаг 1: Начало с пустого подмножества</strong></p>
-<pre><code>current = []
-start = 0
-Добавляем [] в результат → [[]]
-</code></pre>
-<p><strong>Шаг 2: Добавляем 1, рекурсия</strong></p>
-<pre><code>current = [1]
-start = 1
-Добавляем [1] в результат → [[], [1]]
-Рекурсия: backtrack(1) для элементов [2, 3]
-</code></pre>
-<p><strong>Шаг 3: В рекурсии добавляем 2</strong></p>
-<pre><code>current = [1, 2]
-start = 2
-Добавляем [1, 2] в результат → [[], [1], [1, 2]]
-Рекурсия: backtrack(2) для элемента [3]
-</code></pre>
-<p><strong>Шаг 4: Добавляем 3, затем backtrack</strong></p>
-<pre><code>current = [1, 2, 3]
-start = 3
-Добавляем [1, 2, 3] в результат
-Backtrack: удаляем 3 → current = [1, 2]
-</code></pre>
-<p><strong>Шаг 5: Продолжаем backtrack</strong></p>
-<pre><code>Backtrack: удаляем 2 → current = [1]
-Добавляем [1, 3] в результат
-Backtrack: удаляем 3 → current = [1]
-Backtrack: удаляем 1 → current = []
-</code></pre>
-<p><strong>Шаг 6: Начинаем с 2</strong></p>
-<pre><code>current = [2]
-start = 2
-Добавляем [2] в результат
-Рекурсия для [3]...
-</code></pre>
-<p><strong>Результат:</strong> Все подмножества: <code>[[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]]</code></p>
-<p><strong>Детальная таблица выполнения (backtracking):</strong></p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Шаг</th><th>Текущее подмножество</th><th>start</th><th>Действие</th><th>Результат</th></tr>
-</thead>
-<tbody>
-<tr><td>1</td><td>[]</td><td>0</td><td>Добавить []</td><td>[[]]</td></tr>
-<tr><td>2</td><td>[1]</td><td>1</td><td>Добавить [1]</td><td>[[], [1]]</td></tr>
-<tr><td>3</td><td>[1,2]</td><td>2</td><td>Добавить [1,2]</td><td>[[], [1], [1,2]]</td></tr>
-<tr><td>4</td><td>[1,2,3]</td><td>3</td><td>Добавить [1,2,3]</td><td>[[], [1], [1,2], [1,2,3]]</td></tr>
-<tr><td>5</td><td>[1,2]</td><td>3</td><td>Backtrack: удаляем 3, current=[1,2]</td><td>[[], [1], [1,2], [1,2,3]]</td></tr>
-<tr><td>6</td><td>[1,3]</td><td>3</td><td>Добавляем 3, добавляем [1,3]</td><td>[[], [1], [1,2], [1,2,3], [1,3]]</td></tr>
-<tr><td>7</td><td>[1]</td><td>3</td><td>Backtrack: удаляем 3, current=[1]</td><td>[[], [1], [1,2], [1,2,3], [1,3]]</td></tr>
-<tr><td>8</td><td>[2]</td><td>2</td><td>Добавить [2]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2]]</td></tr>
-<tr><td>9</td><td>[2,3]</td><td>3</td><td>Добавить [2,3]</td><td>[[], [1], [1,2], [1,2,3], [1,2], [1,3], [1], [2], [2,3]]</td></tr>
-<tr><td>10</td><td>[2]</td><td>3</td><td>Backtrack: удаляем 3, current=[2]</td><td>[[], [1], [1,2], [1,2,3], [1,3], [2], [2,3]]</td></tr>
-<tr><td>11</td><td>[3]</td><td>3</td><td>Добавляем 3, добавляем [3]</td><td>[[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]]</td></tr>
-<tr><td>12</td><td>[]</td><td>3</td><td>Backtrack: удаляем 3, current=[]</td><td>[[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]]</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Итеративный подход:</strong></p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Шаг</th><th>Элемент</th><th>Результат (до)</th><th>Действие</th><th>Результат (после)</th></tr>
-</thead>
-<tbody>
-<tr><td>1</td><td>-</td><td>[]</td><td>Инициализация</td><td>[[]]</td></tr>
-<tr><td>2</td><td>1</td><td>[[]]</td><td>Добавить 1 к каждому</td><td>[[], [1]]</td></tr>
-<tr><td>3</td><td>2</td><td>[[], [1]]</td><td>Добавить 2 к каждому</td><td>[[], [1], [2], [1,2]]</td></tr>
-<tr><td>4</td><td>3</td><td>[[], [1], [2], [1,2]]</td><td>Добавить 3 к каждому</td><td>[[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Результат:</strong> [[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]</p>
-<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
-<p><strong>Инвариант</strong>: После обработки k элементов, текущее подмножество содержит решение для первых k элементов, и мы генерируем все возможные комбинации включения/исключения оставшихся элементов.</p>
-<p><strong>Доказательство корректности</strong> (индукция по n):</p>
-<ol>
-<li><strong>Базовый случай</strong>: Для пустого множества генерируется только пустое подмножество - корректно</li>
-<li><strong>Индуктивный шаг</strong>: Предположим, алгоритм корректно генерирует подмножества для n-1 элементов
-<ul>
-<li>Для n-го элемента: либо включаем, либо не включаем</li>
-<li>В каждом случае рекурсивно генерируем подмножества для оставшихся n-1 элементов</li>
-<li>По индукции получаем все 2^n подмножеств</li>
-</ul>
-</li>
-</ol>
-<p><strong>Почему сложность O(2^n × n)?</strong></p>
-<ul>
-<li>Генерируется 2^n подмножеств</li>
-<li>Каждое подмножество требует O(n) времени для копирования</li>
-<li>Итого: O(2^n × n)</li>
-</ul>
-<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
-<ul>
-<li><strong>Временная сложность</strong>: O(2^n × n)
-<ul>
-<li>Рекурсивное дерево имеет 2^n листьев</li>
-<li>Каждый путь от корня до листа имеет длину n</li>
-<li>Копирование каждого подмножества: O(n)</li>
-<li>Итого: O(2^n × n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(2^n × n)
-<ul>
-<li>Результирующий список: O(2^n × n)</li>
-<li>Рекурсивный стек: O(n) - глубина рекурсии</li>
-</ul>
-</li>
-</ul>
-<h3 id="амортизированная-сложность"><a class="header" href="#амортизированная-сложность">Амортизированная сложность</a></h3>
-<p><strong>Амортизированный анализ</strong> для генерации подмножеств:</p>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(n) на подмножество
-<ul>
-<li>Генерация 2^n подмножеств: O(2^n × n)</li>
-<li>Амортизированная стоимость: O(2^n × n) / 2^n = O(n) на подмножество</li>
-</ul>
-</li>
-</ul>
-<h3 id="worstaveragebest-case-анализ"><a class="header" href="#worstaveragebest-case-анализ">Worst/Average/Best Case анализ</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(2^n × n)</td><td>Всегда одинаковое время, так как нужно сгенерировать все подмножества</td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(2^n × n)</td><td>Стандартное поведение алгоритма</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(2^n × n)</td><td>Всегда одинаковое время</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Пространственная сложность</strong>: Всегда O(2^n × n) для результата, O(n) для стека.</p>
-<h3 id="таблица-сравнения-сложностей"><a class="header" href="#таблица-сравнения-сложностей">Таблица сравнения сложностей</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Алгоритм</th><th>Время (Worst)</th><th>Время (Average)</th><th>Время (Best)</th><th>Память (результат)</th><th>Память (стек)</th><th>Амортизированное время</th></tr>
-</thead>
-<tbody>
-<tr><td>Рекурсивный с backtracking</td><td>O(2^n × n)</td><td>O(2^n × n)</td><td>O(2^n × n)</td><td>O(2^n × n)</td><td>O(n)</td><td>O(n) на подмножество</td></tr>
-<tr><td>Итеративный</td><td>O(2^n × n)</td><td>O(2^n × n)</td><td>O(2^n × n)</td><td>O(2^n × n)</td><td>O(1)</td><td>O(n) на подмножество</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="оптимизации"><a class="header" href="#оптимизации">Оптимизации:</a></h3>
-<ul>
-<li><strong>Итеративный подход</strong>: Может быть более эффективным по памяти (не хранит весь стек)</li>
-<li><strong>Backtracking</strong>: Использует один массив и изменяет его, избегая копирования</li>
-</ul>
-<h2 id="граничные-случаи"><a class="header" href="#граничные-случаи">Граничные случаи</a></h2>
-<p>При работе с генерацией подмножеств важно обрабатывать следующие граничные случаи:</p>
-<h3 id="1-пустой-массив"><a class="header" href="#1-пустой-массив">1. Пустой массив</a></h3>
-<p><strong>Проблема</strong>: Если массив пуст, результат должен содержать только пустое подмножество.</p>
-<p><strong>Решение</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func subsets(nums []int) [][]int {
-    if len(nums) == 0 {
-        return [][]int{{}} // Только пустое подмножество
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="2-массив-из-одного-элемента"><a class="header" href="#2-массив-из-одного-элемента">2. Массив из одного элемента</a></h3>
-<p><strong>Проблема</strong>: Если массив содержит один элемент, результат должен содержать пустое подмножество и подмножество с этим элементом.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай, генерируя 2^1 = 2 подмножества.</p>
-<h3 id="3-очень-большой-массив"><a class="header" href="#3-очень-большой-массив">3. Очень большой массив</a></h3>
-<p><strong>Проблема</strong>: При очень большом массиве количество подмножеств экспоненциально растет (2^n).</p>
-<p><strong>Решение</strong>: Убедитесь, что достаточно памяти для хранения всех подмножеств. Для больших n рассмотрите итеративный подход или генерацию на лету.</p>
-<h3 id="4-дубликаты-в-массиве"><a class="header" href="#4-дубликаты-в-массиве">4. Дубликаты в массиве</a></h3>
-<p><strong>Проблема</strong>: Если массив содержит дубликаты, могут генерироваться дублирующиеся подмножества.</p>
-<p><strong>Решение</strong>: Сначала отсортируйте массив, затем пропускайте дубликаты:</p>
-<pre><code class="language-go">sort.Ints(nums)
-for i := start; i &lt; len(nums); i++ {
-    if i &gt; start &amp;&amp; nums[i] == nums[i-1] {
-        continue // Пропускаем дубликаты
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="5-все-элементы-одинаковые"><a class="header" href="#5-все-элементы-одинаковые">5. Все элементы одинаковые</a></h3>
-<p><strong>Проблема</strong>: Если все элементы одинаковые, количество уникальных подмножеств равно n+1.</p>
-<p><strong>Решение</strong>: Алгоритм должен генерировать только уникальные подмножества, пропуская дубликаты.</p>
-<h3 id="6-очень-большие-значения"><a class="header" href="#6-очень-большие-значения">6. Очень большие значения</a></h3>
-<p><strong>Проблема</strong>: При очень больших значениях может быть проблема с памятью при копировании.</p>
-<p><strong>Решение</strong>: Используйте backtracking для экономии памяти, избегая копирования подмножеств.</p>
-<h3 id="7-комбинации-k--0"><a class="header" href="#7-комбинации-k--0">7. Комбинации: k == 0</a></h3>
-<p><strong>Проблема</strong>: Если k == 0, результат должен содержать только пустое подмножество.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">func combine(n int, k int) [][]int {
-    if k == 0 {
-        return [][]int{{}}
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="8-комбинации-k--n"><a class="header" href="#8-комбинации-k--n">8. Комбинации: k == n</a></h3>
-<p><strong>Проблема</strong>: Если k == n, результат должен содержать только одно подмножество со всеми элементами.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if k == n {
-    result := make([]int, n)
-    for i := 1; i &lt;= n; i++ {
-        result[i-1] = i
-    }
-    return [][]int{result}
-}
-</code></pre>
-<h3 id="9-комбинации-k--n"><a class="header" href="#9-комбинации-k--n">9. Комбинации: k &gt; n</a></h3>
-<p><strong>Проблема</strong>: Если k &gt; n, комбинаций не существует.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if k &gt; n {
-    return [][]int{} // Нет комбинаций
-}
-</code></pre>
-<h3 id="10-перестановки-пустой-массив"><a class="header" href="#10-перестановки-пустой-массив">10. Перестановки: пустой массив</a></h3>
-<p><strong>Проблема</strong>: Если массив пуст, результат должен содержать только пустую перестановку.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">func permute(nums []int) [][]int {
-    if len(nums) == 0 {
-        return [][]int{{}}
-    }
-    // ... остальной код
-}
-</code></pre>
+<p>Результат: <code>[[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]]</code>.</p>
 <h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
-<li><strong>Забывание backtracking</strong>: Удаляйте элемент после рекурсивного вызова</li>
-<li><strong>Неправильный порядок операций</strong>: Сначала включайте, затем исключайте</li>
-<li><strong>Модификация исходного массива</strong>: Используйте копии при необходимости</li>
+<li><strong>Забыт откат</strong> — после рекурсивного вызова обязательно <code>current = current[:len(current)-1]</code>.</li>
+<li><strong>Сохранение без копии</strong> — <code>result = append(result, current)</code> сохраняет ссылку на изменяемый слайс; копируйте через <code>copy</code>.</li>
+<li><strong>Дубликаты не обработаны</strong> — для массива с повторами сортируйте и пропускайте <code>nums[i] == nums[i-1]</code> при <code>i &gt; start</code>.</li>
+<li><strong>Пустой массив</strong> — корректно вернуть <code>[][]int{{}}</code> (единственное пустое подмножество).</li>
+<li><strong>Очень большое n</strong> — 2^n растёт экспоненциально; следите за памятью, для глубокой рекурсии предпочтите итеративный подход.</li>
 </ol>
-<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
-<ol>
-<li>Используйте backtracking для экономии памяти</li>
-<li>Для больших n рассмотрите итеративный подход</li>
-<li>Обрабатывайте дубликаты специально (пропускайте одинаковые элементы)</li>
-</ol>
-<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
-<h3 id="используемые-структуры-данных-в-subsets"><a class="header" href="#используемые-структуры-данных-в-subsets">Используемые структуры данных в Subsets</a></h3>
-<p>В шаблоне Subsets используются следующие структуры данных:</p>
+<h2 id="задачи"><a class="header" href="#задачи">Задачи</a></h2>
+<p><strong>LeetCode:</strong></p>
 <ul>
-<li><strong>[][]int</strong>: Для хранения всех подмножеств</li>
-<li><strong>[]int</strong>: Для текущего подмножества (backtracking)</li>
+<li><a href="https://leetcode.com/problems/subsets/">Subsets</a></li>
+<li><a href="https://leetcode.com/problems/subsets-ii/">Subsets II</a></li>
+<li><a href="https://leetcode.com/problems/combinations/">Combinations</a></li>
+<li><a href="https://leetcode.com/problems/combination-sum/">Combination Sum</a></li>
+<li><a href="https://leetcode.com/problems/permutations/">Permutations</a></li>
+<li><a href="https://leetcode.com/problems/letter-combinations-of-a-phone-number/">Letter Combinations of a Phone Number</a></li>
+<li><a href="https://leetcode.com/problems/generate-parentheses/">Generate Parentheses</a></li>
+<li><a href="https://leetcode.com/problems/n-queens/">N-Queens</a> (сложная)</li>
 </ul>
-<h3 id="int--t-go"><a class="header" href="#int--t-go">[][]int / [][]T (Go)</a></h3>
-<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>Vec&lt;Vec&lt;i32&gt;&gt;</strong>:</p>
-<pre><code>Результат (все подмножества):
-┌─────────────────────────────────────────┐
-│ Vec&amp;lt;Vec&lt;i32&amp;gt;&gt;                           │
-│ ┌─────────────┐                         │
-│ │ ptr: *mut   │ Указатель на массив     │
-│ │   Vec&amp;lt;i32&amp;gt;  │                         │
-│ │ len: usize  │ Количество подмножеств  │
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-         │
-         ▼
-    [Vec&amp;lt;i32&amp;gt;][Vec&amp;lt;i32&amp;gt;][Vec&amp;lt;i32&amp;gt;]...
-    ┌────┐  ┌──────┐  ┌──────┐
-    │[]  │  │[1]   │  │[1,2] │
-    └────┘  └──────┘  └──────┘
-</code></pre>
-<p><strong>Важные детали</strong>:</p>
-<ul>
-<li>Количество подмножеств: 2^n</li>
-<li>Каждое подмножество - отдельный Vec</li>
-<li>Backtracking экономит память (переиспользование текущего подмножества)</li>
-</ul>
-<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Операция</th><th>Сложность</th><th>Объяснение</th></tr>
-</thead>
-<tbody>
-<tr><td>Генерация всех подмножеств</td><td>O(2^n * n)</td><td>2^n подмножеств, каждое размером до n</td></tr>
-<tr><td>Backtracking</td><td>O(2^n)</td><td>Рекурсивные вызовы</td></tr>
-<tr><td>Копирование подмножества</td><td>O(n)</td><td>При добавлении в результат</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Почему Backtracking эффективен</strong>:</p>
-<ul>
-<li>Переиспользование текущего подмножества</li>
-<li>Не создаем все подмножества сразу</li>
-<li>Экономия памяти</li>
-</ul>
-<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<p><strong>Для Subsets</strong>:</p>
-<ul>
-<li>Результирующие подмножества в куче</li>
-<li>Текущее подмножество может остаться на стеке (если небольшое)</li>
-<li>Результат escape при возврате</li>
-</ul>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<p><strong>Для Subsets</strong>:</p>
-<ul>
-<li>Все подмножества в куче</li>
-<li>2^n подмножеств - много аллокаций</li>
-<li>Минимизация копирований критична</li>
-</ul>
-<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
-<h4 id="go-генерация-подмножеств"><a class="header" href="#go-генерация-подмножеств">Go: Генерация подмножеств</a></h4>
-<p>В Go:</p>
-<ul>
-<li><strong>Backtracking</strong>: Стек вызовов - O(n)</li>
-<li><strong>Результат</strong>: <code>[][]int</code> - O(2^n * n) в куче</li>
-<li><strong>Текущий путь</strong>: <code>[]int</code> - O(n) для каждого пути</li>
-</ul>
-<h3 id="анализ-аллокаций-для-subsets"><a class="header" href="#анализ-аллокаций-для-subsets">Анализ аллокаций для Subsets</a></h3>
-<h4 id="рекурсивный-подход-1"><a class="header" href="#рекурсивный-подход-1">Рекурсивный подход:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// Аллокации:
-// - Стек вызовов: O(n)
-// - result: [][]int - O(2^n * n) в куче
-// - current: []int - O(n) для каждого пути
-// Итого: O(2^n * n) памяти в худшем случае
-</code></pre>
-<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
-<ol>
-<li><strong>Использование backtracking</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Переиспользование current слайса
-func backtrack(nums []int, start int, current []int, result *[][]int) {
-    *result = append(*result, append([]int{}, current...))
-    for i := start; i &lt; len(nums); i++ {
-        current = append(current, nums[i])
-        backtrack(nums, i+1, current, result)
-        current = current[:len(current)-1]  // Backtrack
-    }
-}
-</code></pre>
-<ol start="2">
-<li><strong>Предварительное выделение результата</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-result := make([][]int, 0, 1&lt;&lt;len(nums))
-</code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Backtracking | O(n) стек | O(n) стек |
-| Результат | O(2^n * n) | O(2^n * n) |
-| Производительность | Предсказуемая | Может быть паузы GC |</p>
-<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
-<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
-<ol>
-<li><strong>Использование backtracking</strong> для экономии памяти</li>
-<li><strong>Предварительное выделение</strong> результата</li>
-<li><strong>Минимизация клонирования</strong> путей</li>
-</ol>
-<h3 id="специфичные-оптимизации-для-subsets"><a class="header" href="#специфичные-оптимизации-для-subsets">Специфичные оптимизации для Subsets</a></h3>
-<h4 id="1-оптимизация-backtracking"><a class="header" href="#1-оптимизация-backtracking">1. Оптимизация backtracking:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированная версия
-func subsetsOptimized(nums []int) [][]int {
-    result := make([][]int, 0, 1&lt;&lt;len(nums))
-    current := make([]int, 0)
-    backtrack(nums, 0, current, &amp;result)
-    return result
-}
-
-func backtrack(nums []int, start int, current []int, result *[][]int) {
-    *result = append(*result, append([]int{}, current...))
-    for i := start; i &lt; len(nums); i++ {
-        current = append(current, nums[i])
-        backtrack(nums, i+1, current, result)
-        current = current[:len(current)-1]
-    }
-}
-</code></pre>
-<ol>
-<li>
-<p><strong>Минимизация клонирования</strong>:</p>
-</li>
-<li>
-<p><strong>Предварительное выделение</strong>:</p>
-</li>
-</ol>
-<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
-<ol>
-<li><strong>Переиспользование слайса</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Backtrack с уменьшением размера
-current = current[:len(current)-1]
-</code></pre>
-<ol start="2">
-<li><strong>Предварительное выделение</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-result := make([][]int, 0, 1&lt;&lt;len(nums))
-</code></pre>
-<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
-<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
-<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
-<h3 id="как-профилировать-subsets"><a class="header" href="#как-профилировать-subsets">Как профилировать Subsets</a></h3>
-<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
-<pre><code class="language-go">func BenchmarkSubsets(b *testing.B) {
-    nums := make([]int, 10)
-    for i := range nums {
-        nums[i] = i
-    }
-    
-    b.ResetTimer()
-    for i := 0; i &lt; b.N; i++ {
-        subsetsOptimized(nums)
-    }
-}
-</code></pre>
-<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
-<p><strong>Анализ производительности</strong>:</p>
-<ul>
-<li>Subsets: O(2^n * n) по времени и памяти</li>
-<li>Экспоненциальная сложность для больших n</li>
-<li>Backtracking экономит память по сравнению с итеративным подходом</li>
-</ul>
-<p><strong>Типичные узкие места</strong>:</p>
-<ul>
-<li>Клонирование путей</li>
-<li>Операции с векторами/слайсами</li>
-<li>Рекурсивные вызовы</li>
-</ul>
-<h2 id="отладка-и-диагностика"><a class="header" href="#отладка-и-диагностика">Отладка и диагностика</a></h2>
-<p>Отладка генерации подмножеств требует отслеживания рекурсивного стека и текущего подмножества:</p>
-<h3 id="1-логирование-рекурсивных-вызовов"><a class="header" href="#1-логирование-рекурсивных-вызовов">1. Логирование рекурсивных вызовов</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func subsetsDebug(nums []int) [][]int {
-    result := [][]int{}
-    current := []int{}
-    depth := 0
-    
-    var backtrack func(int)
-    backtrack = func(start int) {
-        depth++
-        indent := strings.Repeat("  ", depth-1)
-        
-        temp := make([]int, len(current))
-        copy(temp, current)
-        result = append(result, temp)
-        
-        log.Printf("%sТекущее подмножество: %v, start=%d", indent, current, start)
-        
-        for i := start; i &lt; len(nums); i++ {
-            log.Printf("%sДобавляем элемент: nums[%d]=%d", indent, i, nums[i])
-            current = append(current, nums[i])
-            
-            log.Printf("%sРекурсивный вызов с start=%d", indent, i+1)
-            backtrack(i + 1)
-            
-            log.Printf("%sBacktrack: удаляем элемент %d", indent, nums[i])
-            current = current[:len(current)-1]
-        }
-        
-        depth--
-    }
-    
-    backtrack(0)
-    return result
-}
-</code></pre>
-<h3 id="2-визуализация-дерева-рекурсии"><a class="header" href="#2-визуализация-дерева-рекурсии">2. Визуализация дерева рекурсии</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func visualizeSubsetTree(nums []int, current []int, start int, depth int) {
-    indent := strings.Repeat("  ", depth)
-    fmt.Printf("%sПодмножество: %v\n", indent, current)
-    
-    for i := start; i &lt; len(nums); i++ {
-        fmt.Printf("%s  Включаем %d\n", indent, nums[i])
-        newCurrent := append(current, nums[i])
-        visualizeSubsetTree(nums, newCurrent, i+1, depth+1)
-        fmt.Printf("%s  Исключаем %d\n", indent, nums[i])
-    }
-}
-</code></pre>
-<h3 id="метрики-производительности"><a class="header" href="#метрики-производительности">Метрики производительности</a></h3>
-<p>Реальные результаты бенчмарков на типичном оборудовании (Intel i7-9700K, 32GB RAM):</p>
-<h4 id="генерация-подмножеств-go"><a class="header" href="#генерация-подмножеств-go">Генерация подмножеств (Go):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер массива</th><th>Количество подмножеств</th><th>Время выполнения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>10 элементов</td><td>1,024</td><td>~45 μs</td><td>25 KB</td><td>~22,200</td></tr>
-<tr><td>12 элементов</td><td>4,096</td><td>~220 μs</td><td>100 KB</td><td>~4,545</td></tr>
-<tr><td>15 элементов</td><td>32,768</td><td>~2.2 ms</td><td>800 KB</td><td>~455</td></tr>
-<tr><td>18 элементов</td><td>262,144</td><td>~18 ms</td><td>6.4 MB</td><td>~56</td></tr>
-<tr><td>20 элементов</td><td>1,048,576</td><td>~75 ms</td><td>25 MB</td><td>~13</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Экспоненциальная зависимость: O(2^n × n)</li>
-<li>Память экспоненциальная: O(2^n × n)</li>
-<li>Быстро становится непрактичным для больших n</li>
-</ul>
-<h4 id="сравнение-подходов"><a class="header" href="#сравнение-подходов">Сравнение подходов:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер массива</th><th>Рекурсивный</th><th>Итеративный</th><th>Разница</th></tr>
-</thead>
-<tbody>
-<tr><td>15 элементов</td><td>~2.2 ms</td><td>~2.5 ms</td><td>+14%</td></tr>
-<tr><td>18 элементов</td><td>~18 ms</td><td>~20 ms</td><td>+11%</td></tr>
-<tr><td>20 элементов</td><td>~75 ms</td><td>~82 ms</td><td>+9%</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Рекурсивный подход немного быстрее</li>
-<li>Итеративный безопаснее для больших n (нет переполнения стека)</li>
-<li>Разница незначительна, выбор зависит от предпочтений</li>
-</ul>
-<h4 id="оптимизация-с-backtracking"><a class="header" href="#оптимизация-с-backtracking">Оптимизация с backtracking:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер массива</th><th>С backtracking</th><th>Без backtracking</th><th>Улучшение памяти</th></tr>
-</thead>
-<tbody>
-<tr><td>15 элементов</td><td>~2.2 ms</td><td>~2.2 ms</td><td>Память: 800 KB → 400 KB</td></tr>
-<tr><td>18 элементов</td><td>~18 ms</td><td>~18 ms</td><td>Память: 6.4 MB → 3.2 MB</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Вывод</strong>: Backtracking не влияет на время, но значительно экономит память.</p>
-<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
-<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
-<ol>
-<li><strong>Базовые тесты</strong>: Простые массивы</li>
-<li><strong>Граничные случаи</strong>: Пустой массив, один элемент</li>
-<li><strong>Стресс-тесты</strong>: Большие массивы (осторожно с экспоненциальной сложностью)</li>
-</ol>
-<h3 id="примеры-тестов-для-subsets"><a class="header" href="#примеры-тестов-для-subsets">Примеры тестов для Subsets</a></h3>
-<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
-<pre><code class="language-go">func TestSubsets(t *testing.T) {
-    tests := []struct {
-        name string
-        nums []int
-        want int
-    }{
-        {"basic", []int{1, 2, 3}, 8},  // 2^3 = 8
-        {"empty", []int{}, 1},
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            result := subsetsOptimized(tt.nums)
-            if len(result) != tt.want {
-                t.Errorf("subsetsOptimized() = %v, want %v", len(result), tt.want)
-            }
-        })
-    }
-}
-</code></pre>
-<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="go"><a class="header" href="#go">Go:</a></h4>
-<pre><code class="language-bash">go test -v
-go test -bench=. -benchmem
-</code></pre>
-<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
-<pre><code class="language-go">func BenchmarkSubsetsSizes(b *testing.B) {
-    sizes := []int{5, 10, 15}
-    
-    for _, size := range sizes {
-        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
-            nums := make([]int, size)
-            for i := range nums {
-                nums[i] = i
-            }
-            b.ResetTimer()
-            for i := 0; i &lt; b.N; i++ {
-                subsetsOptimized(nums)
-            }
-        })
-    }
-}
-</code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/subsets/">Subsets</a> - Все подмножества</li>
-<li><a href="https://leetcode.com/problems/subsets-ii/">Subsets II</a> - Подмножества с дубликатами</li>
-</ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/combination-sum/">Combination Sum</a> - Сумма комбинаций</li>
-<li><a href="https://leetcode.com/problems/permutations/">Permutations</a> - Перестановки</li>
-<li><a href="https://leetcode.com/problems/letter-combinations-of-a-phone-number/">Letter Combinations of a Phone Number</a> - Комбинации букв телефона</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/word-search-ii/">Word Search II</a> - Поиск слов II</li>
-<li><a href="https://leetcode.com/problems/n-queens/">N-Queens</a> - N ферзей</li>
-</ul>
-<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
-<h3 id="эволюция-решения-от-наивного-к-оптимизированному"><a class="header" href="#эволюция-решения-от-наивного-к-оптимизированному">Эволюция решения: от наивного к оптимизированному</a></h3>
-<h4 id="наивный-подход-неэффективный"><a class="header" href="#наивный-подход-неэффективный">Наивный подход (неэффективный):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ❌ Наивный подход: создаем новый слайс для каждого подмножества
-func subsetsNaive(nums []int) [][]int {
-    result := [][]int{{}}
-    
-    for _, num := range nums {
-        newSubsets := [][]int{}
-        for _, subset := range result {
-            // Создаем копию для каждого подмножества
-            newSubset := make([]int, len(subset))
-            copy(newSubset, subset)
-            newSubset = append(newSubset, num)
-            newSubsets = append(newSubsets, newSubset)
-        }
-        result = append(result, newSubsets...)
-    }
-    
-    return result
-}
-// Проблемы: Много аллокаций, неэффективное использование памяти
-</code></pre>
-<h4 id="оптимизированный-подход-backtracking"><a class="header" href="#оптимизированный-подход-backtracking">Оптимизированный подход (backtracking):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированный подход: используем backtracking
-func subsetsOptimized(nums []int) [][]int {
-    result := [][]int{}
-    current := []int{}
-    
-    var backtrack func(int)
-    backtrack = func(start int) {
-        // Добавляем текущее подмножество
-        temp := make([]int, len(current))
-        copy(temp, current)
-        result = append(result, temp)
-        
-        // Генерируем подмножества с остальными элементами
-        for i := start; i &lt; len(nums); i++ {
-            current = append(current, nums[i])
-            backtrack(i + 1)
-            current = current[:len(current)-1]  // Backtrack
-        }
-    }
-    
-    backtrack(0)
-    return result
-}
-// Преимущества: Меньше аллокаций, эффективное использование памяти
-</code></pre>
-<h4 id="идиоматичный-go-код"><a class="header" href="#идиоматичный-go-код">Идиоматичный Go код:</a></h4>
-<pre><code class="language-go">// ✅ Идиоматичный Go: используем предварительное выделение памяти
-func subsetsIdiomatic(nums []int) [][]int {
-    n := len(nums)
-    result := make([][]int, 0, 1&lt;&lt;n)  // Предварительно выделяем 2^n
-    
-    var backtrack func(int, []int)
-    backtrack = func(start int, current []int) {
-        // Создаем копию только когда добавляем в результат
-        subset := make([]int, len(current))
-        copy(subset, current)
-        result = append(result, subset)
-        
-        for i := start; i &lt; n; i++ {
-            backtrack(i+1, append(current, nums[i]))
-        }
-    }
-    
-    backtrack(0, nil)
-    return result
-}
-</code></pre>
-<h3 id="-go"><a class="header" href="#-go">### Go</a></h3>
-<pre><code class="language-go">package main
-
-import (
-	"fmt"
-	"sort"
-)
-
-// Пример 1: Генерация всех подмножеств (рекурсивный подход)
-//
-// Задача: Вернуть все возможные подмножества массива
-// Временная сложность: O(2^n × n)
-// Пространственная сложность: O(2^n × n)
-func subsets(nums []int) [][]int {
-	var result [][]int
-	var current []int
-
-	var backtrack func(int)
-	backtrack = func(start int) {
-		// Добавляем текущее подмножество
-		temp := make([]int, len(current))
-		copy(temp, current)
-		result = append(result, temp)
-
-		// Генерируем подмножества для оставшихся элементов
-		for i := start; i &lt; len(nums); i++ {
-			current = append(current, nums[i])
-			backtrack(i + 1)
-			current = current[:len(current)-1] // Backtrack
-		}
-	}
-
-	backtrack(0)
-	return result
-}
-
-// Пример 2: Генерация всех подмножеств (итеративный подход)
-//
-// Задача: Вернуть все возможные подмножества массива итеративно
-// Временная сложность: O(2^n × n)
-// Пространственная сложность: O(2^n × n)
-func subsetsIterative(nums []int) [][]int {
-	result := [][]int{{}}
-
-	for _, num := range nums {
-		var newSubsets [][]int
-		for _, subset := range result {
-			newSubset := make([]int, len(subset))
-			copy(newSubset, subset)
-			newSubset = append(newSubset, num)
-			newSubsets = append(newSubsets, newSubset)
-		}
-		result = append(result, newSubsets...)
-	}
-
-	return result
-}
-
-// Пример 3: Подмножества с дубликатами
-//
-// Задача: Вернуть все подмножества массива с дубликатами
-// Временная сложность: O(2^n × n)
-// Пространственная сложность: O(2^n × n)
-func subsetsWithDup(nums []int) [][]int {
-	sort.Ints(nums)
-	var result [][]int
-	var current []int
-
-	var backtrack func(int)
-	backtrack = func(start int) {
-		temp := make([]int, len(current))
-		copy(temp, current)
-		result = append(result, temp)
-
-		for i := start; i &lt; len(nums); i++ {
-			// Пропускаем дубликаты
-			if i &gt; start &amp;&amp; nums[i] == nums[i-1] {
-				continue
-			}
-			current = append(current, nums[i])
-			backtrack(i + 1)
-			current = current[:len(current)-1]
-		}
-	}
-
-	backtrack(0)
-	return result
-}
-
-// Пример 4: Комбинации заданной длины
-//
-// Задача: Вернуть все комбинации длины k из массива
-// Временная сложность: O(C(n,k) × k)
-// Пространственная сложность: O(C(n,k) × k)
-func combine(n, k int) [][]int {
-	var result [][]int
-	var current []int
-
-	var backtrack func(int)
-	backtrack = func(start int) {
-		if len(current) == k {
-			temp := make([]int, len(current))
-			copy(temp, current)
-			result = append(result, temp)
-			return
-		}
-
-		for i := start; i &lt;= n; i++ {
-			current = append(current, i)
-			backtrack(i + 1)
-			current = current[:len(current)-1]
-		}
-	}
-
-	backtrack(1)
-	return result
-}
-
-// Пример 5: Комбинации с суммой
-//
-// Задача: Найти все уникальные комбинации, сумма которых равна target
-// Временная сложность: O(2^n)
-// Пространственная сложность: O(target)
-func combinationSum(candidates []int, target int) [][]int {
-	var result [][]int
-	var current []int
-	sort.Ints(candidates)
-
-	var backtrack func(int, int)
-	backtrack = func(start, remaining int) {
-		if remaining == 0 {
-			temp := make([]int, len(current))
-			copy(temp, current)
-			result = append(result, temp)
-			return
-		}
-
-		if remaining &lt; 0 {
-			return
-		}
-
-		for i := start; i &lt; len(candidates); i++ {
-			current = append(current, candidates[i])
-			backtrack(i, remaining-candidates[i])
-			current = current[:len(current)-1]
-		}
-	}
-
-	backtrack(0, target)
-	return result
-}
-
-// Пример 6: Перестановки
-//
-// Задача: Вернуть все возможные перестановки массива
-// Временная сложность: O(n! × n)
-// Пространственная сложность: O(n! × n)
-func permute(nums []int) [][]int {
-	var result [][]int
-	var current []int
-	used := make([]bool, len(nums))
-
-	var backtrack func()
-	backtrack = func() {
-		if len(current) == len(nums) {
-			temp := make([]int, len(current))
-			copy(temp, current)
-			result = append(result, temp)
-			return
-		}
-
-		for i := 0; i &lt; len(nums); i++ {
-			if !used[i] {
-				used[i] = true
-				current = append(current, nums[i])
-				backtrack()
-				current = current[:len(current)-1]
-				used[i] = false
-			}
-		}
-	}
-
-	backtrack()
-	return result
-}
-</code></pre>
-<h2 id="реальные-применения"><a class="header" href="#реальные-применения">Реальные применения</a></h2>
-<p>Subsets широко используется в production системах для генерации комбинаций и перестановок:</p>
-<h3 id="1-feature-selection-выбор-признаков"><a class="header" href="#1-feature-selection-выбор-признаков">1. Feature Selection (Выбор признаков)</a></h3>
-<p><strong>Применение</strong>: Генерация всех возможных комбинаций признаков для машинного обучения.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Machine Learning</strong>: Выбор оптимального набора признаков</li>
-<li><strong>Data Science</strong>: Анализ комбинаций переменных</li>
-<li><strong>Feature Engineering</strong>: Генерация новых признаков</li>
-</ul>
-<p><strong>Код</strong>:</p>
-<pre><code class="language-go">// Генерация всех комбинаций признаков
-func generateFeatureCombinations(features []string) [][]string {
-    var result [][]string
-    var current []string
-    
-    var backtrack func(int)
-    backtrack = func(start int) {
-        // Добавляем текущую комбинацию
-        temp := make([]string, len(current))
-        copy(temp, current)
-        result = append(result, temp)
-        
-        // Генерируем комбинации с остальными признаками
-        for i := start; i &lt; len(features); i++ {
-            current = append(current, features[i])
-            backtrack(i + 1)
-            current = current[:len(current)-1] // Backtrack
-        }
-    }
-    
-    backtrack(0)
-    return result
-}
-</code></pre>
-<h3 id="2-permutation-generation-генерация-перестановок"><a class="header" href="#2-permutation-generation-генерация-перестановок">2. Permutation Generation (Генерация перестановок)</a></h3>
-<p><strong>Применение</strong>: Генерация всех возможных перестановок.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Cryptography</strong>: Генерация ключей шифрования</li>
-<li><strong>Game Development</strong>: Генерация уровней</li>
-<li><strong>Testing</strong>: Генерация тестовых случаев</li>
-</ul>
-<h3 id="3-combinatorial-optimization-комбинаторная-оптимизация"><a class="header" href="#3-combinatorial-optimization-комбинаторная-оптимизация">3. Combinatorial Optimization (Комбинаторная оптимизация)</a></h3>
-<p><strong>Применение</strong>: Поиск оптимальных комбинаций элементов.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Resource Allocation</strong>: Оптимизация распределения ресурсов</li>
-<li><strong>Scheduling</strong>: Оптимизация расписаний</li>
-<li><strong>Routing</strong>: Оптимизация маршрутов</li>
-</ul>
-<h3 id="4-google-production-examples"><a class="header" href="#4-google-production-examples">4. Google Production Examples</a></h3>
-<p><strong>Примеры из Google</strong>:</p>
-<ul>
-<li><strong>Google Search</strong>: Генерация вариантов запросов</li>
-<li><strong>Google Ads</strong>: Генерация комбинаций ключевых слов</li>
-<li><strong>Google Maps</strong>: Генерация альтернативных маршрутов</li>
-<li><strong>Google Cloud</strong>: Оптимизация конфигураций</li>
-</ul>
-<h3 id="5-system-design-applications"><a class="header" href="#5-system-design-applications">5. System Design Applications</a></h3>
-<p><strong>Применение в системном дизайне</strong>:</p>
-<ul>
-<li><strong>Configuration Management</strong>: Генерация конфигураций</li>
-<li><strong>Feature Flags</strong>: Управление функциями</li>
-<li><strong>A/B Testing</strong>: Генерация вариантов тестов</li>
-</ul>
-<h3 id="6-open-source-examples"><a class="header" href="#6-open-source-examples">6. Open Source Examples</a></h3>
-<p><strong>Примеры из open-source проектов</strong>:</p>
-<ul>
-<li><strong>Kubernetes</strong>: Генерация конфигураций подов</li>
-<li><strong>Docker</strong>: Генерация вариантов образов</li>
-<li><strong>Ansible</strong>: Генерация конфигураций</li>
-<li><strong>Terraform</strong>: Генерация инфраструктурных конфигураций</li>
-</ul>
-<h3 id="7-algorithm-libraries"><a class="header" href="#7-algorithm-libraries">7. Algorithm Libraries</a></h3>
-<p><strong>Применение в библиотеках алгоритмов</strong>:</p>
-<ul>
-<li><strong>Python itertools</strong>: combinations, permutations</li>
-<li><strong>Java Collections</strong>: Генерация комбинаций</li>
-<li><strong>C++ STL</strong>: next_permutation</li>
-</ul>
-<h3 id="8-testing-and-qa"><a class="header" href="#8-testing-and-qa">8. Testing and QA</a></h3>
-<p><strong>Применение в тестировании</strong>:</p>
-<ul>
-<li><strong>Test Case Generation</strong>: Генерация тестовых случаев</li>
-<li><strong>Combinatorial Testing</strong>: Комбинаторное тестирование</li>
-<li><strong>Fuzzing</strong>: Генерация входных данных</li>
-</ul>
-<h3 id="9-data-analysis"><a class="header" href="#9-data-analysis">9. Data Analysis</a></h3>
-<p><strong>Применение в анализе данных</strong>:</p>
-<ul>
-<li><strong>Exploratory Data Analysis</strong>: Исследовательский анализ данных</li>
-<li><strong>Statistical Analysis</strong>: Статистический анализ</li>
-<li><strong>Pattern Recognition</strong>: Распознавание паттернов</li>
-</ul>
-<h3 id="10-game-development"><a class="header" href="#10-game-development">10. Game Development</a></h3>
-<p><strong>Применение в разработке игр</strong>:</p>
-<ul>
-<li><strong>Level Generation</strong>: Генерация уровней</li>
-<li><strong>AI</strong>: Генерация стратегий</li>
-<li><strong>Procedural Generation</strong>: Процедурная генерация</li>
-</ul>
-<h2 id="упражнения"><a class="header" href="#упражнения">Упражнения</a></h2>
-<p>Практикуйтесь на задачах разной сложности для закрепления материала:</p>
-<h3 id="легкие-задачи-для-начинающих"><a class="header" href="#легкие-задачи-для-начинающих">Легкие задачи (для начинающих)</a></h3>
-<ol>
-<li>
-<p><strong>Subsets</strong> (LeetCode 78)</p>
-<ul>
-<li>Сгенерируйте все подмножества массива</li>
-<li>Подсказка: Используйте backtracking с рекурсией</li>
-<li><a href="https://leetcode.com/problems/subsets/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Subsets II</strong> (LeetCode 90)</p>
-<ul>
-<li>Сгенерируйте все уникальные подмножества массива с дубликатами</li>
-<li>Подсказка: Сначала отсортируйте, затем пропускайте дубликаты</li>
-<li><a href="https://leetcode.com/problems/subsets-ii/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Combinations</strong> (LeetCode 77)</p>
-<ul>
-<li>Сгенерируйте все комбинации из n элементов по k</li>
-<li>Подсказка: Используйте backtracking с ограничением размера</li>
-<li><a href="https://leetcode.com/problems/combinations/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="средние-задачи-для-практики"><a class="header" href="#средние-задачи-для-практики">Средние задачи (для практики)</a></h3>
-<ol start="4">
-<li>
-<p><strong>Combination Sum</strong> (LeetCode 39)</p>
-<ul>
-<li>Найдите все комбинации чисел, сумма которых равна target</li>
-<li>Подсказка: Используйте backtracking с возможностью повторного использования элементов</li>
-<li><a href="https://leetcode.com/problems/combination-sum/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Combination Sum II</strong> (LeetCode 40)</p>
-<ul>
-<li>Найдите все уникальные комбинации с суммой target</li>
-<li>Подсказка: Используйте backtracking с пропуском дубликатов</li>
-<li><a href="https://leetcode.com/problems/combination-sum-ii/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Permutations</strong> (LeetCode 46)</p>
-<ul>
-<li>Сгенерируйте все перестановки массива</li>
-<li>Подсказка: Используйте backtracking с отслеживанием использованных элементов</li>
-<li><a href="https://leetcode.com/problems/permutations/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Permutations II</strong> (LeetCode 47)</p>
-<ul>
-<li>Сгенерируйте все уникальные перестановки массива с дубликатами</li>
-<li>Подсказка: Используйте backtracking с пропуском дубликатов</li>
-<li><a href="https://leetcode.com/problems/permutations-ii/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="сложные-задачи-для-углубления"><a class="header" href="#сложные-задачи-для-углубления">Сложные задачи (для углубления)</a></h3>
-<ol start="8">
-<li>
-<p><strong>Word Search II</strong> (LeetCode 212)</p>
-<ul>
-<li>Найдите все слова из словаря на доске</li>
-<li>Подсказка: Используйте backtracking с Trie для оптимизации</li>
-<li><a href="https://leetcode.com/problems/word-search-ii/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>N-Queens</strong> (LeetCode 51)</p>
-<ul>
-<li>Разместите n ферзей на доске n×n</li>
-<li>Подсказка: Используйте backtracking с проверкой конфликтов</li>
-<li><a href="https://leetcode.com/problems/n-queens/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Sudoku Solver</strong> (LeetCode 37)</p>
-<ul>
-<li>Решите судоку используя backtracking</li>
-<li>Подсказка: Используйте backtracking с проверкой валидности</li>
-<li><a href="https://leetcode.com/problems/sudoku-solver/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="дополнительные-задачи-для-практики"><a class="header" href="#дополнительные-задачи-для-практики">Дополнительные задачи для практики</a></h3>
-<ol start="11">
-<li>
-<p><strong>Generate Parentheses</strong> (LeetCode 22)</p>
-<ul>
-<li>Сгенерируйте все валидные комбинации скобок</li>
-<li><a href="https://leetcode.com/problems/generate-parentheses/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Letter Combinations of a Phone Number</strong> (LeetCode 17)</p>
-<ul>
-<li>Сгенерируйте все комбинации букв для телефонного номера</li>
-<li><a href="https://leetcode.com/problems/letter-combinations-of-a-phone-number/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="рекомендации-по-решению"><a class="header" href="#рекомендации-по-решению">Рекомендации по решению</a></h3>
-<ol>
-<li><strong>Используйте backtracking</strong>: Для эффективной генерации комбинаций</li>
-<li><strong>Сортируйте перед обработкой</strong>: Для правильной обработки дубликатов</li>
-<li><strong>Пропускайте дубликаты</strong>: В циклах пропускайте элементы, которые уже были обработаны</li>
-<li><strong>Отслеживайте состояние</strong>: Используйте параметры для передачи текущего состояния</li>
-<li><strong>Очищайте после рекурсии</strong>: Удаляйте элементы после backtracking</li>
-</ol>
 <h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><strong><a href="./tree-dfs.html">Tree DFS</a></strong> - Использует похожий рекурсивный подход</li>
-<li><strong><a href="./topological-sort.html">Topological Sort</a></strong> - Работа с графами и зависимостями</li>
-<li><strong><a href="./modified-binary-search.html">Modified Binary Search</a></strong> - Для задач поиска в отсортированных данных</li>
-</ul>
-<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
-<p>После изучения Subsets рекомендуется перейти к <strong><a href="./topological-sort.html">Topological Sort</a></strong> для изучения работы с графами и зависимостями.</p>
-<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
-<h3 id="интерактивные-визуализаторы"><a class="header" href="#интерактивные-визуализаторы">Интерактивные визуализаторы</a></h3>
-<ul>
-<li><a href="https://visualgo.net/en/recursion">VisuAlgo - Recursion Tree</a> - Интерактивная визуализация рекурсии и backtracking</li>
-<li><a href="https://algorithm-visualizer.org/brute-force/subsets">Algorithm Visualizer - Subsets</a> - Визуализация генерации подмножеств</li>
-</ul>
-<h3 id="видео-объяснения"><a class="header" href="#видео-объяснения">Видео-объяснения</a></h3>
-<ul>
-<li><a href="https://www.youtube.com/results?search_query=neetcode+subsets">NeetCode - Subsets</a> - Подробное объяснение паттерна</li>
-<li><a href="https://www.youtube.com/results?search_query=back+to+back+swe+subsets">Back To Back SWE - Subsets</a> - Разбор задач</li>
-</ul>
-<h3 id="дополнительные-материалы"><a class="header" href="#дополнительные-материалы">Дополнительные материалы</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/subsets/">Subsets - LeetCode</a> - Классическая задача на генерацию подмножеств</li>
-<li><a href="https://www.geeksforgeeks.org/backtracking-algorithms/">Backtracking Algorithm - GeeksforGeeks</a> - Подробное объяснение backtracking</li>
-<li><a href="https://en.wikipedia.org/wiki/Power_set">Power Set - Wikipedia</a> - Математическая теория подмножеств</li>
+<li><strong><a href="./tree-dfs.html">Tree DFS</a></strong> — тот же рекурсивный обход в глубину.</li>
+<li><strong><a href="./topological-sort.html">Topological Sort</a></strong> — работа с графами и зависимостями.</li>
+<li><strong><a href="./modified-binary-search.html">Modified Binary Search</a></strong> — поиск в отсортированных данных.</li>
+<li>Для общей теории по памяти и профилированию в Go см. <a href="appendix-go-memory.html">приложение</a>.</li>
 </ul>
 
                     </main>
@@ -1464,7 +333,7 @@ func generateFeatureCombinations(features []string) [][]string {
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="topological-sort.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="backtracking.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -1478,7 +347,7 @@ func generateFeatureCombinations(features []string) [][]string {
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="topological-sort.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="backtracking.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -1512,6 +381,9 @@ func generateFeatureCombinations(features []string) [][]string {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-f6dee78c.js"></script>
+        <script src="assets/quiz-0d58c129.js"></script>
+        <script src="assets/progress-8bf0c880.js"></script>
 
 
 

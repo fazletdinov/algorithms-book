@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Права нужны для публикации книги на GitHub Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Отменяем предыдущий запуск для той же ветки, если пришёл новый коммит.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go-tests:
+    name: Go-тренажёр (эталонные решения)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: exercises
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - name: go vet
+        run: go vet -tags solution ./...
+      - name: go test
+        run: go test -tags solution -count=1 ./...
+
+  build-book:
+    name: Сборка mdBook
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: peaceiris/actions-mdbook@v2
+        with:
+          mdbook-version: 'latest'
+      - run: mdbook build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: book
+
+  deploy:
+    name: Публикация на GitHub Pages
+    needs: [go-tests, build-book]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

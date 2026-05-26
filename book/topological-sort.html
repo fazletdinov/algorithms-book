@@ -28,6 +28,8 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-b363db2f.css">
+        <link rel="stylesheet" href="assets/quiz-7aebf16b.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -37,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-2799386e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-6b3e4b80.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,1423 +179,150 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="topological-sort-топологическая-сортировка"><a class="header" href="#topological-sort-топологическая-сортировка">Topological Sort (Топологическая сортировка)</a></h1>
-<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
-<p>Шаблон <strong>Topological Sort</strong> используется для нахождения линейного порядка элементов в ориентированном ациклическом графе (DAG), где каждое ребро представляет зависимость. Если элемент A зависит от элемента B, то B должен появиться перед A в топологическом порядке.</p>
-<h3 id="что-такое-dag-directed-acyclic-graph"><a class="header" href="#что-такое-dag-directed-acyclic-graph">Что такое DAG (Directed Acyclic Graph)?</a></h3>
-<p><strong>DAG (Directed Acyclic Graph)</strong> — это ориентированный граф без циклов.</p>
-<p><strong>Ключевые характеристики:</strong></p>
+<h2 id="теория"><a class="header" href="#теория">Теория</a></h2>
+<p><strong>Topological Sort</strong> находит линейный порядок вершин ориентированного ациклического
+графа (<strong>DAG</strong>), где каждое ребро — зависимость: если A → B, то A идёт перед B.</p>
+<p><strong>DAG</strong> — ориентированный граф без циклов. Топологическая сортировка существует тогда
+и только тогда, когда граф — DAG; при наличии цикла порядок построить нельзя.</p>
+<p>Ключевое наблюдение: в DAG всегда есть вершина без входящих рёбер (<strong>in-degree = 0</strong>) —
+источник. Обрабатывая источники и «удаляя» их из графа, мы открываем новые источники
+и строим порядок. Это и есть <strong>алгоритм Кана</strong> (BFS по in-degree).</p>
+<p><strong>Когда применять:</strong></p>
 <ul>
-<li><strong>Ориентированный (Directed)</strong>: Ребра имеют направление (A → B означает, что A предшествует B)</li>
-<li><strong>Ациклический (Acyclic)</strong>: В графе нет циклов — невозможно вернуться к уже посещенной вершине, следуя по направленным ребрам</li>
+<li>работа с DAG, зависимостями между задачами;</li>
+<li>нужно определить порядок выполнения (сборка, установка пакетов, расписание);</li>
+<li>нужно проверить отсутствие циклов (можно ли выполнить все задачи).</li>
 </ul>
-<p><strong>Пример DAG:</strong></p>
-<pre><code>Зависимости курсов:
-A → B → D
-A → C → D
-B → C
-
-Граф:
-    A
-   / \
-  B   C
-   \ /
-    D
-
-Это DAG, потому что:
-- Все ребра направлены (A → B, B → D, и т.д.)
-- Нет циклов (нельзя вернуться к A, начав с A и следуя по ребрам)
-</code></pre>
-<p><strong>Пример НЕ-DAG (с циклом):</strong></p>
-<pre><code>A → B → C → A  (цикл!)
-
-Это НЕ DAG, потому что:
-- Есть цикл: A → B → C → A
-- Топологическая сортировка невозможна (A зависит от C, C зависит от B, B зависит от A)
-</code></pre>
-<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
-<p>Топологическая сортировка была разработана в контексте планирования задач и компиляции программ, где нужно определить порядок выполнения операций с учетом зависимостей. Алгоритм Кана был предложен в 1962 году, а DFS-подход является классическим применением обхода в глубину.</p>
-<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
-<p>Ключевое наблюдение: в DAG всегда есть хотя бы одна вершина без входящих ребер (источник). Обрабатывая источники и удаляя их из графа, мы получаем новые источники, что позволяет построить линейный порядок.</p>
-<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
-<p>Используйте этот шаблон, когда:</p>
-<ul>
-<li>Работаете с ориентированным ациклическим графом (DAG)</li>
-<li>Нужно определить порядок выполнения задач с зависимостями</li>
-<li>Требуется найти линейный порядок элементов с учетом зависимостей</li>
-<li>Задача связана с планированием или последовательностью выполнения</li>
-<li>Нужно проверить, можно ли выполнить все задачи (нет циклов)</li>
-</ul>
-<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
-<h3 id="алгоритм-кана-kahns-algorithm"><a class="header" href="#алгоритм-кана-kahns-algorithm">Алгоритм Кана (Kahn’s Algorithm):</a></h3>
-<pre><code class="language-go">// Топологическая сортировка с использованием алгоритма Кана
+<h2 id="алгоритм"><a class="header" href="#алгоритм">Алгоритм</a></h2>
+<p>Считаем in-degree каждой вершины, кладём в очередь все вершины с in-degree = 0. Берём
+вершину из очереди, добавляем в результат, уменьшаем in-degree её соседей; когда
+in-degree соседа становится 0 — кладём его в очередь. Если в результате оказалось
+меньше вершин, чем всего, — в графе есть цикл.</p>
+<pre><code class="language-go">// Алгоритм Кана. prerequisites[i] = {course, prerequisite}: course зависит от prerequisite
 func topologicalSort(numCourses int, prerequisites [][]int) []int {
-    // Шаг 1: Инициализация
-    // Подсчитываем входящие степени (in-degree) для каждой вершины
-    // In-degree - это количество ребер, входящих в вершину
-    inDegree := make([]int, numCourses)
-    
-    // Создаем граф (список смежности) для хранения зависимостей
-    // graph[i] содержит список вершин, которые зависят от вершины i
     graph := make([][]int, numCourses)
-    
-    // Заполняем граф и подсчитываем in-degree
+    inDegree := make([]int, numCourses)
+
     for _, prereq := range prerequisites {
-        course := prereq[0]      // Курс, который зависит от другого
-        prerequisite := prereq[1] // Курс, от которого зависит
-        
-        // Добавляем зависимость в граф
+        course, prerequisite := prereq[0], prereq[1]
         graph[prerequisite] = append(graph[prerequisite], course)
-        // Увеличиваем in-degree для зависимого курса
         inDegree[course]++
     }
-    
-    // Добавляем все вершины с in-degree = 0 в очередь
-    // Эти вершины не зависят ни от каких других вершин и могут быть обработаны первыми
+
     queue := []int{}
     for i := 0; i &lt; numCourses; i++ {
         if inDegree[i] == 0 {
             queue = append(queue, i)
         }
     }
-    
+
     result := []int{}
-    
-    // Шаг 2: Обработка вершин
-    // Пока очередь не пуста, обрабатываем вершины
     for len(queue) &gt; 0 {
-        // Извлекаем вершину из очереди (FIFO)
-        course := queue[0]
+        node := queue[0]
         queue = queue[1:]
-        
-        // Добавляем вершину в результат
-        // Порядок добавления в результат и есть топологический порядок
-        result = append(result, course)
-        
-        // Уменьшаем in-degree всех соседних вершин на 1
-        // Соседние вершины - это те, которые зависят от текущей вершины
-        for _, neighbor := range graph[course] {
+        result = append(result, node)
+
+        for _, neighbor := range graph[node] {
             inDegree[neighbor]--
-            
-            // Если in-degree вершины стал 0, добавляем её в очередь
-            // Это означает, что все зависимости этой вершины уже обработаны
             if inDegree[neighbor] == 0 {
                 queue = append(queue, neighbor)
             }
         }
     }
-    
-    // Шаг 3: Проверка - если размер результата != количеству вершин, есть цикл
-    // Если в графе есть цикл, некоторые вершины никогда не получат in-degree = 0
-    // и не будут добавлены в результат
+
     if len(result) != numCourses {
-        return []int{}  // Цикл обнаружен, топологическая сортировка невозможна
+        return []int{} // обнаружен цикл — сортировка невозможна
     }
-    
     return result
 }
 </code></pre>
-<h3 id="что-такое-in-degree-и-out-degree"><a class="header" href="#что-такое-in-degree-и-out-degree">Что такое in-degree и out-degree?</a></h3>
-<p><strong>In-degree (входящая степень)</strong> — количество ребер, входящих в вершину (сколько вершин зависят от этой вершины как предшественника).</p>
-<p><strong>Out-degree (исходящая степень)</strong> — количество ребер, выходящих из вершины (от скольких вершин зависит эта вершина).</p>
-<p><strong>Визуализация графа зависимостей:</strong></p>
-<pre><code class="language-mermaid">graph TD
-    A[A&lt;br/&gt;in: 0&lt;br/&gt;out: 2] --&gt; B[B&lt;br/&gt;in: 1&lt;br/&gt;out: 2]
-    A --&gt; C[C&lt;br/&gt;in: 2&lt;br/&gt;out: 1]
-    B --&gt; C
-    B --&gt; D[D&lt;br/&gt;in: 2&lt;br/&gt;out: 0]
-    C --&gt; D
-    
-    style A fill:#bfb,stroke:#333,stroke-width:3px
-    style B fill:#bbf,stroke:#333,stroke-width:2px
-    style C fill:#fbb,stroke:#333,stroke-width:2px
-    style D fill:#fbf,stroke:#333,stroke-width:2px
-</code></pre>
-<p><strong>Таблица in-degree и out-degree:</strong></p>
+<p><strong>Альтернатива — DFS-подход:</strong> обходим граф в глубину, и когда вершина полностью
+обработана (все потомки посещены), кладём её в стек. Развёрнутый стек даёт топологический
+порядок; цикл ловится по «серой» (находящейся в обработке) вершине.</p>
+<h3 id="сложность"><a class="header" href="#сложность">Сложность</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Вершина</th><th>In-degree</th><th>Out-degree</th><th>Описание</th></tr>
+<tr><th>Подход</th><th>Время</th><th>Память</th></tr>
 </thead>
 <tbody>
-<tr><td>A</td><td>0</td><td>2</td><td>Нет входящих, 2 исходящих (A→B, A→C)</td></tr>
-<tr><td>B</td><td>1</td><td>2</td><td>1 входящий (A→B), 2 исходящих (B→C, B→D)</td></tr>
-<tr><td>C</td><td>2</td><td>1</td><td>2 входящих (A→C, B→C), 1 исходящий (C→D)</td></tr>
-<tr><td>D</td><td>2</td><td>0</td><td>2 входящих (B→D, C→D), нет исходящих</td></tr>
+<tr><td>Алгоритм Кана (BFS)</td><td>O(V + E)</td><td>O(V + E)</td></tr>
+<tr><td>DFS</td><td>O(V + E)</td><td>O(V + E)</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Почему in-degree важен для топологической сортировки?</strong></p>
-<p>Вершины с in-degree = 0 не имеют зависимостей и могут быть обработаны первыми. После их обработки мы “удаляем” их из графа (уменьшаем in-degree соседних вершин), что может сделать другие вершины готовыми к обработке (их in-degree станет 0).</p>
-<h3 id="dfs-подход"><a class="header" href="#dfs-подход">DFS подход:</a></h3>
-<ol>
-<li>Используйте DFS для обхода графа</li>
-<li>Когда вершина полностью обработана (все потомки посещены), добавляйте её в стек</li>
-<li>Разверните стек для получения топологического порядка</li>
-</ol>
+<p>Каждая вершина обрабатывается один раз (O(V)), каждое ребро рассматривается один раз
+(O(E)).</p>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
-<h3 id="пример-графа-зависимостей"><a class="header" href="#пример-графа-зависимостей">Пример графа зависимостей:</a></h3>
-<p>Задачи: A → B → D, A → C → D, B → C</p>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: рядом с вершиной показана входящая
+степень (<code>in:</code>). Алгоритм Кана убирает вершину со степенью 0 (жёлтая → синяя) и
+уменьшает степени соседей. (Виджет работает в собранной книге <code>mdbook serve</code>/<code>mdbook build</code>,
+а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="topo-kahn" data-nodes="A,B,C,D" data-edges="A-B,A-C,B-C,B-D,C-D"></div>
+
+<p>Граф зависимостей: A → B, A → C, B → C, B → D, C → D.</p>
 <pre><code class="language-mermaid">graph TD
     A[A] --&gt; B[B]
     A --&gt; C[C]
     B --&gt; C
     B --&gt; D[D]
     C --&gt; D
-    
+
     style A fill:#bfb,stroke:#333,stroke-width:3px
     style B fill:#bbf,stroke:#333,stroke-width:2px
     style C fill:#fbb,stroke:#333,stroke-width:2px
     style D fill:#fbf,stroke:#333,stroke-width:2px
 </code></pre>
-<p><strong>Процесс алгоритма Кана:</strong></p>
-<p><strong>Граф зависимостей:</strong></p>
-<pre><code>A → B → D
-↓   ↓
-C ──┘
+<p>Процесс алгоритма Кана:</p>
+<pre><code>In-degree:  A:0  B:1  C:2  D:2
+очередь [A]         result []
+A → result [A]      B:1→0 (в очередь), C:2→1     очередь [B]
+B → result [A,B]    C:1→0 (в очередь), D:2→1     очередь [C]
+C → result [A,B,C]  D:1→0 (в очередь)            очередь [D]
+D → result [A,B,C,D]                             очередь []
 </code></pre>
-<p><strong>Шаг 1: Инициализация - находим вершины с in-degree=0</strong></p>
-<pre><code>In-degree: A:0, B:1, C:2, D:2
-Очередь: [A]  (только A имеет in-degree=0)
-Результат: []
-</code></pre>
-<p><strong>Шаг 2: Обрабатываем A</strong></p>
-<pre><code>Обрабатываем: A
-Результат: [A]
-Уменьшаем in-degree соседей (B и C):
-  B: 1 → 0 ✓ (добавляем в очередь)
-  C: 2 → 1
-Очередь: [B]
-</code></pre>
-<p><strong>Шаг 3: Обрабатываем B</strong></p>
-<pre><code>Обрабатываем: B
-Результат: [A, B]
-Уменьшаем in-degree соседей (C и D):
-  C: 1 → 0 ✓ (добавляем в очередь)
-  D: 2 → 1
-Очередь: [C]
-</code></pre>
-<p><strong>Шаг 4: Обрабатываем C</strong></p>
-<pre><code>Обрабатываем: C
-Результат: [A, B, C]
-Уменьшаем in-degree соседей (D):
-  D: 1 → 0 ✓ (добавляем в очередь)
-Очередь: [D]
-</code></pre>
-<p><strong>Шаг 5: Обрабатываем D</strong></p>
-<pre><code>Обрабатываем: D
-Результат: [A, B, C, D]
-Нет соседей
-Очередь: []
-</code></pre>
-<p><strong>Результат:</strong> Топологический порядок: <strong>[A, B, C, D]</strong></p>
-<h3 id="граф-с-циклом--топологическая-сортировка-невозможна"><a class="header" href="#граф-с-циклом--топологическая-сортировка-невозможна">Граф с циклом — топологическая сортировка невозможна:</a></h3>
-<pre><code>Граф с циклом: A → B → C → A
-                
-In-degree: A=1, B=1, C=1 (все &gt; 0)
-Очередь пуста с самого начала — нет вершины с in-degree=0.
-Алгоритм Кана завершается с result.length &lt; V → цикл обнаружен.
-</code></pre>
-<p>В DAG всегда есть хотя бы одна вершина с in-degree=0. В графе с циклом такие вершины отсутствуют.</p>
-<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
-<p><strong>Теорема</strong>: В любом DAG существует хотя бы одна топологическая сортировка.</p>
-<p><strong>Доказательство</strong> (алгоритм Кана):</p>
-<ol>
-<li><strong>Существование источника</strong>: В DAG всегда есть вершина с in-degree = 0 (иначе был бы цикл)</li>
-<li><strong>Индуктивный шаг</strong>: Предположим, мы обработали k вершин в правильном порядке
-<ul>
-<li>После удаления этих вершин, оставшийся граф также является DAG</li>
-<li>В нем есть источник (вершина с in-degree = 0)</li>
-<li>Обрабатываем этот источник</li>
-<li>Порядок остается корректным</li>
-</ul>
-</li>
-</ol>
-<p><strong>Почему сложность O(V + E)?</strong></p>
-<ul>
-<li>Построение графа и подсчет in-degree: O(V + E)</li>
-<li>Каждая вершина обрабатывается один раз: O(V)</li>
-<li>Каждое ребро рассматривается один раз: O(E)</li>
-<li>Итого: O(V + E)</li>
-</ul>
-<h3 id="амортизированная-сложность"><a class="header" href="#амортизированная-сложность">Амортизированная сложность</a></h3>
-<p><strong>Амортизированный анализ</strong> для топологической сортировки:</p>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(1) на вершину
-<ul>
-<li>Обработка V вершин и E ребер: O(V + E)</li>
-<li>Амортизированная стоимость: O(V + E) / V = O(1 + E/V) на вершину</li>
-<li>Для разреженных графов (E ≈ V): O(1) на вершину</li>
-<li>Для плотных графов (E ≈ V²): O(V) на вершину</li>
-</ul>
-</li>
-</ul>
-<h3 id="worstaveragebest-case-анализ"><a class="header" href="#worstaveragebest-case-анализ">Worst/Average/Best Case анализ</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(V + E)</td><td>Всегда одинаковое время, так как нужно обработать все вершины и ребра</td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(V + E)</td><td>Стандартное поведение алгоритма</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(V + E)</td><td>Всегда одинаковое время</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Пространственная сложность</strong>: Всегда O(V + E) для графа, O(V) для очереди и результата.</p>
-<h3 id="таблица-сравнения-сложностей"><a class="header" href="#таблица-сравнения-сложностей">Таблица сравнения сложностей</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Алгоритм</th><th>Время (Worst)</th><th>Время (Average)</th><th>Время (Best)</th><th>Память</th><th>Амортизированное время</th></tr>
-</thead>
-<tbody>
-<tr><td>Алгоритм Кана (BFS)</td><td>O(V + E)</td><td>O(V + E)</td><td>O(V + E)</td><td>O(V + E)</td><td>O(1 + E/V) на вершину</td></tr>
-<tr><td>DFS подход</td><td>O(V + E)</td><td>O(V + E)</td><td>O(V + E)</td><td>O(V + E)</td><td>O(1 + E/V) на вершину</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
-<p><strong>Алгоритм Кана</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(V + E)
-<ul>
-<li>Построение графа: O(E)</li>
-<li>Подсчет in-degree: O(V)</li>
-<li>Обработка вершин: O(V)</li>
-<li>Обновление in-degree: O(E)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(V + E)
-<ul>
-<li>Граф: O(V + E)</li>
-<li>Очередь: O(V)</li>
-<li>In-degree массив: O(V)</li>
-</ul>
-</li>
-</ul>
-<p><strong>DFS подход</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(V + E)</li>
-<li><strong>Пространственная сложность</strong>: O(V + E) для графа + O(V) для стека</li>
-</ul>
-<h3 id="сравнение-подходов"><a class="header" href="#сравнение-подходов">Сравнение подходов:</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Подход</th><th>Преимущества</th><th>Недостатки</th></tr>
-</thead>
-<tbody>
-<tr><td>Алгоритм Кана</td><td>Интуитивный, легко понять</td><td>Требует подсчет in-degree</td></tr>
-<tr><td>DFS</td><td>Компактный код</td><td>Менее интуитивный</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="граничные-случаи"><a class="header" href="#граничные-случаи">Граничные случаи</a></h2>
-<p>При работе с топологической сортировкой важно обрабатывать следующие граничные случаи:</p>
-<h3 id="1-пустой-граф"><a class="header" href="#1-пустой-граф">1. Пустой граф</a></h3>
-<p><strong>Проблема</strong>: Если граф пуст (нет вершин), результат должен быть пустым.</p>
-<p><strong>Решение</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func topologicalSort(numCourses int, prerequisites [][]int) []int {
-    if numCourses == 0 {
-        return []int{}
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="2-граф-без-ребер"><a class="header" href="#2-граф-без-ребер">2. Граф без ребер</a></h3>
-<p><strong>Проблема</strong>: Если граф не имеет ребер, любая перестановка вершин является валидной топологической сортировкой.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай, возвращая все вершины в произвольном порядке.</p>
-<h3 id="3-одна-вершина"><a class="header" href="#3-одна-вершина">3. Одна вершина</a></h3>
-<p><strong>Проблема</strong>: Если граф содержит одну вершину, результат должен содержать эту вершину.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай.</p>
-<h3 id="4-циклический-граф"><a class="header" href="#4-циклический-граф">4. Циклический граф</a></h3>
-<p><strong>Проблема</strong>: Если граф содержит цикл, топологическая сортировка невозможна.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">func topologicalSort(numCourses int, prerequisites [][]int) []int {
-    // ... код алгоритма Кана
-    if len(result) != numCourses {
-        return []int{} // Цикл обнаружен
-    }
-    return result
-}
-</code></pre>
-<h3 id="5-несколько-компонент-связности"><a class="header" href="#5-несколько-компонент-связности">5. Несколько компонент связности</a></h3>
-<p><strong>Проблема</strong>: Если граф состоит из нескольких несвязанных компонент, топологическая сортировка все равно возможна.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай, обрабатывая каждую компоненту отдельно.</p>
-<h3 id="6-очень-большой-граф"><a class="header" href="#6-очень-большой-граф">6. Очень большой граф</a></h3>
-<p><strong>Проблема</strong>: При очень большом графе может быть проблема с производительностью и памятью.</p>
-<p><strong>Решение</strong>: Убедитесь, что алгоритм имеет O(V + E) временную сложность и использует эффективные структуры данных.</p>
-<h3 id="7-множественные-источники"><a class="header" href="#7-множественные-источники">7. Множественные источники</a></h3>
-<p><strong>Проблема</strong>: Если граф имеет несколько вершин с in-degree = 0, порядок их обработки может варьироваться.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай, обрабатывая источники в произвольном порядке (или лексикографическом, если требуется).</p>
-<h3 id="8-все-вершины-являются-источниками"><a class="header" href="#8-все-вершины-являются-источниками">8. Все вершины являются источниками</a></h3>
-<p><strong>Проблема</strong>: Если все вершины имеют in-degree = 0, любая перестановка является валидной.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай.</p>
-<h3 id="9-все-вершины-являются-стоками"><a class="header" href="#9-все-вершины-являются-стоками">9. Все вершины являются стоками</a></h3>
-<p><strong>Проблема</strong>: Если все вершины имеют out-degree = 0, граф должен быть линейной цепочкой.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай, обрабатывая вершины в порядке их in-degree.</p>
-<h3 id="10-дубликаты-в-prerequisites"><a class="header" href="#10-дубликаты-в-prerequisites">10. Дубликаты в prerequisites</a></h3>
-<p><strong>Проблема</strong>: Если массив prerequisites содержит дубликаты, нужно обработать их корректно.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">// Используйте Set для хранения ребер, чтобы избежать дубликатов
-edges := make(map[int]map[int]bool)
-for _, prereq := range prerequisites {
-    if edges[prereq[1]] == nil {
-        edges[prereq[1]] = make(map[int]bool)
-    }
-    if !edges[prereq[1]][prereq[0]] {
-        edges[prereq[1]][prereq[0]] = true
-        // ... обновление in-degree
-    }
-}
-</code></pre>
+<p>Топологический порядок: <strong>[A, B, C, D]</strong>.</p>
+<p>Граф с циклом <code>A → B → C → A</code> даёт in-degree A=1, B=1, C=1 — ни одной вершины с
+in-degree = 0, очередь пуста с самого начала, <code>len(result) &lt; V</code> → цикл.</p>
 <h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
-<li><strong>Неправильный подсчет in-degree</strong>: Убедитесь, что считаете входящие, а не исходящие ребра</li>
-<li><strong>Забывание проверки циклов</strong>: Если результат содержит меньше V вершин, есть цикл</li>
-<li><strong>Неправильное обновление in-degree</strong>: Уменьшайте in-degree только для соседних вершин</li>
+<li><strong>Путаница in-degree/out-degree</strong> — считайте входящие рёбра, а не исходящие.</li>
+<li><strong>Неправильное направление ребра</strong> — <code>course</code> зависит от <code>prerequisite</code>, поэтому ребро <code>prerequisite → course</code>.</li>
+<li><strong>Забыта проверка цикла</strong> — если <code>len(result) != numCourses</code>, сортировка невозможна.</li>
+<li><strong>In-degree обновляется не у тех вершин</strong> — уменьшайте только у прямых соседей текущей вершины.</li>
+<li><strong>Несколько источников / компонент связности</strong> — кладите в очередь сразу все вершины с in-degree = 0, иначе пропустите часть графа.</li>
+<li><strong>Дубликаты рёбер</strong> в <code>prerequisites</code> завышают in-degree; при необходимости отсеивайте через множество.</li>
 </ol>
-<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
-<ol>
-<li>Используйте алгоритм Кана для интуитивности, DFS для компактности</li>
-<li>Всегда проверяйте наличие циклов после выполнения</li>
-<li>Для задач с весами используйте модифицированный алгоритм</li>
-</ol>
-<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
-<h3 id="используемые-структуры-данных-в-topological-sort"><a class="header" href="#используемые-структуры-данных-в-topological-sort">Используемые структуры данных в Topological Sort</a></h3>
-<p>В шаблоне Topological Sort используются следующие структуры данных:</p>
+<h2 id="задачи"><a class="header" href="#задачи">Задачи</a></h2>
+<p><strong>LeetCode:</strong></p>
 <ul>
-<li><strong>Graph</strong>: Представление графа (список смежности)</li>
-<li><strong>[][]int или map[int][]int</strong>: Список смежности</li>
-<li><strong>[]int</strong>: Массив in-degree для каждого узла</li>
-<li><strong>[]int</strong>: Очередь для BFS обхода</li>
+<li><a href="https://leetcode.com/problems/course-schedule/">Course Schedule</a></li>
+<li><a href="https://leetcode.com/problems/course-schedule-ii/">Course Schedule II</a></li>
+<li><a href="https://leetcode.com/problems/alien-dictionary/">Alien Dictionary</a></li>
+<li><a href="https://leetcode.com/problems/minimum-height-trees/">Minimum Height Trees</a></li>
+<li><a href="https://leetcode.com/problems/sequence-reconstruction/">Sequence Reconstruction</a></li>
+<li><a href="https://leetcode.com/problems/parallel-courses/">Parallel Courses</a> (сложная)</li>
+<li><a href="https://leetcode.com/problems/sort-items-by-groups-respecting-dependencies/">Sort Items by Groups Respecting Dependencies</a> (сложная)</li>
 </ul>
-<h3 id="graph-граф"><a class="header" href="#graph-граф">Graph (Граф)</a></h3>
-<h4 id="представление-графа"><a class="header" href="#представление-графа">Представление графа:</a></h4>
-<p><strong>Список смежности (Adjacency List)</strong>:</p>
-<pre><code>┌─────────────────────────────────────────┐
-│ Vec&amp;lt;Vec&lt;usize&amp;gt;&gt;                         │
-│ ┌─────────────┐                        │
-│ │ [1,2]       │ Узел 0 → узлы 1,2     │
-│ │ [3]         │ Узел 1 → узел 3       │
-│ │ [3]         │ Узел 2 → узел 3       │
-│ │ []          │ Узел 3 → нет           │
-│ └─────────────┘                        │
-└─────────────────────────────────────────┘
-</code></pre>
-<p><strong>Важные детали</strong>:</p>
-<ul>
-<li>O(V + E) памяти, где V - узлы, E - ребра</li>
-<li>Эффективнее матрицы смежности для разреженных графов</li>
-<li>Легко найти соседей узла</li>
-</ul>
-<h3 id="-int-go---in-degree-массив"><a class="header" href="#-int-go---in-degree-массив">/ []int (Go) - In-degree массив</a></h3>
-<h4 id="массив-in-degree"><a class="header" href="#массив-in-degree">Массив in-degree:</a></h4>
-<p><strong>Структура</strong>:</p>
-<pre><code>┌─────────────────────────────────────────┐
-│ Vec&amp;lt;i32&amp;gt; / []int                        │
-│ ┌─────────────┐                        │
-│ │ [0]         │ Узел 0: 0 входящих     │
-│ │ [1]         │ Узел 1: 1 входящий    │
-│ │ [1]         │ Узел 2: 1 входящий    │
-│ │ [2]         │ Узел 3: 2 входящих    │
-│ └─────────────┘                        │
-└─────────────────────────────────────────┘
-</code></pre>
-<p><strong>Важные детали</strong>:</p>
-<ul>
-<li>Хранит количество входящих ребер для каждого узла</li>
-<li>O(V) памяти</li>
-<li>Обновляется при обработке узлов</li>
-</ul>
-<h3 id="-queue-go"><a class="header" href="#-queue-go">/ Queue (Go)</a></h3>
-<h4 id="очередь-для-bfs"><a class="header" href="#очередь-для-bfs">Очередь для BFS:</a></h4>
-<p><strong>Используется для</strong>:</p>
-<ul>
-<li>Хранения узлов с in-degree = 0</li>
-<li>Обработки узлов в правильном порядке</li>
-<li>O(V) памяти в худшем случае</li>
-</ul>
-<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Операция</th><th>Сложность</th><th>Объяснение</th></tr>
-</thead>
-<tbody>
-<tr><td>Построение графа</td><td>O(V + E)</td><td>Проход по всем ребрам</td></tr>
-<tr><td>Вычисление in-degree</td><td>O(V + E)</td><td>Проход по всем ребрам</td></tr>
-<tr><td>Topological sort</td><td>O(V + E)</td><td>BFS обход всех узлов и ребер</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Почему Topological Sort эффективен</strong>:</p>
-<ul>
-<li>O(V + E) время - оптимально</li>
-<li>O(V + E) памяти для графа</li>
-<li>Линейная сложность</li>
-</ul>
-<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<p><strong>Для Topological Sort</strong>:</p>
-<ul>
-<li>Граф в куче</li>
-<li>Очередь в куче</li>
-<li>In-degree массив может быть на стеке (если небольшой)</li>
-<li>Результаты могут escape</li>
-</ul>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<p><strong>Для Topological Sort</strong>:</p>
-<ul>
-<li>Граф в куче</li>
-<li>Очередь в куче</li>
-<li>Минимизация размера графа критична</li>
-</ul>
-<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
-<h4 id="go-topological-sort"><a class="header" href="#go-topological-sort">Go: Topological Sort</a></h4>
-<p>В Go:</p>
-<ul>
-<li><strong>Граф</strong>: <code>[][]int</code> - O(V + E) в куче</li>
-<li><strong>In-degree массив</strong>: <code>[]int</code> - O(V) в куче</li>
-<li><strong>Очередь</strong>: <code>[]int</code> - O(V) в худшем случае</li>
-<li><strong>Результат</strong>: <code>[]int</code> - O(V) в куче</li>
-</ul>
-<h3 id="анализ-аллокаций-для-topological-sort"><a class="header" href="#анализ-аллокаций-для-topological-sort">Анализ аллокаций для Topological Sort</a></h3>
-<h4 id="алгоритм-кана"><a class="header" href="#алгоритм-кана">Алгоритм Кана:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// Аллокации:
-// - graph: [][]int - O(V + E) в куче
-// - inDegree: []int - O(V) в куче
-// - queue: []int - O(V) в худшем случае
-// - result: []int - O(V) в куче
-// Итого: O(V + E) памяти
-</code></pre>
-<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
-<ol>
-<li><strong>Предварительное выделение графа</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-graph := make([][]int, numCourses)
-</code></pre>
-<ol start="2">
-<li><strong>Предварительное выделение in-degree</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-inDegree := make([]int, numCourses)
-</code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Граф | <code>Vec&amp;lt;Vec&lt;usize&amp;gt;&gt;</code> | [][]int |
-| Память | O(V + E) | O(V + E) |
-| Производительность | Предсказуемая | Может быть паузы GC |</p>
-<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
-<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
-<ol>
-<li><strong>Предварительное выделение структур данных</strong></li>
-<li><strong>Минимизация операций с очередью</strong></li>
-<li><strong>Эффективные операции с графом</strong></li>
-</ol>
-<h3 id="специфичные-оптимизации-для-topological-sort"><a class="header" href="#специфичные-оптимизации-для-topological-sort">Специфичные оптимизации для Topological Sort</a></h3>
-<h4 id="1-оптимизация-алгоритма-кана"><a class="header" href="#1-оптимизация-алгоритма-кана">1. Оптимизация алгоритма Кана:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированная версия
-func topologicalSortOptimized(numCourses int, prerequisites [][]int) []int {
-    graph := make([][]int, numCourses)
-    inDegree := make([]int, numCourses)
-    
-    for _, edge := range prerequisites {
-        graph[edge[1]] = append(graph[edge[1]], edge[0])
-        inDegree[edge[0]]++
-    }
-    
-    queue := make([]int, 0, numCourses)
-    for i := 0; i &lt; numCourses; i++ {
-        if inDegree[i] == 0 {
-            queue = append(queue, i)
-        }
-    }
-    
-    result := make([]int, 0, numCourses)
-    for len(queue) &gt; 0 {
-        course := queue[0]
-        queue = queue[1:]
-        result = append(result, course)
-        
-        for _, next := range graph[course] {
-            inDegree[next]--
-            if inDegree[next] == 0 {
-                queue = append(queue, next)
-            }
-        }
-    }
-    
-    return result
-}
-</code></pre>
-<ol>
-<li>
-<p><strong>Использование <code>VecDeque</code></strong>:</p>
-</li>
-<li>
-<p><strong>Предварительное выделение</strong>:</p>
-</li>
-</ol>
-<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
-<ol>
-<li><strong>Предварительное выделение слайсов</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-graph := make([][]int, numCourses)
-queue := make([]int, 0, numCourses)
-</code></pre>
-<ol start="2">
-<li><strong>Эффективные операции</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Использование слайсов для очереди
-queue = queue[1:]  // Удаление первого элемента
-</code></pre>
-<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
-<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
-<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
-<h3 id="как-профилировать-topological-sort"><a class="header" href="#как-профилировать-topological-sort">Как профилировать Topological Sort</a></h3>
-<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
-<pre><code class="language-go">func BenchmarkTopologicalSort(b *testing.B) {
-    prerequisites := createTestPrerequisites(1000, 5000)
-    
-    b.ResetTimer()
-    for i := 0; i &lt; b.N; i++ {
-        topologicalSortOptimized(1000, prerequisites)
-    }
-}
-</code></pre>
-<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
-<p><strong>Анализ производительности</strong>:</p>
-<ul>
-<li>Topological Sort: O(V + E) по времени</li>
-<li>O(V + E) памяти для графа</li>
-<li>O(V) памяти для очереди и результата</li>
-</ul>
-<p><strong>Типичные узкие места</strong>:</p>
-<ul>
-<li>Построение графа</li>
-<li>Операции с очередью</li>
-<li>Обновление in-degree</li>
-</ul>
-<h2 id="отладка-и-диагностика"><a class="header" href="#отладка-и-диагностика">Отладка и диагностика</a></h2>
-<p>Отладка топологической сортировки требует отслеживания in-degree вершин и состояния очереди:</p>
-<h3 id="1-логирование-процесса-сортировки"><a class="header" href="#1-логирование-процесса-сортировки">1. Логирование процесса сортировки</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func topologicalSortDebug(numCourses int, prerequisites [][]int) []int {
-    log.Printf("Начало топологической сортировки: %d курсов, %d зависимостей",
-        numCourses, len(prerequisites))
-    
-    // Построение графа
-    graph := make([][]int, numCourses)
-    inDegree := make([]int, numCourses)
-    
-    for _, prereq := range prerequisites {
-        from, to := prereq[1], prereq[0]
-        graph[from] = append(graph[from], to)
-        inDegree[to]++
-        log.Printf("Зависимость: курс %d требует курс %d", to, from)
-    }
-    
-    log.Printf("In-degree вершин: %v", inDegree)
-    
-    // Инициализация очереди
-    queue := []int{}
-    for i := 0; i &lt; numCourses; i++ {
-        if inDegree[i] == 0 {
-            queue = append(queue, i)
-            log.Printf("Добавлен источник: курс %d", i)
-        }
-    }
-    
-    result := []int{}
-    step := 0
-    
-    for len(queue) &gt; 0 {
-        step++
-        current := queue[0]
-        queue = queue[1:]
-        result = append(result, current)
-        
-        log.Printf("Шаг %d: обрабатываем курс %d, очередь=%v", step, current, queue)
-        
-        for _, neighbor := range graph[current] {
-            inDegree[neighbor]--
-            log.Printf("  Уменьшен in-degree курса %d до %d", neighbor, inDegree[neighbor])
-            
-            if inDegree[neighbor] == 0 {
-                queue = append(queue, neighbor)
-                log.Printf("  Курс %d стал источником, добавлен в очередь", neighbor)
-            }
-        }
-    }
-    
-    if len(result) != numCourses {
-        log.Printf("Обнаружен цикл! Обработано %d из %d курсов", len(result), numCourses)
-        return []int{}
-    }
-    
-    log.Printf("Топологическая сортировка завершена: %v", result)
-    return result
-}
-</code></pre>
-<h3 id="2-визуализация-графа-зависимостей"><a class="header" href="#2-визуализация-графа-зависимостей">2. Визуализация графа зависимостей</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func visualizeGraph(graph [][]int, inDegree []int) {
-    fmt.Println("Граф зависимостей:")
-    for i := 0; i &lt; len(graph); i++ {
-        fmt.Printf("Курс %d (in-degree=%d):", i, inDegree[i])
-        if len(graph[i]) == 0 {
-            fmt.Println(" нет зависимостей")
-        } else {
-            fmt.Printf(" требует курсы %v\n", graph[i])
-        }
-    }
-}
-</code></pre>
-<h3 id="метрики-производительности"><a class="header" href="#метрики-производительности">Метрики производительности</a></h3>
-<p>Реальные результаты бенчмарков на типичном оборудовании (Intel i7-9700K, 32GB RAM):</p>
-<h4 id="топологическая-сортировка-go-алгоритм-кана"><a class="header" href="#топологическая-сортировка-go-алгоритм-кана">Топологическая сортировка (Go, алгоритм Кана):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Вершин</th><th>Ребер</th><th>Время выполнения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>100</td><td>500</td><td>~8.5 μs</td><td>12 KB</td><td>~117,000</td></tr>
-<tr><td>1,000</td><td>5,000</td><td>~95 μs</td><td>120 KB</td><td>~10,500</td></tr>
-<tr><td>10,000</td><td>50,000</td><td>~1.1 ms</td><td>1.2 MB</td><td>~909</td></tr>
-<tr><td>100,000</td><td>500,000</td><td>~12 ms</td><td>12 MB</td><td>~83</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Линейная зависимость: O(V + E)</li>
-<li>Память линейная: O(V + E)</li>
-<li>Эффективность: Зависит от количества вершин и ребер</li>
-</ul>
-<h4 id="сравнение-подходов-1"><a class="header" href="#сравнение-подходов-1">Сравнение подходов:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Вершин</th><th>Алгоритм Кана</th><th>DFS подход</th><th>Разница</th></tr>
-</thead>
-<tbody>
-<tr><td>1,000</td><td>~95 μs</td><td>~98 μs</td><td>+3%</td></tr>
-<tr><td>10,000</td><td>~1.1 ms</td><td>~1.15 ms</td><td>+4%</td></tr>
-<tr><td>100,000</td><td>~12 ms</td><td>~12.5 ms</td><td>+4%</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Оба подхода имеют схожую производительность</li>
-<li>Алгоритм Кана немного быстрее благодаря меньшему overhead</li>
-<li>Выбор зависит от предпочтений и требований</li>
-</ul>
-<h4 id="обнаружение-циклов"><a class="header" href="#обнаружение-циклов">Обнаружение циклов:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Вершин</th><th>Ребер</th><th>Время обнаружения</th><th>Память</th></tr>
-</thead>
-<tbody>
-<tr><td>1,000</td><td>5,000</td><td>~95 μs</td><td>120 KB</td></tr>
-<tr><td>10,000</td><td>50,000</td><td>~1.1 ms</td><td>1.2 MB</td></tr>
-<tr><td>100,000</td><td>500,000</td><td>~12 ms</td><td>12 MB</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Цикл обнаруживается за O(V + E)</li>
-<li>Если результат содержит меньше V вершин, есть цикл</li>
-<li>Эффективная проверка циклов</li>
-</ul>
-<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
-<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
-<ol>
-<li><strong>Базовые тесты</strong>: Простые графы</li>
-<li><strong>Граничные случаи</strong>: Пустой граф, один узел, циклы</li>
-<li><strong>Стресс-тесты</strong>: Большие графы</li>
-</ol>
-<h3 id="примеры-тестов-для-topological-sort"><a class="header" href="#примеры-тестов-для-topological-sort">Примеры тестов для Topological Sort</a></h3>
-<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
-<pre><code class="language-go">func TestTopologicalSort(t *testing.T) {
-    tests := []struct {
-        name         string
-        numCourses   int
-        prerequisites [][]int
-        want         int
-    }{
-        {"basic", 4, [][]int{{1, 0}, {2, 0}, {3, 1}, {3, 2}}, 4},
-        {"empty", 2, [][]int{}, 2},
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            result := topologicalSortOptimized(tt.numCourses, tt.prerequisites)
-            if len(result) != tt.want {
-                t.Errorf("topologicalSortOptimized() = %v, want %v", len(result), tt.want)
-            }
-        })
-    }
-}
-</code></pre>
-<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="go"><a class="header" href="#go">Go:</a></h4>
-<pre><code class="language-bash">go test -v
-go test -bench=. -benchmem
-</code></pre>
-<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
-<pre><code class="language-go">func BenchmarkTopologicalSortSizes(b *testing.B) {
-    sizes := []int{100, 1000, 10000}
-    
-    for _, size := range sizes {
-        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
-            prerequisites := createTestPrerequisites(size, size*2)
-            b.ResetTimer()
-            for i := 0; i &lt; b.N; i++ {
-                topologicalSortOptimized(size, prerequisites)
-            }
-        })
-    }
-}
-</code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/course-schedule/">Course Schedule</a> - Расписание курсов</li>
-<li><a href="https://leetcode.com/problems/course-schedule-ii/">Course Schedule II</a> - Расписание курсов II</li>
-<li><a href="https://leetcode.com/problems/alien-dictionary/">Alien Dictionary</a> - Словарь инопланетян</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/minimum-height-trees/">Minimum Height Trees</a> - Деревья минимальной высоты</li>
-<li><a href="https://leetcode.com/problems/sequence-reconstruction/">Sequence Reconstruction</a> - Реконструкция последовательности</li>
-</ul>
-<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
-<h3 id="эволюция-решения-от-наивного-к-оптимизированному"><a class="header" href="#эволюция-решения-от-наивного-к-оптимизированному">Эволюция решения: от наивного к оптимизированному</a></h3>
-<h4 id="наивный-подход-ov²"><a class="header" href="#наивный-подход-ov²">Наивный подход (O(V²)):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ❌ Наивный подход: ищем источники многократно
-func topologicalSortNaive(numCourses int, prerequisites [][]int) []int {
-    graph := make([][]int, numCourses)
-    inDegree := make([]int, numCourses)
-    
-    // Строим граф
-    for _, prereq := range prerequisites {
-        from, to := prereq[1], prereq[0]
-        graph[from] = append(graph[from], to)
-        inDegree[to]++
-    }
-    
-    result := []int{}
-    processed := make([]bool, numCourses)
-    
-    // Многократно ищем источники
-    for len(result) &lt; numCourses {
-        found := false
-        for i := 0; i &lt; numCourses; i++ {
-            if !processed[i] &amp;&amp; inDegree[i] == 0 {
-                result = append(result, i)
-                processed[i] = true
-                found = true
-                
-                // Обновляем in-degree
-                for _, neighbor := range graph[i] {
-                    inDegree[neighbor]--
-                }
-                break
-            }
-        }
-        if !found {
-            return []int{}  // Цикл обнаружен
-        }
-    }
-    
-    return result
-}
-// Проблемы: O(V²) время из-за многократного поиска источников
-</code></pre>
-<h4 id="оптимизированный-подход-ov--e"><a class="header" href="#оптимизированный-подход-ov--e">Оптимизированный подход (O(V + E)):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированный подход: используем очередь для источников
-func topologicalSortOptimized(numCourses int, prerequisites [][]int) []int {
-    graph := make([][]int, numCourses)
-    inDegree := make([]int, numCourses)
-    
-    // Строим граф и подсчитываем in-degree
-    for _, prereq := range prerequisites {
-        from, to := prereq[1], prereq[0]
-        graph[from] = append(graph[from], to)
-        inDegree[to]++
-    }
-    
-    // Инициализируем очередь источниками
-    queue := []int{}
-    for i := 0; i &lt; numCourses; i++ {
-        if inDegree[i] == 0 {
-            queue = append(queue, i)
-        }
-    }
-    
-    result := []int{}
-    for len(queue) &gt; 0 {
-        current := queue[0]
-        queue = queue[1:]
-        result = append(result, current)
-        
-        // Обновляем in-degree соседей
-        for _, neighbor := range graph[current] {
-            inDegree[neighbor]--
-            if inDegree[neighbor] == 0 {
-                queue = append(queue, neighbor)
-            }
-        }
-    }
-    
-    if len(result) != numCourses {
-        return []int{}  // Цикл обнаружен
-    }
-    
-    return result
-}
-// Преимущества: O(V + E) время, эффективное использование очереди
-</code></pre>
-<h4 id="идиоматичный-go-код"><a class="header" href="#идиоматичный-go-код">Идиоматичный Go код:</a></h4>
-<pre><code class="language-go">// ✅ Идиоматичный Go: используем структуры и методы
-type Graph struct {
-    nodes     int
-    edges     [][]int
-    inDegree  []int
-}
-
-func NewGraph(nodes int, edges [][]int) *Graph {
-    g := &amp;Graph{
-        nodes:    nodes,
-        edges:    make([][]int, nodes),
-        inDegree: make([]int, nodes),
-    }
-    
-    for _, edge := range edges {
-        from, to := edge[1], edge[0]
-        g.edges[from] = append(g.edges[from], to)
-        g.inDegree[to]++
-    }
-    
-    return g
-}
-
-func (g *Graph) TopologicalSort() ([]int, bool) {
-    queue := make([]int, 0)
-    for i := 0; i &lt; g.nodes; i++ {
-        if g.inDegree[i] == 0 {
-            queue = append(queue, i)
-        }
-    }
-    
-    result := make([]int, 0, g.nodes)
-    for len(queue) &gt; 0 {
-        current := queue[0]
-        queue = queue[1:]
-        result = append(result, current)
-        
-        for _, neighbor := range g.edges[current] {
-            g.inDegree[neighbor]--
-            if g.inDegree[neighbor] == 0 {
-                queue = append(queue, neighbor)
-            }
-        }
-    }
-    
-    return result, len(result) == g.nodes
-}
-</code></pre>
-<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
-<pre><code class="language-go">package main
-
-import (
-	"fmt"
-)
-
-// Пример 1: Топологическая сортировка (алгоритм Кана)
-//
-// Задача: Найти топологический порядок вершин в графе
-// Временная сложность: O(V + E)
-// Пространственная сложность: O(V + E)
-func topologicalSort(numCourses int, prerequisites [][]int) []int {
-	graph := make([][]int, numCourses)
-	inDegree := make([]int, numCourses)
-
-	// Строим граф и подсчитываем входящие степени
-	for _, prereq := range prerequisites {
-		from := prereq[1]
-		to := prereq[0]
-		graph[from] = append(graph[from], to)
-		inDegree[to]++
-	}
-
-	// Находим все вершины с in-degree = 0
-	queue := []int{}
-	for i := 0; i &lt; numCourses; i++ {
-		if inDegree[i] == 0 {
-			queue = append(queue, i)
-		}
-	}
-
-	result := []int{}
-
-	// Обрабатываем вершины
-	for len(queue) &gt; 0 {
-		node := queue[0]
-		queue = queue[1:]
-		result = append(result, node)
-
-		// Уменьшаем in-degree соседних вершин
-		for _, neighbor := range graph[node] {
-			inDegree[neighbor]--
-			if inDegree[neighbor] == 0 {
-				queue = append(queue, neighbor)
-			}
-		}
-	}
-
-	// Если не все вершины обработаны, есть цикл
-	if len(result) == numCourses {
-		return result
-	}
-	return []int{}
-}
-
-// Пример 2: Проверка возможности завершения курсов
-//
-// Задача: Определить, можно ли завершить все курсы (нет циклов)
-// Временная сложность: O(V + E)
-// Пространственная сложность: O(V + E)
-func canFinish(numCourses int, prerequisites [][]int) bool {
-	graph := make([][]int, numCourses)
-	inDegree := make([]int, numCourses)
-
-	for _, prereq := range prerequisites {
-		from := prereq[1]
-		to := prereq[0]
-		graph[from] = append(graph[from], to)
-		inDegree[to]++
-	}
-
-	queue := []int{}
-	for i := 0; i &lt; numCourses; i++ {
-		if inDegree[i] == 0 {
-			queue = append(queue, i)
-		}
-	}
-
-	count := 0
-
-	for len(queue) &gt; 0 {
-		node := queue[0]
-		queue = queue[1:]
-		count++
-
-		for _, neighbor := range graph[node] {
-			inDegree[neighbor]--
-			if inDegree[neighbor] == 0 {
-				queue = append(queue, neighbor)
-			}
-		}
-	}
-
-	return count == numCourses
-}
-
-// Пример 3: Топологическая сортировка с DFS
-//
-// Задача: Найти топологический порядок используя DFS
-// Временная сложность: O(V + E)
-// Пространственная сложность: O(V + E)
-func topologicalSortDFS(numCourses int, prerequisites [][]int) []int {
-	graph := make([][]int, numCourses)
-
-	for _, prereq := range prerequisites {
-		from := prereq[1]
-		to := prereq[0]
-		graph[from] = append(graph[from], to)
-	}
-
-	visited := make([]int, numCourses) // 0: не посещено, 1: посещено, 2: обработано
-	result := []int{}
-
-	var dfs func(int) bool
-	dfs = func(node int) bool {
-		if visited[node] == 1 {
-			// Обнаружен цикл
-			return false
-		}
-		if visited[node] == 2 {
-			return true
-		}
-
-		visited[node] = 1
-		for _, neighbor := range graph[node] {
-			if !dfs(neighbor) {
-				return false
-			}
-		}
-		visited[node] = 2
-		result = append(result, node)
-		return true
-	}
-
-	for i := 0; i &lt; numCourses; i++ {
-		if visited[i] == 0 {
-			if !dfs(i) {
-				return []int{}
-			}
-		}
-	}
-
-	// Разворачиваем результат
-	for i, j := 0, len(result)-1; i &lt; j; i, j = i+1, j-1 {
-		result[i], result[j] = result[j], result[i]
-	}
-
-	return result
-}
-
-// Пример 4: Минимальная высота деревьев
-//
-// Задача: Найти корни деревьев минимальной высоты в неориентированном графе
-// Временная сложность: O(V + E)
-// Пространственная сложность: O(V + E)
-func findMinHeightTrees(n int, edges [][]int) []int {
-	if n == 1 {
-		return []int{0}
-	}
-
-	graph := make([][]int, n)
-	degree := make([]int, n)
-
-	for _, edge := range edges {
-		u := edge[0]
-		v := edge[1]
-		graph[u] = append(graph[u], v)
-		graph[v] = append(graph[v], u)
-		degree[u]++
-		degree[v]++
-	}
-
-	// Начинаем с листьев (степень = 1)
-	queue := []int{}
-	for i := 0; i &lt; n; i++ {
-		if degree[i] == 1 {
-			queue = append(queue, i)
-		}
-	}
-
-	remaining := n
-
-	// Удаляем листья слой за слоем
-	for remaining &gt; 2 {
-		size := len(queue)
-		remaining -= size
-
-		for i := 0; i &lt; size; i++ {
-			leaf := queue[0]
-			queue = queue[1:]
-			for _, neighbor := range graph[leaf] {
-				degree[neighbor]--
-				if degree[neighbor] == 1 {
-					queue = append(queue, neighbor)
-				}
-			}
-		}
-	}
-
-	return queue
-}
-</code></pre>
-<h2 id="реальные-применения"><a class="header" href="#реальные-применения">Реальные применения</a></h2>
-<p>Topological Sort широко используется в production системах для работы с зависимостями и графами:</p>
-<h3 id="1-build-systems-системы-сборки"><a class="header" href="#1-build-systems-системы-сборки">1. Build Systems (Системы сборки)</a></h3>
-<p><strong>Применение</strong>: Определение порядка компиляции модулей с учетом зависимостей.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Make</strong>: Определение порядка сборки целей</li>
-<li><strong>CMake</strong>: Определение порядка компиляции</li>
-<li><strong>Gradle</strong>: Определение порядка задач</li>
-<li><strong>Bazel</strong>: Определение порядка сборки</li>
-</ul>
-<p><strong>Код</strong>:</p>
-<pre><code class="language-go">// Определение порядка сборки модулей
-type Module struct {
-    name         string
-    dependencies []string
-}
-
-func buildOrder(modules []Module) []string {
-    // Строим граф зависимостей
-    graph := make(map[string][]string)
-    inDegree := make(map[string]int)
-    
-    for _, module := range modules {
-        inDegree[module.name] = 0
-        graph[module.name] = []string{}
-    }
-    
-    for _, module := range modules {
-        for _, dep := range module.dependencies {
-            graph[dep] = append(graph[dep], module.name)
-            inDegree[module.name]++
-        }
-    }
-    
-    // Топологическая сортировка (Kahn's algorithm)
-    queue := []string{}
-    for name, degree := range inDegree {
-        if degree == 0 {
-            queue = append(queue, name)
-        }
-    }
-    
-    result := []string{}
-    for len(queue) &gt; 0 {
-        current := queue[0]
-        queue = queue[1:]
-        result = append(result, current)
-        
-        for _, neighbor := range graph[current] {
-            inDegree[neighbor]--
-            if inDegree[neighbor] == 0 {
-                queue = append(queue, neighbor)
-            }
-        }
-    }
-    
-    return result
-}
-</code></pre>
-<h3 id="2-package-managers-менеджеры-пакетов"><a class="header" href="#2-package-managers-менеджеры-пакетов">2. Package Managers (Менеджеры пакетов)</a></h3>
-<p><strong>Применение</strong>: Определение порядка установки пакетов с учетом зависимостей.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>npm</strong>: Установка зависимостей Node.js пакетов</li>
-<li><strong>pip</strong>: Установка зависимостей Python пакетов</li>
-<li><strong>apt/yum</strong>: Установка системных пакетов</li>
-<li><strong>Maven/Gradle</strong>: Установка зависимостей Java проектов</li>
-</ul>
-<h3 id="3-task-scheduling-планирование-задач"><a class="header" href="#3-task-scheduling-планирование-задач">3. Task Scheduling (Планирование задач)</a></h3>
-<p><strong>Применение</strong>: Планирование задач с учетом зависимостей.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Workflow Engines</strong>: Планирование задач в workflow</li>
-<li><strong>Job Schedulers</strong>: Планирование заданий</li>
-<li><strong>CI/CD Pipelines</strong>: Определение порядка выполнения шагов</li>
-</ul>
-<h3 id="4-google-production-examples"><a class="header" href="#4-google-production-examples">4. Google Production Examples</a></h3>
-<p><strong>Примеры из Google</strong>:</p>
-<ul>
-<li><strong>Google Build System</strong>: Bazel использует топологическую сортировку</li>
-<li><strong>Google Cloud</strong>: Определение порядка развертывания ресурсов</li>
-<li><strong>Google Search</strong>: Определение порядка индексации страниц</li>
-<li><strong>Android Build System</strong>: Gradle использует топологическую сортировку</li>
-</ul>
-<h3 id="5-database-systems"><a class="header" href="#5-database-systems">5. Database Systems</a></h3>
-<p><strong>Применение в базах данных</strong>:</p>
-<ul>
-<li><strong>Transaction Management</strong>: Определение порядка выполнения транзакций</li>
-<li><strong>Query Optimization</strong>: Определение порядка выполнения операций</li>
-<li><strong>Schema Migration</strong>: Определение порядка миграций</li>
-</ul>
-<h3 id="6-compiler-design"><a class="header" href="#6-compiler-design">6. Compiler Design</a></h3>
-<p><strong>Применение в компиляторах</strong>:</p>
-<ul>
-<li><strong>Dependency Resolution</strong>: Разрешение зависимостей модулей</li>
-<li><strong>Code Generation</strong>: Определение порядка генерации кода</li>
-<li><strong>Optimization</strong>: Определение порядка оптимизаций</li>
-</ul>
-<h3 id="7-system-design-applications"><a class="header" href="#7-system-design-applications">7. System Design Applications</a></h3>
-<p><strong>Применение в системном дизайне</strong>:</p>
-<ul>
-<li><strong>Microservices</strong>: Определение порядка развертывания сервисов</li>
-<li><strong>Infrastructure as Code</strong>: Определение порядка создания ресурсов</li>
-<li><strong>Configuration Management</strong>: Определение порядка применения конфигураций</li>
-</ul>
-<h3 id="8-open-source-examples"><a class="header" href="#8-open-source-examples">8. Open Source Examples</a></h3>
-<p><strong>Примеры из open-source проектов</strong>:</p>
-<ul>
-<li><strong>Kubernetes</strong>: Определение порядка создания ресурсов</li>
-<li><strong>Docker Compose</strong>: Определение порядка запуска контейнеров</li>
-<li><strong>Ansible</strong>: Определение порядка выполнения задач</li>
-<li><strong>Terraform</strong>: Определение порядка создания ресурсов</li>
-</ul>
-<h3 id="9-event-processing"><a class="header" href="#9-event-processing">9. Event Processing</a></h3>
-<p><strong>Применение в обработке событий</strong>:</p>
-<ul>
-<li><strong>Event Sourcing</strong>: Определение порядка обработки событий</li>
-<li><strong>CQRS</strong>: Определение порядка операций чтения/записи</li>
-<li><strong>Stream Processing</strong>: Определение порядка обработки потоков</li>
-</ul>
-<h3 id="10-network-protocols"><a class="header" href="#10-network-protocols">10. Network Protocols</a></h3>
-<p><strong>Применение в сетевых протоколах</strong>:</p>
-<ul>
-<li><strong>Protocol Parsing</strong>: Определение порядка парсинга протоколов</li>
-<li><strong>Message Ordering</strong>: Определение порядка сообщений</li>
-<li><strong>Distributed Systems</strong>: Определение порядка операций</li>
-</ul>
-<h2 id="упражнения"><a class="header" href="#упражнения">Упражнения</a></h2>
-<p>Практикуйтесь на задачах разной сложности для закрепления материала:</p>
-<h3 id="легкие-задачи-для-начинающих"><a class="header" href="#легкие-задачи-для-начинающих">Легкие задачи (для начинающих)</a></h3>
-<ol>
-<li>
-<p><strong>Course Schedule</strong> (LeetCode 207)</p>
-<ul>
-<li>Определите, можно ли пройти все курсы</li>
-<li>Подсказка: Используйте топологическую сортировку для обнаружения циклов</li>
-<li><a href="https://leetcode.com/problems/course-schedule/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Course Schedule II</strong> (LeetCode 210)</p>
-<ul>
-<li>Найдите порядок прохождения курсов</li>
-<li>Подсказка: Используйте алгоритм Кана для топологической сортировки</li>
-<li><a href="https://leetcode.com/problems/course-schedule-ii/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="средние-задачи-для-практики"><a class="header" href="#средние-задачи-для-практики">Средние задачи (для практики)</a></h3>
-<ol start="3">
-<li>
-<p><strong>Alien Dictionary</strong> (LeetCode 269)</p>
-<ul>
-<li>Определите порядок букв в инопланетном алфавите</li>
-<li>Подсказка: Постройте граф зависимостей из слов, затем используйте топологическую сортировку</li>
-<li><a href="https://leetcode.com/problems/alien-dictionary/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Sequence Reconstruction</strong> (LeetCode 444)</p>
-<ul>
-<li>Определите, можно ли однозначно восстановить последовательность</li>
-<li>Подсказка: Используйте топологическую сортировку с проверкой уникальности</li>
-<li><a href="https://leetcode.com/problems/sequence-reconstruction/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Minimum Height Trees</strong> (LeetCode 310)</p>
-<ul>
-<li>Найдите корни деревьев с минимальной высотой</li>
-<li>Подсказка: Используйте топологическую сортировку, удаляя листья</li>
-<li><a href="https://leetcode.com/problems/minimum-height-trees/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Reconstruct Itinerary</strong> (LeetCode 332)</p>
-<ul>
-<li>Восстановите маршрут путешествия</li>
-<li>Подсказка: Используйте DFS для топологической сортировки с лексикографическим порядком</li>
-<li><a href="https://leetcode.com/problems/reconstruct-itinerary/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="сложные-задачи-для-углубления"><a class="header" href="#сложные-задачи-для-углубления">Сложные задачи (для углубления)</a></h3>
-<ol start="7">
-<li>
-<p><strong>Parallel Courses</strong> (LeetCode 1136)</p>
-<ul>
-<li>Найдите минимальное количество семестров для прохождения курсов</li>
-<li>Подсказка: Используйте топологическую сортировку с отслеживанием уровней</li>
-<li><a href="https://leetcode.com/problems/parallel-courses/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Course Schedule III</strong> (LeetCode 630)</p>
-<ul>
-<li>Найдите максимальное количество курсов, которые можно пройти</li>
-<li>Подсказка: Используйте жадный подход с приоритетной очередью</li>
-<li><a href="https://leetcode.com/problems/course-schedule-iii/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Sort Items by Groups Respecting Dependencies</strong> (LeetCode 1203)</p>
-<ul>
-<li>Отсортируйте элементы по группам с учетом зависимостей</li>
-<li>Подсказка: Используйте топологическую сортировку для групп и элементов</li>
-<li><a href="https://leetcode.com/problems/sort-items-by-groups-respecting-dependencies/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="дополнительные-задачи-для-практики"><a class="header" href="#дополнительные-задачи-для-практики">Дополнительные задачи для практики</a></h3>
-<ol start="10">
-<li>
-<p><strong>Build a Matrix With Conditions</strong> (LeetCode 2392)</p>
-<ul>
-<li>Постройте матрицу с учетом условий</li>
-<li><a href="https://leetcode.com/problems/build-a-matrix-with-conditions/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Find Eventual Safe States</strong> (LeetCode 802)</p>
-<ul>
-<li>Найдите безопасные состояния в графе</li>
-<li><a href="https://leetcode.com/problems/find-eventual-safe-states/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="рекомендации-по-решению"><a class="header" href="#рекомендации-по-решению">Рекомендации по решению</a></h3>
-<ol>
-<li><strong>Проверяйте циклы</strong>: Если результат содержит меньше вершин, есть цикл</li>
-<li><strong>Используйте правильный алгоритм</strong>: Алгоритм Кана для BFS, DFS для рекурсивного подхода</li>
-<li><strong>Отслеживайте in-degree</strong>: Правильно подсчитывайте входящие степени</li>
-<li><strong>Обрабатывайте множественные источники</strong>: Убедитесь, что обрабатываете все вершины с in-degree = 0</li>
-</ol>
 <h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><strong><a href="./tree-bfs.html">Tree BFS</a></strong> - Использует похожий подход с очередью</li>
-<li><strong><a href="./tree-dfs.html">Tree DFS</a></strong> - Альтернативный подход для топологической сортировки</li>
-<li><strong><a href="./subsets.html">Subsets</a></strong> - Для комбинаторных задач с зависимостями</li>
-</ul>
-<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
-<p>Поздравляем! Вы изучили все основные алгоритмические шаблоны. Рекомендуется повторить изученные шаблоны и решить больше практических задач на LeetCode.</p>
-<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
-<h3 id="интерактивные-визуализаторы"><a class="header" href="#интерактивные-визуализаторы">Интерактивные визуализаторы</a></h3>
-<ul>
-<li><a href="https://visualgo.net/en/ts">VisuAlgo - Topological Sort</a> - Интерактивная визуализация топологической сортировки</li>
-<li><a href="https://algorithm-visualizer.org/graph-algorithms/topological-sort">Algorithm Visualizer - Topological Sort</a> - Визуализация работы алгоритма</li>
-</ul>
-<h3 id="видео-объяснения"><a class="header" href="#видео-объяснения">Видео-объяснения</a></h3>
-<ul>
-<li><a href="https://www.youtube.com/results?search_query=neetcode+topological+sort">NeetCode - Topological Sort</a> - Подробное объяснение паттерна</li>
-<li><a href="https://www.youtube.com/results?search_query=back+to+back+swe+topological+sort">Back To Back SWE - Topological Sort</a> - Разбор задач</li>
-</ul>
-<h3 id="дополнительные-материалы"><a class="header" href="#дополнительные-материалы">Дополнительные материалы</a></h3>
-<ul>
-<li><a href="https://leetcode.com/tag/topological-sort/">Topological Sorting - LeetCode Tag</a> - Коллекция задач на топологическую сортировку</li>
-<li><a href="https://www.geeksforgeeks.org/topological-sorting/">Topological Sort - GeeksforGeeks</a> - Подробное объяснение алгоритма</li>
-<li><a href="https://en.wikipedia.org/wiki/Topological_sorting">Topological Sorting - Wikipedia</a> - Математическая теория и приложения</li>
+<li><strong><a href="./tree-bfs.html">Tree BFS</a></strong> — тот же обход с очередью.</li>
+<li><strong><a href="./tree-dfs.html">Tree DFS</a></strong> — альтернативный подход через DFS.</li>
+<li><strong><a href="./subsets.html">Subsets</a></strong> — комбинаторные задачи с зависимостями.</li>
+<li>Для общей теории по памяти и профилированию в Go см. <a href="appendix-go-memory.html">приложение</a>.</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="subsets.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="advanced-graph-algorithms.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="conclusion.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="greedy.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -1603,11 +332,11 @@ func buildOrder(modules []Module) []string {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="subsets.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="advanced-graph-algorithms.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="conclusion.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="greedy.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -1641,6 +370,9 @@ func buildOrder(modules []Module) []string {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-f6dee78c.js"></script>
+        <script src="assets/quiz-0d58c129.js"></script>
+        <script src="assets/progress-8bf0c880.js"></script>
 
 
 

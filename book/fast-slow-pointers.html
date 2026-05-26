@@ -28,6 +28,8 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-b363db2f.css">
+        <link rel="stylesheet" href="assets/quiz-7aebf16b.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -37,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-2799386e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-6b3e4b80.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,1499 +179,137 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="fast--slow-pointers-быстрые-и-медленные-указатели"><a class="header" href="#fast--slow-pointers-быстрые-и-медленные-указатели">Fast &amp; Slow Pointers (Быстрые и медленные указатели)</a></h1>
-<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
-<p>Шаблон <strong>Fast &amp; Slow Pointers</strong> (также известный как “алгоритм зайца и черепахи” или “Floyd’s Cycle Detection”) использует два указателя, которые движутся по структуре данных с разной скоростью. Обычно один указатель (медленный) движется на один шаг за раз, а другой (быстрый) - на два шага.</p>
-<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
-<p>Алгоритм был предложен Робертом Флойдом в 1967 году и является одним из самых элегантных алгоритмов в информатике. Название “заяц и черепаха” происходит из басни Эзопа, где медленная черепаха в итоге догоняет быстрого зайца благодаря настойчивости.</p>
-<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
-<p>Ключевое наблюдение: если в структуре данных есть цикл, то быстрый указатель рано или поздно “догонит” медленный, встретившись с ним внутри цикла. Если цикла нет, быстрый указатель достигнет конца структуры раньше, чем произойдет встреча.</p>
-<h3 id="преимущества"><a class="header" href="#преимущества">Преимущества</a></h3>
+<h2 id="теория"><a class="header" href="#теория">Теория</a></h2>
+<p><strong>Fast &amp; Slow Pointers</strong> (алгоритм «заяц и черепаха», обнаружение циклов Флойда) —
+два указателя движутся по структуре с разной скоростью: медленный на 1 шаг, быстрый
+на 2. Если в списке есть цикл, быстрый рано или поздно догонит медленный внутри цикла;
+если цикла нет — быстрый первым достигнет конца.</p>
+<p>Техника даёт O(n) по времени и <strong>O(1) по памяти</strong> там, где наивный подход с хеш-таблицей
+тратит O(n) дополнительной памяти.</p>
+<p><strong>Когда применять:</strong></p>
 <ul>
-<li><strong>Временная сложность</strong>: O(n) вместо O(n²) для наивного подхода</li>
-<li><strong>Пространственная сложность</strong>: O(1) вместо O(n) для подхода с хеш-таблицей</li>
-<li><strong>Элегантность</strong>: Простое и понятное решение</li>
+<li>определить наличие цикла в связанном списке;</li>
+<li>найти середину списка за один проход;</li>
+<li>найти K-й элемент с конца;</li>
+<li>работать с циклическими структурами за O(1) памяти.</li>
 </ul>
-<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
-<p>Используйте этот шаблон, когда:</p>
-<ul>
-<li>Нужно определить, есть ли цикл в связанном списке</li>
-<li>Требуется найти середину связанного списка</li>
-<li>Нужно найти K-й элемент с конца списка</li>
-<li>Работаете с циклическими структурами данных</li>
-<li>Хотите решить задачу за O(n) времени и O(1) пространства</li>
-</ul>
-<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
-<h3 id="базовый-алгоритм-обнаружения-цикла"><a class="header" href="#базовый-алгоритм-обнаружения-цикла">Базовый алгоритм обнаружения цикла:</a></h3>
-<pre><code class="language-go">// Определение узла связанного списка
-type ListNode struct {
+<h2 id="алгоритм"><a class="header" href="#алгоритм">Алгоритм</a></h2>
+<h3 id="обнаружение-цикла"><a class="header" href="#обнаружение-цикла">Обнаружение цикла</a></h3>
+<p>Двигаем <code>slow</code> на шаг, <code>fast</code> на два. Совпадение указателей означает цикл; выход
+<code>fast</code> в <code>nil</code> — цикла нет. Условие <code>fast != nil &amp;&amp; fast.Next != nil</code> защищает от
+разыменования <code>nil</code>.</p>
+<pre><code class="language-go">type ListNode struct {
     Val  int
     Next *ListNode
 }
 
-// Функция для обнаружения цикла в связанном списке
 func hasCycle(head *ListNode) bool {
-    // Шаг 1: Инициализация - оба указателя начинают с головы списка
-    // slow будет двигаться медленно (1 шаг за раз)
-    // fast будет двигаться быстро (2 шага за раз)
-    slow := head
-    fast := head
-    
-    // Шаг 2: Движение по списку
-    // Проверяем, что fast и fast.Next не равны nil
-    // Это гарантирует, что мы можем безопасно сделать fast.Next.Next
+    slow, fast := head, head
     for fast != nil &amp;&amp; fast.Next != nil {
-        // Перемещаем slow на один шаг вперед
         slow = slow.Next
-        
-        // Перемещаем fast на два шага вперед
-        // Если есть цикл, fast рано или поздно "догонит" slow
         fast = fast.Next.Next
-        
-        // Проверка встречи: если указатели встретились, обнаружен цикл
-        // Это работает благодаря разной скорости движения:
-        // если есть цикл, fast обязательно встретит slow внутри цикла
         if slow == fast {
-            return true  // Цикл обнаружен
+            return true
         }
     }
-    
-    // Если мы дошли сюда, значит fast достиг конца списка (nil)
-    // Это означает, что цикла нет
     return false
 }
-
-// Функция для поиска начала цикла (если цикл обнаружен)
-func detectCycle(head *ListNode) *ListNode {
-    slow := head
-    fast := head
-    
-    // Сначала находим точку встречи в цикле (если цикл есть)
+</code></pre>
+<h3 id="начало-цикла"><a class="header" href="#начало-цикла">Начало цикла</a></h3>
+<p>После встречи возвращаем <code>slow</code> в <code>head</code> и двигаем оба указателя по одному шагу:
+точка их новой встречи — начало цикла. Это работает потому, что расстояние от головы
+до начала цикла равно расстоянию от точки встречи до начала цикла.</p>
+<pre><code class="language-go">func detectCycle(head *ListNode) *ListNode {
+    slow, fast := head, head
     for fast != nil &amp;&amp; fast.Next != nil {
         slow = slow.Next
         fast = fast.Next.Next
         if slow == fast {
-            break  // Нашли точку встречи
+            break
         }
     }
-    
-    // Если цикла нет, возвращаем nil
     if fast == nil || fast.Next == nil {
-        return nil
+        return nil // цикла нет
     }
-    
-    // Шаг 3: Поиск начала цикла
-    // Возвращаем slow в начало списка
     slow = head
-    
-    // Двигаем оба указателя по одному шагу
-    // Математически доказано, что место встречи - это начало цикла
-    // Расстояние от начала до начала цикла равно расстоянию от точки встречи до начала цикла
     for slow != fast {
         slow = slow.Next
         fast = fast.Next
     }
-    
-    // Место встречи - это начало цикла
     return slow
 }
 </code></pre>
-<h3 id="поиск-середины-списка"><a class="header" href="#поиск-середины-списка">Поиск середины списка:</a></h3>
-<ol>
-<li>Используйте два указателя: <code>slow</code> и <code>fast</code></li>
-<li>Когда <code>fast</code> достигнет конца, <code>slow</code> будет в середине</li>
-</ol>
-<h3 id="схема-обнаружения-цикла"><a class="header" href="#схема-обнаружения-цикла">Схема обнаружения цикла:</a></h3>
-<pre><code class="language-mermaid">flowchart TD
-    A[slow, fast = head] --&gt; B[slow = slow.Next, fast = fast.Next.Next]
-    B --&gt; C{fast == nil?}
-    C --&gt;|Да| D[Цикла нет]
-    C --&gt;|Нет| E{slow == fast?}
-    E --&gt;|Да| F[Цикл обнаружен]
-    E --&gt;|Нет| B
+<h3 id="середина-списка"><a class="header" href="#середина-списка">Середина списка</a></h3>
+<p>Когда <code>fast</code> дойдёт до конца, <code>slow</code> окажется в середине.</p>
+<pre><code class="language-go">func middleNode(head *ListNode) *ListNode {
+    slow, fast := head, head
+    for fast != nil &amp;&amp; fast.Next != nil {
+        slow = slow.Next
+        fast = fast.Next.Next
+    }
+    return slow
+}
 </code></pre>
+<h3 id="сложность"><a class="header" href="#сложность">Сложность</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Задача</th><th>Время</th><th>Память</th></tr>
+</thead>
+<tbody>
+<tr><td>Обнаружение цикла</td><td>O(n)</td><td>O(1)</td></tr>
+<tr><td>Начало цикла</td><td>O(n)</td><td>O(1)</td></tr>
+<tr><td>Середина списка</td><td>O(n)</td><td>O(1)</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
-<h3 id="обнаружение-цикла"><a class="header" href="#обнаружение-цикла">Обнаружение цикла:</a></h3>
-<p><strong>Исходные данные:</strong> Список с циклом: 1 → 2 → 3 → 4 → 5 → 3 (цикл начинается с узла 3)</p>
-<p><strong>Структура списка:</strong></p>
-<pre><code>1 → 2 → 3 → 4 → 5
-         ↑        ↓
-         └────────┘
-       (цикл: 3 → 4 → 5 → 3)
-</code></pre>
-<p><strong>Шаг 1: Инициализация - оба указателя в начале</strong></p>
-<pre><code>Список: 1 → 2 → 3 → 4 → 5 → 3 (цикл)
-         ↑
-      slow, fast
-       Оба указателя на узле 1
-</code></pre>
-<p><strong>Шаг 2: Первое движение</strong></p>
-<pre><code>Список: 1 → 2 → 3 → 4 → 5 → 3 (цикл)
-            ↑     ↑
-          slow   fast
-       slow: 1 шаг → узел 2
-       fast: 2 шага → узел 3
-</code></pre>
-<p><strong>Шаг 3: Продолжаем движение</strong></p>
-<pre><code>Список: 1 → 2 → 3 → 4 → 5 → 3 (цикл)
-               ↑        ↑
-             slow      fast
-       slow: 1 шаг → узел 3
-       fast: 2 шага → узел 5 (в цикле)
-</code></pre>
-<p><strong>Шаг 4: Fast входит в цикл</strong></p>
-<pre><code>Список: 1 → 2 → 3 → 4 → 5 → 3 (цикл)
-                  ↑     ↑
-                slow  fast
-       slow: 1 шаг → узел 4
-       fast: 2 шага → узел 3 (вернулся в цикл)
-</code></pre>
-<p><strong>Шаг 5: Встреча! Цикл обнаружен</strong></p>
-<pre><code>Список: 1 → 2 → 3 → 4 → 5 → 3 (цикл)
-                     ↑
-                  slow, fast
-       slow: 1 шаг → узел 5
-       fast: 2 шага → узел 5
-       slow == fast ✓ Цикл обнаружен!
-</code></pre>
-<p><strong>Результат:</strong> Цикл обнаружен на узле 5</p>
-<h3 id="поиск-середины-списка-1"><a class="header" href="#поиск-середины-списка-1">Поиск середины списка:</a></h3>
-<p><strong>Исходные данные:</strong> Список: 1 → 2 → 3 → 4 → 5</p>
-<p><strong>Шаг 1: Инициализация</strong></p>
-<pre><code>Список: 1 → 2 → 3 → 4 → 5
-         ↑
-      slow, fast
-       Оба указателя на узле 1
-</code></pre>
-<p><strong>Шаг 2: Первое движение</strong></p>
-<pre><code>Список: 1 → 2 → 3 → 4 → 5
-            ↑     ↑
-          slow   fast
-       slow: 1 шаг → узел 2
-       fast: 2 шага → узел 3
-</code></pre>
-<p><strong>Шаг 3: Второе движение</strong></p>
-<pre><code>Список: 1 → 2 → 3 → 4 → 5
-               ↑        ↑
-             slow      fast
-       slow: 1 шаг → узел 3
-       fast: 2 шага → узел 5
-</code></pre>
-<p><strong>Шаг 4: Fast достиг конца</strong></p>
-<pre><code>Список: 1 → 2 → 3 → 4 → 5
-               ↑        ↑
-             slow      fast (null)
-       fast.next == null → остановка
-       slow указывает на середину
-</code></pre>
-<p><strong>Результат:</strong> slow указывает на узел <strong>3</strong> (середина списка)</p>
-<h3 id="поиск-начала-цикла-после-обнаружения"><a class="header" href="#поиск-начала-цикла-после-обнаружения">Поиск начала цикла (после обнаружения):</a></h3>
-<p>После того как slow и fast встретились (на узле 5), возвращаем slow в head и двигаем оба по 1 шагу:</p>
-<pre><code>Шаг 1: slow = head (узел 1), fast остаётся в точке встречи (узел 5)
-Список: 1 → 2 → 3 → 4 → 5 → 3 (цикл)
-         ↑              ↑
-       slow           fast
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: синяя ячейка — <code>slow</code> (шаг 1),
+жёлтая — <code>fast</code> (шаг 2). Видно, как они встречаются внутри цикла. (Виджет работает в
+собранной книге <code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="list-cycle" data-list="1,2,3,4,5" data-cycle="2"></div>
 
-Шаг 2: slow шаг → узел 2, fast шаг → узел 3
-Шаг 3: slow шаг → узел 3, fast шаг → узел 4
-Шаг 4: slow шаг → узел 3, fast шаг → узел 5
-... slow и fast снова встречаются, когда slow входит в цикл
-
-Корректный алгоритм: slow = head, оба двигаются по 1 шагу до встречи.
-Шаг 1: slow=1, fast=5 (точка первой встречи)
-Шаг 2: slow=2, fast=3
-Шаг 3: slow=3, fast=3  ← Встреча! Узел 3 — начало цикла.
+<p>Список с циклом <code>1 → 2 → 3 → 4 → 5 → 3</code> (цикл начинается с узла 3):</p>
+<pre><code>шаг 0:  slow=1  fast=1
+шаг 1:  slow=2  fast=3
+шаг 2:  slow=3  fast=5
+шаг 3:  slow=4  fast=3   (fast прошёл цикл)
+шаг 4:  slow=5  fast=5   ← slow == fast: цикл обнаружен
 </code></pre>
-<p>Математически: расстояние от head до начала цикла = расстоянию от точки первой встречи до начала цикла (по циклу).</p>
-<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-обнаружения-цикла-работает"><a class="header" href="#почему-алгоритм-обнаружения-цикла-работает">Почему алгоритм обнаружения цикла работает?</a></h3>
-<p><strong>Теорема Флойда</strong>: Если в связанном списке есть цикл длины L, и мы начинаем с двух указателей в одной точке, где медленный указатель движется на 1 шаг, а быстрый на 2 шага, то они встретятся через максимум L шагов после входа в цикл.</p>
-<p><strong>Доказательство</strong>:</p>
+<p><code>fast</code> проходит вдвое больше узлов и, оказавшись в цикле, сокращает разрыв с <code>slow</code>
+на 1 за шаг — поэтому встреча гарантирована.</p>
+<h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
-<li>Пусть расстояние от начала до начала цикла = m узлов</li>
-<li>Пусть длина цикла = L узлов</li>
-<li>После m шагов: slow в начале цикла, fast прошел 2m шагов</li>
-<li>Положение fast в цикле: (2m - m) mod L = m mod L</li>
-<li>Расстояние между slow и fast: (L - m mod L) mod L</li>
-<li>На каждом шаге это расстояние уменьшается на 1 (fast догоняет slow)</li>
-<li>Максимальное расстояние = L-1, значит встреча произойдет максимум через L-1 шаг</li>
+<li><strong>Условие цикла <code>for fast != nil</code></strong> без проверки <code>fast.Next</code> — разыменование <code>nil</code>
+при <code>fast.Next.Next</code>. Правильно: <code>for fast != nil &amp;&amp; fast.Next != nil</code>.</li>
+<li><strong>Сдвиг старта</strong> — инициализируйте оба указателя <code>head</code>, а не <code>head.Next</code>.</li>
+<li><strong>Забыли сбросить <code>slow</code> в <code>head</code></strong> при поиске начала цикла — иначе указатель
+остаётся внутри цикла и ответ неверный.</li>
+<li><strong>Не обработан пустой список или один узел</strong> — проверяйте <code>head == nil</code> и
+<code>head.Next == nil</code> (self-loop при этом нужно учитывать отдельно).</li>
+<li><strong>Поиск K-го с конца, когда K больше длины</strong> — двигая <code>fast</code> вперёд на K шагов,
+проверяйте <code>fast == nil</code>.</li>
 </ol>
-<p><strong>Почему место встречи с началом цикла работает?</strong></p>
-<p>После встречи в цикле:</p>
+<h2 id="задачи"><a class="header" href="#задачи">Задачи</a></h2>
+<p><strong>LeetCode:</strong></p>
 <ul>
-<li>Пусть расстояние от начала списка до начала цикла = x</li>
-<li>Пусть расстояние от начала цикла до точки встречи = y</li>
-<li>Пусть оставшаяся часть цикла = z (y + z = L)</li>
+<li><a href="https://leetcode.com/problems/linked-list-cycle/">Linked List Cycle</a></li>
+<li><a href="https://leetcode.com/problems/middle-of-the-linked-list/">Middle of the Linked List</a></li>
+<li><a href="https://leetcode.com/problems/palindrome-linked-list/">Palindrome Linked List</a></li>
+<li><a href="https://leetcode.com/problems/linked-list-cycle-ii/">Linked List Cycle II</a></li>
+<li><a href="https://leetcode.com/problems/remove-nth-node-from-end-of-list/">Remove Nth Node From End of List</a></li>
+<li><a href="https://leetcode.com/problems/reorder-list/">Reorder List</a></li>
+<li><a href="https://leetcode.com/problems/find-the-duplicate-number/">Find the Duplicate Number</a> (сложная)</li>
+<li><a href="https://leetcode.com/problems/sort-list/">Sort List</a> (сложная)</li>
 </ul>
-<p>Когда slow прошел x + y шагов, fast прошел 2(x + y) шагов.
-В точке встречи: fast = x + y + kL для некоторого k
-Значит: 2(x + y) = x + y + kL → x + y = kL → x = kL - y = (k-1)L + z</p>
-<p>Если мы переместим slow в начало и будем двигать оба указателя по 1 шагу:</p>
-<ul>
-<li>slow пройдет x шагов до начала цикла</li>
-<li>fast пройдет x шагов от точки встречи, что равно (k-1)L + z шагов</li>
-<li>Это приведет fast точно в начало цикла!</li>
-</ul>
-<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
-<p><strong>Обнаружение цикла</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li>В худшем случае (цикл начинается в конце): slow проходит n узлов до входа в цикл</li>
-<li>После входа: максимум L шагов до встречи, где L ≤ n</li>
-<li>Итого: O(n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(1)
-<ul>
-<li>Только два указателя</li>
-</ul>
-</li>
-</ul>
-<p><strong>Поиск начала цикла</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li>После обнаружения цикла: максимум L шагов до начала цикла</li>
-<li>Итого: O(n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(1)</li>
-</ul>
-<p><strong>Поиск середины списка</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li>fast проходит n узлов (или n-1 для четного количества)</li>
-</ul>
-</li>
-</ul>
-<h3 id="амортизированная-сложность"><a class="header" href="#амортизированная-сложность">Амортизированная сложность</a></h3>
-<p><strong>Амортизированный анализ</strong> для быстрых и медленных указателей:</p>
-<h4 id="обнаружение-цикла-1"><a class="header" href="#обнаружение-цикла-1">Обнаружение цикла:</a></h4>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(1) на узел
-<ul>
-<li>В среднем цикл обнаруживается за O(n) шагов</li>
-<li>Амортизированная стоимость: O(n) / n = O(1) на узел</li>
-</ul>
-</li>
-</ul>
-<h4 id="поиск-начала-цикла"><a class="header" href="#поиск-начала-цикла">Поиск начала цикла:</a></h4>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(1) на узел
-<ul>
-<li>После обнаружения цикла начало находится за O(L) шагов, где L ≤ n</li>
-<li>Амортизированная стоимость: O(n) / n = O(1) на узел</li>
-</ul>
-</li>
-</ul>
-<h3 id="worstaveragebest-case-анализ"><a class="header" href="#worstaveragebest-case-анализ">Worst/Average/Best Case анализ</a></h3>
-<h4 id="обнаружение-цикла-2"><a class="header" href="#обнаружение-цикла-2">Обнаружение цикла:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(1)</td><td>Цикл начинается с головы, встреча происходит сразу</td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(n)</td><td>Цикл начинается в середине списка</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(n)</td><td>Цикл начинается в конце, или цикла нет (нужно пройти весь список)</td></tr>
-</tbody>
-</table>
-</div>
-<h4 id="поиск-середины-списка-2"><a class="header" href="#поиск-середины-списка-2">Поиск середины списка:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(n)</td><td>Всегда одинаковое время, так как нужно пройти весь список</td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(n)</td><td>Стандартное поведение алгоритма</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(n)</td><td>Всегда одинаковое время</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="таблица-сравнения-сложностей"><a class="header" href="#таблица-сравнения-сложностей">Таблица сравнения сложностей</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Алгоритм</th><th>Время (Worst)</th><th>Время (Average)</th><th>Время (Best)</th><th>Память</th><th>Амортизированное время</th></tr>
-</thead>
-<tbody>
-<tr><td>Обнаружение цикла</td><td>O(n)</td><td>O(n)</td><td>O(1)</td><td>O(1)</td><td>O(1) на узел</td></tr>
-<tr><td>Поиск начала цикла</td><td>O(n)</td><td>O(n)</td><td>O(1)</td><td>O(1)</td><td>O(1) на узел</td></tr>
-<tr><td>Поиск середины</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(1)</td><td>O(1) на узел</td></tr>
-<tr><td>HashSet (альтернатива)</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td>O(1) на узел</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Поиск середины списка</strong>:</p>
-<ul>
-<li><strong>Временная сложность</strong>: O(n)
-<ul>
-<li>fast проходит n узлов (или n-1 для четного количества)</li>
-<li>slow проходит n/2 узлов</li>
-<li>Итого: O(n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(1)</li>
-</ul>
-<h3 id="сравнение-с-альтернативными-подходами"><a class="header" href="#сравнение-с-альтернативными-подходами">Сравнение с альтернативными подходами:</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Подход</th><th>Время</th><th>Память</th><th>Примечания</th></tr>
-</thead>
-<tbody>
-<tr><td>Хеш-таблица</td><td>O(n)</td><td>O(n)</td><td>Простой, но требует памяти</td></tr>
-<tr><td>Fast &amp; Slow</td><td>O(n)</td><td>O(1)</td><td>Элегантный, константная память</td></tr>
-<tr><td>Наивный (два цикла)</td><td>O(n²)</td><td>O(1)</td><td>Неэффективный</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/linked-list-cycle/">Linked List Cycle</a> - Цикл в связанном списке</li>
-<li><a href="https://leetcode.com/problems/middle-of-the-linked-list/">Middle of the Linked List</a> - Середина связанного списка</li>
-<li><a href="https://leetcode.com/problems/palindrome-linked-list/">Palindrome Linked List</a> - Палиндромный связанный список</li>
-</ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/linked-list-cycle-ii/">Linked List Cycle II</a> - Начало цикла в связанном списке</li>
-<li><a href="https://leetcode.com/problems/remove-nth-node-from-end-of-list/">Remove Nth Node From End of List</a> - Удаление N-го узла с конца</li>
-<li><a href="https://leetcode.com/problems/reorder-list/">Reorder List</a> - Переупорядочивание списка</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/find-the-duplicate-number/">Find the Duplicate Number</a> - Поиск дубликата числа</li>
-<li><a href="https://leetcode.com/problems/sort-list/">Sort List</a> - Сортировка списка</li>
-</ul>
-<h2 id="граничные-случаи"><a class="header" href="#граничные-случаи">Граничные случаи</a></h2>
-<p>При работе с быстрыми и медленными указателями важно обрабатывать следующие граничные случаи:</p>
-<h3 id="1-пустой-список"><a class="header" href="#1-пустой-список">1. Пустой список</a></h3>
-<p><strong>Проблема</strong>: Если список пуст, указатели не могут быть инициализированы.</p>
-<p><strong>Решение</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func hasCycle(head *ListNode) bool {
-    if head == nil {
-        return false
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="2-список-из-одного-элемента"><a class="header" href="#2-список-из-одного-элемента">2. Список из одного элемента</a></h3>
-<p><strong>Проблема</strong>: Если список содержит только один элемент, цикл невозможен (если нет self-loop).</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if head.Next == nil {
-    return false // Нет цикла, так как нет следующего узла
-}
-</code></pre>
-<h3 id="3-список-из-двух-элементов"><a class="header" href="#3-список-из-двух-элементов">3. Список из двух элементов</a></h3>
-<p><strong>Проблема</strong>: Минимальный случай для обнаружения цикла.</p>
-<p><strong>Решение</strong>: Убедитесь, что алгоритм корректно обрабатывает случай, когда два элемента могут образовывать цикл.</p>
-<h3 id="4-цикл-начинается-с-головы"><a class="header" href="#4-цикл-начинается-с-головы">4. Цикл начинается с головы</a></h3>
-<p><strong>Проблема</strong>: Если цикл начинается с первого элемента, fast и slow встретятся на голове.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай, так как fast и slow начинают с одного узла.</p>
-<h3 id="5-очень-длинный-список-без-цикла"><a class="header" href="#5-очень-длинный-список-без-цикла">5. Очень длинный список без цикла</a></h3>
-<p><strong>Проблема</strong>: Алгоритм должен завершиться за O(n) времени.</p>
-<p><strong>Решение</strong>: Убедитесь, что fast достигает nil, что означает отсутствие цикла.</p>
-<h3 id="6-очень-длинный-цикл"><a class="header" href="#6-очень-длинный-цикл">6. Очень длинный цикл</a></h3>
-<p><strong>Проблема</strong>: Цикл может быть очень большим, но алгоритм все равно должен работать за O(n).</p>
-<p><strong>Решение</strong>: Алгоритм Floyd гарантирует обнаружение цикла за O(n) независимо от размера цикла.</p>
-<h3 id="7-множественные-циклы"><a class="header" href="#7-множественные-циклы">7. Множественные циклы</a></h3>
-<p><strong>Проблема</strong>: В графе может быть несколько циклов (хотя в связанном списке это невозможно).</p>
-<p><strong>Решение</strong>: Для связанных списков это не применимо, так как каждый узел имеет только один указатель next.</p>
-<h3 id="8-self-loop-узел-указывает-на-себя"><a class="header" href="#8-self-loop-узел-указывает-на-себя">8. Self-loop (узел указывает на себя)</a></h3>
-<p><strong>Проблема</strong>: Узел может указывать на сам себя.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">// Проверка self-loop
-if node.Next == node {
-    return true // Обнаружен self-loop
-}
-</code></pre>
-<h3 id="9-поиск-k-го-элемента-k-больше-длины-списка"><a class="header" href="#9-поиск-k-го-элемента-k-больше-длины-списка">9. Поиск K-го элемента: K больше длины списка</a></h3>
-<p><strong>Проблема</strong>: Если K больше длины списка, fast может стать nil до того, как slow начнет двигаться.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">func findKthFromEnd(head *ListNode, k int) *ListNode {
-    fast := head
-    // Проверяем, что список достаточно длинный
-    for i := 0; i &lt; k; i++ {
-        if fast == nil {
-            return nil // K больше длины списка
-        }
-        fast = fast.Next
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="10-поиск-середины-четноенечетное-количество-элементов"><a class="header" href="#10-поиск-середины-четноенечетное-количество-элементов">10. Поиск середины: четное/нечетное количество элементов</a></h3>
-<p><strong>Проблема</strong>: Для четного количества элементов может быть два “средних” элемента.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">// Для четного количества: возвращаем второй средний элемент
-// Для нечетного: возвращаем средний элемент
-// Это стандартное поведение алгоритма
-</code></pre>
-<h2 id="типичные-ошибки-и-подводные-камни"><a class="header" href="#типичные-ошибки-и-подводные-камни">Типичные ошибки и подводные камни</a></h2>
-<h3 id="1-неправильная-проверка-условий-цикла"><a class="header" href="#1-неправильная-проверка-условий-цикла">1. Неправильная проверка условий цикла</a></h3>
-<p>❌ <strong>Неправильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">for fast != nil {  // Может вызвать ошибку при fast.Next
-    slow = slow.Next
-    fast = fast.Next.Next
-}
-</code></pre>
-<p>✅ <strong>Правильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">for fast != nil &amp;&amp; fast.Next != nil {
-    slow = slow.Next
-    fast = fast.Next.Next
-    if slow == fast {
-        return true
-    }
-}
-</code></pre>
-<h3 id="2-неправильная-инициализация-указателей"><a class="header" href="#2-неправильная-инициализация-указателей">2. Неправильная инициализация указателей</a></h3>
-<p>❌ <strong>Неправильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">slow := head.Next  // Пропускаем первый элемент
-fast := head.Next.Next
-</code></pre>
-<p>✅ <strong>Правильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">slow := head
-fast := head
-</code></pre>
-<h3 id="3-забывание-сброса-slow-при-поиске-начала-цикла"><a class="header" href="#3-забывание-сброса-slow-при-поиске-начала-цикла">3. Забывание сброса slow при поиске начала цикла</a></h3>
-<p>❌ <strong>Неправильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// После обнаружения цикла
-for slow != fast {  // slow уже в цикле!
-    slow = slow.Next
-    fast = fast.Next
-}
-</code></pre>
-<p>✅ <strong>Правильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// После обнаружения цикла
-slow = head  // Сбрасываем в начало
-for slow != fast {
-    slow = slow.Next
-    fast = fast.Next
-}
-</code></pre>
-<h3 id="4-неправильная-обработка-пустого-списка"><a class="header" href="#4-неправильная-обработка-пустого-списка">4. Неправильная обработка пустого списка</a></h3>
-<p>❌ <strong>Неправильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">slow := head
-fast := head
-for fast != nil &amp;&amp; fast.Next != nil {
-    // Не проверили head == nil
-}
-</code></pre>
-<p>✅ <strong>Правильно</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">if head == nil || head.Next == nil {
-    return false
-}
-slow := head
-fast := head
-</code></pre>
-<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
-<ol>
-<li>
-<p><strong>Всегда проверяйте граничные случаи</strong>:</p>
-<ul>
-<li>Пустой список</li>
-<li>Список из одного элемента</li>
-<li>Список без цикла</li>
-<li>Цикл начинается с головы</li>
-</ul>
-</li>
-<li>
-<p><strong>Используйте правильные скорости</strong>:</p>
-<ul>
-<li>Для обнаружения цикла: 1 и 2 шага</li>
-<li>Для поиска K-го элемента: можно использовать другие соотношения</li>
-</ul>
-</li>
-<li>
-<p><strong>Отладка</strong>:</p>
-<ul>
-<li>Визуализируйте движение указателей на бумаге</li>
-<li>Добавьте счетчик итераций для предотвращения бесконечных циклов</li>
-<li>Проверьте инвариант: fast всегда впереди slow (если нет цикла)</li>
-</ul>
-</li>
-</ol>
-<h2 id="вариации"><a class="header" href="#вариации">Вариации</a></h2>
-<h3 id="поиск-k-го-элемента-с-конца"><a class="header" href="#поиск-k-го-элемента-с-конца">Поиск K-го элемента с конца:</a></h3>
-<p>Используйте два указателя с расстоянием K между ними:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">fast := head
-for i := 0; i &lt; k; i++ {
-    fast = fast.Next
-}
-slow := head
-for fast != nil {
-    slow = slow.Next
-    fast = fast.Next
-}
-return slow  // K-й элемент с конца
-</code></pre>
-<h3 id="определение-длины-цикла"><a class="header" href="#определение-длины-цикла">Определение длины цикла:</a></h3>
-<p>После обнаружения встречи, зафиксируйте slow и двигайте fast до следующей встречи:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// После первой встречи
-cycleLength := 1
-temp := slow.Next
-for temp != slow {
-    cycleLength++
-    temp = temp.Next
-}
-</code></pre>
-<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
-<h3 id="используемые-структуры-данных-в-fast--slow-pointers"><a class="header" href="#используемые-структуры-данных-в-fast--slow-pointers">Используемые структуры данных в Fast &amp; Slow Pointers</a></h3>
-<p>В шаблоне Fast &amp; Slow Pointers используются следующие структуры данных:</p>
-<ul>
-<li><strong>LinkedList Node</strong>: Узлы связанного списка (указатели в Go)</li>
-<li><strong>Указатели</strong>: Для навигации по списку (fast и slow указатели)</li>
-</ul>
-<h3 id="linkedlist-node-узел-связанного-списка"><a class="header" href="#linkedlist-node-узел-связанного-списка">LinkedList Node (Узел связанного списка)</a></h3>
-<p><strong>Что такое связанный список (Linked List)?</strong></p>
-<p><strong>Связанный список</strong> — это линейная структура данных, где каждый элемент (узел) содержит данные и указатель на следующий узел. В отличие от массива, элементы не хранятся в непрерывной памяти.</p>
-<p><strong>Основные характеристики</strong>:</p>
-<ul>
-<li><strong>Динамический размер</strong>: Можно добавлять/удалять элементы без перераспределения памяти</li>
-<li><strong>Непрерывная память</strong>: Узлы могут быть разбросаны в памяти (нет cache locality)</li>
-<li><strong>Вставка/удаление</strong>: O(1) если известен указатель на узел</li>
-<li><strong>Доступ по индексу</strong>: O(n) - нужно пройти от начала до нужного узла</li>
-</ul>
-<p><strong>Структура узла (ListNode)</strong>:</p>
-<ul>
-<li><strong>val</strong>: Значение узла (данные)</li>
-<li><strong>next</strong>: Указатель на следующий узел (или None/nil для конца списка)</li>
-</ul>
-<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>Go (указатели)</strong>:</p>
-<pre><code>Узел списка:
-┌─────────────────────────────────────────┐
-│ &amp;ListNode                                │
-│ ┌─────────────┐                         │
-│ │ Val: int    │ Значение                │
-│ │ Next: *ListNode│ Указатель            │
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-         │
-         ▼
-    [данные в куче]
-    Каждый узел - отдельная аллокация
-</code></pre>
-<p><strong>Важные детали</strong>:</p>
-<ul>
-<li>Указатель <code>*ListNode</code> - ссылается на узел в куче</li>
-<li>GC управляет памятью узлов</li>
-<li><code>nil</code> означает конец списка</li>
-<li>Нет cache locality</li>
-</ul>
-<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Операция</th><th>LinkedList</th><th>Объяснение</th></tr>
-</thead>
-<tbody>
-<tr><td>Доступ по индексу</td><td>O(n)</td><td>Нужно пройти от начала до индекса</td></tr>
-<tr><td>Вставка в начало</td><td>O(1)</td><td>Просто изменение указателя</td></tr>
-<tr><td>Вставка в конец</td><td>O(n)</td><td>Нужно найти последний узел</td></tr>
-<tr><td>Удаление</td><td>O(1) если есть указатель</td><td>Изменение указателей</td></tr>
-<tr><td>Поиск цикла (Floyd)</td><td>O(n)</td><td>Fast pointer проходит максимум 2n узлов</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Почему Fast &amp; Slow Pointers эффективны</strong>:</p>
-<ul>
-<li>Не требуют дополнительной памяти (только два указателя)</li>
-<li>O(n) время для обнаружения цикла</li>
-<li>O(1) дополнительная память</li>
-</ul>
-<h4 id="когда-использовать-linkedlist"><a class="header" href="#когда-использовать-linkedlist">Когда использовать LinkedList:</a></h4>
-<p><strong>Используйте LinkedList когда</strong>:</p>
-<ul>
-<li>Нужны частые вставки/удаления в середине</li>
-<li>Размер неизвестен заранее</li>
-<li>Не нужен произвольный доступ</li>
-</ul>
-<p><strong>Не используйте когда</strong>:</p>
-<ul>
-<li>Нужен произвольный доступ (используйте Vec/Array)</li>
-<li>Важна cache locality (используйте Vec/Array)</li>
-<li>Нужна производительность (Vec обычно быстрее)</li>
-</ul>
-<h3 id="указатели-в-связанных-списках"><a class="header" href="#указатели-в-связанных-списках">Указатели в связанных списках</a></h3>
-<p>*<em>Go: <em>ListNode и nil</em></em>:</p>
-<ul>
-<li><code>Some(box)</code> - есть узел</li>
-<li><code>None</code> - конец списка</li>
-<li>Размер: 8 байт (на 64-bit) для Some, 8 байт для None (discriminant)</li>
-</ul>
-<h4 id="go-listnode-и-nil"><a class="header" href="#go-listnode-и-nil">Go: *ListNode и nil</a></h4>
-<p>*<strong>ListNode</strong>:</p>
-<ul>
-<li>Обычный указатель на узел</li>
-<li><code>nil</code> означает отсутствие узла</li>
-<li>GC управляет памятью</li>
-</ul>
-<p><strong>Пример</strong>:</p>
-<pre><code class="language-go">type ListNode struct {
-    Val  int
-    Next *ListNode  // nil означает конец
-}
-</code></pre>
-<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<h4 id="что-это-такое"><a class="header" href="#что-это-такое">Что это такое:</a></h4>
-<p><strong>Escape Analysis</strong> определяет, должны ли узлы списка быть в куче.</p>
-<p><strong>Для Fast &amp; Slow Pointers</strong>:</p>
-<ul>
-<li>Узлы списка всегда в куче (динамическое выделение)</li>
-<li>Указатели fast/slow - на стеке</li>
-<li>Результаты могут escape, если возвращаются</li>
-</ul>
-<h4 id="как-проверить"><a class="header" href="#как-проверить">Как проверить:</a></h4>
-<pre><code class="language-bash">go build -gcflags=-m main.go
-</code></pre>
-<p><strong>Пример</strong>:</p>
-<pre><code class="language-go">func createList() *ListNode {
-    node := &amp;ListNode{Val: 1}  // escape в кучу
-    return node
-}
-</code></pre>
-<p><strong>Вывод</strong>:</p>
-<pre><code>./main.go:5:6: moved to heap: node
-</code></pre>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<h4 id="как-работает-gc"><a class="header" href="#как-работает-gc">Как работает GC:</a></h4>
-<p><strong>Для Fast &amp; Slow Pointers</strong>:</p>
-<ul>
-<li>Узлы списка в куче - управляются GC</li>
-<li>Указатели fast/slow на стеке - не влияют на GC</li>
-<li>Циклические ссылки могут привести к утечкам памяти (если не разорвать цикл)</li>
-</ul>
-<h4 id="оптимизация"><a class="header" href="#оптимизация">Оптимизация:</a></h4>
-<p><strong>Избежание утечек памяти</strong>:</p>
-<pre><code class="language-go">// ✅ Разрываем цикл перед удалением
-func cleanup(head *ListNode) {
-    current := head
-    for current != nil {
-        next := current.Next
-        current.Next = nil  // разрываем ссылку
-        current = next
-    }
-}
-</code></pre>
-<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
-<h4 id="go-указатели-и-gc"><a class="header" href="#go-указатели-и-gc">Go: Указатели и GC</a></h4>
-<p>В Go:</p>
-<ul>
-<li><strong>Указатели</strong>: <code>*ListNode</code> - просто адреса, не аллоцируют память</li>
-<li><strong>Структуры</strong>: Узлы списка аллоцируются в куче</li>
-<li><strong>GC</strong>: Автоматически управляет памятью узлов</li>
-</ul>
-<h3 id="анализ-аллокаций-для-fast--slow-pointers"><a class="header" href="#анализ-аллокаций-для-fast--slow-pointers">Анализ аллокаций для Fast &amp; Slow Pointers</a></h3>
-<h4 id="обнаружение-цикла-3"><a class="header" href="#обнаружение-цикла-3">Обнаружение цикла:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// Аллокации:
-// - slow, fast: *ListNode (указатели, не аллоцируют) - O(1)
-// - Никаких дополнительных структур данных
-// Итого: O(1) памяти, только указатели
-</code></pre>
-<h4 id="поиск-середины-списка-3"><a class="header" href="#поиск-середины-списка-3">Поиск середины списка:</a></h4>
-<p><strong>Аналогично</strong>: Только два указателя, O(1) памяти.</p>
-<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
-<ol>
-<li><strong>Использование указателей</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Указатели не аллоцируют память
-func hasCycle(head *ListNode) bool {
-    slow, fast := head, head
-    // ...
-}
-</code></pre>
-<ol start="2">
-<li><strong>Избежание создания новых структур</strong>:</li>
-</ol>
-<pre><code class="language-go">// ❌ Плохо: создание новых узлов
-newNode := &amp;ListNode{Val: 0}
-
-// ✅ Хорошо: работа с существующими узлами
-current := head
-</code></pre>
-<p>| Память | Контролируемая | GC управляет |
-| Производительность | Предсказуемая | Может быть паузы GC |
-| Безопасность | Проверяется компилятором | Runtime проверки |</p>
-<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
-<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
-<ol>
-<li>
-<p><strong>Минимизация проверок</strong>:</p>
-<ul>
-<li>Проверяйте <code>fast.next</code> только когда необходимо</li>
-<li>Используйте ранние выходы</li>
-</ul>
-</li>
-<li>
-<p><strong>Оптимизация условий</strong>:</p>
-<ul>
-<li>Порядок проверок важен</li>
-<li>Используйте короткие замыкания</li>
-</ul>
-</li>
-</ol>
-<h3 id="специфичные-оптимизации-для-fast--slow-pointers"><a class="header" href="#специфичные-оптимизации-для-fast--slow-pointers">Специфичные оптимизации для Fast &amp; Slow Pointers</a></h3>
-<h4 id="1-оптимизация-обнаружения-цикла"><a class="header" href="#1-оптимизация-обнаружения-цикла">1. Оптимизация обнаружения цикла:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированная версия
-func hasCycleOptimized(head *ListNode) bool {
-    if head == nil || head.Next == nil {
-        return false
-    }
-    
-    slow, fast := head, head.Next
-    
-    for fast != nil &amp;&amp; fast.Next != nil {
-        if slow == fast {
-            return true
-        }
-        slow = slow.Next
-        fast = fast.Next.Next
-    }
-    return false
-}
-</code></pre>
-<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
-<ol>
-<li><strong>Ранние проверки</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Проверка граничных случаев заранее
-if head == nil || head.Next == nil {
-    return false
-}
-</code></pre>
-<ol start="2">
-<li><strong>Минимизация проверок в цикле</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Проверяем fast.Next один раз
-for fast != nil &amp;&amp; fast.Next != nil {
-    // ...
-}
-</code></pre>
-<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
-<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
-<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
-<h3 id="как-профилировать-fast--slow-pointers"><a class="header" href="#как-профилировать-fast--slow-pointers">Как профилировать Fast &amp; Slow Pointers</a></h3>
-<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
-<pre><code class="language-go">func BenchmarkHasCycle(b *testing.B) {
-    list := createCyclicList(1000)
-    
-    b.ResetTimer()
-    for i := 0; i &lt; b.N; i++ {
-        hasCycleOptimized(list)
-    }
-}
-</code></pre>
-<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
-<p><strong>Анализ производительности</strong>:</p>
-<ul>
-<li>Fast &amp; Slow Pointers: O(n) по времени</li>
-<li>O(1) дополнительной памяти</li>
-<li>Минимальные аллокации (только указатели)</li>
-</ul>
-<p><strong>Типичные узкие места</strong>:</p>
-<ul>
-<li>Проверки указателей на nil/null</li>
-<li>Доступ к полям узлов</li>
-<li>Условные операторы</li>
-</ul>
-<h2 id="отладка-и-диагностика"><a class="header" href="#отладка-и-диагностика">Отладка и диагностика</a></h2>
-<p>Отладка алгоритмов с быстрыми и медленными указателями требует отслеживания позиций обоих указателей:</p>
-<h3 id="1-логирование-движения-указателей"><a class="header" href="#1-логирование-движения-указателей">1. Логирование движения указателей</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func hasCycleDebug(head *ListNode) bool {
-    if head == nil {
-        return false
-    }
-    
-    slow, fast := head, head
-    step := 0
-    
-    log.Printf("Начало: slow=%p, fast=%p", slow, fast)
-    
-    for fast != nil &amp;&amp; fast.Next != nil {
-        step++
-        slow = slow.Next
-        fast = fast.Next.Next
-        
-        log.Printf("Шаг %d: slow=%p (val=%d), fast=%p (val=%d)",
-            step, slow, slow.Val, fast, fast.Val)
-        
-        if slow == fast {
-            log.Printf("Цикл обнаружен на шаге %d", step)
-            return true
-        }
-    }
-    
-    log.Printf("Цикл не обнаружен, шагов=%d", step)
-    return false
-}
-</code></pre>
-<h3 id="2-визуализация-движения-указателей"><a class="header" href="#2-визуализация-движения-указателей">2. Визуализация движения указателей</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func visualizePointers(head *ListNode, slow, fast *ListNode) {
-    current := head
-    pos := 0
-    
-    fmt.Print("Список: ")
-    for current != nil &amp;&amp; pos &lt; 20 { // Ограничение для циклов
-        if current == slow {
-            fmt.Print("[S]")
-        }
-        if current == fast {
-            fmt.Print("[F]")
-        }
-        fmt.Printf("%d-&gt;", current.Val)
-        current = current.Next
-        pos++
-    }
-    fmt.Println("nil")
-}
-</code></pre>
-<h3 id="3-подсчет-итераций-для-обнаружения-цикла"><a class="header" href="#3-подсчет-итераций-для-обнаружения-цикла">3. Подсчет итераций для обнаружения цикла</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func detectCycleWithCount(head *ListNode) (*ListNode, int) {
-    if head == nil {
-        return nil, 0
-    }
-    
-    slow, fast := head, head
-    iterations := 0
-    
-    // Обнаружение цикла
-    for fast != nil &amp;&amp; fast.Next != nil {
-        slow = slow.Next
-        fast = fast.Next.Next
-        iterations++
-        
-        if slow == fast {
-            log.Printf("Цикл обнаружен за %d итераций", iterations)
-            
-            // Находим начало цикла
-            slow = head
-            cycleStartIterations := 0
-            for slow != fast {
-                slow = slow.Next
-                fast = fast.Next
-                cycleStartIterations++
-            }
-            log.Printf("Начало цикла найдено за %d итераций", cycleStartIterations)
-            
-            return slow, iterations
-        }
-    }
-    
-    return nil, iterations
-}
-</code></pre>
-<h3 id="метрики-производительности"><a class="header" href="#метрики-производительности">Метрики производительности</a></h3>
-<p>Реальные результаты бенчмарков на типичном оборудовании (Intel i7-9700K, 32GB RAM):</p>
-<h4 id="обнаружение-цикла-go"><a class="header" href="#обнаружение-цикла-go">Обнаружение цикла (Go):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер списка</th><th>Время выполнения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>100 узлов</td><td>~120 ns</td><td>0 B</td><td>~8,300,000</td></tr>
-<tr><td>1,000 узлов</td><td>~1.2 μs</td><td>0 B</td><td>~833,000</td></tr>
-<tr><td>10,000 узлов</td><td>~12 μs</td><td>0 B</td><td>~83,300</td></tr>
-<tr><td>100,000 узлов</td><td>~120 μs</td><td>0 B</td><td>~8,330</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Линейная зависимость: O(n)</li>
-<li>Нулевые аллокации: O(1) память</li>
-<li>Эффективность: Алгоритм Floyd гарантирует обнаружение за O(n)</li>
-</ul>
-<h4 id="поиск-середины-списка-go"><a class="header" href="#поиск-середины-списка-go">Поиск середины списка (Go):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер списка</th><th>Время выполнения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>100 узлов</td><td>~95 ns</td><td>0 B</td><td>~10,500,000</td></tr>
-<tr><td>1,000 узлов</td><td>~950 ns</td><td>0 B</td><td>~1,050,000</td></tr>
-<tr><td>10,000 узлов</td><td>~9.5 μs</td><td>0 B</td><td>~105,000</td></tr>
-<tr><td>100,000 узлов</td><td>~95 μs</td><td>0 B</td><td>~10,500</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Один проход по списку: O(n)</li>
-<li>Нулевые аллокации</li>
-<li>Оптимально для поиска середины</li>
-</ul>
-<h4 id="сравнение-с-альтернативными-подходами-1"><a class="header" href="#сравнение-с-альтернативными-подходами-1">Сравнение с альтернативными подходами:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер списка</th><th>Fast/Slow Pointers</th><th>HashSet</th><th>Ускорение</th></tr>
-</thead>
-<tbody>
-<tr><td>1,000 узлов</td><td>~1.2 μs</td><td>~3.5 μs</td><td><strong>2.9x</strong></td></tr>
-<tr><td>10,000 узлов</td><td>~12 μs</td><td>~35 μs</td><td><strong>2.9x</strong></td></tr>
-<tr><td>100,000 узлов</td><td>~120 μs</td><td>~350 μs</td><td><strong>2.9x</strong></td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Вывод</strong>: Fast/Slow Pointers быстрее HashSet и использует O(1) память вместо O(n).</p>
-<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
-<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
-<ol>
-<li><strong>Базовые тесты</strong>: Простые случаи с циклом и без</li>
-<li><strong>Граничные случаи</strong>: Пустой список, один элемент, цикл с головы</li>
-<li><strong>Стресс-тесты</strong>: Большие списки с циклами разной длины</li>
-</ol>
-<h3 id="примеры-тестов-для-fast--slow-pointers"><a class="header" href="#примеры-тестов-для-fast--slow-pointers">Примеры тестов для Fast &amp; Slow Pointers</a></h3>
-<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
-<pre><code class="language-go">func TestHasCycle(t *testing.T) {
-    tests := []struct {
-        name string
-        list *ListNode
-        want bool
-    }{
-        {"no_cycle", createList([]int{1, 2, 3, 4, 5}), false},
-        {"with_cycle", createCyclicList([]int{1, 2, 3, 4, 5}, 2), true},
-        {"empty", nil, false},
-        {"single", &amp;ListNode{Val: 1}, false},
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            if got := hasCycleOptimized(tt.list); got != tt.want {
-                t.Errorf("hasCycleOptimized() = %v, want %v", got, tt.want)
-            }
-        })
-    }
-}
-</code></pre>
-<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="go"><a class="header" href="#go">Go:</a></h4>
-<pre><code class="language-bash">go test -v
-go test -bench=. -benchmem
-</code></pre>
-<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
-<pre><code class="language-go">func BenchmarkFastSlowSizes(b *testing.B) {
-    sizes := []int{100, 1000, 10000, 100000}
-    
-    for _, size := range sizes {
-        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
-            list := createCyclicList(size)
-            b.ResetTimer()
-            for i := 0; i &lt; b.N; i++ {
-                hasCycleOptimized(list)
-            }
-        })
-    }
-}
-</code></pre>
-<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
-<h3 id="эволюция-решения-от-наивного-к-оптимизированному"><a class="header" href="#эволюция-решения-от-наивного-к-оптимизированному">Эволюция решения: от наивного к оптимизированному</a></h3>
-<h4 id="наивный-подход-on-память"><a class="header" href="#наивный-подход-on-память">Наивный подход (O(n) память):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ❌ Наивный подход: используем HashMap для отслеживания посещенных узлов
-func hasCycleNaive(head *ListNode) bool {
-    visited := make(map[*ListNode]bool)
-    current := head
-    
-    for current != nil {
-        if visited[current] {
-            return true  // Цикл обнаружен
-        }
-        visited[current] = true
-        current = current.Next
-    }
-    
-    return false
-}
-// Проблемы: O(n) память для HashMap, не оптимально
-</code></pre>
-<h4 id="оптимизированный-подход-o1-память"><a class="header" href="#оптимизированный-подход-o1-память">Оптимизированный подход (O(1) память):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированный подход: алгоритм Floyd (черепаха и заяц)
-func hasCycleOptimized(head *ListNode) bool {
-    if head == nil {
-        return false
-    }
-    
-    slow, fast := head, head
-    
-    for fast != nil &amp;&amp; fast.Next != nil {
-        slow = slow.Next
-        fast = fast.Next.Next
-        
-        if slow == fast {
-            return true  // Цикл обнаружен
-        }
-    }
-    
-    return false
-}
-// Преимущества: O(1) память, O(n) время, математически доказан
-</code></pre>
-<h4 id="идиоматичный-go-код"><a class="header" href="#идиоматичный-go-код">Идиоматичный Go код:</a></h4>
-<pre><code class="language-go">// ✅ Идиоматичный Go: используем именованные возвращаемые значения
-func hasCycleIdiomatic(head *ListNode) (hasCycle bool) {
-    if head == nil || head.Next == nil {
-        return false
-    }
-    
-    slow, fast := head, head.Next
-    
-    for fast != nil &amp;&amp; fast.Next != nil {
-        if slow == fast {
-            return true
-        }
-        slow, fast = slow.Next, fast.Next.Next
-    }
-    
-    return false
-}
-</code></pre>
-<h3 id="go-2"><a class="header" href="#go-2">Go</a></h3>
-<pre><code class="language-go">package main
-
-import (
-	"fmt"
-)
-
-// Определение узла связанного списка
-type ListNode struct {
-	Val  int
-	Next *ListNode
-}
-
-// Пример 1: Обнаружение цикла в связанном списке
-//
-// Задача: Определить, содержит ли связанный список цикл
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func hasCycle(head *ListNode) bool {
-	if head == nil || head.Next == nil {
-		return false
-	}
-
-	slow := head
-	fast := head
-
-	for fast != nil &amp;&amp; fast.Next != nil {
-		slow = slow.Next
-		fast = fast.Next.Next
-
-		// Если указатели встретились, есть цикл
-		if slow == fast {
-			return true
-		}
-	}
-
-	return false
-}
-
-// Пример 2: Поиск начала цикла в связанном списке
-//
-// Задача: Найти узел, где начинается цикл
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func detectCycle(head *ListNode) *ListNode {
-	if head == nil || head.Next == nil {
-		return nil
-	}
-
-	slow := head
-	fast := head
-
-	// Шаг 1: Обнаружить цикл
-	for fast != nil &amp;&amp; fast.Next != nil {
-		slow = slow.Next
-		fast = fast.Next.Next
-
-		if slow == fast {
-			break
-		}
-	}
-
-	// Если цикла нет
-	if fast == nil || fast.Next == nil {
-		return nil
-	}
-
-	// Шаг 2: Найти начало цикла
-	// Возвращаем slow в начало и двигаем оба указателя по одному шагу
-	slow = head
-	for slow != fast {
-		slow = slow.Next
-		fast = fast.Next
-	}
-
-	return slow
-}
-
-// Пример 3: Поиск середины связанного списка
-//
-// Задача: Найти средний узел связанного списка
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func middleNode(head *ListNode) *ListNode {
-	slow := head
-	fast := head
-
-	for fast != nil &amp;&amp; fast.Next != nil {
-		slow = slow.Next
-		fast = fast.Next.Next
-	}
-
-	return slow
-}
-
-// Пример 4: Удаление N-го узла с конца списка
-//
-// Задача: Удалить N-й узел с конца списка
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func removeNthFromEnd(head *ListNode, n int) *ListNode {
-	// Создаем фиктивный узел для упрощения удаления головы
-	dummy := &amp;ListNode{Val: 0, Next: head}
-	slow := dummy
-	fast := dummy
-
-	// Двигаем fast на n+1 шагов вперед
-	for i := 0; i &lt;= n; i++ {
-		fast = fast.Next
-	}
-
-	// Двигаем оба указателя до конца
-	for fast != nil {
-		slow = slow.Next
-		fast = fast.Next
-	}
-
-	// Удаляем узел
-	slow.Next = slow.Next.Next
-
-	return dummy.Next
-}
-
-// Пример 5: Проверка, является ли список палиндромом
-//
-// Задача: Определить, является ли связанный список палиндромом
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func isPalindrome(head *ListNode) bool {
-	if head == nil || head.Next == nil {
-		return true
-	}
-
-	// Находим середину списка
-	slow := head
-	fast := head
-
-	for fast != nil &amp;&amp; fast.Next != nil {
-		slow = slow.Next
-		fast = fast.Next.Next
-	}
-
-	// Разворачиваем вторую половину списка
-	var prev *ListNode
-	curr := slow
-
-	for curr != nil {
-		next := curr.Next
-		curr.Next = prev
-		prev = curr
-		curr = next
-	}
-
-	// Сравниваем первую и вторую половины
-	first := head
-	second := prev
-
-	for second != nil {
-		if first.Val != second.Val {
-			return false
-		}
-		first = first.Next
-		second = second.Next
-	}
-
-	return true
-}
-
-// Пример 6: Поиск дубликата числа (Floyd's Cycle Detection для массива)
-//
-// Задача: Найти дубликат числа в массиве, где числа от 1 до n, и есть один дубликат
-// Временная сложность: O(n)
-// Пространственная сложность: O(1)
-func findDuplicate(nums []int) int {
-	// Используем алгоритм Floyd для обнаружения цикла
-	// Массив можно рассматривать как связанный список, где nums[i] указывает на nums[nums[i]]
-	slow := nums[0]
-	fast := nums[0]
-
-	// Обнаруживаем цикл
-	for {
-		slow = nums[slow]
-		fast = nums[nums[fast]]
-		if slow == fast {
-			break
-		}
-	}
-
-	// Находим начало цикла (дубликат)
-	slow = nums[0]
-	for slow != fast {
-		slow = nums[slow]
-		fast = nums[fast]
-	}
-
-	return slow
-}
-</code></pre>
-<h2 id="реальные-применения"><a class="header" href="#реальные-применения">Реальные применения</a></h2>
-<p>Fast &amp; Slow Pointers широко используется в production системах для работы со связанными структурами данных:</p>
-<h3 id="1-cycle-detection-обнаружение-циклов"><a class="header" href="#1-cycle-detection-обнаружение-циклов">1. Cycle Detection (Обнаружение циклов)</a></h3>
-<p><strong>Применение</strong>: Обнаружение циклов в графах, связанных списках, состояниях.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Garbage Collection</strong>: Обнаружение циклических ссылок в памяти</li>
-<li><strong>Dependency Resolution</strong>: Обнаружение циклических зависимостей</li>
-<li><strong>State Machines</strong>: Обнаружение циклов в состояниях</li>
-</ul>
-<p><strong>Код</strong>:</p>
-<pre><code class="language-go">// Обнаружение цикла в связанном списке
-func hasCycle(head *ListNode) bool {
-    if head == nil {
-        return false
-    }
-    
-    slow, fast := head, head
-    for fast != nil &amp;&amp; fast.Next != nil {
-        slow = slow.Next
-        fast = fast.Next.Next
-        if slow == fast {
-            return true // Цикл обнаружен
-        }
-    }
-    return false
-}
-</code></pre>
-<h3 id="2-middle-element-finding-поиск-среднего-элемента"><a class="header" href="#2-middle-element-finding-поиск-среднего-элемента">2. Middle Element Finding (Поиск среднего элемента)</a></h3>
-<p><strong>Применение</strong>: Нахождение середины списка за один проход.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Load Balancing</strong>: Разделение списка серверов пополам</li>
-<li><strong>Data Structures</strong>: Разделение списка для балансировки</li>
-<li><strong>Algorithm Optimization</strong>: Нахождение медианы за O(n)</li>
-</ul>
-<h3 id="3-k-th-element-from-end-k-й-элемент-с-конца"><a class="header" href="#3-k-th-element-from-end-k-й-элемент-с-конца">3. K-th Element from End (K-й элемент с конца)</a></h3>
-<p><strong>Применение</strong>: Нахождение K-го элемента с конца без знания длины списка.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Log Analysis</strong>: Получение последних K записей</li>
-<li><strong>Cache Management</strong>: Удаление K старейших элементов</li>
-<li><strong>Stream Processing</strong>: Обработка последних K элементов</li>
-</ul>
-<h3 id="4-google-production-examples"><a class="header" href="#4-google-production-examples">4. Google Production Examples</a></h3>
-<p><strong>Примеры из Google</strong>:</p>
-<ul>
-<li><strong>Google Chrome</strong>: Обнаружение циклических ссылок в DOM</li>
-<li><strong>Google Search</strong>: Обнаружение циклов в графе ссылок (PageRank)</li>
-<li><strong>Google Maps</strong>: Обнаружение циклов в маршрутах</li>
-<li><strong>Google Cloud</strong>: Обнаружение циклических зависимостей в ресурсах</li>
-</ul>
-<h3 id="5-database-systems"><a class="header" href="#5-database-systems">5. Database Systems</a></h3>
-<p><strong>Применение в базах данных</strong>:</p>
-<ul>
-<li><strong>Transaction Management</strong>: Обнаружение deadlocks (циклических зависимостей)</li>
-<li><strong>Query Optimization</strong>: Обнаружение циклов в планах запросов</li>
-<li><strong>Referential Integrity</strong>: Проверка циклических ссылок</li>
-</ul>
-<h3 id="6-compiler-design"><a class="header" href="#6-compiler-design">6. Compiler Design</a></h3>
-<p><strong>Применение в компиляторах</strong>:</p>
-<ul>
-<li><strong>Dependency Analysis</strong>: Обнаружение циклических зависимостей модулей</li>
-<li><strong>Type Checking</strong>: Обнаружение циклических определений типов</li>
-<li><strong>Optimization</strong>: Обнаружение циклов в графе потока управления</li>
-</ul>
-<h3 id="7-network-protocols"><a class="header" href="#7-network-protocols">7. Network Protocols</a></h3>
-<p><strong>Применение в сетевых протоколах</strong>:</p>
-<ul>
-<li><strong>Routing Protocols</strong>: Обнаружение циклов в маршрутах</li>
-<li><strong>Distributed Systems</strong>: Обнаружение циклов в топологии сети</li>
-<li><strong>Protocol Validation</strong>: Проверка корректности протоколов</li>
-</ul>
-<h3 id="8-open-source-examples"><a class="header" href="#8-open-source-examples">8. Open Source Examples</a></h3>
-<p><strong>Примеры из open-source проектов</strong>:</p>
-<ul>
-<li><strong>Linux Kernel</strong>: Обнаружение циклов в структурах данных</li>
-<li><strong>PostgreSQL</strong>: Обнаружение циклических зависимостей в транзакциях</li>
-<li><strong>Redis</strong>: Обнаружение циклов в структурах данных</li>
-<li><strong>Git</strong>: Обнаружение циклов в графе коммитов</li>
-</ul>
-<h3 id="9-system-design-applications"><a class="header" href="#9-system-design-applications">9. System Design Applications</a></h3>
-<p><strong>Применение в системном дизайне</strong>:</p>
-<ul>
-<li><strong>Microservices</strong>: Обнаружение циклических зависимостей между сервисами</li>
-<li><strong>Dependency Injection</strong>: Обнаружение циклических зависимостей</li>
-<li><strong>Event Processing</strong>: Обнаружение циклов в обработке событий</li>
-</ul>
-<h3 id="10-memory-management"><a class="header" href="#10-memory-management">10. Memory Management</a></h3>
-<p><strong>Применение в управлении памятью</strong>:</p>
-<ul>
-<li><strong>Garbage Collection</strong>: Обнаружение циклических ссылок (mark-and-sweep)</li>
-<li><strong>Reference Counting</strong>: Обнаружение циклов для корректного подсчета ссылок</li>
-<li><strong>Memory Leak Detection</strong>: Обнаружение утечек памяти через циклы</li>
-</ul>
-<h2 id="упражнения"><a class="header" href="#упражнения">Упражнения</a></h2>
-<p>Практикуйтесь на задачах разной сложности для закрепления материала:</p>
-<h3 id="легкие-задачи-для-начинающих"><a class="header" href="#легкие-задачи-для-начинающих">Легкие задачи (для начинающих)</a></h3>
-<ol>
-<li>
-<p><strong>Linked List Cycle</strong> (LeetCode 141)</p>
-<ul>
-<li>Определите, есть ли цикл в связанном списке</li>
-<li>Подсказка: Используйте алгоритм Floyd (черепаха и заяц)</li>
-<li><a href="https://leetcode.com/problems/linked-list-cycle/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Middle of the Linked List</strong> (LeetCode 876)</p>
-<ul>
-<li>Найдите средний узел связанного списка</li>
-<li>Подсказка: Используйте быстрый и медленный указатели</li>
-<li><a href="https://leetcode.com/problems/middle-of-the-linked-list/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="средние-задачи-для-практики"><a class="header" href="#средние-задачи-для-практики">Средние задачи (для практики)</a></h3>
-<ol start="3">
-<li>
-<p><strong>Linked List Cycle II</strong> (LeetCode 142)</p>
-<ul>
-<li>Найдите узел, где начинается цикл</li>
-<li>Подсказка: После обнаружения цикла используйте два указателя с одинаковой скоростью</li>
-<li><a href="https://leetcode.com/problems/linked-list-cycle-ii/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Remove Nth Node From End of List</strong> (LeetCode 19)</p>
-<ul>
-<li>Удалите n-й узел с конца списка</li>
-<li>Подсказка: Используйте два указателя с расстоянием n между ними</li>
-<li><a href="https://leetcode.com/problems/remove-nth-node-from-end-of-list/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Palindrome Linked List</strong> (LeetCode 234)</p>
-<ul>
-<li>Определите, является ли связанный список палиндромом</li>
-<li>Подсказка: Найдите середину, затем разверните вторую половину</li>
-<li><a href="https://leetcode.com/problems/palindrome-linked-list/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Reorder List</strong> (LeetCode 143)</p>
-<ul>
-<li>Переупорядочьте список: L0 → L1 → … → Ln-1 → Ln → L0 → Ln → L1 → Ln-1 → …</li>
-<li>Подсказка: Найдите середину, разверните вторую половину, объедините</li>
-<li><a href="https://leetcode.com/problems/reorder-list/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="сложные-задачи-для-углубления"><a class="header" href="#сложные-задачи-для-углубления">Сложные задачи (для углубления)</a></h3>
-<ol start="7">
-<li>
-<p><strong>Find the Duplicate Number</strong> (LeetCode 287)</p>
-<ul>
-<li>Найдите дубликат в массиве с числами от 1 до n</li>
-<li>Подсказка: Используйте подход быстрого и медленного указателя на массиве</li>
-<li><a href="https://leetcode.com/problems/find-the-duplicate-number/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Sort List</strong> (LeetCode 148)</p>
-<ul>
-<li>Отсортируйте связанный список за O(n log n) времени и O(1) памяти</li>
-<li>Подсказка: Используйте merge sort с быстрым и медленным указателями для разделения</li>
-<li><a href="https://leetcode.com/problems/sort-list/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="дополнительные-задачи-для-практики"><a class="header" href="#дополнительные-задачи-для-практики">Дополнительные задачи для практики</a></h3>
-<ol start="9">
-<li>
-<p><strong>Intersection of Two Linked Lists</strong> (LeetCode 160)</p>
-<ul>
-<li>Найдите узел пересечения двух связанных списков</li>
-<li><a href="https://leetcode.com/problems/intersection-of-two-linked-lists/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Partition List</strong> (LeetCode 86)</p>
-<ul>
-<li>Разделите список так, чтобы все узлы &lt; x были перед узлами &gt;= x</li>
-<li><a href="https://leetcode.com/problems/partition-list/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="рекомендации-по-решению"><a class="header" href="#рекомендации-по-решению">Рекомендации по решению</a></h3>
-<ol>
-<li><strong>Проверяйте граничные случаи</strong>: Пустой список, один элемент, нет цикла</li>
-<li><strong>Используйте правильные скорости</strong>: Обычно 1 и 2 шага для обнаружения цикла</li>
-<li><strong>Следите за указателями</strong>: Убедитесь, что указатели не становятся nil</li>
-<li><strong>Визуализируйте</strong>: Рисуйте диаграммы для понимания движения указателей</li>
-</ol>
 <h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><strong><a href="./two-pointers.html">Two Pointers</a></strong> - Базовый подход с двумя указателями для массивов</li>
-<li><strong><a href="./reverse-linked-list.html">Reverse Linked List</a></strong> - Работа со связанными списками</li>
-<li><strong><a href="./tree-bfs.html">Tree BFS</a></strong> - Похожий подход для обхода деревьев</li>
-</ul>
-<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
-<p>После изучения Fast &amp; Slow Pointers рекомендуется перейти к <strong><a href="./merge-intervals.html">Merge Intervals</a></strong> для работы с интервалами или к <strong><a href="./reverse-linked-list.html">Reverse Linked List</a></strong> для более глубокого изучения работы со списками.</p>
-<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
-<h3 id="интерактивные-визуализаторы"><a class="header" href="#интерактивные-визуализаторы">Интерактивные визуализаторы</a></h3>
-<ul>
-<li><a href="https://visualgo.net/en/linkedlist">VisuAlgo - Linked List</a> - Интерактивная визуализация связанных списков</li>
-<li><a href="https://algorithm-visualizer.org/brute-force/fast-slow-pointers">Algorithm Visualizer - Fast Slow Pointers</a> - Визуализация работы алгоритма</li>
-</ul>
-<h3 id="видео-объяснения"><a class="header" href="#видео-объяснения">Видео-объяснения</a></h3>
-<ul>
-<li><a href="https://www.youtube.com/results?search_query=neetcode+fast+slow+pointers">NeetCode - Fast Slow Pointers</a> - Подробное объяснение паттерна</li>
-<li><a href="https://www.youtube.com/results?search_query=back+to+back+swe+floyd+cycle">Back To Back SWE - Floyd’s Cycle Detection</a> - Разбор алгоритма обнаружения цикла</li>
-</ul>
-<h3 id="дополнительные-материалы"><a class="header" href="#дополнительные-материалы">Дополнительные материалы</a></h3>
-<ul>
-<li><a href="https://en.wikipedia.org/wiki/Cycle_detection">Floyd’s Cycle Detection Algorithm - Wikipedia</a> - Математическое обоснование</li>
-<li><a href="https://leetcode.com/tag/linked-list/">LeetCode Linked List Problems</a> - Практика</li>
-<li><a href="https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/">Introduction to Algorithms - CLRS</a> - Теоретическая база</li>
+<li><strong><a href="two-pointers.html">Two Pointers</a></strong> — базовый подход с двумя указателями для массивов.</li>
+<li><strong><a href="reverse-linked-list.html">Reverse Linked List</a></strong> — манипуляции с указателями списка
+(часто используется вместе для палиндромов и переупорядочивания).</li>
+<li>Для общей теории по памяти и GC в Go см. <a href="appendix-go-memory.html">приложение</a>.</li>
 </ul>
 
                     </main>
@@ -1728,6 +368,9 @@ func hasCycle(head *ListNode) bool {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-f6dee78c.js"></script>
+        <script src="assets/quiz-0d58c129.js"></script>
+        <script src="assets/progress-8bf0c880.js"></script>
 
 
 

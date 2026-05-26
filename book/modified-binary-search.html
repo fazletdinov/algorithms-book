@@ -28,6 +28,8 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-b363db2f.css">
+        <link rel="stylesheet" href="assets/quiz-7aebf16b.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -37,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-2799386e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-6b3e4b80.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,1052 +179,147 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="modified-binary-search-модифицированный-бинарный-поиск"><a class="header" href="#modified-binary-search-модифицированный-бинарный-поиск">Modified Binary Search (Модифицированный бинарный поиск)</a></h1>
-<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
-<p>Шаблон <strong>Modified Binary Search</strong> расширяет классический бинарный поиск для работы с различными условиями поиска. Вместо простого поиска точного значения, мы ищем первое/последнее вхождение, границы диапазона, или элемент в повернутом/неотсортированном массиве.</p>
-<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
-<p>Бинарный поиск был разработан в 1940-х годах и является одним из самых эффективных алгоритмов поиска. Модифицированные версии расширяют его применение на задачи поиска границ, повернутых массивов и других структур данных.</p>
-<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
-<p>Ключевое наблюдение: бинарный поиск работает не только для точного совпадения, но и для любых монотонных предикатов. Изменяя условие обновления границ и условие завершения, мы можем решать различные задачи поиска.</p>
-<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
-<p>Используйте этот шаблон, когда:</p>
+<h2 id="теория"><a class="header" href="#теория">Теория</a></h2>
+<p><strong>Modified Binary Search</strong> расширяет классический бинарный поиск на задачи, где
+ищут не точное значение, а <strong>границу монотонного предиката</strong>: первое/последнее
+вхождение, позицию вставки, минимум в повернутом массиве, элемент в 2D-матрице.</p>
+<p>Ключевая идея: бинарный поиск работает для любого монотонного условия. Меняя
+условие сравнения и правило обновления границ, мы решаем разные задачи поиска за
+<strong>O(log n)</strong>, сохраняя инвариант «решение, если оно есть, лежит в <code>[left, right]</code>».</p>
+<p><strong>Когда применять:</strong></p>
 <ul>
-<li>Массив отсортирован (или частично отсортирован)</li>
-<li>Нужно найти первое или последнее вхождение элемента</li>
-<li>Требуется найти границы диапазона значений</li>
-<li>Массив повернут или имеет особую структуру</li>
-<li>Нужно найти элемент в 2D матрице или другом пространстве поиска</li>
-<li>Задача связана с поиском в отсортированных данных с условиями</li>
+<li>массив отсортирован (полностью или частично — например, повернут);</li>
+<li>нужно первое/последнее вхождение или позиция вставки;</li>
+<li>ищем границу диапазона значений;</li>
+<li>пространство поиска монотонно (значение, индекс, ответ в матрице).</li>
 </ul>
-<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
-<p><strong>Стандартный бинарный поиск:</strong> делим интервал [left, right] пополам, сравниваем средний элемент с target и отбрасываем половину, где target заведомо не может быть. Сложность O(log n). Модификации меняют условие сравнения и правило обновления границ.</p>
-<h3 id="базовый-модифицированный-бинарный-поиск"><a class="header" href="#базовый-модифицированный-бинарный-поиск">Базовый модифицированный бинарный поиск:</a></h3>
-<pre><code class="language-go">// Базовый шаблон модифицированного бинарного поиска
-func modifiedBinarySearch(arr []int, target int) int {
-    // Шаг 1: Инициализация границ поиска
-    // left - левая граница интервала поиска (включительно)
-    // right - правая граница интервала поиска (включительно)
-    left := 0
-    right := len(arr) - 1
-    
-    // Шаг 2: Цикл поиска - продолжаем, пока интервал не пуст
-    // Условие left &lt;= right означает, что интервал [left, right] содержит хотя бы один элемент
-    for left &lt;= right {
-        // Вычисляем средний индекс интервала
-        // Используем формулу left + (right - left) / 2 вместо (left + right) / 2
-        // чтобы избежать переполнения при больших значениях left и right
-        mid := left + (right-left)/2
-        
-        // Проверяем условие для среднего элемента
-        // В зависимости от задачи, условие может быть разным:
-        // - arr[mid] == target: обычный бинарный поиск
-        // - arr[mid] &gt;= target: поиск первого вхождения
-        // - arr[mid] &lt;= target: поиск последнего вхождения
-        // - и другие модификации для специфических задач
-        if arr[mid] == target {
-            // Нашли элемент - возвращаем индекс
-            // В модифицированных версиях здесь может быть дополнительная логика
-            return mid
-        } else if arr[mid] &lt; target {
-            // Средний элемент меньше цели - ищем в правой половине
-            // Обновляем left, исключая левую половину из поиска
-            left = mid + 1
-        } else {
-            // Средний элемент больше цели - ищем в левой половине
-            // Обновляем right, исключая правую половину из поиска
-            right = mid - 1
-        }
-    }
-    
-    // Шаг 3: Возврат результата
-    // Если мы дошли сюда, элемент не найден
-    // В зависимости от задачи, можно вернуть:
-    // - -1 для "не найдено"
-    // - left для "позиция вставки"
-    // - right для других вариантов
-    return -1
-}
-
-// Пример: Поиск первого вхождения элемента (если есть дубликаты)
-func findFirstOccurrence(arr []int, target int) int {
-    left := 0
-    right := len(arr) - 1
-    result := -1
-    
-    for left &lt;= right {
-        mid := left + (right-left)/2
-        
-        if arr[mid] == target {
-            // Нашли элемент, но продолжаем искать влево для первого вхождения
-            result = mid
-            right = mid - 1  // Ищем дальше влево
-        } else if arr[mid] &lt; target {
-            left = mid + 1
-        } else {
-            right = mid - 1
-        }
-    }
-    
-    return result
-}
-</code></pre>
-<h3 id="варианты-условий"><a class="header" href="#варианты-условий">Варианты условий:</a></h3>
-<ul>
-<li><strong>Первое вхождение</strong>: Продолжать поиск влево при равенстве</li>
-<li><strong>Последнее вхождение</strong>: Продолжать поиск вправо при равенстве</li>
-<li><strong>Повернутый массив</strong>: Проверять, какая часть отсортирована</li>
-</ul>
-<h3 id="схема-алгоритма"><a class="header" href="#схема-алгоритма">Схема алгоритма:</a></h3>
-<pre><code class="language-mermaid">flowchart TD
-    A[left, right границы] --&gt; B{left &lt;= right?}
-    B --&gt;|Нет| C[Не найдено]
-    B --&gt;|Да| D[mid = center]
-    D --&gt; E{arr[mid] vs target?}
-    E --&gt;|Равно| F[Найдено или продолжаем влево/вправо]
-    E --&gt;|Меньше| G[left = mid+1]
-    E --&gt;|Больше| H[right = mid-1]
-    F --&gt; B
-    G --&gt; B
-    H --&gt; B
-</code></pre>
-<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
-<h3 id="поиск-первого-вхождения"><a class="header" href="#поиск-первого-вхождения">Поиск первого вхождения:</a></h3>
-<p><strong>Исходные данные:</strong> Массив <code>[1, 2, 2, 2, 3, 4, 5]</code>, target = 2</p>
-<p><strong>Шаг 1: Инициализация</strong></p>
-<pre><code>Массив: [1, 2, 2, 2, 3, 4, 5]
-Индексы: 0  1  2  3  4  5  6
-         ↑              ↑
-        left          right
-       mid = (0 + 6) / 2 = 3
-       arr[3] = 2 == target ✓
-       Найдено! Ищем первое вхождение → right = mid - 1 = 2
-</code></pre>
-<p><strong>Шаг 2: Ищем влево (первое вхождение)</strong></p>
-<pre><code>Массив: [1, 2, 2, 2, 3, 4, 5]
-Индексы: 0  1  2  3  4  5  6
-         ↑     ↑
-        left right
-       mid = (0 + 2) / 2 = 1
-       arr[1] = 2 == target ✓
-       Найдено! Продолжаем влево → right = mid - 1 = 0
-</code></pre>
-<p><strong>Шаг 3: Проверяем левую границу</strong></p>
-<pre><code>Массив: [1, 2, 2, 2, 3, 4, 5]
-Индексы: 0  1  2  3  4  5  6
-         ↑
-        left, right
-       mid = (0 + 0) / 2 = 0
-       arr[0] = 1 &lt; target
-       Ищем справа → left = mid + 1 = 1
-</code></pre>
-<p><strong>Шаг 4: Завершение</strong></p>
-<pre><code>Массив: [1, 2, 2, 2, 3, 4, 5]
-Индексы: 0  1  2  3  4  5  6
-            ↑
-          left, right
-       left &gt; right → завершение
-       Результат: left = 1 (первое вхождение target)
-</code></pre>
-<p><strong>Результат:</strong> Первое вхождение target = 2 находится на индексе <strong>1</strong></p>
-<p><strong>Детальная таблица выполнения:</strong></p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Шаг</th><th>left</th><th>right</th><th>mid</th><th>arr[mid]</th><th>Сравнение с target</th><th>Действие</th><th>Новый интервал</th></tr>
-</thead>
-<tbody>
-<tr><td>Инициализация</td><td>0</td><td>6</td><td>-</td><td>-</td><td>-</td><td>-</td><td>[0:6]</td></tr>
-<tr><td>1</td><td>0</td><td>6</td><td>3</td><td>2</td><td>== 2 ✓</td><td>Найдено, ищем первое вхождение</td><td>right = 2 → [0:2]</td></tr>
-<tr><td>2</td><td>0</td><td>2</td><td>1</td><td>2</td><td>== 2 ✓</td><td>Найдено, продолжаем влево</td><td>right = 0 → [0:0]</td></tr>
-<tr><td>3</td><td>0</td><td>0</td><td>0</td><td>1</td><td>&lt; 2</td><td>Ищем справа</td><td>left = 1 → [1:0] (завершение)</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Результат:</strong> left = 1 (первое вхождение 2)</p>
-<h3 id="search-in-rotated-sorted-array"><a class="header" href="#search-in-rotated-sorted-array">Search in Rotated Sorted Array:</a></h3>
-<p><strong>Исходные данные:</strong> <code>[4,5,6,7,0,1,2]</code>, target = 0 (массив повёрнут, pivot между 7 и 0)</p>
-<pre><code>Ключевая идея: одна половина [left..mid] или [mid..right] всегда отсортирована.
-
-Шаг 1: left=0, right=6, mid=3, arr[mid]=7
-  arr[0]=4 &lt;= 7 — левая половина [4,5,6,7] отсортирована
-  target=0 не в [4..7] → ищем справа: left=4
-
-Шаг 2: left=4, right=6, mid=5, arr[mid]=1
-  arr[mid]=1 &lt; target=0? Нет. arr[mid]=1 &gt; 0
-  Правая половина [1,2] отсортирована, 0 не в ней → ищем слева: right=4
-
-Шаг 3: left=4, right=4, mid=4, arr[mid]=0 ✓ Найдено
-</code></pre>
-<p>Проверяем, какая половина отсортирована: <code>arr[left] &lt;= arr[mid]</code> → левая; иначе — правая. Ищем target только в отсортированной половине.</p>
-<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
-<p><strong>Инвариант бинарного поиска</strong>: На каждом шаге интервал [left, right] содержит решение (если оно существует), и размер интервала уменьшается вдвое.</p>
-<p><strong>Доказательство корректности</strong>:</p>
-<ol>
-<li><strong>Базовый случай</strong>: Исходный интервал [0, n-1] содержит решение</li>
-<li><strong>Индуктивный шаг</strong>: Предположим, интервал [left, right] содержит решение
-<ul>
-<li>Вычисляем mid</li>
-<li>По условию монотонности, можем исключить половину интервала</li>
-<li>Новый интервал также содержит решение</li>
-<li>Размер интервала уменьшается вдвое</li>
-</ul>
-</li>
-</ol>
-<p><strong>Почему сложность O(log n)?</strong></p>
-<p>На каждом шаге размер интервала уменьшается вдвое. Максимальное количество шагов = log₂(n) → O(log n).</p>
-<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
-<ul>
-<li><strong>Временная сложность</strong>: O(log n)
-<ul>
-<li>На каждом шаге интервал уменьшается вдвое</li>
-<li>Максимум log₂(n) шагов</li>
-<li>Операции на каждом шаге: O(1)</li>
-<li>Итого: O(log n)</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(1)
-<ul>
-<li>Только переменные для границ</li>
-</ul>
-</li>
-</ul>
-<h3 id="амортизированная-сложность"><a class="header" href="#амортизированная-сложность">Амортизированная сложность</a></h3>
-<p><strong>Амортизированный анализ</strong> для бинарного поиска:</p>
-<ul>
-<li><strong>Амортизированная временная сложность</strong>: O(log n) на запрос
-<ul>
-<li>Каждый запрос требует O(log n) времени</li>
-<li>Амортизированная стоимость: O(log n) на запрос</li>
-</ul>
-</li>
-</ul>
-<p><strong>Примечание</strong>: Для бинарного поиска амортизированная сложность совпадает с обычной, так как каждый запрос независим.</p>
-<h3 id="worstaveragebest-case-анализ"><a class="header" href="#worstaveragebest-case-анализ">Worst/Average/Best Case анализ</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Случай</th><th>Временная сложность</th><th>Описание</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Best Case</strong></td><td>O(1)</td><td>Элемент найден сразу (в середине массива)</td></tr>
-<tr><td><strong>Average Case</strong></td><td>O(log n)</td><td>Элемент найден в среднем за log₂(n) шагов</td></tr>
-<tr><td><strong>Worst Case</strong></td><td>O(log n)</td><td>Элемент найден в конце или не найден (log₂(n) шагов)</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Пространственная сложность</strong>: Всегда O(1), так как используется только константная память.</p>
-<h3 id="таблица-сравнения-сложностей"><a class="header" href="#таблица-сравнения-сложностей">Таблица сравнения сложностей</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Алгоритм</th><th>Время (Worst)</th><th>Время (Average)</th><th>Время (Best)</th><th>Память</th><th>Амортизированное время</th></tr>
-</thead>
-<tbody>
-<tr><td>Бинарный поиск</td><td>O(log n)</td><td>O(log n)</td><td>O(1)</td><td>O(1)</td><td>O(log n) на запрос</td></tr>
-<tr><td>Линейный поиск</td><td>O(n)</td><td>O(n/2)</td><td>O(1)</td><td>O(1)</td><td>O(n) на запрос</td></tr>
-<tr><td>Хеш-таблица</td><td>O(n)*</td><td>O(1)</td><td>O(1)</td><td>O(n)</td><td>O(1) на запрос</td></tr>
-</tbody>
-</table>
-</div>
-<p>*В худшем случае при коллизиях</p>
-<h3 id="сравнение-с-линейным-поиском"><a class="header" href="#сравнение-с-линейным-поиском">Сравнение с линейным поиском:</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Подход</th><th>Время</th><th>Применимость</th></tr>
-</thead>
-<tbody>
-<tr><td>Линейный поиск</td><td>O(n)</td><td>Любые данные</td></tr>
-<tr><td>Бинарный поиск</td><td>O(log n)</td><td>Отсортированные данные</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Выигрыш</strong>: O(n) → O(log n) - экспоненциальное улучшение!</p>
-<h2 id="граничные-случаи"><a class="header" href="#граничные-случаи">Граничные случаи</a></h2>
-<p>При работе с модифицированным бинарным поиском важно обрабатывать следующие граничные случаи:</p>
-<h3 id="1-пустой-массив"><a class="header" href="#1-пустой-массив">1. Пустой массив</a></h3>
-<p><strong>Проблема</strong>: Если массив пуст, бинарный поиск не может быть выполнен.</p>
-<p><strong>Решение</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func binarySearch(nums []int, target int) int {
-    if len(nums) == 0 {
-        return -1
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="2-массив-из-одного-элемента"><a class="header" href="#2-массив-из-одного-элемента">2. Массив из одного элемента</a></h3>
-<p><strong>Проблема</strong>: Минимальный случай для бинарного поиска.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if len(nums) == 1 {
-    if nums[0] == target {
-        return 0
-    }
-    return -1
-}
-</code></pre>
-<h3 id="3-целевое-значение-меньше-минимального-элемента"><a class="header" href="#3-целевое-значение-меньше-минимального-элемента">3. Целевое значение меньше минимального элемента</a></h3>
-<p><strong>Проблема</strong>: Если target меньше всех элементов, поиск должен вернуть -1 или 0 (в зависимости от задачи).</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if target &lt; nums[0] {
-    return -1 // или 0 для вставки
-}
-</code></pre>
-<h3 id="4-целевое-значение-больше-максимального-элемента"><a class="header" href="#4-целевое-значение-больше-максимального-элемента">4. Целевое значение больше максимального элемента</a></h3>
-<p><strong>Проблема</strong>: Если target больше всех элементов, поиск должен вернуть -1 или len(nums).</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if target &gt; nums[len(nums)-1] {
-    return -1 // или len(nums) для вставки
-}
-</code></pre>
-<h3 id="5-целевое-значение-на-границах"><a class="header" href="#5-целевое-значение-на-границах">5. Целевое значение на границах</a></h3>
-<p><strong>Проблема</strong>: Target может быть первым или последним элементом.</p>
-<p><strong>Решение</strong>: Алгоритм должен корректно обрабатывать эти случаи без специальных проверок.</p>
-<h3 id="6-повернутый-массив-полностью-отсортирован"><a class="header" href="#6-повернутый-массив-полностью-отсортирован">6. Повернутый массив: полностью отсортирован</a></h3>
-<p><strong>Проблема</strong>: Если массив не повернут, алгоритм должен работать как обычный бинарный поиск.</p>
-<p><strong>Решение</strong>: Алгоритм должен проверять, повернут ли массив, и использовать соответствующий подход.</p>
-<h3 id="7-повернутый-массив-все-элементы-одинаковые"><a class="header" href="#7-повернутый-массив-все-элементы-одинаковые">7. Повернутый массив: все элементы одинаковые</a></h3>
-<p><strong>Проблема</strong>: Если все элементы одинаковые, определение поворота затруднено.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">// Проверка на одинаковые элементы
-allSame := true
-for i := 1; i &lt; len(nums); i++ {
-    if nums[i] != nums[0] {
-        allSame = false
-        break
-    }
-}
-if allSame {
-    // Специальная обработка
-}
-</code></pre>
-<h3 id="8-дубликаты-в-массиве"><a class="header" href="#8-дубликаты-в-массиве">8. Дубликаты в массиве</a></h3>
-<p><strong>Проблема</strong>: При наличии дубликатов поиск первой/последней позиции усложняется.</p>
-<p><strong>Решение</strong>: Используйте модифицированный бинарный поиск с проверкой на дубликаты:</p>
-<pre><code class="language-go">// Поиск первой позиции
-for left &lt; right {
-    mid := left + (right-left)/2
-    if nums[mid] &lt; target {
-        left = mid + 1
-    } else {
-        right = mid // Не mid-1, чтобы найти первую позицию
-    }
-}
-</code></pre>
-<h3 id="9-переполнение-при-вычислении-mid"><a class="header" href="#9-переполнение-при-вычислении-mid">9. Переполнение при вычислении mid</a></h3>
-<p><strong>Проблема</strong>: При очень больших индексах может произойти переполнение.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">// Правильный способ вычисления mid
-mid := left + (right-left)/2 // Избегает переполнения
-// Вместо
-mid := (left + right) / 2 // Может переполниться
-</code></pre>
-<h3 id="10-поиск-в-2d-матрице-пустая-матрица"><a class="header" href="#10-поиск-в-2d-матрице-пустая-матрица">10. Поиск в 2D матрице: пустая матрица</a></h3>
-<p><strong>Проблема</strong>: Если матрица пуста, поиск невозможен.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if len(matrix) == 0 || len(matrix[0]) == 0 {
-    return false
-}
-</code></pre>
-<h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
-<ol>
-<li><strong>Переполнение при вычислении mid</strong>: Используйте <code>left + (right - left) / 2</code> вместо <code>(left + right) / 2</code></li>
-<li><strong>Неправильное условие завершения</strong>: <code>left &lt;= right</code> vs <code>left &lt; right</code> зависит от задачи</li>
-<li><strong>Неправильное обновление границ</strong>: <code>left = mid + 1</code> vs <code>left = mid</code> зависит от условия</li>
-</ol>
-<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
-<ol>
-<li>Всегда используйте формулу <code>mid = left + (right - left) / 2</code> для избежания переполнения</li>
-<li>Определите предикат перед написанием кода</li>
-<li>Тестируйте на граничных случаях: пустой массив, один элемент, элемент не найден</li>
-</ol>
-<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
-<h3 id="используемые-структуры-данных-в-modified-binary-search"><a class="header" href="#используемые-структуры-данных-в-modified-binary-search">Используемые структуры данных в Modified Binary Search</a></h3>
-<p>В шаблоне Modified Binary Search используются следующие структуры данных:</p>
-<ul>
-<li><strong>[]int</strong>: Отсортированный массив для поиска</li>
-<li><strong>Индексы</strong>: left, right, mid для навигации (хранятся на стеке)</li>
-</ul>
-<h3 id="int--slice-go"><a class="header" href="#int--slice-go">[]int / Slice (Go)</a></h3>
-<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<p><strong>Vec&lt;T&gt;</strong>:</p>
-<pre><code>Отсортированный массив:
-┌─────────────────────────────────────────┐
-│ Vec&amp;lt;i32&amp;gt;                                 │
-│ ┌─────────────┐                         │
-│ │ ptr: *mut i32│ Указатель на данные    │
-│ │ len: usize  │ Количество элементов    │
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-         │
-         ▼
-    [1][3][5][7][9][11][13]
-    0  1  2  3  4  5   6
-</code></pre>
-<p><strong>Важные детали</strong>:</p>
-<ul>
-<li>Массив должен быть отсортирован</li>
-<li>Доступ по индексу O(1)</li>
-<li>Непрерывная память (cache-friendly)</li>
-<li>Binary search использует индексы, не создает новых структур</li>
-</ul>
-<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Операция</th><th>Сложность</th><th>Объяснение</th></tr>
-</thead>
-<tbody>
-<tr><td>Binary search</td><td>O(log n)</td><td>Каждый шаг уменьшает пространство поиска в 2 раза</td></tr>
-<tr><td>Доступ по индексу</td><td>O(1)</td><td>Прямой доступ к памяти</td></tr>
-<tr><td>Сравнение элементов</td><td>O(1)</td><td>Простое сравнение значений</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Почему Binary Search эффективен</strong>:</p>
-<ul>
-<li>O(log n) время вместо O(n) линейного поиска</li>
-<li>O(1) дополнительная память (только индексы)</li>
-<li>Cache-friendly доступ к памяти</li>
-</ul>
-<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<p><strong>Для Modified Binary Search</strong>:</p>
-<ul>
-<li>Входной массив может быть на стеке (если небольшой) или в куче</li>
-<li>Индексы left, right, mid - на стеке</li>
-<li>Результаты могут escape</li>
-</ul>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<p><strong>Для Modified Binary Search</strong>:</p>
-<ul>
-<li>In-place поиск, не создает новых структур</li>
-<li>Минимальное влияние на GC</li>
-<li>Только индексы на стеке</li>
-</ul>
-<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
-<h4 id="go-бинарный-поиск"><a class="header" href="#go-бинарный-поиск">Go: Бинарный поиск</a></h4>
-<p>В Go:</p>
-<ul>
-<li><strong>Индексы</strong>: <code>int</code> на стеке - O(1)</li>
-<li><strong>Входные данные</strong>: <code>[]int</code> - уже в куче</li>
-<li><strong>Результат</strong>: <code>int</code> и <code>bool</code> - на стеке, O(1)</li>
-</ul>
-<h3 id="анализ-аллокаций-для-modified-binary-search"><a class="header" href="#анализ-аллокаций-для-modified-binary-search">Анализ аллокаций для Modified Binary Search</a></h3>
-<h4 id="базовый-подход"><a class="header" href="#базовый-подход">Базовый подход:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// Аллокации:
-// - left, right, mid: int (стек) - O(1)
-// - Результат: int, bool (стек) - O(1)
-// Итого: O(1) памяти, никаких аллокаций в куче
-</code></pre>
-<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
-<ol>
-<li><strong>Работа с индексами</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Работаем с индексами, не создаем новые слайсы
-mid := left + (right-left)/2
-</code></pre>
-<ol start="2">
-<li><strong>Избежание аллокаций</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Все операции на стеке
-left, right := 0, len(arr)-1
-</code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Память | O(1) константная | O(1) константная |
-| Индексы | usize на стеке | int на стеке |
-| Производительность | Предсказуемая | Предсказуемая |</p>
-<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
-<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
-<ol>
-<li><strong>Избежание переполнения</strong>: Используйте <code>left + (right - left) / 2</code></li>
-<li><strong>Минимизация проверок</strong>: Оптимизируйте условия</li>
-<li><strong>Ранние выходы</strong>: Когда возможно</li>
-</ol>
-<h3 id="специфичные-оптимизации-для-modified-binary-search"><a class="header" href="#специфичные-оптимизации-для-modified-binary-search">Специфичные оптимизации для Modified Binary Search</a></h3>
-<h4 id="1-оптимизация-бинарного-поиска"><a class="header" href="#1-оптимизация-бинарного-поиска">1. Оптимизация бинарного поиска:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированная версия
-func binarySearchOptimized(arr []int, target int) (int, bool) {
+<h2 id="алгоритм"><a class="header" href="#алгоритм">Алгоритм</a></h2>
+<p>Делим интервал <code>[left, right]</code> пополам, сравниваем <code>arr[mid]</code> с <code>target</code> и
+отбрасываем половину, где <code>target</code> заведомо нет. <code>mid</code> считаем как
+<code>left + (right-left)/2</code>, чтобы избежать переполнения.</p>
+<pre><code class="language-go">// Классический поиск точного значения
+func binarySearch(arr []int, target int) int {
     left, right := 0, len(arr)-1
-    
     for left &lt;= right {
-        mid := left + (right-left)/2  // Избегаем переполнения
+        mid := left + (right-left)/2
         switch {
         case arr[mid] == target:
-            return mid, true
+            return mid
+        case arr[mid] &lt; target:
+            left = mid + 1 // ищем в правой половине
+        default:
+            right = mid - 1 // ищем в левой половине
+        }
+    }
+    return -1 // не найдено
+}
+</code></pre>
+<p>Для <strong>первого вхождения</strong> при равенстве не останавливаемся, а продолжаем сжимать
+правую границу — так находим самый левый индекс с <code>target</code>.</p>
+<pre><code class="language-go">func findFirstOccurrence(arr []int, target int) int {
+    left, right := 0, len(arr)-1
+    result := -1
+    for left &lt;= right {
+        mid := left + (right-left)/2
+        switch {
+        case arr[mid] == target:
+            result = mid    // запоминаем и продолжаем влево
+            right = mid - 1
         case arr[mid] &lt; target:
             left = mid + 1
         default:
             right = mid - 1
         }
     }
-    return 0, false
+    return result
 }
 </code></pre>
-<ol>
-<li>
-<p><strong>Использование <code>cmp</code></strong>:</p>
-</li>
-<li>
-<p><strong>Избежание bounds checking</strong>:</p>
-</li>
-</ol>
-<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
-<ol>
-<li><strong>Использование switch</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Эффективный switch
-switch {
-case arr[mid] == target:
-    return mid, true
-// ...
-}
-</code></pre>
-<ol start="2">
-<li><strong>Минимизация проверок</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Простые проверки
-for left &lt;= right {
-    // ...
-}
-</code></pre>
-<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
-<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
-<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
-<h3 id="как-профилировать-modified-binary-search"><a class="header" href="#как-профилировать-modified-binary-search">Как профилировать Modified Binary Search</a></h3>
-<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
-<pre><code class="language-go">func BenchmarkBinarySearch(b *testing.B) {
-    arr := make([]int, 1000000)
-    for i := range arr {
-        arr[i] = i
-    }
-    
-    b.ResetTimer()
-    for i := 0; i &lt; b.N; i++ {
-        binarySearchOptimized(arr, 500000)
-    }
-}
-</code></pre>
-<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
-<p><strong>Анализ производительности</strong>:</p>
-<ul>
-<li>Binary Search: O(log n) по времени</li>
-<li>O(1) дополнительной памяти</li>
-<li>Минимальные аллокации (только индексы)</li>
-</ul>
-<p><strong>Типичные узкие места</strong>:</p>
-<ul>
-<li>Доступ к элементам массива</li>
-<li>Сравнения</li>
-<li>Условные операторы</li>
-</ul>
-<h2 id="отладка-и-диагностика"><a class="header" href="#отладка-и-диагностика">Отладка и диагностика</a></h2>
-<p>Отладка бинарного поиска требует отслеживания границ поиска и значений на каждом шаге:</p>
-<h3 id="1-логирование-шагов-поиска"><a class="header" href="#1-логирование-шагов-поиска">1. Логирование шагов поиска</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func binarySearchDebug(nums []int, target int) int {
-    left, right := 0, len(nums)-1
-    
-    log.Printf("Начало поиска: nums=%v, target=%d, left=%d, right=%d",
-        nums, target, left, right)
-    
-    step := 0
-    for left &lt;= right {
-        step++
-        mid := left + (right-left)/2
-        midVal := nums[mid]
-        
-        log.Printf("Шаг %d: left=%d, right=%d, mid=%d, nums[mid]=%d, target=%d",
-            step, left, right, mid, midVal, target)
-        
-        if midVal == target {
-            log.Printf("Найдено на шаге %d: индекс=%d", step, mid)
-            return mid
-        } else if midVal &lt; target {
-            log.Printf("nums[mid] &lt; target: увеличиваем left до %d", mid+1)
-            left = mid + 1
-        } else {
-            log.Printf("nums[mid] &gt; target: уменьшаем right до %d", mid-1)
-            right = mid - 1
-        }
-    }
-    
-    log.Printf("Не найдено за %d шагов", step)
-    return -1
-}
-</code></pre>
-<h3 id="2-визуализация-пространства-поиска"><a class="header" href="#2-визуализация-пространства-поиска">2. Визуализация пространства поиска</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func visualizeSearchSpace(nums []int, left, right, mid int, target int) {
-    fmt.Print("Массив: [")
-    for i, val := range nums {
-        if i == left {
-            fmt.Print("L")
-        }
-        if i == mid {
-            fmt.Print("M")
-        }
-        if i == right {
-            fmt.Print("R")
-        }
-        fmt.Printf("%d", val)
-        if i &lt; len(nums)-1 {
-            fmt.Print(" ")
-        }
-    }
-    fmt.Printf("] target=%d\n", target)
-    fmt.Printf("Поиск в диапазоне [%d:%d], mid=%d\n", left, right, mid)
-}
-</code></pre>
-<h3 id="3-проверка-инвариантов"><a class="header" href="#3-проверка-инвариантов">3. Проверка инвариантов</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func binarySearchWithInvariants(nums []int, target int) int {
-    left, right := 0, len(nums)-1
-    
-    // Инвариант: target находится в диапазоне [left, right] если существует
-    for left &lt;= right {
-        mid := left + (right-left)/2
-        
-        // Проверка инварианта
-        if left &gt; 0 &amp;&amp; nums[left-1] &gt;= target {
-            panic("Нарушение инварианта слева")
-        }
-        if right &lt; len(nums)-1 &amp;&amp; nums[right+1] &lt;= target {
-            panic("Нарушение инварианта справа")
-        }
-        
-        if nums[mid] == target {
-            return mid
-        } else if nums[mid] &lt; target {
-            left = mid + 1
-        } else {
-            right = mid - 1
-        }
-    }
-    
-    return -1
-}
-</code></pre>
-<h3 id="метрики-производительности"><a class="header" href="#метрики-производительности">Метрики производительности</a></h3>
-<p>Реальные результаты бенчмарков на типичном оборудовании (Intel i7-9700K, 32GB RAM):</p>
-<h4 id="бинарный-поиск-go"><a class="header" href="#бинарный-поиск-go">Бинарный поиск (Go):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер массива</th><th>Время выполнения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>100 элементов</td><td>~25 ns</td><td>0 B</td><td>~40,000,000</td></tr>
-<tr><td>1,000 элементов</td><td>~35 ns</td><td>0 B</td><td>~28,500,000</td></tr>
-<tr><td>10,000 элементов</td><td>~45 ns</td><td>0 B</td><td>~22,200,000</td></tr>
-<tr><td>100,000 элементов</td><td>~55 ns</td><td>0 B</td><td>~18,200,000</td></tr>
-<tr><td>1,000,000 элементов</td><td>~65 ns</td><td>0 B</td><td>~15,400,000</td></tr>
-<tr><td>10,000,000 элементов</td><td>~75 ns</td><td>0 B</td><td>~13,300,000</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Логарифмическая зависимость: O(log n)</li>
-<li>Время почти не зависит от размера массива</li>
-<li>Нулевые аллокации: O(1) память</li>
-<li>Высокая производительность даже для очень больших массивов</li>
-</ul>
-<h4 id="сравнение-с-линейным-поиском-1"><a class="header" href="#сравнение-с-линейным-поиском-1">Сравнение с линейным поиском:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер массива</th><th>Бинарный поиск</th><th>Линейный поиск</th><th>Ускорение</th></tr>
-</thead>
-<tbody>
-<tr><td>1,000 элементов</td><td>~35 ns</td><td>~450 ns</td><td><strong>12.9x</strong></td></tr>
-<tr><td>10,000 элементов</td><td>~45 ns</td><td>~4.5 μs</td><td><strong>100x</strong></td></tr>
-<tr><td>100,000 элементов</td><td>~55 ns</td><td>~45 μs</td><td><strong>818x</strong></td></tr>
-<tr><td>1,000,000 элементов</td><td>~65 ns</td><td>~450 μs</td><td><strong>6,923x</strong></td></tr>
-<tr><td>10,000,000 элементов</td><td>~75 ns</td><td>~4.5 ms</td><td><strong>60,000x</strong></td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Вывод</strong>: Бинарный поиск обеспечивает экспоненциальное ускорение для больших массивов.</p>
-<h4 id="поиск-в-повернутом-массиве-go"><a class="header" href="#поиск-в-повернутом-массиве-go">Поиск в повернутом массиве (Go):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Размер массива</th><th>Время выполнения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>1,000 элементов</td><td>~45 ns</td><td>0 B</td><td>~22,200,000</td></tr>
-<tr><td>10,000 элементов</td><td>~55 ns</td><td>0 B</td><td>~18,200,000</td></tr>
-<tr><td>100,000 элементов</td><td>~65 ns</td><td>0 B</td><td>~15,400,000</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Все еще O(log n) благодаря бинарному поиску</li>
-<li>Небольшой overhead из-за дополнительных проверок</li>
-<li>Эффективно для больших массивов</li>
-</ul>
-<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
-<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
-<ol>
-<li><strong>Базовые тесты</strong>: Простые случаи поиска</li>
-<li><strong>Граничные случаи</strong>: Пустой массив, один элемент, элемент не найден</li>
-<li><strong>Стресс-тесты</strong>: Большие массивы</li>
-</ol>
-<h3 id="примеры-тестов-для-modified-binary-search"><a class="header" href="#примеры-тестов-для-modified-binary-search">Примеры тестов для Modified Binary Search</a></h3>
-<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
-<pre><code class="language-go">func TestBinarySearch(t *testing.T) {
-    tests := []struct {
-        name   string
-        arr    []int
-        target int
-        want   bool
-    }{
-        {"basic", []int{1, 2, 3, 4, 5}, 3, true},
-        {"not_found", []int{1, 2, 3, 4, 5}, 6, false},
-        {"empty", []int{}, 1, false},
-    }
+<p>В <strong>повернутом массиве</strong> одна из половин <code>[left..mid]</code> или <code>[mid..right]</code> всегда
+отсортирована. Проверяем <code>arr[left] &lt;= arr[mid]</code>: если да — отсортирована левая
+половина, иначе правая. Ищем <code>target</code> только в отсортированной половине.</p>
+<p>Идиоматичный Go использует <code>sort.Search</code> — он находит наименьший индекс, для
+которого предикат истинен:</p>
+<pre><code class="language-go">import "sort"
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            _, got := binarySearchOptimized(tt.arr, tt.target)
-            if got != tt.want {
-                t.Errorf("binarySearchOptimized() = %v, want %v", got, tt.want)
-            }
-        })
-    }
-}
-</code></pre>
-<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="go"><a class="header" href="#go">Go:</a></h4>
-<pre><code class="language-bash">go test -v
-go test -bench=. -benchmem
-</code></pre>
-<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
-<pre><code class="language-go">func BenchmarkBinarySearchSizes(b *testing.B) {
-    sizes := []int{1000, 100000, 10000000}
-    
-    for _, size := range sizes {
-        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
-            arr := make([]int, size)
-            for i := range arr {
-                arr[i] = i
-            }
-            b.ResetTimer()
-            for i := 0; i &lt; b.N; i++ {
-                binarySearchOptimized(arr, size/2)
-            }
-        })
-    }
-}
-</code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="легкие"><a class="header" href="#легкие">Легкие:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/binary-search/">Binary Search</a> - Бинарный поиск</li>
-<li><a href="https://leetcode.com/problems/first-bad-version/">First Bad Version</a> - Первая плохая версия</li>
-</ul>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/search-in-rotated-sorted-array/">Search in Rotated Sorted Array</a> - Поиск в повернутом массиве</li>
-<li><a href="https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/">Find First and Last Position of Element in Sorted Array</a> - Первая и последняя позиция</li>
-<li><a href="https://leetcode.com/problems/search-a-2d-matrix/">Search a 2D Matrix</a> - Поиск в 2D матрице</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/">Find Minimum in Rotated Sorted Array</a> - Минимум в повернутом массиве</li>
-<li><a href="https://leetcode.com/problems/median-of-two-sorted-arrays/">Median of Two Sorted Arrays</a> - Медиана двух отсортированных массивов</li>
-</ul>
-<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
-<h3 id="эволюция-решения-от-наивного-к-оптимизированному"><a class="header" href="#эволюция-решения-от-наивного-к-оптимизированному">Эволюция решения: от наивного к оптимизированному</a></h3>
-<h4 id="наивный-подход-on"><a class="header" href="#наивный-подход-on">Наивный подход (O(n)):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ❌ Наивный подход: линейный поиск
-func binarySearchNaive(nums []int, target int) int {
-    for i, num := range nums {
-        if num == target {
-            return i
-        }
-    }
-    return -1
-}
-// Проблемы: O(n) время, не использует отсортированность массива
-</code></pre>
-<h4 id="оптимизированный-подход-olog-n"><a class="header" href="#оптимизированный-подход-olog-n">Оптимизированный подход (O(log n)):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированный подход: бинарный поиск
-func binarySearchOptimized(nums []int, target int) int {
-    left, right := 0, len(nums)-1
-    
-    for left &lt;= right {
-        mid := left + (right-left)/2  // Избегаем переполнения
-        
-        if nums[mid] == target {
-            return mid
-        } else if nums[mid] &lt; target {
-            left = mid + 1
-        } else {
-            right = mid - 1
-        }
-    }
-    
-    return -1
-}
-// Преимущества: O(log n) время, использует отсортированность
-</code></pre>
-<h4 id="идиоматичный-go-код"><a class="header" href="#идиоматичный-go-код">Идиоматичный Go код:</a></h4>
-<pre><code class="language-go">// ✅ Идиоматичный Go: используем sort.Search
-import "sort"
-
-func binarySearchIdiomatic(nums []int, target int) int {
-    i := sort.Search(len(nums), func(i int) bool {
-        return nums[i] &gt;= target
+func searchIdiomatic(arr []int, target int) int {
+    i := sort.Search(len(arr), func(i int) bool {
+        return arr[i] &gt;= target
     })
-    
-    if i &lt; len(nums) &amp;&amp; nums[i] == target {
+    if i &lt; len(arr) &amp;&amp; arr[i] == target {
         return i
     }
     return -1
 }
 </code></pre>
-<h2 id="реальные-применения"><a class="header" href="#реальные-применения">Реальные применения</a></h2>
-<p>Modified Binary Search широко используется в production системах для эффективного поиска в отсортированных данных:</p>
-<h3 id="1-database-index-lookups-поиск-по-индексам-бд"><a class="header" href="#1-database-index-lookups-поиск-по-индексам-бд">1. Database Index Lookups (Поиск по индексам БД)</a></h3>
-<p><strong>Применение</strong>: Быстрый поиск в отсортированных индексах баз данных.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>B-Tree Indexes</strong>: Поиск в B-деревьях использует бинарный поиск</li>
-<li><strong>Primary Key Lookups</strong>: Поиск по первичному ключу</li>
-<li><strong>Range Queries</strong>: Поиск в диапазонах значений</li>
-</ul>
-<p><strong>Код</strong>:</p>
-<pre><code class="language-go">// Поиск в B-tree индексе
-func btreeSearch(node *BTreeNode, key int) *Record {
-    for node != nil {
-        idx := binarySearch(node.keys, key)
-        if idx &lt; len(node.keys) &amp;&amp; node.keys[idx] == key {
-            return node.values[idx]
-        }
-        node = node.children[idx]
-    }
-    return nil
-}
+<h3 id="сложность"><a class="header" href="#сложность">Сложность</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Случай</th><th>Время</th><th>Память</th></tr>
+</thead>
+<tbody>
+<tr><td>Лучший</td><td>O(1)</td><td>O(1)</td></tr>
+<tr><td>Средний/худший</td><td>O(log n)</td><td>O(1)</td></tr>
+</tbody>
+</table>
+</div>
+<p>На каждом шаге интервал уменьшается вдвое, отсюда не более <code>log₂(n)</code> шагов; память
+константна — храним только индексы.</p>
+<h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: жёлтой рамкой отмечен <code>mid</code>,
+синим — текущий диапазон поиска <code>[lo, hi]</code>. (Виджет работает в собранной книге
+<code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="binary-search" data-array="1,3,5,7,9,11,13" data-target="9"></div>
+
+<p>Поиск первого вхождения <code>target = 2</code> в <code>[1, 2, 2, 2, 3, 4, 5]</code>:</p>
+<pre><code>[1 2 2 2 3 4 5]  left=0 right=6 mid=3  arr[3]=2 == 2  → запомнили, right=2
+[1 2 2]2 3 4 5   left=0 right=2 mid=1  arr[1]=2 == 2  → запомнили, left=0..right=0
+[1]2 2 2 3 4 5   left=0 right=0 mid=0  arr[0]=1 &lt; 2   → left=1
+                 left &gt; right → стоп. Результат: индекс 1
 </code></pre>
-<h3 id="2-version-control-systems-системы-контроля-версий"><a class="header" href="#2-version-control-systems-системы-контроля-версий">2. Version Control Systems (Системы контроля версий)</a></h3>
-<p><strong>Применение</strong>: Поиск коммитов по времени, версиям, хешам.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Git</strong>: Поиск коммитов по времени (git log –since)</li>
-<li><strong>SVN</strong>: Поиск ревизий по номеру</li>
-<li><strong>Mercurial</strong>: Поиск изменений по времени</li>
-</ul>
-<h3 id="3-time-series-databases-временные-ряды"><a class="header" href="#3-time-series-databases-временные-ряды">3. Time-series Databases (Временные ряды)</a></h3>
-<p><strong>Применение</strong>: Поиск данных по времени в отсортированных временных рядах.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>InfluxDB</strong>: Поиск метрик по времени</li>
-<li><strong>TimescaleDB</strong>: Поиск данных в партициях по времени</li>
-<li><strong>Prometheus</strong>: Поиск метрик в временных рядах</li>
-</ul>
-<h3 id="4-google-production-examples"><a class="header" href="#4-google-production-examples">4. Google Production Examples</a></h3>
-<p><strong>Примеры из Google</strong>:</p>
-<ul>
-<li><strong>Google Search</strong>: Поиск в индексах документов</li>
-<li><strong>Google BigQuery</strong>: Поиск в колонках с индексами</li>
-<li><strong>Google Cloud Storage</strong>: Поиск объектов по метаданным</li>
-<li><strong>Google Maps</strong>: Поиск локаций в отсортированных индексах</li>
-</ul>
-<h3 id="5-search-engines"><a class="header" href="#5-search-engines">5. Search Engines</a></h3>
-<p><strong>Применение в поисковых системах</strong>:</p>
-<ul>
-<li><strong>Inverted Index</strong>: Поиск документов по терминам</li>
-<li><strong>Ranking</strong>: Поиск документов по релевантности</li>
-<li><strong>Autocomplete</strong>: Поиск предложений в отсортированном списке</li>
-</ul>
-<h3 id="6-system-design-applications"><a class="header" href="#6-system-design-applications">6. System Design Applications</a></h3>
-<p><strong>Применение в системном дизайне</strong>:</p>
-<ul>
-<li><strong>Load Balancing</strong>: Поиск сервера по нагрузке</li>
-<li><strong>Sharding</strong>: Поиск шарда для данных</li>
-<li><strong>Consistent Hashing</strong>: Поиск узла в кольце</li>
-</ul>
-<h3 id="7-open-source-examples"><a class="header" href="#7-open-source-examples">7. Open Source Examples</a></h3>
-<p><strong>Примеры из open-source проектов</strong>:</p>
-<ul>
-<li><strong>PostgreSQL</strong>: Поиск в B-tree индексах</li>
-<li><strong>MySQL</strong>: Поиск в индексах</li>
-<li><strong>Elasticsearch</strong>: Поиск в отсортированных полях</li>
-<li><strong>Redis</strong>: Поиск в sorted sets</li>
-</ul>
-<h3 id="8-algorithm-libraries"><a class="header" href="#8-algorithm-libraries">8. Algorithm Libraries</a></h3>
-<p><strong>Применение в библиотеках алгоритмов</strong>:</p>
-<ul>
-<li><strong>Standard Libraries</strong>: std::lower_bound, std::upper_bound в C++</li>
-<li><strong>Java Collections</strong>: Collections.binarySearch</li>
-<li><strong>Python bisect</strong>: bisect.bisect_left, bisect.bisect_right</li>
-</ul>
-<h3 id="9-game-development"><a class="header" href="#9-game-development">9. Game Development</a></h3>
-<p><strong>Применение в разработке игр</strong>:</p>
-<ul>
-<li><strong>Leaderboards</strong>: Поиск позиции игрока в рейтинге</li>
-<li><strong>Spatial Indexing</strong>: Поиск объектов в пространстве</li>
-<li><strong>Event Scheduling</strong>: Поиск событий по времени</li>
-</ul>
-<h3 id="10-financial-systems"><a class="header" href="#10-financial-systems">10. Financial Systems</a></h3>
-<p><strong>Применение в финансовых системах</strong>:</p>
-<ul>
-<li><strong>Trading Systems</strong>: Поиск цен в исторических данных</li>
-<li><strong>Risk Management</strong>: Поиск пороговых значений</li>
-<li><strong>Compliance</strong>: Поиск транзакций по времени</li>
-</ul>
-<h2 id="упражнения"><a class="header" href="#упражнения">Упражнения</a></h2>
-<p>Практикуйтесь на задачах разной сложности для закрепления материала:</p>
-<h3 id="легкие-задачи-для-начинающих"><a class="header" href="#легкие-задачи-для-начинающих">Легкие задачи (для начинающих)</a></h3>
+<p>При равенстве не выходим сразу, а сдвигаем <code>right</code> влево — поэтому находим самый
+левый из дубликатов.</p>
+<h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
-<li>
-<p><strong>Binary Search</strong> (LeetCode 704)</p>
-<ul>
-<li>Найдите target в отсортированном массиве</li>
-<li>Подсказка: Используйте классический бинарный поиск</li>
-<li><a href="https://leetcode.com/problems/binary-search/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Search Insert Position</strong> (LeetCode 35)</p>
-<ul>
-<li>Найдите позицию вставки target в отсортированный массив</li>
-<li>Подсказка: Используйте бинарный поиск для поиска первой позиции &gt;= target</li>
-<li><a href="https://leetcode.com/problems/search-insert-position/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>First Bad Version</strong> (LeetCode 278)</p>
-<ul>
-<li>Найдите первую плохую версию</li>
-<li>Подсказка: Используйте бинарный поиск для поиска первой плохой версии</li>
-<li><a href="https://leetcode.com/problems/first-bad-version/">Решение</a></li>
-</ul>
-</li>
+<li><strong>Переполнение <code>mid</code></strong> — считайте <code>left + (right-left)/2</code>, а не
+<code>(left + right)/2</code>.</li>
+<li><strong>Неверное условие цикла</strong> — <code>left &lt;= right</code> ищет в закрытом интервале;
+<code>left &lt; right</code> (с <code>right = mid</code>) — для поиска границы. Смешивать нельзя.</li>
+<li><strong>Неправильное обновление границ</strong> — для первого вхождения при равенстве надо
+двигать <code>right = mid - 1</code>, а не возвращать <code>mid</code> сразу.</li>
+<li><strong>Повернутый массив</strong>: забыли определить отсортированную половину перед
+отбрасыванием — тогда теряете <code>target</code>.</li>
+<li><strong>Не обработаны границы</strong> — пустой массив, один элемент, <code>target</code> вне диапазона.</li>
 </ol>
-<h3 id="средние-задачи-для-практики"><a class="header" href="#средние-задачи-для-практики">Средние задачи (для практики)</a></h3>
-<ol start="4">
-<li>
-<p><strong>Find First and Last Position of Element in Sorted Array</strong> (LeetCode 34)</p>
+<h2 id="задачи"><a class="header" href="#задачи">Задачи</a></h2>
+<p><strong>LeetCode:</strong></p>
 <ul>
-<li>Найдите первое и последнее вхождение target</li>
-<li>Подсказка: Используйте два бинарных поиска - для первого и последнего</li>
-<li><a href="https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/">Решение</a></li>
+<li><a href="https://leetcode.com/problems/binary-search/">Binary Search</a></li>
+<li><a href="https://leetcode.com/problems/search-insert-position/">Search Insert Position</a></li>
+<li><a href="https://leetcode.com/problems/first-bad-version/">First Bad Version</a></li>
+<li><a href="https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/">Find First and Last Position of Element in Sorted Array</a></li>
+<li><a href="https://leetcode.com/problems/search-in-rotated-sorted-array/">Search in Rotated Sorted Array</a></li>
+<li><a href="https://leetcode.com/problems/search-a-2d-matrix/">Search a 2D Matrix</a></li>
+<li><a href="https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/">Find Minimum in Rotated Sorted Array</a></li>
+<li><a href="https://leetcode.com/problems/median-of-two-sorted-arrays/">Median of Two Sorted Arrays</a> (сложная)</li>
 </ul>
-</li>
-<li>
-<p><strong>Search in Rotated Sorted Array</strong> (LeetCode 33)</p>
-<ul>
-<li>Найдите target в повернутом отсортированном массиве</li>
-<li>Подсказка: Определите, какая половина отсортирована</li>
-<li><a href="https://leetcode.com/problems/search-in-rotated-sorted-array/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Find Peak Element</strong> (LeetCode 162)</p>
-<ul>
-<li>Найдите пиковый элемент (больше соседей)</li>
-<li>Подсказка: Используйте бинарный поиск, сравнивая с правым соседом</li>
-<li><a href="https://leetcode.com/problems/find-peak-element/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Search a 2D Matrix</strong> (LeetCode 74)</p>
-<ul>
-<li>Найдите target в отсортированной матрице</li>
-<li>Подсказка: Используйте бинарный поиск, рассматривая матрицу как одномерный массив</li>
-<li><a href="https://leetcode.com/problems/search-a-2d-matrix/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="сложные-задачи-для-углубления"><a class="header" href="#сложные-задачи-для-углубления">Сложные задачи (для углубления)</a></h3>
-<ol start="8">
-<li>
-<p><strong>Find Minimum in Rotated Sorted Array</strong> (LeetCode 153)</p>
-<ul>
-<li>Найдите минимальный элемент в повернутом отсортированном массиве</li>
-<li>Подсказка: Используйте бинарный поиск, сравнивая с правым элементом</li>
-<li><a href="https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Kth Smallest Element in a Sorted Matrix</strong> (LeetCode 378)</p>
-<ul>
-<li>Найдите k-й наименьший элемент в отсортированной матрице</li>
-<li>Подсказка: Используйте бинарный поиск по значению</li>
-<li><a href="https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Split Array Largest Sum</strong> (LeetCode 410)</p>
-<ul>
-<li>Разделите массив на m подмассивов с минимальной максимальной суммой</li>
-<li>Подсказка: Используйте бинарный поиск по возможной сумме</li>
-<li><a href="https://leetcode.com/problems/split-array-largest-sum/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="дополнительные-задачи-для-практики"><a class="header" href="#дополнительные-задачи-для-практики">Дополнительные задачи для практики</a></h3>
-<ol start="11">
-<li>
-<p><strong>Search in Rotated Sorted Array II</strong> (LeetCode 81)</p>
-<ul>
-<li>Поиск в повернутом массиве с дубликатами</li>
-<li><a href="https://leetcode.com/problems/search-in-rotated-sorted-array-ii/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Find K Closest Elements</strong> (LeetCode 658)</p>
-<ul>
-<li>Найдите k ближайших элементов к target</li>
-<li><a href="https://leetcode.com/problems/find-k-closest-elements/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="рекомендации-по-решению"><a class="header" href="#рекомендации-по-решению">Рекомендации по решению</a></h3>
-<ol>
-<li><strong>Проверяйте границы</strong>: Убедитесь, что left &lt;= right</li>
-<li><strong>Избегайте переполнения</strong>: Используйте <code>left + (right - left) / 2</code></li>
-<li><strong>Правильно обновляйте границы</strong>: <code>left = mid + 1</code> или <code>left = mid</code> в зависимости от условия</li>
-<li><strong>Определяйте условие</strong>: Нужно найти первое, последнее или любое вхождение?</li>
-</ol>
+<p><strong>Тренажёр</strong> — пакет <code>binarysearch</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./binarysearch/                 # ваши решения
+go test -tags solution ./binarysearch/  # эталон
+</code></pre>
+<p>Реализуйте <code>Search</code> (поиск точного значения) и <code>FindCeiling</code> (наименьший элемент,
+не меньший <code>key</code> — поиск границы предиката).</p>
 <h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><strong><a href="./cyclic-sort.html">Cyclic Sort</a></strong> - Работа с массивами в определенном диапазоне</li>
-<li><strong><a href="./merge-intervals.html">Merge Intervals</a></strong> - Работа с отсортированными интервалами</li>
-<li><strong><a href="./k-way-merge.html">K-way Merge</a></strong> - Слияние отсортированных массивов</li>
-</ul>
-<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
-<p>После изучения Modified Binary Search рекомендуется перейти к <strong><a href="./reverse-linked-list.html">Reverse Linked List</a></strong> для изучения работы со списками или к <strong><a href="./tree-bfs.html">Tree BFS</a></strong> для изучения обхода деревьев.</p>
-<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
-<h3 id="интерактивные-визуализаторы"><a class="header" href="#интерактивные-визуализаторы">Интерактивные визуализаторы</a></h3>
-<ul>
-<li><a href="https://visualgo.net/en/binarysearch">VisuAlgo - Binary Search</a> - Интерактивная визуализация бинарного поиска</li>
-<li><a href="https://algorithm-visualizer.org/binary-search/binary-search">Algorithm Visualizer - Binary Search</a> - Визуализация работы алгоритма</li>
-<li><a href="https://www.cs.usfca.edu/~galles/visualization/Search.html">USFCA Algorithm Visualization - Binary Search</a> - Анимация бинарного поиска</li>
-</ul>
-<h3 id="видео-объяснения"><a class="header" href="#видео-объяснения">Видео-объяснения</a></h3>
-<ul>
-<li><a href="https://www.youtube.com/results?search_query=neetcode+binary+search">NeetCode - Binary Search</a> - Подробное объяснение паттерна</li>
-<li><a href="https://www.youtube.com/results?search_query=back+to+back+swe+binary+search">Back To Back SWE - Binary Search</a> - Разбор задач</li>
-</ul>
-<h3 id="дополнительные-материалы"><a class="header" href="#дополнительные-материалы">Дополнительные материалы</a></h3>
-<ul>
-<li><a href="https://leetcode.com/tag/binary-search/">Binary Search - LeetCode Tag</a> - Коллекция задач на бинарный поиск</li>
-<li><a href="https://www.geeksforgeeks.org/binary-search/">Binary Search Algorithm - GeeksforGeeks</a> - Подробное объяснение</li>
-<li><a href="https://en.wikipedia.org/wiki/Binary_search_algorithm">Binary Search - Wikipedia</a> - Исторический контекст и вариации</li>
+<li><strong><a href="sliding-window.html">Sliding Window</a></strong> — иногда оптимальный размер окна ищут
+бинарным поиском по ответу.</li>
+<li><strong><a href="cyclic-sort.html">Cyclic Sort</a></strong> — работа с массивами в фиксированном диапазоне.</li>
+<li><strong><a href="k-way-merge.html">K-way Merge</a></strong> — слияние отсортированных массивов.</li>
+<li>Для общей теории по памяти и профилированию в Go см.
+<a href="appendix-go-memory.html">приложение</a>.</li>
 </ul>
 
                     </main>
@@ -1281,6 +378,9 @@ func btreeSearch(node *BTreeNode, key int) *Record {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-f6dee78c.js"></script>
+        <script src="assets/quiz-0d58c129.js"></script>
+        <script src="assets/progress-8bf0c880.js"></script>
 
 
 

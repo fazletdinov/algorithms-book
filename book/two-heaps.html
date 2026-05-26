@@ -28,6 +28,8 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="assets/algo-viz-b363db2f.css">
+        <link rel="stylesheet" href="assets/quiz-7aebf16b.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -37,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7633d133.js";
+            window.path_to_searchindex_js = "searchindex-2799386e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-09075738.js"></script>
+        <script src="toc-6b3e4b80.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,1232 +179,153 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="two-heaps-две-кучи"><a class="header" href="#two-heaps-две-кучи">Two Heaps (Две кучи)</a></h1>
-<h2 id="описание-шаблона"><a class="header" href="#описание-шаблона">Описание шаблона</a></h2>
-<p>Шаблон <strong>Two Heaps</strong> использует две кучи (min-heap и max-heap) для эффективного решения задач, связанных с поддержанием медианы, разделением данных на две части или поиском элементов в определенном диапазоне. Одна куча хранит меньшие элементы, другая - большие.</p>
-<h3 id="исторический-контекст"><a class="header" href="#исторический-контекст">Исторический контекст</a></h3>
-<p>Поддержание медианы в потоке данных - классическая задача в области алгоритмов потоковых данных. Подход с двумя кучами был разработан для эффективного решения этой задачи с логарифмическим временем вставки и константным временем получения медианы.</p>
-<h3 id="основная-идея"><a class="header" href="#основная-идея">Основная идея</a></h3>
-<p>Ключевое наблюдение: медиана разделяет отсортированный массив на две равные (или почти равные) части. Используя max-heap для меньшей половины и min-heap для большей половины, мы можем эффективно поддерживать это разделение при добавлении новых элементов.</p>
-<h2 id="когда-применять"><a class="header" href="#когда-применять">Когда применять</a></h2>
-<p>Используйте этот шаблон, когда:</p>
+<h2 id="теория"><a class="header" href="#теория">Теория</a></h2>
+<p><strong>Two Heaps</strong> хранит данные в двух кучах: max-heap для меньшей половины элементов и
+min-heap для большей. Медиана разделяет отсортированный набор на две равные части —
+держа это разделение, мы получаем медиану из вершин куч за O(1), а вставку — за O(log n),
+вместо пересортировки всего набора.</p>
+<p>Инвариант, который поддерживается после каждой вставки:</p>
 <ul>
-<li>Нужно поддерживать медиану потока данных</li>
-<li>Требуется разделить данные на две части (меньшие и большие)</li>
-<li>Нужно найти K-й наименьший/наибольший элемент</li>
-<li>Задача связана с балансировкой двух множеств данных</li>
-<li>Требуется эффективное добавление и удаление элементов с поддержанием порядка</li>
+<li>любой элемент max-heap ≤ любого элемента min-heap;</li>
+<li>размеры куч отличаются не более чем на 1.</li>
 </ul>
-<h2 id="алгоритмподход"><a class="header" href="#алгоритмподход">Алгоритм/Подход</a></h2>
-<p><strong>Куча (heap)</strong> — приоритетная очередь: min-heap даёт минимум за O(1), max-heap — максимум. Вставка и удаление выполняются за O(log n). См. также <a href="./glossary.html">Глоссарий</a>.</p>
-<h3 id="базовая-структура"><a class="header" href="#базовая-структура">Базовая структура:</a></h3>
-<pre><code class="language-go">import (
-    "container/heap"
-)
+<p><strong>Когда применять:</strong></p>
+<ul>
+<li>нужно поддерживать медиану потока чисел;</li>
+<li>данные делятся на «меньшую» и «большую» половины с балансировкой;</li>
+<li>ищется K-й элемент или баланс между двумя множествами.</li>
+</ul>
+<p><strong>Куча (heap)</strong> — приоритетная очередь: min-heap даёт минимум за O(1), max-heap —
+максимум, вставка и удаление — за O(log n). В Go куча реализуется через <code>container/heap</code>
+поверх среза. См. также <a href="./glossary.html">Глоссарий</a>.</p>
+<h2 id="алгоритм"><a class="header" href="#алгоритм">Алгоритм</a></h2>
+<p>Новый элемент кладём в <code>maxHeap</code>, если он не больше его вершины, иначе в <code>minHeap</code>. Затем
+выравниваем размеры: если одна куча переросла другую больше чем на 1, переносим вершину.
+Медиана — это вершина большей кучи либо среднее двух вершин при равных размерах.</p>
+<pre><code class="language-go">import "container/heap"
 
-// MaxHeap для хранения меньшей половины элементов
+// MaxHeap — меньшая половина (максимум на вершине)
 type MaxHeap []int
 
-func (h MaxHeap) Len() int           { return len(h) }
-func (h MaxHeap) Less(i, j int) bool { return h[i] &gt; h[j] } // Обратный порядок для max-heap
-func (h MaxHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-
-func (h *MaxHeap) Push(x interface{}) {
-    *h = append(*h, x.(int))
-}
-
+func (h MaxHeap) Len() int            { return len(h) }
+func (h MaxHeap) Less(i, j int) bool  { return h[i] &gt; h[j] } // обратный порядок
+func (h MaxHeap) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }
+func (h *MaxHeap) Push(x interface{}) { *h = append(*h, x.(int)) }
 func (h *MaxHeap) Pop() interface{} {
     old := *h
     n := len(old)
     x := old[n-1]
-    *h = old[0 : n-1]
+    *h = old[:n-1]
     return x
 }
 
-// MinHeap для хранения большей половины элементов
+// MinHeap — большая половина (минимум на вершине)
 type MinHeap []int
 
-func (h MinHeap) Len() int           { return len(h) }
-func (h MinHeap) Less(i, j int) bool { return h[i] &lt; h[j] }
-func (h MinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-
-func (h *MinHeap) Push(x interface{}) {
-    *h = append(*h, x.(int))
-}
-
+func (h MinHeap) Len() int            { return len(h) }
+func (h MinHeap) Less(i, j int) bool  { return h[i] &lt; h[j] }
+func (h MinHeap) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }
+func (h *MinHeap) Push(x interface{}) { *h = append(*h, x.(int)) }
 func (h *MinHeap) Pop() interface{} {
     old := *h
     n := len(old)
     x := old[n-1]
-    *h = old[0 : n-1]
+    *h = old[:n-1]
     return x
 }
 
-// Структура для поддержания медианы
 type MedianFinder struct {
-    // maxHeap: хранит меньшую половину элементов (максимум на вершине)
-    // Все элементы в maxHeap &lt;= медианы
-    maxHeap *MaxHeap
-    
-    // minHeap: хранит большую половину элементов (минимум на вершине)
-    // Все элементы в minHeap &gt;= медианы
-    minHeap *MinHeap
+    maxHeap *MaxHeap // все элементы &lt;= медианы
+    minHeap *MinHeap // все элементы &gt;= медианы
 }
 
 func NewMedianFinder() *MedianFinder {
-    maxHeap := &amp;MaxHeap{}
-    minHeap := &amp;MinHeap{}
-    heap.Init(maxHeap)
-    heap.Init(minHeap)
-    return &amp;MedianFinder{
-        maxHeap: maxHeap,
-        minHeap: minHeap,
-    }
+    return &amp;MedianFinder{maxHeap: &amp;MaxHeap{}, minHeap: &amp;MinHeap{}}
 }
 
 func (mf *MedianFinder) AddNum(num int) {
-    // Добавляем элемент в соответствующую кучу
-    // Если обе кучи пусты или num &lt;= максимума maxHeap, добавляем в maxHeap
     if mf.maxHeap.Len() == 0 || num &lt;= (*mf.maxHeap)[0] {
         heap.Push(mf.maxHeap, num)
     } else {
         heap.Push(mf.minHeap, num)
     }
-    
-    // Шаг 2: Балансировка - размеры куч должны отличаться максимум на 1
-    // Если разница больше 1, перемещаем элемент из большей кучи в меньшую
+
+    // балансировка: размеры отличаются не более чем на 1
     if mf.maxHeap.Len() &gt; mf.minHeap.Len()+1 {
-        // maxHeap слишком большая - перемещаем максимум в minHeap
-        maxVal := heap.Pop(mf.maxHeap).(int)
-        heap.Push(mf.minHeap, maxVal)
+        heap.Push(mf.minHeap, heap.Pop(mf.maxHeap).(int))
     } else if mf.minHeap.Len() &gt; mf.maxHeap.Len()+1 {
-        // minHeap слишком большая - перемещаем минимум в maxHeap
-        minVal := heap.Pop(mf.minHeap).(int)
-        heap.Push(mf.maxHeap, minVal)
+        heap.Push(mf.maxHeap, heap.Pop(mf.minHeap).(int))
     }
 }
 
 func (mf *MedianFinder) FindMedian() float64 {
-    // Шаг 3: Вычисление медианы
-    if mf.maxHeap.Len() == mf.minHeap.Len() {
-        // Если размеры равны: медиана = (max_heap.top() + min_heap.top()) / 2
-        // Берем среднее арифметическое вершин обеих куч
+    switch {
+    case mf.maxHeap.Len() == mf.minHeap.Len():
         return float64((*mf.maxHeap)[0]+(*mf.minHeap)[0]) / 2.0
-    } else if mf.maxHeap.Len() &gt; mf.minHeap.Len() {
-        // Если размеры разные: медиана = вершина большей кучи
-        // maxHeap больше, поэтому медиана - это её максимум
+    case mf.maxHeap.Len() &gt; mf.minHeap.Len():
         return float64((*mf.maxHeap)[0])
-    } else {
-        // minHeap больше, поэтому медиана - это её минимум
+    default:
         return float64((*mf.minHeap)[0])
     }
 }
 </code></pre>
+<h3 id="сложность"><a class="header" href="#сложность">Сложность</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Операция</th><th>Время</th><th>Память</th></tr>
+</thead>
+<tbody>
+<tr><td><code>AddNum</code></td><td>O(log n)</td><td>O(n)</td></tr>
+<tr><td><code>FindMedian</code></td><td>O(1)</td><td>O(1)</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="визуализация"><a class="header" href="#визуализация">Визуализация</a></h2>
-<h3 id="поддержание-медианы"><a class="header" href="#поддержание-медианы">Поддержание медианы:</a></h3>
-<p>Поток данных: <code>[1, 5, 2, 3, 4]</code></p>
-<p><strong>Структура двух куч:</strong></p>
-<pre><code class="language-mermaid">graph TD
-    subgraph maxHeap["Max Heap (меньшая половина)"]
-        M1[3]
-        M2[2]
-        M3[1]
-        M1 --&gt; M2
-        M1 --&gt; M3
-    end
-    
-    subgraph minHeap["Min Heap (большая половина)"]
-        N1[4]
-        N2[5]
-        N1 --&gt; N2
-    end
-    
-    style M1 fill:#bfb,stroke:#333,stroke-width:2px
-    style N1 fill:#bbf,stroke:#333,stroke-width:2px
-</code></pre>
-<p><strong>Процесс добавления элементов:</strong></p>
-<p><strong>Шаг 1: Добавляем 1</strong></p>
-<pre><code>maxHeap (меньшая половина): [1]
-minHeap (большая половина): []
-Размеры: 1:0
-Медиана: 1 (из maxHeap)
-</code></pre>
-<p><strong>Шаг 2: Добавляем 5</strong></p>
-<pre><code>maxHeap: [1]
-minHeap: [5]
-Размеры: 1:1 (равны)
-Медиана: (1 + 5) / 2 = 3
-</code></pre>
-<p><strong>Шаг 3: Добавляем 2</strong></p>
-<pre><code>Сравниваем 2 с медианой (вершина maxHeap=1). 2 &gt; 1 → элемент идёт в «большую половину» (minHeap).
-Но maxHeap (1) меньше minHeap (1) по размеру → кладём 2 в maxHeap для баланса.
-maxHeap: [2, 1]  (2 как новый корень)
-minHeap: [5]
-Размеры: 2:1
-Медиана: 2 (из maxHeap, т.к. maxHeap больше)
-</code></pre>
-<p><strong>Шаг 4: Добавляем 3</strong></p>
-<pre><code>maxHeap: [2, 1]
-minHeap: [3, 5]
-Размеры: 2:2 (равны)
-Медиана: (2 + 3) / 2 = 2.5
-</code></pre>
-<p><strong>Шаг 5: Добавляем 4, затем балансировка</strong></p>
-<pre><code>До балансировки:
-maxHeap: [2, 1]
-minHeap: [3, 4, 5]  (4 &gt; maxHeap.peek()=2 → в minHeap)
-Размеры: 2:3 (разница &gt; 1)
+<blockquote>
+<p>💡 <strong>Интерактивная демонстрация.</strong> Нажимайте «▶»: число попадает в одну из половин,
+кучи балансируются, а медиана читается с вершин (подсвечены). (Виджет работает в
+собранной книге <code>mdbook serve</code>/<code>mdbook build</code>, а не при просмотре <code>.md</code> на GitHub.)</p>
+</blockquote>
+<div class="algo-viz" data-viz="two-heaps-median" data-stream="5,15,1,3,8,7,9,10,20,6"></div>
 
-После балансировки (перемещаем вершину minHeap в maxHeap):
-maxHeap: [3, 2, 1]
-minHeap: [4, 5]
-Размеры: 3:2
-Медиана: 3 (из maxHeap)
+<p>Поток <code>[1, 5, 2, 3, 4]</code>, состояние после каждого добавления (maxHeap — меньшая половина,
+вершина указана первой):</p>
+<pre><code>+1:  maxHeap=[1]      minHeap=[]       размеры 1:0   медиана = 1
++5:  maxHeap=[1]      minHeap=[5]      размеры 1:1   медиана = (1+5)/2 = 3
++2:  maxHeap=[2,1]    minHeap=[5]      размеры 2:1   медиана = 2
++3:  maxHeap=[2,1]    minHeap=[3,5]    размеры 2:2   медиана = (2+3)/2 = 2.5
++4:  maxHeap=[3,2,1]  minHeap=[4,5]    размеры 3:2   медиана = 3
 </code></pre>
-<p><strong>Результат:</strong> Медиана после каждого шага поддерживается корректно</p>
-<h2 id="математическое-обоснование"><a class="header" href="#математическое-обоснование">Математическое обоснование</a></h2>
-<h3 id="почему-алгоритм-работает"><a class="header" href="#почему-алгоритм-работает">Почему алгоритм работает?</a></h3>
-<p><strong>Инвариант</strong>: После каждой операции:</p>
-<ul>
-<li>Все элементы в max_heap ≤ все элементы в min_heap</li>
-<li>Размеры куч отличаются максимум на 1</li>
-<li>Если размеры равны: медиана = среднее двух вершин</li>
-<li>Если размеры разные: медиана = вершина большей кучи</li>
-</ul>
-<p><strong>Доказательство корректности</strong>:</p>
-<ol>
-<li><strong>Инициализация</strong>: Обе кучи пусты, инвариант выполнен</li>
-<li><strong>Добавление элемента</strong>:
-<ul>
-<li>Добавляем в соответствующую кучу</li>
-<li>Если нарушен баланс, перемещаем элемент</li>
-<li>Инвариант сохраняется</li>
-</ul>
-</li>
-<li><strong>Получение медианы</strong>: По определению медианы и инварианту, результат корректен</li>
-</ol>
-<p><strong>Почему сложность O(log n) для добавления?</strong></p>
-<p>Операции с кучей (добавление, удаление) имеют сложность O(log n), где n - размер кучи. Балансировка также требует O(log n) операций.</p>
-<h2 id="временная-и-пространственная-сложность"><a class="header" href="#временная-и-пространственная-сложность">Временная и пространственная сложность</a></h2>
-<h3 id="детальный-анализ"><a class="header" href="#детальный-анализ">Детальный анализ:</a></h3>
-<ul>
-<li><strong>Временная сложность</strong>:
-<ul>
-<li>Добавление: O(log n) - добавление в кучу + возможная балансировка</li>
-<li>Получение медианы: O(1) - доступ к вершине кучи</li>
-<li>Удаление: O(log n) - удаление из кучи + балансировка</li>
-</ul>
-</li>
-<li><strong>Пространственная сложность</strong>: O(n)
-<ul>
-<li>Две кучи вместе хранят все n элементов</li>
-</ul>
-</li>
-</ul>
-<h3 id="сравнение-с-альтернативными-подходами"><a class="header" href="#сравнение-с-альтернативными-подходами">Сравнение с альтернативными подходами:</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Подход</th><th>Время добавления</th><th>Время медианы</th><th>Память</th></tr>
-</thead>
-<tbody>
-<tr><td>Сортировка после каждого добавления</td><td>O(n log n)</td><td>O(1)</td><td>O(n)</td></tr>
-<tr><td>Две кучи</td><td>O(log n)</td><td>O(1)</td><td>O(n)</td></tr>
-<tr><td>Отсортированный список</td><td>O(n)</td><td>O(1)</td><td>O(n)</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="амортизированная-сложность"><a class="header" href="#амортизированная-сложность">Амортизированная сложность</a></h3>
-<p><strong>Амортизированный анализ</strong> для двух куч:</p>
-<ul>
-<li>
-<p><strong>Амортизированная временная сложность</strong>: O(log n) на операцию добавления</p>
-<ul>
-<li>Добавление элемента: O(log n)</li>
-<li>Балансировка: O(log n) в худшем случае</li>
-<li>Амортизированная стоимость: O(log n) на операцию</li>
-</ul>
-</li>
-<li>
-<p><strong>Амортизированная временная сложность получения медианы</strong>: O(1)</p>
-<ul>
-<li>Получение медианы: O(1)</li>
-<li>Амортизированная стоимость: O(1) на операцию</li>
-</ul>
-</li>
-</ul>
-<h3 id="worstaveragebest-case-анализ"><a class="header" href="#worstaveragebest-case-анализ">Worst/Average/Best Case анализ</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Операция</th><th>Время (Worst)</th><th>Время (Average)</th><th>Время (Best)</th><th>Память</th></tr>
-</thead>
-<tbody>
-<tr><td>AddNum</td><td>O(log n)</td><td>O(log n)</td><td>O(log n)</td><td>O(n)</td></tr>
-<tr><td>FindMedian</td><td>O(1)</td><td>O(1)</td><td>O(1)</td><td>O(1)</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Примечание</strong>: Для двух куч все операции имеют предсказуемую сложность, так как структура данных гарантирует балансировку.</p>
-<h3 id="таблица-сравнения-сложностей"><a class="header" href="#таблица-сравнения-сложностей">Таблица сравнения сложностей</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Алгоритм</th><th>AddNum (Worst)</th><th>AddNum (Average)</th><th>FindMedian</th><th>Память</th><th>Амортизированное время</th></tr>
-</thead>
-<tbody>
-<tr><td>Две кучи</td><td>O(log n)</td><td>O(log n)</td><td>O(1)</td><td>O(n)</td><td>O(log n) на добавление</td></tr>
-<tr><td>Отсортированный список</td><td>O(n)</td><td>O(n)</td><td>O(1)</td><td>O(n)</td><td>O(n) на добавление</td></tr>
-<tr><td>Два отсортированных списка</td><td>O(n)</td><td>O(n)</td><td>O(1)</td><td>O(n)</td><td>O(n) на добавление</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="граничные-случаи"><a class="header" href="#граничные-случаи">Граничные случаи</a></h2>
-<p>При работе с двумя кучами важно обрабатывать следующие граничные случаи:</p>
-<h3 id="1-пустая-структура-данных"><a class="header" href="#1-пустая-структура-данных">1. Пустая структура данных</a></h3>
-<p><strong>Проблема</strong>: Если структура пуста, получение медианы невозможно.</p>
-<p><strong>Решение</strong>:</p>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func (mf *MedianFinder) FindMedian() float64 {
-    if len(mf.maxHeap) == 0 &amp;&amp; len(mf.minHeap) == 0 {
-        return 0.0 // или вернуть ошибку
-    }
-    // ... остальной код
-}
-</code></pre>
-<h3 id="2-один-элемент"><a class="header" href="#2-один-элемент">2. Один элемент</a></h3>
-<p><strong>Проблема</strong>: Если есть только один элемент, медиана равна этому элементу.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">if len(mf.maxHeap) == 0 &amp;&amp; len(mf.minHeap) == 1 {
-    return float64(mf.minHeap[0])
-}
-</code></pre>
-<h3 id="3-два-элемента"><a class="header" href="#3-два-элемента">3. Два элемента</a></h3>
-<p><strong>Проблема</strong>: Минимальный случай для вычисления медианы двух элементов.</p>
-<p><strong>Решение</strong>: Медиана равна среднему арифметическому двух элементов.</p>
-<h3 id="4-все-элементы-одинаковые"><a class="header" href="#4-все-элементы-одинаковые">4. Все элементы одинаковые</a></h3>
-<p><strong>Проблема</strong>: Если все элементы одинаковые, медиана равна этому значению.</p>
-<p><strong>Решение</strong>: Алгоритм корректно обрабатывает этот случай.</p>
-<h3 id="5-очень-большие-значения"><a class="header" href="#5-очень-большие-значения">5. Очень большие значения</a></h3>
-<p><strong>Проблема</strong>: При очень больших значениях может произойти переполнение.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">// Используйте int64 для больших значений
-type MedianFinder struct {
-    maxHeap *MaxHeap64
-    minHeap *MinHeap64
-}
-</code></pre>
-<h3 id="6-отрицательные-числа"><a class="header" href="#6-отрицательные-числа">6. Отрицательные числа</a></h3>
-<p><strong>Проблема</strong>: Отрицательные числа могут изменить логику сравнения в кучах.</p>
-<p><strong>Решение</strong>: Убедитесь, что кучи корректно работают с отрицательными числами (обычно это не проблема).</p>
-<h3 id="7-очень-большое-количество-элементов"><a class="header" href="#7-очень-большое-количество-элементов">7. Очень большое количество элементов</a></h3>
-<p><strong>Проблема</strong>: При очень большом количестве элементов может быть проблема с памятью.</p>
-<p><strong>Решение</strong>: Убедитесь, что алгоритм имеет O(n) пространственную сложность и использует эффективные структуры данных.</p>
-<h3 id="8-добавление-элементов-в-неправильном-порядке"><a class="header" href="#8-добавление-элементов-в-неправильном-порядке">8. Добавление элементов в неправильном порядке</a></h3>
-<p><strong>Проблема</strong>: Если элементы добавляются в неправильном порядке, балансировка может нарушиться.</p>
-<p><strong>Решение</strong>: Алгоритм должен автоматически балансировать кучи при каждом добавлении.</p>
-<h3 id="9-удаление-элементов-если-поддерживается"><a class="header" href="#9-удаление-элементов-если-поддерживается">9. Удаление элементов (если поддерживается)</a></h3>
-<p><strong>Проблема</strong>: Удаление элементов из кучи может нарушить баланс.</p>
-<p><strong>Решение</strong>: Используйте ленивое удаление или перебалансируйте кучи после удаления.</p>
-<h3 id="10-медиана-скользящего-окна-окно-пусто"><a class="header" href="#10-медиана-скользящего-окна-окно-пусто">10. Медиана скользящего окна: окно пусто</a></h3>
-<p><strong>Проблема</strong>: Если окно пусто, медиана не может быть вычислена.</p>
-<p><strong>Решение</strong>:</p>
-<pre><code class="language-go">func slidingWindowMedian(nums []int, k int) []float64 {
-    if len(nums) &lt; k {
-        return []float64{} // Окно больше массива
-    }
-    // ... остальной код
-}
-</code></pre>
+<p>Шаг <code>+4</code>: число 4 больше вершины maxHeap (2), поэтому идёт в minHeap → размеры 2:3.
+Разница превысила 1, переносим вершину minHeap (3) в maxHeap → баланс 3:2, медиана = 3.</p>
 <h2 id="типичные-ошибки"><a class="header" href="#типичные-ошибки">Типичные ошибки</a></h2>
 <ol>
-<li><strong>Неправильная балансировка</strong>: Убедитесь, что размеры куч отличаются максимум на 1</li>
-<li><strong>Неправильный выбор кучи</strong>: max_heap для меньших, min_heap для больших</li>
-<li><strong>Забывание обновления медианы</strong>: После каждого добавления проверяйте баланс</li>
+<li><strong>Сломанная балансировка</strong> — после каждой вставки разница размеров должна оставаться
+≤ 1; иначе вершина перестаёт быть медианой.</li>
+<li><strong>Перепутаны типы куч</strong> — меньшая половина в max-heap, большая в min-heap; обратный
+выбор нарушает инвариант «maxHeap ≤ minHeap».</li>
+<li><strong>Деление на целых</strong> — медиану двух вершин считайте через <code>float64</code>, иначе потеряете
+половину (<code>(2+3)/2 == 2</code> вместо <code>2.5</code>).</li>
+<li><strong>Чтение медианы из пустой структуры</strong> — проверяйте, что хотя бы одна куча непуста.</li>
+<li><strong>Сравнение не с той вершиной</strong> — выбор кучи для нового элемента делается по вершине
+max-heap, а не min-heap.</li>
 </ol>
-<h2 id="практические-советы"><a class="header" href="#практические-советы">Практические советы</a></h2>
-<ol>
-<li>Всегда поддерживайте инвариант баланса после каждой операции</li>
-<li>Используйте правильные типы куч (max для меньших, min для больших)</li>
-<li>Для задач с удалением используйте ленивое удаление или балансированные BST</li>
-</ol>
-<h2 id="структуры-данных-внутреннее-устройство"><a class="header" href="#структуры-данных-внутреннее-устройство">Структуры данных: внутреннее устройство</a></h2>
-<h3 id="используемые-структуры-данных-в-two-heaps"><a class="header" href="#используемые-структуры-данных-в-two-heaps">Используемые структуры данных в Two Heaps</a></h3>
-<p>В шаблоне Two Heaps используются следующие структуры данных:</p>
+<h2 id="задачи"><a class="header" href="#задачи">Задачи</a></h2>
+<p><strong>LeetCode:</strong></p>
 <ul>
-<li><strong>MinHeap и MaxHeap</strong>: Две кучи для разделения данных</li>
+<li><a href="https://leetcode.com/problems/find-median-from-data-stream/">Find Median from Data Stream</a></li>
+<li><a href="https://leetcode.com/problems/sliding-window-median/">Sliding Window Median</a></li>
+<li><a href="https://leetcode.com/problems/ipo/">IPO</a> (сложная)</li>
+<li><a href="https://leetcode.com/problems/design-twitter/">Design Twitter</a> (сложная)</li>
+<li><a href="https://leetcode.com/problems/the-skyline-problem/">The Skyline Problem</a> (сложная)</li>
+<li><a href="https://leetcode.com/problems/kth-largest-element-in-a-stream/">Kth Largest Element in a Stream</a></li>
 </ul>
-<h3 id="heap-go"><a class="header" href="#heap-go">Heap (Go)</a></h3>
-<h4 id="как-хранится-в-памяти"><a class="header" href="#как-хранится-в-памяти">Как хранится в памяти:</a></h4>
-<pre><code>Двоичная куча (массив):
-┌─────────────────────────────────────────┐
-│ BinaryHeap&amp;lt;i32&amp;gt;                          │
-│ ┌─────────────┐                         │
-│ │ data: Vec&amp;lt;T&amp;gt;│ Массив элементов        │
-│ └─────────────┘                         │
-└─────────────────────────────────────────┘
-         │
-         ▼
-    [9][7][8][5][6][3][4]
-    0  1  2  3  4  5  6
-    
-    Индексация:
-    - parent(i) = (i-1)/2
-    - left(i) = 2*i + 1
-    - right(i) = 2*i + 2
-</code></pre>
-<p><strong>Go Heap (container/heap)</strong>:</p>
-<pre><code class="language-go">type IntHeap []int
-
-func (h IntHeap) Len() int { return len(h) }
-func (h IntHeap) Less(i, j int) bool { return h[i] &lt; h[j] }
-func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
-</code></pre>
-<h4 id="операции-и-их-сложность"><a class="header" href="#операции-и-их-сложность">Операции и их сложность:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Операция</th><th>Сложность</th><th>Объяснение</th></tr>
-</thead>
-<tbody>
-<tr><td>Push</td><td>O(log n)</td><td>Просеивание вверх (sift up)</td></tr>
-<tr><td>Pop</td><td>O(log n)</td><td>Просеивание вниз (sift down)</td></tr>
-<tr><td>Peek</td><td>O(1)</td><td>Доступ к корню</td></tr>
-<tr><td>Build heap</td><td>O(n)</td><td>Построение из массива</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Почему Two Heaps эффективны</strong>:</p>
-<ul>
-<li>O(log n) вставка и удаление</li>
-<li>O(1) доступ к медиане (через корни куч)</li>
-<li>Балансировка между двумя кучами</li>
-</ul>
-<h4 id="когда-использовать"><a class="header" href="#когда-использовать">Когда использовать:</a></h4>
-<p><strong>Используйте Two Heaps когда</strong>:</p>
-<ul>
-<li>Нужна динамическая медиана</li>
-<li>Нужны топ-k элементов</li>
-<li>Нужен баланс между min и max</li>
-</ul>
-<p><strong>Альтернативы</strong>:</p>
-<ul>
-<li>Отсортированный массив: O(n log n) для вставки</li>
-<li>Balanced BST: O(log n), но сложнее реализация</li>
-</ul>
-<h2 id="глубокое-понимание-сложные-концепции"><a class="header" href="#глубокое-понимание-сложные-концепции">Глубокое понимание: сложные концепции</a></h2>
-<h3 id="escape-analysis-go"><a class="header" href="#escape-analysis-go">Escape Analysis (Go)</a></h3>
-<p><strong>Для Two Heaps</strong>:</p>
-<ul>
-<li>Кучи в куче (динамическое выделение)</li>
-<li>Элементы в куче</li>
-<li>Результаты могут escape</li>
-</ul>
-<h3 id="garbage-collector-go"><a class="header" href="#garbage-collector-go">Garbage Collector (Go)</a></h3>
-<p><strong>Для Two Heaps</strong>:</p>
-<ul>
-<li>Кучи в куче</li>
-<li>Элементы в куче</li>
-<li>Минимизация размера куч критична</li>
-</ul>
-<h2 id="аллокации-памяти-и-управление-памятью"><a class="header" href="#аллокации-памяти-и-управление-памятью">Аллокации памяти и управление памятью</a></h2>
-<h3 id="теория-аллокаций-в-go"><a class="header" href="#теория-аллокаций-в-go">Теория аллокаций в Go</a></h3>
-<h4 id="go-две-кучи"><a class="header" href="#go-две-кучи">Go: Две кучи</a></h4>
-<p>В Go:</p>
-<ul>
-<li><strong>MaxHeap и MinHeap</strong>: Используется <code>container/heap</code> - аллоцируются в куче</li>
-<li><strong>Балансировка</strong>: Перемещение элементов между кучами</li>
-<li><strong>Результат</strong>: O(1) для получения медианы</li>
-</ul>
-<h3 id="анализ-аллокаций-для-two-heaps"><a class="header" href="#анализ-аллокаций-для-two-heaps">Анализ аллокаций для Two Heaps</a></h3>
-<h4 id="базовый-подход"><a class="header" href="#базовый-подход">Базовый подход:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// Аллокации:
-// - maxHeap: IntHeap - O(n/2) в куче
-// - minHeap: IntHeap - O(n/2) в куче
-// Итого: O(n) памяти в куче
-</code></pre>
-<h3 id="оптимизация-памяти"><a class="header" href="#оптимизация-памяти">Оптимизация памяти</a></h3>
-<h4 id="go-оптимизации"><a class="header" href="#go-оптимизации">Go оптимизации:</a></h4>
-<ol>
-<li><strong>Предварительное выделение</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-maxHeap := make(IntHeap, 0, n/2)
-minHeap := make(IntHeap, 0, n/2)
-</code></pre>
-<ol start="2">
-<li><strong>Переиспользование куч</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Очистка и переиспользование
-maxHeap = maxHeap[:0]
-minHeap = minHeap[:0]
-</code></pre>
-<p>| Аспект | Go |
-|––––|——|—–|
-| Кучи | BinaryHeap в куче | container/heap в куче |
-| Память | O(n) | O(n) |
-| Балансировка | O(log n) | O(log n) |</p>
-<h2 id="оптимизация-производительности"><a class="header" href="#оптимизация-производительности">Оптимизация производительности</a></h2>
-<h3 id="общие-техники"><a class="header" href="#общие-техники">Общие техники</a></h3>
-<ol>
-<li><strong>Предварительное выделение куч</strong></li>
-<li><strong>Минимизация операций балансировки</strong></li>
-<li><strong>Эффективные операции с кучами</strong></li>
-</ol>
-<h3 id="специфичные-оптимизации-для-two-heaps"><a class="header" href="#специфичные-оптимизации-для-two-heaps">Специфичные оптимизации для Two Heaps</a></h3>
-<h4 id="1-оптимизация-балансировки"><a class="header" href="#1-оптимизация-балансировки">1. Оптимизация балансировки:</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированная версия
-type MedianFinder struct {
-    maxHeap IntHeap  // Меньшая половина (max heap)
-    minHeap IntHeap  // Большая половина (min heap)
-}
-
-func NewMedianFinder() *MedianFinder {
-    return &amp;MedianFinder{
-        maxHeap: make(IntHeap, 0, 1000),
-        minHeap: make(IntHeap, 0, 1000),
-    }
-}
-
-func (mf *MedianFinder) AddNum(num int) {
-    if len(mf.maxHeap) == 0 || num &lt;= mf.maxHeap[0] {
-        heap.Push(&amp;mf.maxHeap, num)
-    } else {
-        heap.Push(&amp;mf.minHeap, num)
-    }
-
-    // Балансировка
-    if len(mf.maxHeap) &gt; len(mf.minHeap)+1 {
-        val := heap.Pop(&amp;mf.maxHeap).(int)
-        heap.Push(&amp;mf.minHeap, val)
-    } else if len(mf.minHeap) &gt; len(mf.maxHeap)+1 {
-        val := heap.Pop(&amp;mf.minHeap).(int)
-        heap.Push(&amp;mf.maxHeap, val)
-    }
-}
-</code></pre>
-<ol>
-<li>
-<p><strong>Использование <code>Reverse</code> для min heap</strong>:</p>
-</li>
-<li>
-<p><strong>Предварительное выделение</strong>:</p>
-</li>
-</ol>
-<h3 id="оптимизация-для-go"><a class="header" href="#оптимизация-для-go">Оптимизация для Go</a></h3>
-<ol>
-<li><strong>Использование <code>container/heap</code></strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Стандартная реализация кучи
-import "container/heap"
-</code></pre>
-<ol start="2">
-<li><strong>Предварительное выделение</strong>:</li>
-</ol>
-<pre><code class="language-go">// ✅ Предварительное выделение
-maxHeap := make(IntHeap, 0, n/2)
-</code></pre>
-<h2 id="профилирование"><a class="header" href="#профилирование">Профилирование</a></h2>
-<h3 id="инструменты-профилирования"><a class="header" href="#инструменты-профилирования">Инструменты профилирования</a></h3>
-<p>См. раздел “Профилирование” в <a href="./sliding-window.html#профилирование">Sliding Window</a> для общих инструментов.</p>
-<h3 id="как-профилировать-two-heaps"><a class="header" href="#как-профилировать-two-heaps">Как профилировать Two Heaps</a></h3>
-<h4 id="go-пример"><a class="header" href="#go-пример">Go пример:</a></h4>
-<pre><code class="language-go">func BenchmarkMedianFinder(b *testing.B) {
-    finder := NewMedianFinder()
-    nums := make([]int, 1000)
-    for i := range nums {
-        nums[i] = i
-    }
-    
-    b.ResetTimer()
-    for i := 0; i &lt; b.N; i++ {
-        for _, num := range nums {
-            finder.AddNum(num)
-        }
-    }
-}
-</code></pre>
-<h3 id="примеры-профилирования"><a class="header" href="#примеры-профилирования">Примеры профилирования</a></h3>
-<p><strong>Анализ производительности</strong>:</p>
-<ul>
-<li>Добавление: O(log n) по времени</li>
-<li>Получение медианы: O(1) по времени</li>
-<li>Память: O(n) для обеих куч</li>
-</ul>
-<p><strong>Типичные узкие места</strong>:</p>
-<ul>
-<li>Операции с кучами (push/pop)</li>
-<li>Балансировка куч</li>
-<li>Проверки размера куч</li>
-</ul>
-<h2 id="отладка-и-диагностика"><a class="header" href="#отладка-и-диагностика">Отладка и диагностика</a></h2>
-<p>Отладка двух куч требует отслеживания состояния обеих куч и балансировки:</p>
-<h3 id="1-логирование-операций-с-кучами"><a class="header" href="#1-логирование-операций-с-кучами">1. Логирование операций с кучами</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func (mf *MedianFinder) AddNumDebug(num int) {
-    log.Printf("Добавление числа: %d", num)
-    log.Printf("До добавления: maxHeap=%v, minHeap=%v, размеры=%d/%d",
-        *mf.maxHeap, *mf.minHeap, mf.maxHeap.Len(), mf.minHeap.Len())
-    
-    if mf.maxHeap.Len() == 0 || num &lt;= (*mf.maxHeap)[0] {
-        heap.Push(mf.maxHeap, num)
-        log.Printf("Добавлено в maxHeap: %d", num)
-    } else {
-        heap.Push(mf.minHeap, num)
-        log.Printf("Добавлено в minHeap: %d", num)
-    }
-    
-    // Балансировка
-    if mf.maxHeap.Len() &gt; mf.minHeap.Len()+1 {
-        val := heap.Pop(mf.maxHeap).(int)
-        heap.Push(mf.minHeap, val)
-        log.Printf("Балансировка: перемещено %d из maxHeap в minHeap", val)
-    } else if mf.minHeap.Len() &gt; mf.maxHeap.Len() {
-        val := heap.Pop(mf.minHeap).(int)
-        heap.Push(mf.maxHeap, val)
-        log.Printf("Балансировка: перемещено %d из minHeap в maxHeap", val)
-    }
-    
-    log.Printf("После добавления: maxHeap=%v, minHeap=%v, размеры=%d/%d",
-        *mf.maxHeap, *mf.minHeap, mf.maxHeap.Len(), mf.minHeap.Len())
-}
-</code></pre>
-<h3 id="2-проверка-инвариантов-куч"><a class="header" href="#2-проверка-инвариантов-куч">2. Проверка инвариантов куч</a></h3>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">func (mf *MedianFinder) checkInvariants() bool {
-    // Инвариант 1: Все элементы в maxHeap &lt;= все элементы в minHeap
-    if mf.maxHeap.Len() &gt; 0 &amp;&amp; mf.minHeap.Len() &gt; 0 {
-        if (*mf.maxHeap)[0] &gt; (*mf.minHeap)[0] {
-            log.Printf("Нарушение инварианта: maxHeap[0]=%d &gt; minHeap[0]=%d",
-                (*mf.maxHeap)[0], (*mf.minHeap)[0])
-            return false
-        }
-    }
-    
-    // Инвариант 2: Размеры куч отличаются максимум на 1
-    diff := mf.maxHeap.Len() - mf.minHeap.Len()
-    if diff &lt; -1 || diff &gt; 1 {
-        log.Printf("Нарушение баланса: diff=%d", diff)
-        return false
-    }
-    
-    return true
-}
-</code></pre>
-<h3 id="метрики-производительности"><a class="header" href="#метрики-производительности">Метрики производительности</a></h3>
-<p>Реальные результаты бенчмарков на типичном оборудовании (Intel i7-9700K, 32GB RAM):</p>
-<h4 id="добавление-элемента-go"><a class="header" href="#добавление-элемента-go">Добавление элемента (Go):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Количество элементов</th><th>Время добавления</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>100 элементов</td><td>~450 ns</td><td>2.5 KB</td><td>~2,220,000</td></tr>
-<tr><td>1,000 элементов</td><td>~580 ns</td><td>25 KB</td><td>~1,720,000</td></tr>
-<tr><td>10,000 элементов</td><td>~720 ns</td><td>250 KB</td><td>~1,390,000</td></tr>
-<tr><td>100,000 элементов</td><td>~850 ns</td><td>2.5 MB</td><td>~1,180,000</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Логарифмическая зависимость: O(log n)</li>
-<li>Память линейная: O(n)</li>
-<li>Стабильная производительность при росте данных</li>
-</ul>
-<h4 id="получение-медианы-go"><a class="header" href="#получение-медианы-go">Получение медианы (Go):</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Количество элементов</th><th>Время получения</th><th>Память</th><th>Операций/сек</th></tr>
-</thead>
-<tbody>
-<tr><td>100 элементов</td><td>~5 ns</td><td>0 B</td><td>~200,000,000</td></tr>
-<tr><td>1,000 элементов</td><td>~5 ns</td><td>0 B</td><td>~200,000,000</td></tr>
-<tr><td>10,000 элементов</td><td>~5 ns</td><td>0 B</td><td>~200,000,000</td></tr>
-<tr><td>100,000 элементов</td><td>~5 ns</td><td>0 B</td><td>~200,000,000</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Наблюдения</strong>:</p>
-<ul>
-<li>Константное время: O(1)</li>
-<li>Нулевые аллокации</li>
-<li>Мгновенное получение медианы</li>
-</ul>
-<h4 id="сравнение-с-альтернативными-подходами-1"><a class="header" href="#сравнение-с-альтернативными-подходами-1">Сравнение с альтернативными подходами:</a></h4>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Количество элементов</th><th>Two Heaps</th><th>Сортировка</th><th>Ускорение (AddNum)</th></tr>
-</thead>
-<tbody>
-<tr><td>1,000 элементов</td><td>~580 ns</td><td>~12 μs</td><td><strong>20.7x</strong></td></tr>
-<tr><td>10,000 элементов</td><td>~720 ns</td><td>~150 μs</td><td><strong>208x</strong></td></tr>
-<tr><td>100,000 элементов</td><td>~850 ns</td><td>~1.8 ms</td><td><strong>2,118x</strong></td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Вывод</strong>: Two Heaps обеспечивает экспоненциальное ускорение для операций добавления.</p>
-<h2 id="тестирование"><a class="header" href="#тестирование">Тестирование</a></h2>
-<h3 id="стратегии-тестирования"><a class="header" href="#стратегии-тестирования">Стратегии тестирования</a></h3>
-<ol>
-<li><strong>Базовые тесты</strong>: Простые последовательности чисел</li>
-<li><strong>Граничные случаи</strong>: Пустая структура, один элемент, два элемента</li>
-<li><strong>Стресс-тесты</strong>: Большие последовательности чисел</li>
-</ol>
-<h3 id="примеры-тестов-для-two-heaps"><a class="header" href="#примеры-тестов-для-two-heaps">Примеры тестов для Two Heaps</a></h3>
-<h4 id="go-тесты"><a class="header" href="#go-тесты">Go тесты:</a></h4>
-<pre><code class="language-go">func TestMedianFinder(t *testing.T) {
-    tests := []struct {
-        name   string
-        nums   []int
-        want   float64
-    }{
-        {"basic", []int{1, 2}, 1.5},
-        {"three", []int{1, 2, 3}, 2.0},
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            finder := NewMedianFinder()
-            for _, num := range tt.nums {
-                finder.AddNum(num)
-            }
-            if got := finder.FindMedian(); got != tt.want {
-                t.Errorf("FindMedian() = %v, want %v", got, tt.want)
-            }
-        })
-    }
-}
-</code></pre>
-<h3 id="запуск-тестов"><a class="header" href="#запуск-тестов">Запуск тестов</a></h3>
-<h4 id="go"><a class="header" href="#go">Go:</a></h4>
-<pre><code class="language-bash">go test -v
-go test -bench=. -benchmem
-</code></pre>
-<h3 id="бенчмарки"><a class="header" href="#бенчмарки">Бенчмарки</a></h3>
-<h4 id="go-1"><a class="header" href="#go-1">Go:</a></h4>
-<pre><code class="language-go">func BenchmarkTwoHeapsSizes(b *testing.B) {
-    sizes := []int{100, 1000, 10000}
-    
-    for _, size := range sizes {
-        b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
-            nums := make([]int, size)
-            for i := range nums {
-                nums[i] = i
-            }
-            b.ResetTimer()
-            for i := 0; i &lt; b.N; i++ {
-                finder := NewMedianFinder()
-                for _, num := range nums {
-                    finder.AddNum(num)
-                }
-            }
-        })
-    }
-}
-</code></pre>
-<h2 id="примеры-задач-на-leetcode"><a class="header" href="#примеры-задач-на-leetcode">Примеры задач на LeetCode</a></h2>
-<h3 id="средние"><a class="header" href="#средние">Средние:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/find-median-from-data-stream/">Find Median from Data Stream</a> - Медиана из потока данных</li>
-<li><a href="https://leetcode.com/problems/sliding-window-median/">Sliding Window Median</a> - Медиана скользящего окна</li>
-</ul>
-<h3 id="сложные"><a class="header" href="#сложные">Сложные:</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/ipo/">IPO</a> - Первичное публичное размещение</li>
-<li><a href="https://leetcode.com/problems/design-twitter/">Design Twitter</a> - Дизайн Twitter</li>
-</ul>
-<h2 id="примеры-кода"><a class="header" href="#примеры-кода">Примеры кода</a></h2>
-<h3 id="эволюция-решения-от-наивного-к-оптимизированному"><a class="header" href="#эволюция-решения-от-наивного-к-оптимизированному">Эволюция решения: от наивного к оптимизированному</a></h3>
-<h4 id="наивный-подход-on-log-n-на-операцию"><a class="header" href="#наивный-подход-on-log-n-на-операцию">Наивный подход (O(n log n) на операцию):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ❌ Наивный подход: сортируем после каждого добавления
-type MedianFinderNaive struct {
-    nums []int
-}
-
-func (mf *MedianFinderNaive) AddNum(num int) {
-    mf.nums = append(mf.nums, num)
-    sort.Ints(mf.nums)  // Сортировка после каждого добавления!
-}
-
-func (mf *MedianFinderNaive) FindMedian() float64 {
-    n := len(mf.nums)
-    if n%2 == 0 {
-        return float64(mf.nums[n/2-1]+mf.nums[n/2]) / 2.0
-    }
-    return float64(mf.nums[n/2])
-}
-// Проблемы: O(n log n) на каждое добавление, неэффективно
-</code></pre>
-<h4 id="оптимизированный-подход-olog-n-на-операцию"><a class="header" href="#оптимизированный-подход-olog-n-на-операцию">Оптимизированный подход (O(log n) на операцию):</a></h4>
-<p><strong>Go</strong>:</p>
-<pre><code class="language-go">// ✅ Оптимизированный подход: две кучи
-type MedianFinderOptimized struct {
-    maxHeap *MaxHeap  // Меньшая половина
-    minHeap *MinHeap  // Большая половина
-}
-
-func (mf *MedianFinderOptimized) AddNum(num int) {
-    if mf.maxHeap.Len() == 0 || num &lt;= (*mf.maxHeap)[0] {
-        heap.Push(mf.maxHeap, num)
-    } else {
-        heap.Push(mf.minHeap, num)
-    }
-    
-    // Балансируем кучи
-    if mf.maxHeap.Len() &gt; mf.minHeap.Len()+1 {
-        val := heap.Pop(mf.maxHeap).(int)
-        heap.Push(mf.minHeap, val)
-    } else if mf.minHeap.Len() &gt; mf.maxHeap.Len() {
-        val := heap.Pop(mf.minHeap).(int)
-        heap.Push(mf.maxHeap, val)
-    }
-}
-
-func (mf *MedianFinderOptimized) FindMedian() float64 {
-    if mf.maxHeap.Len() == mf.minHeap.Len() {
-        return float64((*mf.maxHeap)[0]+(*mf.minHeap)[0]) / 2.0
-    }
-    return float64((*mf.maxHeap)[0])
-}
-// Преимущества: O(log n) добавление, O(1) получение медианы
-</code></pre>
-<h4 id="идиоматичный-go-код"><a class="header" href="#идиоматичный-go-код">Идиоматичный Go код:</a></h4>
-<pre><code class="language-go">// ✅ Идиоматичный Go: используем интерфейсы и методы
-type MedianFinder struct {
-    maxHeap MaxHeap
-    minHeap MinHeap
-}
-
-func NewMedianFinder() *MedianFinder {
-    return &amp;MedianFinder{
-        maxHeap: MaxHeap{},
-        minHeap: MinHeap{},
-    }
-}
-
-func (mf *MedianFinder) AddNum(num int) {
-    if mf.maxHeap.Len() == 0 || num &lt;= mf.maxHeap.Peek() {
-        heap.Push(&amp;mf.maxHeap, num)
-    } else {
-        heap.Push(&amp;mf.minHeap, num)
-    }
-    mf.balance()
-}
-
-func (mf *MedianFinder) balance() {
-    if mf.maxHeap.Len() &gt; mf.minHeap.Len()+1 {
-        heap.Push(&amp;mf.minHeap, heap.Pop(&amp;mf.maxHeap).(int))
-    } else if mf.minHeap.Len() &gt; mf.maxHeap.Len() {
-        heap.Push(&amp;mf.maxHeap, heap.Pop(&amp;mf.minHeap).(int))
-    }
-}
-</code></pre>
-<h3 id="-go"><a class="header" href="#-go">### Go</a></h3>
-<pre><code class="language-go">package main
-
-import (
-	"container/heap"
-	"fmt"
-)
-
-// MinHeap для большей половины
-type MinHeap []int
-
-func (h MinHeap) Len() int           { return len(h) }
-func (h MinHeap) Less(i, j int) bool { return h[i] &lt; h[j] }
-func (h MinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-
-func (h *MinHeap) Push(x interface{}) {
-	*h = append(*h, x.(int))
-}
-
-func (h *MinHeap) Pop() interface{} {
-	old := *h
-	n := len(old)
-	x := old[n-1]
-	*h = old[0 : n-1]
-	return x
-}
-
-// MaxHeap для меньшей половины
-type MaxHeap []int
-
-func (h MaxHeap) Len() int           { return len(h) }
-func (h MaxHeap) Less(i, j int) bool { return h[i] &gt; h[j] }
-func (h MaxHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-
-func (h *MaxHeap) Push(x interface{}) {
-	*h = append(*h, x.(int))
-}
-
-func (h *MaxHeap) Pop() interface{} {
-	old := *h
-	n := len(old)
-	x := old[n-1]
-	*h = old[0 : n-1]
-	return x
-}
-
-// Структура для поддержания медианы с двумя кучами
-type MedianFinder struct {
-	maxHeap *MaxHeap // Для меньшей половины
-	minHeap *MinHeap // Для большей половины
-}
-
-func NewMedianFinder() *MedianFinder {
-	maxHeap := &amp;MaxHeap{}
-	minHeap := &amp;MinHeap{}
-	heap.Init(maxHeap)
-	heap.Init(minHeap)
-	return &amp;MedianFinder{
-		maxHeap: maxHeap,
-		minHeap: minHeap,
-	}
-}
-
-// Добавление числа в структуру
-// Временная сложность: O(log n)
-func (mf *MedianFinder) AddNum(num int) {
-	// Добавляем в maxHeap по умолчанию
-	heap.Push(mf.maxHeap, num)
-
-	// Перемещаем максимум из maxHeap в minHeap
-	if mf.maxHeap.Len() &gt; 0 {
-		maxVal := heap.Pop(mf.maxHeap).(int)
-		heap.Push(mf.minHeap, maxVal)
-	}
-
-	// Балансируем кучи: maxHeap должен быть &gt;= minHeap
-	if mf.maxHeap.Len() &lt; mf.minHeap.Len() {
-		if mf.minHeap.Len() &gt; 0 {
-			minVal := heap.Pop(mf.minHeap).(int)
-			heap.Push(mf.maxHeap, minVal)
-		}
-	}
-}
-
-// Получение медианы
-// Временная сложность: O(1)
-func (mf *MedianFinder) FindMedian() float64 {
-	if mf.maxHeap.Len() &gt; mf.minHeap.Len() {
-		return float64((*mf.maxHeap)[0])
-	}
-	maxVal := float64((*mf.maxHeap)[0])
-	minVal := float64((*mf.minHeap)[0])
-	return (maxVal + minVal) / 2.0
-}
-
-// Пример 1: Медиана из потока данных
-//
-// Задача: Поддерживать медиану потока чисел
-// Временная сложность: O(log n) для добавления, O(1) для получения медианы
-// Пространственная сложность: O(n)
-type MedianOfStream struct {
-	maxHeap *MaxHeap
-	minHeap *MinHeap
-}
-
-func NewMedianOfStream() *MedianOfStream {
-	maxHeap := &amp;MaxHeap{}
-	minHeap := &amp;MinHeap{}
-	heap.Init(maxHeap)
-	heap.Init(minHeap)
-	return &amp;MedianOfStream{
-		maxHeap: maxHeap,
-		minHeap: minHeap,
-	}
-}
-
-func (ms *MedianOfStream) Insert(num int) {
-	if ms.maxHeap.Len() == 0 || num &lt;= (*ms.maxHeap)[0] {
-		heap.Push(ms.maxHeap, num)
-	} else {
-		heap.Push(ms.minHeap, num)
-	}
-
-	// Балансируем кучи
-	if ms.maxHeap.Len() &gt; ms.minHeap.Len()+1 {
-		val := heap.Pop(ms.maxHeap).(int)
-		heap.Push(ms.minHeap, val)
-	} else if ms.minHeap.Len() &gt; ms.maxHeap.Len() {
-		val := heap.Pop(ms.minHeap).(int)
-		heap.Push(ms.maxHeap, val)
-	}
-}
-
-func (ms *MedianOfStream) GetMedian() float64 {
-	if ms.maxHeap.Len() == ms.minHeap.Len() {
-		maxVal := float64((*ms.maxHeap)[0])
-		minVal := float64((*ms.minHeap)[0])
-		return (maxVal + minVal) / 2.0
-	}
-	return float64((*ms.maxHeap)[0])
-}
-
-// Пример 2: Разделение массива на две части с помощью двух куч
-//
-// Задача: Разделить массив так, чтобы разница сумм была минимальной
-// Временная сложность: O(n log n)
-// Пространственная сложность: O(n)
-func partitionArray(nums []int) int {
-	maxHeap := &amp;MaxHeap{}
-	minHeap := &amp;MinHeap{}
-	heap.Init(maxHeap)
-	heap.Init(minHeap)
-
-	for _, num := range nums {
-		if maxHeap.Len() &lt;= minHeap.Len() {
-			heap.Push(maxHeap, num)
-		} else {
-			heap.Push(minHeap, num)
-		}
-
-		// Балансируем
-		if maxHeap.Len() &gt; 0 &amp;&amp; minHeap.Len() &gt; 0 {
-			if (*maxHeap)[0] &gt; (*minHeap)[0] {
-				maxVal := heap.Pop(maxHeap).(int)
-				minVal := heap.Pop(minHeap).(int)
-				heap.Push(maxHeap, minVal)
-				heap.Push(minHeap, maxVal)
-			}
-		}
-	}
-
-	sum1 := 0
-	for maxHeap.Len() &gt; 0 {
-		sum1 += heap.Pop(maxHeap).(int)
-	}
-
-	sum2 := 0
-	for minHeap.Len() &gt; 0 {
-		sum2 += heap.Pop(minHeap).(int)
-	}
-
-	if sum1 &gt; sum2 {
-		return sum1 - sum2
-	}
-	return sum2 - sum1
-}
-</code></pre>
-<h2 id="реальные-применения"><a class="header" href="#реальные-применения">Реальные применения</a></h2>
-<p>Two Heaps широко используется в production системах для поддержания медианы и балансировки данных:</p>
-<h3 id="1-real-time-analytics-аналитика-в-реальном-времени"><a class="header" href="#1-real-time-analytics-аналитика-в-реальном-времени">1. Real-time Analytics (Аналитика в реальном времени)</a></h3>
-<p><strong>Применение</strong>: Вычисление медианы для потоков данных.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Financial Trading</strong>: Отслеживание медианной цены</li>
-<li><strong>System Monitoring</strong>: Медианные метрики производительности</li>
-<li><strong>IoT Data</strong>: Медианные значения сенсоров</li>
-</ul>
-<p><strong>Код</strong>:</p>
-<pre><code class="language-go">// Медиана из потока данных
-type StreamMedian struct {
-    maxHeap *MaxHeap // Меньшая половина
-    minHeap *MinHeap // Большая половина
-}
-
-func (sm *StreamMedian) AddNumber(num int) {
-    if sm.maxHeap.Len() == 0 || num &lt;= sm.maxHeap.Peek() {
-        sm.maxHeap.Push(num)
-    } else {
-        sm.minHeap.Push(num)
-    }
-    
-    // Балансируем кучи
-    if sm.maxHeap.Len() &gt; sm.minHeap.Len()+1 {
-        sm.minHeap.Push(sm.maxHeap.Pop())
-    } else if sm.minHeap.Len() &gt; sm.maxHeap.Len() {
-        sm.maxHeap.Push(sm.minHeap.Pop())
-    }
-}
-
-func (sm *StreamMedian) GetMedian() float64 {
-    if sm.maxHeap.Len() == sm.minHeap.Len() {
-        return float64(sm.maxHeap.Peek()+sm.minHeap.Peek()) / 2.0
-    }
-    return float64(sm.maxHeap.Peek())
-}
-</code></pre>
-<h3 id="2-load-balancing-балансировка-нагрузки"><a class="header" href="#2-load-balancing-балансировка-нагрузки">2. Load Balancing (Балансировка нагрузки)</a></h3>
-<p><strong>Применение</strong>: Распределение нагрузки между серверами на основе медианы.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>Cloud Computing</strong>: Балансировка нагрузки инстансов</li>
-<li><strong>CDN</strong>: Распределение трафика</li>
-<li><strong>Database Sharding</strong>: Распределение данных</li>
-</ul>
-<h3 id="3-priority-scheduling-приоритетное-планирование"><a class="header" href="#3-priority-scheduling-приоритетное-планирование">3. Priority Scheduling (Приоритетное планирование)</a></h3>
-<p><strong>Применение</strong>: Планирование задач на основе медианы приоритетов.</p>
-<p><strong>Примеры</strong>:</p>
-<ul>
-<li><strong>OS Schedulers</strong>: Планирование процессов</li>
-<li><strong>Task Queues</strong>: Очереди задач</li>
-<li><strong>Job Scheduling</strong>: Планирование заданий</li>
-</ul>
-<h3 id="4-google-production-examples"><a class="header" href="#4-google-production-examples">4. Google Production Examples</a></h3>
-<p><strong>Примеры из Google</strong>:</p>
-<ul>
-<li><strong>Google Cloud Monitoring</strong>: Медианные метрики производительности</li>
-<li><strong>Google Ads</strong>: Медианные ставки для оптимизации</li>
-<li><strong>Google Search</strong>: Медианные метрики качества результатов</li>
-<li><strong>YouTube</strong>: Медианные метрики просмотров</li>
-</ul>
-<h3 id="5-financial-systems"><a class="header" href="#5-financial-systems">5. Financial Systems</a></h3>
-<p><strong>Применение в финансовых системах</strong>:</p>
-<ul>
-<li><strong>Trading Systems</strong>: Медианные цены для принятия решений</li>
-<li><strong>Risk Management</strong>: Медианные риски</li>
-<li><strong>Portfolio Management</strong>: Медианные доходности</li>
-</ul>
-<h3 id="6-system-monitoring"><a class="header" href="#6-system-monitoring">6. System Monitoring</a></h3>
-<p><strong>Применение в мониторинге</strong>:</p>
-<ul>
-<li><strong>Performance Metrics</strong>: Медианные метрики производительности</li>
-<li><strong>Latency Tracking</strong>: Медианная задержка</li>
-<li><strong>Error Rates</strong>: Медианные частоты ошибок</li>
-</ul>
-<h3 id="7-open-source-examples"><a class="header" href="#7-open-source-examples">7. Open Source Examples</a></h3>
-<p><strong>Примеры из open-source проектов</strong>:</p>
-<ul>
-<li><strong>Prometheus</strong>: Медианные метрики через histogram_quantile</li>
-<li><strong>Grafana</strong>: Визуализация медианных метрик</li>
-<li><strong>Apache Kafka</strong>: Медианные метрики производительности</li>
-<li><strong>Redis</strong>: Медианные метрики задержки</li>
-</ul>
-<h3 id="8-database-systems"><a class="header" href="#8-database-systems">8. Database Systems</a></h3>
-<p><strong>Применение в базах данных</strong>:</p>
-<ul>
-<li><strong>Query Optimization</strong>: Медианные метрики для оптимизации</li>
-<li><strong>Index Selection</strong>: Выбор индексов на основе медианы</li>
-<li><strong>Partition Management</strong>: Управление партициями</li>
-</ul>
-<h3 id="9-system-design-applications"><a class="header" href="#9-system-design-applications">9. System Design Applications</a></h3>
-<p><strong>Применение в системном дизайне</strong>:</p>
-<ul>
-<li><strong>Auto-scaling</strong>: Принятие решений на основе медианы</li>
-<li><strong>Resource Allocation</strong>: Распределение ресурсов</li>
-<li><strong>Capacity Planning</strong>: Планирование емкости</li>
-</ul>
-<h3 id="10-machine-learning"><a class="header" href="#10-machine-learning">10. Machine Learning</a></h3>
-<p><strong>Применение в машинном обучении</strong>:</p>
-<ul>
-<li><strong>Feature Engineering</strong>: Медианные признаки</li>
-<li><strong>Outlier Detection</strong>: Обнаружение выбросов через медиану</li>
-<li><strong>Data Preprocessing</strong>: Предобработка данных</li>
-</ul>
-<h2 id="упражнения"><a class="header" href="#упражнения">Упражнения</a></h2>
-<p>Практикуйтесь на задачах разной сложности для закрепления материала:</p>
-<h3 id="легкие-задачи-для-начинающих"><a class="header" href="#легкие-задачи-для-начинающих">Легкие задачи (для начинающих)</a></h3>
-<ol>
-<li>
-<p><strong>Find Median from Data Stream</strong> (LeetCode 295)</p>
-<ul>
-<li>Найдите медиану из потока данных</li>
-<li>Подсказка: Используйте две кучи - max-heap для меньшей половины, min-heap для большей</li>
-<li><a href="https://leetcode.com/problems/find-median-from-data-stream/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Sliding Window Median</strong> (LeetCode 480)</p>
-<ul>
-<li>Найдите медиану для каждого окна размера k</li>
-<li>Подсказка: Используйте две кучи с балансировкой</li>
-<li><a href="https://leetcode.com/problems/sliding-window-median/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="средние-задачи-для-практики"><a class="header" href="#средние-задачи-для-практики">Средние задачи (для практики)</a></h3>
-<ol start="3">
-<li>
-<p><strong>IPO</strong> (LeetCode 502)</p>
-<ul>
-<li>Найдите максимальный капитал после k проектов</li>
-<li>Подсказка: Используйте две кучи для выбора проектов</li>
-<li><a href="https://leetcode.com/problems/ipo/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Find Right Interval</strong> (LeetCode 436)</p>
-<ul>
-<li>Найдите правый интервал для каждого интервала</li>
-<li>Подсказка: Используйте две кучи для отслеживания интервалов</li>
-<li><a href="https://leetcode.com/problems/find-right-interval/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="сложные-задачи-для-углубления"><a class="header" href="#сложные-задачи-для-углубления">Сложные задачи (для углубления)</a></h3>
-<ol start="5">
-<li>
-<p><strong>Design Twitter</strong> (LeetCode 355)</p>
-<ul>
-<li>Реализуйте упрощенную версию Twitter</li>
-<li>Подсказка: Используйте кучи для получения последних твитов</li>
-<li><a href="https://leetcode.com/problems/design-twitter/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>The Skyline Problem</strong> (LeetCode 218)</p>
-<ul>
-<li>Найдите контур небоскребов</li>
-<li>Подсказка: Используйте приоритетную очередь для отслеживания высот</li>
-<li><a href="https://leetcode.com/problems/the-skyline-problem/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="дополнительные-задачи-для-практики"><a class="header" href="#дополнительные-задачи-для-практики">Дополнительные задачи для практики</a></h3>
-<ol start="7">
-<li>
-<p><strong>Kth Largest Element in a Stream</strong> (LeetCode 703)</p>
-<ul>
-<li>Найдите k-й наибольший элемент в потоке</li>
-<li><a href="https://leetcode.com/problems/kth-largest-element-in-a-stream/">Решение</a></li>
-</ul>
-</li>
-<li>
-<p><strong>Data Stream as Disjoint Intervals</strong> (LeetCode 352)</p>
-<ul>
-<li>Представьте поток данных как непересекающиеся интервалы</li>
-<li><a href="https://leetcode.com/problems/data-stream-as-disjoint-intervals/">Решение</a></li>
-</ul>
-</li>
-</ol>
-<h3 id="рекомендации-по-решению"><a class="header" href="#рекомендации-по-решению">Рекомендации по решению</a></h3>
-<ol>
-<li><strong>Поддерживайте баланс</strong>: Размеры куч должны отличаться максимум на 1</li>
-<li><strong>Правильно выбирайте типы куч</strong>: Max-heap для меньших, min-heap для больших</li>
-<li><strong>Обновляйте после каждой операции</strong>: Проверяйте баланс после добавления</li>
-<li><strong>Обрабатывайте удаление</strong>: Для скользящих окон используйте ленивое удаление</li>
-</ol>
 <h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
-<li><strong><a href="./top-k-elements.html">Top K Elements</a></strong> - Использует одну кучу для поиска K элементов</li>
-<li><strong><a href="./k-way-merge.html">K-way Merge</a></strong> - Использует кучу для слияния массивов</li>
-<li><strong><a href="./tree-bfs.html">Tree BFS</a></strong> - Работа с очередями и структурами данных</li>
-</ul>
-<h2 id="следующий-шаг"><a class="header" href="#следующий-шаг">Следующий шаг</a></h2>
-<p>После изучения Two Heaps рекомендуется перейти к <strong><a href="./top-k-elements.html">Top K Elements</a></strong> для изучения работы с одной кучей или к <strong><a href="./k-way-merge.html">K-way Merge</a></strong> для изучения слияния массивов.</p>
-<h2 id="дополнительные-ресурсы"><a class="header" href="#дополнительные-ресурсы">Дополнительные ресурсы</a></h2>
-<h3 id="интерактивные-визуализаторы"><a class="header" href="#интерактивные-визуализаторы">Интерактивные визуализаторы</a></h3>
-<ul>
-<li><a href="https://visualgo.net/en/heap">VisuAlgo - Binary Heap</a> - Интерактивная визуализация работы с кучами</li>
-<li><a href="https://algorithm-visualizer.org/heap/heap">Algorithm Visualizer - Heap</a> - Визуализация структуры данных кучи</li>
-</ul>
-<h3 id="видео-объяснения"><a class="header" href="#видео-объяснения">Видео-объяснения</a></h3>
-<ul>
-<li><a href="https://www.youtube.com/results?search_query=neetcode+two+heaps">NeetCode - Two Heaps</a> - Подробное объяснение паттерна</li>
-<li><a href="https://www.youtube.com/results?search_query=back+to+back+swe+median+finder">Back To Back SWE - Median Finder</a> - Разбор задачи на медиану</li>
-</ul>
-<h3 id="дополнительные-материалы"><a class="header" href="#дополнительные-материалы">Дополнительные материалы</a></h3>
-<ul>
-<li><a href="https://leetcode.com/problems/find-median-from-data-stream/">Find Median from Data Stream - LeetCode</a> - Классическая задача на две кучи</li>
-<li><a href="https://www.geeksforgeeks.org/heap-data-structure/">Heap Data Structure - GeeksforGeeks</a> - Подробное объяснение структуры данных кучи</li>
-<li><a href="https://en.wikipedia.org/wiki/Median">Median - Wikipedia</a> - Математическое определение медианы</li>
+<li><strong><a href="./top-k-elements.html">Top K Elements</a></strong> — одна куча для поиска K наибольших/наименьших.</li>
+<li><strong><a href="./k-way-merge.html">K-way Merge</a></strong> — куча для слияния нескольких отсортированных списков.</li>
+<li>По работе с памятью и профилированию в Go см. <a href="appendix-go-memory.html">приложение</a>.</li>
 </ul>
 
                     </main>
@@ -1461,6 +384,9 @@ func (sm *StreamMedian) GetMedian() float64 {
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="assets/algo-viz-f6dee78c.js"></script>
+        <script src="assets/quiz-0d58c129.js"></script>
+        <script src="assets/progress-8bf0c880.js"></script>
 
 
 
