@@ -141,6 +141,18 @@ func middleNode(head *ListNode) *ListNode {
 - [Find the Duplicate Number](https://leetcode.com/problems/find-the-duplicate-number/) (сложная)
 - [Sort List](https://leetcode.com/problems/sort-list/) (сложная)
 
+**Тренажёр** — пакет `fastslow`:
+
+```bash
+cd exercises
+go test ./fastslow/                 # ваши решения
+go test -tags solution ./fastslow/  # эталон
+```
+
+Реализуйте `HasCycle` (есть ли цикл), `DetectCycle` (начало цикла),
+`MiddleNode` (середина списка), `IsHappyNumber` (счастливое число)
+и `CycleLength` (длина цикла).
+
 ## Связанные шаблоны
 
 - **[Two Pointers](two-pointers.md)** — базовый подход с двумя указателями для массивов.

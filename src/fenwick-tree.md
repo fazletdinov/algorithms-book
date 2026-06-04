@@ -131,7 +131,7 @@ go test ./fenwick/                 # ваши решения
 go test -tags solution ./fenwick/  # эталон
 ```
 
-Реализуйте `NewFenwick`, `Update`, `PrefixSum` и `RangeSum`.
+Реализуйте `NewFenwick`, `Update`, `PrefixSum`, `RangeSum`, `CountInversions` (число инверсий через BIT) и `CountSmallerToRight` (меньших справа).
 
 ## Связанные шаблоны
 

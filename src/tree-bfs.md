@@ -127,7 +127,7 @@ go test ./treebfs/                 # ваши решения
 go test -tags solution ./treebfs/  # эталон
 ```
 
-Реализуйте `LevelOrder` (обход по уровням, возвращает `[][]int`).
+Реализуйте `LevelOrder` (по уровням), `ZigzagLevelOrder` (змейкой), `RightSideView` (вид справа), `LevelAverages` (среднее по уровням) и `MinDepth` (минимальная глубина).
 
 ## Связанные шаблоны
 

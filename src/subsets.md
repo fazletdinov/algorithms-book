@@ -150,6 +150,18 @@ graph TD
 - [Generate Parentheses](https://leetcode.com/problems/generate-parentheses/)
 - [N-Queens](https://leetcode.com/problems/n-queens/) (сложная)
 
+**Тренажёр** — пакет `subsets`:
+
+```bash
+cd exercises
+go test ./subsets/                 # ваши решения
+go test -tags solution ./subsets/  # эталон
+```
+
+Реализуйте `Subsets` (все подмножества), `SubsetsWithDup` (с дубликатами),
+`Combinations` (сочетания по k из [1..n]) и `LetterCasePermutation`
+(переключение регистра букв).
+
 ## Связанные шаблоны
 
 - **[Tree DFS](./tree-dfs.md)** — тот же рекурсивный обход в глубину.

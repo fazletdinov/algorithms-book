@@ -34,3 +34,57 @@ func CanJump(nums []int) bool {
 	}
 	return true
 }
+
+func MinJumps(nums []int) int {
+	jumps := 0
+	curEnd := 0
+	farthest := 0
+	for i := 0; i < len(nums)-1; i++ {
+		if i+nums[i] > farthest {
+			farthest = i + nums[i]
+		}
+		if i == curEnd {
+			jumps++
+			curEnd = farthest
+		}
+	}
+	return jumps
+}
+
+func MaxProfit(prices []int) int {
+	profit := 0
+	for i := 1; i < len(prices); i++ {
+		if prices[i] > prices[i-1] {
+			profit += prices[i] - prices[i-1]
+		}
+	}
+	return profit
+}
+
+func FractionalKnapsack(values, weights []int, capacity int) float64 {
+	n := len(values)
+	idx := make([]int, n)
+	for i := range idx {
+		idx[i] = i
+	}
+	sort.Slice(idx, func(a, b int) bool {
+		ra := float64(values[idx[a]]) / float64(weights[idx[a]])
+		rb := float64(values[idx[b]]) / float64(weights[idx[b]])
+		return ra > rb
+	})
+	total := 0.0
+	remaining := capacity
+	for _, i := range idx {
+		if remaining == 0 {
+			break
+		}
+		if weights[i] <= remaining {
+			total += float64(values[i])
+			remaining -= weights[i]
+		} else {
+			total += float64(values[i]) * float64(remaining) / float64(weights[i])
+			remaining = 0
+		}
+	}
+	return total
+}

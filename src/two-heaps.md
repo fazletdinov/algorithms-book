@@ -149,6 +149,17 @@ func (mf *MedianFinder) FindMedian() float64 {
 - [The Skyline Problem](https://leetcode.com/problems/the-skyline-problem/) (сложная)
 - [Kth Largest Element in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/)
 
+**Тренажёр** — пакет `twoheaps`:
+
+```bash
+cd exercises
+go test ./twoheaps/                 # ваши решения
+go test -tags solution ./twoheaps/  # эталон
+```
+
+Реализуйте `MedianFinder` (медиана потока: `NewMedianFinder`/`AddNum`/`FindMedian`),
+`SlidingWindowMedian` (медиана скользящего окна) и `MaximizeCapital` (задача IPO).
+
 ## Связанные шаблоны
 
 - **[Top K Elements](./top-k-elements.md)** — одна куча для поиска K наибольших/наименьших.

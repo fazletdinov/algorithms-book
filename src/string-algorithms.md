@@ -156,7 +156,9 @@ go test ./strmatch/                 # ваши решения
 go test -tags solution ./strmatch/  # эталон
 ```
 
-Реализуйте `KMPSearch` и `RabinKarp` — обе ищут первое вхождение образца.
+Реализуйте `KMPSearch` (первое вхождение через KMP), `RabinKarp` (хеш-поиск),
+`CountOccurrences` (число вхождений с перекрытием), `LongestPrefixSuffix` (префикс-функция)
+и `ZSearch` (Z-алгоритм).
 
 ## Связанные шаблоны
 

@@ -233,8 +233,8 @@ go test ./segtree/                 # ваши решения
 go test -tags solution ./segtree/  # эталон
 ```
 
-Реализуйте `NewSegmentTree`, `Update` и `Query` для суммы на диапазоне, а также
-`LazySegmentTree` (`RangeUpdate` / `RangeQuery`) с отложенными обновлениями.
+Реализуйте `NewSegmentTree` / `Update` / `Query` (сумма на отрезке), а также тип
+`MinSegmentTree` (`NewMinSegmentTree` / `Update` / `Query` — минимум на отрезке).
 
 ## Связанные шаблоны
 

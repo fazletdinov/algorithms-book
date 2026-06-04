@@ -199,7 +199,7 @@ go test ./grids/ ./dijkstra/                 # ваши решения
 go test -tags solution ./grids/ ./dijkstra/  # эталон
 ```
 
-Реализуйте `NumIslands` (обход сетки) и `ShortestPath` (Дейкстра).
+Реализуйте `NumIslands` (обход сетки), `MaxAreaOfIsland` (макс. площадь), `FloodFill` (заливка), `RottingOranges` (BFS-волна) и `ShortestPathInBinaryMatrix` (8 направлений); в пакете `dijkstra` — `ShortestPath` (кратчайший путь, Дейкстра).
 
 ## Связанные шаблоны
 

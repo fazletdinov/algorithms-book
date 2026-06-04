@@ -68,3 +68,44 @@ func ShortestPath(grid [][]int) int {
 	}
 	return -1
 }
+
+func ManhattanDistance(r1, c1, r2, c2 int) int {
+	return abs(r1-r2) + abs(c1-c2)
+}
+
+func PathExists(grid [][]int) bool {
+	rows := len(grid)
+	if rows == 0 {
+		return false
+	}
+	cols := len(grid[0])
+	gr, gc := rows-1, cols-1
+	if grid[0][0] == 1 || grid[gr][gc] == 1 {
+		return false
+	}
+
+	seen := make([][]bool, rows)
+	for i := range seen {
+		seen[i] = make([]bool, cols)
+	}
+	seen[0][0] = true
+
+	queue := [][2]int{{0, 0}}
+	dirs := [4][2]int{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+		if cur[0] == gr && cur[1] == gc {
+			return true
+		}
+		for _, d := range dirs {
+			nr, nc := cur[0]+d[0], cur[1]+d[1]
+			if nr < 0 || nr >= rows || nc < 0 || nc >= cols || grid[nr][nc] == 1 || seen[nr][nc] {
+				continue
+			}
+			seen[nr][nc] = true
+			queue = append(queue, [2]int{nr, nc})
+		}
+	}
+	return false
+}

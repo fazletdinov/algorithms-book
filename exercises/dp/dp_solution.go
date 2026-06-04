@@ -115,3 +115,47 @@ func Knapsack01(weights, values []int, capacity int) int {
 	}
 	return dp[capacity]
 }
+
+func HouseRobber(nums []int) int {
+	prev2, prev1 := 0, 0
+	for _, x := range nums {
+		cur := prev1
+		if cand := prev2 + x; cand > cur {
+			cur = cand
+		}
+		prev2, prev1 = prev1, cur
+	}
+	return prev1
+}
+
+func UniquePaths(m, n int) int {
+	dp := make([]int, n)
+	for j := range dp {
+		dp[j] = 1
+	}
+	for i := 1; i < m; i++ {
+		for j := 1; j < n; j++ {
+			dp[j] += dp[j-1]
+		}
+	}
+	return dp[n-1]
+}
+
+func WordBreak(s string, dict []string) bool {
+	set := make(map[string]bool, len(dict))
+	for _, w := range dict {
+		set[w] = true
+	}
+	n := len(s)
+	dp := make([]bool, n+1)
+	dp[0] = true
+	for i := 1; i <= n; i++ {
+		for j := 0; j < i; j++ {
+			if dp[j] && set[s[j:i]] {
+				dp[i] = true
+				break
+			}
+		}
+	}
+	return dp[n]
+}

@@ -168,7 +168,7 @@ go test ./backtracking/                 # ваши решения
 go test -tags solution ./backtracking/  # эталон
 ```
 
-Реализуйте `Permutations` и `GenerateParentheses` и добейтесь зелёных тестов.
+Реализуйте `Permutations` (перестановки), `GenerateParentheses` (корректные скобки), `CombinationSum` (комбинации с заданной суммой, повтор разрешён), `SolveNQueensCount` (число расстановок n ферзей) и `LetterCombinations` (буквы на цифрах телефона).
 
 ## Связанные шаблоны
 

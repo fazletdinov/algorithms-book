@@ -28,10 +28,36 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.24'
-      - name: go vet
+      - name: gofmt (форматирование)
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::Файлы не отформатированы gofmt:"; echo "$unformatted"
+            exit 1
+          fi
+      - name: go vet (эталоны)
         run: go vet -tags solution ./...
-      - name: go test
+      - name: go test (эталоны)
         run: go test -tags solution -count=1 ./...
+      # Заготовки должны КОМПИЛИРОВАТЬСЯ без тега solution: ловит рассинхрон
+      # сигнатур между заготовкой, эталоном и тестом (тест — общая спецификация).
+      - name: go vet (заготовки компилируются)
+        run: go vet ./...
+      # Заготовки НЕ должны проходить тесты без тега solution: если какой-то
+      # пакет зелёный на untagged-сборке — значит решение случайно попало в
+      # файл-заготовку вместо panic("TODO").
+      - name: Заготовки ещё не решены
+        run: |
+          fail=0
+          for pkg in $(go list ./...); do
+            if out=$(go test -count=1 "$pkg" 2>&1); then
+              if ! echo "$out" | grep -q "no test files"; then
+                echo "::error::Пакет $pkg проходит тесты БЕЗ -tags solution — решение попало в заготовку"
+                fail=1
+              fi
+            fi
+          done
+          exit $fail
 
   build-book:
     name: Сборка mdBook

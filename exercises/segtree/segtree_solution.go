@@ -47,6 +47,58 @@ func (st *SegmentTree) Query(l, r int) int {
 	return res
 }
 
+type MinSegmentTree struct {
+	n    int
+	tree []int
+}
+
+func NewMinSegmentTree(arr []int) *MinSegmentTree {
+	n := len(arr)
+	st := &MinSegmentTree{n: n, tree: make([]int, 2*n)}
+	for i := 0; i < n; i++ {
+		st.tree[n+i] = arr[i]
+	}
+	for i := n - 1; i > 0; i-- {
+		st.tree[i] = minInt(st.tree[2*i], st.tree[2*i+1])
+	}
+	return st
+}
+
+func (st *MinSegmentTree) Update(i, val int) {
+	i += st.n
+	st.tree[i] = val
+	for i > 1 {
+		i /= 2
+		st.tree[i] = minInt(st.tree[2*i], st.tree[2*i+1])
+	}
+}
+
+func (st *MinSegmentTree) Query(l, r int) int {
+	res := int(^uint(0) >> 1) // math.MaxInt
+	l += st.n
+	r += st.n + 1
+	for l < r {
+		if l&1 == 1 {
+			res = minInt(res, st.tree[l])
+			l++
+		}
+		if r&1 == 1 {
+			r--
+			res = minInt(res, st.tree[r])
+		}
+		l /= 2
+		r /= 2
+	}
+	return res
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 type LazySegmentTree struct {
 	n          int
 	tree, lazy []int

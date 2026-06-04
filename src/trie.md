@@ -119,7 +119,7 @@ go test ./trie/                 # ваши решения
 go test -tags solution ./trie/  # эталон
 ```
 
-Реализуйте методы `Insert`, `Search` и `StartsWith` структуры `Trie`.
+Реализуйте методы структуры `Trie`: `Insert`, `Search`, `StartsWith`, `Delete` (удаление с обрезкой) и `WordsWithPrefix` (слова по префиксу).
 
 ## Связанные шаблоны
 

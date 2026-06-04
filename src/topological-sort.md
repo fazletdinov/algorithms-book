@@ -141,6 +141,18 @@ in-degree = 0, очередь пуста с самого начала, `len(resu
 - [Parallel Courses](https://leetcode.com/problems/parallel-courses/) (сложная)
 - [Sort Items by Groups Respecting Dependencies](https://leetcode.com/problems/sort-items-by-groups-respecting-dependencies/) (сложная)
 
+**Тренажёр** — пакет `toposort`:
+
+```bash
+cd exercises
+go test ./toposort/                 # ваши решения
+go test -tags solution ./toposort/  # эталон
+```
+
+Реализуйте `TopologicalSort` (порядок по Кану), `CanFinish` (нет ли цикла),
+`FindOrderLexSmallest` (лексикографически наименьший порядок) и `AlienOrder`
+(порядок алфавита по словарю).
+
 ## Связанные шаблоны
 
 - **[Tree BFS](./tree-bfs.md)** — тот же обход с очередью.

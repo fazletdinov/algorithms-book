@@ -124,8 +124,9 @@ go test ./cyclicsort/                 # ваши решения
 go test -tags solution ./cyclicsort/  # эталон
 ```
 
-Реализуйте `CyclicSort` (сортировка на месте) и `FindMissingNumber` (поиск
-отсутствующего числа из диапазона 1..N).
+Реализуйте `CyclicSort` (сортировка на месте), `FindMissingNumber` (пропущенное число),
+`FindAllMissingNumbers` (все пропущенные), `FindDuplicate` (дубликат) и `FindAllDuplicates`
+(все дубликаты).
 
 ## Связанные шаблоны
 

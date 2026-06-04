@@ -131,7 +131,7 @@ go test ./greedy/                 # ваши решения
 go test -tags solution ./greedy/  # эталон
 ```
 
-Реализуйте `MaxNonOverlapping` (выбор заявок) и `CanJump` (Jump Game).
+Реализуйте `MaxNonOverlapping` (выбор заявок), `CanJump` (Jump Game), `MinJumps` (мин. число прыжков), `MaxProfit` (акции, много сделок) и `FractionalKnapsack` (дробный рюкзак).
 
 ## Связанные шаблоны
 
