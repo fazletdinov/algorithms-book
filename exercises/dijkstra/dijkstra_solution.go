@@ -54,3 +54,60 @@ func ShortestPath(n int, edges [][]int, src, dst int) int {
 	}
 	return dist[dst]
 }
+
+func dijkstraDirected(n int, edges [][]int, src int) []int {
+	const inf = 1 << 62
+	adj := make([][][2]int, n)
+	for _, e := range edges {
+		u, v, w := e[0], e[1], e[2]
+		adj[u] = append(adj[u], [2]int{v, w})
+	}
+
+	dist := make([]int, n)
+	for i := range dist {
+		dist[i] = inf
+	}
+	dist[src] = 0
+
+	h := &pq{{node: src, dist: 0}}
+	for h.Len() > 0 {
+		cur := heap.Pop(h).(item)
+		if cur.dist > dist[cur.node] {
+			continue
+		}
+		for _, e := range adj[cur.node] {
+			to, w := e[0], e[1]
+			if nd := cur.dist + w; nd < dist[to] {
+				dist[to] = nd
+				heap.Push(h, item{node: to, dist: nd})
+			}
+		}
+	}
+	return dist
+}
+
+func ShortestPathsFrom(n int, edges [][]int, src int) []int {
+	const inf = 1 << 62
+	dist := dijkstraDirected(n, edges, src)
+	for i := range dist {
+		if dist[i] == inf {
+			dist[i] = -1
+		}
+	}
+	return dist
+}
+
+func NetworkDelayTime(n int, edges [][]int, src int) int {
+	const inf = 1 << 62
+	dist := dijkstraDirected(n, edges, src)
+	max := 0
+	for _, d := range dist {
+		if d == inf {
+			return -1
+		}
+		if d > max {
+			max = d
+		}
+	}
+	return max
+}

@@ -65,3 +65,77 @@ func TestGenerateParentheses(t *testing.T) {
 		})
 	}
 }
+
+func TestCombinationSum(t *testing.T) {
+	tests := []struct {
+		name       string
+		candidates []int
+		target     int
+		want       [][]int
+	}{
+		{"target 7", []int{2, 3, 6, 7}, 7, [][]int{{2, 2, 3}, {7}}},
+		{"target 8", []int{2, 3, 7}, 8, [][]int{{2, 2, 2, 2}, {2, 3, 3}}},
+		{"один кандидат", []int{2}, 1, [][]int{}},
+		{"одно число", []int{5}, 5, [][]int{{5}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := CombinationSum(tt.candidates, tt.target)
+			sortPerms(got)
+			sortPerms(tt.want)
+			if len(got) == 0 && len(tt.want) == 0 {
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("CombinationSum(%v, %d) = %v, ожидалось %v", tt.candidates, tt.target, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSolveNQueensCount(t *testing.T) {
+	tests := []struct {
+		name string
+		n    int
+		want int
+	}{
+		{"один ферзь", 1, 1},
+		{"два ферзя", 2, 0},
+		{"три ферзя", 3, 0},
+		{"четыре ферзя", 4, 2},
+		{"восемь ферзей", 8, 92},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := SolveNQueensCount(tt.n)
+			if got != tt.want {
+				t.Errorf("SolveNQueensCount(%d) = %d, ожидалось %d", tt.n, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLetterCombinations(t *testing.T) {
+	tests := []struct {
+		name   string
+		digits string
+		want   []string
+	}{
+		{"две цифры", "23", []string{"ad", "ae", "af", "bd", "be", "bf", "cd", "ce", "cf"}},
+		{"пустая строка", "", []string{}},
+		{"одна цифра", "9", []string{"w", "x", "y", "z"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := LetterCombinations(tt.digits)
+			sort.Strings(got)
+			sort.Strings(tt.want)
+			if len(got) == 0 && len(tt.want) == 0 {
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("LetterCombinations(%q) = %v, ожидалось %v", tt.digits, got, tt.want)
+			}
+		})
+	}
+}

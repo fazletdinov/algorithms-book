@@ -158,6 +158,18 @@ Init:    куча {1,2,3}                          результат []
 - [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) (сложная)
 - [Smallest Range Covering Elements from K Lists](https://leetcode.com/problems/smallest-range-covering-elements-from-k-lists/) (сложная)
 
+**Тренажёр** — пакет `kwaymerge`:
+
+```bash
+cd exercises
+go test ./kwaymerge/                 # ваши решения
+go test -tags solution ./kwaymerge/  # эталон
+```
+
+Реализуйте `MergeKSortedArrays` (слить k массивов), `KthSmallestInSortedArrays`
+(k-й наименьший), `SmallestRange` (наименьший диапазон, покрывающий все списки) и
+`KthSmallestInMatrix` (k-й наименьший в сортированной матрице).
+
 ## Связанные шаблоны
 
 - **[Top K Elements](top-k-elements.md)** — тоже опирается на кучу для выбора

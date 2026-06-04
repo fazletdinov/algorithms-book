@@ -158,6 +158,18 @@ n-1=7:  0111      n-1=5:  0101
 - [Missing Number](https://leetcode.com/problems/missing-number/) (268) — XOR-решение
 - [Reverse Bits](https://leetcode.com/problems/reverse-bits/) (190)
 
+**Тренажёр** — пакет `bits`:
+
+```bash
+cd exercises
+go test ./bits/                 # ваши решения
+go test -tags solution ./bits/  # эталон
+```
+
+Реализуйте `SingleNumber` (одиночное через XOR), `IsPowerOfTwo` (степень двойки),
+`HammingWeight` (число единичных битов), `MissingNumber` (пропущенное через XOR),
+`CountBits` (биты для 0..n) и `TwoSingleNumbers` (два одиночных).
+
 ## Связанные шаблоны
 
 - **[Modified Binary Search](modified-binary-search.md)** — бинарный поиск по

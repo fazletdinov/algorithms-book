@@ -156,6 +156,18 @@ graph TD
 - [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) (сложная)
 - [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) (сложная)
 
+**Тренажёр** — пакет `topk`:
+
+```bash
+cd exercises
+go test ./topk/                 # ваши решения
+go test -tags solution ./topk/  # эталон
+```
+
+Реализуйте `FindKLargest` (k наибольших), `TopKFrequent` (k самых частых),
+`KthLargest` (k-й по величине), `KClosestPoints` (k ближайших точек к началу координат)
+и `KClosestNumbers` (k ближайших к x).
+
 ## Связанные шаблоны
 
 - **[Two Heaps](./two-heaps.md)** — две кучи для поддержания медианы.

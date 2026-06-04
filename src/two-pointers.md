@@ -133,8 +133,9 @@ go test ./twopointers/                 # ваши решения
 go test -tags solution ./twopointers/  # эталон
 ```
 
-Реализуйте `PairWithTargetSum` (встречные указатели) и `RemoveDuplicates`
-(одно направление).
+Реализуйте `PairWithTargetSum` (встречные указатели), `RemoveDuplicates` (на месте),
+`SortedSquares` (квадраты в отсортированном порядке), `TripletsSumToZero` (тройки с суммой 0)
+и `DutchFlagSort` (сортировка 0/1/2).
 
 ## Связанные шаблоны
 

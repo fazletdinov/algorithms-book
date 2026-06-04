@@ -114,3 +114,67 @@ func TestKnapsack01(t *testing.T) {
 		})
 	}
 }
+
+func TestHouseRobber(t *testing.T) {
+	tests := []struct {
+		name string
+		nums []int
+		want int
+	}{
+		{"через один", []int{2, 7, 9, 3, 1}, 12},
+		{"крайние", []int{2, 1, 1, 2}, 4},
+		{"пусто", []int{}, 0},
+		{"один дом", []int{5}, 5},
+		{"два дома", []int{1, 2}, 2},
+		{"все нули", []int{0, 0, 0}, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := HouseRobber(tt.nums); got != tt.want {
+				t.Errorf("HouseRobber(%v) = %d, ожидалось %d", tt.nums, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestUniquePaths(t *testing.T) {
+	tests := []struct {
+		m, n int
+		want int
+	}{
+		{3, 7, 28},
+		{3, 2, 3},
+		{1, 1, 1},
+		{2, 2, 2},
+		{7, 3, 28},
+		{10, 10, 48620},
+	}
+	for _, tt := range tests {
+		if got := UniquePaths(tt.m, tt.n); got != tt.want {
+			t.Errorf("UniquePaths(%d, %d) = %d, ожидалось %d", tt.m, tt.n, got, tt.want)
+		}
+	}
+}
+
+func TestWordBreak(t *testing.T) {
+	tests := []struct {
+		name string
+		s    string
+		dict []string
+		want bool
+	}{
+		{"leetcode", "leetcode", []string{"leet", "code"}, true},
+		{"повтор слова", "applepenapple", []string{"apple", "pen"}, true},
+		{"нельзя разбить", "catsandog", []string{"cats", "dog", "sand", "and", "cat"}, false},
+		{"пустая строка", "", []string{"a"}, true},
+		{"одно слово", "a", []string{"a"}, true},
+		{"нет в словаре", "ab", []string{"c"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := WordBreak(tt.s, tt.dict); got != tt.want {
+				t.Errorf("WordBreak(%q, %v) = %v, ожидалось %v", tt.s, tt.dict, got, tt.want)
+			}
+		})
+	}
+}

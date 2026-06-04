@@ -135,8 +135,9 @@ go test ./slidingwindow/                 # ваши решения
 go test -tags solution ./slidingwindow/  # эталон
 ```
 
-Реализуйте `MaxSumSubarray` (фиксированное окно) и `LongestSubstringKDistinct`
-(переменное окно).
+Реализуйте `MaxSumSubarray` (фиксированное окно), `LongestSubstringKDistinct`
+(≤k различных символов), `SmallestSubarrayWithSum` (минимальная длина с суммой ≥ target),
+`LongestSubstringNoRepeat` (без повторов) и `MaxSlidingWindow` (максимум окна через дек).
 
 ## Связанные шаблоны
 

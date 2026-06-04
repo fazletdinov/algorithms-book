@@ -9,7 +9,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="Подробное изучение 15 основных алгоритмических шаблонов с примерами на Go">
+        <meta name="description" content="Подробное изучение 25 основных алгоритмических шаблонов с примерами на Go">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -40,7 +40,7 @@
             const path_to_root = "";
             const default_light_theme = "navy";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2799386e.js";
+            window.path_to_searchindex_js = "searchindex-dc704382.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6b3e4b80.js"></script>
@@ -1062,8 +1062,9 @@ func longestKDistinct(s string, k int) int {
 go test ./slidingwindow/                 # ваши решения
 go test -tags solution ./slidingwindow/  # эталон
 </code></pre>
-<p>Реализуйте <code>MaxSumSubarray</code> (фиксированное окно) и <code>LongestSubstringKDistinct</code>
-(переменное окно).</p>
+<p>Реализуйте <code>MaxSumSubarray</code> (фиксированное окно), <code>LongestSubstringKDistinct</code>
+(≤k различных символов), <code>SmallestSubarrayWithSum</code> (минимальная длина с суммой ≥ target),
+<code>LongestSubstringNoRepeat</code> (без повторов) и <code>MaxSlidingWindow</code> (максимум окна через дек).</p>
 <h2 id="связанные-шаблоны"><a class="header" href="#связанные-шаблоны">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#two-pointers-два-указателя">Two Pointers</a></strong> — окно задаётся двумя указателями; родственная
@@ -1193,8 +1194,9 @@ go test -tags solution ./slidingwindow/  # эталон
 go test ./twopointers/                 # ваши решения
 go test -tags solution ./twopointers/  # эталон
 </code></pre>
-<p>Реализуйте <code>PairWithTargetSum</code> (встречные указатели) и <code>RemoveDuplicates</code>
-(одно направление).</p>
+<p>Реализуйте <code>PairWithTargetSum</code> (встречные указатели), <code>RemoveDuplicates</code> (на месте),
+<code>SortedSquares</code> (квадраты в отсортированном порядке), <code>TripletsSumToZero</code> (тройки с суммой 0)
+и <code>DutchFlagSort</code> (сортировка 0/1/2).</p>
 <h2 id="связанные-шаблоны-1"><a class="header" href="#связанные-шаблоны-1">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#sliding-window-скользящее-окно">Sliding Window</a></strong> — окно тоже задаётся двумя указателями;
@@ -1333,6 +1335,14 @@ func hasCycle(head *ListNode) bool {
 <li><a href="https://leetcode.com/problems/find-the-duplicate-number/">Find the Duplicate Number</a> (сложная)</li>
 <li><a href="https://leetcode.com/problems/sort-list/">Sort List</a> (сложная)</li>
 </ul>
+<p><strong>Тренажёр</strong> — пакет <code>fastslow</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./fastslow/                 # ваши решения
+go test -tags solution ./fastslow/  # эталон
+</code></pre>
+<p>Реализуйте <code>HasCycle</code> (есть ли цикл), <code>DetectCycle</code> (начало цикла),
+<code>MiddleNode</code> (середина списка), <code>IsHappyNumber</code> (счастливое число)
+и <code>CycleLength</code> (длина цикла).</p>
 <h2 id="связанные-шаблоны-2"><a class="header" href="#связанные-шаблоны-2">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#two-pointers-два-указателя">Two Pointers</a></strong> — базовый подход с двумя указателями для массивов.</li>
@@ -1475,6 +1485,14 @@ func hasCycle(head *ListNode) bool {
 <li><a href="https://leetcode.com/problems/employee-free-time/">Employee Free Time</a> (сложная)</li>
 <li><a href="https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/">Minimum Number of Arrows to Burst Balloons</a></li>
 </ul>
+<p><strong>Тренажёр</strong> — пакет <code>intervals</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./intervals/                 # ваши решения
+go test -tags solution ./intervals/  # эталон
+</code></pre>
+<p>Реализуйте <code>MergeIntervals</code> (слить пересекающиеся), <code>InsertInterval</code>
+(вставить и слить), <code>IntervalsIntersection</code> (пересечения двух списков),
+<code>CanAttendAllMeetings</code> (без наложений) и <code>MinMeetingRooms</code> (минимум переговорок).</p>
 <h2 id="связанные-шаблоны-3"><a class="header" href="#связанные-шаблоны-3">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#two-pointers-два-указателя">Two Pointers</a></strong> — пересечение двух списков интервалов удобно
@@ -1596,8 +1614,9 @@ func hasCycle(head *ListNode) bool {
 go test ./cyclicsort/                 # ваши решения
 go test -tags solution ./cyclicsort/  # эталон
 </code></pre>
-<p>Реализуйте <code>CyclicSort</code> (сортировка на месте) и <code>FindMissingNumber</code> (поиск
-отсутствующего числа из диапазона 1..N).</p>
+<p>Реализуйте <code>CyclicSort</code> (сортировка на месте), <code>FindMissingNumber</code> (пропущенное число),
+<code>FindAllMissingNumbers</code> (все пропущенные), <code>FindDuplicate</code> (дубликат) и <code>FindAllDuplicates</code>
+(все дубликаты).</p>
 <h2 id="связанные-шаблоны-4"><a class="header" href="#связанные-шаблоны-4">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#merge-intervals-слияние-интервалов">Merge Intervals</a></strong> — другой шаблон для упорядоченных данных.</li>
@@ -1740,8 +1759,9 @@ func searchIdiomatic(arr []int, target int) int {
 go test ./binarysearch/                 # ваши решения
 go test -tags solution ./binarysearch/  # эталон
 </code></pre>
-<p>Реализуйте <code>Search</code> (поиск точного значения) и <code>FindCeiling</code> (наименьший элемент,
-не меньший <code>key</code> — поиск границы предиката).</p>
+<p>Реализуйте <code>Search</code> (точное значение), <code>FindCeiling</code> (наименьший элемент ≥ <code>key</code>),
+<code>FindFloor</code> (наибольший элемент ≤ <code>target</code>), <code>SearchRotated</code> (поиск в повёрнутом массиве),
+<code>FindFirstLast</code> (первая и последняя позиция) и <code>IntSqrt</code> (целочисленный квадратный корень).</p>
 <h2 id="связанные-шаблоны-5"><a class="header" href="#связанные-шаблоны-5">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#sliding-window-скользящее-окно">Sliding Window</a></strong> — иногда оптимальный размер окна ищут
@@ -1904,6 +1924,14 @@ n-1=7:  0111      n-1=5:  0101
 <li><a href="https://leetcode.com/problems/missing-number/">Missing Number</a> (268) — XOR-решение</li>
 <li><a href="https://leetcode.com/problems/reverse-bits/">Reverse Bits</a> (190)</li>
 </ul>
+<p><strong>Тренажёр</strong> — пакет <code>bits</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./bits/                 # ваши решения
+go test -tags solution ./bits/  # эталон
+</code></pre>
+<p>Реализуйте <code>SingleNumber</code> (одиночное через XOR), <code>IsPowerOfTwo</code> (степень двойки),
+<code>HammingWeight</code> (число единичных битов), <code>MissingNumber</code> (пропущенное через XOR),
+<code>CountBits</code> (биты для 0..n) и <code>TwoSingleNumbers</code> (два одиночных).</p>
 <h2 id="связанные-шаблоны-6"><a class="header" href="#связанные-шаблоны-6">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#modified-binary-search-модифицированный-бинарный-поиск">Modified Binary Search</a></strong> — бинарный поиск по
@@ -2019,7 +2047,8 @@ func reverseListIterative(head *ListNode) *ListNode {
 go test ./linkedlist/                 # ваши решения
 go test -tags solution ./linkedlist/  # эталон
 </code></pre>
-<p>Реализуйте <code>ReverseList</code> (итеративный разворот с тремя указателями).</p>
+<p>Реализуйте <code>ReverseList</code> (итеративный разворот), <code>ReverseSublist</code> (разворот участка [p, q]),
+<code>ReverseKGroup</code> (разворот группами по k) и <code>IsPalindrome</code> (проверка палиндрома за O(1) памяти).</p>
 <h2 id="связанные-шаблоны-7"><a class="header" href="#связанные-шаблоны-7">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#fast--slow-pointers-быстрые-и-медленные-указатели">Fast &amp; Slow Pointers</a></strong> — другие операции со связанными
@@ -2145,7 +2174,7 @@ func levelOrder(root *TreeNode) [][]int {
 go test ./treebfs/                 # ваши решения
 go test -tags solution ./treebfs/  # эталон
 </code></pre>
-<p>Реализуйте <code>LevelOrder</code> (обход по уровням, возвращает <code>[][]int</code>).</p>
+<p>Реализуйте <code>LevelOrder</code> (по уровням), <code>ZigzagLevelOrder</code> (змейкой), <code>RightSideView</code> (вид справа), <code>LevelAverages</code> (среднее по уровням) и <code>MinDepth</code> (минимальная глубина).</p>
 <h2 id="связанные-шаблоны-8"><a class="header" href="#связанные-шаблоны-8">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> — обход в глубину; память O(h) вместо O(w), удобен для
@@ -2296,6 +2325,14 @@ Post-order (левое→правое→корень):  4 → 5 → 2 → 6 → 
 <li><a href="https://leetcode.com/problems/binary-tree-maximum-path-sum/">Binary Tree Maximum Path Sum</a> (сложная)</li>
 <li><a href="https://leetcode.com/problems/serialize-and-deserialize-binary-tree/">Serialize and Deserialize Binary Tree</a> (сложная)</li>
 </ul>
+<p><strong>Тренажёр</strong> — пакет <code>treedfs</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./treedfs/                 # ваши решения
+go test -tags solution ./treedfs/  # эталон
+</code></pre>
+<p>Реализуйте <code>PreorderTraversal</code>, <code>InorderTraversal</code>, <code>PostorderTraversal</code>
+(три обхода), <code>MaxDepth</code> (максимальная глубина), <code>HasPathSum</code> (путь
+с заданной суммой) и <code>DiameterOfTree</code> (диаметр).</p>
 <h2 id="связанные-шаблоны-9"><a class="header" href="#связанные-шаблоны-9">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#tree-bfs-обход-дерева-в-ширину">Tree BFS</a></strong> — обход по уровням; память O(w) вместо O(h), нужен для
@@ -2448,6 +2485,13 @@ max-heap, а не min-heap.</li>
 <li><a href="https://leetcode.com/problems/the-skyline-problem/">The Skyline Problem</a> (сложная)</li>
 <li><a href="https://leetcode.com/problems/kth-largest-element-in-a-stream/">Kth Largest Element in a Stream</a></li>
 </ul>
+<p><strong>Тренажёр</strong> — пакет <code>twoheaps</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./twoheaps/                 # ваши решения
+go test -tags solution ./twoheaps/  # эталон
+</code></pre>
+<p>Реализуйте <code>MedianFinder</code> (медиана потока: <code>NewMedianFinder</code>/<code>AddNum</code>/<code>FindMedian</code>),
+<code>SlidingWindowMedian</code> (медиана скользящего окна) и <code>MaximizeCapital</code> (задача IPO).</p>
 <h2 id="связанные-шаблоны-10"><a class="header" href="#связанные-шаблоны-10">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#top-k-elements-топ-k-элементов">Top K Elements</a></strong> — одна куча для поиска K наибольших/наименьших.</li>
@@ -2598,6 +2642,14 @@ func findKLargest(nums []int, k int) []int {
 <li><a href="https://leetcode.com/problems/merge-k-sorted-lists/">Merge k Sorted Lists</a> (сложная)</li>
 <li><a href="https://leetcode.com/problems/find-k-pairs-with-smallest-sums/">Find K Pairs with Smallest Sums</a> (сложная)</li>
 </ul>
+<p><strong>Тренажёр</strong> — пакет <code>topk</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./topk/                 # ваши решения
+go test -tags solution ./topk/  # эталон
+</code></pre>
+<p>Реализуйте <code>FindKLargest</code> (k наибольших), <code>TopKFrequent</code> (k самых частых),
+<code>KthLargest</code> (k-й по величине), <code>KClosestPoints</code> (k ближайших точек к началу координат)
+и <code>KClosestNumbers</code> (k ближайших к x).</p>
 <h2 id="связанные-шаблоны-11"><a class="header" href="#связанные-шаблоны-11">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#two-heaps-две-кучи">Two Heaps</a></strong> — две кучи для поддержания медианы.</li>
@@ -2755,6 +2807,14 @@ func mergeKSortedArrays(arrays [][]int) []int {
 <li><a href="https://leetcode.com/problems/find-k-pairs-with-smallest-sums/">Find K Pairs with Smallest Sums</a> (сложная)</li>
 <li><a href="https://leetcode.com/problems/smallest-range-covering-elements-from-k-lists/">Smallest Range Covering Elements from K Lists</a> (сложная)</li>
 </ul>
+<p><strong>Тренажёр</strong> — пакет <code>kwaymerge</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./kwaymerge/                 # ваши решения
+go test -tags solution ./kwaymerge/  # эталон
+</code></pre>
+<p>Реализуйте <code>MergeKSortedArrays</code> (слить k массивов), <code>KthSmallestInSortedArrays</code>
+(k-й наименьший), <code>SmallestRange</code> (наименьший диапазон, покрывающий все списки) и
+<code>KthSmallestInMatrix</code> (k-й наименьший в сортированной матрице).</p>
 <h2 id="связанные-шаблоны-12"><a class="header" href="#связанные-шаблоны-12">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#top-k-elements-топ-k-элементов">Top K Elements</a></strong> — тоже опирается на кучу для выбора
@@ -2905,6 +2965,14 @@ func mergeKSortedArrays(arrays [][]int) []int {
 <li><a href="https://leetcode.com/problems/generate-parentheses/">Generate Parentheses</a></li>
 <li><a href="https://leetcode.com/problems/n-queens/">N-Queens</a> (сложная)</li>
 </ul>
+<p><strong>Тренажёр</strong> — пакет <code>subsets</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./subsets/                 # ваши решения
+go test -tags solution ./subsets/  # эталон
+</code></pre>
+<p>Реализуйте <code>Subsets</code> (все подмножества), <code>SubsetsWithDup</code> (с дубликатами),
+<code>Combinations</code> (сочетания по k из [1..n]) и <code>LetterCasePermutation</code>
+(переключение регистра букв).</p>
 <h2 id="связанные-шаблоны-13"><a class="header" href="#связанные-шаблоны-13">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> — тот же рекурсивный обход в глубину.</li>
@@ -3067,7 +3135,7 @@ backtracking — <strong>выбор</strong> (берём элемент, син�
 go test ./backtracking/                 # ваши решения
 go test -tags solution ./backtracking/  # эталон
 </code></pre>
-<p>Реализуйте <code>Permutations</code> и <code>GenerateParentheses</code> и добейтесь зелёных тестов.</p>
+<p>Реализуйте <code>Permutations</code> (перестановки), <code>GenerateParentheses</code> (корректные скобки), <code>CombinationSum</code> (комбинации с заданной суммой, повтор разрешён), <code>SolveNQueensCount</code> (число расстановок n ферзей) и <code>LetterCombinations</code> (буквы на цифрах телефона).</p>
 <h2 id="связанные-шаблоны-14"><a class="header" href="#связанные-шаблоны-14">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#subsets-подмножества">Subsets</a></strong> — частный случай backtracking (выбор «брать / не брать»).</li>
@@ -3287,7 +3355,7 @@ func (uf *UnionFind) Union(x, y int) bool {
 go test ./graphs/                 # ваши решения
 go test -tags solution ./graphs/  # эталон
 </code></pre>
-<p>Реализуйте <code>CountComponents</code> (обход) и <code>HasCycleUndirected</code> (Union-Find).</p>
+<p>Реализуйте <code>CountComponents</code> (компоненты связности), <code>HasCycleUndirected</code> (Union-Find), <code>BFSOrder</code> (обход в ширину), <code>DFSOrder</code> (обход в глубину), <code>ShortestPathUnweighted</code> (кратчайший по числу рёбер) и <code>IsBipartite</code> (двудольность).</p>
 <h2 id="связанные-шаблоны-15"><a class="header" href="#связанные-шаблоны-15">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#tree-bfs-обход-дерева-в-ширину">Tree BFS</a></strong> / <strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> — обход деревьев как
@@ -3483,7 +3551,7 @@ Bellman–Ford.</li>
 go test ./grids/ ./dijkstra/                 # ваши решения
 go test -tags solution ./grids/ ./dijkstra/  # эталон
 </code></pre>
-<p>Реализуйте <code>NumIslands</code> (обход сетки) и <code>ShortestPath</code> (Дейкстра).</p>
+<p>Реализуйте <code>NumIslands</code> (обход сетки), <code>MaxAreaOfIsland</code> (макс. площадь), <code>FloodFill</code> (заливка), <code>RottingOranges</code> (BFS-волна) и <code>ShortestPathInBinaryMatrix</code> (8 направлений); в пакете <code>dijkstra</code> — <code>ShortestPath</code> (кратчайший путь, Дейкстра).</p>
 <h2 id="связанные-шаблоны-16"><a class="header" href="#связанные-шаблоны-16">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#graphs-обход-графов">Обход графов</a></strong> — BFS/DFS и Union-Find, на которых всё строится.</li>
@@ -3687,8 +3755,13 @@ func aStar(grid [][]int) int {
 go test ./bellmanford/ ./astar/ ./mst/                 # ваши решения
 go test -tags solution ./bellmanford/ ./astar/ ./mst/  # эталон
 </code></pre>
-<p>Реализуйте <code>ShortestPath</code> (Bellman–Ford), <code>ShortestPath</code> на сетке (A*) и <code>MSTWeight</code>
-(Kruskal).</p>
+<p>Реализуйте по пакетам:</p>
+<ul>
+<li><code>dijkstra</code>: <code>ShortestPath</code>, <code>ShortestPathsFrom</code> (до всех вершин), <code>NetworkDelayTime</code>.</li>
+<li><code>bellmanford</code>: <code>ShortestPath</code> (отриц. веса), <code>HasNegativeCycle</code>, <code>ShortestPathWithAtMostKEdges</code>.</li>
+<li><code>astar</code>: <code>ShortestPath</code> (сетка с эвристикой), <code>ManhattanDistance</code>, <code>PathExists</code>.</li>
+<li><code>mst</code>: <code>MSTWeight</code> (Краскал), <code>MSTWeightPrim</code> (Прим), <code>MSTWeightWithEdges</code>.</li>
+</ul>
 <h2 id="связанные-шаблоны-17"><a class="header" href="#связанные-шаблоны-17">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#graphs-обход-графов">Обход графов</a></strong> — BFS/DFS и Union-Find (нужен для Kruskal).</li>
@@ -3825,6 +3898,14 @@ in-degree = 0, очередь пуста с самого начала, <code>len
 <li><a href="https://leetcode.com/problems/parallel-courses/">Parallel Courses</a> (сложная)</li>
 <li><a href="https://leetcode.com/problems/sort-items-by-groups-respecting-dependencies/">Sort Items by Groups Respecting Dependencies</a> (сложная)</li>
 </ul>
+<p><strong>Тренажёр</strong> — пакет <code>toposort</code>:</p>
+<pre><code class="language-bash">cd exercises
+go test ./toposort/                 # ваши решения
+go test -tags solution ./toposort/  # эталон
+</code></pre>
+<p>Реализуйте <code>TopologicalSort</code> (порядок по Кану), <code>CanFinish</code> (нет ли цикла),
+<code>FindOrderLexSmallest</code> (лексикографически наименьший порядок) и <code>AlienOrder</code>
+(порядок алфавита по словарю).</p>
 <h2 id="связанные-шаблоны-18"><a class="header" href="#связанные-шаблоны-18">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#tree-bfs-обход-дерева-в-ширину">Tree BFS</a></strong> — тот же обход с очередью.</li>
@@ -3952,7 +4033,7 @@ func maxActivities(intervals [][]int) int {
 go test ./greedy/                 # ваши решения
 go test -tags solution ./greedy/  # эталон
 </code></pre>
-<p>Реализуйте <code>MaxNonOverlapping</code> (выбор заявок) и <code>CanJump</code> (Jump Game).</p>
+<p>Реализуйте <code>MaxNonOverlapping</code> (выбор заявок), <code>CanJump</code> (Jump Game), <code>MinJumps</code> (мин. число прыжков), <code>MaxProfit</code> (акции, много сделок) и <code>FractionalKnapsack</code> (дробный рюкзак).</p>
 <h2 id="связанные-шаблоны-19"><a class="header" href="#связанные-шаблоны-19">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#merge-intervals-слияние-интервалов">Merge Intervals</a></strong> — тоже о работе с интервалами, но без выбора
@@ -4141,7 +4222,9 @@ go test -tags solution ./dp/  # эталон
 </code></pre>
 <p>Реализуйте <code>ClimbStairs</code> (1D), <code>CoinChange</code> (1D с выбором),
 <code>LongestCommonSubsequence</code> и <code>EditDistance</code> (2D), <code>LongestIncreasingSubsequence</code>
-(ДП + бинарный поиск) и <code>Knapsack01</code> (0/1 рюкзак со свёрнутым массивом).</p>
+(ДП + бинарный поиск), <code>Knapsack01</code> (0/1 рюкзак со свёрнутым массивом),
+<code>HouseRobber</code> (без двух соседних), <code>UniquePaths</code> (пути в сетке) и <code>WordBreak</code>
+(разбиение строки на слова).</p>
 <h2 id="связанные-шаблоны-20"><a class="header" href="#связанные-шаблоны-20">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#backtracking-поиск-с-возвратом">Backtracking</a></strong> — когда подзадачи перекрываются, перебор с
@@ -4295,7 +4378,9 @@ func kmpSearch(text, pattern string) int {
 go test ./strmatch/                 # ваши решения
 go test -tags solution ./strmatch/  # эталон
 </code></pre>
-<p>Реализуйте <code>KMPSearch</code> и <code>RabinKarp</code> — обе ищут первое вхождение образца.</p>
+<p>Реализуйте <code>KMPSearch</code> (первое вхождение через KMP), <code>RabinKarp</code> (хеш-поиск),
+<code>CountOccurrences</code> (число вхождений с перекрытием), <code>LongestPrefixSuffix</code> (префикс-функция)
+и <code>ZSearch</code> (Z-алгоритм).</p>
 <h2 id="связанные-шаблоны-21"><a class="header" href="#связанные-шаблоны-21">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#sliding-window-скользящее-окно">Sliding Window</a></strong> — Rabin–Karp это скользящее окно по хешу.</li>
@@ -4417,7 +4502,7 @@ func (t *Trie) StartsWith(prefix string) bool {
 go test ./trie/                 # ваши решения
 go test -tags solution ./trie/  # эталон
 </code></pre>
-<p>Реализуйте методы <code>Insert</code>, <code>Search</code> и <code>StartsWith</code> структуры <code>Trie</code>.</p>
+<p>Реализуйте методы структуры <code>Trie</code>: <code>Insert</code>, <code>Search</code>, <code>StartsWith</code>, <code>Delete</code> (удаление с обрезкой) и <code>WordsWithPrefix</code> (слова по префиксу).</p>
 <h2 id="связанные-шаблоны-22"><a class="header" href="#связанные-шаблоны-22">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> — Trie это дерево; обход по нему — тот же DFS.</li>
@@ -4645,8 +4730,8 @@ func (l *LazySegmentTree) query(node, lo, hi, ql, qr int) int {
 go test ./segtree/                 # ваши решения
 go test -tags solution ./segtree/  # эталон
 </code></pre>
-<p>Реализуйте <code>NewSegmentTree</code>, <code>Update</code> и <code>Query</code> для суммы на диапазоне, а также
-<code>LazySegmentTree</code> (<code>RangeUpdate</code> / <code>RangeQuery</code>) с отложенными обновлениями.</p>
+<p>Реализуйте <code>NewSegmentTree</code> / <code>Update</code> / <code>Query</code> (сумма на отрезке), а также тип
+<code>MinSegmentTree</code> (<code>NewMinSegmentTree</code> / <code>Update</code> / <code>Query</code> — минимум на отрезке).</p>
 <h2 id="связанные-шаблоны-23"><a class="header" href="#связанные-шаблоны-23">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#tree-dfs-обход-дерева-в-глубину">Tree DFS</a></strong> — рекурсивная версия дерева отрезков строится обходом в
@@ -4787,7 +4872,7 @@ func (f *Fenwick) RangeSum(l, r int) int {
 go test ./fenwick/                 # ваши решения
 go test -tags solution ./fenwick/  # эталон
 </code></pre>
-<p>Реализуйте <code>NewFenwick</code>, <code>Update</code>, <code>PrefixSum</code> и <code>RangeSum</code>.</p>
+<p>Реализуйте <code>NewFenwick</code>, <code>Update</code>, <code>PrefixSum</code>, <code>RangeSum</code>, <code>CountInversions</code> (число инверсий через BIT) и <code>CountSmallerToRight</code> (меньших справа).</p>
 <h2 id="связанные-шаблоны-24"><a class="header" href="#связанные-шаблоны-24">Связанные шаблоны</a></h2>
 <ul>
 <li><strong><a href="#segment-tree-дерево-отрезков">Segment Tree</a></strong> — более универсальная, но более тяжёлая
@@ -5051,22 +5136,6 @@ go tool pprof cpu.prof   # команда top покажет самые «дор
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
         <script>

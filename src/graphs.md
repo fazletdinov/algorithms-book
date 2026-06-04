@@ -226,7 +226,7 @@ go test ./graphs/                 # ваши решения
 go test -tags solution ./graphs/  # эталон
 ```
 
-Реализуйте `CountComponents` (обход) и `HasCycleUndirected` (Union-Find).
+Реализуйте `CountComponents` (компоненты связности), `HasCycleUndirected` (Union-Find), `BFSOrder` (обход в ширину), `DFSOrder` (обход в глубину), `ShortestPathUnweighted` (кратчайший по числу рёбер) и `IsBipartite` (двудольность).
 
 ## Связанные шаблоны
 

@@ -147,6 +147,18 @@ func insertInterval(intervals [][]int, newInterval []int) [][]int {
 - [Employee Free Time](https://leetcode.com/problems/employee-free-time/) (сложная)
 - [Minimum Number of Arrows to Burst Balloons](https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/)
 
+**Тренажёр** — пакет `intervals`:
+
+```bash
+cd exercises
+go test ./intervals/                 # ваши решения
+go test -tags solution ./intervals/  # эталон
+```
+
+Реализуйте `MergeIntervals` (слить пересекающиеся), `InsertInterval`
+(вставить и слить), `IntervalsIntersection` (пересечения двух списков),
+`CanAttendAllMeetings` (без наложений) и `MinMeetingRooms` (минимум переговорок).
+
 ## Связанные шаблоны
 
 - **[Two Pointers](two-pointers.md)** — пересечение двух списков интервалов удобно

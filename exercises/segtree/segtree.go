@@ -32,6 +32,45 @@ func (st *SegmentTree) Query(l, r int) int {
 	panic("TODO: реализуйте Query")
 }
 
+// MinSegmentTree — дерево отрезков (минимум, точечное обновление).
+type MinSegmentTree struct {
+	n    int
+	tree []int
+}
+
+// NewMinSegmentTree строит дерево по массиву за O(n).
+//
+//	Пример: arr=[5,2,7,1,9]; Query(0,4)->1; Query(0,1)->2.
+//
+// Ожидаемая сложность: O(n).
+func NewMinSegmentTree(arr []int) *MinSegmentTree {
+	// TODO: положите листья в [n, 2n), затем посчитайте внутренние узлы
+	// снизу вверх как минимум двух детей.
+	panic("TODO: реализуйте NewMinSegmentTree")
+}
+
+// Update устанавливает arr[i] = val за O(log n).
+//
+//	Пример: Update(3,10) превращает [5,2,7,1,9] в [5,2,7,10,9].
+//
+// Ожидаемая сложность: O(log n).
+func (st *MinSegmentTree) Update(i, val int) {
+	// TODO: обновите лист и всех его предков (пересчёт как минимум детей).
+	panic("TODO: реализуйте MinSegmentTree.Update")
+}
+
+// Query возвращает минимум на ВКЛЮЧИТЕЛЬНОМ диапазоне [l, r] за O(log n).
+//
+//	Пример: arr=[5,2,7,1,9]; Query(0,4)->1; Query(0,1)->2;
+//	после Update(3,10) Query(2,4)->7.
+//
+// Ожидаемая сложность: O(log n).
+func (st *MinSegmentTree) Query(l, r int) int {
+	// TODO: поднимайтесь от листьев, беря минимум по узлам, целиком
+	// попадающим в диапазон (классический итеративный обход).
+	panic("TODO: реализуйте MinSegmentTree.Query")
+}
+
 // LazySegmentTree — дерево отрезков с отложенными обновлениями
 // (диапазонная прибавка + диапазонная сумма).
 type LazySegmentTree struct {

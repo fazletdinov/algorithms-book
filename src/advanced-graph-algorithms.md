@@ -217,8 +217,12 @@ go test ./bellmanford/ ./astar/ ./mst/                 # ваши решения
 go test -tags solution ./bellmanford/ ./astar/ ./mst/  # эталон
 ```
 
-Реализуйте `ShortestPath` (Bellman–Ford), `ShortestPath` на сетке (A\*) и `MSTWeight`
-(Kruskal).
+Реализуйте по пакетам:
+
+- `dijkstra`: `ShortestPath`, `ShortestPathsFrom` (до всех вершин), `NetworkDelayTime`.
+- `bellmanford`: `ShortestPath` (отриц. веса), `HasNegativeCycle`, `ShortestPathWithAtMostKEdges`.
+- `astar`: `ShortestPath` (сетка с эвристикой), `ManhattanDistance`, `PathExists`.
+- `mst`: `MSTWeight` (Краскал), `MSTWeightPrim` (Прим), `MSTWeightWithEdges`.
 
 ## Связанные шаблоны
 

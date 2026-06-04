@@ -150,6 +150,18 @@ Post-order (левое→правое→корень):  4 → 5 → 2 → 6 → 
 - [Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/) (сложная)
 - [Serialize and Deserialize Binary Tree](https://leetcode.com/problems/serialize-and-deserialize-binary-tree/) (сложная)
 
+**Тренажёр** — пакет `treedfs`:
+
+```bash
+cd exercises
+go test ./treedfs/                 # ваши решения
+go test -tags solution ./treedfs/  # эталон
+```
+
+Реализуйте `PreorderTraversal`, `InorderTraversal`, `PostorderTraversal`
+(три обхода), `MaxDepth` (максимальная глубина), `HasPathSum` (путь
+с заданной суммой) и `DiameterOfTree` (диаметр).
+
 ## Связанные шаблоны
 
 - **[Tree BFS](tree-bfs.md)** — обход по уровням; память O(w) вместо O(h), нужен для

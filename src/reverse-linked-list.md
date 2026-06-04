@@ -119,7 +119,8 @@ go test ./linkedlist/                 # ваши решения
 go test -tags solution ./linkedlist/  # эталон
 ```
 
-Реализуйте `ReverseList` (итеративный разворот с тремя указателями).
+Реализуйте `ReverseList` (итеративный разворот), `ReverseSublist` (разворот участка [p, q]),
+`ReverseKGroup` (разворот группами по k) и `IsPalindrome` (проверка палиндрома за O(1) памяти).
 
 ## Связанные шаблоны
 

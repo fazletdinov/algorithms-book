@@ -42,25 +42,34 @@ go test -tags solution ./slidingwindow/   # прогнать тесты на э�
 
 | Пакет           | Функции                                      |
 |-----------------|----------------------------------------------|
-| `slidingwindow` | `MaxSumSubarray`, `LongestSubstringKDistinct`|
-| `twopointers`   | `PairWithTargetSum`, `RemoveDuplicates`      |
-| `binarysearch`  | `Search`, `FindCeiling`                      |
-| `cyclicsort`    | `CyclicSort`, `FindMissingNumber`            |
-| `backtracking`  | `Permutations`, `GenerateParentheses`        |
-| `treebfs`       | `LevelOrder`                                 |
-| `linkedlist`    | `ReverseList`                                |
-| `graphs`        | `CountComponents`, `HasCycleUndirected`      |
-| `grids`         | `NumIslands`                                 |
-| `dijkstra`      | `ShortestPath`                               |
-| `bellmanford`   | `ShortestPath` (отрицательные веса)          |
-| `astar`         | `ShortestPath` (поиск на сетке с эвристикой) |
-| `mst`           | `MSTWeight` (Краскал)                        |
-| `dp`            | `ClimbStairs`, `CoinChange`, `LongestCommonSubsequence`, `EditDistance`, `LongestIncreasingSubsequence`, `Knapsack01` |
-| `strmatch`      | `KMPSearch`, `RabinKarp`                     |
-| `trie`          | `Trie.Insert` / `Search` / `StartsWith`      |
-| `segtree`       | `NewSegmentTree`, `Update`, `Query`          |
-| `greedy`        | `MaxNonOverlapping`, `CanJump`               |
-| `fenwick`       | `NewFenwick`, `Update`, `PrefixSum`, `RangeSum` |
+| `slidingwindow` | `MaxSumSubarray`, `LongestSubstringKDistinct`, `SmallestSubarrayWithSum`, `LongestSubstringNoRepeat`, `MaxSlidingWindow` |
+| `twopointers`   | `PairWithTargetSum`, `RemoveDuplicates`, `SortedSquares`, `TripletsSumToZero`, `DutchFlagSort` |
+| `fastslow`      | `HasCycle`, `DetectCycle`, `MiddleNode`, `IsHappyNumber`, `CycleLength` |
+| `intervals`     | `MergeIntervals`, `InsertInterval`, `IntervalsIntersection`, `CanAttendAllMeetings`, `MinMeetingRooms` |
+| `cyclicsort`    | `CyclicSort`, `FindMissingNumber`, `FindAllMissingNumbers`, `FindDuplicate`, `FindAllDuplicates` |
+| `binarysearch`  | `Search`, `FindCeiling`, `FindFloor`, `SearchRotated`, `FindFirstLast`, `IntSqrt` |
+| `bits`          | `SingleNumber`, `IsPowerOfTwo`, `HammingWeight`, `MissingNumber`, `CountBits`, `TwoSingleNumbers` |
+| `linkedlist`    | `ReverseList`, `ReverseSublist`, `ReverseKGroup`, `IsPalindrome` |
+| `treebfs`       | `LevelOrder`, `ZigzagLevelOrder`, `RightSideView`, `LevelAverages`, `MinDepth` |
+| `treedfs`       | `PreorderTraversal`, `InorderTraversal`, `PostorderTraversal`, `MaxDepth`, `HasPathSum`, `DiameterOfTree` |
+| `twoheaps`      | `MedianFinder` (`AddNum`/`FindMedian`), `SlidingWindowMedian`, `MaximizeCapital` |
+| `topk`          | `FindKLargest`, `TopKFrequent`, `KthLargest`, `KClosestPoints`, `KClosestNumbers` |
+| `kwaymerge`     | `MergeKSortedArrays`, `KthSmallestInSortedArrays`, `SmallestRange`, `KthSmallestInMatrix` |
+| `subsets`       | `Subsets`, `SubsetsWithDup`, `Combinations`, `LetterCasePermutation` |
+| `backtracking`  | `Permutations`, `GenerateParentheses`, `CombinationSum`, `SolveNQueensCount`, `LetterCombinations` |
+| `graphs`        | `CountComponents`, `HasCycleUndirected`, `BFSOrder`, `DFSOrder`, `ShortestPathUnweighted`, `IsBipartite` |
+| `grids`         | `NumIslands`, `MaxAreaOfIsland`, `FloodFill`, `RottingOranges`, `ShortestPathInBinaryMatrix` |
+| `dijkstra`      | `ShortestPath`, `ShortestPathsFrom`, `NetworkDelayTime` |
+| `bellmanford`   | `ShortestPath` (отрицательные веса), `HasNegativeCycle`, `ShortestPathWithAtMostKEdges` |
+| `astar`         | `ShortestPath` (сетка с эвристикой), `ManhattanDistance`, `PathExists` |
+| `mst`           | `MSTWeight` (Краскал), `MSTWeightPrim` (Прим), `MSTWeightWithEdges` |
+| `toposort`      | `TopologicalSort`, `CanFinish`, `FindOrderLexSmallest`, `AlienOrder` |
+| `greedy`        | `MaxNonOverlapping`, `CanJump`, `MinJumps`, `MaxProfit`, `FractionalKnapsack` |
+| `dp`            | `ClimbStairs`, `CoinChange`, `LongestCommonSubsequence`, `EditDistance`, `LongestIncreasingSubsequence`, `Knapsack01`, `HouseRobber`, `UniquePaths`, `WordBreak` |
+| `strmatch`      | `KMPSearch`, `RabinKarp`, `CountOccurrences`, `LongestPrefixSuffix`, `ZSearch` |
+| `trie`          | `Trie.Insert` / `Search` / `StartsWith` / `Delete` / `WordsWithPrefix` |
+| `segtree`       | `SegmentTree` (`Update`/`Query`, сумма), `MinSegmentTree` (`Update`/`Query`, минимум) |
+| `fenwick`       | `NewFenwick`, `Update`, `PrefixSum`, `RangeSum`, `CountInversions`, `CountSmallerToRight` |
 
 ## Как добавить свой шаблон
 

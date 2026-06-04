@@ -77,3 +77,39 @@ func Knapsack01(weights, values []int, capacity int) int {
 	// (от capacity к weights[i]), чтобы не взять предмет повторно.
 	panic("TODO: реализуйте Knapsack01")
 }
+
+// HouseRobber возвращает максимальную сумму, которую можно набрать из nums,
+// не выбирая два соседних элемента подряд.
+//
+// Пример: [2,7,9,3,1] -> 12 (2+9+1); [2,1,1,2] -> 4 (2+2); [] -> 0.
+//
+// Ожидаемая сложность: O(n) по времени, O(1) по памяти.
+func HouseRobber(nums []int) int {
+	// TODO: dp[i] = max(dp[i-1], dp[i-2] + nums[i]); достаточно двух переменных.
+	panic("TODO: реализуйте HouseRobber")
+}
+
+// UniquePaths возвращает число путей из левого верхнего в правый нижний угол
+// сетки m×n, если двигаться можно только вправо и вниз.
+//
+// Пример: m=3,n=7 -> 28; m=3,n=2 -> 3; m=1,n=1 -> 1.
+//
+// Ожидаемая сложность: O(m · n) по времени, O(n) по памяти.
+func UniquePaths(m, n int) int {
+	// TODO: 1D-массив dp[j]; dp[j] += dp[j-1], начальная строка из единиц.
+	panic("TODO: реализуйте UniquePaths")
+}
+
+// WordBreak сообщает, можно ли разбить строку s на последовательность слов из
+// словаря dict. Слова словаря можно использовать многократно.
+//
+// Пример: s="leetcode", dict=["leet","code"] -> true;
+// s="applepenapple", dict=["apple","pen"] -> true;
+// s="catsandog", dict=["cats","dog","sand","and","cat"] -> false.
+//
+// Ожидаемая сложность: O(len(s)² · k), где k — стоимость сравнения слова.
+func WordBreak(s string, dict []string) bool {
+	// TODO: dp[i] — можно ли разбить префикс s[:i]; dp[0]=true; для каждого i
+	// ищите j<i такой, что dp[j] && s[j:i] есть в словаре.
+	panic("TODO: реализуйте WordBreak")
+}
