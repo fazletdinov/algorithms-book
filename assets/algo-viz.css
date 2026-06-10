@@ -48,6 +48,12 @@
 .algo-viz__cell--found {
   background: #2e9b57;
   border-color: #2e9b57;
+  color: #fff;
+}
+
+/* промежуток между двумя указателями (не сами указатели) */
+.algo-viz__cell--span {
+  background: color-mix(in srgb, var(--links, #4c84c4) 14%, transparent);
 }
 
 /* mid-указатель бинарного поиска */
@@ -360,3 +366,527 @@
   font-variant-numeric: tabular-nums;
   opacity: 0.8;
 }
+
+/* ===== Раскладка «виджет | код» ============================================ */
+.algo-viz__stage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1em;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.algo-viz__vizcol {
+  flex: 1 1 280px;
+  min-width: 260px;
+}
+
+.algo-viz__codecol {
+  flex: 1 1 320px;
+  min-width: 280px;
+}
+
+/* блок Go-кода с подсветкой активной строки */
+.algo-viz__code {
+  margin: 0;
+  padding: 0.6em 0;
+  border-radius: 6px;
+  background: var(--sidebar-bg, #f6f7f8);
+  border: 1px solid var(--quote-border, #cccccc44);
+  font-size: 0.82em;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+.algo-viz__codeline {
+  display: flex;
+  padding: 0 0.7em;
+  white-space: pre;
+  border-left: 3px solid transparent;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.algo-viz__codeline--active {
+  background: color-mix(in srgb, var(--links, #4c84c4) 22%, transparent);
+  border-left-color: var(--links, #4c84c4);
+}
+
+.algo-viz__lineno {
+  display: inline-block;
+  min-width: 1.8em;
+  margin-right: 0.8em;
+  text-align: right;
+  opacity: 0.4;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.algo-viz__linetext {
+  font-family: var(--mono-font, monospace);
+}
+
+/* панель «Переменные» — окно Locals/Watch как в IDE */
+.algo-viz__watch {
+  margin-top: 0.7em;
+  border: 1px solid var(--quote-border, #cccccc55);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 0.82em;
+}
+
+.algo-viz__watchtitle {
+  padding: 0.3em 0.7em;
+  background: var(--sidebar-bg, #eef0f2);
+  font-weight: 700;
+  opacity: 0.8;
+  border-bottom: 1px solid var(--quote-border, #cccccc55);
+}
+
+.algo-viz__watchrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.22em 0.7em;
+  font-family: var(--mono-font, monospace);
+  border-bottom: 1px solid var(--quote-border, #00000010);
+  transition: background-color 0.15s;
+}
+
+.algo-viz__watchrow:last-child {
+  border-bottom: none;
+}
+
+.algo-viz__watchname {
+  opacity: 0.7;
+}
+
+.algo-viz__watchval {
+  font-weight: 700;
+  color: var(--links, #4c84c4);
+  font-variant-numeric: tabular-nums;
+}
+
+/* переменная, изменившаяся на текущем шаге — подсветка как в дебаггере */
+.algo-viz__watchrow--changed {
+  background: color-mix(in srgb, #e0a500 24%, transparent);
+}
+
+.algo-viz__watchrow--changed .algo-viz__watchval {
+  color: #b07900;
+}
+
+/* редактируемый вход */
+.algo-viz__edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  justify-content: center;
+  margin-bottom: 1em;
+  padding-bottom: 0.9em;
+  border-bottom: 1px dashed var(--quote-border, #cccccc55);
+}
+
+.algo-viz__editfield {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8em;
+}
+
+.algo-viz__editlabel {
+  opacity: 0.7;
+  font-weight: 600;
+}
+
+.algo-viz__editinput {
+  border: 1px solid var(--quote-border, #aaa);
+  border-radius: 5px;
+  padding: 0.25em 0.5em;
+  background: var(--bg, #fff);
+  color: inherit;
+  font-family: var(--mono-font, monospace);
+  font-size: 1em;
+}
+
+.algo-viz__editinput:focus {
+  outline: 2px solid var(--links, #4c84c4);
+  outline-offset: 1px;
+}
+
+.algo-viz__runbtn {
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+/* ===================================================================== */
+/* Two Pointers — расширенная «дашборд»-визуализация                     */
+/* ===================================================================== */
+.algo-tp {
+  --tp-lo: #3b82f6;
+  --tp-hi: #a855f7;
+  --tp-ok: #22c55e;
+  --tp-bad: #ef4444;
+  --tp-panel: color-mix(in srgb, var(--fg, #c9d1d9) 5%, transparent);
+  --tp-border: color-mix(in srgb, var(--fg, #c9d1d9) 14%, transparent);
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  /* «вырываемся» из узкой колонки mdBook и центрируемся: дашборду нужна ширина,
+     а проза вокруг остаётся узкой и читаемой */
+  width: min(1120px, 96vw);
+  margin: 1.4em 0;
+  margin-left: calc(50% - min(560px, 48vw));
+}
+
+.algo-tp__head { margin-bottom: 1.1em; }
+.algo-tp__title {
+  display: flex; align-items: center; gap: 0.6em; flex-wrap: wrap;
+  font-size: 1.45em; font-weight: 800;
+}
+.algo-tp__badge {
+  font-size: 0.6em; font-weight: 700; padding: 0.25em 0.7em; border-radius: 999px;
+  background: color-mix(in srgb, var(--tp-lo) 22%, transparent);
+  color: var(--tp-lo); border: 1px solid color-mix(in srgb, var(--tp-lo) 45%, transparent);
+}
+.algo-tp__sub { opacity: 0.65; margin-top: 0.35em; font-size: 0.92em; }
+
+/* верхние карточки */
+.algo-tp__top { display: flex; flex-wrap: wrap; gap: 1em; margin-bottom: 1.1em; }
+.algo-tp__card {
+  background: var(--tp-panel); border: 1px solid var(--tp-border);
+  border-radius: 12px; padding: 1em 1.1em;
+}
+.algo-tp__card--arr { flex: 2 1 320px; }
+.algo-tp__card--tgt { flex: 0 1 150px; }
+.algo-tp__status { flex: 2 1 320px; display: flex; align-items: center; gap: 0.9em; }
+.algo-tp__caphdr { font-weight: 700; font-size: 0.92em; margin-bottom: 0.7em; }
+
+.algo-tp__minirow { display: flex; flex-wrap: wrap; gap: 6px; }
+.algo-tp__mini {
+  min-width: 2.1em; height: 2.1em; display: flex; align-items: center; justify-content: center;
+  border-radius: 7px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--fg, #c9d1d9) 9%, transparent);
+  border: 1px solid var(--tp-border); transition: background-color 0.15s, color 0.15s;
+}
+.algo-tp__mini--lo { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
+.algo-tp__mini--hi { background: var(--tp-hi); border-color: var(--tp-hi); color: #fff; }
+
+.algo-tp__edit { display: flex; gap: 8px; margin-top: 0.9em; flex-wrap: wrap; }
+.algo-tp__input {
+  flex: 1 1 120px; min-width: 80px; border: 1px solid var(--tp-border); border-radius: 7px;
+  padding: 0.35em 0.6em; background: color-mix(in srgb, var(--fg, #000) 6%, transparent);
+  color: inherit; font-family: var(--mono-font, monospace);
+}
+.algo-tp__input--sm { flex: 0 1 70px; }
+.algo-tp__input:focus { outline: 2px solid var(--tp-lo); outline-offset: 1px; }
+.algo-tp__run {
+  cursor: pointer; border: 1px solid var(--tp-border); border-radius: 7px; padding: 0.35em 0.8em;
+  background: color-mix(in srgb, var(--tp-lo) 18%, transparent); color: inherit; font-weight: 600; white-space: nowrap;
+}
+.algo-tp__run:hover { background: var(--tp-lo); color: #fff; }
+/* Кнопка автопроигрывания: листает шаги по таймеру. */
+.algo-tp__playbtn { font-weight: 600; white-space: nowrap; min-width: 5.2em; }
+.algo-tp__playbtn--on { background: var(--tp-lo); color: #fff; border-color: var(--tp-lo); }
+
+.algo-tp__tgt {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 3em; padding: 0.3em 0.7em;
+  border-radius: 9px; font-size: 1.4em; font-weight: 800; font-variant-numeric: tabular-nums;
+  color: var(--tp-ok); background: color-mix(in srgb, var(--tp-ok) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tp-ok) 45%, transparent);
+}
+
+.algo-tp__status { border-color: var(--tp-border); }
+.algo-tp__status--ok { background: color-mix(in srgb, var(--tp-ok) 12%, transparent); border-color: color-mix(in srgb, var(--tp-ok) 45%, transparent); }
+.algo-tp__status--info { background: color-mix(in srgb, var(--tp-lo) 10%, transparent); border-color: color-mix(in srgb, var(--tp-lo) 35%, transparent); }
+.algo-tp__staticon {
+  flex: none; width: 2.2em; height: 2.2em; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.1em;
+  border: 2px solid currentColor; color: var(--tp-lo);
+}
+.algo-tp__status--ok .algo-tp__staticon { color: var(--tp-ok); }
+.algo-tp__stathead { font-weight: 800; font-size: 1.05em; }
+.algo-tp__status--ok .algo-tp__stathead { color: var(--tp-ok); }
+.algo-tp__stattext { opacity: 0.8; font-size: 0.92em; margin-top: 0.15em; }
+
+/* основная сетка */
+.algo-tp__main { display: grid; grid-template-columns: 1.25fr 1fr; gap: 1em; margin-bottom: 1.1em; }
+@media (max-width: 760px) { .algo-tp__main { grid-template-columns: 1fr; } }
+.algo-tp__panel { background: var(--tp-panel); border: 1px solid var(--tp-border); border-radius: 12px; padding: 1.1em; }
+.algo-tp__panelhdr { font-weight: 800; margin-bottom: 1em; }
+.algo-tp__panelhdr--sm { font-size: 0.95em; margin: 1.2em 0 0.6em; }
+
+/* сетка индекс/значение/указатели */
+.algo-tp__grid { display: grid; align-items: center; row-gap: 0.5em; column-gap: 8px; }
+.algo-tp__rowlab { font-size: 0.85em; opacity: 0.6; padding-right: 0.6em; white-space: nowrap; }
+.algo-tp__idx { text-align: center; font-size: 0.8em; opacity: 0.55; font-variant-numeric: tabular-nums; }
+.algo-tp__big {
+  height: 2.9em; display: flex; align-items: center; justify-content: center; border-radius: 10px;
+  font-size: 1.2em; font-weight: 800; font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--fg, #c9d1d9) 9%, transparent); border: 1px solid var(--tp-border);
+  transition: background-color 0.18s, border-color 0.18s, transform 0.18s;
+}
+.algo-tp__big--lo { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; transform: translateY(-2px); }
+.algo-tp__big--hi { background: var(--tp-hi); border-color: var(--tp-hi); color: #fff; transform: translateY(-2px); }
+.algo-tp__big--found { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; transform: translateY(-2px); }
+
+.algo-tp__ptrslot { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 1.2em; }
+.algo-tp__arrowup { font-size: 1.2em; line-height: 1; font-weight: 800; }
+.algo-tp__arrowup--lo { color: var(--tp-lo); }
+.algo-tp__arrowup--hi { color: var(--tp-hi); }
+.algo-tp__pill { font-size: 0.78em; font-weight: 700; padding: 0.1em 0.5em; border-radius: 6px; color: #fff; font-variant-numeric: tabular-nums; }
+.algo-tp__pill--lo { background: var(--tp-lo); }
+.algo-tp__pill--hi { background: var(--tp-hi); }
+.algo-tp__ptrcap { font-size: 0.68em; opacity: 0.55; white-space: nowrap; }
+
+/* сумма / сравнение */
+.algo-tp__sumbox {
+  display: flex; gap: 0; margin: 1.4em auto 1.2em; max-width: 360px;
+  border: 1px solid var(--tp-border); border-radius: 10px; overflow: hidden;
+}
+.algo-tp__sumcell { flex: 1; padding: 0.7em 1em; }
+.algo-tp__sumcell + .algo-tp__sumcell { border-left: 1px solid var(--tp-border); }
+.algo-tp__sumlab { font-size: 0.78em; opacity: 0.6; margin-bottom: 0.3em; }
+.algo-tp__sumval { font-size: 1.25em; font-weight: 800; font-variant-numeric: tabular-nums; }
+.algo-tp__cmpval { font-size: 1.25em; font-weight: 800; font-variant-numeric: tabular-nums; }
+.algo-tp__cmpval--lt { color: var(--tp-lo); }
+.algo-tp__cmpval--gt { color: var(--tp-bad); }
+.algo-tp__cmpval--eq { color: var(--tp-ok); }
+
+/* легенда правил */
+.algo-tp__rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1em; padding: 1em; border: 1px dashed var(--tp-border); border-radius: 10px; }
+@media (max-width: 620px) { .algo-tp__rules { grid-template-columns: 1fr; } }
+.algo-tp__rulehead { font-weight: 700; font-size: 0.9em; margin-bottom: 0.3em; }
+.algo-tp__rule--lt .algo-tp__rulehead { color: var(--tp-lo); }
+.algo-tp__rule--gt .algo-tp__rulehead { color: var(--tp-hi); }
+.algo-tp__rule--eq .algo-tp__rulehead { color: var(--tp-ok); }
+.algo-tp__rulebody { font-size: 0.85em; opacity: 0.7; }
+
+/* код */
+.algo-tp__code { margin: 0; padding: 0.6em 0; border-radius: 8px; background: color-mix(in srgb, var(--fg, #000) 6%, transparent); border: 1px solid var(--tp-border); font-size: 0.82em; line-height: 1.6; overflow-x: auto; }
+.algo-tp__codeline { display: flex; padding: 0 0.7em; white-space: pre; border-left: 3px solid transparent; }
+.algo-tp__codeline--active { background: color-mix(in srgb, var(--tp-lo) 22%, transparent); border-left-color: var(--tp-lo); }
+/* Вспышка: активная строка только что изменила переменные — связываем причину и эффект. */
+.algo-tp__codeline--justran { animation: algo-tp-justran 0.6s ease-out; }
+@keyframes algo-tp-justran {
+  0% { background: color-mix(in srgb, var(--tp-eq, #2bb673) 55%, transparent); }
+  100% { background: color-mix(in srgb, var(--tp-lo) 22%, transparent); }
+}
+/* Подпись под кодом: какая строка сейчас выполняется и что она делает. */
+.algo-tp__codenote { display: flex; align-items: baseline; gap: 0.6em; margin-top: 0.5em; padding: 0.5em 0.7em; border-radius: 8px; background: color-mix(in srgb, var(--tp-lo) 9%, transparent); border-left: 3px solid var(--tp-lo); font-size: 0.85em; min-height: 1.2em; }
+.algo-tp__codenoteln { flex: 0 0 auto; font-weight: 600; color: var(--tp-lo); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.algo-tp__codenotetx { flex: 1 1 auto; opacity: 0.9; }
+.algo-tp__lineno { display: inline-block; min-width: 1.8em; margin-right: 0.8em; text-align: right; opacity: 0.4; font-variant-numeric: tabular-nums; user-select: none; }
+.algo-tp__linetext { font-family: var(--mono-font, monospace); }
+
+/* таблица переменных */
+.algo-tp__vars { border: 1px solid var(--tp-border); border-radius: 8px; overflow: hidden; font-size: 0.85em; }
+.algo-tp__vrow { display: grid; grid-template-columns: 1fr 1fr 1.6fr; gap: 0.5em; padding: 0.3em 0.7em; border-bottom: 1px solid color-mix(in srgb, var(--fg, #000) 8%, transparent); transition: background-color 0.15s; }
+.algo-tp__vrow:last-child { border-bottom: none; }
+.algo-tp__vrow--head { background: color-mix(in srgb, var(--fg, #000) 8%, transparent); font-weight: 700; opacity: 0.75; }
+.algo-tp__vname { font-family: var(--mono-font, monospace); font-weight: 700; }
+.algo-tp__vval { font-family: var(--mono-font, monospace); font-weight: 700; color: #2dd4bf; font-variant-numeric: tabular-nums; }
+.algo-tp__vdesc { opacity: 0.6; }
+.algo-tp__vrow--changed { background: color-mix(in srgb, #e0a500 22%, transparent); }
+.algo-tp__vrow--changed .algo-tp__vval { color: #e0a500; }
+
+/* таймлайн */
+.algo-tp__timeline { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0.4em; }
+.algo-tp__arrow { display: flex; align-items: center; opacity: 0.4; font-size: 1.2em; }
+.algo-tp__step {
+  position: relative; flex: 1 1 150px; min-width: 140px; cursor: pointer;
+  border: 1px solid var(--tp-border); border-radius: 10px; padding: 1.1em 0.8em 0.8em; text-align: center;
+  background: color-mix(in srgb, var(--fg, #000) 3%, transparent); transition: border-color 0.15s, background-color 0.15s;
+}
+.algo-tp__step:hover { border-color: color-mix(in srgb, var(--tp-lo) 50%, transparent); }
+.algo-tp__stepno {
+  position: absolute; top: -0.8em; left: 50%; transform: translateX(-50%);
+  width: 1.7em; height: 1.7em; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 0.8em; font-weight: 800; background: var(--bg, #0d1117); border: 2px solid var(--tp-border);
+}
+.algo-tp__step--active { border-color: var(--tp-lo); background: color-mix(in srgb, var(--tp-lo) 10%, transparent); }
+.algo-tp__step--active .algo-tp__stepno { border-color: var(--tp-lo); color: var(--tp-lo); }
+.algo-tp__step--found { border-color: var(--tp-ok); }
+.algo-tp__step--found .algo-tp__stepno { border-color: var(--tp-ok); color: var(--tp-ok); }
+.algo-tp__steplines { font-size: 0.85em; font-variant-numeric: tabular-nums; }
+.algo-tp__stepa { opacity: 0.75; }
+.algo-tp__stepb { font-weight: 700; margin: 0.25em 0; }
+.algo-tp__stepc { font-weight: 700; font-family: var(--mono-font, monospace); }
+.algo-tp__stepc--lt { color: var(--tp-lo); }
+.algo-tp__stepc--gt { color: var(--tp-hi); }
+.algo-tp__stepc--eq { color: var(--tp-ok); }
+
+/* футер */
+.algo-tp__foot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1em; }
+@media (max-width: 620px) { .algo-tp__foot { grid-template-columns: 1fr; } }
+.algo-tp__footcol { background: var(--tp-panel); border: 1px solid var(--tp-border); border-radius: 10px; padding: 0.9em; text-align: center; }
+.algo-tp__footlab { font-size: 0.85em; opacity: 0.6; margin-bottom: 0.3em; }
+.algo-tp__footval { font-size: 1.15em; font-weight: 800; }
+.algo-tp__footval--ok { color: var(--tp-ok); }
+
+.algo-tp__ctrl { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 1.1em; }
+
+/* ===================================================================== */
+/* Конспект-карточки главы (hero / когда / ментальная модель / details)  */
+/* ===================================================================== */
+.algo-hero {
+  display: flex; flex-wrap: wrap; gap: 1em; align-items: center; justify-content: space-between;
+  margin: 1.2em 0; padding: 1.1em 1.3em; border-radius: 12px;
+  background: color-mix(in srgb, var(--links, #4c84c4) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--links, #4c84c4) 35%, transparent);
+}
+.algo-hero__name { font-size: 1.4em; font-weight: 800; }
+.algo-hero__ru { font-size: 0.66em; font-weight: 600; opacity: 0.6; margin-left: 0.4em; }
+.algo-hero__tag { opacity: 0.75; margin-top: 0.3em; }
+.algo-hero__metrics { display: flex; gap: 0.7em; }
+.algo-hero__metric {
+  text-align: center; padding: 0.5em 0.95em; border-radius: 9px;
+  background: color-mix(in srgb, var(--fg, #000) 6%, transparent);
+  border: 1px solid var(--quote-border, #cccccc44);
+}
+.algo-hero__metric span { display: block; font-size: 0.72em; opacity: 0.6; }
+.algo-hero__metric b { font-size: 1.15em; font-variant-numeric: tabular-nums; }
+
+.algo-cards2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; margin: 1.2em 0; }
+@media (max-width: 620px) { .algo-cards2 { grid-template-columns: 1fr; } }
+.algo-card {
+  border: 1px solid var(--quote-border, #cccccc44); border-radius: 10px; padding: 0.9em 1.1em;
+  background: color-mix(in srgb, var(--fg, #000) 3%, transparent);
+}
+.algo-card__hdr { font-weight: 700; margin-bottom: 0.5em; }
+.algo-card ul { list-style: none; padding-left: 0; margin: 0; }
+.algo-card li { padding: 0.22em 0 0.22em 1.6em; position: relative; }
+.algo-card--yes { border-color: color-mix(in srgb, #2e9b57 45%, transparent); }
+.algo-card--yes .algo-card__hdr { color: #2e9b57; }
+.algo-card--yes li::before { content: "✓"; position: absolute; left: 0; color: #2e9b57; font-weight: 800; }
+.algo-card--no { border-color: color-mix(in srgb, #c0392b 40%, transparent); }
+.algo-card--no .algo-card__hdr { color: #d9534f; }
+.algo-card--no li::before { content: "✗"; position: absolute; left: 0; color: #d9534f; font-weight: 800; }
+
+.algo-hint {
+  margin: 0.6em 0 1.2em; padding: 0.55em 0.9em; border-radius: 8px; font-size: 0.92em;
+  background: color-mix(in srgb, var(--links, #4c84c4) 8%, transparent);
+  border-left: 3px solid var(--links, #4c84c4);
+}
+
+.algo-mental {
+  display: flex; gap: 0.9em; margin: 1.2em 0; padding: 1em 1.2em; border-radius: 10px;
+  background: color-mix(in srgb, #e0a500 12%, transparent);
+  border: 1px solid color-mix(in srgb, #e0a500 40%, transparent);
+}
+.algo-mental__icon { font-size: 1.6em; line-height: 1; }
+.algo-mental__title { font-weight: 800; margin-bottom: 0.3em; }
+.algo-mental__body ul { margin: 0.3em 0; padding-left: 1.2em; }
+.algo-mental__body li { margin: 0.15em 0; }
+.algo-mental__body p { margin: 0.5em 0 0; opacity: 0.8; font-size: 0.92em; }
+
+.algo-details {
+  margin: 1.2em 0; border: 1px solid var(--quote-border, #cccccc44); border-radius: 10px;
+  padding: 0 1.1em; background: color-mix(in srgb, var(--fg, #000) 2%, transparent);
+}
+.algo-details > summary { cursor: pointer; font-weight: 700; padding: 0.8em 0; }
+.algo-details[open] > summary { border-bottom: 1px solid var(--quote-border, #cccccc44); margin-bottom: 0.4em; }
+
+/* ===================================================================== */
+/* Шире колонка контента (mdBook по умолчанию 750px → много пустоты)      */
+/* ===================================================================== */
+:root {
+  --content-max-width: 1000px !important;
+}
+
+/* ===================================================================== */
+/* Дашборд: дополнения для обобщённого каркаса                           */
+/* ===================================================================== */
+/* заливка ячеек ВНУТРИ окна (sliding window, fillRange) */
+.algo-tp__big--span {
+  background: color-mix(in srgb, var(--tp-lo) 24%, transparent);
+  border-color: color-mix(in srgb, var(--tp-lo) 40%, transparent);
+}
+/* начало цикла (fast & slow) */
+.algo-tp__big--cycle { border-style: dashed; border-color: var(--tp-hi); }
+/* нейтральный параметр-бокс (k, цикл) — в отличие от зелёного target */
+.algo-tp__param {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 3em; padding: 0.3em 0.7em;
+  border-radius: 9px; font-size: 1.4em; font-weight: 800; font-variant-numeric: tabular-nums;
+  color: var(--tp-lo); background: color-mix(in srgb, var(--tp-lo) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tp-lo) 40%, transparent);
+}
+/* заметка над сеткой (например, описание цикла) */
+.algo-tp__note { font-size: 0.9em; opacity: 0.75; margin-bottom: 0.8em; }
+/* цвета значения в блоке «сумма/сравнение» */
+.algo-tp__sumval--lt { color: var(--tp-lo); }
+.algo-tp__sumval--gt { color: var(--tp-bad); }
+.algo-tp__sumval--eq { color: var(--tp-ok); }
+/* статус «конец/не найдено» */
+.algo-tp__status--end { background: color-mix(in srgb, var(--fg, #888) 6%, transparent); border-color: var(--tp-border); }
+.algo-tp__status--end .algo-tp__staticon { color: var(--tp-bad); }
+
+/* бинарный поиск: середина и затемнённые (отброшенные) ячейки */
+.algo-tp__big--mid { outline: 3px solid #e0a500; outline-offset: 1px; background: color-mix(in srgb, #e0a500 22%, transparent); border-color: #e0a500; }
+.algo-tp__big--dim { opacity: 0.32; }
+
+/* merge-intervals: визуализация на числовой прямой (customViz) */
+.algo-tp__ivsvg { display: block; width: 100%; max-width: 560px; height: auto; margin: 0.4em auto 0.8em; }
+.algo-tp__ivbar { fill: color-mix(in srgb, var(--fg, #888) 22%, transparent); transition: fill 0.15s; }
+.algo-tp__ivbar--cur { fill: #e0a500; }
+.algo-tp__ivbar--merged { fill: var(--tp-ok, #22c55e); }
+.algo-tp__ivcap { fill: var(--fg, #ccc); font-size: 11px; opacity: 0.55; font-weight: 700; }
+.algo-tp__ivlbl { fill: var(--fg, #ccc); font-size: 9px; opacity: 0.7; }
+.algo-tp__ivlbl--m { fill: #fff; opacity: 0.95; }
+
+/* дерево в дашборде (tree-bfs / tree-dfs, customViz) */
+.algo-tp__tree { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 0.6em 0 0.4em; }
+.algo-tp__trow { display: flex; gap: 18px; justify-content: center; }
+.algo-tp__tnode {
+  width: 2.5em; height: 2.5em; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-weight: 700; font-variant-numeric: tabular-nums;
+  border: 2px solid var(--tp-border); background: color-mix(in srgb, var(--fg, #c9d1d9) 8%, transparent);
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.algo-tp__tnode--visited { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+.algo-tp__tnode--current { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; transform: scale(1.15); outline: 3px solid color-mix(in srgb, var(--tp-lo) 40%, transparent); }
+
+/* multi-collection visualizations (две кучи, top-k, k-way merge) */
+.algo-tp__collection { display: flex; flex-direction: column; gap: 0.55em; margin: 0.4em 0 0.6em; }
+.algo-tp__crow { display: flex; align-items: center; gap: 10px; }
+.algo-tp__clabel { flex: 0 0 9em; text-align: right; font-size: 0.8em; opacity: 0.6; }
+.algo-tp__cells { display: flex; flex-wrap: wrap; gap: 5px; min-height: 2.2em; align-items: center; }
+.algo-tp__cempty { opacity: 0.4; font-size: 1.1em; }
+.algo-tp__ccell {
+  min-width: 2.2em; height: 2.2em; display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--tp-border); border-radius: 7px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--fg, #c9d1d9) 8%, transparent); transition: background-color 0.15s, opacity 0.15s;
+}
+.algo-tp__ccell--top { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
+.algo-tp__ccell--out { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+.algo-tp__ccell--cur { background: #e0a500; border-color: #e0a500; color: #fff; }
+.algo-tp__ccell--done { opacity: 0.4; }
+@media (max-width: 620px) { .algo-tp__crow { flex-direction: column; align-items: flex-start; gap: 3px; } .algo-tp__clabel { text-align: left; flex-basis: auto; } }
+
+/* чипы найденных результатов (backtracking) */
+.algo-tp__chip2 { padding: 0.15em 0.55em; border: 1px solid var(--tp-border); border-radius: 5px; font-size: 0.85em; font-variant-numeric: tabular-nums; }
+.algo-tp__chip2--new { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+
+/* Trie: узел-конец слова (двойная рамка) */
+.algo-tp__tnode--end { border-style: double; border-width: 4px; }
+
+/* KMP: ряды символов текста и образца */
+.algo-tp__kmp { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; margin: 0.4em 0 0.6em; overflow-x: auto; }
+.algo-tp__krow { display: flex; gap: 4px; }
+.algo-tp__kcell {
+  min-width: 1.9em; height: 1.9em; display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--tp-border); border-radius: 5px; font-weight: 700; font-family: var(--mono-font, monospace);
+  background: color-mix(in srgb, var(--fg, #c9d1d9) 8%, transparent);
+}
+.algo-tp__kcell--active { outline: 3px solid #e0a500; outline-offset: 1px; }
+.algo-tp__kcell--match { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+.algo-tp__kcell--mismatch { background: var(--tp-bad); border-color: var(--tp-bad); color: #fff; }
+.algo-tp__kcell--found { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+.algo-tp__kcell--ghost { border-color: transparent; background: transparent; }
+
+/* дерево отрезков: состояния узлов запроса */
+.algo-tp__tnode--seg { font-size: 0.82em; }
+.algo-tp__tnode--take { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+.algo-tp__tnode--split { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
+.algo-tp__tnode--skip { opacity: 0.35; }

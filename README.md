@@ -11,39 +11,43 @@
 
 Книга собрана с помощью [mdBook](https://rust-lang.github.io/mdBook/). Запустите `mdbook serve` для просмотра в браузере или `mdbook build` для сборки.
 
-- **Собранная книга**: [book/](book/) — откройте `book/index.html` в браузере
-- **Исходники**: [src/](src/)
+- **Читать онлайн**: <https://fazletdinov.github.io/algorithms-book/> (деплоится из ветки `main` через CI)
+- **Исходники**: [src/](src/) — Markdown открывается прямо на GitHub
+- **Локально**: `mdbook serve` и откройте <http://localhost:3000>
+
+> Каталог `book/` — это сгенерированный вывод mdBook; он не хранится в репозитории,
+> а собирается в CI и публикуется на GitHub Pages.
 
 ## Содержание
 
-1. [Sliding Window (Скользящее окно)](book/sliding-window.html) - Операции с подмассивами фиксированного размера
-2. [Two Pointers (Два указателя)](book/two-pointers.html) - Поиск пар элементов в отсортированных массивах
-3. [Fast & Slow Pointers (Быстрые и медленные указатели)](book/fast-slow-pointers.html) - Обнаружение циклов и поиск середины списка
-4. [Merge Intervals (Слияние интервалов)](book/merge-intervals.html) - Работа с перекрывающимися интервалами
-5. [Cyclic Sort (Циклическая сортировка)](book/cyclic-sort.html) - Сортировка массивов с числами от 1 до N
-6. [Reverse Linked List (Разворот связанного списка)](book/reverse-linked-list.html) - Инвертирование списков на месте
-7. [Tree BFS (Обход дерева в ширину)](book/tree-bfs.html) - Поуровневый обход деревьев
-8. [Tree DFS (Обход дерева в глубину)](book/tree-dfs.html) - Рекурсивный обход деревьев
-9. [Two Heaps (Две кучи)](book/two-heaps.html) - Поддержание медианы и разделение данных
-10. [Subsets (Подмножества)](book/subsets.html) - Генерация всех подмножеств множества
-11. [Modified Binary Search (Модифицированный бинарный поиск)](book/modified-binary-search.html) - Вариации бинарного поиска
-12. [Bit Manipulation (Битовые операции)](book/bit-manipulation.html) - Побитовые операции, XOR, маски
-13. [Top K Elements (Топ K элементов)](book/top-k-elements.html) - Поиск K наибольших/наименьших элементов
-14. [K-way Merge (K-way слияние)](book/k-way-merge.html) - Слияние K отсортированных массивов
-15. [Topological Sort (Топологическая сортировка)](book/topological-sort.html) - Линейный порядок зависимых элементов
-16. [Backtracking (Поиск с возвратом)](book/backtracking.html) - Систематический перебор с откатом
-17. [Graphs (Обход графов)](book/graphs.html) - BFS/DFS, компоненты связности, Union-Find
-18. [Графы: сетки и кратчайшие пути](book/grids-and-shortest-paths.html) - Острова, Дейкстра
-19. [Графы: продвинутые алгоритмы](book/advanced-graph-algorithms.html) - Bellman–Ford, A*, MST
-20. [Dynamic Programming (Динамическое программирование)](book/dynamic-programming.html) - Мемоизация, табуляция, рюкзак, LCS
-21. [Greedy (Жадные алгоритмы)](book/greedy.html) - Локально оптимальный выбор, выбор заявок
-22. [Строковые алгоритмы](book/string-algorithms.html) - KMP, Rabin–Karp
-23. [Trie (Префиксное дерево)](book/trie.html) - Поиск по префиксу
-24. [Segment Tree (Дерево отрезков)](book/segment-tree.html) - Диапазонные запросы с обновлением
-25. [Fenwick Tree (Дерево Фенвика, BIT)](book/fenwick-tree.html) - Префиксные суммы за O(log n)
+1. [Sliding Window (Скользящее окно)](src/sliding-window.md) - Операции с подмассивами фиксированного размера
+2. [Two Pointers (Два указателя)](src/two-pointers.md) - Поиск пар элементов в отсортированных массивах
+3. [Fast & Slow Pointers (Быстрые и медленные указатели)](src/fast-slow-pointers.md) - Обнаружение циклов и поиск середины списка
+4. [Merge Intervals (Слияние интервалов)](src/merge-intervals.md) - Работа с перекрывающимися интервалами
+5. [Cyclic Sort (Циклическая сортировка)](src/cyclic-sort.md) - Сортировка массивов с числами от 1 до N
+6. [Reverse Linked List (Разворот связанного списка)](src/reverse-linked-list.md) - Инвертирование списков на месте
+7. [Tree BFS (Обход дерева в ширину)](src/tree-bfs.md) - Поуровневый обход деревьев
+8. [Tree DFS (Обход дерева в глубину)](src/tree-dfs.md) - Рекурсивный обход деревьев
+9. [Two Heaps (Две кучи)](src/two-heaps.md) - Поддержание медианы и разделение данных
+10. [Subsets (Подмножества)](src/subsets.md) - Генерация всех подмножеств множества
+11. [Modified Binary Search (Модифицированный бинарный поиск)](src/modified-binary-search.md) - Вариации бинарного поиска
+12. [Bit Manipulation (Битовые операции)](src/bit-manipulation.md) - Побитовые операции, XOR, маски
+13. [Top K Elements (Топ K элементов)](src/top-k-elements.md) - Поиск K наибольших/наименьших элементов
+14. [K-way Merge (K-way слияние)](src/k-way-merge.md) - Слияние K отсортированных массивов
+15. [Topological Sort (Топологическая сортировка)](src/topological-sort.md) - Линейный порядок зависимых элементов
+16. [Backtracking (Поиск с возвратом)](src/backtracking.md) - Систематический перебор с откатом
+17. [Graphs (Обход графов)](src/graphs.md) - BFS/DFS, компоненты связности, Union-Find
+18. [Графы: сетки и кратчайшие пути](src/grids-and-shortest-paths.md) - Острова, Дейкстра
+19. [Графы: продвинутые алгоритмы](src/advanced-graph-algorithms.md) - Bellman–Ford, A*, MST
+20. [Dynamic Programming (Динамическое программирование)](src/dynamic-programming.md) - Мемоизация, табуляция, рюкзак, LCS
+21. [Greedy (Жадные алгоритмы)](src/greedy.md) - Локально оптимальный выбор, выбор заявок
+22. [Строковые алгоритмы](src/string-algorithms.md) - KMP, Rabin–Karp
+23. [Trie (Префиксное дерево)](src/trie.md) - Поиск по префиксу
+24. [Segment Tree (Дерево отрезков)](src/segment-tree.md) - Диапазонные запросы с обновлением
+25. [Fenwick Tree (Дерево Фенвика, BIT)](src/fenwick-tree.md) - Префиксные суммы за O(log n)
 
-Дополнительно: [Приложение: память, GC и профилирование в Go](book/appendix-go-memory.html) ·
-[🎯 Тренажёр распознавания шаблонов](book/quiz.html) (интерактивный квиз).
+Дополнительно: [Приложение: память, GC и профилирование в Go](src/appendix-go-memory.md) ·
+[🎯 Тренажёр распознавания шаблонов](src/quiz.md) (интерактивный квиз).
 
 ## Структура книги
 

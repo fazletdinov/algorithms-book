@@ -1,65 +1,112 @@
-# Subsets (Подмножества)
+# 🎰 Subsets (Подмножества)
 
-## Теория
+<div class="algo-hero">
+  <div class="algo-hero__main">
+    <div class="algo-hero__name">Subsets <span class="algo-hero__ru">Подмножества</span></div>
+    <div class="algo-hero__tag">Все 2ⁿ подмножеств через выбор «включить / не включить»</div>
+  </div>
+  <div class="algo-hero__metrics">
+    <div class="algo-hero__metric"><span>Время</span><b>O(2ⁿ·n)</b></div>
+    <div class="algo-hero__metric"><span>Память</span><b>O(n)</b></div>
+  </div>
+</div>
 
-Шаблон **Subsets** генерирует все возможные подмножества множества. Для каждого
-элемента есть два выбора — **включить** его в подмножество или **не включать**. Это
-образует бинарное дерево решений с 2^n листьями, по одному на каждое подмножество.
+<div class="algo-cards2">
+  <div class="algo-card algo-card--yes">
+    <div class="algo-card__hdr">Когда применять</div>
+    <ul>
+      <li>сгенерировать все подмножества или комбинации</li>
+      <li>перебор по принципу «включить / исключить» каждый элемент</li>
+      <li>подмножества с условием (сумма, размер, без дубликатов)</li>
+      <li>вход небольшой (2ⁿ растёт быстро)</li>
+    </ul>
+  </div>
+  <div class="algo-card algo-card--no">
+    <div class="algo-card__hdr">Когда НЕ применять</div>
+    <ul>
+      <li>нужно лишь количество, а не сами подмножества (часто формула/ДП)</li>
+      <li>вход большой — 2ⁿ не уложится</li>
+      <li>важен порядок элементов (это перестановки, не подмножества)</li>
+      <li>есть прямая формула без перебора</li>
+    </ul>
+  </div>
+</div>
 
-Основной приём — **backtracking** (откат): строим решение пошагово в одном общем
-массиве, после обработки варианта «откатываемся» — убираем добавленный элемент. Это
-экономит память, не создавая 2^n промежуточных копий.
+<p class="algo-hint">🔍 <b>Как распознать в условии:</b> <b>«все подмножества / комбинации», «power set», «subsets»</b> · «включить или нет» · небольшой вход.</p>
 
-**Когда применять:**
+<div class="algo-mental">
+  <div class="algo-mental__icon">💡</div>
+  <div class="algo-mental__body">
+    <div class="algo-mental__title">Запомни</div>
+    <ul>
+      <li>для каждого элемента — два выбора: <b>взять</b> или <b>пропустить</b> → дерево с 2ⁿ листьями;</li>
+      <li>строим в одном массиве: <b>выбор → рекурсия → откат</b>;</li>
+      <li>каждое частичное состояние — уже валидное подмножество (записываем сразу);</li>
+      <li>в результат кладём <b>копию</b> (<code>make</code>+<code>copy</code>).</li>
+    </ul>
+    <p>Дубликаты: отсортируй и пропускай <code>nums[i] == nums[i-1]</code> при <code>i &gt; start</code>.</p>
+  </div>
+</div>
 
-- нужно сгенерировать все подмножества или комбинации;
-- задача — перебор всех вариантов по принципу «включить/исключить»;
-- нужны подмножества с определёнными свойствами (комбинации, перестановки, сумма).
+## 🎬 Визуализация
 
-## Алгоритм
+> 💡 **Интерактивная демонстрация.** Ядро backtracking: **берём** элемент (синий) → рекурсия →
+> **откатываемся** (жёлтый). В строке «Найдено» копятся подмножества. Справа — код с подсветкой
+> строки и переменные, внизу — кликабельные шаги. (Виджет работает в собранной книге
+> `mdbook serve`/`mdbook build`, а не при просмотре `.md` на GitHub.)
 
-На каждом шаге добавляем элемент в `current`, рекурсивно обрабатываем остаток, затем
-откатываемся. Текущее подмножество сохраняем в результат **копией**, так как `current`
-будет меняться дальше.
+<div class="algo-viz" data-viz="subsets-bt" data-set="1,2,3"></div>
+
+## ⚡ Шаблон для собеседования
 
 ```go
 func subsets(nums []int) [][]int {
     var result [][]int
     var current []int
-
     var backtrack func(start int)
     backtrack = func(start int) {
-        // Сохраняем копию текущего подмножества
         subset := make([]int, len(current))
-        copy(subset, current)
+        copy(subset, current)          // копия!
         result = append(result, subset)
-
         for i := start; i < len(nums); i++ {
-            current = append(current, nums[i]) // выбор: включить nums[i]
+            current = append(current, nums[i]) // выбор
             backtrack(i + 1)
-            current = current[:len(current)-1] // откат: убрать nums[i]
+            current = current[:len(current)-1] // откат
         }
     }
-
     backtrack(0)
     return result
 }
 ```
 
-Для подмножеств с дубликатами сортируем массив и пропускаем повторы на одном уровне:
+1. записываем текущее подмножество (копией);
+2. перебираем элементы от `start`;
+3. выбор → рекурсия с `i+1` → откат.
+
+## 📖 Разбор
+
+<details class="algo-details">
+<summary>Теория, дубликаты, итеративный подход и сложность</summary>
+
+Шаблон **Subsets** генерирует все подмножества множества. Для каждого элемента — два
+выбора: **включить** или **не включить**. Это бинарное дерево решений с 2ⁿ листьями.
+Основной приём — **backtracking**: строим решение в одном общем массиве и «откатываемся»
+после обработки варианта, экономя память.
+
+#### С дубликатами
+
+Сортируем и пропускаем повторы на одном уровне:
 
 ```go
 func subsetsWithDup(nums []int) [][]int {
     sort.Ints(nums)
     var result [][]int
     var current []int
-
     var backtrack func(start int)
     backtrack = func(start int) {
         subset := make([]int, len(current))
         copy(subset, current)
         result = append(result, subset)
-
         for i := start; i < len(nums); i++ {
             if i > start && nums[i] == nums[i-1] {
                 continue // пропускаем дубликат на этом уровне
@@ -69,7 +116,6 @@ func subsetsWithDup(nums []int) [][]int {
             current = current[:len(current)-1]
         }
     }
-
     backtrack(0)
     return result
 }
@@ -78,66 +124,26 @@ func subsetsWithDup(nums []int) [][]int {
 Альтернатива — **итеративный** подход: начать с `[[]]` и для каждого элемента добавить
 его ко всем существующим подмножествам.
 
-### Сложность
+#### Сложность
 
 | Подход                    | Время       | Память                  |
 |---------------------------|-------------|-------------------------|
-| Рекурсивный (backtracking) | O(2^n · n) | O(2^n · n), стек O(n)   |
-| Итеративный               | O(2^n · n)  | O(2^n · n)              |
+| Рекурсивный (backtracking)| O(2ⁿ · n)   | O(2ⁿ · n), стек O(n)    |
+| Итеративный               | O(2ⁿ · n)   | O(2ⁿ · n)               |
 
-Всего 2^n подмножеств, и каждое копируется за O(n). Backtracking не меняет время, но
-переиспользует один массив вместо хранения всех путей.
+Всего 2ⁿ подмножеств, каждое копируется за O(n).
 
-## Визуализация
+</details>
 
-> 💡 **Интерактивная демонстрация.** Нажимайте «▶»: видно паттерн backtracking —
-> **берём** элемент (синий) → рекурсия → **откатываемся** (жёлтый). Снизу копятся
-> найденные подмножества. (Виджет работает в собранной книге `mdbook serve`/`mdbook build`,
-> а не при просмотре `.md` на GitHub.)
-
-<div class="algo-viz" data-viz="subsets-bt" data-set="1,2,3"></div>
-
-Дерево решений для `[1, 2, 3]` (зелёные узлы — сохранённые подмножества):
-
-```mermaid
-graph TD
-    A["[]<br/>start=0"] --> B["[1]<br/>start=1"]
-    A --> C["[]<br/>start=1"]
-    B --> D["[1,2]<br/>start=2"]
-    B --> E["[1]<br/>start=2"]
-    C --> F["[2]<br/>start=2"]
-    C --> G["[]<br/>start=2"]
-    D --> H["[1,2,3]<br/>start=3"]
-    D --> I["[1,2]<br/>start=3"]
-    E --> J["[1,3]<br/>start=3"]
-    E --> K["[1]<br/>start=3"]
-    F --> L["[2,3]<br/>start=3"]
-    F --> M["[2]<br/>start=3"]
-    G --> N["[3]<br/>start=3"]
-    G --> O["[]<br/>start=3"]
-
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style H fill:#bfb,stroke:#333,stroke-width:2px
-    style I fill:#bfb,stroke:#333,stroke-width:2px
-    style J fill:#bfb,stroke:#333,stroke-width:2px
-    style K fill:#bfb,stroke:#333,stroke-width:2px
-    style L fill:#bfb,stroke:#333,stroke-width:2px
-    style M fill:#bfb,stroke:#333,stroke-width:2px
-    style N fill:#bfb,stroke:#333,stroke-width:2px
-    style O fill:#bfb,stroke:#333,stroke-width:2px
-```
-
-Результат: `[[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]]`.
-
-## Типичные ошибки
+## ⚠️ Типичные ошибки
 
 1. **Забыт откат** — после рекурсивного вызова обязательно `current = current[:len(current)-1]`.
-2. **Сохранение без копии** — `result = append(result, current)` сохраняет ссылку на изменяемый слайс; копируйте через `copy`.
+2. **Сохранение без копии** — `append(result, current)` сохраняет ссылку на изменяемый слайс; копируйте через `copy`.
 3. **Дубликаты не обработаны** — для массива с повторами сортируйте и пропускайте `nums[i] == nums[i-1]` при `i > start`.
 4. **Пустой массив** — корректно вернуть `[][]int{{}}` (единственное пустое подмножество).
-5. **Очень большое n** — 2^n растёт экспоненциально; следите за памятью, для глубокой рекурсии предпочтите итеративный подход.
+5. **Очень большое n** — 2ⁿ растёт экспоненциально; следите за памятью.
 
-## Задачи
+## 🧩 Задачи
 
 **LeetCode:**
 
@@ -162,9 +168,9 @@ go test -tags solution ./subsets/  # эталон
 `Combinations` (сочетания по k из [1..n]) и `LetterCasePermutation`
 (переключение регистра букв).
 
-## Связанные шаблоны
+## 🔗 Связанные шаблоны
 
+- **[Backtracking](backtracking.md)** — общий шаблон перебора с возвратом.
 - **[Tree DFS](./tree-dfs.md)** — тот же рекурсивный обход в глубину.
-- **[Topological Sort](./topological-sort.md)** — работа с графами и зависимостями.
 - **[Modified Binary Search](./modified-binary-search.md)** — поиск в отсортированных данных.
 - Для общей теории по памяти и профилированию в Go см. [приложение](appendix-go-memory.md).
