@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package toposort — задачи на шаблон «Топологическая сортировка».
+// Теория паттерна — в книге: ../../src/topological-sort.md
 //
 //	go test ./toposort/                 # ваши решения
 //	go test -tags solution ./toposort/  # эталон

@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package astar — направленный поиск пути на сетке (A*).
+// Теория паттерна — в книге: ../../src/advanced-graph-algorithms.md
 //
 //	go test ./astar/                 # ваши решения
 //	go test -tags solution ./astar/  # эталон

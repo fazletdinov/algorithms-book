@@ -1,5 +1,7 @@
 //go:build !solution
 
+// Package linkedlist — тренажёр по развороту связного списка.
+// Теория паттерна — в книге: ../../src/reverse-linked-list.md
 package linkedlist
 
 // ReverseList разворачивает односвязный список «на месте» и возвращает новую

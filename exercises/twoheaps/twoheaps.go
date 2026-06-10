@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package twoheaps — задачи на шаблон «Две кучи».
+// Теория паттерна — в книге: ../../src/two-heaps.md
 //
 //	go test ./twoheaps/                 # ваши решения
 //	go test -tags solution ./twoheaps/  # эталон

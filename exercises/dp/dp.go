@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package dp — задачи на динамическое программирование.
+// Теория паттерна — в книге: ../../src/dynamic-programming.md
 //
 //	go test ./dp/                 # ваши решения
 //	go test -tags solution ./dp/  # эталон

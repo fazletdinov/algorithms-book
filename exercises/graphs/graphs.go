@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package graphs — задачи на шаблон «Обход графов».
+// Теория паттерна — в книге: ../../src/graphs.md
 //
 //	go test ./graphs/                 # ваши решения
 //	go test -tags solution ./graphs/  # эталон

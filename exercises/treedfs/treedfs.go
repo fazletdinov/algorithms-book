@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package treedfs — задачи на шаблон «Обход дерева в глубину».
+// Теория паттерна — в книге: ../../src/tree-dfs.md
 //
 //	go test ./treedfs/                 # ваши решения
 //	go test -tags solution ./treedfs/  # эталон

@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package twopointers — задачи на шаблон «Два указателя».
+// Теория паттерна — в книге: ../../src/two-pointers.md
 //
 //	go test ./twopointers/                 # ваши решения
 //	go test -tags solution ./twopointers/  # эталон

@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package greedy — жадные алгоритмы.
+// Теория паттерна — в книге: ../../src/greedy.md
 //
 //	go test ./greedy/                 # ваши решения
 //	go test -tags solution ./greedy/  # эталон

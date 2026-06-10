@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package backtracking — задачи на шаблон «Поиск с возвратом».
+// Теория паттерна — в книге: ../../src/backtracking.md
 //
 //	go test ./backtracking/                 # ваши решения
 //	go test -tags solution ./backtracking/  # эталон

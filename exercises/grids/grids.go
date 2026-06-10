@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package grids — задачи на обход двумерных сеток как графов.
+// Теория паттерна — в книге: ../../src/grids-and-shortest-paths.md
 //
 //	go test ./grids/                 # ваши решения
 //	go test -tags solution ./grids/  # эталон

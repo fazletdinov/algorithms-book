@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package fenwick — дерево Фенвика (Binary Indexed Tree) для префиксных сумм.
+// Теория паттерна — в книге: ../../src/fenwick-tree.md
 //
 //	go test ./fenwick/                 # ваши решения
 //	go test -tags solution ./fenwick/  # эталон

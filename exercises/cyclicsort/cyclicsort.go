@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package cyclicsort — задачи на шаблон «Циклическая сортировка».
+// Теория паттерна — в книге: ../../src/cyclic-sort.md
 //
 //	go test ./cyclicsort/                 # ваши решения
 //	go test -tags solution ./cyclicsort/  # эталон

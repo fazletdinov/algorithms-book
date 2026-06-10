@@ -1,5 +1,7 @@
 //go:build !solution
 
+// Package treebfs — тренажёр по обходу дерева в ширину.
+// Теория паттерна — в книге: ../../src/tree-bfs.md
 package treebfs
 
 // LevelOrder возвращает значения узлов дерева, сгруппированные по уровням

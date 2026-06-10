@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package binarysearch — задачи на шаблон «Модифицированный бинарный поиск».
+// Теория паттерна — в книге: ../../src/modified-binary-search.md
 //
 //	go test ./binarysearch/                 # ваши решения
 //	go test -tags solution ./binarysearch/  # эталон

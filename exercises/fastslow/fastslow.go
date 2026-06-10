@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package fastslow — задачи на шаблон «Быстрые и медленные указатели».
+// Теория паттерна — в книге: ../../src/fast-slow-pointers.md
 //
 //	go test ./fastslow/                 # ваши решения
 //	go test -tags solution ./fastslow/  # эталон

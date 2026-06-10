@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package topk — задачи на шаблон «Топ K элементов».
+// Теория паттерна — в книге: ../../src/top-k-elements.md
 //
 //	go test ./topk/                 # ваши решения
 //	go test -tags solution ./topk/  # эталон

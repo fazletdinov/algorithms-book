@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package subsets — задачи на шаблон «Подмножества».
+// Теория паттерна — в книге: ../../src/subsets.md
 //
 //	go test ./subsets/                 # ваши решения
 //	go test -tags solution ./subsets/  # эталон

@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package dijkstra — взвешенные кратчайшие пути (алгоритм Дейкстры).
+// Теория паттерна — в книге: ../../src/grids-and-shortest-paths.md
 //
 //	go test ./dijkstra/                 # ваши решения
 //	go test -tags solution ./dijkstra/  # эталон

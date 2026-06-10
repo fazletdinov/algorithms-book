@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package segtree — дерево отрезков для суммы на диапазоне.
+// Теория паттерна — в книге: ../../src/segment-tree.md
 //
 //	go test ./segtree/                 # ваши решения
 //	go test -tags solution ./segtree/  # эталон

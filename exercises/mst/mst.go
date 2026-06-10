@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package mst — минимальное остовное дерево (алгоритм Краскала).
+// Теория паттерна — в книге: ../../src/advanced-graph-algorithms.md
 //
 //	go test ./mst/                 # ваши решения
 //	go test -tags solution ./mst/  # эталон

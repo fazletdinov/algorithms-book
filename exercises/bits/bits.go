@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package bits — задачи на шаблон «Битовые операции».
+// Теория паттерна — в книге: ../../src/bit-manipulation.md
 //
 //	go test ./bits/                 # ваши решения
 //	go test -tags solution ./bits/  # эталон

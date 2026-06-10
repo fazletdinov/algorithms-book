@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package bellmanford — кратчайшие пути с отрицательными весами (Bellman–Ford).
+// Теория паттерна — в книге: ../../src/advanced-graph-algorithms.md
 //
 //	go test ./bellmanford/                 # ваши решения
 //	go test -tags solution ./bellmanford/  # эталон

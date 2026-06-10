@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package strmatch — поиск подстроки (KMP и Rabin–Karp).
+// Теория паттерна — в книге: ../../src/string-algorithms.md
 //
 //	go test ./strmatch/                 # ваши решения
 //	go test -tags solution ./strmatch/  # эталон

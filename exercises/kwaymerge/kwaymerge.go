@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package kwaymerge — задачи на шаблон «K-way слияние».
+// Теория паттерна — в книге: ../../src/k-way-merge.md
 //
 //	go test ./kwaymerge/                 # ваши решения
 //	go test -tags solution ./kwaymerge/  # эталон

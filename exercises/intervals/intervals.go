@@ -1,6 +1,7 @@
 //go:build !solution
 
 // Package intervals — задачи на шаблон «Слияние интервалов».
+// Теория паттерна — в книге: ../../src/merge-intervals.md
 //
 //	go test ./intervals/                 # ваши решения
 //	go test -tags solution ./intervals/  # эталон
