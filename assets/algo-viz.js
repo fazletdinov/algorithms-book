@@ -1,17 +1,24 @@
 /*
  * algo-viz.js — интерактивные пошаговые визуализации алгоритмов для mdBook.
  *
- * Типы (атрибут data-viz):
- *   sliding-window-fixed  data-array, data-k
- *   two-pointers-sum      data-array, data-target
- *   binary-search         data-array, data-target
- *   cyclic-sort           data-array            (числа 1..n)
- *   dp-coins              data-coins, data-amount
- *   tree-bfs / tree-dfs   data-tree             (уровневое представление, null=пусто)
- *   graph-bfs             data-nodes, data-edges (a-b,...), data-start
+ * Архитектура: единый движок buildDashboard(root, cfg) + реестр конфигов DASH.
+ * Диспетчер render(el) по атрибуту data-viz находит конфиг в DASH; неизвестный
+ * тип даёт предупреждение в консоль и видимую плашку (а не молчаливый пустой div).
+ *
+ * Каждый виджет показывает синхронно: структуру (сетка индекс/значение ИЛИ своя
+ * картинка через cfg.customViz — дерево/граф/куча/trie/интервалы), подсветку
+ * активной строки кода (CODE[codeKey] + step.line), таблицу переменных с
+ * описаниями и подсветкой изменений, подпись «строка N: что делает»
+ * (cfg.lineNotes), кликабельный таймлайн, авто-проигрывание (кнопка/пробел).
+ *
+ * ~28 типов data-viz заданы конфигами в DASH. Чтобы добавить виджет: запись в
+ * DASH (badge/codeKey/varOrder/varDesc/lineNotes/parse/...) и, если нужна панель
+ * кода, запись в CODE. Степ-билдер b*() возвращает шаги с полями vars, line
+ * (индекс в CODE), found/done и индексами указателей. Согласованность проверяет
+ * scripts/check-viz.js (в CI).
  *
  * Пример: <div class="algo-viz" data-viz="cyclic-sort" data-array="3,1,5,4,2"></div>
- * Без внешних зависимостей; скрипт сам находит все .algo-viz.
+ * Без внешних зависимостей и сборщика; init() сам находит все .algo-viz.
  */
 (function () {
   "use strict";

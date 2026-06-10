@@ -86,9 +86,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: peaceiris/actions-mdbook@v2
         with:
-          # TODO: запинить на конкретную версию для воспроизводимости (например '0.5.2'),
-          # когда деплой не критичен — проверить, что версия доступна в action.
-          mdbook-version: 'latest'
+          # Запинено для воспроизводимости (совпадает с локальной сборкой). Если CI не
+          # найдёт версию — поднять до доступной в action / вернуть 'latest'.
+          mdbook-version: '0.5.2'
       - run: mdbook build
       - uses: actions/upload-pages-artifact@v3
         with:
