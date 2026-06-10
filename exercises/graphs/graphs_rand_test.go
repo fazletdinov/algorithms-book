@@ -1,0 +1,242 @@
+package graphs
+
+import (
+	"math/rand"
+	"sort"
+	"testing"
+)
+
+// randGraph — простой неориентированный граф: n вершин, случайное подмножество
+// рёбер без петель и кратных рёбер.
+func randGraph(rng *rand.Rand, n int) [][]int {
+	var all [][]int
+	for i := 0; i < n; i++ {
+		for j := i + 1; j < n; j++ {
+			all = append(all, []int{i, j})
+		}
+	}
+	rng.Shuffle(len(all), func(i, j int) { all[i], all[j] = all[j], all[i] })
+	m := rng.Intn(len(all) + 1)
+	edges := all[:m]
+	// случайно переставим концы ребра — порядок не должен влиять
+	for _, e := range edges {
+		if rng.Intn(2) == 0 {
+			e[0], e[1] = e[1], e[0]
+		}
+	}
+	return edges
+}
+
+func buildAdj(n int, edges [][]int) [][]int {
+	adj := make([][]int, n)
+	for _, e := range edges {
+		adj[e[0]] = append(adj[e[0]], e[1])
+		adj[e[1]] = append(adj[e[1]], e[0])
+	}
+	return adj
+}
+
+// bruteComponents — число компонент через систему непересекающихся множеств
+// (независимо от DFS-эталона).
+func bruteComponents(n int, edges [][]int) int {
+	parent := make([]int, n)
+	for i := range parent {
+		parent[i] = i
+	}
+	var find func(int) int
+	find = func(x int) int {
+		for parent[x] != x {
+			x = parent[x]
+		}
+		return x
+	}
+	for _, e := range edges {
+		parent[find(e[0])] = find(e[1])
+	}
+	cnt := 0
+	for i := 0; i < n; i++ {
+		if find(i) == i {
+			cnt++
+		}
+	}
+	return cnt
+}
+
+func TestCountComponentsRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(1301))
+	for range 3000 {
+		n := rng.Intn(7) + 1
+		edges := randGraph(rng, n)
+		if got, want := CountComponents(n, edges), bruteComponents(n, edges); got != want {
+			t.Fatalf("CountComponents(%d, %v) = %d, want %d", n, edges, got, want)
+		}
+	}
+}
+
+// bruteHasCycle — DFS с запоминанием родителя (независимо от union-find-эталона).
+func bruteHasCycle(n int, edges [][]int) bool {
+	adj := buildAdj(n, edges)
+	visited := make([]bool, n)
+	var dfs func(node, parent int) bool
+	dfs = func(node, parent int) bool {
+		visited[node] = true
+		for _, next := range adj[node] {
+			if !visited[next] {
+				if dfs(next, node) {
+					return true
+				}
+			} else if next != parent {
+				return true
+			}
+		}
+		return false
+	}
+	for i := 0; i < n; i++ {
+		if !visited[i] && dfs(i, -1) {
+			return true
+		}
+	}
+	return false
+}
+
+func TestHasCycleUndirectedRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(1302))
+	for range 3000 {
+		n := rng.Intn(7) + 1
+		edges := randGraph(rng, n)
+		if got, want := HasCycleUndirected(n, edges), bruteHasCycle(n, edges); got != want {
+			t.Fatalf("HasCycleUndirected(%d, %v) = %v, want %v", n, edges, got, want)
+		}
+	}
+}
+
+// reachable — множество достижимых из start вершин (флуд по списку смежности).
+func reachable(n int, edges [][]int, start int) []int {
+	adj := buildAdj(n, edges)
+	seen := make([]bool, n)
+	stack := []int{start}
+	seen[start] = true
+	var res []int
+	for len(stack) > 0 {
+		v := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		res = append(res, v)
+		for _, w := range adj[v] {
+			if !seen[w] {
+				seen[w] = true
+				stack = append(stack, w)
+			}
+		}
+	}
+	sort.Ints(res)
+	return res
+}
+
+// checkTraversal — порядок начинается со start, без повторов, и как множество
+// равен достижимому множеству.
+func checkTraversal(t *testing.T, name string, order []int, n int, edges [][]int, start int) {
+	t.Helper()
+	if len(order) == 0 || order[0] != start {
+		t.Fatalf("%s(%d, %v, %d) = %v: не начинается со start", name, n, edges, start, order)
+	}
+	seen := map[int]bool{}
+	for _, v := range order {
+		if seen[v] {
+			t.Fatalf("%s = %v: повтор вершины %d", name, order, v)
+		}
+		seen[v] = true
+	}
+	set := append([]int{}, order...)
+	sort.Ints(set)
+	want := reachable(n, edges, start)
+	if len(set) != len(want) {
+		t.Fatalf("%s(%d, %v, %d) = %v, достижимо %v", name, n, edges, start, order, want)
+	}
+	for i := range set {
+		if set[i] != want[i] {
+			t.Fatalf("%s(%d, %v, %d) = %v, достижимо %v", name, n, edges, start, order, want)
+		}
+	}
+}
+
+func TestBFSDFSOrderRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(1303))
+	for range 3000 {
+		n := rng.Intn(7) + 1
+		edges := randGraph(rng, n)
+		start := rng.Intn(n)
+		checkTraversal(t, "BFSOrder", BFSOrder(n, edges, start), n, edges, start)
+		checkTraversal(t, "DFSOrder", DFSOrder(n, edges, start), n, edges, start)
+	}
+}
+
+// bruteShortest — независимый BFS по уровням, возвращает дистанцию или -1.
+func bruteShortest(n int, edges [][]int, src, dst int) int {
+	adj := buildAdj(n, edges)
+	dist := make([]int, n)
+	for i := range dist {
+		dist[i] = -1
+	}
+	dist[src] = 0
+	queue := []int{src}
+	for len(queue) > 0 {
+		v := queue[0]
+		queue = queue[1:]
+		for _, w := range adj[v] {
+			if dist[w] == -1 {
+				dist[w] = dist[v] + 1
+				queue = append(queue, w)
+			}
+		}
+	}
+	return dist[dst]
+}
+
+func TestShortestPathUnweightedRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(1304))
+	for range 3000 {
+		n := rng.Intn(7) + 1
+		edges := randGraph(rng, n)
+		src, dst := rng.Intn(n), rng.Intn(n)
+		if got, want := ShortestPathUnweighted(n, edges, src, dst), bruteShortest(n, edges, src, dst); got != want {
+			t.Fatalf("ShortestPathUnweighted(%d, %v, %d, %d) = %d, want %d", n, edges, src, dst, got, want)
+		}
+	}
+}
+
+// bruteBipartite — двухцветная раскраска через DFS (независимо от BFS-эталона).
+func bruteBipartite(n int, edges [][]int) bool {
+	adj := buildAdj(n, edges)
+	color := make([]int, n)
+	var dfs func(v, c int) bool
+	dfs = func(v, c int) bool {
+		color[v] = c
+		for _, w := range adj[v] {
+			if color[w] == 0 {
+				if !dfs(w, -c) {
+					return false
+				}
+			} else if color[w] == c {
+				return false
+			}
+		}
+		return true
+	}
+	for i := 0; i < n; i++ {
+		if color[i] == 0 && !dfs(i, 1) {
+			return false
+		}
+	}
+	return true
+}
+
+func TestIsBipartiteRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(1305))
+	for range 3000 {
+		n := rng.Intn(7) + 1
+		edges := randGraph(rng, n)
+		if got, want := IsBipartite(n, edges), bruteBipartite(n, edges); got != want {
+			t.Fatalf("IsBipartite(%d, %v) = %v, want %v", n, edges, got, want)
+		}
+	}
+}
