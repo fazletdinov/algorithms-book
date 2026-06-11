@@ -41,6 +41,11 @@
     var state = load();
 
     var barWrap = document.createElement("div"); barWrap.className = "algo-prog__barwrap";
+    // Полоса прогресса передаёт долю и шириной, и ARIA-значением (для скринридеров).
+    barWrap.setAttribute("role", "progressbar");
+    barWrap.setAttribute("aria-label", "Прогресс прохождения глав");
+    barWrap.setAttribute("aria-valuemin", "0");
+    barWrap.setAttribute("aria-valuemax", "100");
     var bar = document.createElement("div"); bar.className = "algo-prog__bar"; barWrap.appendChild(bar);
     var label = document.createElement("div"); label.className = "algo-prog__label";
     el.appendChild(label); el.appendChild(barWrap);
@@ -53,6 +58,8 @@
       var pct = Math.round(done / CHAPTERS.length * 100);
       bar.style.width = pct + "%";
       label.textContent = "Пройдено: " + done + " / " + CHAPTERS.length + " (" + pct + "%)";
+      barWrap.setAttribute("aria-valuenow", String(pct));
+      barWrap.setAttribute("aria-valuetext", done + " из " + CHAPTERS.length + " глав (" + pct + "%)");
     }
 
     CHAPTERS.forEach(function (ch) {

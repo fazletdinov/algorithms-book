@@ -459,6 +459,9 @@
     b.className = "algo-viz__btn";
     b.textContent = label;
     b.title = title;
+    // Кнопки управления подписаны глифами (⏮ ◀ ⏵ ⏭) — для скринридера это
+    // бессмысленные символы, поэтому даём текстовое доступное имя.
+    b.setAttribute("aria-label", title);
     return b;
   }
 
@@ -1896,6 +1899,14 @@
     root.classList.add("algo-viz--ready", "algo-tp");
     root.innerHTML = "";
 
+    // --- Доступность: виджет — это группа с понятным именем и подсказкой по
+    // управлению с клавиатуры. Пошаговая прокрутка озвучивается через role=status
+    // ниже (карточка статуса), цветовые состояния клеток дублируются её текстом.
+    root.setAttribute("role", "group");
+    root.setAttribute("aria-roledescription", "интерактивная визуализация алгоритма");
+    root.setAttribute("aria-label", cfg.title(ctx) + ". Шаги: стрелки ←/→, Home/End; пробел — автопроигрывание");
+    root.setAttribute("aria-keyshortcuts", "ArrowLeft ArrowRight Home End Space");
+
     // --- Заголовок ---
     var head = mkEl("div", "algo-tp__head");
     var h = mkEl("div", "algo-tp__title");
@@ -1916,9 +1927,11 @@
     var inputs = cfg.inputs.map(function (f) {
       var inp = mkEl("input", "algo-tp__input" + (f.sm ? " algo-tp__input--sm" : ""));
       inp.value = root.getAttribute(f.attr) || ""; inp.title = f.label || f.attr;
+      inp.setAttribute("aria-label", f.label || f.attr);
       editRow.appendChild(inp); return { attr: f.attr, inp: inp };
     });
     var runBtn = mkEl("button", "algo-tp__run", "⟲ Запустить"); runBtn.type = "button";
+    runBtn.setAttribute("aria-label", "Запустить визуализацию заново с введёнными данными");
     function rerun() { inputs.forEach(function (o) { root.setAttribute(o.attr, o.inp.value.trim()); }); root.classList.remove("algo-viz--ready"); buildDashboard(root, cfg); }
     runBtn.onclick = rerun;
     inputs.forEach(function (o) { o.inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); rerun(); } }); });
@@ -1935,7 +1948,13 @@
     }
 
     var cStat = mkEl("div", "algo-tp__card algo-tp__status");
+    // Живой регион: при каждом шаге скринридер зачитывает заголовок+текст статуса —
+    // это и есть текстовая альтернатива цветным состояниям клеток/указателей.
+    cStat.setAttribute("role", "status");
+    cStat.setAttribute("aria-live", "polite");
+    cStat.setAttribute("aria-atomic", "true");
     var statIcon = mkEl("div", "algo-tp__staticon", "");
+    statIcon.setAttribute("aria-hidden", "true"); // эмодзи-иконка декоративна
     var statBody = mkEl("div", "algo-tp__statbody");
     var statHead = mkEl("div", "algo-tp__stathead", "");
     var statText = mkEl("div", "algo-tp__stattext", "");
@@ -2133,6 +2152,7 @@
         card.classList.toggle("algo-tp__step--done", j < idx);
       });
       counter.textContent = (idx + 1) + " / " + steps.length;
+      counter.setAttribute("aria-label", "Шаг " + (idx + 1) + " из " + steps.length);
       bFirst.disabled = bPrev.disabled = idx === 0;
       bNext.disabled = bLast.disabled = idx === steps.length - 1;
     }
@@ -2142,10 +2162,12 @@
       if (!timer) return;
       clearInterval(timer); timer = null;
       bPlay.textContent = "▶ Авто"; bPlay.classList.remove("algo-tp__playbtn--on");
+      bPlay.setAttribute("aria-label", "Автопроигрывание шагов");
     }
     function startPlay() {
       if (idx >= steps.length - 1) show(0); // с конца — начинаем заново
       bPlay.textContent = "⏸ Пауза"; bPlay.classList.add("algo-tp__playbtn--on");
+      bPlay.setAttribute("aria-label", "Пауза автопроигрывания");
       timer = setInterval(function () {
         if (idx >= steps.length - 1) { stopPlay(); return; }
         show(idx + 1);

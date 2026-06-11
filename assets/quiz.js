@@ -220,10 +220,16 @@
     var qs = shuffle(QUESTIONS.slice());
     var idx = 0, score = 0, missed = [], selected = null, answered = false;
 
+    el.setAttribute("role", "region");
+    el.setAttribute("aria-label", "Тренажёр распознавания шаблонов");
     var head = document.createElement("div"); head.className = "algo-quiz__head"; el.appendChild(head);
     var qText = document.createElement("div"); qText.className = "algo-quiz__q"; el.appendChild(qText);
-    var optsBox = document.createElement("div"); optsBox.className = "algo-quiz__opts"; el.appendChild(optsBox);
-    var explain = document.createElement("div"); explain.className = "algo-quiz__explain"; el.appendChild(explain);
+    var optsBox = document.createElement("div"); optsBox.className = "algo-quiz__opts";
+    optsBox.setAttribute("role", "group"); optsBox.setAttribute("aria-label", "Варианты ответа"); el.appendChild(optsBox);
+    var explain = document.createElement("div"); explain.className = "algo-quiz__explain";
+    // Живой регион: вердикт «верно/неверно» и правильный ответ озвучиваются скринридером.
+    explain.setAttribute("role", "status"); explain.setAttribute("aria-live", "polite"); explain.setAttribute("aria-atomic", "true");
+    el.appendChild(explain);
     var actions = document.createElement("div"); actions.className = "algo-quiz__actions"; el.appendChild(actions);
     var btn = document.createElement("button"); btn.type = "button"; btn.className = "algo-quiz__btn"; actions.appendChild(btn);
 
@@ -239,10 +245,15 @@
       shuffled.forEach(function (opt) {
         var o = document.createElement("button");
         o.type = "button"; o.className = "algo-quiz__opt"; o.textContent = opt;
+        o.setAttribute("aria-pressed", "false");
         o.onclick = function () {
           if (answered) return;
           selected = opt;
-          Array.prototype.forEach.call(optsBox.children, function (c) { c.classList.toggle("algo-quiz__opt--sel", c === o); });
+          Array.prototype.forEach.call(optsBox.children, function (c) {
+            var on = c === o;
+            c.classList.toggle("algo-quiz__opt--sel", on);
+            c.setAttribute("aria-pressed", on ? "true" : "false");
+          });
           btn.disabled = false;
         };
         optsBox.appendChild(o);
@@ -260,8 +271,8 @@
       if (ok) score++; else missed.push(item);
       Array.prototype.forEach.call(optsBox.children, function (c) {
         c.disabled = true;
-        if (c.textContent === item.correct) c.classList.add("algo-quiz__opt--correct");
-        else if (c.textContent === selected) c.classList.add("algo-quiz__opt--wrong");
+        if (c.textContent === item.correct) { c.classList.add("algo-quiz__opt--correct"); c.setAttribute("aria-label", c.textContent + " — верный ответ"); }
+        else if (c.textContent === selected) { c.classList.add("algo-quiz__opt--wrong"); c.setAttribute("aria-label", c.textContent + " — ваш неверный ответ"); }
       });
       explain.className = "algo-quiz__explain algo-quiz__explain--show " + (ok ? "algo-quiz__explain--ok" : "algo-quiz__explain--bad");
       explain.innerHTML = (ok ? "✅ Верно — " : "❌ Правильный ответ: ") + "<b>" + item.correct + "</b><br>" +
