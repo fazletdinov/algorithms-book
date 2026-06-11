@@ -118,6 +118,18 @@
   color: #fff;
 }
 
+/* A*: открытый список (frontier) и восстановленный путь */
+.algo-viz__gcell--frontier {
+  background: color-mix(in srgb, #a855f7 28%, transparent);
+  border-color: color-mix(in srgb, #a855f7 55%, transparent);
+}
+
+.algo-viz__gcell--path {
+  background: #2e9b57;
+  border-color: #2e9b57;
+  color: #fff;
+}
+
 /* подписи и чипы (backtracking) */
 .algo-viz__cap {
   text-align: center;
@@ -890,3 +902,21 @@
 .algo-tp__tnode--take { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
 .algo-tp__tnode--split { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
 .algo-tp__tnode--skip { opacity: 0.35; }
+
+/* Дейкстра: подпись текущего расстояния под вершиной графа */
+.algo-viz__gdist { fill: var(--tp-ok, #22c55e); font-size: 11px; font-weight: 800; pointer-events: none; }
+
+/* 2D-таблица ДП (LCS): заполнение по ячейкам с подсветкой перехода */
+.algo-tp__dptable { display: grid; gap: 3px; justify-content: center; margin: 0 auto 0.9em; font-variant-numeric: tabular-nums; }
+.algo-tp__dhead { display: flex; align-items: center; justify-content: center; height: 1.9em; font-weight: 700; opacity: 0.6; font-size: 0.92em; }
+.algo-tp__dcell {
+  display: flex; align-items: center; justify-content: center; height: 1.9em; border-radius: 5px;
+  border: 1px solid var(--tp-border); background: color-mix(in srgb, var(--fg, #c9d1d9) 6%, transparent);
+  font-weight: 700; font-size: 0.92em; transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.algo-tp__dcell--edge { background: transparent; border-color: transparent; opacity: 0.4; }
+.algo-tp__dcell--filled { background: color-mix(in srgb, var(--fg, #c9d1d9) 13%, transparent); }
+.algo-tp__dcell--cand { background: color-mix(in srgb, var(--tp-hi) 22%, transparent); border-color: color-mix(in srgb, var(--tp-hi) 45%, transparent); }
+.algo-tp__dcell--src { background: var(--tp-hi); border-color: var(--tp-hi); color: #fff; }
+.algo-tp__dcell--cur { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; transform: scale(1.12); }
+.algo-tp__dcell--done { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
