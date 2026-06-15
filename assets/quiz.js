@@ -9,8 +9,10 @@
   "use strict";
 
   // Банк вопросов. correct — строка, обязана присутствовать в options.
+  // level: "easy" | "medium" | "hard" — метка сложности (показывается у вопроса).
   var QUESTIONS = [
     {
+      level: "easy",
       q: "Дан отсортированный массив. Нужно найти две позиции, сумма значений в которых равна target.",
       options: ["Two Pointers", "Sliding Window", "Binary Search", "Dynamic Programming"],
       correct: "Two Pointers",
@@ -18,6 +20,7 @@
       href: "two-pointers.html"
     },
     {
+      level: "medium",
       q: "Найти длину самой длинной подстроки без повторяющихся символов.",
       options: ["Sliding Window", "Two Pointers", "Trie", "Dynamic Programming"],
       correct: "Sliding Window",
@@ -25,6 +28,7 @@
       href: "sliding-window.html"
     },
     {
+      level: "easy",
       q: "Определить, содержит ли односвязный список цикл, не используя доп. память.",
       options: ["Fast & Slow Pointers", "Sliding Window", "Tree BFS", "Binary Search"],
       correct: "Fast & Slow Pointers",
@@ -32,6 +36,7 @@
       href: "fast-slow-pointers.html"
     },
     {
+      level: "easy",
       q: "Дан список интервалов [start, end]; нужно объединить все перекрывающиеся.",
       options: ["Merge Intervals", "Greedy", "Two Pointers", "Dynamic Programming"],
       correct: "Merge Intervals",
@@ -39,6 +44,7 @@
       href: "merge-intervals.html"
     },
     {
+      level: "medium",
       q: "Массив содержит числа от 1 до n не на своих местах. Найти все пропавшие — за O(1) доп. памяти.",
       options: ["Cyclic Sort", "Bit Manipulation", "Binary Search", "Two Pointers"],
       correct: "Cyclic Sort",
@@ -46,6 +52,7 @@
       href: "cyclic-sort.html"
     },
     {
+      level: "medium",
       q: "Найти индекс элемента в повёрнутом отсортированном массиве за O(log n).",
       options: ["Modified Binary Search", "Two Pointers", "Sliding Window", "Tree DFS"],
       correct: "Modified Binary Search",
@@ -53,6 +60,7 @@
       href: "modified-binary-search.html"
     },
     {
+      level: "easy",
       q: "Вывести значения узлов бинарного дерева по уровням (сверху вниз, по строкам).",
       options: ["Tree BFS", "Tree DFS", "Two Heaps", "Backtracking"],
       correct: "Tree BFS",
@@ -60,6 +68,7 @@
       href: "tree-bfs.html"
     },
     {
+      level: "medium",
       q: "Проверить, является ли бинарное дерево корректным деревом поиска (BST).",
       options: ["Tree DFS", "Tree BFS", "Two Heaps", "Sliding Window"],
       correct: "Tree DFS",
@@ -67,6 +76,7 @@
       href: "tree-dfs.html"
     },
     {
+      level: "medium",
       q: "Поддерживать медиану потока чисел, который поступает в реальном времени.",
       options: ["Two Heaps", "Top-K Elements", "Modified Binary Search", "Merge Intervals"],
       correct: "Two Heaps",
@@ -74,6 +84,7 @@
       href: "two-heaps.html"
     },
     {
+      level: "easy",
       q: "Найти K наибольших элементов в большом массиве (полная сортировка не нужна).",
       options: ["Top-K Elements", "Two Heaps", "Dynamic Programming", "Two Pointers"],
       correct: "Top-K Elements",
@@ -81,6 +92,7 @@
       href: "top-k-elements.html"
     },
     {
+      level: "medium",
       q: "Слить K уже отсортированных списков в один отсортированный.",
       options: ["K-way Merge", "Merge Intervals", "Two Pointers", "Dynamic Programming"],
       correct: "K-way Merge",
@@ -88,13 +100,15 @@
       href: "k-way-merge.html"
     },
     {
-      q: "Сгенерировать все возможные подмножества (или перестановки) набора.",
+      level: "medium",
+      q: "Сгенерировать все возможные перестановки набора (либо комбинации длины k).",
       options: ["Backtracking", "Dynamic Programming", "Tree BFS", "Greedy"],
       correct: "Backtracking",
-      explain: "Триггеры: «все возможные комбинации/перестановки». Перебор с возвратом: выбор → рекурсия → отмена выбора. DP — когда нужно посчитать количество/оптимум, а не перечислить всё.",
+      explain: "Триггеры: «все возможные перестановки/комбинации с ограничением». Перебор с возвратом: выбор → рекурсия → отмена выбора. DP — когда нужно посчитать количество/оптимум, а не перечислить всё.",
       href: "backtracking.html"
     },
     {
+      level: "medium",
       q: "Есть задачи с зависимостями (A нужно сделать до B). Найти корректный порядок выполнения.",
       options: ["Topological Sort", "Tree DFS", "Greedy", "Two Pointers"],
       correct: "Topological Sort",
@@ -102,6 +116,7 @@
       href: "topological-sort.html"
     },
     {
+      level: "medium",
       q: "Минимальное число монет заданных номиналов, чтобы набрать сумму (монеты можно брать многократно).",
       options: ["Dynamic Programming", "Greedy", "Backtracking", "Tree BFS"],
       correct: "Dynamic Programming",
@@ -109,6 +124,7 @@
       href: "dynamic-programming.html"
     },
     {
+      level: "medium",
       q: "Выбрать максимальное число взаимно непересекающихся встреч из заданного набора интервалов.",
       options: ["Greedy", "Dynamic Programming", "Merge Intervals", "Two Pointers"],
       correct: "Greedy",
@@ -116,6 +132,7 @@
       href: "greedy.html"
     },
     {
+      level: "easy",
       q: "Реализовать автодополнение слов по префиксу из большого словаря.",
       options: ["Trie", "Hashing", "Binary Search", "Sliding Window"],
       correct: "Trie",
@@ -123,6 +140,7 @@
       href: "trie.html"
     },
     {
+      level: "medium",
       q: "Динамически объединять группы элементов и быстро проверять, в одной ли группе два элемента.",
       options: ["Union-Find (DSU)", "Tree BFS", "Dynamic Programming", "Merge Intervals"],
       correct: "Union-Find (DSU)",
@@ -130,6 +148,7 @@
       href: "graphs.html"
     },
     {
+      level: "easy",
       q: "В массиве каждое число встречается дважды, кроме одного. Найти его за O(1) памяти.",
       options: ["Bit Manipulation", "Hashing", "Sorting", "Two Pointers"],
       correct: "Bit Manipulation",
@@ -137,6 +156,7 @@
       href: "bit-manipulation.html"
     },
     {
+      level: "medium",
       q: "Часто запрашивать сумму на диапазоне [l, r], при этом элементы массива часто меняются.",
       options: ["Segment Tree / Fenwick", "Prefix Sum", "Sliding Window", "Binary Search"],
       correct: "Segment Tree / Fenwick",
@@ -144,6 +164,7 @@
       href: "segment-tree.html"
     },
     {
+      level: "medium",
       q: "Найти кратчайший путь во ВЗВЕШЕННОМ графе с неотрицательными весами рёбер.",
       options: ["Dijkstra", "BFS", "Bellman–Ford", "Tree DFS"],
       correct: "Dijkstra",
@@ -151,6 +172,7 @@
       href: "grids-and-shortest-paths.html"
     },
     {
+      level: "easy",
       q: "Найти кратчайший путь в НЕвзвешенном графе (все рёбра равнозначны).",
       options: ["BFS по графу", "Dijkstra", "Tree DFS", "Dynamic Programming"],
       correct: "BFS по графу",
@@ -158,6 +180,7 @@
       href: "graphs.html"
     },
     {
+      level: "medium",
       q: "Определить, образует ли набор рёбер цикл в НЕориентированном графе.",
       options: ["Union-Find (DSU)", "Topological Sort", "Tree DFS", "Binary Search"],
       correct: "Union-Find (DSU)",
@@ -165,6 +188,7 @@
       href: "graphs.html"
     },
     {
+      level: "medium",
       q: "Найти K-й по величине элемент в неотсортированном массиве.",
       options: ["Top-K Elements", "Two Heaps", "Sorting", "Binary Search"],
       correct: "Top-K Elements",
@@ -172,6 +196,7 @@
       href: "top-k-elements.html"
     },
     {
+      level: "medium",
       q: "Развернуть участок связного списка между позициями m и n (остальное не трогать).",
       options: ["Reverse Linked List", "Two Pointers", "Fast & Slow Pointers", "Cyclic Sort"],
       correct: "Reverse Linked List",
@@ -179,6 +204,7 @@
       href: "reverse-linked-list.html"
     },
     {
+      level: "easy",
       q: "Найти максимальную сумму подмассива ровно из k подряд идущих элементов.",
       options: ["Sliding Window", "Two Pointers", "Prefix Sum", "Dynamic Programming"],
       correct: "Sliding Window",
@@ -186,6 +212,7 @@
       href: "sliding-window.html"
     },
     {
+      level: "hard",
       q: "Проверить, можно ли разбить массив на два подмножества с равной суммой.",
       options: ["Dynamic Programming", "Greedy", "Backtracking", "Two Pointers"],
       correct: "Dynamic Programming",
@@ -193,6 +220,7 @@
       href: "dynamic-programming.html"
     },
     {
+      level: "medium",
       q: "Найти все начальные индексы анаграмм образца p внутри строки s.",
       options: ["Sliding Window", "Trie", "Two Pointers", "Hashing"],
       correct: "Sliding Window",
@@ -200,13 +228,131 @@
       href: "sliding-window.html"
     },
     {
+      level: "medium",
       q: "Найти наименьшего общего предка (LCA) двух узлов в бинарном дереве.",
       options: ["Tree DFS", "Tree BFS", "Two Heaps", "Binary Search"],
       correct: "Tree DFS",
       explain: "Триггеры: «предок / структура поддерева». Рекурсивный обход в глубину: узел, из чьих разных поддеревьев приходят оба искомых, и есть LCA.",
       href: "tree-dfs.html"
+    },
+    {
+      level: "medium",
+      q: "Найти все вхождения образца p в текст s за O(n+m), без хеширования.",
+      options: ["KMP (префикс-функция)", "Trie", "Sliding Window", "Binary Search"],
+      correct: "KMP (префикс-функция)",
+      explain: "Триггеры: «поиск подстроки» + «линейно, гарантированно». Префикс-функция (failure-функция) позволяет не откатывать указатель в тексте — O(n+m) против наивного O(n·m).",
+      href: "string-algorithms.html"
+    },
+    {
+      level: "medium",
+      q: "Нужны префиксные суммы с точечными обновлениями; важны минимум кода и память.",
+      options: ["Fenwick Tree (BIT)", "Segment Tree", "Prefix Sum", "Sliding Window"],
+      correct: "Fenwick Tree (BIT)",
+      explain: "Триггеры: «префиксная сумма» + «точечные обновления» + «компактно». Дерево Фенвика — это один массив и пара строк с трюком i & (-i); и запрос, и обновление за O(log n).",
+      href: "fenwick-tree.html"
+    },
+    {
+      level: "hard",
+      q: "Прибавлять значение ко ВСЕМ элементам отрезка [l, r] и спрашивать сумму на отрезке — много раз.",
+      options: ["Segment Tree (lazy propagation)", "Fenwick Tree", "Prefix Sum", "Merge Intervals"],
+      correct: "Segment Tree (lazy propagation)",
+      explain: "Триггеры: «обновление НА ОТРЕЗКЕ» + «запрос на отрезке». Дерево отрезков с отложенным проталкиванием (lazy) делает оба за O(log n); обычный BIT умеет только точечные обновления (без трюков).",
+      href: "segment-tree.html"
+    },
+    {
+      level: "medium",
+      q: "Найти кратчайшие пути из вершины, если в графе есть рёбра с ОТРИЦАТЕЛЬНЫМ весом.",
+      options: ["Bellman–Ford", "Dijkstra", "BFS", "Topological Sort"],
+      correct: "Bellman–Ford",
+      explain: "Триггеры: «кратчайший путь» + «отрицательные веса». Дейкстра ломается на отрицательных рёбрах. Bellman–Ford делает V−1 релаксаций всех рёбер за O(V·E) и заодно ловит отрицательный цикл.",
+      href: "advanced-graph-algorithms.html"
+    },
+    {
+      level: "medium",
+      q: "Найти путь на сетке к цели, используя оценку оставшегося расстояния (эвристику), чтобы не перебирать лишнее.",
+      options: ["A*", "Dijkstra", "BFS", "Dynamic Programming"],
+      correct: "A*",
+      explain: "Триггеры: «кратчайший путь» + «есть эвристика до цели». A* = Дейкстра + допустимая эвристика h(n): приоритет f = g + h направляет поиск к цели, сокращая просмотренные узлы.",
+      href: "grids-and-shortest-paths.html"
+    },
+    {
+      level: "medium",
+      q: "Соединить все узлы сети так, чтобы суммарная длина кабеля была минимальной.",
+      options: ["MST (Kruskal/Prim)", "Dijkstra", "Topological Sort", "Greedy"],
+      correct: "MST (Kruskal/Prim)",
+      explain: "Триггеры: «соединить все вершины» + «минимальная суммарная стоимость». Это минимальное остовное дерево: Краскал (сортировка рёбер + DSU) или Прим (приоритетная очередь). Дейкстра решает другую задачу — пути от источника.",
+      href: "advanced-graph-algorithms.html"
+    },
+    {
+      level: "easy",
+      q: "Посчитать число «островов» (связных групп из 1) в матрице из 0 и 1.",
+      options: ["Обход сетки (BFS/DFS)", "Union-Find", "Dynamic Programming", "Backtracking"],
+      correct: "Обход сетки (BFS/DFS)",
+      explain: "Триггеры: «сетка» + «связные области». Обходим каждую непосещённую клетку-1, заливкой (flood fill) помечаем весь остров; число запусков обхода = число островов. (Union-Find тоже подойдёт, но обход проще.)",
+      href: "grids-and-shortest-paths.html"
+    },
+    {
+      level: "easy",
+      q: "Найти середину односвязного списка за один проход, не зная заранее его длины.",
+      options: ["Fast & Slow Pointers", "Two Pointers", "Reverse Linked List", "Sliding Window"],
+      correct: "Fast & Slow Pointers",
+      explain: "Триггеры: «связный список» + «середина за один проход». Быстрый указатель идёт ×2, медленный ×1; когда быстрый достигнет конца, медленный будет ровно в середине.",
+      href: "fast-slow-pointers.html"
+    },
+    {
+      level: "easy",
+      q: "Удалить дубликаты из ОТСОРТИРОВАННОГО массива на месте, вернув новую длину.",
+      options: ["Two Pointers", "Sliding Window", "Cyclic Sort", "Hashing"],
+      correct: "Two Pointers",
+      explain: "Триггеры: «отсортирован» + «на месте». Медленный указатель — конец уникального префикса, быстрый бежит вперёд; при новом значении пишем его за медленным. O(n), O(1) памяти.",
+      href: "two-pointers.html"
+    },
+    {
+      level: "hard",
+      q: "Найти длину наибольшей строго возрастающей подпоследовательности (не обязательно подряд).",
+      options: ["Dynamic Programming", "Greedy", "Sliding Window", "Two Pointers"],
+      correct: "Dynamic Programming",
+      explain: "Триггеры: «подпоследовательность» (не подряд!) + «оптимум». LIS: классическое O(n²) ДП, либо O(n log n) через массив tails и бинарный поиск. Скользящее окно неприменимо — элементы не идут подряд.",
+      href: "dynamic-programming.html"
+    },
+    {
+      level: "medium",
+      q: "Построить ВСЕ подмножества множества (power set), наращивая их добавлением каждого нового элемента.",
+      options: ["Subsets (каскадное построение)", "Backtracking", "Dynamic Programming", "Two Heaps"],
+      correct: "Subsets (каскадное построение)",
+      explain: "Триггеры: «все подмножества» + «итеративно». Паттерн Subsets: для каждого нового элемента дублируем все имеющиеся подмножества, добавляя в копии этот элемент. 2ⁿ подмножеств. Backtracking даёт тот же результат рекурсией.",
+      href: "subsets.html"
+    },
+    {
+      level: "hard",
+      q: "Для каждого окна размера k в массиве найти максимум (sliding window maximum).",
+      options: ["Sliding Window + монотонный дек", "Two Heaps", "Top-K Elements", "Segment Tree"],
+      correct: "Sliding Window + монотонный дек",
+      explain: "Триггеры: «максимум в каждом окне». Монотонно убывающий дек хранит индексы кандидатов: голова — текущий максимум, при сдвиге выкидываем вышедшие за окно и меньшие новых. Амортизированно O(n).",
+      href: "sliding-window.html"
     }
   ];
+
+  // Подписи и стили для меток сложности (level → читаемое имя + CSS-модификатор).
+  var LEVELS = {
+    easy:   { label: "Лёгкий",  cls: "easy" },
+    medium: { label: "Средний", cls: "medium" },
+    hard:   { label: "Сложный", cls: "hard" }
+  };
+
+  // Рекорд храним в localStorage как "score/total" последнего ЛУЧШЕГО прохождения.
+  var BEST_KEY = "algoQuizBest";
+  function loadBest() {
+    try {
+      var raw = localStorage.getItem(BEST_KEY);
+      if (!raw) return null;
+      var p = raw.split("/");
+      return { score: parseInt(p[0], 10), total: parseInt(p[1], 10) };
+    } catch (e) { return null; }
+  }
+  function saveBest(score, total) {
+    try { localStorage.setItem(BEST_KEY, score + "/" + total); } catch (e) {}
+  }
 
   function shuffle(a) {
     for (var i = a.length - 1; i > 0; i--) {
@@ -219,6 +365,21 @@
   function buildQuiz(el) {
     var qs = shuffle(QUESTIONS.slice());
     var idx = 0, score = 0, missed = [], selected = null, answered = false;
+    var best = loadBest();
+
+    function bestText() {
+      return best && best.total === qs.length ? "      🏆 Рекорд: " + best.score + " / " + best.total : "";
+    }
+    function renderHead() {
+      var lv = LEVELS[qs[idx].level] || LEVELS.medium;
+      head.innerHTML = "";
+      head.appendChild(document.createTextNode("Вопрос " + (idx + 1) + " / " + qs.length + "   "));
+      var badge = document.createElement("span");
+      badge.className = "algo-quiz__level algo-quiz__level--" + lv.cls;
+      badge.textContent = lv.label;
+      head.appendChild(badge);
+      head.appendChild(document.createTextNode("   Счёт: " + score + bestText()));
+    }
 
     el.setAttribute("role", "region");
     el.setAttribute("aria-label", "Тренажёр распознавания шаблонов");
@@ -236,7 +397,7 @@
     function renderQuestion() {
       var item = qs[idx];
       selected = null; answered = false;
-      head.textContent = "Вопрос " + (idx + 1) + " / " + qs.length + "      Счёт: " + score;
+      renderHead();
       qText.textContent = item.q;
       explain.className = "algo-quiz__explain";
       explain.textContent = "";
@@ -277,7 +438,7 @@
       explain.className = "algo-quiz__explain algo-quiz__explain--show " + (ok ? "algo-quiz__explain--ok" : "algo-quiz__explain--bad");
       explain.innerHTML = (ok ? "✅ Верно — " : "❌ Правильный ответ: ") + "<b>" + item.correct + "</b><br>" +
         item.explain + " <a href=\"" + item.href + "\">📖 Глава</a>";
-      head.textContent = "Вопрос " + (idx + 1) + " / " + qs.length + "      Счёт: " + score;
+      renderHead();
       btn.textContent = idx + 1 < qs.length ? "Следующий ▶" : "Результат";
       btn.disabled = false;
       btn.onclick = next;
@@ -290,8 +451,11 @@
     }
 
     function renderSummary() {
-      head.textContent = "Результат";
-      qText.textContent = "Вы набрали " + score + " из " + qs.length + ".";
+      var isRecord = !best || best.total !== qs.length || score > best.score;
+      if (isRecord) { saveBest(score, qs.length); best = { score: score, total: qs.length }; }
+      head.textContent = "Результат" + (best ? "   🏆 Рекорд: " + best.score + " / " + best.total : "");
+      qText.textContent = "Вы набрали " + score + " из " + qs.length + "." +
+        (isRecord && score > 0 ? " 🎉 Новый рекорд!" : "");
       optsBox.innerHTML = "";
       explain.className = "algo-quiz__explain";
       explain.textContent = "";

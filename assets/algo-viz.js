@@ -25,20 +25,32 @@
 
   var SVGNS = "http://www.w3.org/2000/svg";
 
+  // num() — Number() с проверкой: вместо молчаливого NaN бросает понятную ошибку,
+  // которую ловит render() и показывает плашку (а не сломанный виджет).
+  function num(x, what) {
+    var n = Number(x);
+    if (isNaN(n)) throw new Error((what || "значение") + ": ожидалось число, получено \"" + x + "\"");
+    return n;
+  }
   function nums(s) {
     return (s || "").split(",").map(function (x) { return x.trim(); })
-      .filter(function (x) { return x.length > 0; }).map(Number);
+      .filter(function (x) { return x.length > 0; })
+      .map(function (x) { return num(x, "элемент массива"); });
   }
   function parseTree(s) {
     return (s || "").split(",").map(function (x) {
       x = x.trim();
-      return x === "" || x === "null" ? null : Number(x);
+      return x === "" || x === "null" ? null : num(x, "узел дерева");
     });
   }
   function parseEdges(s) {
-    return (s || "").split(",").map(function (e) {
-      return e.trim().split("-").map(Number);
-    }).filter(function (e) { return e.length === 2; });
+    return (s || "").split(",").map(function (x) { return x.trim(); })
+      .filter(function (x) { return x.length > 0; })
+      .map(function (e) {
+        var p = e.split("-");
+        if (p.length !== 2) throw new Error("ребро: ожидался формат \"u-v\", получено \"" + e + "\"");
+        return [num(p[0], "вершина ребра"), num(p[1], "вершина ребра")];
+      });
   }
 
   // ===== Реестр Go-кода: строки синхронизируются с шагами (поле step.line) =====
@@ -2585,6 +2597,9 @@
     var tlCards = steps.map(function (s, i) {
       if (i > 0) tl.appendChild(mkEl("div", "algo-tp__arrow", "⇢"));
       var card = mkEl("div", "algo-tp__step");
+      card.setAttribute("role", "button");
+      card.setAttribute("tabindex", "-1");
+      card.setAttribute("aria-label", "Перейти к шагу " + (i + 1) + " из " + steps.length);
       card.appendChild(mkEl("div", "algo-tp__stepno", i + 1));
       var body = mkEl("div", "algo-tp__steplines");
       var sc = cfg.stepCard(s, i, ctx);
@@ -2733,7 +2748,18 @@
   // Все типы визуализаций обслуживает один движок DASH (см. реестр DASH ниже).
   function render(el) {
     var t = el.getAttribute("data-viz") || "";
-    if (DASH[t]) { buildDashboard(el, DASH[t]); return; }
+    if (DASH[t]) {
+      try {
+        buildDashboard(el, DASH[t]);
+      } catch (err) {
+        // Кривые data-атрибуты (нечисловой массив, плохое ребро и т.п.) не должны
+        // давать молча сломанный виджет — показываем причину автору контента.
+        if (window.console && console.error) console.error("algo-viz: не удалось построить \"" + t + "\":", err);
+        el.classList.add("algo-viz--ready");
+        el.appendChild(mkEl("div", "algo-tp__note", "⚠️ Ошибка визуализации \"" + t + "\": " + (err && err.message ? err.message : err)));
+      }
+      return;
+    }
     // Неизвестный тип: не оставляем молча пустой <div>, а сигналим в консоль.
     if (window.console && console.warn) console.warn("algo-viz: неизвестный data-viz=\"" + t + "\" — нет конфига в DASH");
     el.classList.add("algo-viz--ready");

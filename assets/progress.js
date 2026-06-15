@@ -30,7 +30,9 @@
     { t: "Строковые алгоритмы", h: "string-algorithms.html" },
     { t: "Trie", h: "trie.html" },
     { t: "Segment Tree", h: "segment-tree.html" },
-    { t: "Fenwick Tree", h: "fenwick-tree.html" }
+    { t: "Fenwick Tree", h: "fenwick-tree.html" },
+    { t: "Шпаргалка", h: "cheatsheet.html" },
+    { t: "Тренажёр распознавания (квиз)", h: "quiz.html" }
   ];
   var KEY = "algoProgress";
 
@@ -59,12 +61,13 @@
       bar.style.width = pct + "%";
       label.textContent = "Пройдено: " + done + " / " + CHAPTERS.length + " (" + pct + "%)";
       barWrap.setAttribute("aria-valuenow", String(pct));
-      barWrap.setAttribute("aria-valuetext", done + " из " + CHAPTERS.length + " глав (" + pct + "%)");
+      barWrap.setAttribute("aria-valuetext", done + " из " + CHAPTERS.length + " разделов (" + pct + "%)");
     }
 
     CHAPTERS.forEach(function (ch) {
       var row = document.createElement("label"); row.className = "algo-prog__item";
       var cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!state[ch.h];
+      cb.setAttribute("aria-label", "Отметить главу пройденной: " + ch.t);
       cb.onchange = function () { state[ch.h] = cb.checked; save(state); row.classList.toggle("algo-prog__item--done", cb.checked); refresh(); };
       var a = document.createElement("a"); a.href = ch.h; a.textContent = ch.t; a.className = "algo-prog__link";
       row.appendChild(cb); row.appendChild(a);

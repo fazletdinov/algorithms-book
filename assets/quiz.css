@@ -85,6 +85,19 @@
 
 .algo-quiz__weak { font-weight: 600; margin-bottom: 0.3em; }
 
+/* Метка сложности вопроса. */
+.algo-quiz__level {
+  display: inline-block;
+  font-size: 0.78em;
+  font-weight: 600;
+  padding: 0.1em 0.6em;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+.algo-quiz__level--easy   { background: #2e9b5733; color: #2e9b57; border: 1px solid #2e9b5780; }
+.algo-quiz__level--medium { background: #d98a1133; color: #d98a11; border: 1px solid #d98a1180; }
+.algo-quiz__level--hard   { background: #c0392b33; color: #c0392b; border: 1px solid #c0392b80; }
+
 .algo-quiz__btn {
   cursor: pointer;
   border: 1px solid var(--links, #4c84c4);
@@ -98,6 +111,13 @@
 .algo-quiz__btn:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+/* Видимый фокус для навигации с клавиатуры (без рамки при клике мышью). */
+.algo-quiz__opt:focus-visible,
+.algo-quiz__btn:focus-visible {
+  outline: 2px solid var(--links, #4c84c4);
+  outline-offset: 2px;
 }
 
 /* трекер прогресса */

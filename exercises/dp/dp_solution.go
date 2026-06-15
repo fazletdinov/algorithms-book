@@ -84,8 +84,13 @@ func min3(a, b, c int) int {
 }
 
 func LongestIncreasingSubsequence(nums []int) int {
+	// tails[i] — минимально возможный последний элемент возрастающей
+	// подпоследовательности длины i+1 среди просмотренных. tails строго
+	// возрастает, поэтому в нём работает бинарный поиск, а его длина в конце
+	// равна длине LIS. O(n log n) против O(n^2) у классического ДП.
 	tails := make([]int, 0, len(nums))
 	for _, x := range nums {
+		// lower_bound: ищем первый tails[mid] >= x (для СТРОГОГО возрастания).
 		lo, hi := 0, len(tails)
 		for lo < hi {
 			mid := lo + (hi-lo)/2
@@ -96,9 +101,9 @@ func LongestIncreasingSubsequence(nums []int) int {
 			}
 		}
 		if lo == len(tails) {
-			tails = append(tails, x)
+			tails = append(tails, x) // x длиннее всех — удлиняем LIS
 		} else {
-			tails[lo] = x
+			tails[lo] = x // заменяем, удерживая минимальный «хвост» длины lo+1
 		}
 	}
 	return len(tails)
