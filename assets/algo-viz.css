@@ -89,21 +89,21 @@
 }
 
 .algo-viz__gcell {
-  width: 2em;
-  height: 2em;
+  width: 2.7em;
+  height: 2.7em;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--quote-border, #aaa);
-  border-radius: 4px;
-  font-size: 0.8em;
+  border-radius: 6px;
+  font-size: 0.95em;
   font-weight: 600;
   transition: background-color 0.15s;
 }
 
 .algo-viz__gcell--wall {
-  background: var(--fg, #333);
-  border-color: var(--fg, #333);
+  background: color-mix(in srgb, var(--fg, #333) 26%, transparent);
+  border-color: color-mix(in srgb, var(--fg, #333) 30%, transparent);
 }
 
 .algo-viz__gcell--visited {
@@ -202,8 +202,8 @@
 }
 
 .algo-viz__cell--mismatch {
-  background: #c0392b;
-  border-color: #c0392b;
+  background: var(--tp-bad, #ef4444);
+  border-color: var(--tp-bad, #ef4444);
   color: #fff;
 }
 
@@ -240,10 +240,24 @@
 .algo-viz__graph {
   display: block;
   width: 100%;
-  max-width: 360px;
+  max-width: 480px;
   height: auto;
   margin: 0 auto 0.9em;
 }
+
+/* легенда состояний узлов/клеток/рёбер */
+.algo-tp__legend { display: flex; flex-wrap: wrap; gap: 0.35em 1.1em; margin: 0.1em 0 0.8em; font-size: 0.8em; }
+.algo-tp__legitem { display: inline-flex; align-items: center; gap: 0.45em; opacity: 0.9; }
+.algo-tp__legdot { width: 0.95em; height: 0.95em; border-radius: 50%; border: 1px solid var(--tp-border); flex: none; }
+.algo-tp__legdot--current { background: #e0a500; border-color: #e0a500; }
+.algo-tp__legdot--visited { background: var(--tp-lo); border-color: var(--tp-lo); }
+.algo-tp__legdot--idle { background: var(--tp-panel2); }
+.algo-tp__legdot--frontier { background: color-mix(in srgb, var(--tp-hi) 45%, transparent); border-color: var(--tp-hi); }
+.algo-tp__legdot--path { background: var(--tp-ok); border-color: var(--tp-ok); }
+.algo-tp__legdot--wall { background: color-mix(in srgb, var(--fg) 26%, transparent); }
+.algo-tp__legdot--mst { background: var(--tp-ok); border-color: var(--tp-ok); border-radius: 2px; }
+.algo-tp__legdot--skipedge { background: var(--tp-panel2); opacity: 0.5; border-radius: 2px; }
+.algo-tp__legdot--curedge { background: #e0a500; border-color: #e0a500; border-radius: 2px; }
 
 .algo-viz__gedge {
   stroke: var(--quote-border, #aaa);
@@ -535,34 +549,84 @@
 /* Two Pointers — расширенная «дашборд»-визуализация                     */
 /* ===================================================================== */
 .algo-tp {
-  --tp-lo: #3b82f6;
-  --tp-hi: #a855f7;
-  --tp-ok: #22c55e;
-  --tp-bad: #ef4444;
-  --tp-panel: color-mix(in srgb, var(--fg, #c9d1d9) 5%, transparent);
-  --tp-border: color-mix(in srgb, var(--fg, #c9d1d9) 14%, transparent);
-  display: block;
-  padding: 0;
-  border: none;
-  background: none;
+  /* Самодостаточная тёмная «IDE-панель»: палитра фиксирована и НЕ наследует тему книги,
+     поэтому виджет одинаково выглядит на любой теме mdBook. --fg/--bg переопределены
+     локально, чтобы все color-mix(var(--fg)…) давали светлые полупрозрачные слои на тёмном. */
+  --fg: #e6e9f2;
+  --bg: #0d1117;
+  --tp-lo: #3b82f6;            /* синий — правая граница (right) */
+  --tp-hi: #a855f7;            /* фиолетовый — левая граница (left) */
+  --tp-ok: #22c55e;            /* зелёный — «различных», корректность */
+  --tp-warn: #f59e0b;          /* янтарный — максимум/лучшее */
+  --tp-bad: #ef4444;           /* красный — нарушение условия */
+  --tp-surface: #0a0e16;       /* внешний холст виджета */
+  --tp-panel: #131927;         /* карточки и панели */
+  --tp-panel2: #1b2233;        /* вложенные блоки, поля ввода */
+  --tp-border: #283145;
+  --tp-grad-lo: linear-gradient(135deg, #2563eb, #3b82f6);
+  --tp-grad-hi: linear-gradient(135deg, #9333ea, #a855f7);
+  --tp-grad-ok: linear-gradient(135deg, #16a34a, #22c55e);
+  /* Переопределяем book-тему vars ВНУТРИ виджета: кастомные SVG-виз (графы, деревья,
+     сетки, интервалы, trie, KMP) рисуются через .algo-viz__* и завязаны на эти переменные.
+     Так они становятся тёмными разом, не трогая прозу/hero-карточки вне .algo-tp. */
+  --links: #3b82f6;            /* синий акцент (visited / merged / active) */
+  --quote-border: #3d465c;     /* рёбра графов, обводки узлов, рамки ячеек — видны на тёмном */
+  --sidebar-bg: #1b2233;       /* фон ячеек/кнопок легаси-виз */
+  --quote-bg: #131927;
+  color: var(--fg);
+  background: var(--tp-surface);
+  border: 1px solid #1b2333;
+  border-radius: 16px;
+  padding: 1.4em clamp(1em, 2.5vw, 1.7em);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.4);
   /* «вырываемся» из узкой колонки mdBook и центрируемся: дашборду нужна ширина,
      а проза вокруг остаётся узкой и читаемой */
   width: min(1120px, 96vw);
-  margin: 1.4em 0;
+  margin: 1.6em 0;
   margin-left: calc(50% - min(560px, 48vw));
 }
+.algo-tp, .algo-tp * { box-sizing: border-box; }
 
-.algo-tp__head { margin-bottom: 1.1em; }
+/* кнопка полноэкранного режима */
+.algo-tp__fsbtn { font-weight: 600; white-space: nowrap; }
+
+/* ===== Полноэкранный режим: виджет на весь вьюпорт ========================= */
+/* Блокируем прокрутку страницы под оверлеем. */
+body.algo-tp-fslock { overflow: hidden; }
+.algo-tp--fs {
+  position: fixed; inset: 0; z-index: 1000;
+  width: auto; max-width: none;
+  margin: 0; padding: 1.2em clamp(1em, 3vw, 2.4em);
+  overflow: auto; -webkit-overflow-scrolling: touch;
+  background: var(--bg, #fff);
+  display: flex; flex-direction: column;
+}
+/* В полноэкранном режиме экономим вертикаль и используем ширину: */
+.algo-tp--fs .algo-tp__head { margin-bottom: 0.7em; }
+.algo-tp--fs .algo-tp__top { margin-bottom: 0.8em; }
+.algo-tp--fs .algo-tp__main { grid-template-columns: 1.35fr 1fr; margin-bottom: 0.8em; }
+/* Таймлайн — в одну прокручиваемую строку вместо многострочной «простыни». */
+.algo-tp--fs .algo-tp__timeline { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.4em; }
+.algo-tp--fs .algo-tp__step { flex: 0 0 auto; }
+/* Контролы прилипают к низу экрана — кнопки всегда под рукой. */
+.algo-tp--fs .algo-tp__ctrl {
+  position: sticky; bottom: 0; margin-top: auto;
+  padding: 0.7em 0 0.3em; background: var(--bg, #fff);
+  border-top: 1px solid var(--tp-border);
+}
+
+.algo-tp__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1em; margin-bottom: 1.2em; }
+.algo-tp__headactions { display: flex; align-items: center; gap: 0.6em; flex: none; }
 .algo-tp__title {
   display: flex; align-items: center; gap: 0.6em; flex-wrap: wrap;
   font-size: 1.45em; font-weight: 800;
 }
 .algo-tp__badge {
-  font-size: 0.6em; font-weight: 700; padding: 0.25em 0.7em; border-radius: 999px;
-  background: color-mix(in srgb, var(--tp-lo) 22%, transparent);
-  color: var(--tp-lo); border: 1px solid color-mix(in srgb, var(--tp-lo) 45%, transparent);
+  font-size: 0.6em; font-weight: 700; padding: 0.3em 0.8em; border-radius: 999px;
+  background: color-mix(in srgb, var(--tp-hi) 20%, transparent);
+  color: #d4b3ff; border: 1px solid color-mix(in srgb, var(--tp-hi) 50%, transparent);
 }
-.algo-tp__sub { opacity: 0.65; margin-top: 0.35em; font-size: 0.92em; }
+.algo-tp__sub { opacity: 0.55; margin-top: 0.35em; font-size: 0.92em; }
 
 /* верхние карточки */
 .algo-tp__top { display: flex; flex-wrap: wrap; gap: 1em; margin-bottom: 1.1em; }
@@ -578,17 +642,17 @@
 .algo-tp__minirow { display: flex; flex-wrap: wrap; gap: 6px; }
 .algo-tp__mini {
   min-width: 2.1em; height: 2.1em; display: flex; align-items: center; justify-content: center;
-  border-radius: 7px; font-weight: 700; font-variant-numeric: tabular-nums;
-  background: color-mix(in srgb, var(--fg, #c9d1d9) 9%, transparent);
-  border: 1px solid var(--tp-border); transition: background-color 0.15s, color 0.15s;
+  border-radius: 8px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--tp-panel2);
+  border: 1px solid var(--tp-border); transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
-.algo-tp__mini--lo { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
-.algo-tp__mini--hi { background: var(--tp-hi); border-color: var(--tp-hi); color: #fff; }
+.algo-tp__mini--lo { background: var(--tp-grad-lo); border-color: transparent; color: #fff; box-shadow: 0 4px 14px color-mix(in srgb, var(--tp-lo) 45%, transparent); }
+.algo-tp__mini--hi { background: var(--tp-grad-hi); border-color: transparent; color: #fff; box-shadow: 0 4px 14px color-mix(in srgb, var(--tp-hi) 45%, transparent); }
 
 .algo-tp__edit { display: flex; gap: 8px; margin-top: 0.9em; flex-wrap: wrap; }
 .algo-tp__input {
-  flex: 1 1 120px; min-width: 80px; border: 1px solid var(--tp-border); border-radius: 7px;
-  padding: 0.35em 0.6em; background: color-mix(in srgb, var(--fg, #000) 6%, transparent);
+  flex: 1 1 120px; min-width: 80px; border: 1px solid var(--tp-border); border-radius: 8px;
+  padding: 0.4em 0.7em; background: var(--tp-panel2);
   color: inherit; font-family: var(--mono-font, monospace);
 }
 .algo-tp__input--sm { flex: 0 1 70px; }
@@ -623,48 +687,101 @@
 .algo-tp__stattext { opacity: 0.8; font-size: 0.92em; margin-top: 0.15em; }
 
 /* основная сетка */
-.algo-tp__main { display: grid; grid-template-columns: 1.25fr 1fr; gap: 1em; margin-bottom: 1.1em; }
+.algo-tp__main { display: grid; grid-template-columns: 1.25fr 1fr; gap: 1em; margin-bottom: 1.1em; align-items: stretch; }
+/* Левая панель (виз) тянется на высоту кода; легенда правил прижата к низу,
+   а свободное место распределяется выше — без «дыры» под мелкой сеткой. */
+.algo-tp__main > .algo-tp__panel:first-child { display: flex; flex-direction: column; }
+.algo-tp__main > .algo-tp__panel:first-child .algo-tp__rules { margin-top: auto; }
+.algo-tp__main > .algo-tp__panel:first-child .algo-tp__grid,
+.algo-tp__main > .algo-tp__panel:first-child .algo-viz__graph,
+.algo-tp__main > .algo-tp__panel:first-child .algo-tp__ivsvg { margin-top: 0.3em; margin-bottom: 0.6em; }
 @media (max-width: 760px) { .algo-tp__main { grid-template-columns: 1fr; } }
 .algo-tp__panel { background: var(--tp-panel); border: 1px solid var(--tp-border); border-radius: 12px; padding: 1.1em; }
-.algo-tp__panelhdr { font-weight: 800; margin-bottom: 1em; }
+.algo-tp__panelhdr { font-weight: 800; margin-bottom: 1em; display: flex; align-items: center; justify-content: space-between; gap: 0.6em; }
 .algo-tp__panelhdr--sm { font-size: 0.95em; margin: 1.2em 0 0.6em; }
+.algo-tp__lang { font-size: 0.72em; font-weight: 700; padding: 0.25em 0.7em; border-radius: 7px; background: var(--tp-panel2); border: 1px solid var(--tp-border); color: #5e9bff; }
 
 /* сетка индекс/значение/указатели */
 .algo-tp__grid { display: grid; align-items: center; row-gap: 0.5em; column-gap: 8px; }
 .algo-tp__rowlab { font-size: 0.85em; opacity: 0.6; padding-right: 0.6em; white-space: nowrap; }
 .algo-tp__idx { text-align: center; font-size: 0.8em; opacity: 0.55; font-variant-numeric: tabular-nums; }
 .algo-tp__big {
-  height: 2.9em; display: flex; align-items: center; justify-content: center; border-radius: 10px;
+  height: 2.9em; display: flex; align-items: center; justify-content: center; border-radius: 12px;
   font-size: 1.2em; font-weight: 800; font-variant-numeric: tabular-nums;
-  background: color-mix(in srgb, var(--fg, #c9d1d9) 9%, transparent); border: 1px solid var(--tp-border);
-  transition: background-color 0.18s, border-color 0.18s, transform 0.18s;
+  background: var(--tp-panel2); border: 1px solid var(--tp-border);
+  transition: background 0.18s, border-color 0.18s, transform 0.18s, box-shadow 0.18s;
 }
-.algo-tp__big--lo { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; transform: translateY(-2px); }
-.algo-tp__big--hi { background: var(--tp-hi); border-color: var(--tp-hi); color: #fff; transform: translateY(-2px); }
-.algo-tp__big--found { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; transform: translateY(-2px); }
+.algo-tp__big--lo { background: var(--tp-grad-lo); border-color: transparent; color: #fff; transform: translateY(-2px); box-shadow: 0 6px 18px color-mix(in srgb, var(--tp-lo) 50%, transparent); }
+.algo-tp__big--hi { background: var(--tp-grad-hi); border-color: transparent; color: #fff; transform: translateY(-2px); box-shadow: 0 6px 18px color-mix(in srgb, var(--tp-hi) 50%, transparent); }
+.algo-tp__big--found { background: var(--tp-grad-ok); border-color: transparent; color: #fff; transform: translateY(-2px); box-shadow: 0 6px 18px color-mix(in srgb, var(--tp-ok) 50%, transparent); }
+/* клетка внутри окна (между границами) — лёгкая фиолетовая заливка как в макете */
+.algo-tp__big--span { background: color-mix(in srgb, var(--tp-hi) 16%, var(--tp-panel2)); border-color: color-mix(in srgb, var(--tp-hi) 35%, transparent); }
 
 .algo-tp__ptrslot { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 1.2em; }
 .algo-tp__arrowup { font-size: 1.2em; line-height: 1; font-weight: 800; }
 .algo-tp__arrowup--lo { color: var(--tp-lo); }
 .algo-tp__arrowup--hi { color: var(--tp-hi); }
-.algo-tp__pill { font-size: 0.78em; font-weight: 700; padding: 0.1em 0.5em; border-radius: 6px; color: #fff; font-variant-numeric: tabular-nums; }
-.algo-tp__pill--lo { background: var(--tp-lo); }
-.algo-tp__pill--hi { background: var(--tp-hi); }
+.algo-tp__pill { font-size: 0.78em; font-weight: 700; padding: 0.15em 0.6em; border-radius: 7px; color: #fff; font-variant-numeric: tabular-nums; }
+.algo-tp__pill--lo { background: var(--tp-grad-lo); }
+.algo-tp__pill--hi { background: var(--tp-grad-hi); }
 .algo-tp__ptrcap { font-size: 0.68em; opacity: 0.55; white-space: nowrap; }
 
-/* сумма / сравнение */
+/* стат-карточки (длина окна / различных / максимум / состояние) */
 .algo-tp__sumbox {
-  display: flex; gap: 0; margin: 1.4em auto 1.2em; max-width: 360px;
-  border: 1px solid var(--tp-border); border-radius: 10px; overflow: hidden;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.8em;
+  margin: 1.3em 0 0; max-width: none; border: none; border-radius: 0; overflow: visible;
 }
-.algo-tp__sumcell { flex: 1; padding: 0.7em 1em; }
-.algo-tp__sumcell + .algo-tp__sumcell { border-left: 1px solid var(--tp-border); }
-.algo-tp__sumlab { font-size: 0.78em; opacity: 0.6; margin-bottom: 0.3em; }
-.algo-tp__sumval { font-size: 1.25em; font-weight: 800; font-variant-numeric: tabular-nums; }
+.algo-tp__sumcell {
+  padding: 0.85em 1em; text-align: center;
+  border: 1px solid var(--tp-border); border-radius: 12px; background: var(--tp-panel);
+}
+.algo-tp__sumlab { font-size: 0.78em; opacity: 0.55; margin-bottom: 0.35em; }
+.algo-tp__sumval { font-size: 1.5em; font-weight: 800; font-variant-numeric: tabular-nums; }
+.algo-tp__sumval--ok { color: var(--tp-ok); }
+.algo-tp__sumval--warn { color: var(--tp-warn); }
+.algo-tp__sumval--lo { color: var(--tp-lo); }
+.algo-tp__sumval--eq { color: var(--tp-ok); }
+/* состояние-бейдж: красный «лимит превышен» / зелёный «окно валидно» */
+.algo-tp__sumval--badge-bad, .algo-tp__sumval--badge-ok {
+  display: inline-block; font-size: 0.9em; font-weight: 700; padding: 0.3em 0.8em; border-radius: 8px;
+}
+.algo-tp__sumval--badge-bad { color: #fff; background: var(--tp-bad); }
+.algo-tp__sumval--badge-ok { color: var(--tp-ok); background: color-mix(in srgb, var(--tp-ok) 16%, transparent); border: 1px solid color-mix(in srgb, var(--tp-ok) 45%, transparent); }
 .algo-tp__cmpval { font-size: 1.25em; font-weight: 800; font-variant-numeric: tabular-nums; }
 .algo-tp__cmpval--lt { color: var(--tp-lo); }
 .algo-tp__cmpval--gt { color: var(--tp-bad); }
 .algo-tp__cmpval--eq { color: var(--tp-ok); }
+
+/* панель внутренней структуры данных (freq-map переменного окна) */
+.algo-tp__map {
+  margin: 1.2em 0 0.4em; padding: 0.9em 1em;
+  border: 1px solid var(--tp-border); border-radius: 10px;
+  background: color-mix(in srgb, var(--fg, #c9d1d9) 4%, transparent);
+}
+.algo-tp__maphdr { font-size: 0.82em; font-weight: 700; opacity: 0.7; margin-bottom: 0.7em; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.algo-tp__mapgrid { display: flex; flex-wrap: wrap; gap: 0.5em; }
+.algo-tp__mapcell {
+  display: flex; flex-direction: column; align-items: center; gap: 0.15em;
+  min-width: 2.6em; padding: 0.4em 0.5em; border-radius: 8px;
+  border: 1px solid var(--tp-border);
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s;
+}
+.algo-tp__mapkey { font-size: 0.78em; opacity: 0.7; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.algo-tp__mapcnt { font-size: 1.2em; font-weight: 800; font-variant-numeric: tabular-nums; }
+/* живой ключ (есть в map) vs погасший (count 0 → удалён) */
+.algo-tp__mapcell--on { background: color-mix(in srgb, var(--tp-hi) 14%, transparent); border-color: color-mix(in srgb, var(--tp-hi) 40%, transparent); }
+.algo-tp__mapcell--off { opacity: 0.32; }
+.algo-tp__mapcell--off .algo-tp__mapcnt { opacity: 0.5; }
+/* только что тронутый ключ — подсветка по типу операции */
+.algo-tp__mapcell--hot { transform: translateY(-3px); }
+.algo-tp__mapcell--add { background: color-mix(in srgb, var(--tp-ok) 26%, transparent); border-color: var(--tp-ok); }
+.algo-tp__mapcell--dec { background: color-mix(in srgb, var(--tp-lo) 24%, transparent); border-color: var(--tp-lo); }
+.algo-tp__mapcell--del { background: color-mix(in srgb, var(--tp-bad) 26%, transparent); border-color: var(--tp-bad); opacity: 1; }
+.algo-tp__mapsize { margin-top: 0.8em; font-size: 0.92em; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.algo-tp__mapsizek { font-weight: 800; }
+.algo-tp__mapsizecmp { font-weight: 600; }
+.algo-tp__mapsizecmp--bad { color: var(--tp-bad); }
+.algo-tp__mapsizecmp--ok { color: var(--tp-ok); }
 
 /* легенда правил */
 .algo-tp__rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1em; padding: 1em; border: 1px dashed var(--tp-border); border-radius: 10px; }
@@ -676,9 +793,17 @@
 .algo-tp__rulebody { font-size: 0.85em; opacity: 0.7; }
 
 /* код */
-.algo-tp__code { margin: 0; padding: 0.6em 0; border-radius: 8px; background: color-mix(in srgb, var(--fg, #000) 6%, transparent); border: 1px solid var(--tp-border); font-size: 0.82em; line-height: 1.6; overflow-x: auto; }
+.algo-tp__code { margin: 0; padding: 0.6em 0; border-radius: 10px; background: #0b0f1a; border: 1px solid var(--tp-border); font-size: 0.84em; line-height: 1.65; overflow-x: auto; }
 .algo-tp__codeline { display: flex; padding: 0 0.7em; white-space: pre; border-left: 3px solid transparent; }
-.algo-tp__codeline--active { background: color-mix(in srgb, var(--tp-lo) 22%, transparent); border-left-color: var(--tp-lo); }
+.algo-tp__codeline--active { background: color-mix(in srgb, var(--tp-lo) 26%, transparent); border-left-color: var(--tp-lo); }
+/* подсветка синтаксиса Go */
+.algo-tp__tok--kw { color: #c084fc; }
+.algo-tp__tok--type { color: #5e9bff; }
+.algo-tp__tok--fn { color: #4fd1c5; }
+.algo-tp__tok--num { color: #f0883e; }
+.algo-tp__tok--str { color: #7ee787; }
+.algo-tp__tok--com { color: #6b7689; font-style: italic; }
+.algo-tp__tok--punct { color: #9aa4ba; }
 /* Вспышка: активная строка только что изменила переменные — связываем причину и эффект. */
 .algo-tp__codeline--justran { animation: algo-tp-justran 0.6s ease-out; }
 @keyframes algo-tp-justran {
@@ -691,6 +816,9 @@
 .algo-tp__codenotetx { flex: 1 1 auto; opacity: 0.9; }
 .algo-tp__lineno { display: inline-block; min-width: 1.8em; margin-right: 0.8em; text-align: right; opacity: 0.4; font-variant-numeric: tabular-nums; user-select: none; }
 .algo-tp__linetext { font-family: var(--mono-font, monospace); }
+/* «стрелка» отладчика в гаттере: зарезервирована на всех строках, видна на активной */
+.algo-tp__codearrow { flex: 0 0 1em; margin-right: 0.2em; text-align: center; color: var(--tp-lo); font-weight: 700; user-select: none; opacity: 0; transition: opacity 0.12s; }
+.algo-tp__codeline--active .algo-tp__codearrow { opacity: 1; }
 
 /* таблица переменных */
 .algo-tp__vars { border: 1px solid var(--tp-border); border-radius: 8px; overflow: hidden; font-size: 0.85em; }
@@ -698,10 +826,23 @@
 .algo-tp__vrow:last-child { border-bottom: none; }
 .algo-tp__vrow--head { background: color-mix(in srgb, var(--fg, #000) 8%, transparent); font-weight: 700; opacity: 0.75; }
 .algo-tp__vname { font-family: var(--mono-font, monospace); font-weight: 700; }
-.algo-tp__vval { font-family: var(--mono-font, monospace); font-weight: 700; color: #2dd4bf; font-variant-numeric: tabular-nums; }
-.algo-tp__vdesc { opacity: 0.6; }
-.algo-tp__vrow--changed { background: color-mix(in srgb, #e0a500 22%, transparent); }
-.algo-tp__vrow--changed .algo-tp__vval { color: #e0a500; }
+.algo-tp__vval { font-family: var(--mono-font, monospace); font-weight: 700; color: #4fd1c5; font-variant-numeric: tabular-nums; }
+.algo-tp__vdesc { opacity: 0.55; }
+.algo-tp__vrow--changed { background: color-mix(in srgb, var(--tp-warn) 18%, transparent); }
+.algo-tp__vrow--changed .algo-tp__vval { color: var(--tp-warn); }
+
+/* нижняя полоса переменных (скаляры) — карточки во всю ширину */
+.algo-tp__varspanel { margin-top: 1.1em; }
+.algo-tp__varcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.7em; }
+.algo-tp__varcard {
+  padding: 0.6em 0.8em; border: 1px solid var(--tp-border); border-radius: 10px; background: var(--tp-panel2);
+  transition: background 0.15s, border-color 0.15s;
+}
+.algo-tp__varname { font-family: var(--mono-font, monospace); font-weight: 700; font-size: 0.82em; opacity: 0.7; }
+.algo-tp__varval { font-family: var(--mono-font, monospace); font-weight: 800; font-size: 1.25em; color: #4fd1c5; font-variant-numeric: tabular-nums; margin: 0.1em 0 0.15em; word-break: break-word; }
+.algo-tp__vardesc { font-size: 0.74em; opacity: 0.5; line-height: 1.25; }
+.algo-tp__varcard--changed { background: color-mix(in srgb, var(--tp-warn) 16%, transparent); border-color: color-mix(in srgb, var(--tp-warn) 50%, transparent); }
+.algo-tp__varcard--changed .algo-tp__varval { color: var(--tp-warn); }
 
 /* таймлайн */
 .algo-tp__timeline { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0.4em; }
@@ -737,7 +878,45 @@
 .algo-tp__footval { font-size: 1.15em; font-weight: 800; }
 .algo-tp__footval--ok { color: var(--tp-ok); }
 
-.algo-tp__ctrl { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 1.1em; }
+/* нижняя панель управления: скорость | кнопки | автоповтор */
+.algo-tp__ctrl {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1em;
+  margin-top: 1.2em; padding: 1em 1.2em;
+  background: var(--tp-panel); border: 1px solid var(--tp-border); border-radius: 14px;
+}
+@media (max-width: 720px) { .algo-tp__ctrl { grid-template-columns: 1fr; justify-items: center; gap: 0.8em; } }
+.algo-tp__ctrlbtns { display: flex; align-items: center; justify-content: center; gap: 8px; }
+/* кнопки управления — тёмные скруглённые «иконки» */
+.algo-tp .algo-viz__btn {
+  border: 1px solid var(--tp-border); background: var(--tp-panel2); color: var(--fg);
+  border-radius: 10px; min-width: 2.7em; height: 2.7em; padding: 0 0.6em; font-size: 1em;
+  display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.algo-tp .algo-viz__btn:hover:not(:disabled) { background: var(--tp-panel); border-color: color-mix(in srgb, var(--tp-lo) 55%, transparent); color: var(--fg); transform: translateY(-1px); }
+.algo-tp .algo-viz__btn:disabled { opacity: 0.35; }
+/* главная кнопка play — синяя заливка */
+.algo-tp__playbtn { background: var(--tp-grad-lo) !important; border-color: transparent !important; color: #fff !important; min-width: 3em !important; box-shadow: 0 6px 18px color-mix(in srgb, var(--tp-lo) 45%, transparent); }
+.algo-tp__playbtn--on { background: var(--tp-grad-lo) !important; }
+.algo-viz__counter { color: var(--fg); opacity: 0.85; }
+/* слайдер скорости */
+.algo-tp__speed { display: flex; align-items: center; gap: 0.7em; font-size: 0.85em; }
+.algo-tp__speedlab { opacity: 0.6; white-space: nowrap; }
+.algo-tp__speed input[type="range"] { -webkit-appearance: none; appearance: none; width: 130px; height: 5px; border-radius: 999px; background: var(--tp-panel2); outline: none; }
+.algo-tp__speed input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 15px; height: 15px; border-radius: 50%; background: var(--tp-lo); cursor: pointer; box-shadow: 0 0 0 4px color-mix(in srgb, var(--tp-lo) 25%, transparent); }
+.algo-tp__speed input[type="range"]::-moz-range-thumb { width: 15px; height: 15px; border: none; border-radius: 50%; background: var(--tp-lo); cursor: pointer; }
+/* тумблер «Автоповтор» */
+.algo-tp__loop { display: flex; align-items: center; gap: 0.6em; justify-content: flex-end; font-size: 0.88em; }
+.algo-tp__switch { position: relative; width: 2.6em; height: 1.45em; flex: none; cursor: pointer; }
+.algo-tp__switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.algo-tp__switchtrack { position: absolute; inset: 0; border-radius: 999px; background: var(--tp-panel2); border: 1px solid var(--tp-border); transition: background 0.15s; }
+.algo-tp__switchtrack::before { content: ""; position: absolute; top: 50%; left: 0.2em; transform: translateY(-50%); width: 1.05em; height: 1.05em; border-radius: 50%; background: #9aa4ba; transition: transform 0.15s, background 0.15s; }
+.algo-tp__switch input:checked + .algo-tp__switchtrack { background: var(--tp-grad-lo); border-color: transparent; }
+.algo-tp__switch input:checked + .algo-tp__switchtrack::before { transform: translateY(-50%) translateX(1.15em); background: #fff; }
+.algo-tp__switch input:focus-visible + .algo-tp__switchtrack { outline: 2px solid var(--tp-lo); outline-offset: 2px; }
+.algo-tp__headmain { min-width: 0; }
+.algo-tp__speedcol { display: flex; flex-direction: column; gap: 3px; }
+.algo-tp__speedends2 { display: flex; justify-content: space-between; font-size: 0.72em; opacity: 0.45; }
+.algo-tp__ctrlmid { display: flex; flex-direction: column; align-items: center; gap: 0.4em; }
 
 /* ===================================================================== */
 /* Конспект-карточки главы (hero / когда / ментальная модель / details)  */
