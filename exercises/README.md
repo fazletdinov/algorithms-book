@@ -90,6 +90,14 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `trie`          | `Trie.Insert` / `Search` / `StartsWith` / `Delete` / `WordsWithPrefix` |
 | `segtree`       | `SegmentTree` (`Update`/`Query`, сумма), `MinSegmentTree` (`Update`/`Query`, минимум) |
 | `fenwick`       | `NewFenwick`, `Update`, `PrefixSum`, `RangeSum`, `CountInversions`, `CountSmallerToRight` |
+| `hashtable`     | `NewHashMap`, `HashMap.Put` / `Get` / `Delete` / `Len` (цепочки + ресайз по load factor) |
+| `deque`         | `NewDeque`, `Deque.PushFront` / `PushBack` / `PopFront` / `PopBack` / `Front` / `Back` / `Len` (кольцевой буфер) |
+| `binheap`       | `NewHeap`, `Heap.Push` / `Pop` / `Peek` / `Len` (бинарная min-куча, siftUp/siftDown) |
+| `dsu`           | `NewUnionFind`, `UnionFind.Find` / `Union` / `Connected` / `Count` (сжатие путей + по размеру) |
+| `bst`           | `NewBST`, `BST.Search` / `Insert` / `Delete` / `InOrder` (двоичное дерево поиска) |
+| `avl`           | `NewAVL`, `AVL.Insert` / `Search` / `Height` / `InOrder` (самобалансировка поворотами) |
+| `sparsetable`   | `NewSparse`, `Sparse.Query` (идемпотентный RMQ-минимум за O(1)) |
+| `btree`         | `NewBTree`, `BTree.Search` / `Insert` / `InOrder` (split узла, степень t) |
 
 ## Как добавить свой шаблон
 

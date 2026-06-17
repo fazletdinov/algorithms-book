@@ -1,0 +1,54 @@
+//go:build !solution
+
+// Package btree — B-дерево (поиск и вставка со split узла).
+// Теория структуры — в книге: ../../src/btree-structure.md
+//
+//	go test ./btree/                 # ваши решения
+//	go test -tags solution ./btree/  # эталон
+//
+// Реализуйте NewBTree/Search/Insert/InOrder. Минимальная степень t: в узле от
+// t-1 до 2t-1 ключей (у корня — от 1). Ключи в узле отсортированы, поддеревья
+// между ними упорядочены. Вставка идёт «сверху вниз»: полный узел (2t-1
+// ключей) на пути делится (split), средний ключ поднимается в родителя, и
+// дерево растёт только вверх — оно всегда идеально сбалансировано по высоте.
+package btree
+
+// node — узел B-дерева: отсортированные keys и (для не-листа) len(keys)+1 детей.
+type node struct {
+	keys     []int
+	children []*node
+	leaf     bool
+}
+
+// BTree хранит корень и минимальную степень t.
+type BTree struct {
+	root *node
+	t    int
+}
+
+// NewBTree создаёт пустое дерево минимальной степени t (t>=2).
+func NewBTree(t int) *BTree {
+	// TODO: при t<2 поднимите до 2; корень — пустой лист.
+	panic("TODO: реализуйте NewBTree")
+}
+
+// Search сообщает, есть ли ключ в дереве. O(t·log_t n).
+func (bt *BTree) Search(k int) bool {
+	// TODO: в узле найдите первую позицию keys[i] >= k; если совпало — true;
+	// лист — false; иначе спуститесь в children[i].
+	panic("TODO: реализуйте Search")
+}
+
+// Insert добавляет ключ (дубликаты игнорируются).
+func (bt *BTree) Insert(k int) {
+	// TODO: если корень полон (2t-1) — создайте новый корень над ним и
+	// разделите (splitChild), затем вставляйте в неполный узел (insertNonFull),
+	// деля полных детей на пути вниз.
+	panic("TODO: реализуйте Insert")
+}
+
+// InOrder возвращает все ключи по возрастанию. Пустое дерево — пустой срез.
+func (bt *BTree) InOrder() []int {
+	// TODO: чередуйте обход поддеревьев и ключей: child0, key0, child1, key1, ...
+	panic("TODO: реализуйте InOrder")
+}
