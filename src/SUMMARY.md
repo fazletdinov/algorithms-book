@@ -21,18 +21,24 @@
 - [🔄 Cyclic Sort (Циклическая сортировка)](cyclic-sort.md)
 - [🔍 Modified Binary Search (Модифицированный бинарный поиск)](modified-binary-search.md)
 - [⚙️ Bit Manipulation (Битовые операции)](bit-manipulation.md)
+- [🗂️ Хеш-таблица: устройство и операции](hash-table-structure.md)
 
 ## Группа 3: Структуры данных - списки
 
+- [🔗 Связный список: устройство и операции](linked-list-structure.md)
 - [↩️ Reverse Linked List (Разворот связанного списка)](reverse-linked-list.md)
+- [↔️ Дек (Deque): устройство и операции](deque-structure.md)
 
 ## Группа 4: Структуры данных - деревья
 
+- [🪴 Бинарное дерево поиска (BST): устройство и операции](bst-structure.md)
+- [⚖️ AVL-дерево: балансировка](avl-tree-structure.md)
 - [🌳 Tree BFS (Обход дерева в ширину)](tree-bfs.md)
 - [🌲 Tree DFS (Обход дерева в глубину)](tree-dfs.md)
 
 ## Группа 5: Продвинутые структуры данных
 
+- [⛰️ Бинарная куча (Binary Heap): устройство и операции](heap-structure.md)
 - [🗻 Two Heaps (Две кучи)](two-heaps.md)
 - [🏆 Top K Elements (Топ K элементов)](top-k-elements.md)
 - [🧵 K-way Merge (K-way слияние)](k-way-merge.md)
@@ -42,6 +48,7 @@
 - [🎰 Subsets (Подмножества)](subsets.md)
 - [🧩 Backtracking (Поиск с возвратом)](backtracking.md)
 - [🕸️ Graphs (Обход графов)](graphs.md)
+- [🪢 Union-Find (DSU): устройство и операции](union-find-structure.md)
 - [🗺️ Графы: сетки и кратчайшие пути](grids-and-shortest-paths.md)
 - [🛰️ Графы: продвинутые алгоритмы](advanced-graph-algorithms.md)
 - [🪜 Topological Sort (Топологическая сортировка)](topological-sort.md)
@@ -54,9 +61,14 @@
 ## Группа 8: Строки и структуры данных
 
 - [🔤 Строковые алгоритмы: поиск подстроки](string-algorithms.md)
-- [🌿 Trie (Префиксное дерево)](trie.md)
-- [🌴 Segment Tree (Дерево отрезков)](segment-tree.md)
-- [📏 Fenwick Tree (Дерево Фенвика, BIT)](fenwick-tree.md)
+- [🌿 Trie: устройство и построение](trie-structure.md)
+- [🌿 Trie: разбор задач](trie.md)
+- [🌴 Дерево отрезков: устройство и операции](segment-tree-structure.md)
+- [🌴 Дерево отрезков: разбор задач](segment-tree.md)
+- [📏 Дерево Фенвика (BIT): устройство и операции](fenwick-tree-structure.md)
+- [📏 Дерево Фенвика: разбор задач](fenwick-tree.md)
+- [🔭 Sparse Table: устройство и операции](sparse-table-structure.md)
+- [🗃️ B-дерево: устройство и операции](btree-structure.md)
 
 ## Дополнительные материалы
 

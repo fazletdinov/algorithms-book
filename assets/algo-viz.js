@@ -239,6 +239,133 @@
       "    return prev",
       "}"
     ],
+    "ll-insert": [
+      "func insertAt(head *ListNode, pos, val int) *ListNode {",
+      "    dummy := &ListNode{Next: head}",
+      "    prev := dummy",
+      "    for i := 0; i < pos && prev.Next != nil; i++ {",
+      "        prev = prev.Next         // к узлу перед позицией",
+      "    }",
+      "    node := &ListNode{Val: val}  // создаём узел",
+      "    node.Next = prev.Next        // новый → остаток",
+      "    prev.Next = node             // предыдущий → новый",
+      "    return dummy.Next",
+      "}"
+    ],
+    "ll-search": [
+      "func search(head *ListNode, target int) *ListNode {",
+      "    for node := head; node != nil; node = node.Next {",
+      "        if node.Val == target {",
+      "            return node          // нашли",
+      "        }",
+      "    }",
+      "    return nil                   // не нашли",
+      "}"
+    ],
+    "ll-delete": [
+      "func deleteVal(head *ListNode, target int) *ListNode {",
+      "    dummy := &ListNode{Next: head}",
+      "    prev := dummy",
+      "    for prev.Next != nil {",
+      "        if prev.Next.Val == target {",
+      "            prev.Next = prev.Next.Next  // вырезаем узел",
+      "            break",
+      "        }",
+      "        prev = prev.Next",
+      "    }",
+      "    return dummy.Next",
+      "}"
+    ],
+    "bst-search": [
+      "func (t *BST) Search(val int) bool {",
+      "    node := t.root",
+      "    for node != nil {",
+      "        if val == node.Val {",
+      "            return true          // нашли",
+      "        } else if val < node.Val {",
+      "            node = node.Left     // меньше — влево",
+      "        } else {",
+      "            node = node.Right    // больше — вправо",
+      "        }",
+      "    }",
+      "    return false                 // дошли до nil",
+      "}"
+    ],
+    "bst-insert": [
+      "func (t *BST) Insert(val int) {",
+      "    if t.root == nil { t.root = &Node{Val: val}; return }",
+      "    node, parent := t.root, t.root",
+      "    for node != nil {            // ищем место (лист)",
+      "        parent = node",
+      "        if val < node.Val {",
+      "            node = node.Left",
+      "        } else {",
+      "            node = node.Right",
+      "        }",
+      "    }",
+      "    leaf := &Node{Val: val}      // создаём лист",
+      "    if val < parent.Val {",
+      "        parent.Left = leaf",
+      "    } else {",
+      "        parent.Right = leaf",
+      "    }",
+      "}"
+    ],
+    "bst-delete": [
+      "func (t *BST) Delete(val int) {",
+      "    node, parent := t.root, (*Node)(nil)",
+      "    for node != nil && node.Val != val {        // ищем узел",
+      "        parent = node",
+      "        if val < node.Val { node = node.Left } else { node = node.Right }",
+      "    }",
+      "    if node == nil { return }                   // значения нет",
+      "    if node.Left != nil && node.Right != nil {  // два ребёнка",
+      "        succ, sp := node.Right, node            // min правого поддерева",
+      "        for succ.Left != nil { sp = succ; succ = succ.Left }",
+      "        node.Val = succ.Val                     // копируем значение преемника",
+      "        node, parent = succ, sp                 // теперь удаляем узел преемника",
+      "    }",
+      "    child := node.Left                          // у узла ≤ 1 ребёнка",
+      "    if child == nil { child = node.Right }",
+      "    switch {                                    // отцепляем узел",
+      "    case parent == nil: t.root = child",
+      "    case parent.Left == node: parent.Left = child",
+      "    default: parent.Right = child",
+      "    }",
+      "}"
+    ],
+    "heap-push": [
+      "func (h *Heap) Push(val int) {",
+      "    h.data = append(h.data, val)   // новый лист в конец массива",
+      "    i := len(h.data) - 1",
+      "    for i > 0 {                    // просеивание вверх",
+      "        parent := (i - 1) / 2",
+      "        if h.data[parent] <= h.data[i] {",
+      "            break                  // порядок восстановлен",
+      "        }",
+      "        h.data[i], h.data[parent] = h.data[parent], h.data[i]",
+      "        i = parent",
+      "    }",
+      "}"
+    ],
+    "heap-pop": [
+      "func (h *Heap) Pop() int {",
+      "    min := h.data[0]               // корень — минимум",
+      "    last := len(h.data) - 1",
+      "    h.data[0] = h.data[last]       // последний лист → в корень",
+      "    h.data = h.data[:last]         // отрезаем хвост",
+      "    i, n := 0, len(h.data)",
+      "    for {                          // просеивание вниз",
+      "        l, r, small := 2*i+1, 2*i+2, i",
+      "        if l < n && h.data[l] < h.data[small] { small = l }",
+      "        if r < n && h.data[r] < h.data[small] { small = r }",
+      "        if small == i { break }    // порядок восстановлен",
+      "        h.data[i], h.data[small] = h.data[small], h.data[i]",
+      "        i = small",
+      "    }",
+      "    return min",
+      "}"
+    ],
     "tree-bfs": [
       "func bfs(root *TreeNode) []int {",
       "    if root == nil { return nil }",
@@ -405,6 +532,55 @@
       "    return node.isEnd // путь есть; это слово?",
       "}"
     ],
+    "trie-insert": [
+      "func (t *Trie) Insert(word string) {",
+      "    node := t",
+      "    for i := 0; i < len(word); i++ {",
+      "        c := word[i] - 'a'",
+      "        if node.children[c] == nil {",
+      "            node.children[c] = &Trie{} // создаём узел",
+      "        }",
+      "        node = node.children[c]",
+      "    }",
+      "    node.isEnd = true // конец слова",
+      "}"
+    ],
+    "trie-delete": [
+      "func (t *Trie) Delete(word string) bool {",
+      "    node := t.find(word)              // спускаемся к слову",
+      "    if node == nil || !node.isEnd {",
+      "        return false                  // слова нет",
+      "    }",
+      "    node.isEnd = false                // снимаем флаг конца",
+      "    for i := len(word) - 1; i >= 0; i-- { // обрезаем хвост снизу вверх",
+      "        child := path[i+1]",
+      "        if child.isEnd || child.hasChildren() {",
+      "            break                     // узел ещё нужен — стоп",
+      "        }",
+      "        path[i].children[word[i]] = nil   // удаляем висячий узел",
+      "    }",
+      "    return true",
+      "}"
+    ],
+    "trie-words": [
+      "func (t *Trie) WordsWithPrefix(prefix string) []string {",
+      "    node := t.find(prefix)            // спускаемся к префиксу",
+      "    var out []string",
+      "    var dfs func(n *Trie, cur string)",
+      "    dfs = func(n *Trie, cur string) {",
+      "        if n.isEnd {",
+      "            out = append(out, cur)    // собрали слово",
+      "        }",
+      "        for c := 'a'; c <= 'z'; c++ { // дети по алфавиту",
+      "            if n.children[c] != nil {",
+      "                dfs(n.children[c], cur+string(c))",
+      "            }",
+      "        }",
+      "    }",
+      "    dfs(node, prefix)",
+      "    return out",
+      "}"
+    ],
     "kmp": [
       "func kmpSearch(text, pat string) int {",
       "    lps := buildLPS(pat)",
@@ -432,6 +608,133 @@
       "    return sum",
       "}"
     ],
+    "fenwick-add": [
+      "func (f *Fenwick) Add(i, delta int) {",
+      "    i++                   // в 1-индексацию",
+      "    for i <= f.n {",
+      "        f.tree[i] += delta // зона ответственности узла i",
+      "        i += i & (-i)      // следующий ответственный узел",
+      "    }",
+      "}"
+    ],
+    "union-find-find": [
+      "func (uf *UnionFind) Find(x int) int {",
+      "    root := x",
+      "    for uf.parent[root] != root {  // идём к корню",
+      "        root = uf.parent[root]",
+      "    }",
+      "    for uf.parent[x] != root {     // сжатие пути",
+      "        uf.parent[x], x = root, uf.parent[x]",
+      "    }",
+      "    return root",
+      "}"
+    ],
+    "union-find-union": [
+      "func (uf *UnionFind) Union(x, y int) bool {",
+      "    rx, ry := uf.Find(x), uf.Find(y)",
+      "    if rx == ry {",
+      "        return false           // уже в одном множестве",
+      "    }",
+      "    if uf.size[rx] < uf.size[ry] {",
+      "        rx, ry = ry, rx        // меньшее — под большее",
+      "    }",
+      "    uf.parent[ry] = rx         // подвешиваем",
+      "    uf.size[rx] += uf.size[ry]",
+      "    return true",
+      "}"
+    ],
+    "hash-put": [
+      "func (h *HashMap) Put(key, val int) {",
+      "    i := hash(key) % len(h.buckets)   // в какой бакет",
+      "    for _, e := range h.buckets[i] {  // уже есть такой ключ?",
+      "        if e.key == key {",
+      "            e.val = val               // обновляем на месте",
+      "            return",
+      "        }",
+      "    }",
+      "    h.buckets[i] = append(h.buckets[i], entry{key, val}) // коллизия → в цепочку",
+      "}"
+    ],
+    "hash-get": [
+      "func (h *HashMap) Get(key int) (int, bool) {",
+      "    i := hash(key) % len(h.buckets)   // тот же бакет",
+      "    for _, e := range h.buckets[i] {  // сканируем цепочку",
+      "        if e.key == key {",
+      "            return e.val, true        // нашли",
+      "        }",
+      "    }",
+      "    return 0, false                   // нет в бакете",
+      "}"
+    ],
+    "deque-ops": [
+      "// двусторонняя очередь (deque): вставка/удаление с обоих концов",
+      "func (d *Deque) PushBack(x int)  { d.data = append(d.data, x) }",
+      "func (d *Deque) PushFront(x int) { d.data = append([]int{x}, d.data...) }",
+      "func (d *Deque) PopBack() int    { n := len(d.data)-1; x := d.data[n]; d.data = d.data[:n]; return x }",
+      "func (d *Deque) PopFront() int   { x := d.data[0]; d.data = d.data[1:]; return x }"
+    ],
+    "sparse-build": [
+      "func buildSparse(arr []int) {",
+      "    for i := range arr { table[0][i] = arr[i] }       // строка k=0 = массив",
+      "    for k := 1; (1 << k) <= len(arr); k++ {",
+      "        for i := 0; i+(1<<k) <= len(arr); i++ {",
+      "            table[k][i] = min(table[k-1][i],            // левая половина",
+      "                              table[k-1][i+(1<<(k-1))]) // правая половина",
+      "        }",
+      "    }",
+      "}"
+    ],
+    "sparse-query": [
+      "func query(l, r int) int {           // min на [l, r]",
+      "    k := log2(r - l + 1)             // макс. степень, влезающая в длину",
+      "    return min(table[k][l],          // отрезок [l, l+2^k-1]",
+      "               table[k][r-(1<<k)+1]) // отрезок [r-2^k+1, r] — перекрывает первый",
+      "}"
+    ],
+    "avl-insert": [
+      "func insert(node *Node, val int) *Node {",
+      "    if node == nil { return &Node{val: val, h: 1} }   // вставка листа",
+      "    if val < node.val { node.left = insert(node.left, val) } else { node.right = insert(node.right, val) }",
+      "    update(node)                                       // высота = 1 + max(детей)",
+      "    b := balance(node)                                 // высота левого − правого",
+      "    if b > 1 && balance(node.left) >= 0  { return rotateRight(node) }                                  // LL",
+      "    if b > 1                             { node.left = rotateLeft(node.left); return rotateRight(node) } // LR",
+      "    if b < -1 && balance(node.right) <= 0 { return rotateLeft(node) }                                  // RR",
+      "    if b < -1                            { node.right = rotateRight(node.right); return rotateLeft(node) } // RL",
+      "    return node",
+      "}"
+    ],
+    "btree-insert": [
+      "func (t *BTree) Insert(k int) {",
+      "    if root.full() {                 // корень полон — растим высоту",
+      "        s := &Node{children: []*Node{root}}",
+      "        s.splitChild(0); root = s    // средний ключ поднимается",
+      "    }",
+      "    insertNonFull(root, k)",
+      "}",
+      "func insertNonFull(n *Node, k int) {",
+      "    if n.leaf { n.insertKey(k); return }       // в лист — по порядку",
+      "    i := n.childIndex(k)",
+      "    if n.children[i].full() {        // делим полного ребёнка ДО спуска",
+      "        n.splitChild(i)",
+      "        if k > n.keys[i] { i++ }",
+      "    }",
+      "    insertNonFull(n.children[i], k)",
+      "}"
+    ],
+    "btree-search": [
+      "func (t *BTree) Search(k int) bool {",
+      "    n := t.root",
+      "    for n != nil {",
+      "        i := 0",
+      "        for i < len(n.keys) && k > n.keys[i] { i++ }    // позиция в узле",
+      "        if i < len(n.keys) && k == n.keys[i] { return true } // нашли",
+      "        if n.leaf { return false }                      // лист — больше негде",
+      "        n = n.children[i]                               // спуск к ребёнку",
+      "    }",
+      "    return false",
+      "}"
+    ],
     "segtree-query": [
       "func (t *Seg) Query(node, lo, hi, ql, qr int) int {",
       "    if hi < ql || qr < lo {",
@@ -443,6 +746,27 @@
       "    mid := (lo + hi) / 2",
       "    return t.Query(2*node, lo, mid, ql, qr) +",
       "        t.Query(2*node+1, mid+1, hi, ql, qr)",
+      "}"
+    ],
+    "segtree-build": [
+      "func build(node, lo, hi int) {",
+      "    if lo == hi { tree[node] = arr[lo]; return }   // лист",
+      "    mid := (lo + hi) / 2",
+      "    build(2*node,   lo,    mid)                     // левое поддерево",
+      "    build(2*node+1, mid+1, hi)                      // правое поддерево",
+      "    tree[node] = tree[2*node] + tree[2*node+1]      // узел = сумма детей",
+      "}"
+    ],
+    "segtree-update": [
+      "func update(node, lo, hi, i, val int) {",
+      "    if lo == hi { tree[node] = val; return }        // дошли до листа",
+      "    mid := (lo + hi) / 2",
+      "    if i <= mid {",
+      "        update(2*node, lo, mid, i, val)             // i в левом",
+      "    } else {",
+      "        update(2*node+1, mid+1, hi, i, val)         // i в правом",
+      "    }",
+      "    tree[node] = tree[2*node] + tree[2*node+1]      // пересчёт узла",
       "}"
     ],
     "mst-kruskal": [
@@ -815,6 +1139,425 @@
     push({ line: 6, lo: 0, hi: target, done: true, found: true, range: "[0.." + target + "]", info: "return sum = " + sum + " — PrefixSum(0.." + target + ")" });
     return steps;
   }
+  // Fenwick (BIT): точечное добавление delta — подъём i += i&(-i).
+  function bFenwickAdd(arr, idx, delta) {
+    var steps = [], n = arr.length, i = idx + 1;
+    function push(o) { steps.push({ lo: (o.lo == null ? -1 : o.lo), hi: (o.hi == null ? -1 : o.hi), line: o.line, vars: { i: (o.i == null ? "—" : o.i), range: (o.range || "—"), delta: String(delta) }, info: o.info, done: o.done, found: o.found }); }
+    push({ line: 1, i: i, info: "i = " + idx + " + 1 = " + i + " (внутри BIT 1-индексация)" });
+    var guard = 0;
+    while (i <= n && guard++ < 64) {
+      push({ line: 2, i: i, info: "i = " + i + " ≤ " + n + " — продолжаем подъём по BIT" });
+      var low = i & (-i), lo0 = i - low, hi0 = i - 1;
+      push({ line: 3, lo: lo0, hi: hi0, i: i, range: "[" + lo0 + ".." + hi0 + "]", info: "tree[" + i + "] += " + delta + " — узел отвечает за arr[" + lo0 + ".." + hi0 + "]" });
+      var oldi = i; i += low;
+      push({ line: 4, lo: lo0, hi: hi0, i: i, range: "[" + lo0 + ".." + hi0 + "]", info: "i += i&(−i) = " + oldi + " + " + low + " = " + i + " (следующий ответственный узел)" });
+    }
+    push({ line: 2, i: i, done: true, found: true, info: "i = " + i + " > " + n + " — вышли за пределы, обновление завершено" });
+    return steps;
+  }
+
+  // ===== Union-Find (DSU): Find (сжатие пути) / Union (по размеру) ===========
+  // Лес parent-деревьев: позиции считаем DFS-обходом каждого дерева (x = столбец,
+  // y = глубина), рёбра child→parent (SVG). Снимок parent[] пересобирается каждый шаг,
+  // поэтому видно и подъём к корню, и сжатие пути, и подвешивание при объединении.
+  function ufViz(panel) {
+    var CW = 54, CH = 64, R = 16;
+    var host = mkEl("div", "algo-tp__bst"); panel.appendChild(host);
+    return function (s) {
+      host.innerHTML = "";
+      var parent = s.parent || [], marks = s.marks || {}, n = parent.length;
+      if (!n) { host.appendChild(mkEl("div", "algo-tp__llnil", "∅")); return; }
+      var children = {};
+      for (var a = 0; a < n; a++) { if (parent[a] !== a) { (children[parent[a]] = children[parent[a]] || []).push(a); } }
+      var roots = []; for (var b = 0; b < n; b++) if (parent[b] === b) roots.push(b);
+      var pos = {}, colc = { c: 0 };
+      function dfs(u, depth) {
+        var kids = (children[u] || []).slice().sort(function (p, q) { return p - q; });
+        if (!kids.length) { pos[u] = { x: colc.c++, y: depth }; return; }
+        var xs = []; kids.forEach(function (k) { dfs(k, depth + 1); xs.push(pos[k].x); });
+        pos[u] = { x: (xs[0] + xs[xs.length - 1]) / 2, y: depth };
+      }
+      roots.sort(function (p, q) { return p - q; }).forEach(function (r) { dfs(r, 0); colc.c += 1; });
+      var maxX = 0, maxY = 0; for (var k in pos) { maxX = Math.max(maxX, pos[k].x); maxY = Math.max(maxY, pos[k].y); }
+      var W = (maxX + 1) * CW, H = (maxY + 1) * CH;
+      host.style.position = "relative"; host.style.width = W + "px"; host.style.height = H + "px";
+      function cx(x) { return x * CW + CW / 2; }
+      function cy(y) { return y * CH + 22; }
+      var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__bstsvg");
+      for (var i = 0; i < n; i++) { if (parent[i] !== i) { var c1 = pos[i], c2 = pos[parent[i]]; var ln = document.createElementNS(SVGNS, "line"); ln.setAttribute("x1", cx(c1.x)); ln.setAttribute("y1", cy(c1.y)); ln.setAttribute("x2", cx(c2.x)); ln.setAttribute("y2", cy(c2.y)); ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); } }
+      host.appendChild(svg);
+      for (var j = 0; j < n; j++) { var p = pos[j]; var isRoot = parent[j] === j; var box = mkEl("div", "algo-tp__tnode" + (isRoot ? " algo-tp__tnode--root" : "") + (marks[j] ? " algo-tp__tnode--" + marks[j] : ""), j); box.style.position = "absolute"; box.style.left = (cx(p.x) - R) + "px"; box.style.top = (cy(p.y) - R) + "px"; host.appendChild(box); }
+    };
+  }
+  function bUFFind(parentInit, x) {
+    var parent = parentInit.slice(), steps = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, parent: parent.slice(), marks: o.marks || {}, vars: { node: String(o.node == null ? "—" : o.node), root: (o.root == null ? "—" : String(o.root)) }, info: o.info, done: o.done }); }
+    push({ line: 1, node: x, info: "Find(" + x + "): root := " + x + ", идём к корню по ссылкам parent" });
+    var path = [], cur = x, guard = 0;
+    while (parent[cur] !== cur && guard++ < 64) {
+      var m = {}; m[cur] = "current";
+      push({ line: 3, marks: m, node: cur, info: cur + " → parent = " + parent[cur] + " (не корень, поднимаемся)" });
+      path.push(cur); cur = parent[cur];
+    }
+    var root = cur, mr = {}; mr[root] = "found";
+    push({ line: 2, marks: mr, node: root, root: root, info: "parent[" + root + "] = " + root + " — это корень" });
+    path.forEach(function (u) {
+      parent[u] = root;
+      var mc = {}; mc[u] = "current"; mc[root] = "found";
+      push({ line: 6, marks: mc, node: u, root: root, info: "сжатие пути: parent[" + u + "] = " + root + " (подвешиваем прямо к корню)" });
+    });
+    var mf = {}; mf[root] = "found"; if (x !== root) mf[x] = "current";
+    push({ line: 8, marks: mf, node: root, root: root, done: true, info: "Find(" + x + ") = " + root + "; путь сжат — дерево стало плоским" });
+    return { steps: steps };
+  }
+  function bUFUnion(n, unionList) {
+    var parent = [], size = [], steps = [];
+    for (var i = 0; i < n; i++) { parent[i] = i; size[i] = 1; }
+    function find(z) { while (parent[z] !== z) { parent[z] = parent[parent[z]]; z = parent[z]; } return z; }
+    function push(o) { steps.push({ si: steps.length, line: o.line, parent: parent.slice(), marks: o.marks || {}, vars: { a: (o.a == null ? "—" : String(o.a)), b: (o.b == null ? "—" : String(o.b)), action: (o.action || "—") }, info: o.info, done: o.done }); }
+    push({ line: 0, info: n + " одиночных множеств: parent[i] = i (каждый — сам себе корень)" });
+    unionList.forEach(function (pair) {
+      var a = pair[0], b = pair[1];
+      var ra = find(a), rb = find(b);
+      var mr = {}; mr[a] = "current"; mr[b] = "current"; mr[ra] = "found"; mr[rb] = "found";
+      push({ line: 1, marks: mr, a: ra, b: rb, action: "union", info: "Union(" + a + ", " + b + "): корни find(" + a + ")=" + ra + ", find(" + b + ")=" + rb });
+      if (ra === rb) { var ms = {}; ms[ra] = "found"; push({ line: 3, marks: ms, a: ra, b: rb, action: "уже вместе", info: ra + " == " + rb + " — уже в одном множестве, пропуск" }); return; }
+      if (size[ra] < size[rb]) { var t = ra; ra = rb; rb = t; }
+      parent[rb] = ra; size[ra] += size[rb];
+      var mu = {}; mu[ra] = "found"; mu[rb] = "current";
+      push({ line: 8, marks: mu, a: ra, b: rb, action: "подвешиваем", info: "меньшее дерево (" + rb + ") подвешиваем под большее (" + ra + "); size[" + ra + "] = " + size[ra] });
+    });
+    push({ line: 10, done: true, info: "объединения завершены" });
+    return { steps: steps };
+  }
+
+  // ===== Хеш-таблица (разрешение коллизий цепочками): Put / Get ==============
+  // Массив бакетов, каждый — цепочка записей. hash(key)=key%m. hashViz рисует ряд
+  // бакетов с цепочками; снимок s.buckets пересобирается каждый шаг (видно коллизию
+  // как удлинение цепочки и скан цепочки при поиске).
+  function hashViz(panel) {
+    var host = mkEl("div", "algo-tp__hash"); panel.appendChild(host);
+    return function (s) {
+      host.innerHTML = "";
+      var buckets = s.buckets || [], cur = (s.curBucket == null ? -1 : s.curBucket);
+      buckets.forEach(function (chain, i) {
+        var col = mkEl("div", "algo-tp__hbucket" + (i === cur ? " algo-tp__hbucket--cur" : ""));
+        col.appendChild(mkEl("div", "algo-tp__hidx", i));
+        var chainBox = mkEl("div", "algo-tp__hchain");
+        if (!chain.length) chainBox.appendChild(mkEl("div", "algo-tp__hempty", "∅"));
+        else chain.forEach(function (e) { chainBox.appendChild(mkEl("div", "algo-tp__hentry" + (e.cls ? " algo-tp__tnode--" + e.cls : ""), e.key)); });
+        col.appendChild(chainBox);
+        host.appendChild(col);
+      });
+    };
+  }
+  function hashBuild(keys, m) {
+    var buckets = []; for (var i = 0; i < m; i++) buckets.push([]);
+    keys.forEach(function (k) { buckets[((k % m) + m) % m].push(k); });
+    return buckets;
+  }
+  function bHashPut(keys, m, key) {
+    var buckets = hashBuild(keys, m), steps = [];
+    function snap(curB, marks) { return buckets.map(function (chain, i) { return chain.map(function (k, j) { return { key: k, cls: (marks && marks[i] != null && marks[i][j]) || "" }; }); }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, buckets: o.snap, curBucket: (o.curBucket == null ? -1 : o.curBucket), vars: { i: (o.i == null ? "—" : String(o.i)), key: String(key) }, info: o.info, done: o.done, created: o.created }); }
+    var i = ((key % m) + m) % m;
+    push({ line: 1, snap: snap(i, {}), curBucket: i, i: i, info: "hash(" + key + ") % " + m + " = " + i + " — бакет " + i });
+    var chain = buckets[i], found = -1;
+    for (var j = 0; j < chain.length; j++) {
+      var mk = {}; mk[i] = {}; mk[i][j] = "current";
+      push({ line: 2, snap: snap(i, mk), curBucket: i, i: i, info: "сравниваем с записью " + chain[j] + " в цепочке" });
+      if (chain[j] === key) { found = j; var mf = {}; mf[i] = {}; mf[i][j] = "found"; push({ line: 4, snap: snap(i, mf), curBucket: i, i: i, done: true, info: "ключ " + key + " уже есть — обновили бы значение на месте" }); return { steps: steps }; }
+    }
+    chain.push(key);
+    var mc = {}; mc[i] = {}; mc[i][chain.length - 1] = "created";
+    push({ line: 8, snap: snap(i, mc), curBucket: i, i: i, created: true, done: true, info: (chain.length > 1 ? "коллизия: " : "") + "добавили " + key + " в конец цепочки бакета " + i });
+    return { steps: steps };
+  }
+  function bHashGet(keys, m, key) {
+    var buckets = hashBuild(keys, m), steps = [];
+    function snap(marks) { return buckets.map(function (chain, i) { return chain.map(function (k, j) { return { key: k, cls: (marks && marks[i] != null && marks[i][j]) || "" }; }); }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, buckets: o.snap, curBucket: (o.curBucket == null ? -1 : o.curBucket), vars: { i: (o.i == null ? "—" : String(o.i)), key: String(key) }, info: o.info, done: o.done, found: o.found }); }
+    var i = ((key % m) + m) % m;
+    push({ line: 1, snap: snap({}), curBucket: i, i: i, info: "hash(" + key + ") % " + m + " = " + i + " — ищем в бакете " + i });
+    var chain = buckets[i];
+    for (var j = 0; j < chain.length; j++) {
+      var mk = {}; mk[i] = {}; mk[i][j] = "current";
+      push({ line: 2, snap: snap(mk), curBucket: i, i: i, info: "сравниваем с " + chain[j] + (chain[j] === key ? " — совпало!" : " — мимо") });
+      if (chain[j] === key) { var mf = {}; mf[i] = {}; mf[i][j] = "found"; push({ line: 4, snap: snap(mf), curBucket: i, i: i, done: true, found: true, info: "нашли ключ " + key + " в бакете " + i }); return { steps: steps }; }
+    }
+    push({ line: 7, snap: snap({}), curBucket: i, i: i, done: true, info: "ключа " + key + " нет в бакете " + i + " → return false" });
+    return { steps: steps };
+  }
+
+  // ===== Дек (deque): вставка/удаление с обоих концов =========================
+  // Один виджет проигрывает последовательность операций; dequeViz рисует горизонтальный
+  // ряд с подписями «перёд»/«зад», снимок s.seq пересобирается каждый шаг.
+  function dequeViz(panel) {
+    var host = mkEl("div", "algo-tp__deque"); panel.appendChild(host);
+    return function (s) {
+      host.innerHTML = "";
+      var seq = s.seq || [];
+      host.appendChild(mkEl("div", "algo-tp__dqend", "◀ перёд"));
+      if (!seq.length) host.appendChild(mkEl("div", "algo-tp__llnil", "∅"));
+      else seq.forEach(function (e) { host.appendChild(mkEl("div", "algo-tp__dqcell" + (e.cls ? " algo-tp__tnode--" + e.cls : ""), e.val)); });
+      host.appendChild(mkEl("div", "algo-tp__dqend", "зад ▶"));
+    };
+  }
+  function bDeque(ops) {
+    var dq = [], steps = [];
+    function seqOf(marks) { return dq.map(function (v, i) { return { val: v, cls: (marks && marks[i]) || "" }; }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, seq: o.seq, vars: { op: (o.op || "—"), val: (o.val == null ? "—" : String(o.val)) }, info: o.info, done: o.done }); }
+    push({ line: 0, seq: seqOf({}), op: "старт", info: "дек пуст — применяем операции" });
+    ops.forEach(function (tok) {
+      tok = tok.trim(); if (!tok) return;
+      var c = tok[0];
+      if (c === "b") { var v = parseInt(tok.slice(1), 10); dq.push(v); var m = {}; m[dq.length - 1] = "created"; push({ line: 1, op: "pushBack", val: v, seq: seqOf(m), info: "PushBack(" + v + ") — добавили в конец (зад)" }); }
+      else if (c === "f") { var w = parseInt(tok.slice(1), 10); dq.unshift(w); var mf = {}; mf[0] = "created"; push({ line: 2, op: "pushFront", val: w, seq: seqOf(mf), info: "PushFront(" + w + ") — добавили в начало (перёд)" }); }
+      else if (c === "B") { if (dq.length) { var rb = {}; rb[dq.length - 1] = "removed"; push({ line: 3, op: "popBack", val: dq[dq.length - 1], seq: seqOf(rb), info: "PopBack() → " + dq[dq.length - 1] + " (сняли с конца)" }); dq.pop(); } }
+      else if (c === "F") { if (dq.length) { var rf = {}; rf[0] = "removed"; push({ line: 4, op: "popFront", val: dq[0], seq: seqOf(rf), info: "PopFront() → " + dq[0] + " (сняли с начала)" }); dq.shift(); } }
+    });
+    push({ line: 0, seq: seqOf({}), op: "готово", done: true, info: "итог: [" + dq.join(", ") + "]" });
+    return { steps: steps };
+  }
+
+  // ===== Sparse table (разреженная таблица): Build / Query ===================
+  // Статический range-min: table[k][i] = min на [i, i+2^k-1]. sparseViz рисует
+  // 2D-таблицу (строки k, столбцы i), снимок s.table пересобирается каждый шаг.
+  function sparseDims(n) { var K = 0; while ((1 << (K + 1)) <= n) K++; return K; }
+  function sparseTable(arr) {
+    var n = arr.length, K = sparseDims(n), t = [];
+    for (var k = 0; k <= K; k++) { var row = []; for (var i = 0; i < n; i++) row.push({ v: null, valid: (i + (1 << k) - 1 < n) }); t.push(row); }
+    return { t: t, K: K, n: n };
+  }
+  function sparseViz(panel) {
+    var host = mkEl("div", "algo-tp__sparse"); panel.appendChild(host);
+    return function (s) {
+      host.innerHTML = "";
+      var table = s.table || [], n = (table[0] ? table[0].length : 0);
+      var grid = mkEl("div", "algo-tp__sptable");
+      grid.style.gridTemplateColumns = "auto repeat(" + n + ", minmax(2.2em, 1fr))";
+      grid.appendChild(mkEl("div", "algo-tp__sphead", "k\\i"));
+      for (var i = 0; i < n; i++) grid.appendChild(mkEl("div", "algo-tp__sphead", i));
+      table.forEach(function (row, k) {
+        grid.appendChild(mkEl("div", "algo-tp__sphead", "2^" + k + "=" + (1 << k)));
+        row.forEach(function (cell) {
+          if (!cell.valid) { grid.appendChild(mkEl("div", "algo-tp__spvoid", "")); return; }
+          grid.appendChild(mkEl("div", "algo-tp__spcell" + (cell.cls ? " algo-tp__tnode--" + cell.cls : ""), cell.val == null ? "·" : cell.val));
+        });
+      });
+      host.appendChild(grid);
+    };
+  }
+  function bSparseBuild(arr) {
+    var S = sparseTable(arr), t = S.t, K = S.K, n = S.n, steps = [];
+    function snap(marks) { return t.map(function (row, k) { return row.map(function (cell, i) { return { val: cell.v, valid: cell.valid, cls: (marks && marks[k] != null && marks[k][i]) || "" }; }); }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, table: o.snap, vars: { k: (o.k == null ? "—" : String(o.k)), range: (o.range || "—") }, info: o.info, done: o.done }); }
+    for (var i0 = 0; i0 < n; i0++) t[0][i0].v = arr[i0];
+    var m0 = {}; m0[0] = {}; for (var i1 = 0; i1 < n; i1++) m0[0][i1] = "created";
+    push({ line: 1, snap: snap(m0), k: 0, range: "длина 1", info: "строка k=0 — это сам массив (минимум одного элемента)" });
+    for (var k = 1; k <= K; k++) {
+      var half = 1 << (k - 1);
+      for (var i = 0; i + (1 << k) <= n; i++) {
+        var left = t[k - 1][i].v, right = t[k - 1][i + half].v;
+        t[k][i].v = Math.min(left, right);
+        var m = {}; m[k] = {}; m[k][i] = "created"; m[k - 1] = {}; m[k - 1][i] = "found"; m[k - 1][i + half] = "found";
+        push({ line: 4, snap: snap(m), k: k, range: "[" + i + ".." + (i + (1 << k) - 1) + "]", info: "table[" + k + "][" + i + "] = min([" + i + ".." + (i + half - 1) + "]=" + left + ", [" + (i + half) + ".." + (i + (1 << k) - 1) + "]=" + right + ") = " + t[k][i].v });
+      }
+    }
+    push({ line: 7, snap: snap({}), done: true, info: "таблица построена: table[k][i] = минимум на [i .. i+2^k−1]" });
+    return { steps: steps };
+  }
+  function bSparseQuery(arr, l, r) {
+    var S = sparseTable(arr), t = S.t, K = S.K, n = S.n;
+    for (var i0 = 0; i0 < n; i0++) t[0][i0].v = arr[i0];
+    for (var k0 = 1; k0 <= K; k0++) { var h = 1 << (k0 - 1); for (var i = 0; i + (1 << k0) <= n; i++) { t[k0][i].v = Math.min(t[k0 - 1][i].v, t[k0 - 1][i + h].v); } }
+    function snap(marks) { return t.map(function (row, k) { return row.map(function (cell, i) { return { val: cell.v, valid: cell.valid, cls: (marks && marks[k] != null && marks[k][i]) || "" }; }); }); }
+    var steps = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, table: o.snap, vars: { k: (o.k == null ? "—" : String(o.k)), ans: (o.ans == null ? "—" : String(o.ans)) }, info: o.info, done: o.done, found: o.found }); }
+    var len = r - l + 1, k = 0; while ((1 << (k + 1)) <= len) k++;
+    push({ line: 1, snap: snap({}), k: k, info: "длина [" + l + "," + r + "] = " + len + " → k = ⌊log2(" + len + ")⌋ = " + k + " (2^" + k + "=" + (1 << k) + ")" });
+    var i2 = r - (1 << k) + 1;
+    var m = {}; m[k] = {}; m[k][l] = "found"; m[k][i2] = "found";
+    var a = t[k][l].v, b = t[k][i2].v, ans = Math.min(a, b);
+    push({ line: 2, snap: snap(m), k: k, ans: ans, found: true, done: true, info: "min(table[" + k + "][" + l + "]=" + a + " на [" + l + ".." + (l + (1 << k) - 1) + "], table[" + k + "][" + i2 + "]=" + b + " на [" + i2 + ".." + r + "]) = " + ans + " — два перекрывающихся отрезка длины 2^" + k + " покрывают [" + l + "," + r + "]" });
+    return { steps: steps };
+  }
+
+  // ===== AVL-дерево: вставка с балансировкой (повороты) ======================
+  // Переиспользует bstSnap/bstViz (структурное дерево). Итеративная вставка с
+  // явным стеком предков: после вставки листа поднимаемся, считаем баланс и при
+  // |баланс|>1 делаем поворот (LL/RR/LR/RL), сразу перецепляя поддерево к предку —
+  // поэтому снимок всего дерева на каждом шаге консистентен, и поворот виден.
+  function bAVLInsert(initialVals, val) {
+    var seq = { n: 0 };
+    function mk(v) { return { id: seq.n++, val: v, left: null, right: null, h: 1 }; }
+    function H(n) { return n ? n.h : 0; }
+    function upd(n) { n.h = 1 + Math.max(H(n.left), H(n.right)); }
+    function bal(n) { return n ? H(n.left) - H(n.right) : 0; }
+    function rotR(y) { var x = y.left; y.left = x.right; x.right = y; upd(y); upd(x); return x; }
+    function rotL(x) { var y = x.right; x.right = y.left; y.left = x; upd(x); upd(y); return y; }
+    var root = null;
+    (function () {
+      function ins(n, v) {
+        if (!n) return mk(v);
+        if (v < n.val) n.left = ins(n.left, v); else n.right = ins(n.right, v);
+        upd(n); var b = bal(n);
+        if (b > 1 && bal(n.left) >= 0) return rotR(n);
+        if (b > 1) { n.left = rotL(n.left); return rotR(n); }
+        if (b < -1 && bal(n.right) <= 0) return rotL(n);
+        if (b < -1) { n.right = rotR(n.right); return rotL(n); }
+        return n;
+      }
+      initialVals.forEach(function (v) { root = ins(root, v); });
+    })();
+    var steps = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, vars: { node: (o.node == null ? "—" : String(o.node)), action: (o.action || "—") }, info: o.info, done: o.done, created: o.created }); }
+    push({ line: 0, tree: bstSnap(root, {}), node: (root ? root.val : "—"), action: "старт", info: "вставляем " + val + " как в обычное BST, затем балансируем поворотами" });
+    if (!root) { root = mk(val); var m0 = {}; m0[root.id] = "created"; push({ line: 1, tree: bstSnap(root, m0), node: val, action: "корень", created: true, done: true, info: "дерево было пустым — " + val + " становится корнем" }); return { steps: steps }; }
+    var stack = [], cur = root;
+    while (cur) {
+      stack.push(cur);
+      var m = {}; m[cur.id] = "current";
+      push({ line: 2, tree: bstSnap(root, m), node: cur.val, action: "спуск", info: val + " vs " + cur.val + (val < cur.val ? " — влево" : " — вправо") });
+      if (val < cur.val) { if (!cur.left) break; cur = cur.left; } else { if (!cur.right) break; cur = cur.right; }
+    }
+    var leaf = mk(val), parent = stack[stack.length - 1];
+    if (val < parent.val) parent.left = leaf; else parent.right = leaf;
+    var mc = {}; mc[leaf.id] = "created";
+    push({ line: 1, tree: bstSnap(root, mc), node: val, action: "лист", created: true, info: val + " вставлен листом" });
+    var rotated = false;
+    for (var s = stack.length - 1; s >= 0; s--) {
+      var n = stack[s]; upd(n); var b = bal(n);
+      var mb = {}; mb[n.id] = "current";
+      push({ line: 4, tree: bstSnap(root, mb), node: n.val, action: "баланс", info: "узел " + n.val + ": высота " + n.h + ", баланс = " + b + (Math.abs(b) <= 1 ? " (ок)" : " — ДИСБАЛАНС") });
+      if (Math.abs(b) <= 1) continue;
+      var sub, caseName, ln;
+      if (b > 1) { if (bal(n.left) < 0) { caseName = "LR"; ln = 6; n.left = rotL(n.left); } else { caseName = "LL"; ln = 5; } sub = rotR(n); }
+      else { if (bal(n.right) > 0) { caseName = "RL"; ln = 8; n.right = rotR(n.right); } else { caseName = "RR"; ln = 7; } sub = rotL(n); }
+      var par = stack[s - 1];
+      if (!par) root = sub; else if (par.left === n) par.left = sub; else par.right = sub;
+      var mr = {}; mr[sub.id] = "found";
+      push({ line: ln, tree: bstSnap(root, mr), node: sub.val, action: "поворот " + caseName, info: "случай " + caseName + ": поворот вокруг " + n.val + " → новый корень поддерева " + sub.val + " (высота снова сбалансирована)" });
+      rotated = true; break;
+    }
+    push({ line: 10, tree: bstSnap(root, {}), node: (root ? root.val : "—"), action: "готово", done: true, info: rotated ? "дерево сбалансировано поворотом, высота O(log n)" : "дерево осталось сбалансированным — поворот не понадобился" });
+    return { steps: steps };
+  }
+
+  // ===== B-дерево (минимальная степень t=2, до 3 ключей в узле): Insert/Search
+  // Многопутевое сбалансированное дерево. btreeSnap раскладывает узлы (x по DFS,
+  // глубина), рёбра parent→child. Вставка top-down делит полные узлы заранее.
+  var BT_T = 2, BT_MAX = 2 * BT_T - 1; // max 3 ключа
+  function btreeSilentInsert(rootRef, k, seq) {
+    function splitChild(parent, i) {
+      var child = parent.children[i];
+      var right = { id: seq.n++, keys: child.keys.slice(BT_T), children: child.children.length ? child.children.slice(BT_T) : [] };
+      var mid = child.keys[BT_T - 1];
+      child.keys = child.keys.slice(0, BT_T - 1);
+      if (child.children.length) child.children = child.children.slice(0, BT_T);
+      parent.keys.splice(i, 0, mid); parent.children.splice(i + 1, 0, right);
+    }
+    function insNonFull(n, k) {
+      var i = n.keys.length - 1;
+      if (!n.children.length) { while (i >= 0 && k < n.keys[i]) i--; n.keys.splice(i + 1, 0, k); return; }
+      while (i >= 0 && k < n.keys[i]) i--; i++;
+      if (n.children[i].keys.length === BT_MAX) { splitChild(n, i); if (k > n.keys[i]) i++; }
+      insNonFull(n.children[i], k);
+    }
+    var root = rootRef.root;
+    if (root.keys.length === BT_MAX) { var s = { id: seq.n++, keys: [], children: [root] }; splitChild(s, 0); rootRef.root = s; root = s; }
+    insNonFull(root, k);
+  }
+  function btreeSnap(root, marks) {
+    var list = [], c = { c: 0 };
+    (function rec(n, d) {
+      n._d = d;
+      if (!n.children.length) { n._x = c.c++; }
+      else { var xs = []; n.children.forEach(function (ch) { rec(ch, d + 1); xs.push(ch._x); }); n._x = (xs[0] + xs[xs.length - 1]) / 2; }
+      list.push(n);
+    })(root, 0);
+    var nodes = list.map(function (n) { return { keys: n.keys.slice(), x: n._x, depth: n._d, cls: (marks && marks[n.id]) || "" }; });
+    var edges = []; list.forEach(function (n) { n.children.forEach(function (ch) { edges.push([n._x, n._d, ch._x, ch._d]); }); });
+    return { nodes: nodes, edges: edges };
+  }
+  function btreeViz(panel) {
+    var CW = 78, CH = 76, RH = 16;
+    var host = mkEl("div", "algo-tp__bst"); panel.appendChild(host);
+    return function (s) {
+      host.innerHTML = "";
+      var tr = s.tree || { nodes: [], edges: [] };
+      if (!tr.nodes.length) { host.appendChild(mkEl("div", "algo-tp__llnil", "∅")); return; }
+      var maxX = 0, maxD = 0; tr.nodes.forEach(function (n) { maxX = Math.max(maxX, n.x); maxD = Math.max(maxD, n.depth); });
+      var W = (maxX + 1) * CW, H = (maxD + 1) * CH;
+      host.style.position = "relative"; host.style.width = W + "px"; host.style.height = H + "px";
+      function cx(x) { return x * CW + CW / 2; }
+      function cy(d) { return d * CH + 24; }
+      var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__bstsvg");
+      tr.edges.forEach(function (e) { var ln = document.createElementNS(SVGNS, "line"); ln.setAttribute("x1", cx(e[0])); ln.setAttribute("y1", cy(e[1]) + RH); ln.setAttribute("x2", cx(e[2])); ln.setAttribute("y2", cy(e[3]) - RH); ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); });
+      host.appendChild(svg);
+      tr.nodes.forEach(function (n) {
+        var box = mkEl("div", "algo-tp__btnode" + (n.cls ? " algo-tp__btnode--" + n.cls : ""));
+        n.keys.forEach(function (k) { box.appendChild(mkEl("div", "algo-tp__btkey", k)); });
+        box.style.position = "absolute"; box.style.left = (cx(n.x) - n.keys.length * 13) + "px"; box.style.top = (cy(n.depth) - RH) + "px";
+        host.appendChild(box);
+      });
+    };
+  }
+  function bBTreeInsert(initialKeys, key) {
+    var seq = { n: 0 }, rootRef = { root: { id: seq.n++, keys: [], children: [] } };
+    initialKeys.forEach(function (k) { btreeSilentInsert(rootRef, k, seq); });
+    var root = rootRef.root, steps = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, vars: { node: (o.node || "—"), action: (o.action || "—") }, info: o.info, done: o.done }); }
+    function splitChild(parent, i) {
+      var child = parent.children[i];
+      var right = { id: seq.n++, keys: child.keys.slice(BT_T), children: child.children.length ? child.children.slice(BT_T) : [] };
+      var mid = child.keys[BT_T - 1];
+      child.keys = child.keys.slice(0, BT_T - 1);
+      if (child.children.length) child.children = child.children.slice(0, BT_T);
+      parent.keys.splice(i, 0, mid); parent.children.splice(i + 1, 0, right); return mid;
+    }
+    push({ line: 0, tree: btreeSnap(root, {}), action: "старт", info: "вставляем " + key + "; полный узел (3 ключа) делим заранее, средний ключ — вверх" });
+    if (root.keys.length === BT_MAX) {
+      var s = { id: seq.n++, keys: [], children: [root] }; root = s;
+      var mid = splitChild(s, 0); var m = {}; m[s.id] = "current";
+      push({ line: 3, tree: btreeSnap(root, m), node: String(mid), action: "split корня", info: "корень был полон — новый корень, средний ключ " + mid + " поднялся; высота +1" });
+    }
+    var n = root;
+    while (n.children.length) {
+      var mn = {}; mn[n.id] = "current";
+      push({ line: 9, tree: btreeSnap(root, mn), node: n.keys.join(","), action: "спуск", info: "в узле [" + n.keys.join(",") + "] ищем ребёнка для " + key });
+      var i = n.keys.length - 1; while (i >= 0 && key < n.keys[i]) i--; i++;
+      if (n.children[i].keys.length === BT_MAX) {
+        var mid2 = splitChild(n, i); var ms = {}; ms[n.id] = "found";
+        push({ line: 11, tree: btreeSnap(root, ms), node: String(mid2), action: "split", info: "ребёнок полон — делим, средний ключ " + mid2 + " поднялся в [" + n.keys.join(",") + "]" });
+        if (key > n.keys[i]) i++;
+      }
+      n = n.children[i];
+    }
+    var li = n.keys.length - 1; while (li >= 0 && key < n.keys[li]) li--; n.keys.splice(li + 1, 0, key);
+    var ml = {}; ml[n.id] = "created";
+    push({ line: 8, tree: btreeSnap(root, ml), node: String(key), action: "в лист", info: key + " вставлен в лист [" + n.keys.join(",") + "]" });
+    push({ line: 5, tree: btreeSnap(root, {}), done: true, action: "готово", info: "вставка завершена; все листья на одной глубине" });
+    return { steps: steps };
+  }
+  function bBTreeSearch(keys, key) {
+    var seq = { n: 0 }, rootRef = { root: { id: seq.n++, keys: [], children: [] } };
+    keys.forEach(function (k) { btreeSilentInsert(rootRef, k, seq); });
+    var root = rootRef.root, steps = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, vars: { node: (o.node || "—"), key: String(key) }, info: o.info, done: o.done, found: o.found }); }
+    push({ line: 1, tree: btreeSnap(root, {}), node: (root.keys.join(",") || "∅"), info: "Search(" + key + "): начинаем с корня" });
+    var n = root;
+    while (n) {
+      var i = 0; while (i < n.keys.length && key > n.keys[i]) i++;
+      var m = {}; m[n.id] = "current";
+      push({ line: 4, tree: btreeSnap(root, m), node: n.keys.join(","), info: "в узле [" + n.keys.join(",") + "] ищем позицию для " + key });
+      if (i < n.keys.length && key === n.keys[i]) { var mf = {}; mf[n.id] = "found"; push({ line: 5, tree: btreeSnap(root, mf), node: n.keys.join(","), found: true, done: true, info: key + " найден в узле [" + n.keys.join(",") + "]" }); return { steps: steps }; }
+      if (!n.children.length) { push({ line: 6, tree: btreeSnap(root, m), node: n.keys.join(","), done: true, info: key + " нет: дошли до листа" }); return { steps: steps }; }
+      push({ line: 7, tree: btreeSnap(root, m), node: n.keys.join(","), info: "спускаемся в ребёнка #" + i + " (между ключами)" });
+      n = n.children[i];
+    }
+    return { steps: steps };
+  }
   // Дерево отрезков: запрос суммы на [ql, qr].
   function bSegQuery(arr, ql, qr) {
     var nodes = [];
@@ -872,6 +1615,76 @@
         c.classList.toggle("algo-tp__tnode--current", id === s.cur);
       });
     };
+  }
+
+  // ===== Дерево отрезков: Build / Update =====================================
+  // segViz фиксирует текст узла раз и навсегда (ок для запроса). Для построения и
+  // обновления суммы МЕНЯЮТСЯ по шагам, поэтому segTreeViz перерисовывает дерево по
+  // снимку s.tree на каждом шаге (узлы по уровням, сортировка по lo, как у segViz).
+  function segTreeViz(panel) {
+    var host = mkEl("div", "algo-tp__tree"); panel.appendChild(host);
+    return function (s) {
+      host.innerHTML = "";
+      var nodes = s.tree || [];
+      if (!nodes.length) { host.appendChild(mkEl("div", "algo-tp__llnil", "∅")); return; }
+      var maxD = 0; nodes.forEach(function (n) { maxD = Math.max(maxD, n.depth); });
+      for (var d = 0; d <= maxD; d++) {
+        var row = mkEl("div", "algo-tp__trow");
+        nodes.filter(function (n) { return n.depth === d; }).sort(function (a, b) { return a.lo - b.lo; }).forEach(function (n) {
+          var c = mkEl("div", "algo-tp__tnode algo-tp__tnode--seg" + (n.cls ? " algo-tp__tnode--" + n.cls : ""), (n.sum == null ? "·" : n.sum));
+          c.title = "[" + n.lo + "," + n.hi + "]";
+          row.appendChild(c);
+        });
+        host.appendChild(row);
+      }
+    };
+  }
+  function bSegNodes(arr) {
+    var nodes = [];
+    (function build(lo, hi, depth) {
+      var id = nodes.length; nodes.push({ id: id, lo: lo, hi: hi, sum: null, left: -1, right: -1, depth: depth });
+      if (lo === hi) return id;
+      var mid = (lo + hi) >> 1;
+      nodes[id].left = build(lo, mid, depth + 1); nodes[id].right = build(mid + 1, hi, depth + 1);
+      return id;
+    })(0, arr.length - 1, 0);
+    return nodes;
+  }
+  function bSegBuild(arr) {
+    var nodes = bSegNodes(arr), steps = [];
+    function snap(marks) { return nodes.map(function (n) { return { lo: n.lo, hi: n.hi, sum: n.sum, depth: n.depth, cls: (marks && marks[n.id]) || "" }; }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: snap(o.marks || {}), vars: { node: (o.node || "—"), action: (o.action || "—") }, info: o.info, done: o.done }); }
+    var full = "[0," + (arr.length - 1) + "]";
+    push({ line: 0, tree: snap({}), node: full, action: "строим", info: "строим дерево отрезков снизу вверх (каждый узел = сумма своего диапазона)" });
+    (function fill(id) {
+      var nd = nodes[id], L = "[" + nd.lo + "," + nd.hi + "]";
+      if (nd.lo === nd.hi) { nd.sum = arr[nd.lo]; var m = {}; m[id] = "created"; push({ line: 1, marks: m, node: L, action: "лист", info: L + " — лист: tree = arr[" + nd.lo + "] = " + nd.sum }); return; }
+      fill(nd.left); fill(nd.right);
+      nd.sum = nodes[nd.left].sum + nodes[nd.right].sum;
+      var m2 = {}; m2[id] = "created"; m2[nd.left] = "found"; m2[nd.right] = "found";
+      push({ line: 5, marks: m2, node: L, action: "узел", info: L + " = " + nodes[nd.left].sum + " + " + nodes[nd.right].sum + " = " + nd.sum });
+    })(0);
+    push({ line: 5, tree: snap({}), node: full, action: "готово", done: true, info: "дерево построено; корень = сумма всего массива = " + nodes[0].sum });
+    return { steps: steps };
+  }
+  function bSegUpdate(arr, idx, val) {
+    var nodes = bSegNodes(arr), steps = [];
+    (function fill(id) { var nd = nodes[id]; if (nd.lo === nd.hi) { nd.sum = arr[nd.lo]; return; } fill(nd.left); fill(nd.right); nd.sum = nodes[nd.left].sum + nodes[nd.right].sum; })(0);
+    function snap(marks) { return nodes.map(function (n) { return { lo: n.lo, hi: n.hi, sum: n.sum, depth: n.depth, cls: (marks && marks[n.id]) || "" }; }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: snap(o.marks || {}), vars: { node: (o.node || "—"), action: (o.action || "—") }, info: o.info, done: o.done }); }
+    push({ line: 0, tree: snap({}), node: "[" + idx + "]", action: "старт", info: "обновляем индекс " + idx + " на " + val + " (меняется лист и суммы по пути к корню)" });
+    (function upd(id) {
+      var nd = nodes[id], L = "[" + nd.lo + "," + nd.hi + "]", m = {}; m[id] = "current";
+      if (nd.lo === nd.hi) { nd.sum = val; var ml = {}; ml[id] = "created"; push({ line: 1, marks: ml, node: L, action: "лист", info: L + " — лист: tree = " + val }); return; }
+      var mid = (nd.lo + nd.hi) >> 1;
+      if (idx <= mid) { push({ line: 4, marks: m, node: L, action: "влево", info: idx + " ≤ " + mid + " — спускаемся в левого ребёнка" }); upd(nd.left); }
+      else { push({ line: 6, marks: m, node: L, action: "вправо", info: idx + " > " + mid + " — спускаемся в правого ребёнка" }); upd(nd.right); }
+      nd.sum = nodes[nd.left].sum + nodes[nd.right].sum;
+      var mu = {}; mu[id] = "created"; mu[nd.left] = "found"; mu[nd.right] = "found";
+      push({ line: 8, marks: mu, node: L, action: "пересчёт", info: L + " = " + nodes[nd.left].sum + " + " + nodes[nd.right].sum + " = " + nd.sum });
+    })(0);
+    push({ line: 8, tree: snap({}), node: "[0," + (arr.length - 1) + "]", action: "готово", done: true, info: "индекс " + idx + " обновлён; суммы по пути пересчитаны, корень = " + nodes[0].sum });
+    return { steps: steps };
   }
   // MST (алгоритм Краскала): рёбра add/skip + Union-Find.
   // MST (Краскал) — построчный (debugger) проход; рисует mstViz (рёбра add/skip/cur через
@@ -1451,6 +2264,206 @@
     };
   }
 
+  // Trie: вставка слова — растим дерево, показывая создание vs переиспользование узлов.
+  function bTrieInsert(words, ins) {
+    // Стартовое дерево из уже вставленных слов (createdAt = -1 — существуют изначально).
+    var nodes = [{ ch: "•", depth: 0, end: false, children: {}, createdAt: -1 }];
+    words.forEach(function (w) {
+      var cur = 0;
+      for (var k = 0; k < w.length; k++) {
+        var ch = w[k];
+        if (nodes[cur].children[ch] == null) { var id = nodes.length; nodes.push({ ch: ch, depth: k + 1, end: false, children: {}, createdAt: -1 }); nodes[cur].children[ch] = id; }
+        cur = nodes[cur].children[ch];
+      }
+      nodes[cur].end = true;
+    });
+    var path = [0], steps = [], walkCur = 0, endId = -1, endAt = -1;
+    function push(o) { steps.push({ si: steps.length, upto: path.length - 1, line: o.line, vars: { char: (o.char || "—"), node: (o.node || "—"), action: (o.action || "—") }, info: o.info, created: !!o.created, done: o.done }); }
+    push({ line: 1, node: "корень", action: "старт", info: "node := корень. Вставляем «" + ins + "»" });
+    for (var k = 0; k < ins.length; k++) {
+      var ch = ins[k];
+      push({ line: 2, char: ch, node: nodes[walkCur].ch, action: "цикл", info: "i = " + k + ": символ '" + ch + "'" });
+      push({ line: 3, char: ch, node: nodes[walkCur].ch, action: "символ", info: "c = '" + ch + "'" });
+      var childId = nodes[walkCur].children[ch], has = childId != null;
+      push({ line: 4, char: ch, node: nodes[walkCur].ch, action: has ? "есть" : "нет", info: has ? "у «" + nodes[walkCur].ch + "» уже есть потомок '" + ch + "' — переиспользуем общий префикс" : "у «" + nodes[walkCur].ch + "» нет потомка '" + ch + "'" });
+      if (!has) {
+        var nid = nodes.length;
+        nodes.push({ ch: ch, depth: k + 1, end: false, children: {}, createdAt: steps.length });
+        nodes[walkCur].children[ch] = nid; childId = nid;
+        push({ line: 5, char: ch, node: ch, action: "создаём", created: true, info: "ребра не было — создаём новый узел '" + ch + "'" });
+      }
+      walkCur = childId; path.push(walkCur);
+      push({ line: 7, char: ch, node: nodes[walkCur].ch, action: "спуск", info: "node = children['" + ch + "'] → спускаемся в «" + ch + "»" });
+    }
+    endId = walkCur; endAt = steps.length; nodes[walkCur].end = true;
+    push({ line: 9, node: nodes[walkCur].ch, action: "конец слова", done: true, info: "node.isEnd = true — «" + ins + "» вставлено" });
+    return { nodes: nodes, path: path, steps: steps, endId: endId, endAt: endAt };
+  }
+  function trieInsertViz(panel, ctx) {
+    var nodes = ctx.nodes, path = ctx.path;
+    var maxDepth = nodes.reduce(function (m, n) { return Math.max(m, n.depth); }, 0);
+    var tree = document.createElement("div"); tree.className = "algo-tp__tree";
+    var byId = {};
+    for (var d = 0; d <= maxDepth; d++) {
+      var row = document.createElement("div"); row.className = "algo-tp__trow";
+      nodes.map(function (n, idx) { return { n: n, idx: idx }; }).filter(function (o) { return o.n.depth === d; }).forEach(function (o) {
+        var c = document.createElement("div"); c.className = "algo-tp__tnode"; c.textContent = o.n.ch; row.appendChild(c); byId[o.idx] = c;
+      });
+      tree.appendChild(row);
+    }
+    panel.appendChild(tree);
+    return function (s) {
+      nodes.forEach(function (n, id) {
+        var el = byId[id];
+        var visible = n.createdAt < 0 || n.createdAt <= s.si;
+        el.classList.toggle("algo-tp__tnode--ghost", !visible);
+        var posInPath = path.indexOf(id), visited = posInPath >= 0 && posInPath <= s.upto;
+        el.classList.toggle("algo-tp__tnode--visited", visited && visible);
+        el.classList.toggle("algo-tp__tnode--current", id === path[s.upto]);
+        el.classList.toggle("algo-tp__tnode--created", n.createdAt >= 0 && n.createdAt === s.si);
+        el.classList.toggle("algo-tp__tnode--end", n.end && (id !== ctx.endId || s.si >= ctx.endAt));
+      });
+    };
+  }
+
+  // Trie: удаление слова — снимаем isEnd, затем обрезаем висячие узлы снизу вверх.
+  function bTrieDelete(words, del) {
+    var nodes = [{ ch: "•", depth: 0, end: false, children: {}, removedAt: -1, endUnsetAt: -1 }];
+    words.forEach(function (w) {
+      var cur = 0;
+      for (var k = 0; k < w.length; k++) {
+        var ch = w[k];
+        if (nodes[cur].children[ch] == null) { var id = nodes.length; nodes.push({ ch: ch, depth: k + 1, end: false, children: {}, removedAt: -1, endUnsetAt: -1 }); nodes[cur].children[ch] = id; }
+        cur = nodes[cur].children[ch];
+      }
+      nodes[cur].end = true;
+    });
+    function hasKids(n) { var ch = nodes[n].children; for (var c in ch) { if (ch[c] != null) return true; } return false; }
+    var path = [0], steps = [];
+    function push(o) { steps.push({ si: steps.length, cur: (o.cur == null ? -1 : o.cur), upto: o.upto, line: o.line, vars: { char: (o.char || "—"), node: (o.node || "—"), action: (o.action || "—") }, info: o.info, done: o.done, removed: o.removed }); }
+    push({ line: 1, cur: 0, upto: 0, node: "корень", action: "find", info: "node := find(\"" + del + "\") — спускаемся к слову" });
+    var cur = 0, broke = false;
+    for (var k = 0; k < del.length; k++) {
+      var ch = del[k], nx = nodes[cur].children[ch];
+      if (nx == null) {
+        push({ line: 2, cur: cur, upto: path.length - 1, char: ch, node: nodes[cur].ch, action: "нет", info: "у «" + nodes[cur].ch + "» нет потомка '" + ch + "' — слова нет" });
+        push({ line: 3, cur: cur, upto: path.length - 1, action: "return false", done: true, info: "return false — «" + del + "» в боре нет" });
+        broke = true; break;
+      }
+      cur = nx; path.push(cur);
+      push({ line: 1, cur: cur, upto: path.length - 1, char: ch, node: nodes[cur].ch, action: "спуск", info: "спускаемся в «" + nodes[cur].ch + "»" });
+    }
+    if (broke) return { nodes: nodes, path: path, steps: steps };
+    var endNode = cur;
+    push({ line: 2, cur: endNode, upto: path.length - 1, node: nodes[endNode].ch, action: "проверка", info: nodes[endNode].end ? "node.isEnd == true — слово есть, удаляем" : "node.isEnd == false — это не слово" });
+    if (!nodes[endNode].end) {
+      push({ line: 3, cur: endNode, upto: path.length - 1, action: "return false", done: true, info: "return false — «" + del + "» не было словом" });
+      return { nodes: nodes, path: path, steps: steps };
+    }
+    nodes[endNode].end = false; nodes[endNode].endUnsetAt = steps.length;
+    push({ line: 5, cur: endNode, upto: path.length - 1, node: nodes[endNode].ch, action: "isEnd=false", info: "node.isEnd = false — сняли флаг конца у «" + nodes[endNode].ch + "»" });
+    for (var i = del.length - 1; i >= 0; i--) {
+      var child = path[i + 1];
+      push({ line: 8, cur: child, upto: i + 1, node: nodes[child].ch, action: "проверка", info: "узел «" + nodes[child].ch + "»: isEnd=" + (nodes[child].end ? "да" : "нет") + ", дети=" + (hasKids(child) ? "есть" : "нет") });
+      if (nodes[child].end || hasKids(child)) {
+        push({ line: 9, cur: child, upto: i + 1, node: nodes[child].ch, action: "стоп", info: "«" + nodes[child].ch + "» ещё нужен (конец слова или есть дети) — обрезку прекращаем" });
+        break;
+      }
+      nodes[child].removedAt = steps.length;
+      nodes[path[i]].children[del[i]] = null;
+      push({ line: 11, cur: path[i], upto: i, node: nodes[child].ch, action: "удаляем", removed: true, info: "удаляем висячий узел «" + nodes[child].ch + "»" });
+    }
+    push({ line: 13, cur: 0, upto: 0, action: "return true", done: true, info: "«" + del + "» удалено" });
+    return { nodes: nodes, path: path, steps: steps };
+  }
+  function trieDeleteViz(panel, ctx) {
+    var nodes = ctx.nodes, path = ctx.path;
+    var maxDepth = nodes.reduce(function (m, n) { return Math.max(m, n.depth); }, 0);
+    var tree = document.createElement("div"); tree.className = "algo-tp__tree";
+    var byId = {};
+    for (var d = 0; d <= maxDepth; d++) {
+      var row = document.createElement("div"); row.className = "algo-tp__trow";
+      nodes.map(function (n, idx) { return { n: n, idx: idx }; }).filter(function (o) { return o.n.depth === d; }).forEach(function (o) {
+        var c = document.createElement("div"); c.className = "algo-tp__tnode"; c.textContent = o.n.ch; row.appendChild(c); byId[o.idx] = c;
+      });
+      tree.appendChild(row);
+    }
+    panel.appendChild(tree);
+    return function (s) {
+      nodes.forEach(function (n, id) {
+        var el = byId[id];
+        var flash = n.removedAt >= 0 && s.si === n.removedAt;
+        var gone = n.removedAt >= 0 && s.si > n.removedAt;
+        el.classList.toggle("algo-tp__tnode--ghost", gone);
+        el.classList.toggle("algo-tp__tnode--removed", flash);
+        el.classList.toggle("algo-tp__tnode--current", id === s.cur && !gone);
+        var posInPath = path.indexOf(id), visited = posInPath >= 0 && posInPath <= s.upto;
+        el.classList.toggle("algo-tp__tnode--visited", visited && !gone && !flash && id !== s.cur);
+        var showEnd = n.endUnsetAt >= 0 ? (s.si < n.endUnsetAt) : n.end;
+        el.classList.toggle("algo-tp__tnode--end", showEnd && !gone && !flash);
+      });
+    };
+  }
+
+  // Trie: все слова с префиксом — спускаемся к префиксу, затем DFS собирает слова (a→z).
+  function bTrieWords(words, prefix) {
+    var nodes = [{ ch: "•", depth: 0, end: false, children: {}, visitedAt: -1 }];
+    words.forEach(function (w) {
+      var cur = 0;
+      for (var k = 0; k < w.length; k++) {
+        var ch = w[k];
+        if (nodes[cur].children[ch] == null) { var id = nodes.length; nodes.push({ ch: ch, depth: k + 1, end: false, children: {}, visitedAt: -1 }); nodes[cur].children[ch] = id; }
+        cur = nodes[cur].children[ch];
+      }
+      nodes[cur].end = true;
+    });
+    var steps = [], out = [];
+    function push(o) { steps.push({ si: steps.length, cur: (o.cur == null ? -1 : o.cur), upto: o.upto, line: o.line, vars: { node: (o.node || "—"), word: (o.word || "—"), found: (out.length + "") }, out: out.slice(), info: o.info, done: o.done, collected: o.collected }); }
+    var cur = 0, path = [0], ok = true;
+    push({ line: 1, cur: 0, upto: 0, node: "корень", info: "node := find(\"" + prefix + "\") — спускаемся к префиксу" });
+    for (var k = 0; k < prefix.length; k++) {
+      var ch = prefix[k], nx = nodes[cur].children[ch];
+      if (nx == null) { ok = false; push({ line: 1, cur: cur, upto: path.length - 1, node: nodes[cur].ch, info: "у «" + nodes[cur].ch + "» нет потомка '" + ch + "' — слов с таким префиксом нет" }); break; }
+      cur = nx; path.push(cur);
+      push({ line: 1, cur: cur, upto: path.length - 1, node: nodes[cur].ch, info: "спускаемся в «" + nodes[cur].ch + "»" });
+    }
+    if (!ok) { push({ line: 15, cur: -1, upto: path.length - 1, done: true, info: "return [] — ничего не найдено" }); return { nodes: nodes, path: path, steps: steps }; }
+    (function dfs(n, curStr) {
+      if (nodes[n].visitedAt < 0) nodes[n].visitedAt = steps.length;
+      push({ line: 5, cur: n, upto: path.length - 1, node: nodes[n].ch, word: curStr, info: "в узле «" + nodes[n].ch + "» (путь «" + curStr + "»): это конец слова?" });
+      if (nodes[n].end) { out.push(curStr); push({ line: 6, cur: n, upto: path.length - 1, node: nodes[n].ch, word: curStr, collected: true, info: "isEnd — собрали слово «" + curStr + "»" }); }
+      for (var c = 97; c <= 122; c++) {
+        var chc = String.fromCharCode(c), ci = nodes[n].children[chc];
+        if (ci != null) { push({ line: 10, cur: ci, upto: path.length - 1, node: chc, word: curStr + chc, info: "спускаемся в потомка '" + chc + "'" }); dfs(ci, curStr + chc); }
+      }
+    })(cur, prefix);
+    push({ line: 15, cur: -1, upto: path.length - 1, done: true, info: "return out — найдено слов: " + out.length + " [" + out.join(", ") + "]" });
+    return { nodes: nodes, path: path, steps: steps };
+  }
+  function trieWordsViz(panel, ctx) {
+    var nodes = ctx.nodes;
+    var maxDepth = nodes.reduce(function (m, n) { return Math.max(m, n.depth); }, 0);
+    var tree = document.createElement("div"); tree.className = "algo-tp__tree";
+    var byId = {};
+    for (var d = 0; d <= maxDepth; d++) {
+      var row = document.createElement("div"); row.className = "algo-tp__trow";
+      nodes.map(function (n, idx) { return { n: n, idx: idx }; }).filter(function (o) { return o.n.depth === d; }).forEach(function (o) {
+        var c = document.createElement("div"); c.className = "algo-tp__tnode"; c.textContent = o.n.ch; row.appendChild(c); byId[o.idx] = c;
+      });
+      tree.appendChild(row);
+    }
+    panel.appendChild(tree);
+    return function (s) {
+      nodes.forEach(function (n, id) {
+        var el = byId[id];
+        el.classList.toggle("algo-tp__tnode--visited", n.visitedAt >= 0 && n.visitedAt <= s.si && id !== s.cur);
+        el.classList.toggle("algo-tp__tnode--current", id === s.cur);
+        el.classList.toggle("algo-tp__tnode--created", !!s.collected && id === s.cur);
+        el.classList.toggle("algo-tp__tnode--end", n.end);
+      });
+    };
+  }
+
   // ===== KMP (поиск подстроки) ===============================================
   // KMP — построчный (debugger) проход; образец под текстом рисует kmpViz, lps — панель.
   function bKMP(text, pat) {
@@ -1618,6 +2631,82 @@
     push({ line: 9, curr: -1, done: true, found: true, info: "return prev — новая голова: " + (prev >= 0 ? list[prev] : "nil") });
     return steps;
   }
+
+  // ===== Связный список: CRUD (вставка / поиск / удаление) ===================
+  // Рендер llViz перерисовывает цепочку узлов со стрелками по снимку s.seq на КАЖДОМ
+  // шаге — поэтому вставка добавляет узел, а удаление вырезает его прямо в кадре
+  // (видно перецепление .Next, чего сетка-значений не показывает).
+  function llViz(panel) {
+    var wrap = mkEl("div", "algo-tp__ll");
+    panel.appendChild(wrap);
+    return function (s) {
+      wrap.innerHTML = "";
+      var seq = s.seq || [];
+      if (!seq.length) { wrap.appendChild(mkEl("div", "algo-tp__llnil", "∅ (пустой список)")); return; }
+      seq.forEach(function (node, k) {
+        wrap.appendChild(mkEl("div", "algo-tp__llnode" + (node.cls ? " algo-tp__llnode--" + node.cls : ""), node.val));
+        if (k < seq.length - 1) wrap.appendChild(mkEl("div", "algo-tp__llarrow", "→"));
+      });
+      wrap.appendChild(mkEl("div", "algo-tp__llarrow", "→"));
+      wrap.appendChild(mkEl("div", "algo-tp__llnil", "nil"));
+    };
+  }
+  function bLLInsert(list, val, pos) {
+    var steps = [];
+    function seqOf(a, marks) { return a.map(function (v, i) { return { val: v, cls: (marks && marks[i]) || "" }; }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, seq: o.seq, vars: { node: (o.node || "—"), action: (o.action || "—") }, info: o.info, done: o.done, created: o.created }); }
+    var arr = list.slice(), p = Math.max(0, Math.min(pos, arr.length));
+    push({ line: 1, seq: seqOf(arr, {}), node: "dummy", action: "старт", info: "dummy → голова; вставляем " + val + " в позицию " + p });
+    push({ line: 2, seq: seqOf(arr, {}), node: "dummy", action: "prev=dummy", info: "prev = dummy" });
+    for (var i = 0; i < p; i++) {
+      var m = {}; m[i] = "cur";
+      push({ line: 3, seq: seqOf(arr, m), node: String(arr[i]), action: "проверка", info: "i=" + i + " < " + p + " — идём к узлу перед позицией" });
+      push({ line: 4, seq: seqOf(arr, m), node: String(arr[i]), action: "prev=prev.Next", info: "prev = " + arr[i] });
+    }
+    var ins = arr.slice(0, p).concat([val]).concat(arr.slice(p)), mc = {}; mc[p] = "created";
+    push({ line: 6, seq: seqOf(ins, mc), node: String(val), action: "создаём", created: true, info: "node := &ListNode{Val: " + val + "} — создаём узел" });
+    push({ line: 7, seq: seqOf(ins, mc), node: String(val), action: "node.Next=prev.Next", info: "новый узел " + val + " указывает на остаток списка" });
+    push({ line: 8, seq: seqOf(ins, mc), node: String(val), action: "prev.Next=node", info: "предыдущий узел указывает на новый " + val });
+    push({ line: 9, seq: seqOf(ins, {}), action: "return", done: true, info: "готово: " + ins.join("→") });
+    return { steps: steps };
+  }
+  function bLLSearch(list, target) {
+    var steps = [];
+    function seqOf(marks) { return list.map(function (v, i) { return { val: v, cls: (marks && marks[i]) || "" }; }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, seq: o.seq, vars: { node: (o.node || "—"), target: String(target) }, info: o.info, done: o.done, found: o.found }); }
+    if (!list.length) { push({ line: 6, seq: [], done: true, info: "список пуст — return nil" }); return { steps: steps }; }
+    for (var i = 0; i < list.length; i++) {
+      var m = {}; m[i] = "cur";
+      push({ line: 1, seq: seqOf(m), node: String(list[i]), info: "node = " + list[i] });
+      push({ line: 2, seq: seqOf(m), node: String(list[i]), info: list[i] === target ? list[i] + " == " + target + " — нашли!" : list[i] + " ≠ " + target + " — идём дальше" });
+      if (list[i] === target) { var mf = {}; mf[i] = "found"; push({ line: 3, seq: seqOf(mf), node: String(list[i]), done: true, found: true, info: "return node — " + target + " найден на позиции " + i }); return { steps: steps }; }
+    }
+    push({ line: 6, seq: seqOf({}), done: true, info: "return nil — " + target + " в списке нет" });
+    return { steps: steps };
+  }
+  function bLLDelete(list, target) {
+    var steps = [], arr = list.slice();
+    function seqOf(a, marks) { return a.map(function (v, i) { return { val: v, cls: (marks && marks[i]) || "" }; }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, seq: o.seq, vars: { node: (o.node || "—"), target: String(target) }, info: o.info, done: o.done, removed: o.removed }); }
+    push({ line: 1, seq: seqOf(arr, {}), node: "dummy", info: "dummy → голова" });
+    push({ line: 2, seq: seqOf(arr, {}), node: "dummy", info: "prev = dummy" });
+    for (var i = 0; i < arr.length; i++) {
+      var mc = {}; mc[i] = "cur";
+      push({ line: 3, seq: seqOf(arr, mc), node: String(arr[i]), info: "prev.Next = " + arr[i] + " ≠ nil — продолжаем" });
+      push({ line: 4, seq: seqOf(arr, mc), node: String(arr[i]), info: arr[i] === target ? arr[i] + " == " + target + " — это он" : arr[i] + " ≠ " + target + " — идём дальше" });
+      if (arr[i] === target) {
+        var mr = {}; mr[i] = "removed";
+        push({ line: 5, seq: seqOf(arr, mr), node: String(arr[i]), removed: true, info: "prev.Next = prev.Next.Next — вырезаем узел " + arr[i] });
+        var after = arr.slice(0, i).concat(arr.slice(i + 1));
+        push({ line: 6, seq: seqOf(after, {}), node: String(arr[i]), info: "break — узел вырезан" });
+        push({ line: 10, seq: seqOf(after, {}), done: true, info: "return — список: " + (after.length ? after.join("→") : "∅") });
+        return { steps: steps };
+      }
+      push({ line: 8, seq: seqOf(arr, mc), node: String(arr[i]), info: "prev = prev.Next" });
+    }
+    push({ line: 10, seq: seqOf(arr, {}), done: true, info: "return — " + target + " не найден, список без изменений" });
+    return { steps: steps };
+  }
   // Обход дерева (BFS уровнями или DFS preorder). Возвращает ctx с present/order/steps.
   // Обход дерева — построчный (debugger) проход. BFS — с очередью, DFS — с рекурсивным
   // стеком вызовов (обе структуры показаны панелью). treeViz красит узлы (upto/nodeIdx).
@@ -1697,6 +2786,220 @@
         byIdx[i].classList.toggle("algo-tp__tnode--current", i === s.nodeIdx);
       });
     };
+  }
+
+  // ===== Бинарное дерево поиска (BST): CRUD ==================================
+  // Структурный BST (узлы с left/right) + раскладка по (глубина, in-order ранг)
+  // и SVG-рёбра. Снимок дерева s.tree пересобирается на каждом шаге, поэтому
+  // вставка/удаление (включая случай двух детей с преемником) видны прямо в кадре.
+  function bstBuild(vals) {
+    var seq = { n: 0 };
+    function mk(v) { return { id: seq.n++, val: v, left: null, right: null }; }
+    var root = null;
+    function ins(v) {
+      if (!root) { root = mk(v); return; }
+      var node = root;
+      while (true) {
+        if (v < node.val) { if (!node.left) { node.left = mk(v); return; } node = node.left; }
+        else { if (!node.right) { node.right = mk(v); return; } node = node.right; }
+      }
+    }
+    vals.forEach(ins);
+    return { root: root, mk: mk };
+  }
+  function bstSnap(root, marks) {
+    var list = [], rank = { n: 0 };
+    (function rec(n, d) { if (!n) return; rec(n.left, d + 1); n._r = rank.n++; n._d = d; list.push(n); rec(n.right, d + 1); })(root, 0);
+    var nodes = list.map(function (n) { return { val: n.val, rank: n._r, depth: n._d, cls: (marks && marks[n.id]) || "" }; });
+    var edges = [];
+    list.forEach(function (n) { if (n.left) edges.push([n._r, n._d, n.left._r, n.left._d]); if (n.right) edges.push([n._r, n._d, n.right._r, n.right._d]); });
+    return { nodes: nodes, edges: edges };
+  }
+  function bstViz(panel) {
+    var CW = 48, CH = 66, R = 15;
+    var host = mkEl("div", "algo-tp__bst"); panel.appendChild(host);
+    return function (s) {
+      host.innerHTML = "";
+      var tr = s.tree || { nodes: [], edges: [] };
+      if (!tr.nodes.length) { host.appendChild(mkEl("div", "algo-tp__llnil", "∅ (пустое дерево)")); return; }
+      var maxR = 0, maxD = 0;
+      tr.nodes.forEach(function (n) { maxR = Math.max(maxR, n.rank); maxD = Math.max(maxD, n.depth); });
+      var W = (maxR + 1) * CW, H = (maxD + 1) * CH;
+      host.style.position = "relative"; host.style.width = W + "px"; host.style.height = H + "px";
+      function cx(r) { return r * CW + CW / 2; }
+      function cy(d) { return d * CH + 22; }
+      var svg = document.createElementNS(SVGNS, "svg");
+      svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__bstsvg");
+      tr.edges.forEach(function (e) {
+        var ln = document.createElementNS(SVGNS, "line");
+        ln.setAttribute("x1", cx(e[0])); ln.setAttribute("y1", cy(e[1]));
+        ln.setAttribute("x2", cx(e[2])); ln.setAttribute("y2", cy(e[3]));
+        ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln);
+      });
+      host.appendChild(svg);
+      tr.nodes.forEach(function (n) {
+        var b = mkEl("div", "algo-tp__tnode" + (n.cls ? " algo-tp__tnode--" + n.cls : ""), n.val);
+        b.style.position = "absolute"; b.style.left = (cx(n.rank) - R) + "px"; b.style.top = (cy(n.depth) - R) + "px";
+        host.appendChild(b);
+      });
+    };
+  }
+  function bBSTSearch(vals, target) {
+    var b = bstBuild(vals), root = b.root, steps = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, vars: { node: (o.node == null ? "—" : String(o.node)), target: String(target) }, info: o.info, done: o.done, found: o.found }); }
+    var node = root;
+    push({ line: 1, tree: bstSnap(root, {}), node: (root ? root.val : null), info: "node := корень" });
+    while (node) {
+      var m = {}; m[node.id] = "current";
+      push({ line: 2, tree: bstSnap(root, m), node: node.val, info: "node = " + node.val + " ≠ nil" });
+      push({ line: 3, tree: bstSnap(root, m), node: node.val, info: target + " vs " + node.val });
+      if (target === node.val) { var mf = {}; mf[node.id] = "found"; push({ line: 4, tree: bstSnap(root, mf), node: node.val, done: true, found: true, info: target + " == " + node.val + " — найдено ✓" }); return { steps: steps }; }
+      if (target < node.val) { push({ line: 6, tree: bstSnap(root, m), node: node.val, info: target + " < " + node.val + " — идём влево" }); node = node.left; }
+      else { push({ line: 8, tree: bstSnap(root, m), node: node.val, info: target + " > " + node.val + " — идём вправо" }); node = node.right; }
+    }
+    push({ line: 11, tree: bstSnap(root, {}), node: null, done: true, info: "node == nil — " + target + " в дереве нет" });
+    return { steps: steps };
+  }
+  function bBSTInsert(vals, val) {
+    var b = bstBuild(vals), root = b.root, steps = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, vars: { node: (o.node == null ? "—" : String(o.node)), action: (o.action || "—") }, info: o.info, done: o.done, created: o.created }); }
+    if (!root) { root = b.mk(val); var m0 = {}; m0[root.id] = "created"; push({ line: 1, tree: bstSnap(root, m0), node: val, action: "корень", created: true, done: true, info: "дерево было пустым — " + val + " становится корнем" }); return { steps: steps }; }
+    var node = root, parent = root;
+    push({ line: 2, tree: bstSnap(root, {}), node: root.val, action: "старт", info: "ищем место (лист) для " + val });
+    while (node) {
+      parent = node;
+      var m = {}; m[node.id] = "current";
+      push({ line: 5, tree: bstSnap(root, m), node: node.val, action: "сравнение", info: val + " vs " + node.val });
+      if (val < node.val) { push({ line: 6, tree: bstSnap(root, m), node: node.val, action: "влево", info: val + " < " + node.val + " — влево" }); node = node.left; }
+      else { push({ line: 8, tree: bstSnap(root, m), node: node.val, action: "вправо", info: val + " ≥ " + node.val + " — вправо" }); node = node.right; }
+    }
+    var leaf = b.mk(val), left = val < parent.val;
+    if (left) parent.left = leaf; else parent.right = leaf;
+    var mc = {}; mc[leaf.id] = "created";
+    push({ line: 11, tree: bstSnap(root, mc), node: val, action: "создаём", created: true, info: "место найдено — создаём лист " + val });
+    push({ line: (left ? 13 : 15), tree: bstSnap(root, mc), node: val, action: "подцепляем", done: true, info: val + " подцеплен " + (left ? "слева" : "справа") + " от " + parent.val });
+    return { steps: steps };
+  }
+  function bBSTDelete(vals, target) {
+    var b = bstBuild(vals), root = b.root, steps = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, vars: { node: (o.node == null ? "—" : String(o.node)), action: (o.action || "—") }, info: o.info, done: o.done, removed: o.removed }); }
+    var node = root, parent = null;
+    push({ line: 1, tree: bstSnap(root, {}), node: (root ? root.val : null), action: "старт", info: "ищем узел " + target });
+    while (node && node.val !== target) {
+      parent = node;
+      var m = {}; m[node.id] = "current";
+      push({ line: 2, tree: bstSnap(root, m), node: node.val, action: "поиск", info: target + " vs " + node.val });
+      push({ line: 4, tree: bstSnap(root, m), node: node.val, action: (target < node.val ? "влево" : "вправо"), info: target < node.val ? target + " < " + node.val + " — влево" : target + " > " + node.val + " — вправо" });
+      node = target < node.val ? node.left : node.right;
+    }
+    if (!node) { push({ line: 6, tree: bstSnap(root, {}), node: null, done: true, info: target + " в дереве нет" }); return { steps: steps }; }
+    var mfound = {}; mfound[node.id] = "current";
+    push({ line: 6, tree: bstSnap(root, mfound), node: node.val, action: "нашли", info: "нашли узел " + node.val });
+    if (node.left && node.right) {
+      push({ line: 7, tree: bstSnap(root, mfound), node: node.val, action: "два ребёнка", info: "у " + node.val + " два ребёнка — ищем преемника (min правого поддерева)" });
+      var succ = node.right, sp = node;
+      var ms = {}; ms[node.id] = "current"; ms[succ.id] = "found";
+      push({ line: 8, tree: bstSnap(root, ms), node: succ.val, action: "преемник", info: "преемник = правый ребёнок " + succ.val + ", дальше влево до упора" });
+      while (succ.left) { sp = succ; succ = succ.left; var ml = {}; ml[node.id] = "current"; ml[succ.id] = "found"; push({ line: 9, tree: bstSnap(root, ml), node: succ.val, action: "влево", info: "идём влево к минимуму: " + succ.val }); }
+      node.val = succ.val;
+      var mco = {}; mco[node.id] = "created";
+      push({ line: 10, tree: bstSnap(root, mco), node: node.val, action: "копируем", info: "копируем значение преемника " + succ.val + " в удаляемый узел (теперь его дубликат-преемник надо убрать)" });
+      node = succ; parent = sp;
+    }
+    var child = node.left || node.right || null;
+    var mr = {}; mr[node.id] = "removed";
+    push({ line: 13, tree: bstSnap(root, mr), node: node.val, removed: true, action: "отцепляем", info: "отцепляем узел " + node.val + (child ? " — на его место встаёт " + child.val : " (лист)") });
+    if (!parent) root = child;
+    else if (parent.left === node) parent.left = child;
+    else parent.right = child;
+    push({ line: (!parent ? 16 : (parent && parent.left === child ? 17 : 18)), tree: bstSnap(root, {}), node: (root ? root.val : "—"), action: "готово", done: true, info: "узел удалён" });
+    return { steps: steps };
+  }
+
+  // ===== Бинарная куча (min-heap): Push / Pop ================================
+  // Куча — ПОЛНОЕ дерево, поэтому массив-индексная раскладка точна (i → дети 2i+1/2i+2).
+  // heapViz рисует и дерево (с рёбрами), и строку массива — видно соответствие индексов.
+  function heapPos(i) {
+    var d = Math.floor(Math.log(i + 1) / Math.LN2);
+    var posInLvl = i - (Math.pow(2, d) - 1), cnt = Math.pow(2, d);
+    return { d: d, frac: (posInLvl + 0.5) / cnt };
+  }
+  function heapViz(panel) {
+    var CW = 50, CH = 64, R = 15;
+    var host = mkEl("div", "algo-tp__heap"); panel.appendChild(host);
+    var treeBox = mkEl("div", "algo-tp__heaptree"); host.appendChild(treeBox);
+    var arrBox = mkEl("div", "algo-tp__heaparr"); host.appendChild(arrBox);
+    return function (s) {
+      treeBox.innerHTML = ""; arrBox.innerHTML = "";
+      var h = s.heap || [], marks = s.marks || {};
+      if (h.length) {
+        var maxD = Math.floor(Math.log(h.length) / Math.LN2);
+        var W = Math.max(2, Math.pow(2, maxD)) * CW, H = (maxD + 1) * CH;
+        treeBox.style.position = "relative"; treeBox.style.width = W + "px"; treeBox.style.height = H + "px";
+        function xy(i) { var p = heapPos(i); return [p.frac * W, p.d * CH + 22]; }
+        var svg = document.createElementNS(SVGNS, "svg");
+        svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__bstsvg");
+        for (var i = 0; i < h.length; i++) {
+          [2 * i + 1, 2 * i + 2].forEach(function (c) {
+            if (c < h.length) { var a = xy(i), b = xy(c); var ln = document.createElementNS(SVGNS, "line"); ln.setAttribute("x1", a[0]); ln.setAttribute("y1", a[1]); ln.setAttribute("x2", b[0]); ln.setAttribute("y2", b[1]); ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); }
+          });
+        }
+        treeBox.appendChild(svg);
+        for (var j = 0; j < h.length; j++) { var p2 = xy(j); var nb = mkEl("div", "algo-tp__tnode" + (marks[j] ? " algo-tp__tnode--" + marks[j] : ""), h[j]); nb.style.position = "absolute"; nb.style.left = (p2[0] - R) + "px"; nb.style.top = (p2[1] - R) + "px"; treeBox.appendChild(nb); }
+      } else { treeBox.appendChild(mkEl("div", "algo-tp__llnil", "∅ (пустая куча)")); }
+      arrBox.appendChild(mkEl("div", "algo-tp__heaparrlab", "массив:"));
+      h.forEach(function (v, k) { arrBox.appendChild(mkEl("div", "algo-tp__heapcell" + (marks[k] ? " algo-tp__tnode--" + marks[k] : ""), v)); });
+    };
+  }
+  function bHeapPush(initial, val) {
+    var h = initial.slice(), steps = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, heap: h.slice(), marks: o.marks || {}, vars: { i: (o.i == null ? "—" : String(o.i)), action: (o.action || "—") }, info: o.info, done: o.done, created: o.created }); }
+    h.push(val);
+    var i = h.length - 1, mk0 = {}; mk0[i] = "created";
+    push({ line: 1, marks: mk0, i: i, action: "append", created: true, info: "добавили " + val + " новым листом в конец (индекс " + i + ")" });
+    push({ line: 2, marks: (function () { var m = {}; m[i] = "current"; return m; })(), i: i, action: "i", info: "i = " + i });
+    while (i > 0) {
+      var parent = (i - 1) >> 1;
+      var mc = {}; mc[i] = "current"; mc[parent] = "found";
+      push({ line: 4, marks: mc, i: i, action: "родитель", info: "родитель i — индекс " + parent + " (значение " + h[parent] + ")" });
+      push({ line: 5, marks: mc, i: i, action: "сравнение", info: h[parent] + " ≤ " + h[i] + "? " + (h[parent] <= h[i] ? "да — куча восстановлена" : "нет — нужен swap вверх") });
+      if (h[parent] <= h[i]) { push({ line: 6, marks: mc, i: i, action: "стоп", info: "порядок восстановлен — выходим" }); break; }
+      var t = h[i]; h[i] = h[parent]; h[parent] = t;
+      var ms = {}; ms[i] = "found"; ms[parent] = "current";
+      push({ line: 8, marks: ms, i: parent, action: "swap↑", info: "меняем местами с родителем: " + h[parent] + " поднимается" });
+      i = parent;
+    }
+    push({ line: 10, marks: {}, i: i, action: "готово", done: true, info: "куча: [" + h.join(", ") + "]" });
+    return { steps: steps };
+  }
+  function bHeapPop(initial) {
+    var h = initial.slice(), steps = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, heap: h.slice(), marks: o.marks || {}, vars: { i: (o.i == null ? "—" : String(o.i)), action: (o.action || "—") }, info: o.info, done: o.done, removed: o.removed }); }
+    if (!h.length) { push({ line: 1, marks: {}, done: true, info: "куча пуста" }); return { steps: steps }; }
+    var min = h[0], mr = {}; mr[0] = "removed";
+    push({ line: 1, marks: mr, i: 0, action: "min", removed: true, info: "корень " + min + " — минимум, его и извлекаем" });
+    var last = h.length - 1;
+    if (last === 0) { h.pop(); push({ line: 14, marks: {}, action: "готово", done: true, info: "куча опустела, вернули " + min }); return { steps: steps }; }
+    h[0] = h[last];
+    var ml = {}; ml[0] = "current";
+    push({ line: 3, marks: ml, i: 0, action: "последний→корень", info: "последний лист " + h[0] + " переносим в корень" });
+    h.pop();
+    push({ line: 4, marks: ml, i: 0, action: "отрезали хвост", info: "отрезали хвост — массив: [" + h.join(", ") + "]" });
+    var i = 0, n = h.length;
+    while (true) {
+      var l = 2 * i + 1, r = 2 * i + 2, small = i;
+      var mc = {}; mc[i] = "current"; if (l < n) mc[l] = "found"; if (r < n) mc[r] = "found";
+      push({ line: 7, marks: mc, i: i, action: "дети", info: "сравниваем " + h[i] + " с детьми" + (l < n ? " " + h[l] : "") + (r < n ? ", " + h[r] : "") });
+      if (l < n && h[l] < h[small]) small = l;
+      if (r < n && h[r] < h[small]) small = r;
+      if (small === i) { push({ line: 10, marks: mc, i: i, action: "стоп", info: "узел не больше детей — порядок восстановлен" }); break; }
+      var t = h[i]; h[i] = h[small]; h[small] = t;
+      var ms = {}; ms[i] = "found"; ms[small] = "current";
+      push({ line: 11, marks: ms, i: small, action: "swap↓", info: "меньший ребёнок " + h[i] + " поднимается, " + h[small] + " опускается" });
+      i = small;
+    }
+    push({ line: 14, marks: {}, i: i, action: "готово", done: true, info: "вернули " + min + "; куча: [" + h.join(", ") + "]" });
+    return { steps: steps };
   }
 
   // Подписанный ряд ячеек для multi-collection visualizations.
@@ -2436,6 +3739,174 @@
       varsOf: function (s) { return { prev: s.vars.prev, curr: s.vars.curr, next: s.vars.next }; }
     },
 
+    "ll-insert": {
+      badge: "Linked List", desc: "Вставка узла: доходим до позиции, создаём узел и перецепляем два указателя.",
+      valuesLabel: "", codeKey: "ll-insert", fillRange: false,
+      complexity: { time: "O(n)", space: "O(1)", good: "★ Вставки по ссылке" },
+      varOrder: ["node", "action"],
+      varDesc: { "node": "Узел перед позицией / новый", "action": "Что делаем на шаге" },
+      lineNotes: { 1: "Фиктивная голова (dummy) — чтобы вставка в начало не была спецслучаем", 2: "prev стартует с dummy", 3: "Идём до узла перед нужной позицией", 4: "Сдвигаем prev вперёд", 6: "Создаём новый узел", 7: "Новый узел указывает на остаток (сначала сохрани то, что перезапишешь)", 8: "Предыдущий узел указывает на новый — узел вставлен", 9: "Возвращаем голову (dummy.Next)" },
+      rules: [{ head: "Дошли до позиции", body: "→ создаём узел", cls: "lt" }, { head: "node.Next = prev.Next", body: "новый → остаток", cls: "eq" }, { head: "prev.Next = node", body: "предыдущий → новый", cls: "gt" }],
+      parse: function (root) { var list = nums(root.getAttribute("data-list")); var val = parseInt(root.getAttribute("data-val"), 10); var pos = parseInt(root.getAttribute("data-pos") || "0", 10); var r = bLLInsert(list, val, pos); return { list: list, val: val, pos: pos, steps: r.steps }; },
+      inputs: [{ attr: "data-list", label: "Список" }, { attr: "data-val", label: "значение" }, { attr: "data-pos", label: "позиция" }],
+      values: function () { return []; },
+      title: function (ctx) { return "Список: вставка " + ctx.val + " в позицию " + ctx.pos; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Узел", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: s.created ? "gt" : "lt" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Узел " + ctx.val + " вставлен", text: s.info }; if (s.created) return { kind: "info", icon: idx + 1, head: "Узел создан", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "", c: "✓", cls: "eq" }; if (s.created) return { a: "узел «" + s.vars.node + "»", b: "создан", c: "+", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: s.vars.action, c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
+      customViz: llViz
+    },
+
+    "ll-search": {
+      badge: "Linked List", desc: "Поиск значения: идём по ссылкам от головы, сравнивая Val с целью.",
+      valuesLabel: "", codeKey: "ll-search", fillRange: false,
+      complexity: { time: "O(n)", space: "O(1)", good: "★ Линейный поиск" },
+      varOrder: ["node", "target"],
+      varDesc: { "node": "Текущий узел", "target": "Искомое значение" },
+      lineNotes: { 1: "Идём по списку от головы, пока узел не nil", 2: "Сравниваем значение узла с целью", 3: "Совпало — возвращаем узел", 6: "Дошли до конца — значения нет" },
+      rules: [{ head: "node.Val == target", body: "→ нашли", cls: "eq" }, { head: "node.Val ≠ target", body: "→ node = node.Next", cls: "lt" }, { head: "node == nil", body: "→ нет в списке", cls: "gt" }],
+      parse: function (root) { var list = nums(root.getAttribute("data-list")); var target = parseInt(root.getAttribute("data-target"), 10); var r = bLLSearch(list, target); return { list: list, target: target, steps: r.steps }; },
+      inputs: [{ attr: "data-list", label: "Список" }, { attr: "data-target", label: "искомое" }],
+      values: function () { return []; },
+      title: function (ctx) { return "Список: поиск " + ctx.target; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущий узел", "Цель"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.target, cls: "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.found) return { kind: "ok", icon: "✓", head: ctx.target + " найден", text: s.info }; if (s.done) return { kind: "end", icon: idx + 1, head: ctx.target + " не найден", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.found) return { a: "найдено", b: s.vars.node, c: "✓", cls: "eq" }; if (s.done) return { a: "не найдено", b: "", c: "✗", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: "vs " + s.vars.target, c: "↓", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "target": s.vars.target }; },
+      customViz: llViz
+    },
+
+    "ll-delete": {
+      badge: "Linked List", desc: "Удаление по значению: доходим до узла перед целью и перецепляем prev.Next через него.",
+      valuesLabel: "", codeKey: "ll-delete", fillRange: false,
+      complexity: { time: "O(n)", space: "O(1)", good: "★ Удаления по ссылке" },
+      varOrder: ["node", "target"],
+      varDesc: { "node": "Проверяемый узел (prev.Next)", "target": "Удаляемое значение" },
+      lineNotes: { 1: "Фиктивная голова — чтобы удаление головы не было спецслучаем", 2: "prev стартует с dummy", 3: "Пока есть следующий узел", 4: "Это удаляемое значение?", 5: "Да — перецепляем prev.Next через узел (узел выпадает из цепочки)", 6: "Выходим из цикла", 8: "Нет — сдвигаем prev вперёд", 10: "Возвращаем голову (dummy.Next)" },
+      rules: [{ head: "prev.Next.Val == target", body: "→ вырезаем", cls: "gt" }, { head: "prev.Next.Val ≠ target", body: "→ prev = prev.Next", cls: "lt" }, { head: "prev.Next = prev.Next.Next", body: "узел выпал", cls: "eq" }],
+      parse: function (root) { var list = nums(root.getAttribute("data-list")); var target = parseInt(root.getAttribute("data-target"), 10); var r = bLLDelete(list, target); return { list: list, target: target, steps: r.steps }; },
+      inputs: [{ attr: "data-list", label: "Список" }, { attr: "data-target", label: "удаляем" }],
+      values: function () { return []; },
+      title: function (ctx) { return "Список: удаление " + ctx.target; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущий узел", "Цель"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.target, cls: s.removed ? "gt" : "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Удаление " + ctx.target + " завершено", text: s.info }; if (s.removed) return { kind: "info", icon: idx + 1, head: "Узел вырезан", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "", c: "✓", cls: "eq" }; if (s.removed) return { a: "узел «" + s.vars.node + "»", b: "вырезан", c: "–", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: "vs " + s.vars.target, c: "↓", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "target": s.vars.target }; },
+      customViz: llViz
+    },
+
+    "bst-search": {
+      badge: "BST", desc: "Поиск в дереве поиска: на каждом узле идём влево (меньше) или вправо (больше).",
+      valuesLabel: "", codeKey: "bst-search", fillRange: false,
+      complexity: { time: "O(h)", space: "O(1)", good: "★ Поиск по упорядоченному дереву" },
+      varOrder: ["node", "target"],
+      varDesc: { "node": "Текущий узел", "target": "Искомое значение" },
+      lineNotes: { 1: "Стартуем с корня", 2: "Пока не дошли до nil", 3: "Сравниваем цель со значением узла", 4: "Равно — нашли", 6: "Меньше — идём в левое поддерево", 8: "Больше — идём в правое поддерево", 11: "Дошли до nil — значения нет" },
+      rules: [{ head: "val == node.Val", body: "→ нашли", cls: "eq" }, { head: "val < node.Val", body: "→ влево", cls: "lt" }, { head: "val > node.Val", body: "→ вправо", cls: "gt" }],
+      parse: function (root) { var vals = nums(root.getAttribute("data-tree")); var target = parseInt(root.getAttribute("data-target"), 10); var r = bBSTSearch(vals, target); return { vals: vals, target: target, steps: r.steps }; },
+      inputs: [{ attr: "data-tree", label: "Вставить (порядок)" }, { attr: "data-target", label: "искомое" }],
+      values: function () { return []; },
+      title: function (ctx) { return "BST: поиск " + ctx.target; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущий узел", "Цель"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.target, cls: "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.found) return { kind: "ok", icon: "✓", head: ctx.target + " найден", text: s.info }; if (s.done) return { kind: "end", icon: idx + 1, head: ctx.target + " не найден", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.found) return { a: "найдено", b: s.vars.node, c: "✓", cls: "eq" }; if (s.done) return { a: "не найдено", b: "", c: "✗", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: "vs " + s.vars.target, c: "↓", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "target": s.vars.target }; },
+      customViz: bstViz
+    },
+
+    "bst-insert": {
+      badge: "BST", desc: "Вставка в дерево поиска: спускаемся по сравнениям до пустого места и подцепляем лист.",
+      valuesLabel: "", codeKey: "bst-insert", fillRange: false,
+      complexity: { time: "O(h)", space: "O(1)", good: "★ Вставки с сохранением порядка" },
+      varOrder: ["node", "action"],
+      varDesc: { "node": "Текущий узел", "action": "Что делаем на шаге" },
+      lineNotes: { 1: "Пустое дерево — новый узел становится корнем", 2: "Идём от корня, помня родителя", 5: "Сравниваем вставляемое значение с узлом", 6: "Меньше — в левое поддерево", 8: "Больше-равно — в правое поддерево", 11: "Дошли до пустого места — создаём лист", 13: "Подцепляем слева", 15: "Подцепляем справа" },
+      rules: [{ head: "val < node.Val", body: "→ влево", cls: "lt" }, { head: "val ≥ node.Val", body: "→ вправо", cls: "gt" }, { head: "Пустое место", body: "→ новый лист", cls: "eq" }],
+      parse: function (root) { var vals = nums(root.getAttribute("data-tree")); var val = parseInt(root.getAttribute("data-val"), 10); var r = bBSTInsert(vals, val); return { vals: vals, val: val, steps: r.steps }; },
+      inputs: [{ attr: "data-tree", label: "Вставить (порядок)" }, { attr: "data-val", label: "новое значение" }],
+      values: function () { return []; },
+      title: function (ctx) { return "BST: вставка " + ctx.val; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущий узел", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: s.created ? "gt" : "lt" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: ctx.val + " вставлен", text: s.info }; if (s.created) return { kind: "info", icon: idx + 1, head: "Лист создан", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.created) return { a: "лист «" + s.vars.node + "»", b: "создан", c: "+", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: s.vars.action, c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
+      customViz: bstViz
+    },
+
+    "bst-delete": {
+      badge: "BST", desc: "Удаление из дерева поиска: лист, один ребёнок или два ребёнка (замена на преемника).",
+      valuesLabel: "", codeKey: "bst-delete", fillRange: false,
+      complexity: { time: "O(h)", space: "O(1)", good: "★ Удаления с сохранением порядка" },
+      varOrder: ["node", "action"],
+      varDesc: { "node": "Текущий / удаляемый узел", "action": "Что делаем на шаге" },
+      lineNotes: { 1: "Ищем узел, помня родителя", 2: "Пока не нашли значение", 4: "Влево или вправо по сравнению", 6: "Значения нет — выходим", 7: "Два ребёнка — особый случай", 8: "Преемник: минимум правого поддерева", 9: "Идём влево до упора", 10: "Копируем значение преемника в узел", 13: "У узла теперь ≤ 1 ребёнка — берём его", 16: "Отцепляем: узел заменяется ребёнком (или nil)", 17: "Перецепляем левую ссылку родителя", 18: "Перецепляем правую ссылку родителя" },
+      rules: [{ head: "0–1 ребёнок", body: "→ заменяем ребёнком/nil", cls: "lt" }, { head: "2 ребёнка", body: "→ значение преемника", cls: "gt" }, { head: "Преемник", body: "min правого поддерева", cls: "eq" }],
+      parse: function (root) { var vals = nums(root.getAttribute("data-tree")); var target = parseInt(root.getAttribute("data-delete"), 10); var r = bBSTDelete(vals, target); return { vals: vals, target: target, steps: r.steps }; },
+      inputs: [{ attr: "data-tree", label: "Вставить (порядок)" }, { attr: "data-delete", label: "удаляем" }],
+      values: function () { return []; },
+      title: function (ctx) { return "BST: удаление " + ctx.target; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущий узел", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: s.removed ? "gt" : "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Удаление " + ctx.target + " завершено", text: s.info }; if (s.removed) return { kind: "info", icon: idx + 1, head: "Узел отцеплен", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.removed) return { a: "узел «" + s.vars.node + "»", b: "отцеплен", c: "–", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: s.vars.action, c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
+      customViz: bstViz
+    },
+
+    "heap-push": {
+      badge: "Binary Heap", desc: "Вставка в min-кучу: новый лист в конец массива, затем просеивание вверх до родителя.",
+      valuesLabel: "", codeKey: "heap-push", fillRange: false,
+      complexity: { time: "O(log n)", space: "O(1)", good: "★ Вставка в кучу" },
+      varOrder: ["i", "action"],
+      varDesc: { "i": "Индекс просеиваемого узла", "action": "Что делаем на шаге" },
+      lineNotes: { 1: "Кладём новый элемент листом в конец массива", 2: "i — индекс нового элемента", 3: "Просеивание вверх, пока не корень", 4: "Индекс родителя: (i-1)/2", 5: "Родитель не больше — куча восстановлена", 6: "Стоп", 8: "Меняем узел с родителем местами (поднимаем вверх)", 9: "Поднимаемся: i = parent" },
+      rules: [{ head: "Новый элемент", body: "→ лист в конец", cls: "lt" }, { head: "Меньше родителя", body: "→ swap вверх", cls: "gt" }, { head: "Не меньше родителя", body: "→ стоп", cls: "eq" }],
+      parse: function (root) { var initial = nums(root.getAttribute("data-heap")); var val = parseInt(root.getAttribute("data-val"), 10); var r = bHeapPush(initial, val); return { initial: initial, val: val, steps: r.steps }; },
+      inputs: [{ attr: "data-heap", label: "Куча (массив)" }, { attr: "data-val", label: "вставить" }],
+      values: function () { return []; },
+      title: function (ctx) { return "Куча: вставка " + ctx.val; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Индекс i", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.i }, { text: s.vars.action, cls: s.created ? "gt" : "lt" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: ctx.val + " вставлен", text: s.info }; if (s.created) return { kind: "info", icon: idx + 1, head: "Новый лист", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.created) return { a: "лист", b: "в конец", c: "+", cls: "gt" }; return { a: "i = " + s.vars.i, b: s.vars.action, c: "↑", cls: "lt" }; },
+      varsOf: function (s) { return { "i": s.vars.i, "action": s.vars.action }; },
+      customViz: heapViz
+    },
+
+    "heap-pop": {
+      badge: "Binary Heap", desc: "Извлечение минимума: корень забираем, последний лист → в корень, затем просеивание вниз.",
+      valuesLabel: "", codeKey: "heap-pop", fillRange: false,
+      complexity: { time: "O(log n)", space: "O(1)", good: "★ Извлечение минимума" },
+      varOrder: ["i", "action"],
+      varDesc: { "i": "Индекс просеиваемого узла", "action": "Что делаем на шаге" },
+      lineNotes: { 1: "Корень — минимум, его возвращаем", 3: "Последний лист переносим в корень", 4: "Отрезаем хвост массива", 6: "Просеивание вниз", 7: "Меньший из узла и двух детей", 8: "Левый ребёнок меньше?", 9: "Правый ребёнок меньше?", 10: "Меньший — сам узел: порядок восстановлен", 11: "Меняем с меньшим ребёнком местами (опускаем вниз)", 14: "Возвращаем минимум" },
+      rules: [{ head: "Корень", body: "→ это минимум", cls: "eq" }, { head: "Последний лист", body: "→ в корень", cls: "lt" }, { head: "Больше ребёнка", body: "→ swap вниз", cls: "gt" }],
+      parse: function (root) { var initial = nums(root.getAttribute("data-heap")); var r = bHeapPop(initial); return { initial: initial, steps: r.steps }; },
+      inputs: [{ attr: "data-heap", label: "Куча (массив)" }],
+      values: function () { return []; },
+      title: function () { return "Куча: извлечение минимума"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Индекс i", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.i }, { text: s.vars.action, cls: s.removed ? "gt" : "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Минимум извлечён", text: s.info }; if (s.removed) return { kind: "info", icon: idx + 1, head: "Извлекаем корень", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.removed) return { a: "корень", b: "минимум", c: "–", cls: "gt" }; return { a: "i = " + s.vars.i, b: s.vars.action, c: "↓", cls: "lt" }; },
+      varsOf: function (s) { return { "i": s.vars.i, "action": s.vars.action }; },
+      customViz: heapViz
+    },
+
     "tree-bfs": {
       badge: "Tree BFS",
       desc: "Обход дерева в ширину: узлы по уровням через очередь (FIFO).",
@@ -2767,6 +4238,70 @@
       customViz: trieViz
     },
 
+    "trie-insert": {
+      badge: "Trie", desc: "Вставка слова: спускаемся по символам, создавая узел только там, где ребра ещё нет.",
+      valuesLabel: "", codeKey: "trie-insert", fillRange: false,
+      complexity: { time: "O(L)", space: "O(Σ·N·L)", good: "★ Построение бора" },
+      varOrder: ["char", "node", "action"],
+      varDesc: { "char": "Текущий символ слова", "node": "Текущий узел дерева", "action": "Что делаем на шаге" },
+      lineNotes: { 1: "Стартуем с корня дерева", 2: "Идём по символам слова", 3: "Берём текущий символ", 4: "Есть ли у узла потомок по этому символу?", 5: "Ребра нет — создаём новый узел (вот она, точка роста)", 7: "Спускаемся в потомка (созданного или уже бывшего)", 9: "Дошли до конца слова — помечаем узел isEnd" },
+      rules: [{ head: "Потомок есть", body: "→ переиспользуем (общий префикс)", cls: "lt" }, { head: "Потомка нет", body: "→ создаём узел", cls: "gt" }, { head: "Конец слова", body: "→ isEnd = true", cls: "eq" }],
+      parse: function (root) { var words = (root.getAttribute("data-words") || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); var ins = (root.getAttribute("data-insert") || "").trim(); var r = bTrieInsert(words, ins); return { words: words, ins: ins, nodes: r.nodes, path: r.path, steps: r.steps, endId: r.endId, endAt: r.endAt }; },
+      inputs: [{ attr: "data-words", label: "Уже в боре (через запятую)" }, { attr: "data-insert", label: "вставляем" }],
+      values: function () { return []; },
+      title: function (ctx) { return "Trie: вставка «" + ctx.ins + "»"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущий узел", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: s.created ? "gt" : "lt" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "«" + ctx.ins + "» вставлено", text: s.info }; if (s.created) return { kind: "info", icon: idx + 1, head: "Создан узел", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "конец слова", b: "isEnd = true", c: "✓", cls: "eq" }; if (s.created) return { a: "узел '" + s.vars.char + "'", b: "создан", c: "+", cls: "gt" }; if (s.vars.action === "есть") return { a: "символ '" + s.vars.char + "'", b: "уже есть", c: "↺", cls: "lt" }; return { a: "символ '" + s.vars.char + "'", b: "узел «" + s.vars.node + "»", c: "↓", cls: "lt" }; },
+      varsOf: function (s) { return { "char": s.vars.char, "node": s.vars.node, "action": s.vars.action }; },
+      customViz: trieInsertViz
+    },
+
+    "trie-delete": {
+      badge: "Trie", desc: "Удаление слова: снимаем isEnd, затем обрезаем висячие узлы снизу вверх.",
+      valuesLabel: "", codeKey: "trie-delete", fillRange: false,
+      complexity: { time: "O(L)", space: "O(L)", good: "★ Удаление с обрезкой" },
+      varOrder: ["char", "node", "action"],
+      varDesc: { "char": "Символ слова", "node": "Текущий узел", "action": "Что делаем на шаге" },
+      lineNotes: { 1: "Спускаемся к узлу слова (find)", 2: "Слова нет или это не конец слова?", 3: "Удалять нечего — return false", 5: "Снимаем флаг конца слова", 6: "Идём от конца слова к началу, обрезая хвост", 8: "Узел ещё нужен? (конец другого слова или есть дети)", 9: "Нужен — прекращаем обрезку", 11: "Висячий — удаляем ссылку на узел", 13: "Готово — return true" },
+      rules: [{ head: "Узел висячий (не конец, без детей)", body: "→ удаляем", cls: "gt" }, { head: "Узел ещё нужен", body: "→ стоп", cls: "lt" }, { head: "Конец слова", body: "→ isEnd = false", cls: "eq" }],
+      parse: function (root) { var words = (root.getAttribute("data-words") || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); var del = (root.getAttribute("data-delete") || "").trim(); var r = bTrieDelete(words, del); return { words: words, del: del, nodes: r.nodes, path: r.path, steps: r.steps }; },
+      inputs: [{ attr: "data-words", label: "В боре (через запятую)" }, { attr: "data-delete", label: "удаляем" }],
+      values: function () { return []; },
+      title: function (ctx) { return "Trie: удаление «" + ctx.del + "»"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущий узел", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: s.removed ? "gt" : "lt" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Удаление «" + ctx.del + "» завершено", text: s.info }; if (s.removed) return { kind: "info", icon: idx + 1, head: "Узел удалён", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "", c: "✓", cls: "eq" }; if (s.removed) return { a: "узел «" + s.vars.node + "»", b: "удалён", c: "–", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: s.vars.action, c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { "char": s.vars.char, "node": s.vars.node, "action": s.vars.action }; },
+      customViz: trieDeleteViz
+    },
+
+    "trie-words": {
+      badge: "Trie", desc: "Все слова с префиксом: спускаемся к префиксу, затем DFS собирает слова (a→z).",
+      valuesLabel: "", codeKey: "trie-words", fillRange: false,
+      complexity: { time: "O(узлов поддерева)", space: "O(L)", good: "★ Автодополнение" },
+      varOrder: ["node", "word", "found"],
+      varDesc: { "node": "Текущий узел", "word": "Накопленный путь от корня", "found": "Собрано слов" },
+      lineNotes: { 1: "Спускаемся к узлу префикса (find)", 5: "В узле: это конец слова?", 6: "Да — добавляем накопленный путь в результат", 8: "Перебираем детей по алфавиту a..z", 10: "Рекурсивно спускаемся в потомка", 15: "Возвращаем собранные слова" },
+      rules: [{ head: "Узел — конец слова", body: "→ в результат", cls: "eq" }, { head: "Есть дети", body: "→ DFS вглубь", cls: "lt" }],
+      parse: function (root) { var words = (root.getAttribute("data-words") || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); var prefix = (root.getAttribute("data-prefix") || "").trim(); var r = bTrieWords(words, prefix); return { words: words, prefix: prefix, nodes: r.nodes, path: r.path, steps: r.steps }; },
+      inputs: [{ attr: "data-words", label: "В боре (через запятую)" }, { attr: "data-prefix", label: "префикс" }],
+      values: function () { return []; },
+      title: function (ctx) { return "Trie: слова с префиксом «" + ctx.prefix + "»"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущий узел", "Собрано слов"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: (s.out ? s.out.length : 0) + "", cls: "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Найдено слов: " + (s.out ? s.out.length : 0), text: s.info }; if (s.collected) return { kind: "info", icon: idx + 1, head: "Собрано слово", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: (s.out ? s.out.length : 0) + " слов", c: "✓", cls: "eq" }; if (s.collected) return { a: "слово «" + s.vars.word + "»", b: "собрано", c: "+", cls: "eq" }; return { a: "узел «" + s.vars.node + "»", b: "обход", c: "↓", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "word": s.vars.word, "found": s.vars.found }; },
+      mapViz: function (panel) { var p = structPanel(panel, "out — собранные слова (DFS, порядок a→z)"); return function (s) { p.grid.innerHTML = ""; var o = s.out || []; if (!o.length) p.grid.appendChild(structCell("", "∅", "algo-tp__mapcell--off")); else o.forEach(function (w, k) { p.grid.appendChild(structCell("#" + (k + 1), w, "algo-tp__mapcell--on" + (s.collected && k === o.length - 1 ? " algo-tp__mapcell--hot" : ""))); }); p.foot.textContent = "слов: " + o.length; }; },
+      customViz: trieWordsViz
+    },
+
     "kmp": {
       badge: "String Matching", desc: "KMP: образец скользит под текстом; при несовпадении сдвиг по префикс-функции.",
       valuesLabel: "", codeKey: "kmp", fillRange: false,
@@ -2822,6 +4357,238 @@
       varsOf: function (s) { return { "i": s.vars.i, "range": s.vars.range, "sum": s.vars.sum }; }
     },
 
+    "fenwick-add": {
+      badge: "Fenwick Tree", desc: "Точечное добавление в дерево Фенвика (BIT): обновляем узлы, поднимаясь i += i & (−i).",
+      valuesLabel: "Массив", codeKey: "fenwick-add", fillRange: true,
+      ptr1: { name: "lo", cap: "(начало зоны)" }, ptr2: { name: "hi", cap: "(конец зоны)" },
+      complexity: { time: "O(log n)", space: "O(n)", good: "★ Точечное обновление" },
+      varOrder: ["i", "range", "delta"],
+      varDesc: { "i": "Номер узла BIT (1-индекс)", "range": "Зона ответственности узла", "delta": "Прибавляемая величина" },
+      lineNotes: { 1: "Переходим в 1-индексацию: i++", 2: "Поднимаемся по BIT, пока i ≤ n", 3: "Прибавляем delta к зоне ответственности узла i", 4: "К следующему ответственному узлу: i += i & (−i)" },
+      rules: [{ head: "Зона узла i", body: "[i − lowbit + 1 .. i]", cls: "lt" }, { head: "Прибавляем", body: "tree[i] += delta", cls: "eq" }, { head: "i += i&(−i)", body: "следующий узел", cls: "gt" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var idx = parseInt(root.getAttribute("data-index"), 10); var delta = parseInt(root.getAttribute("data-delta"), 10); return { arr: arr, idx: idx, delta: delta, steps: bFenwickAdd(arr, idx, delta) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-index", label: "индекс", sm: true }, { attr: "data-delta", label: "delta", sm: true }],
+      values: function (ctx) { return ctx.arr; },
+      title: function (ctx) { return "Fenwick: добавить " + ctx.delta + " в индекс " + ctx.idx; },
+      param: function (ctx) { return { label: "Индекс", value: ctx.idx }; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Зона узла", "delta"],
+      sumValues: function (s) { return [{ text: s.vars.range }, { text: s.vars.delta, cls: "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Добавили " + ctx.delta + " в индекс " + ctx.idx, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "O(log n) узлов", c: "✓", cls: "eq" }; return { a: "узел " + s.vars.i, b: "зона " + s.vars.range, c: "+= " + s.vars.delta, cls: "lt" }; },
+      varsOf: function (s) { return { "i": s.vars.i, "range": s.vars.range, "delta": s.vars.delta }; }
+    },
+
+    "union-find-find": {
+      badge: "Union-Find", desc: "Find со сжатием пути: поднимаемся к корню, затем подвешиваем все узлы пути прямо к нему.",
+      valuesLabel: "", codeKey: "union-find-find", fillRange: false,
+      complexity: { time: "O(α(n)) ≈ O(1)", space: "O(1)", good: "★ Проверка «в одной группе»" },
+      varOrder: ["node", "root"],
+      varDesc: { "node": "Текущий узел на пути", "root": "Найденный корень" },
+      lineNotes: { 1: "root стартует с x", 2: "Дошли до корня (parent[root] == root)", 3: "Поднимаемся к родителю", 6: "Сжатие пути: каждый узел пути подвешиваем прямо к корню", 8: "Возвращаем корень — дерево теперь плоское" },
+      rules: [{ head: "parent[x] ≠ x", body: "→ поднимаемся", cls: "lt" }, { head: "parent[x] == x", body: "→ это корень", cls: "eq" }, { head: "Сжатие", body: "parent[узла] = root", cls: "gt" }],
+      parse: function (root) { var parentInit = nums(root.getAttribute("data-parent")); var x = parseInt(root.getAttribute("data-find"), 10); var r = bUFFind(parentInit, x); return { parentInit: parentInit, x: x, steps: r.steps }; },
+      inputs: [{ attr: "data-parent", label: "parent[] (через запятую)" }, { attr: "data-find", label: "Find(x)", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "Union-Find: Find(" + ctx.x + ") со сжатием пути"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущий узел", "Корень"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.root, cls: "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Find(" + ctx.x + ") = " + s.vars.root, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "корень", b: s.vars.root, c: "✓", cls: "eq" }; return { a: "узел " + s.vars.node, b: "к корню", c: "↑", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "root": s.vars.root }; },
+      customViz: ufViz
+    },
+
+    "union-find-union": {
+      badge: "Union-Find", desc: "Union по размеру: находим корни двух элементов и подвешиваем меньшее дерево под большее.",
+      valuesLabel: "", codeKey: "union-find-union", fillRange: false,
+      complexity: { time: "O(α(n)) ≈ O(1)", space: "O(n)", good: "★ Объединение групп" },
+      varOrder: ["a", "b", "action"],
+      varDesc: { "a": "Корень первого", "b": "Корень второго", "action": "Что делаем на шаге" },
+      lineNotes: { 0: "Изначально каждый элемент — своё множество", 1: "Находим корни обоих элементов", 3: "Корни совпали — уже в одном множестве", 6: "Меньшее дерево пойдёт под большее (балансировка)", 8: "Подвешиваем корень меньшего под корень большего" },
+      rules: [{ head: "Разные корни", body: "→ объединяем", cls: "gt" }, { head: "Один корень", body: "→ уже вместе", cls: "eq" }, { head: "По размеру", body: "меньшее под большее", cls: "lt" }],
+      parse: function (root) { var n = parseInt(root.getAttribute("data-n"), 10); var unions = (root.getAttribute("data-unions") || "").split(",").map(function (s) { return s.trim().split("-").map(Number); }).filter(function (p) { return p.length === 2; }); var r = bUFUnion(n, unions); return { n: n, unions: unions, steps: r.steps }; },
+      inputs: [{ attr: "data-n", label: "Элементов", sm: true }, { attr: "data-unions", label: "Union'ы (a-b,...)" }],
+      values: function () { return []; },
+      title: function () { return "Union-Find: объединение по размеру"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Корни", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.a + " / " + s.vars.b }, { text: s.vars.action, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Объединения завершены", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "корни " + s.vars.a + "," + s.vars.b, b: s.vars.action, c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { "a": s.vars.a, "b": s.vars.b, "action": s.vars.action }; },
+      customViz: ufViz
+    },
+
+    "hash-put": {
+      badge: "Hash Map", desc: "Вставка в хеш-таблицу (цепочки): hash(key) даёт бакет, запись уходит в его цепочку.",
+      valuesLabel: "", codeKey: "hash-put", fillRange: false,
+      complexity: { time: "O(1) сред.", space: "O(n)", good: "★ Доступ по ключу" },
+      varOrder: ["i", "key"],
+      varDesc: { "i": "Индекс бакета", "key": "Вставляемый ключ" },
+      lineNotes: { 1: "hash(key) % m — в какой бакет кладём", 2: "Сканируем цепочку: нет ли уже такого ключа", 3: "Ключ найден — обновляем значение на месте", 8: "Новый ключ — добавляем в конец цепочки (коллизия = непустая цепочка)" },
+      rules: [{ head: "hash(key) % m", body: "→ номер бакета", cls: "lt" }, { head: "Ключ уже есть", body: "→ обновить", cls: "eq" }, { head: "Нет — в цепочку", body: "коллизия = длиннее 1", cls: "gt" }],
+      parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var m = parseInt(root.getAttribute("data-buckets"), 10); var key = parseInt(root.getAttribute("data-key"), 10); var r = bHashPut(keys, m, key); return { keys: keys, m: m, key: key, steps: r.steps }; },
+      inputs: [{ attr: "data-keys", label: "Ключи в таблице" }, { attr: "data-buckets", label: "бакетов", sm: true }, { attr: "data-key", label: "вставить", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "Хеш-таблица: вставка ключа " + ctx.key; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Бакет", "Ключ"],
+      sumValues: function (s) { return [{ text: s.vars.i }, { text: s.vars.key, cls: "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Ключ " + ctx.key + " в бакете " + s.vars.i, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.created) return { a: "ключ " + s.vars.key, b: "в бакет " + s.vars.i, c: "+", cls: "gt" }; return { a: "бакет " + s.vars.i, b: "скан цепочки", c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { "i": s.vars.i, "key": s.vars.key }; },
+      customViz: hashViz
+    },
+
+    "hash-get": {
+      badge: "Hash Map", desc: "Поиск в хеш-таблице (цепочки): hash(key) даёт бакет, сканируем его цепочку.",
+      valuesLabel: "", codeKey: "hash-get", fillRange: false,
+      complexity: { time: "O(1) сред.", space: "O(1)", good: "★ Доступ по ключу" },
+      varOrder: ["i", "key"],
+      varDesc: { "i": "Индекс бакета", "key": "Искомый ключ" },
+      lineNotes: { 1: "hash(key) % m — тот же бакет, что при вставке", 2: "Сканируем цепочку бакета", 3: "Ключ совпал — возвращаем значение", 7: "Прошли всю цепочку — ключа нет" },
+      rules: [{ head: "hash(key) % m", body: "→ номер бакета", cls: "lt" }, { head: "Ключ в цепочке", body: "→ нашли", cls: "eq" }, { head: "Конец цепочки", body: "→ нет ключа", cls: "gt" }],
+      parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var m = parseInt(root.getAttribute("data-buckets"), 10); var key = parseInt(root.getAttribute("data-key"), 10); var r = bHashGet(keys, m, key); return { keys: keys, m: m, key: key, steps: r.steps }; },
+      inputs: [{ attr: "data-keys", label: "Ключи в таблице" }, { attr: "data-buckets", label: "бакетов", sm: true }, { attr: "data-key", label: "искать", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "Хеш-таблица: поиск ключа " + ctx.key; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Бакет", "Ключ"],
+      sumValues: function (s) { return [{ text: s.vars.i }, { text: s.vars.key, cls: "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.found) return { kind: "ok", icon: "✓", head: "Ключ " + ctx.key + " найден", text: s.info }; if (s.done) return { kind: "end", icon: idx + 1, head: "Ключ " + ctx.key + " не найден", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.found) return { a: "найдено", b: "ключ " + s.vars.key, c: "✓", cls: "eq" }; if (s.done) return { a: "не найдено", b: "", c: "✗", cls: "gt" }; return { a: "бакет " + s.vars.i, b: "скан", c: "↓", cls: "lt" }; },
+      varsOf: function (s) { return { "i": s.vars.i, "key": s.vars.key }; },
+      customViz: hashViz
+    },
+
+    "deque-ops": {
+      badge: "Deque", desc: "Двусторонняя очередь: вставка и удаление с обоих концов за O(1).",
+      valuesLabel: "", codeKey: "deque-ops", fillRange: false,
+      complexity: { time: "O(1)", space: "O(n)", good: "★ Очередь/стек с двух концов" },
+      varOrder: ["op", "val"],
+      varDesc: { "op": "Операция", "val": "Значение" },
+      lineNotes: { 0: "Операции над двусторонней очередью", 1: "PushBack — добавить в конец", 2: "PushFront — добавить в начало", 3: "PopBack — снять с конца", 4: "PopFront — снять с начала" },
+      rules: [{ head: "Push", body: "→ в начало или конец", cls: "gt" }, { head: "Pop", body: "→ с начала или конца", cls: "lt" }, { head: "Оба конца", body: "за O(1)", cls: "eq" }],
+      parse: function (root) { var ops = (root.getAttribute("data-ops") || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean); var r = bDeque(ops); return { ops: ops, steps: r.steps }; },
+      inputs: [{ attr: "data-ops", label: "Операции (b/f/B/F)" }],
+      values: function () { return []; },
+      title: function () { return "Дек: операции с обоих концов"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Операция", "Значение"],
+      sumValues: function (s) { return [{ text: s.vars.op }, { text: s.vars.val, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Операции применены", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "", c: "✓", cls: "eq" }; return { a: s.vars.op, b: s.vars.val, c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { "op": s.vars.op, "val": s.vars.val }; },
+      customViz: dequeViz
+    },
+
+    "sparse-build": {
+      badge: "Sparse Table", desc: "Построение разреженной таблицы: table[k][i] = минимум на отрезке длины 2^k, снизу вверх.",
+      valuesLabel: "", codeKey: "sparse-build", fillRange: false,
+      complexity: { time: "O(n log n)", space: "O(n log n)", good: "★ Препроцессинг для O(1) запросов" },
+      varOrder: ["k", "range"],
+      varDesc: { "k": "Уровень (длина отрезка 2^k)", "range": "Покрываемый отрезок" },
+      lineNotes: { 1: "Строка k=0 — сам массив (минимумы одиночных элементов)", 2: "Удваиваем длину отрезка: 2^k", 3: "Идём по всем стартам i", 4: "Минимум двух половин длины 2^(k-1)", 7: "Таблица готова" },
+      rules: [{ head: "k=0", body: "→ сам массив", cls: "lt" }, { head: "table[k][i]", body: "= min двух половин", cls: "eq" }, { head: "Удвоение", body: "длина 2^k", cls: "gt" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var r = bSparseBuild(arr); return { arr: arr, steps: r.steps }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function () { return []; },
+      title: function () { return "Sparse table: построение"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Уровень k", "Отрезок"],
+      sumValues: function (s) { return [{ text: s.vars.k }, { text: s.vars.range, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Таблица построена", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "k=" + s.vars.k, b: s.vars.range, c: "min", cls: "eq" }; },
+      varsOf: function (s) { return { "k": s.vars.k, "range": s.vars.range }; },
+      customViz: sparseViz
+    },
+
+    "sparse-query": {
+      badge: "Sparse Table", desc: "Запрос min на [l, r] за O(1): два перекрывающихся отрезка длины 2^k покрывают диапазон.",
+      valuesLabel: "", codeKey: "sparse-query", fillRange: false,
+      complexity: { time: "O(1)", space: "O(n log n)", good: "★ Статический range-min/max" },
+      varOrder: ["k", "ans"],
+      varDesc: { "k": "Степень: 2^k ≤ длины", "ans": "Минимум на [l, r]" },
+      lineNotes: { 1: "k — наибольшая степень двойки, влезающая в длину диапазона", 2: "Два отрезка длины 2^k (от l и от r назад) перекрываются и покрывают [l, r]", 3: "Берём минимум этих двух готовых значений" },
+      rules: [{ head: "k = ⌊log2(len)⌋", body: "→ длина 2^k", cls: "lt" }, { head: "Два отрезка", body: "от l и от r назад", cls: "gt" }, { head: "min из двух", body: "= ответ за O(1)", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var l = parseInt(root.getAttribute("data-l"), 10); var r = parseInt(root.getAttribute("data-r"), 10); var res = bSparseQuery(arr, l, r); return { arr: arr, l: l, r: r, steps: res.steps }; },
+      inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-l", label: "l", sm: true }, { attr: "data-r", label: "r", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "Sparse table: min на [" + ctx.l + ", " + ctx.r + "]"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Степень k", "Ответ (min)"],
+      sumValues: function (s) { return [{ text: s.vars.k }, { text: s.vars.ans, cls: "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "min на [" + ctx.l + ", " + ctx.r + "] = " + s.vars.ans, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "ответ", b: "min = " + s.vars.ans, c: "O(1)", cls: "eq" }; return { a: "k = " + s.vars.k, b: "длина 2^k", c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { "k": s.vars.k, "ans": s.vars.ans }; },
+      customViz: sparseViz
+    },
+
+    "avl-insert": {
+      badge: "AVL Tree", desc: "Вставка в АВЛ-дерево: как в BST, затем балансировка поворотом (LL/RR/LR/RL).",
+      valuesLabel: "", codeKey: "avl-insert", fillRange: false,
+      complexity: { time: "O(log n)", space: "O(log n)", good: "★ Сбалансированное BST" },
+      varOrder: ["node", "action"],
+      varDesc: { "node": "Текущий узел", "action": "Что делаем на шаге" },
+      lineNotes: { 1: "Дошли до пустого места — создаём лист", 2: "Спускаемся как в обычном BST", 3: "Пересчитываем высоту узла", 4: "Баланс = высота левого − правого", 5: "LL: левый перевес, вставка слева-слева → правый поворот", 6: "LR: левый перевес, вставка слева-справа → левый, затем правый поворот", 7: "RR: правый перевес, вставка справа-справа → левый поворот", 8: "RL: правый перевес, вставка справа-слева → правый, затем левый поворот", 10: "Дерево сбалансировано" },
+      rules: [{ head: "|баланс| ≤ 1", body: "→ ничего не делаем", cls: "lt" }, { head: "|баланс| > 1", body: "→ поворот", cls: "gt" }, { head: "LL/RR/LR/RL", body: "4 случая балансировки", cls: "eq" }],
+      parse: function (root) { var initial = nums(root.getAttribute("data-tree")); var val = parseInt(root.getAttribute("data-insert"), 10); var r = bAVLInsert(initial, val); return { initial: initial, val: val, steps: r.steps }; },
+      inputs: [{ attr: "data-tree", label: "Вставить (порядок)" }, { attr: "data-insert", label: "новое значение", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "AVL: вставка " + ctx.val; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Узел", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: (s.vars.action && s.vars.action.indexOf("поворот") === 0) ? "gt" : "lt" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: ctx.val + " вставлен", text: s.info }; if (s.vars.action && s.vars.action.indexOf("поворот") === 0) return { kind: "info", icon: idx + 1, head: s.vars.action, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.created) return { a: "узел " + s.vars.node, b: "лист", c: "+", cls: "gt" }; return { a: "узел " + s.vars.node, b: s.vars.action, c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
+      customViz: bstViz
+    },
+
+    "btree-insert": {
+      badge: "B-Tree", desc: "Вставка в B-дерево: спускаемся, деля полные узлы заранее; средний ключ поднимается в родителя.",
+      valuesLabel: "", codeKey: "btree-insert", fillRange: false,
+      complexity: { time: "O(log n)", space: "O(n)", good: "★ Многопутевое дерево (БД, ФС)" },
+      varOrder: ["node", "action"],
+      varDesc: { "node": "Узел / поднятый ключ", "action": "Что делаем на шаге" },
+      lineNotes: { 1: "Корень полон — растим высоту новым корнем", 3: "splitChild: средний ключ поднимается, узел делится надвое", 5: "Спуск с гарантией: на пути нет полных узлов", 8: "В лист ключ вставляется по порядку", 9: "Выбираем ребёнка между ключами", 11: "Полного ребёнка делим ДО спуска (top-down)" },
+      rules: [{ head: "Узел полон (3 ключа)", body: "→ split, средний вверх", cls: "gt" }, { head: "Лист", body: "→ вставка по порядку", cls: "lt" }, { head: "Все листья", body: "на одной глубине", cls: "eq" }],
+      parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var key = parseInt(root.getAttribute("data-insert"), 10); var r = bBTreeInsert(keys, key); return { keys: keys, key: key, steps: r.steps }; },
+      inputs: [{ attr: "data-keys", label: "Ключи (порядок)" }, { attr: "data-insert", label: "вставить", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "B-дерево: вставка " + ctx.key; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Узел", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: (s.vars.action && s.vars.action.indexOf("split") === 0) ? "gt" : "lt" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: ctx.key + " вставлен", text: s.info }; if (s.vars.action && s.vars.action.indexOf("split") === 0) return { kind: "info", icon: idx + 1, head: "Разделение узла", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "узел " + s.vars.node, b: s.vars.action, c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
+      customViz: btreeViz
+    },
+
+    "btree-search": {
+      badge: "B-Tree", desc: "Поиск в B-дереве: в каждом узле ищем позицию ключа и спускаемся к нужному ребёнку.",
+      valuesLabel: "", codeKey: "btree-search", fillRange: false,
+      complexity: { time: "O(log n)", space: "O(1)", good: "★ Поиск по ключу" },
+      varOrder: ["node", "key"],
+      varDesc: { "node": "Текущий узел", "key": "Искомый ключ" },
+      lineNotes: { 1: "Начинаем с корня", 4: "Линейно/бинарно ищем позицию ключа в узле", 5: "Ключ совпал — нашли", 6: "Лист и не совпало — ключа нет", 7: "Спускаемся к ребёнку между ключами" },
+      rules: [{ head: "k == keys[i]", body: "→ нашли", cls: "eq" }, { head: "Лист", body: "→ нет ключа", cls: "gt" }, { head: "Иначе", body: "→ ребёнок между ключами", cls: "lt" }],
+      parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var key = parseInt(root.getAttribute("data-search"), 10); var r = bBTreeSearch(keys, key); return { keys: keys, key: key, steps: r.steps }; },
+      inputs: [{ attr: "data-keys", label: "Ключи (порядок)" }, { attr: "data-search", label: "искать", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "B-дерево: поиск " + ctx.key; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Узел", "Ключ"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.key, cls: "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.found) return { kind: "ok", icon: "✓", head: ctx.key + " найден", text: s.info }; if (s.done) return { kind: "end", icon: idx + 1, head: ctx.key + " не найден", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.found) return { a: "найдено", b: s.vars.key, c: "✓", cls: "eq" }; if (s.done) return { a: "не найдено", b: "", c: "✗", cls: "gt" }; return { a: "узел " + s.vars.node, b: "поиск", c: "↓", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "key": s.vars.key }; },
+      customViz: btreeViz
+    },
+
     "segtree-query": {
       badge: "Segment Tree", desc: "Дерево отрезков: сумма на диапазоне разбивается на готовые суммы поддеревьев.",
       valuesLabel: "", codeKey: "segtree-query", fillRange: false,
@@ -2841,6 +4608,48 @@
       stepCard: function (s) { if (s.done) return { a: "готово", b: "сумма = " + s.vars.total, c: "O(log n)", cls: "eq" }; var st = s.line === 5 ? { c: "take", cls: "eq" } : (s.line === 2 ? { c: "skip", cls: "gt" } : { c: "split", cls: "lt" }); return { a: "узел " + s.vars.node, b: "сумма " + s.vars.nodeSum, c: st.c, cls: st.cls }; },
       varsOf: function (s) { return { "node": s.vars.node, "nodeSum": s.vars.nodeSum, "total": s.vars.total }; },
       customViz: segViz
+    },
+
+    "segtree-build": {
+      badge: "Segment Tree", desc: "Построение дерева отрезков снизу вверх: лист = элемент, узел = сумма детей.",
+      valuesLabel: "", codeKey: "segtree-build", fillRange: false,
+      complexity: { time: "O(n)", space: "O(n)", good: "★ Построение за O(n)" },
+      varOrder: ["node", "action"],
+      varDesc: { "node": "Текущий отрезок узла", "action": "Что делаем на шаге" },
+      lineNotes: { 1: "Лист — это один элемент массива", 3: "Строим левое поддерево", 4: "Строим правое поддерево", 5: "Узел = сумма левого и правого детей" },
+      rules: [{ head: "lo == hi", body: "→ лист = arr[lo]", cls: "lt" }, { head: "Иначе", body: "→ строим детей", cls: "gt" }, { head: "Узел", body: "= сумма детей", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var r = bSegBuild(arr); return { arr: arr, steps: r.steps }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function () { return []; },
+      title: function () { return "Дерево отрезков: построение"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущий узел", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Дерево построено", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "узел " + s.vars.node, b: s.vars.action, c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
+      customViz: segTreeViz
+    },
+
+    "segtree-update": {
+      badge: "Segment Tree", desc: "Точечное обновление: меняем лист и пересчитываем суммы по пути к корню.",
+      valuesLabel: "", codeKey: "segtree-update", fillRange: false,
+      complexity: { time: "O(log n)", space: "O(1)", good: "★ Обновление элемента" },
+      varOrder: ["node", "action"],
+      varDesc: { "node": "Текущий отрезок узла", "action": "Что делаем на шаге" },
+      lineNotes: { 1: "Дошли до листа — пишем новое значение", 3: "Индекс в левой половине?", 4: "Спускаемся в левого ребёнка", 6: "Спускаемся в правого ребёнка", 8: "На обратном пути пересчитываем узел = сумма детей" },
+      rules: [{ head: "lo == hi", body: "→ лист = val", cls: "lt" }, { head: "i ≤ mid / i > mid", body: "→ влево / вправо", cls: "gt" }, { head: "Обратный путь", body: "→ пересчёт суммы", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var idx = parseInt(root.getAttribute("data-index"), 10); var val = parseInt(root.getAttribute("data-val"), 10); var r = bSegUpdate(arr, idx, val); return { arr: arr, idx: idx, val: val, steps: r.steps }; },
+      inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-index", label: "индекс", sm: true }, { attr: "data-val", label: "значение", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "Дерево отрезков: обновление [" + ctx.idx + "] = " + ctx.val; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущий узел", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Индекс " + ctx.idx + " обновлён", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "узел " + s.vars.node, b: s.vars.action, c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
+      customViz: segTreeViz
     },
 
     "mst-kruskal": {

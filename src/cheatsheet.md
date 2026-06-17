@@ -39,8 +39,8 @@
 | [Greedy](greedy.md) | макс/мин с доказуемым локальным выбором | O(n log n) | локально оптимальный шаг |
 | [Dynamic Programming](dynamic-programming.md) | мин/макс/счёт + перекрыв. подзадачи | завис. от состояний | состояние + переход + мемоизация |
 | [Строковые алгоритмы](string-algorithms.md) | поиск подстроки/образца | O(n+m) | префикс-функция (KMP) / rolling hash |
-| [Trie](trie.md) | префикс, автодополнение, словарь | O(длины) | префиксное дерево |
-| [Segment Tree](segment-tree.md) / [Fenwick](fenwick-tree.md) | сумма/мин на диапазоне + обновления | O(log n) | дерево агрегатов |
+| [Trie](trie-structure.md) | префикс, автодополнение, словарь | O(длины) | префиксное дерево |
+| [Segment Tree](segment-tree-structure.md) / [Fenwick](fenwick-tree-structure.md) | сумма/мин на диапазоне + обновления | O(log n) | дерево агрегатов |
 
 ## Как готовиться по этой странице
 

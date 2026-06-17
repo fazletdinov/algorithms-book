@@ -1062,6 +1062,67 @@ body.algo-tp-fslock { overflow: hidden; }
 /* Trie: узел-конец слова (двойная рамка) */
 .algo-tp__tnode--end { border-style: double; border-width: 4px; }
 
+/* Trie (вставка): ещё не созданный узел — призрак; только что созданный — подсветка роста */
+.algo-tp__tnode--ghost { opacity: 0.16; border-style: dashed; }
+.algo-tp__tnode--created { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; transform: scale(1.12); outline: 3px dashed color-mix(in srgb, var(--tp-lo) 55%, transparent); }
+/* Trie (удаление): момент обрезки висячего узла */
+.algo-tp__tnode--removed { background: color-mix(in srgb, var(--tp-warn) 30%, transparent); border-color: var(--tp-warn); text-decoration: line-through; transform: scale(1.1); outline: 3px dashed var(--tp-warn); }
+
+/* Связный список: цепочка узлов со стрелками (CRUD-виджеты) */
+.algo-tp__ll { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0.5em 0 0.7em; }
+.algo-tp__llnode { min-width: 2.1em; padding: 0.32em 0.55em; border: 2px solid var(--tp-surface); border-radius: 9px; background: var(--tp-panel2); color: var(--fg); font-weight: 600; text-align: center; transition: transform 0.12s, background 0.12s; }
+.algo-tp__llnode--cur { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; transform: scale(1.12); }
+.algo-tp__llnode--created { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; transform: scale(1.12); outline: 3px dashed color-mix(in srgb, var(--tp-ok) 55%, transparent); }
+.algo-tp__llnode--found { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; transform: scale(1.12); }
+.algo-tp__llnode--removed { background: color-mix(in srgb, var(--tp-warn) 30%, transparent); border-color: var(--tp-warn); text-decoration: line-through; transform: scale(1.1); outline: 3px dashed var(--tp-warn); }
+.algo-tp__llarrow { color: var(--links); font-weight: 700; opacity: 0.75; }
+.algo-tp__llnil { opacity: 0.55; font-style: italic; }
+
+/* BST: дерево с раскладкой по (глубина, in-order ранг) и SVG-рёбрами */
+.algo-tp__bst { margin: 0.6em auto; max-width: 100%; overflow-x: auto; }
+.algo-tp__bstsvg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.algo-tp__bstedge { stroke: var(--links); stroke-width: 2; opacity: 0.5; }
+.algo-tp__bst .algo-tp__tnode { min-width: 1.7em; }
+.algo-tp__tnode--found { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; transform: scale(1.12); }
+/* Union-Find: корень дерева (толстая рамка) */
+.algo-tp__tnode--root { border-width: 3px; border-color: var(--links); font-weight: 800; }
+
+/* Хеш-таблица: ряд бакетов, под каждым — цепочка записей */
+.algo-tp__hash { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin: 0.6em 0 0.8em; }
+.algo-tp__hbucket { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px; border-radius: 8px; border: 2px solid transparent; }
+.algo-tp__hbucket--cur { border-color: var(--tp-lo); background: color-mix(in srgb, var(--tp-lo) 14%, transparent); }
+.algo-tp__hidx { font-size: 0.78em; opacity: 0.7; font-weight: 700; }
+.algo-tp__hchain { display: flex; flex-direction: column; gap: 4px; }
+.algo-tp__hentry { min-width: 2em; padding: 0.3em 0.5em; border: 2px solid var(--tp-surface); border-radius: 7px; background: var(--tp-panel2); color: var(--fg); font-weight: 600; text-align: center; }
+.algo-tp__hempty { opacity: 0.4; font-style: italic; padding: 0.2em; }
+
+/* Дек: горизонтальный ряд с подписями обоих концов */
+.algo-tp__deque { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0.5em 0 0.8em; }
+.algo-tp__dqcell { min-width: 2.1em; padding: 0.32em 0.55em; border: 2px solid var(--tp-surface); border-radius: 9px; background: var(--tp-panel2); color: var(--fg); font-weight: 600; text-align: center; }
+.algo-tp__dqend { opacity: 0.6; font-size: 0.85em; font-weight: 700; padding: 0 4px; }
+
+/* Sparse table: 2D-таблица (строки k, столбцы i) */
+.algo-tp__sparse { margin: 0.6em 0 0.8em; overflow-x: auto; }
+.algo-tp__sptable { display: grid; gap: 3px; }
+.algo-tp__sphead { font-size: 0.78em; opacity: 0.7; font-weight: 700; display: flex; align-items: center; justify-content: center; padding: 2px; }
+.algo-tp__spcell { min-width: 2em; padding: 0.3em 0.4em; border: 2px solid var(--tp-surface); border-radius: 6px; background: var(--tp-panel2); color: var(--fg); font-weight: 600; text-align: center; }
+.algo-tp__spvoid { background: transparent; }
+
+/* B-дерево: узел с несколькими ключами */
+.algo-tp__btnode { display: inline-flex; gap: 2px; padding: 3px; border: 2px solid var(--tp-surface); border-radius: 7px; background: var(--tp-panel2); }
+.algo-tp__btnode--current { border-color: var(--tp-lo); background: color-mix(in srgb, var(--tp-lo) 16%, transparent); }
+.algo-tp__btnode--found { border-color: var(--tp-ok); background: color-mix(in srgb, var(--tp-ok) 16%, transparent); }
+.algo-tp__btnode--created { border-color: var(--tp-ok); outline: 3px dashed color-mix(in srgb, var(--tp-ok) 55%, transparent); }
+.algo-tp__btkey { min-width: 1.4em; padding: 0.2em 0.35em; font-weight: 600; text-align: center; color: var(--fg); }
+
+/* Бинарная куча: дерево (как BST) + строка backing-массива снизу */
+.algo-tp__heap { display: flex; flex-direction: column; align-items: center; gap: 0.5em; margin: 0.6em auto; overflow-x: auto; }
+.algo-tp__heaptree { position: relative; }
+.algo-tp__heaptree .algo-tp__tnode { min-width: 1.7em; }
+.algo-tp__heaparr { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.algo-tp__heaparrlab { opacity: 0.6; margin-right: 4px; }
+.algo-tp__heapcell { min-width: 2em; padding: 0.3em 0.5em; border: 2px solid var(--tp-surface); border-radius: 7px; background: var(--tp-panel2); color: var(--fg); font-weight: 600; text-align: center; }
+
 /* KMP: ряды символов текста и образца */
 .algo-tp__kmp { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; margin: 0.4em 0 0.6em; overflow-x: auto; }
 .algo-tp__krow { display: flex; gap: 4px; }

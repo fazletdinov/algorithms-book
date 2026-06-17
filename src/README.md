@@ -131,12 +131,12 @@
 
 Цель — освоить рабочие структуры данных в отрыве от паттернов перебора.
 
-1. [Reverse Linked List](./reverse-linked-list.md)
+1. [Связный список](./linked-list-structure.md) и [Reverse Linked List](./reverse-linked-list.md)
 2. [Tree BFS](./tree-bfs.md) и [Tree DFS](./tree-dfs.md)
 3. [Two Heaps](./two-heaps.md)
-4. [Trie (префиксное дерево)](./trie.md)
-5. [Segment Tree (дерево отрезков)](./segment-tree.md)
-6. [Fenwick Tree (дерево Фенвика)](./fenwick-tree.md)
+4. [Trie (префиксное дерево)](./trie-structure.md)
+5. [Segment Tree (дерево отрезков)](./segment-tree-structure.md)
+6. [Fenwick Tree (дерево Фенвика)](./fenwick-tree-structure.md)
 
 ---
 

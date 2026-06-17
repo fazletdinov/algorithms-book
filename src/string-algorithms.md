@@ -342,4 +342,4 @@ go test -tags solution ./strmatch/  # эталон
 
 - **[Sliding Window](sliding-window.md)** — Rabin–Karp это скользящее окно по хешу.
 - **[Two Pointers](two-pointers.md)** — базовая техника движения указателей по строке.
-- **[Trie](trie.md)** — для поиска множества образцов одновременно.
+- **[Trie](trie-structure.md)** — для поиска множества образцов одновременно.

@@ -1,7 +1,7 @@
 //go:build !solution
 
 // Package trie — префиксное дерево (Trie).
-// Теория паттерна — в книге: ../../src/trie.md
+// Теория паттерна — в книге: ../../src/trie-structure.md
 //
 //	go test ./trie/                 # ваши решения
 //	go test -tags solution ./trie/  # эталон
