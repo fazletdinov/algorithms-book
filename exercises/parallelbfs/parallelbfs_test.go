@@ -32,6 +32,15 @@ func TestBFSLevelsConcMatchesSeq(t *testing.T) {
 	}
 }
 
+// Масштабируемая версия (atomic + локальные фронты) тоже обязана совпасть с Seq.
+func TestBFSLevelsConcLocalMatchesSeq(t *testing.T) {
+	g := sample()
+	want := BFSLevelsSeq(g, 0)
+	if got := BFSLevelsConcLocal(g, 0); !reflect.DeepEqual(got, want) {
+		t.Fatalf("ConcLocal = %v, want (== Seq) %v", got, want)
+	}
+}
+
 func TestBFSEmptyAndBounds(t *testing.T) {
 	if got := BFSLevelsSeq(nil, 0); len(got) != 0 {
 		t.Errorf("пустой граф Seq = %v, ожидалось []", got)

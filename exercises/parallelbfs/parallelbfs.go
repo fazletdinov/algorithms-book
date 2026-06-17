@@ -32,3 +32,15 @@ func BFSLevelsConc(adj [][]int, start int) [][]int {
 	// добавления в следующий фронт. Дождись всех (WaitGroup) перед переходом.
 	panic("TODO: реализуйте конкурентный BFS по уровням (синхронизируйте visited)")
 }
+
+// BFSLevelsConcLocal — масштабируемый вариант без мьютекса на горячем пути:
+// вершину «столбят» атомарным CAS по visited (тип []int32: 0→1), а каждая
+// горутина копит СВОЙ локальный фронт; после барьера локальные фронты сливаются.
+// Так нет ни блокировок на каждое ребро, ни гонки. Результат обязан совпадать с
+// BFSLevelsSeq и проходить -race.
+func BFSLevelsConcLocal(adj [][]int, start int) [][]int {
+	// TODO: visited — []int32; застолбить v через atomic.CompareAndSwapInt32
+	// (&visited[v], 0, 1) — кто выиграл CAS, тот кладёт v в свой локальный срез;
+	// после WaitGroup слей локальные срезы в следующий фронт.
+	panic("TODO: реализуйте BFSLevelsConcLocal (atomic CAS + локальные фронты)")
+}

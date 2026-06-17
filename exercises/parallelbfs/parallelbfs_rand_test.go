@@ -71,5 +71,8 @@ func TestBFSRandom(t *testing.T) {
 		if got := BFSLevelsConc(adj, start); !reflect.DeepEqual(got, want) {
 			t.Fatalf("Conc(start=%d) = %v, want %v", start, got, want)
 		}
+		if got := BFSLevelsConcLocal(adj, start); !reflect.DeepEqual(got, want) {
+			t.Fatalf("ConcLocal(start=%d) = %v, want %v", start, got, want)
+		}
 	}
 }

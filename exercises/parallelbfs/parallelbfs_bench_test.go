@@ -39,3 +39,14 @@ func BenchmarkConc(b *testing.B) {
 		BFSLevelsConc(g, 0)
 	}
 }
+
+// ConcLocal (atomic + локальные фронты) убирает контеншн на мьютексе: должен
+// заметно обгонять BenchmarkConc. Обогнать Seq при ТАКОЙ дешёвой работе на
+// вершину всё равно тяжело — для этого нужна тяжёлая обработка узла.
+func BenchmarkConcLocal(b *testing.B) {
+	g := layered(20, 60)
+	b.ResetTimer()
+	for range b.N {
+		BFSLevelsConcLocal(g, 0)
+	}
+}
