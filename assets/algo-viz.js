@@ -1407,38 +1407,39 @@
   // помечающих одну вершину. Шаги несут tl = { events, now, race } — отрисовка в
   // raceViz. now двигает «время»; события до now показаны, текущее подсвечено,
   // окно гонки (оба прочитали false до записи) выделено красным.
-  function bRaceTimeline() {
-    var E = [
-      { lane: 0, t: 0, kind: "read", label: "read 3 → false", racy: true },
-      { lane: 1, t: 1, kind: "read", label: "read 3 → false", racy: true },
-      { lane: 0, t: 2, kind: "write", label: "visited[3]=true" },
-      { lane: 0, t: 3, kind: "append", label: "next ← 3" },
-      { lane: 1, t: 4, kind: "write", label: "visited[3]=true" },
-      { lane: 1, t: 5, kind: "append", label: "next ← 3 ✗" }
-    ];
-    var lineOf = [2, 2, 3, 4, 3, 4]; // строка кода (индекс в CODE) для события
-    var infoOf = [
-      "G1 читает visited[3] — пока false",
-      "G2 читает visited[3] — ТОЖЕ false (G1 ещё не записал): начинается окно гонки",
-      "G1 помечает visited[3]=true",
-      "G1 добавляет 3 в next",
-      "G2 помечает visited[3]=true (уже true, но G2 этого не знал)",
-      "G2 добавляет 3 в next ВТОРОЙ раз — дубликат из-за гонки"
-    ];
+  function bRaceTimeline(n) {
+    if (!(n >= 2)) n = 2;
+    if (n > 4) n = 4;
+    var E = [], lineOf = [], infoOf = [], t = 0, i;
+    // Все n горутин читают false (одно валидное «худшее» чередование), затем все
+    // добавляют 3 — вершина попадает в next n раз.
+    for (i = 0; i < n; i++) {
+      E.push({ lane: i, t: t++, kind: "read", label: "read 3 → false", racy: true });
+      lineOf.push(2);
+      infoOf.push("G" + (i + 1) + " читает visited[3] — пока false (никто ещё не записал)");
+    }
+    for (i = 0; i < n; i++) {
+      var dup = i > 0;
+      E.push({ lane: i, t: t++, kind: "append", label: dup ? "next ← 3 ✗" : "next ← 3" });
+      lineOf.push(4);
+      infoOf.push(dup
+        ? "G" + (i + 1) + " добавляет 3 ещё раз — ДУБЛИКАТ: читал false до записи"
+        : "G1 помечает visited[3]=true и добавляет 3 в next");
+    }
     var steps = [];
     for (var k = 0; k < E.length; k++) {
       steps.push({
         si: k, line: lineOf[k],
-        vars: { g: (E[k].lane === 0 ? "G1" : "G2"), act: E[k].label },
+        vars: { g: "G" + (E[k].lane + 1), act: E[k].label },
         info: infoOf[k],
-        tl: { events: E, now: k, race: [0, 2] }
+        tl: { events: E, now: k, race: [0, n - 1] }
       });
     }
     steps.push({
       si: E.length, line: 6, done: true,
       vars: { g: "—", act: "гонка" },
-      info: "3 добавлен дважды: обе горутины прочитали false до первой записи. Фикс — mutex вокруг проверки-и-пометки.",
-      tl: { events: E, now: E.length - 1, race: [0, 2] }
+      info: "3 добавлен " + n + " раз вместо одного: все горутины прочитали false до записи. Фикс — mutex или atomic CAS.",
+      tl: { events: E, now: E.length - 1, race: [0, n - 1] }
     });
     return { steps: steps };
   }
@@ -1447,25 +1448,26 @@
   // 3. Обе горутины делают atomic CAS на visited[3]; выигрывает одна — дубля нет.
   // (Кто именно успел первым — зависит от планировщика; показано одно из течений,
   //  важен инвариант: 3 застолблён ровно один раз.)
-  function bLocalTimeline() {
-    var E = [
-      { lane: 0, t: 0, kind: "claim", label: "CAS 3: 0→1 ✓" },
-      { lane: 1, t: 1, kind: "skip", label: "CAS 3: занято" },
-      { lane: 0, t: 2, kind: "append", label: "local ← 3" },
-      { lane: 1, t: 3, kind: "skip", label: "— ничего —" }
-    ];
-    var lineOf = [2, 2, 3, 2];
-    var infoOf = [
-      "G1 атомарно столбит вершину 3: CAS переводит visited[3] 0→1 — успех",
-      "G2 пробует тот же CAS на 3 — там уже 1, CAS не прошёл, 3 не берётся",
-      "Победитель CAS (G1) кладёт 3 в СВОЙ локальный фронт",
-      "G2 ничего не добавляет — дубля нет, и замок не понадобился"
-    ];
+  function bLocalTimeline(n) {
+    if (!(n >= 2)) n = 2;
+    if (n > 4) n = 4;
+    var E = [], lineOf = [], infoOf = [], t = 0, i;
+    E.push({ lane: 0, t: t++, kind: "claim", label: "CAS 3: 0→1 ✓" });
+    lineOf.push(2);
+    infoOf.push("G1 атомарно столбит 3: CAS переводит visited[3] 0→1 — успех");
+    for (i = 1; i < n; i++) { // остальные опоздали: CAS не проходит
+      E.push({ lane: i, t: t++, kind: "skip", label: "CAS 3: занято" });
+      lineOf.push(2);
+      infoOf.push("G" + (i + 1) + " пробует тот же CAS — там уже 1, не прошёл, 3 не берётся");
+    }
+    E.push({ lane: 0, t: t++, kind: "append", label: "local ← 3" });
+    lineOf.push(3);
+    infoOf.push("Победитель CAS (G1) кладёт 3 в свой локальный фронт");
     var steps = [];
     for (var k = 0; k < E.length; k++) {
       steps.push({
         si: k, line: lineOf[k],
-        vars: { g: (E[k].lane === 0 ? "G1" : "G2"), act: E[k].label },
+        vars: { g: "G" + (E[k].lane + 1), act: E[k].label },
         info: infoOf[k],
         tl: { events: E, now: k, race: null }
       });
@@ -1473,7 +1475,7 @@
     steps.push({
       si: E.length, line: 4, done: true,
       vars: { g: "merge", act: "next ← [3]" },
-      info: "После барьера локальные фронты сливаются: 3 добавлен РОВНО раз. CAS застолбил вершину за одного — ни мьютекса, ни гонки.",
+      info: "После барьера фронты сливаются: 3 добавлен РОВНО раз, кто бы из " + n + " ни выиграл CAS. Ни мьютекса, ни гонки.",
       tl: { events: E, now: E.length - 1, race: null }
     });
     return { steps: steps };
@@ -1490,8 +1492,10 @@
       var tl = s.tl; if (!tl) return;
       var evs = tl.events, now = tl.now;
       var COLW = 92, ROWH = 56, PADL = 104, PADT = 28, BOXW = 78;
-      var ncol = 0; evs.forEach(function (e) { if (e.t + 1 > ncol) ncol = e.t + 1; });
-      var W = PADL + ncol * COLW + 16, H = PADT + 2 * ROWH + 24;
+      var ncol = 0, nlane = 0;
+      evs.forEach(function (e) { if (e.t + 1 > ncol) ncol = e.t + 1; if (e.lane + 1 > nlane) nlane = e.lane + 1; });
+      if (nlane < 1) nlane = 1;
+      var W = PADL + ncol * COLW + 16, H = PADT + nlane * ROWH + 24;
       var svg = document.createElementNS(SVGNS, "svg");
       svg.setAttribute("viewBox", "0 0 " + W + " " + H);
       svg.setAttribute("width", "100%"); svg.setAttribute("style", "max-width:" + W + "px");
@@ -1504,15 +1508,15 @@
       if (tl.race && now >= tl.race[0]) {
         var rx = PADL + tl.race[0] * COLW - 14;
         var rw = (Math.min(now, tl.race[1]) - tl.race[0]) * COLW + BOXW + 28;
-        svg.appendChild(el("rect", { x: rx, y: PADT - 12, width: Math.max(rw, BOXW + 28), height: 2 * ROWH + 4, rx: 8, fill: "rgba(220,40,40,0.10)", stroke: "#d33", "stroke-dasharray": "4 3" }));
+        svg.appendChild(el("rect", { x: rx, y: PADT - 12, width: Math.max(rw, BOXW + 28), height: nlane * ROWH + 4, rx: 8, fill: "rgba(220,40,40,0.10)", stroke: "#d33", "stroke-dasharray": "4 3" }));
       }
-      // дорожки
-      ["G1", "G2"].forEach(function (name, li) {
-        var y = PADT + li * ROWH + ROWH / 2;
-        svg.appendChild(el("line", { x1: PADL - 10, y1: y, x2: W - 8, y2: y, stroke: "#ccc", "stroke-width": 1 }));
-        var lbl = el("text", { x: 8, y: y + 4, fill: "#666", "font-size": 12, "font-weight": 600 });
-        lbl.textContent = "горутина " + name; svg.appendChild(lbl);
-      });
+      // дорожки (G1..Gn)
+      for (var li = 0; li < nlane; li++) {
+        var ly = PADT + li * ROWH + ROWH / 2;
+        svg.appendChild(el("line", { x1: PADL - 10, y1: ly, x2: W - 8, y2: ly, stroke: "#ccc", "stroke-width": 1 }));
+        var lbl = el("text", { x: 8, y: ly + 4, fill: "#666", "font-size": 12, "font-weight": 600 });
+        lbl.textContent = "горутина G" + (li + 1); svg.appendChild(lbl);
+      }
       // события
       evs.forEach(function (e) {
         if (e.t > now) return;
@@ -3467,8 +3471,8 @@
       varDesc: { "g": "Горутина", "act": "Действие" },
       lineNotes: { 2: "Обе горутины читают visited[v] — и обе видят false", 3: "Пишут true без синхронизации", 4: "Добавляют v в next — на гонке дважды" },
       rules: [{ head: "read + read", body: "оба видят false", cls: "eq" }, { head: "write + write", body: "второй уже поздно", cls: "gt" }, { head: "append ×2", body: "дубликат", cls: "lt" }],
-      parse: function () { return bRaceTimeline(); },
-      inputs: [],
+      parse: function (root) { return bRaceTimeline(parseInt(root.getAttribute("data-goroutines"), 10)); },
+      inputs: [{ attr: "data-goroutines", label: "горутин (2–4)", sm: true }],
       values: function () { return []; },
       title: function () { return "Гонка на visited (parallel BFS)"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
@@ -3488,8 +3492,8 @@
       varDesc: { "g": "Горутина", "act": "Действие" },
       lineNotes: { 2: "CAS 0→1: ровно одна горутина застолбит вершину", 3: "Победитель кладёт её в свой локальный фронт" },
       rules: [{ head: "CAS ✓", body: "вершина взята", cls: "eq" }, { head: "CAS занято", body: "другой не берёт", cls: "gt" }, { head: "merge", body: "фронты сливаются", cls: "lt" }],
-      parse: function () { return bLocalTimeline(); },
-      inputs: [],
+      parse: function (root) { return bLocalTimeline(parseInt(root.getAttribute("data-goroutines"), 10)); },
+      inputs: [{ attr: "data-goroutines", label: "горутин (2–4)", sm: true }],
       values: function () { return []; },
       title: function () { return "Atomic-захват вершины (без гонки)"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
