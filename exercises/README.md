@@ -101,6 +101,8 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `parallelbfs`   | `BFSLevelsSeq` / `BFSLevelsConc` (BFS по уровням: синхронно и конкурентно; гонка на `visited`, `-race`, бенч) |
 | `parallelsort`  | `MergeSortSeq` / `MergeSortConc` (сортировка слиянием: fan-out + cutoff; здесь конкурентность ускоряет) |
 | `wordcount`     | `FreqSeq` / `FreqConc` (подсчёт частот: worker pool + fan-in; урок «concurrent map writes») |
+| `parallelnqueens` | `CountNQueensSeq` / `CountNQueensConc` (N ферзей: fan-out по веткам, своя доска у горутины) |
+| `parallelsearch` | `CountOccurrencesSeq` / `CountOccurrencesConc` (поиск подстроки по чанкам; деление по началам, не по байтам) |
 
 ## Как добавить свой шаблон
 
