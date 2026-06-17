@@ -98,6 +98,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `avl`           | `NewAVL`, `AVL.Insert` / `Search` / `Height` / `InOrder` (самобалансировка поворотами) |
 | `sparsetable`   | `NewSparse`, `Sparse.Query` (идемпотентный RMQ-минимум за O(1)) |
 | `btree`         | `NewBTree`, `BTree.Search` / `Insert` / `InOrder` (split узла, степень t) |
+| `parallelbfs`   | `BFSLevelsSeq` / `BFSLevelsConc` (BFS по уровням: синхронно и конкурентно; гонка на `visited`, `-race`, бенч) |
 
 ## Как добавить свой шаблон
 
