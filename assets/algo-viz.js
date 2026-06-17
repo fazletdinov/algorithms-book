@@ -56,6 +56,16 @@
   // ===== Реестр Go-кода: строки синхронизируются с шагами (поле step.line) =====
   // Индекс строки в массиве = значение step.line, которое подсвечивается на шаге.
   var CODE = {
+    "race-timeline": [
+      "go func(u int) {",
+      "  for _, v := range adj[u] {",
+      "    if !visited[v] {        // обе горутины читают",
+      "      visited[v] = true     // и пишут без замка",
+      "      next = append(next, v)",
+      "    }",
+      "  }",
+      "}(u)"
+    ],
     "sliding-window-fixed": [
       "func maxSumSubarray(arr []int, k int) int {",
       "    windowSum := 0",
@@ -1381,6 +1391,95 @@
     var a = t[k][l].v, b = t[k][i2].v, ans = Math.min(a, b);
     push({ line: 2, snap: snap(m), k: k, ans: ans, found: true, done: true, info: "min(table[" + k + "][" + l + "]=" + a + " на [" + l + ".." + (l + (1 << k) - 1) + "], table[" + k + "][" + i2 + "]=" + b + " на [" + i2 + ".." + r + "]) = " + ans + " — два перекрывающихся отрезка длины 2^" + k + " покрывают [" + l + "," + r + "]" });
     return { steps: steps };
+  }
+
+  // ===== Гонка данных: таймлайн горутин (parallel BFS без замка) =============
+  // Иллюстративное (детерминированное) чередование двух горутин, наперегонки
+  // помечающих одну вершину. Шаги несут tl = { events, now, race } — отрисовка в
+  // raceViz. now двигает «время»; события до now показаны, текущее подсвечено,
+  // окно гонки (оба прочитали false до записи) выделено красным.
+  function bRaceTimeline() {
+    var E = [
+      { lane: 0, t: 0, kind: "read", label: "read 3 → false", racy: true },
+      { lane: 1, t: 1, kind: "read", label: "read 3 → false", racy: true },
+      { lane: 0, t: 2, kind: "write", label: "visited[3]=true" },
+      { lane: 0, t: 3, kind: "append", label: "next ← 3" },
+      { lane: 1, t: 4, kind: "write", label: "visited[3]=true" },
+      { lane: 1, t: 5, kind: "append", label: "next ← 3 ✗" }
+    ];
+    var lineOf = [2, 2, 3, 4, 3, 4]; // строка кода (индекс в CODE) для события
+    var infoOf = [
+      "G1 читает visited[3] — пока false",
+      "G2 читает visited[3] — ТОЖЕ false (G1 ещё не записал): начинается окно гонки",
+      "G1 помечает visited[3]=true",
+      "G1 добавляет 3 в next",
+      "G2 помечает visited[3]=true (уже true, но G2 этого не знал)",
+      "G2 добавляет 3 в next ВТОРОЙ раз — дубликат из-за гонки"
+    ];
+    var steps = [];
+    for (var k = 0; k < E.length; k++) {
+      steps.push({
+        si: k, line: lineOf[k],
+        vars: { g: (E[k].lane === 0 ? "G1" : "G2"), act: E[k].label },
+        info: infoOf[k],
+        tl: { events: E, now: k, race: [0, 2] }
+      });
+    }
+    steps.push({
+      si: E.length, line: 6, done: true,
+      vars: { g: "—", act: "гонка" },
+      info: "3 добавлен дважды: обе горутины прочитали false до первой записи. Фикс — mutex вокруг проверки-и-пометки.",
+      tl: { events: E, now: E.length - 1, race: [0, 2] }
+    });
+    return { steps: steps };
+  }
+
+  // raceViz — таймлайн: две дорожки-горутины по горизонтали (время слева направо),
+  // события-чипы по типам (read/write/append), окно гонки — красная полоса.
+  function raceViz(panel) {
+    var host = mkEl("div", "algo-tp__race"); panel.appendChild(host);
+    var FILL = { read: "#e6f0ff", write: "#fff0e0", append: "#e6f7ec" };
+    var STROKE = { read: "#4a90d9", write: "#e08a3c", append: "#46a86b" };
+    return function (s) {
+      host.innerHTML = "";
+      var tl = s.tl; if (!tl) return;
+      var evs = tl.events, now = tl.now;
+      var COLW = 92, ROWH = 56, PADL = 104, PADT = 28, BOXW = 78;
+      var ncol = 0; evs.forEach(function (e) { if (e.t + 1 > ncol) ncol = e.t + 1; });
+      var W = PADL + ncol * COLW + 16, H = PADT + 2 * ROWH + 24;
+      var svg = document.createElementNS(SVGNS, "svg");
+      svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+      svg.setAttribute("width", "100%"); svg.setAttribute("style", "max-width:" + W + "px");
+      function el(tag, attrs) {
+        var n = document.createElementNS(SVGNS, tag);
+        for (var a in attrs) n.setAttribute(a, attrs[a]);
+        return n;
+      }
+      // окно гонки
+      if (tl.race && now >= tl.race[0]) {
+        var rx = PADL + tl.race[0] * COLW - 14;
+        var rw = (Math.min(now, tl.race[1]) - tl.race[0]) * COLW + BOXW + 28;
+        svg.appendChild(el("rect", { x: rx, y: PADT - 12, width: Math.max(rw, BOXW + 28), height: 2 * ROWH + 4, rx: 8, fill: "rgba(220,40,40,0.10)", stroke: "#d33", "stroke-dasharray": "4 3" }));
+      }
+      // дорожки
+      ["G1", "G2"].forEach(function (name, li) {
+        var y = PADT + li * ROWH + ROWH / 2;
+        svg.appendChild(el("line", { x1: PADL - 10, y1: y, x2: W - 8, y2: y, stroke: "#ccc", "stroke-width": 1 }));
+        var lbl = el("text", { x: 8, y: y + 4, fill: "#666", "font-size": 12, "font-weight": 600 });
+        lbl.textContent = "горутина " + name; svg.appendChild(lbl);
+      });
+      // события
+      evs.forEach(function (e) {
+        if (e.t > now) return;
+        var x = PADL + e.t * COLW, y = PADT + e.lane * ROWH + ROWH / 2;
+        var stroke = e.racy ? "#d33" : STROKE[e.kind];
+        var sw = (e.t === now) ? 3 : (e.racy ? 2 : 1);
+        svg.appendChild(el("rect", { x: x, y: y - 15, width: BOXW, height: 30, rx: 6, fill: FILL[e.kind], stroke: stroke, "stroke-width": sw }));
+        var tx = el("text", { x: x + BOXW / 2, y: y + 4, "text-anchor": "middle", "font-size": 11, fill: "#222" });
+        tx.textContent = e.label; svg.appendChild(tx);
+      });
+      host.appendChild(svg);
+    };
   }
 
   // ===== AVL-дерево: вставка с балансировкой (повороты) ======================
@@ -3315,6 +3414,27 @@
 
   // Каждая запись DASH описывает один алгоритм; общий каркас строит buildDashboard.
   var DASH = {
+    "race-timeline": {
+      badge: "Гонка данных", desc: "Конкурентный BFS без замка: две горутины наперегонки помечают одну вершину — и добавляют её дважды.",
+      valuesLabel: "", codeKey: "race-timeline", fillRange: false,
+      complexity: { time: "—", space: "—", good: "⚠ Демонстрация data race" },
+      varOrder: ["g", "act"],
+      varDesc: { "g": "Горутина", "act": "Действие" },
+      lineNotes: { 2: "Обе горутины читают visited[v] — и обе видят false", 3: "Пишут true без синхронизации", 4: "Добавляют v в next — на гонке дважды" },
+      rules: [{ head: "read + read", body: "оба видят false", cls: "eq" }, { head: "write + write", body: "второй уже поздно", cls: "gt" }, { head: "append ×2", body: "дубликат", cls: "lt" }],
+      parse: function () { return bRaceTimeline(); },
+      inputs: [],
+      values: function () { return []; },
+      title: function () { return "Гонка на visited (parallel BFS)"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Горутина", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.g }, { text: s.vars.act, cls: (s.vars.act && s.vars.act.indexOf("✗") >= 0) ? "gt" : "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "end", icon: "✗", head: "Гонка данных", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: s.vars.g, b: s.vars.act, c: (s.vars.act && s.vars.act.indexOf("✗") >= 0) ? "✗" : "·", cls: (s.done ? "gt" : "lt") }; },
+      varsOf: function (s) { return { "g": s.vars.g, "act": s.vars.act }; },
+      customViz: raceViz
+    },
+
     "two-pointers-sum": {
       badge: "Two Pointers",
       desc: "Дан отсортированный массив. Найти пару чисел, сумма которых равна target.",
