@@ -66,6 +66,15 @@
       "  }",
       "}(u)"
     ],
+    "bfs-local-timeline": [
+      "go func(u int) {",
+      "  for _, v := range adj[u] {",
+      "    if atomic.CompareAndSwapInt32(&visited[v], 0, 1) {",
+      "      local = append(local, v)   // взял только победитель CAS",
+      "    }",
+      "  }",
+      "}(u)"
+    ],
     "sliding-window-fixed": [
       "func maxSumSubarray(arr []int, k int) int {",
       "    windowSum := 0",
@@ -1434,12 +1443,48 @@
     return { steps: steps };
   }
 
+  // Трасса BFSLevelsConcLocal на уровне с фронтом {1,2}, где обе вершины ведут в
+  // 3. Обе горутины делают atomic CAS на visited[3]; выигрывает одна — дубля нет.
+  // (Кто именно успел первым — зависит от планировщика; показано одно из течений,
+  //  важен инвариант: 3 застолблён ровно один раз.)
+  function bLocalTimeline() {
+    var E = [
+      { lane: 0, t: 0, kind: "claim", label: "CAS 3: 0→1 ✓" },
+      { lane: 1, t: 1, kind: "skip", label: "CAS 3: занято" },
+      { lane: 0, t: 2, kind: "append", label: "local ← 3" },
+      { lane: 1, t: 3, kind: "skip", label: "— ничего —" }
+    ];
+    var lineOf = [2, 2, 3, 2];
+    var infoOf = [
+      "G1 атомарно столбит вершину 3: CAS переводит visited[3] 0→1 — успех",
+      "G2 пробует тот же CAS на 3 — там уже 1, CAS не прошёл, 3 не берётся",
+      "Победитель CAS (G1) кладёт 3 в СВОЙ локальный фронт",
+      "G2 ничего не добавляет — дубля нет, и замок не понадобился"
+    ];
+    var steps = [];
+    for (var k = 0; k < E.length; k++) {
+      steps.push({
+        si: k, line: lineOf[k],
+        vars: { g: (E[k].lane === 0 ? "G1" : "G2"), act: E[k].label },
+        info: infoOf[k],
+        tl: { events: E, now: k, race: null }
+      });
+    }
+    steps.push({
+      si: E.length, line: 4, done: true,
+      vars: { g: "merge", act: "next ← [3]" },
+      info: "После барьера локальные фронты сливаются: 3 добавлен РОВНО раз. CAS застолбил вершину за одного — ни мьютекса, ни гонки.",
+      tl: { events: E, now: E.length - 1, race: null }
+    });
+    return { steps: steps };
+  }
+
   // raceViz — таймлайн: две дорожки-горутины по горизонтали (время слева направо),
   // события-чипы по типам (read/write/append), окно гонки — красная полоса.
   function raceViz(panel) {
     var host = mkEl("div", "algo-tp__race"); panel.appendChild(host);
-    var FILL = { read: "#e6f0ff", write: "#fff0e0", append: "#e6f7ec" };
-    var STROKE = { read: "#4a90d9", write: "#e08a3c", append: "#46a86b" };
+    var FILL = { read: "#e6f0ff", write: "#fff0e0", append: "#e6f7ec", claim: "#e6f7ec", skip: "#f0f0f0" };
+    var STROKE = { read: "#4a90d9", write: "#e08a3c", append: "#46a86b", claim: "#46a86b", skip: "#aaa" };
     return function (s) {
       host.innerHTML = "";
       var tl = s.tl; if (!tl) return;
@@ -3431,6 +3476,27 @@
       sumValues: function (s) { return [{ text: s.vars.g }, { text: s.vars.act, cls: (s.vars.act && s.vars.act.indexOf("✗") >= 0) ? "gt" : "lt" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "end", icon: "✗", head: "Гонка данных", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: s.vars.g, b: s.vars.act, c: (s.vars.act && s.vars.act.indexOf("✗") >= 0) ? "✗" : "·", cls: (s.done ? "gt" : "lt") }; },
+      varsOf: function (s) { return { "g": s.vars.g, "act": s.vars.act }; },
+      customViz: raceViz
+    },
+
+    "bfs-local-timeline": {
+      badge: "Atomic CAS", desc: "Масштабируемый конкурентный BFS: вершину столбит атомарный CAS, у каждой горутины свой локальный фронт — без мьютекса и без гонки.",
+      valuesLabel: "", codeKey: "bfs-local-timeline", fillRange: false,
+      complexity: { time: "O(V+E)", space: "O(V)", good: "✓ Без гонки и без замка" },
+      varOrder: ["g", "act"],
+      varDesc: { "g": "Горутина", "act": "Действие" },
+      lineNotes: { 2: "CAS 0→1: ровно одна горутина застолбит вершину", 3: "Победитель кладёт её в свой локальный фронт" },
+      rules: [{ head: "CAS ✓", body: "вершина взята", cls: "eq" }, { head: "CAS занято", body: "другой не берёт", cls: "gt" }, { head: "merge", body: "фронты сливаются", cls: "lt" }],
+      parse: function () { return bLocalTimeline(); },
+      inputs: [],
+      values: function () { return []; },
+      title: function () { return "Atomic-захват вершины (без гонки)"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Горутина", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.g }, { text: s.vars.act, cls: (s.vars.act && s.vars.act.indexOf("✓") >= 0) ? "eq" : "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Без дубля", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: s.vars.g, b: s.vars.act, c: (s.vars.act && s.vars.act.indexOf("✓") >= 0) ? "✓" : "·", cls: (s.done ? "eq" : "lt") }; },
       varsOf: function (s) { return { "g": s.vars.g, "act": s.vars.act }; },
       customViz: raceViz
     },
