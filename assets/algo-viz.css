@@ -1013,6 +1013,22 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__status--end { background: color-mix(in srgb, var(--fg, #888) 6%, transparent); border-color: var(--tp-border); }
 .algo-tp__status--end .algo-tp__staticon { color: var(--tp-bad); }
 
+/* «горячий» шаг — значимое событие посреди прогона (новый максимум/ответ, узел
+   создан/удалён). Янтарный акцент + жирный текст + однократная вспышка, чтобы не
+   проскочить глазом. Правила идут после --info, поэтому перебивают его фон. */
+.algo-tp__status--hot {
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+  border-color: color-mix(in srgb, #f59e0b 60%, transparent);
+  animation: algo-tp-hotpulse 0.7s ease-out;
+}
+.algo-tp__status--hot .algo-tp__staticon { color: #f59e0b; }
+.algo-tp__status--hot .algo-tp__stathead { color: #f59e0b; }
+.algo-tp__status--hot .algo-tp__stattext { font-weight: 600; }
+@keyframes algo-tp-hotpulse {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, #f59e0b 65%, transparent); }
+  to   { box-shadow: 0 0 0 7px transparent; }
+}
+
 /* бинарный поиск: середина и затемнённые (отброшенные) ячейки */
 .algo-tp__big--mid { outline: 3px solid #e0a500; outline-offset: 1px; background: color-mix(in srgb, #e0a500 22%, transparent); border-color: #e0a500; }
 .algo-tp__big--dim { opacity: 0.32; }

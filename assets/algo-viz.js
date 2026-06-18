@@ -5470,6 +5470,12 @@
       cStat.classList.toggle("algo-tp__status--ok", st.kind === "ok");
       cStat.classList.toggle("algo-tp__status--info", st.kind === "info");
       cStat.classList.toggle("algo-tp__status--end", st.kind === "end");
+      // «Горячий» шаг — значимое событие посреди прогона (новый максимум/ответ,
+      // создан/удалён узел): обычно это kind "info" и легко проскочить глазом,
+      // поэтому подсвечиваем карточку акцентом. Сигнал берём из флагов шага —
+      // едино для всех виджетов, без правки конфигов. st.hot — явное переопределение.
+      var hot = (st.hot != null) ? st.hot : !!(s && (s.improved || s.created || s.removed));
+      cStat.classList.toggle("algo-tp__status--hot", !!hot);
       statIcon.textContent = st.icon;
       statHead.textContent = st.head; statText.textContent = st.text;
 
