@@ -75,6 +75,24 @@
       "  }",
       "}(u)"
     ],
+    "wordcount-race": [
+      "freq := map[int]int{} // ОБЩАЯ карта",
+      "go func(c []int) {",
+      "  for _, x := range c {",
+      "    freq[x]++   // read-modify-write без синхронизации",
+      "  }",
+      "}(c)"
+    ],
+    "wordcount-local": [
+      "go func(c []int) {",
+      "  local := map[int]int{} // СВОЯ карта",
+      "  for _, x := range c {",
+      "    local[x]++",
+      "  }",
+      "  partials[w] = local",
+      "}(c)",
+      "// потом: слить partials в общий cnt"
+    ],
     "sliding-window-fixed": [
       "func maxSumSubarray(arr []int, k int) int {",
       "    windowSum := 0",
@@ -1478,6 +1496,56 @@
       info: "После барьера фронты сливаются: 3 добавлен РОВНО раз, кто бы из " + n + " ни выиграл CAS. Ни мьютекса, ни гонки.",
       tl: { events: E, now: E.length - 1, race: null }
     });
+    return { steps: steps };
+  }
+
+  // Подсчёт частот: гонка на ОБЩЕЙ map (несколько горутин cnt[x]++ без
+  // синхронизации). Все читают одно значение и пишут одно и то же — инкременты
+  // теряются (а Go-map ещё и падает с fatal error: concurrent map writes).
+  function bWcRace(n) {
+    if (!(n >= 2)) n = 2;
+    if (n > 4) n = 4;
+    var E = [], lineOf = [], infoOf = [], t = 0, i;
+    for (i = 0; i < n; i++) {
+      E.push({ lane: i, t: t++, kind: "read", label: "read cnt[7]=0", racy: true });
+      lineOf.push(3);
+      infoOf.push("G" + (i + 1) + " читает cnt[7] — видит 0 (никто ещё не записал)");
+    }
+    for (i = 0; i < n; i++) {
+      var lost = i > 0;
+      E.push({ lane: i, t: t++, kind: "write", label: lost ? "cnt[7]=1 ✗" : "cnt[7]=1" });
+      lineOf.push(3);
+      infoOf.push(lost
+        ? "G" + (i + 1) + " пишет cnt[7]=1 поверх — его инкремент ПОТЕРЯН (читал 0)"
+        : "G1 пишет cnt[7]=1");
+    }
+    var steps = [];
+    for (var k = 0; k < E.length; k++) {
+      steps.push({ si: k, line: lineOf[k], vars: { g: "G" + (E[k].lane + 1), act: E[k].label }, info: infoOf[k], tl: { events: E, now: k, race: [0, n - 1] } });
+    }
+    steps.push({ si: E.length, line: 3, done: true, vars: { g: "—", act: "потеря" }, info: "Итог cnt[7]=1 вместо " + n + ": " + (n - 1) + " инкрементов потеряны. А Go-map при конкурентной записи ещё и роняет программу — fatal error: concurrent map writes.", tl: { events: E, now: E.length - 1, race: [0, n - 1] } });
+    return { steps: steps };
+  }
+
+  // Подсчёт частот правильно: у каждой горутины СВОЯ карта (зелёный инкремент),
+  // после барьера локальные карты сливаются — все инкременты на месте, без гонки.
+  function bWcLocal(n) {
+    if (!(n >= 2)) n = 2;
+    if (n > 4) n = 4;
+    var E = [], lineOf = [], infoOf = [], t = 0, i;
+    for (i = 0; i < n; i++) {
+      E.push({ lane: i, t: t++, kind: "claim", label: "local cnt[7]=1" });
+      lineOf.push(3);
+      infoOf.push("G" + (i + 1) + " считает в СВОЮ карту: local[7]=1 — общей записи нет");
+    }
+    E.push({ lane: 0, t: t++, kind: "append", label: "merge: cnt[7]=" + n });
+    lineOf.push(7);
+    infoOf.push("После барьера локальные карты сливаются: cnt[7] = сумма = " + n);
+    var steps = [];
+    for (var k = 0; k < E.length; k++) {
+      steps.push({ si: k, line: lineOf[k], vars: { g: (E[k].kind === "append" ? "merge" : "G" + (E[k].lane + 1)), act: E[k].label }, info: infoOf[k], tl: { events: E, now: k, race: null } });
+    }
+    steps.push({ si: E.length, line: 7, done: true, vars: { g: "merge", act: "cnt[7]=" + n }, info: "Все " + n + " инкрементов на месте: cnt[7]=" + n + ". Ни гонки, ни потери, ни паники — синхронизация только в момент слияния.", tl: { events: E, now: E.length - 1, race: null } });
     return { steps: steps };
   }
 
@@ -3501,6 +3569,48 @@
       sumValues: function (s) { return [{ text: s.vars.g }, { text: s.vars.act, cls: (s.vars.act && s.vars.act.indexOf("✓") >= 0) ? "eq" : "lt" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Без дубля", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: s.vars.g, b: s.vars.act, c: (s.vars.act && s.vars.act.indexOf("✓") >= 0) ? "✓" : "·", cls: (s.done ? "eq" : "lt") }; },
+      varsOf: function (s) { return { "g": s.vars.g, "act": s.vars.act }; },
+      customViz: raceViz
+    },
+
+    "wordcount-race": {
+      badge: "Гонка на map", desc: "Несколько горутин делают cnt[x]++ по ОБЩЕЙ map[int]int: инкременты теряются, а рантайм Go роняет программу.",
+      valuesLabel: "", codeKey: "wordcount-race", fillRange: false,
+      complexity: { time: "—", space: "—", good: "⚠ Гонка + fatal error" },
+      varOrder: ["g", "act"],
+      varDesc: { "g": "Горутина", "act": "Действие" },
+      lineNotes: { 3: "Несколько горутин читают и пишут cnt[x] без синхронизации — инкременты затираются" },
+      rules: [{ head: "read + read", body: "все видят 0", cls: "eq" }, { head: "write + write", body: "затирают друг друга", cls: "gt" }, { head: "Go-map", body: "fatal error", cls: "lt" }],
+      parse: function (root) { var n = parseInt(root.getAttribute("data-goroutines"), 10); if (!(n >= 2)) n = 2; if (n > 4) n = 4; root.setAttribute("data-goroutines", n); return bWcRace(n); },
+      inputs: [{ attr: "data-goroutines", label: "горутин (2–4)", sm: true }],
+      values: function () { return []; },
+      title: function () { return "Гонка на общей map (cnt[x]++)"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Горутина", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.g }, { text: s.vars.act, cls: (s.vars.act && s.vars.act.indexOf("✗") >= 0) ? "gt" : "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "end", icon: "✗", head: "Потеря + паника", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: s.vars.g, b: s.vars.act, c: (s.vars.act && s.vars.act.indexOf("✗") >= 0) ? "✗" : "·", cls: (s.done ? "gt" : "lt") }; },
+      varsOf: function (s) { return { "g": s.vars.g, "act": s.vars.act }; },
+      customViz: raceViz
+    },
+
+    "wordcount-local": {
+      badge: "Worker pool", desc: "Каждая горутина считает в свою карту, после барьера локальные карты сливаются — без гонки и без паники.",
+      valuesLabel: "", codeKey: "wordcount-local", fillRange: false,
+      complexity: { time: "O(n)", space: "O(уник.)", good: "✓ map-reduce без гонки" },
+      varOrder: ["g", "act"],
+      varDesc: { "g": "Горутина", "act": "Действие" },
+      lineNotes: { 3: "Каждая горутина пишет в СВОЮ карту — общей записи нет", 7: "Слияние локальных карт в общую — синхронизация только тут" },
+      rules: [{ head: "local++", body: "своя карта", cls: "eq" }, { head: "barrier", body: "ждём всех", cls: "gt" }, { head: "merge", body: "суммируем", cls: "lt" }],
+      parse: function (root) { var n = parseInt(root.getAttribute("data-goroutines"), 10); if (!(n >= 2)) n = 2; if (n > 4) n = 4; root.setAttribute("data-goroutines", n); return bWcLocal(n); },
+      inputs: [{ attr: "data-goroutines", label: "горутин (2–4)", sm: true }],
+      values: function () { return []; },
+      title: function () { return "Подсчёт частот без гонки (локальные карты)"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Горутина", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.g }, { text: s.vars.act, cls: "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Без потерь", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: s.vars.g, b: s.vars.act, c: (s.done ? "✓" : "·"), cls: (s.done ? "eq" : "lt") }; },
       varsOf: function (s) { return { "g": s.vars.g, "act": s.vars.act }; },
       customViz: raceViz
     },
