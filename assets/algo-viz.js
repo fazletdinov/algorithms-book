@@ -169,6 +169,351 @@
       "    return maxLen",
       "}"
     ],
+    "min-subarray-naive": [
+      "func minSubArrayNaive(target int, nums []int) int {",
+      "    best := len(nums) + 1",
+      "    for i := 0; i < len(nums); i++ {",
+      "        sum := 0",
+      "        for j := i; j < len(nums); j++ {",
+      "            sum += nums[j]",
+      "            if sum >= target {",
+      "                if j-i+1 < best { best = j - i + 1 }",
+      "                break",
+      "            }",
+      "        }",
+      "    }",
+      "    if best == len(nums)+1 { return 0 }",
+      "    return best",
+      "}"
+    ],
+    "min-subarray-window": [
+      "func minSubArrayLen(target int, nums []int) int {",
+      "    left, sum := 0, 0",
+      "    best := len(nums) + 1",
+      "    for right := 0; right < len(nums); right++ {",
+      "        sum += nums[right]",
+      "        for sum >= target {",
+      "            if right-left+1 < best { best = right - left + 1 }",
+      "            sum -= nums[left]",
+      "            left++",
+      "        }",
+      "    }",
+      "    if best == len(nums)+1 { return 0 }",
+      "    return best",
+      "}"
+    ],
+    "num-provinces-naive": [
+      "func numProvincesNaive(isConnected [][]int) int {",
+      "    n := len(isConnected)",
+      "    reach := initReach(isConnected) // reach[i][j]=i==j||связаны",
+      "    for k := 0; k < n; k++ { // транзитивное замыкание (Флойд–Уоршелл)",
+      "        for i := 0; i < n; i++ {",
+      "            for j := 0; j < n; j++ {",
+      "                if reach[i][k] && reach[k][j] {",
+      "                    reach[i][j] = true",
+      "                }",
+      "            }",
+      "        }",
+      "    }",
+      "    count := 0",
+      "    for i := 0; i < n; i++ {",
+      "        if seen[i] { continue }",
+      "        count++ // новая провинция",
+      "        for j := 0; j < n; j++ {",
+      "            if reach[i][j] { seen[j] = true }",
+      "        }",
+      "    }",
+      "    return count",
+      "}"
+    ],
+    "merge-intervals-naive": [
+      "func mergeNaive(intervals [][]int) [][]int {",
+      "    res := append([][]int(nil), intervals...) // без сортировки",
+      "    for changed := true; changed; {",
+      "        changed = false",
+      "        for i := 0; i < len(res); i++ {",
+      "            for j := i + 1; j < len(res); j++ {",
+      "                a, b := res[i], res[j]",
+      "                if a[0] <= b[1] && b[0] <= a[1] { // перекрытие",
+      "                    res[i] = []int{min(a[0], b[0]), max(a[1], b[1])}",
+      "                    res = append(res[:j], res[j+1:]...) // удаляем j",
+      "                    changed = true",
+      "                    j--",
+      "                }",
+      "            }",
+      "        }",
+      "    }",
+      "    return res",
+      "}"
+    ],
+    "diameter-naive": [
+      "func height(node *TreeNode) int {",
+      "    if node == nil {",
+      "        return 0",
+      "    }",
+      "    return 1 + max(height(node.Left), height(node.Right))",
+      "}",
+      "",
+      "func diameterNaive(root *TreeNode) int {",
+      "    if root == nil {",
+      "        return 0",
+      "    }",
+      "    through := height(root.Left) + height(root.Right)",
+      "    left := diameterNaive(root.Left)",
+      "    right := diameterNaive(root.Right)",
+      "    return max(through, max(left, right))",
+      "}"
+    ],
+    "oranges-rotting-naive": [
+      "func orangesRottingNaive(grid [][]int) int {",
+      "    minutes := 0",
+      "    for {",
+      "        snap := copyGrid(grid) // снимок: свежезаражённые ждут",
+      "        changed := false",
+      "        for r := 0; r < rows; r++ {        // СКАНИРУЕМ ВСЮ СЕТКУ",
+      "            for c := 0; c < cols; c++ {",
+      "                if snap[r][c] != 2 { continue }",
+      "                for _, d := range dirs {",
+      "                    nr, nc := r+d[0], c+d[1]",
+      "                    if inBounds(nr, nc) && snap[nr][nc] == 1 {",
+      "                        grid[nr][nc] = 2",
+      "                        changed = true",
+      "                    }",
+      "                }",
+      "            }",
+      "        }",
+      "        if !changed { break }",
+      "        minutes++",
+      "    }",
+      "    return minutes // (+ остались свежие → -1)",
+      "}"
+    ],
+    "jump-game-dp": [
+      "func canJumpDP(nums []int) bool {",
+      "    n := len(nums)",
+      "    reachable := make([]bool, n)",
+      "    reachable[0] = true",
+      "    for i := 0; i < n; i++ {",
+      "        if !reachable[i] {",
+      "            continue // сюда не допрыгнуть",
+      "        }",
+      "        for step := 1; step <= nums[i] && i+step < n; step++ {",
+      "            reachable[i+step] = true // помечаем досягаемое",
+      "        }",
+      "    }",
+      "    return reachable[n-1]",
+      "}"
+    ],
+    "search-range-naive": [
+      "func searchRangeNaive(nums []int, target int) [2]int {",
+      "    res := [2]int{-1, -1}",
+      "    for i, v := range nums {",
+      "        if v == target {",
+      "            if res[0] == -1 {",
+      "                res[0] = i // первое совпадение",
+      "            }",
+      "            res[1] = i     // последнее перетирается",
+      "        }",
+      "    }",
+      "    return res",
+      "}"
+    ],
+    "string-match-naive": [
+      "func findAllNaive(text, pat string) []int {",
+      "    var res []int",
+      "    n, m := len(text), len(pat)",
+      "    for i := 0; i+m <= n; i++ {",
+      "        j := 0",
+      "        for j < m && text[i+j] == pat[j] {",
+      "            j++",
+      "        }",
+      "        if j == m {",
+      "            res = append(res, i) // вхождение на позиции i",
+      "        }",
+      "    }",
+      "    return res",
+      "}"
+    ],
+    "num-provinces": [
+      "func numProvinces(isConnected [][]int) int {",
+      "    n := len(isConnected)",
+      "    visited := make([]bool, n)",
+      "    var dfs func(v int)",
+      "    dfs = func(v int) {",
+      "        visited[v] = true",
+      "        for u := 0; u < n; u++ {",
+      "            if isConnected[v][u] == 1 && !visited[u] {",
+      "                dfs(u)",
+      "            }",
+      "        }",
+      "    }",
+      "    count := 0",
+      "    for i := 0; i < n; i++ {",
+      "        if !visited[i] {",
+      "            count++ // начали новую компоненту",
+      "            dfs(i)",
+      "        }",
+      "    }",
+      "    return count",
+      "}"
+    ],
+    "subsets-with-dup": [
+      "func subsetsWithDup(nums []int) [][]int {",
+      "    sort.Ints(nums)",
+      "    var result [][]int",
+      "    var current []int",
+      "    var backtrack func(start int)",
+      "    backtrack = func(start int) {",
+      "        result = append(result, append([]int{}, current...))",
+      "        for i := start; i < len(nums); i++ {",
+      "            if i > start && nums[i] == nums[i-1] {",
+      "                continue // дубль на этом уровне — пропуск",
+      "            }",
+      "            current = append(current, nums[i])",
+      "            backtrack(i + 1)",
+      "            current = current[:len(current)-1]",
+      "        }",
+      "    }",
+      "    backtrack(0)",
+      "    return result",
+      "}"
+    ],
+    "combination-sum": [
+      "func combinationSum(candidates []int, target int) [][]int {",
+      "    sort.Ints(candidates)",
+      "    var result [][]int",
+      "    var current []int",
+      "    var backtrack func(start, remain int)",
+      "    backtrack = func(start, remain int) {",
+      "        if remain == 0 {",
+      "            result = append(result, append([]int{}, current...))",
+      "            return",
+      "        }",
+      "        for i := start; i < len(candidates); i++ {",
+      "            if candidates[i] > remain {",
+      "                break // отсортировано ⇒ дальше только больше",
+      "            }",
+      "            current = append(current, candidates[i])",
+      "            backtrack(i, remain-candidates[i]) // i — повтор разрешён",
+      "            current = current[:len(current)-1]",
+      "        }",
+      "    }",
+      "    backtrack(0, target)",
+      "    return result",
+      "}"
+    ],
+    "oranges-rotting": [
+      "func orangesRotting(grid [][]int) int {",
+      "    queue, fresh := collectRotten(grid) // все 2 — старты, считаем 1",
+      "    if fresh == 0 { return 0 }",
+      "    minutes := 0",
+      "    for len(queue) > 0 && fresh > 0 {",
+      "        var next [][2]int",
+      "        for _, cell := range queue { // весь текущий уровень",
+      "            for _, d := range dirs {",
+      "                nr, nc := cell[0]+d[0], cell[1]+d[1]",
+      "                if inBounds(nr, nc) && grid[nr][nc] == 1 {",
+      "                    grid[nr][nc] = 2 // сгнил",
+      "                    fresh--",
+      "                    next = append(next, [2]int{nr, nc})",
+      "                }",
+      "            }",
+      "        }",
+      "        queue = next",
+      "        minutes++",
+      "    }",
+      "    if fresh > 0 { return -1 } // остались недостижимые",
+      "    return minutes",
+      "}"
+    ],
+    "first-missing-positive": [
+      "func firstMissingPositive(nums []int) int {",
+      "    n := len(nums)",
+      "    i := 0",
+      "    for i < n {",
+      "        v := nums[i]",
+      "        correct := v - 1",
+      "        if v >= 1 && v <= n && nums[i] != nums[correct] {",
+      "            nums[i], nums[correct] = nums[correct], nums[i] // на место",
+      "        } else {",
+      "            i++ // на месте или вне диапазона",
+      "        }",
+      "    }",
+      "    for i := 0; i < n; i++ {",
+      "        if nums[i] != i+1 {",
+      "            return i + 1 // первый «не на своём месте»",
+      "        }",
+      "    }",
+      "    return n + 1 // массив — это ровно 1..n",
+      "}"
+    ],
+    "house-robber": [
+      "func rob(nums []int) int {",
+      "    prev2, prev1 := 0, 0 // dp[i-2] и dp[i-1]",
+      "    for _, x := range nums {",
+      "        cur := max(prev1, prev2+x) // пропустить или взять дом",
+      "        prev2, prev1 = prev1, cur  // сдвигаем окно",
+      "    }",
+      "    return prev1",
+      "}"
+    ],
+    "two-single": [
+      "func twoSingle(nums []int) []int {",
+      "    xorAll := 0",
+      "    for _, x := range nums {",
+      "        xorAll ^= x // пары сокращаются, остаётся a ^ b",
+      "    }",
+      "    diff := xorAll & (-xorAll) // бит, где a и b различаются",
+      "    a, b := 0, 0",
+      "    for _, x := range nums {",
+      "        if x&diff != 0 {",
+      "            a ^= x // группа: бит установлен",
+      "        } else {",
+      "            b ^= x // группа: бит сброшен",
+      "        }",
+      "    }",
+      "    return []int{a, b}",
+      "}"
+    ],
+    "three-sum-naive": [
+      "func threeSumNaive(nums []int) [][]int {",
+      "    n := len(nums)",
+      "    var res [][]int",
+      "    for i := 0; i < n; i++ {",
+      "        for j := i + 1; j < n; j++ {",
+      "            for k := j + 1; k < n; k++ {",
+      "                if nums[i]+nums[j]+nums[k] == 0 {",
+      "                    res = addUnique(res, i, j, k) // отсев дублей через set",
+      "                }",
+      "            }",
+      "        }",
+      "    }",
+      "    return res",
+      "}"
+    ],
+    "three-sum": [
+      "func threeSum(nums []int) [][]int {",
+      "    sort.Ints(nums)",
+      "    var res [][]int",
+      "    for i := 0; i < len(nums)-2; i++ {",
+      "        if i > 0 && nums[i] == nums[i-1] { continue }",
+      "        left, right := i+1, len(nums)-1",
+      "        for left < right {",
+      "            sum := nums[i] + nums[left] + nums[right]",
+      "            switch {",
+      "            case sum == 0:",
+      "                res = append(res, []int{nums[i], nums[left], nums[right]})",
+      "                left++; right-- // и перешагнуть дубли",
+      "            case sum < 0:",
+      "                left++",
+      "            default:",
+      "                right--",
+      "            }",
+      "        }",
+      "    }",
+      "    return res",
+      "}"
+    ],
     "two-pointers-dedup": [
       "func removeDuplicates(nums []int) int {",
       "    if len(nums) == 0 { return 0 }",
@@ -569,6 +914,22 @@
       "    return node.isEnd // путь есть; это слово?",
       "}"
     ],
+    "trie-shortest-root": [
+      "func (t *Trie) shortestRoot(word string) string {",
+      "    node := t",
+      "    for i := 0; i < len(word); i++ {",
+      "        c := word[i] - 'a'",
+      "        if node.children[c] == nil {",
+      "            return word            // путь оборвался — корня нет",
+      "        }",
+      "        node = node.children[c]",
+      "        if node.isEnd {",
+      "            return word[:i+1]      // первый конец корня = кратчайший",
+      "        }",
+      "    }",
+      "    return word",
+      "}"
+    ],
     "trie-insert": [
       "func (t *Trie) Insert(word string) {",
       "    node := t",
@@ -652,6 +1013,32 @@
       "        f.tree[i] += delta // зона ответственности узла i",
       "        i += i & (-i)      // следующий ответственный узел",
       "    }",
+      "}"
+    ],
+    "count-inversions-naive": [
+      "func countInversionsNaive(nums []int) int {",
+      "    cnt := 0",
+      "    for i := 0; i < len(nums); i++ {",
+      "        for j := i + 1; j < len(nums); j++ {",
+      "            if nums[i] > nums[j] { cnt++ }",
+      "        }",
+      "    }",
+      "    return cnt",
+      "}"
+    ],
+    "count-inversions-bit": [
+      "func countInversionsBIT(nums []int) int {",
+      "    rank := compress(nums)  // значение → ранг 1..m",
+      "    tree := make([]int, m+1)",
+      "    add := func(i int) { for ; i <= m; i += i & -i { tree[i]++ } }",
+      "    prefix := func(i int) (s int) { for ; i > 0; i -= i & -i { s += tree[i] }; return }",
+      "    inv := 0",
+      "    for i := len(nums) - 1; i >= 0; i-- {  // справа налево",
+      "        ri := rank[nums[i]]",
+      "        inv += prefix(ri - 1)              // справа уже меньших",
+      "        add(ri)                            // регистрируем nums[i]",
+      "    }",
+      "    return inv",
       "}"
     ],
     "union-find-find": [
@@ -1051,6 +1438,205 @@
     steps.push({ lo: left, hi: n - 1, done: true, line: 12, freq: snap(), vars: { left: left, right: n - 1, distinct: distinct(), maxLen: maxLen }, info: "return maxLen = " + maxLen + " — длина самой длинной подстроки с ≤ " + k + " различными символами" });
     return steps;
   }
+  // Наивный O(n²) для «минимального подмассива с суммой ≥ target»: для КАЖДОГО левого
+  // конца i заново сканируем вправо j, копя сумму с нуля. Построчный (debugger) проход;
+  // видно, как соседние i пересчитывают почти один и тот же суффикс — та самая
+  // повторная работа, которую убирает скользящее окно (см. bMinSubWindow ниже).
+  function bMinSubNaive(arr, target) {
+    var n = arr.length, steps = [], best = n + 1, bestLo = -1, bestHi = -1;
+    function bv() { return best === n + 1 ? "∞" : best; }
+    function vv(i, j, sum) { return { i: i, j: j, sum: (sum === undefined ? "—" : sum), best: bv() }; }
+    if (!n) return [{ lo: 0, hi: -1, done: true, line: 13, vars: vv("—", "—"), info: "Пустой массив" }];
+    steps.push({ lo: 0, hi: -1, line: 1, vars: vv("—", "—"), info: "best = len(nums)+1 = " + (n + 1) + " — «бесконечность», ответа пока нет" });
+    for (var i = 0; i < n; i++) {
+      steps.push({ lo: i, hi: -1, line: 2, vars: vv(i, "—"), info: "i = " + i + ": берём новый левый конец — и снова сканируем вправо с нуля" });
+      var sum = 0;
+      steps.push({ lo: i, hi: -1, line: 3, vars: vv(i, "—", 0), info: "sum = 0 — обнуляем сумму для нового левого конца i = " + i });
+      var broke = false;
+      for (var j = i; j < n; j++) {
+        steps.push({ lo: i, hi: j, line: 4, vars: vv(i, j, sum), info: "j = " + j + ": расширяем подмассив [" + i + ".." + j + "] вправо" });
+        sum += arr[j];
+        steps.push({ lo: i, hi: j, line: 5, vars: vv(i, j, sum), info: "sum += nums[" + j + "] = " + arr[j] + " → sum = " + sum + " (сумма [" + i + ".." + j + "])" });
+        var ok = sum >= target;
+        steps.push({ lo: i, hi: j, line: 6, vars: vv(i, j, sum), info: "sum " + sum + (ok ? " ≥ " : " < ") + "target " + target + (ok ? " — да, подмассив подходит" : " — нет, идём правее") });
+        if (ok) {
+          var len = j - i + 1, improved = len < best;
+          if (improved) { best = len; bestLo = i; bestHi = j; }
+          steps.push({ lo: i, hi: j, improved: improved, line: 7, vars: vv(i, j, sum), info: improved ? "длина " + len + " < best → best = " + len + " (новый минимум, [" + i + ".." + j + "])" : "длина " + len + " ≥ best " + bv() + " — не короче, оставляем" });
+          steps.push({ lo: i, hi: j, line: 8, vars: vv(i, j, sum), info: "break — для этого i дальше только длиннее (сумма растёт), берём следующий левый конец" });
+          broke = true;
+          break;
+        }
+      }
+      if (!broke) {
+        steps.push({ lo: i, hi: n - 1, line: 4, vars: vv(i, n, sum), info: "j дошёл до конца массива: для i = " + i + " подходящего подмассива нет" });
+      }
+    }
+    var found = best !== n + 1;
+    steps.push({ lo: found ? bestLo : 0, hi: found ? bestHi : -1, line: 12, vars: vv("—", "—"), info: found ? "best = " + best + " ≠ ∞ — ответ найден" : "best всё ещё ∞ → вернём 0" });
+    steps.push({ lo: found ? bestLo : 0, hi: found ? bestHi : -1, done: true, line: found ? 13 : 12, vars: vv("—", "—"), info: found ? "return best = " + best + " — минимальный подмассив [" + bestLo + ".." + bestHi + "]" : "return 0 — подмассива с суммой ≥ " + target + " нет" });
+    return steps;
+  }
+  // Оптимум O(n): переменное окно для того же «минимального подмассива с суммой ≥ target».
+  // Построчный (debugger) проход: right расширяет окно, внутренний for жадно сжимает слева,
+  // пока сумма ≥ target. left только растёт — отсюда амортизированный O(n).
+  function bMinSubWindow(arr, target) {
+    var n = arr.length, steps = [], left = 0, sum = 0, best = n + 1, bestLo = -1, bestHi = -1;
+    function bv() { return best === n + 1 ? "∞" : best; }
+    function vv(right) { return { left: left, right: (right === undefined ? "—" : right), sum: sum, best: bv() }; }
+    if (!n) return [{ lo: 0, hi: -1, done: true, line: 12, vars: { left: "—", right: "—", sum: 0, best: "∞" }, info: "Пустой массив" }];
+    steps.push({ lo: 0, hi: -1, line: 1, vars: { left: 0, right: "—", sum: 0, best: "—" }, info: "left = 0, sum = 0 — окно пустое (right появится в заголовке for)" });
+    steps.push({ lo: 0, hi: -1, line: 2, vars: { left: 0, right: "—", sum: 0, best: bv() }, info: "best = len(nums)+1 = " + (n + 1) + " — «бесконечность», ответа пока нет" });
+    for (var right = 0; right < n; right++) {
+      steps.push({ lo: left, hi: right, line: 3, vars: vv(right), info: "right = " + right + ": расширяем окно вправо на индекс " + right });
+      sum += arr[right];
+      steps.push({ lo: left, hi: right, line: 4, vars: vv(right), info: "sum += nums[" + right + "] = " + arr[right] + " → sum = " + sum });
+      while (true) {
+        var ok = sum >= target;
+        steps.push({ lo: left, hi: right, line: 5, vars: vv(right), info: "sum " + sum + (ok ? " ≥ " : " < ") + "target " + target + (ok ? " — окно валидно, жадно сжимаем слева" : " — окно мало, расширяем дальше") });
+        if (!ok) break;
+        var len = right - left + 1, improved = len < best;
+        if (improved) { best = len; bestLo = left; bestHi = right; }
+        steps.push({ lo: left, hi: right, improved: improved, line: 6, vars: vv(right), info: improved ? "right−left+1 = " + len + " < best → best = " + len + " (новый минимум [" + left + ".." + right + "])" : "длина " + len + " ≥ best " + bv() + " — не короче" });
+        sum -= arr[left];
+        steps.push({ lo: left, hi: right, line: 7, vars: vv(right), info: "sum −= nums[" + left + "] = " + arr[left] + " → sum = " + sum + " (убрали левый элемент)" });
+        left++;
+        steps.push({ lo: left, hi: right, line: 8, vars: vv(right), info: "left++ → left = " + left + " (сжали окно слева; назад left не вернётся)" });
+      }
+    }
+    var found = best !== n + 1;
+    steps.push({ lo: found ? bestLo : 0, hi: found ? bestHi : -1, line: 11, vars: { left: left, right: n, sum: sum, best: bv() }, info: found ? "best = " + best + " ≠ ∞ — ответ найден" : "best всё ещё ∞ → вернём 0" });
+    steps.push({ lo: found ? bestLo : 0, hi: found ? bestHi : -1, done: true, line: found ? 12 : 11, vars: { left: left, right: n - 1, sum: sum, best: bv() }, info: found ? "return best = " + best + " — минимальный подмассив [" + bestLo + ".." + bestHi + "] (сумма ≥ " + target + ")" : "return 0 — подмассива с суммой ≥ " + target + " нет" });
+    return steps;
+  }
+  // Разбор cyclic-sort: «первое пропущенное положительное». Раскладываем число v на индекс
+  // v−1 (в диапазоне [1,n] и не на месте — swap, i НЕ растёт; иначе i++), затем сканируем.
+  // values на каждом шаге = снимок массива; lo=i, hi=индекс обмена. Зелёные ячейки — на месте.
+  function bFirstMissingPositive(arr) {
+    var a = arr.slice(), n = a.length, steps = [], i = 0, guard = 0;
+    function snap() { return a.slice(); }
+    function vv(ii, v, correct) { return { i: (ii == null ? "—" : ii), v: (v == null ? "—" : v), correct: (correct == null ? "—" : correct), n: n }; }
+    if (!n) return [{ lo: -1, hi: -1, done: true, line: 17, values: [], vars: vv("—"), info: "Пустой массив → ответ 1" }];
+    steps.push({ lo: 0, hi: -1, line: 2, values: snap(), vars: vv(0), info: "i = 0 — раскладываем: число v идёт на индекс v−1" });
+    while (i < n && guard++ < 4 * n + 10) {
+      steps.push({ lo: i, hi: -1, line: 3, values: snap(), vars: vv(i), info: "i = " + i + " < " + n + " — продолжаем раскладку" });
+      var v = a[i], correct = v - 1, inRange = v >= 1 && v <= n, misplaced = inRange && a[i] !== a[correct];
+      steps.push({ lo: i, hi: (inRange ? correct : -1), line: 4, values: snap(), vars: vv(i, v, inRange ? correct : null), info: "v = nums[" + i + "] = " + v });
+      steps.push({ lo: i, hi: (inRange ? correct : -1), line: 6, values: snap(), vars: vv(i, v, inRange ? correct : null), info: !inRange ? "v = " + v + " вне [1," + n + "] → на место не ставим" : (misplaced ? "v = " + v + " в диапазоне и nums[" + i + "] ≠ nums[" + correct + "] — меняем местами" : "v = " + v + " уже на своём месте (индекс " + correct + ")") });
+      if (misplaced) {
+        var tmp = a[i]; a[i] = a[correct]; a[correct] = tmp;
+        steps.push({ lo: i, hi: correct, line: 7, values: snap(), vars: vv(i, a[i], correct), info: "swap nums[" + i + "] ↔ nums[" + correct + "] → [" + a.join(", ") + "], i не растёт" });
+      } else {
+        i++;
+        steps.push({ lo: i, hi: -1, line: 9, values: snap(), vars: vv(i), info: "i++ → i = " + i + " (на месте или вне диапазона)" });
+      }
+    }
+    var ans = -1;
+    for (var j = 0; j < n; j++) {
+      var ok = a[j] === j + 1;
+      steps.push({ lo: j, hi: -1, line: 13, values: snap(), vars: { i: j, v: a[j], correct: "—", n: n }, info: "скан: nums[" + j + "] = " + a[j] + (ok ? " == " + (j + 1) + " — на месте" : " ≠ " + (j + 1) + " — первое «не своё» место!") });
+      if (!ok) { ans = j + 1; break; }
+    }
+    if (ans < 0) ans = n + 1;
+    steps.push({ lo: (ans - 1 < n ? ans - 1 : -1), hi: -1, done: true, found: true, line: (ans === n + 1 ? 17 : 14), values: snap(), vars: { i: "—", v: "—", correct: "—", n: n }, info: "return " + ans + " — наименьшее пропущенное положительное" });
+    return steps;
+  }
+  // Разбор DP: House Robber со свёрткой до двух переменных. dp[i]=max(пропустить prev1,
+  // взять prev2+x). lo=i — текущий дом; --hot, когда выгоднее ВЗЯТЬ.
+  function bHouseRobber(arr) {
+    var n = arr.length, steps = [], prev2 = 0, prev1 = 0;
+    function vv(i, x, cur) { return { i: (i == null ? "—" : i), x: (x == null ? "—" : x), prev2: prev2, prev1: prev1, cur: (cur == null ? "—" : cur) }; }
+    if (!n) return [{ lo: -1, hi: -1, done: true, line: 6, vars: vv(), info: "Пустой массив → 0" }];
+    steps.push({ lo: -1, hi: -1, line: 1, vars: vv(), info: "prev2 = prev1 = 0 — пустое окно (dp[-2], dp[-1])" });
+    for (var i = 0; i < n; i++) {
+      var x = arr[i];
+      steps.push({ lo: i, hi: -1, line: 2, vars: vv(i, x), info: "дом i = " + i + ", деньги x = " + x });
+      var take = prev2 + x, skip = prev1, cur = Math.max(skip, take), takeWins = take > skip;
+      steps.push({ lo: i, hi: -1, improved: takeWins, line: 3, vars: vv(i, x, cur), info: "cur = max(пропустить " + skip + ", взять " + prev2 + "+" + x + "=" + take + ") = " + cur + (takeWins ? " — выгоднее ВЗЯТЬ дом" : " — выгоднее ПРОПУСТИТЬ") });
+      prev2 = prev1; prev1 = cur;
+      steps.push({ lo: i, hi: -1, line: 4, vars: vv(i, x, cur), info: "сдвигаем окно: prev2 = " + prev2 + ", prev1 = " + prev1 });
+    }
+    steps.push({ lo: n - 1, hi: -1, done: true, found: true, line: 6, vars: { i: "—", x: "—", prev2: prev2, prev1: prev1, cur: "—" }, info: "return prev1 = " + prev1 + " — максимум денег без двух соседних домов" });
+    return steps;
+  }
+  // Разбор bit-manipulation: два числа-одиночки двойным XOR. Проход 1 — xorAll = a^b;
+  // diff = младший различающий бит; проход 2 делит по diff и копит XOR в группах a/b.
+  function bTwoSingle(arr) {
+    var n = arr.length, steps = [], xorAll = 0;
+    function bin(x) { return (x < 0 ? "-" : "") + "0b" + Math.abs(x).toString(2); }
+    function vv(i, x, e) { e = e || {}; return { i: (i == null ? "—" : i), x: (x == null ? "—" : x), xorAll: xorAll, diff: ("diff" in e ? e.diff : "—"), a: ("a" in e ? e.a : "—"), b: ("b" in e ? e.b : "—") }; }
+    if (!n) return [{ lo: -1, hi: -1, done: true, line: 14, vars: vv(), info: "Пустой массив" }];
+    steps.push({ lo: -1, hi: -1, line: 1, vars: vv(), info: "xorAll = 0 — первый проход XOR-им всё" });
+    for (var i = 0; i < n; i++) { xorAll ^= arr[i]; steps.push({ lo: i, hi: -1, line: 3, vars: vv(i, arr[i]), info: "xorAll ^= " + arr[i] + " → " + xorAll + " (" + bin(xorAll) + "); пары сокращаются" }); }
+    var diff = xorAll & (-xorAll);
+    steps.push({ lo: -1, hi: -1, improved: true, line: 5, vars: vv(null, null, { diff: diff }), info: "diff = xorAll & (−xorAll) = " + diff + " (" + bin(diff) + ") — младший бит, где a и b различаются" });
+    var a = 0, b = 0;
+    steps.push({ lo: -1, hi: -1, line: 6, vars: vv(null, null, { diff: diff, a: 0, b: 0 }), info: "a = b = 0 — второй проход делит числа по биту diff" });
+    for (var j = 0; j < n; j++) {
+      var x = arr[j], inA = (x & diff) !== 0;
+      steps.push({ lo: j, hi: -1, line: 7, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "x = " + x + " (" + bin(x) + "), x & diff " + (inA ? "≠ 0 → группа a (бит установлен)" : "= 0 → группа b (бит сброшен)") });
+      if (inA) { a ^= x; steps.push({ lo: j, hi: -1, line: 9, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "a ^= " + x + " → a = " + a }); }
+      else { b ^= x; steps.push({ lo: j, hi: -1, line: 11, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "b ^= " + x + " → b = " + b }); }
+    }
+    steps.push({ lo: -1, hi: -1, done: true, found: true, line: 14, vars: vv(null, null, { diff: diff, a: a, b: b }), info: "return [" + a + ", " + b + "] — два числа-одиночки" });
+    return steps;
+  }
+  // Разбор задачи двух указателей: 3Sum. Наивно O(n³) — три вложенных цикла i<j<k,
+  // проверяем каждую тройку на сумму 0, дубли отсекаем set. lo=i, mid=j, hi=k.
+  function bThreeSumNaive(arr) {
+    var n = arr.length, steps = [], seen = {}, found = 0;
+    function key3(a, b, c) { var t = [a, b, c].slice().sort(function (x, y) { return x - y; }); return t.join(","); }
+    function vv(i, j, k, sum) { return { i: (i == null ? "—" : i), j: (j == null ? "—" : j), k: (k == null ? "—" : k), sum: (sum == null ? "—" : sum), found: found }; }
+    if (n < 3) return [{ lo: -1, hi: -1, done: true, line: 12, vars: vv(), info: "Меньше трёх элементов — троек нет" }];
+    steps.push({ lo: -1, hi: -1, line: 2, vars: vv(), info: "res пуст — ищем тройки с суммой 0" });
+    for (var i = 0; i < n; i++) {
+      steps.push({ lo: i, hi: -1, line: 3, vars: vv(i), info: "i = " + i + ": первый элемент тройки nums[" + i + "] = " + arr[i] });
+      for (var j = i + 1; j < n; j++) {
+        steps.push({ lo: i, mid: j, hi: -1, line: 4, vars: vv(i, j), info: "j = " + j + ": второй элемент nums[" + j + "] = " + arr[j] });
+        for (var k = j + 1; k < n; k++) {
+          var sum = arr[i] + arr[j] + arr[k], zero = sum === 0, uniq = false;
+          if (zero) { var kk = key3(arr[i], arr[j], arr[k]); if (!seen[kk]) { seen[kk] = true; found++; uniq = true; } }
+          steps.push({ lo: i, mid: j, hi: k, improved: uniq, line: 6, vars: vv(i, j, k, sum), info: arr[i] + " + " + arr[j] + " + " + arr[k] + " = " + sum + (zero ? (uniq ? " = 0 — новая тройка [" + key3(arr[i], arr[j], arr[k]).split(",").join(", ") + "]!" : " = 0, но такая тройка уже была") : " ≠ 0") });
+        }
+      }
+    }
+    steps.push({ lo: -1, hi: -1, done: true, line: 12, vars: vv(), info: "return res — всего уникальных троек: " + found });
+    return steps;
+  }
+  // Оптимум O(n²): сортируем, фиксируем i, остаток ищем встречными указателями left/right.
+  // Массив показываем уже отсортированным (ctx.arr); i = mid (фиксирован), left = lo, right = hi.
+  function bThreeSum(arr) {
+    var a = arr.slice().sort(function (x, y) { return x - y; }), n = a.length, steps = [], found = 0;
+    function vv(i, l, r, sum) { return { i: (i == null ? "—" : i), left: (l == null ? "—" : l), right: (r == null ? "—" : r), sum: (sum == null ? "—" : sum), found: found }; }
+    steps.push({ lo: -1, mid: -1, hi: -1, line: 1, vars: vv(), info: "sort.Ints(nums) → [" + a.join(", ") + "] — появилась монотонность" });
+    for (var i = 0; i < n - 2; i++) {
+      if (i > 0 && a[i] === a[i - 1]) {
+        steps.push({ lo: -1, mid: i, hi: -1, line: 4, vars: vv(i, null, null), info: "i = " + i + ": nums[" + i + "] = " + a[i] + " == nums[" + (i - 1) + "] — дубль первого элемента, continue" });
+        continue;
+      }
+      var left = i + 1, right = n - 1;
+      steps.push({ lo: left, mid: i, hi: right, line: 5, vars: vv(i, left, right), info: "i = " + i + " (nums[i] = " + a[i] + "): left = " + left + ", right = " + right });
+      while (left < right) {
+        var sum = a[i] + a[left] + a[right];
+        steps.push({ lo: left, mid: i, hi: right, line: 7, vars: vv(i, left, right, sum), info: "sum = " + a[i] + " + " + a[left] + " + " + a[right] + " = " + sum });
+        if (sum === 0) {
+          found++;
+          steps.push({ lo: left, mid: i, hi: right, improved: true, line: 10, vars: vv(i, left, right, sum), info: "sum == 0 — тройка [" + a[i] + ", " + a[left] + ", " + a[right] + "]! left++, right-- и перешагиваем дубли" });
+          left++; right--;
+          while (left < right && a[left] === a[left - 1]) left++;
+          while (left < right && a[right] === a[right + 1]) right--;
+        } else if (sum < 0) {
+          steps.push({ lo: left, mid: i, hi: right, line: 12, vars: vv(i, left, right, sum), info: "sum " + sum + " < 0 — нужна большая сумма, left++" });
+          left++;
+        } else {
+          steps.push({ lo: left, mid: i, hi: right, line: 14, vars: vv(i, left, right, sum), info: "sum " + sum + " > 0 — нужна меньшая сумма, right--" });
+          right--;
+        }
+      }
+    }
+    steps.push({ lo: -1, mid: -1, hi: -1, done: true, line: 19, vars: vv(), info: "return res — всего уникальных троек: " + found });
+    return steps;
+  }
   // Одно направление: удаление дубликатов из отсортированного массива на месте.
   // Удаление дубликатов на месте — построчный (debugger) проход.
   function bDedup(arr) {
@@ -1191,6 +1777,69 @@
     }
     push({ line: 2, i: i, done: true, found: true, info: "i = " + i + " > " + n + " — вышли за пределы, обновление завершено" });
     return steps;
+  }
+
+  // Разбор задачи Фенвика: число инверсий. Наивно O(n²) — перебираем все пары i<j и
+  // считаем, где nums[i] > nums[j]. Построчный (debugger) проход; lo=i, hi=j.
+  function bCountInvNaive(arr) {
+    var n = arr.length, steps = [], cnt = 0;
+    function av(k) { return (k != null && k >= 0 && k < n) ? arr[k] : "—"; }
+    function vv(i, j) { return { i: (i == null ? "—" : i), j: (j == null ? "—" : j), "nums[i]": av(i), "nums[j]": av(j), cnt: cnt }; }
+    if (!n) return [{ lo: -1, hi: -1, done: true, line: 7, vars: vv(), info: "Пустой массив" }];
+    steps.push({ lo: -1, hi: -1, line: 1, vars: vv(), info: "cnt = 0 — пока инверсий не нашли" });
+    for (var i = 0; i < n; i++) {
+      steps.push({ lo: i, hi: -1, line: 2, vars: vv(i), info: "i = " + i + ": фиксируем левый элемент nums[" + i + "] = " + arr[i] });
+      for (var j = i + 1; j < n; j++) {
+        steps.push({ lo: i, hi: j, line: 3, vars: vv(i, j), info: "j = " + j + ": сравниваем с правым nums[" + j + "] = " + arr[j] });
+        var inv = arr[i] > arr[j];
+        if (inv) cnt++;
+        steps.push({ lo: i, hi: j, improved: inv, line: 4, vars: vv(i, j), info: inv ? "nums[" + i + "]=" + arr[i] + " > nums[" + j + "]=" + arr[j] + " — инверсия! cnt → " + cnt : "nums[" + i + "]=" + arr[i] + " ≤ nums[" + j + "]=" + arr[j] + " — не инверсия" });
+      }
+    }
+    steps.push({ lo: -1, hi: -1, done: true, line: 7, vars: vv(), info: "return cnt = " + cnt + " — всего инверсий" });
+    return steps;
+  }
+  // Оптимум O(n log n): сжатие координат + BIT по частотам. Идём СПРАВА НАЛЕВО; вклад
+  // nums[i] = prefix(rank−1) (сколько меньших уже встречено справа), затем add(rank).
+  // Снимок tree[1..m] на каждом шаге рисует BIT-панель (mapViz); подсветка узлов на
+  // спуске prefix (idx -= idx&−idx) и подъёме add (idx += idx&−idx).
+  function bCountInvBit(arr) {
+    var n = arr.length, steps = [];
+    var sorted = arr.slice().sort(function (a, b) { return a - b; });
+    var rank = {}, m = 0;
+    sorted.forEach(function (v) { if (rank[v] == null) { m++; rank[v] = m; } });
+    var tree = new Array(m + 1).fill(0);
+    function snap() { return tree.slice(1); } // tree[1..m]
+    function vv(i, ri, contrib, inv) { return { i: (i == null ? "—" : i), rank: (ri == null ? "—" : ri), contrib: (contrib == null ? "—" : contrib), inv: inv }; }
+    if (!n) return { m: 0, steps: [{ lo: -1, hi: -1, done: true, line: 11, tree: [], vars: vv(null, null, null, 0), info: "Пустой массив" }] };
+    var inv = 0;
+    steps.push({ lo: n, hi: -1, line: 5, tree: snap(), vars: vv(null, null, null, 0), info: "Сжатие координат: m = " + m + " рангов. tree[1.." + m + "] = 0, inv = 0" });
+    for (var i = n - 1; i >= 0; i--) {
+      steps.push({ lo: i, hi: -1, line: 6, tree: snap(), vars: vv(i, null, null, inv), info: "i = " + i + ": берём nums[" + i + "] = " + arr[i] + " (идём справа налево)" });
+      var ri = rank[arr[i]];
+      steps.push({ lo: i, hi: -1, line: 7, tree: snap(), vars: vv(i, ri, null, inv), info: "ri = rank[" + arr[i] + "] = " + ri });
+      var sum = 0, idx = ri - 1;
+      if (idx <= 0) {
+        steps.push({ lo: i, hi: -1, line: 8, tree: snap(), vars: vv(i, ri, 0, inv), info: "prefix(" + (ri - 1) + ") = 0 — рангов меньше " + ri + " ещё не встречали" });
+      } else {
+        var guard = 0;
+        while (idx > 0 && guard++ < 64) {
+          sum += tree[idx];
+          steps.push({ lo: i, hi: -1, touched: idx, action: "query", line: 8, tree: snap(), vars: vv(i, ri, sum, inv), info: "prefix: tree[" + idx + "] = " + tree[idx] + " → sum = " + sum + ", дальше idx −= idx&(−idx) → " + (idx - (idx & -idx)) });
+          idx -= idx & -idx;
+        }
+      }
+      inv += sum;
+      steps.push({ lo: i, hi: -1, improved: sum > 0, line: 8, tree: snap(), vars: vv(i, ri, sum, inv), info: "вклад nums[" + i + "] = prefix(" + (ri - 1) + ") = " + sum + " → inv = " + inv + (sum > 0 ? " (столько меньших уже справа)" : "") });
+      var aidx = ri, guard2 = 0;
+      while (aidx <= m && guard2++ < 64) {
+        tree[aidx]++;
+        steps.push({ lo: i, hi: -1, touched: aidx, action: "add", line: 9, tree: snap(), vars: vv(i, ri, sum, inv), info: "add: tree[" + aidx + "]++ → " + tree[aidx] + ", дальше idx += idx&(−idx) → " + (aidx + (aidx & -aidx)) });
+        aidx += aidx & -aidx;
+      }
+    }
+    steps.push({ lo: -1, hi: -1, done: true, line: 11, tree: snap(), vars: vv(null, null, null, inv), info: "return inv = " + inv + " — всего инверсий" });
+    return { m: m, steps: steps };
   }
 
   // ===== Union-Find (DSU): Find (сжатие пути) / Union (по размеру) ===========
@@ -2243,6 +2892,346 @@
   }
   var graphViz = graphVizFactory(false);
 
+  // Наив graphs: число провинций через транзитивное замыкание (Флойд–Уоршелл) O(V³).
+  // Заполняем матрицу reach[i][j] тройным циклом, потом считаем компоненты. Рисует reachMatrixViz.
+  function bNumProvincesNaive(labels, edges) {
+    var n = labels.length, reach = [];
+    for (var a = 0; a < n; a++) { reach.push([]); for (var b = 0; b < n; b++) reach[a].push(a === b); }
+    edges.forEach(function (e) { reach[e[0]][e[1]] = true; reach[e[1]][e[0]] = true; });
+    function snap() { return reach.map(function (r) { return r.slice(); }); }
+    var steps = [];
+    function vv(k, i, j, count) { return { k: (k == null ? "—" : labels[k]), i: (i == null ? "—" : labels[i]), j: (j == null ? "—" : labels[j]), "провинций": (count == null ? "—" : count) }; }
+    steps.push({ reach: snap(), line: 2, vars: vv(), info: "reach[i][j] = (i==j) или прямая связь — стартовая матрица достижимости" });
+    for (var k = 0; k < n; k++) for (var i = 0; i < n; i++) for (var j = 0; j < n; j++) {
+      var via = reach[i][k] && reach[k][j], was = reach[i][j];
+      if (via && !was) reach[i][j] = true;
+      steps.push({ reach: snap(), ci: i, cj: j, ck: k, improved: (via && !was), line: 6, vars: vv(k, i, j), info: "через " + labels[k] + ": reach[" + labels[i] + "][" + labels[k] + "] && reach[" + labels[k] + "][" + labels[j] + "] = " + via + (via && !was ? " → reach[" + labels[i] + "][" + labels[j] + "] = true (новый путь)" : (was ? " (уже было)" : "")) });
+    }
+    var seen = new Array(n).fill(false), count = 0;
+    for (var ii = 0; ii < n; ii++) {
+      if (seen[ii]) { steps.push({ reach: snap(), ci: ii, line: 14, vars: vv(null, ii, null, count), info: labels[ii] + " уже учтён — пропуск" }); continue; }
+      count++;
+      steps.push({ reach: snap(), ci: ii, improved: true, line: 15, vars: vv(null, ii, null, count), info: labels[ii] + " — новая провинция #" + count + ", помечаем достижимых из него" });
+      for (var jj = 0; jj < n; jj++) if (reach[ii][jj]) seen[jj] = true;
+    }
+    steps.push({ reach: snap(), done: true, found: true, line: 20, vars: vv(null, null, null, count), info: "return count = " + count + " — число провинций" });
+    return steps;
+  }
+  function reachMatrixViz(panel, ctx) {
+    var labels = ctx.labels, n = labels.length;
+    var wrap = mkEl("div", "algo-tp__map");
+    wrap.appendChild(mkEl("div", "algo-tp__maphdr", "reach[i][j] — матрица достижимости (Флойд–Уоршелл)"));
+    var grid = mkEl("div", "algo-viz__grid"); grid.style.gridTemplateColumns = "repeat(" + (n + 1) + ", 2.2em)";
+    grid.appendChild(mkEl("div", "algo-tp__gcell algo-tp__gcell--wall", ""));
+    for (var c = 0; c < n; c++) grid.appendChild(mkEl("div", "algo-tp__gcell algo-tp__gcell--wall", labels[c]));
+    var cells = [];
+    for (var r = 0; r < n; r++) { cells.push([]); grid.appendChild(mkEl("div", "algo-tp__gcell algo-tp__gcell--wall", labels[r])); for (var c2 = 0; c2 < n; c2++) { var cd = mkEl("div", "algo-tp__gcell", ""); grid.appendChild(cd); cells[r].push(cd); } }
+    wrap.appendChild(grid); panel.appendChild(wrap);
+    return function (s) {
+      var R = s.reach || [];
+      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
+        var on = R[r] && R[r][c], cur = (s.ci === r && s.cj === c);
+        cells[r][c].textContent = on ? "1" : "·";
+        cells[r][c].className = "algo-tp__gcell" + (on ? " algo-tp__gcell--visited" : "") + (cur ? " algo-tp__gcell--current" : "");
+      }
+    };
+  }
+
+  // Наив merge-intervals: сливаем пары, пока что-то меняется, O(n²) на проход. res мутирует
+  // (интервалы удаляются). Рисует intervalBarsViz — бары перерисовываются по снимку s.res.
+  function bMergeNaive(raw) {
+    var res = raw.map(function (p) { return [p[0], p[1]]; }), steps = [], passes = 0;
+    function snap() { return res.map(function (p) { return [p[0], p[1]]; }); }
+    function fmt(p) { return "[" + p[0] + "," + p[1] + "]"; }
+    function vv(i, j) { return { i: (i == null ? "—" : i), j: (j == null ? "—" : j), "интервалов": res.length, "проходов": passes }; }
+    if (!res.length) return [{ res: [], done: true, line: 16, vars: vv(), info: "Нет интервалов" }];
+    steps.push({ res: snap(), line: 1, vars: vv(), info: "res := копия входа (без сортировки): " + res.map(fmt).join(", ") });
+    var changed = true, guard = 0;
+    while (changed && guard++ < raw.length * raw.length + 10) {
+      changed = false; passes++;
+      steps.push({ res: snap(), line: 3, vars: vv(), info: "проход #" + passes + " — заново сравниваем все пары" });
+      for (var i = 0; i < res.length; i++) {
+        for (var j = i + 1; j < res.length; j++) {
+          var a = res[i], b = res[j], overlap = a[0] <= b[1] && b[0] <= a[1];
+          steps.push({ res: snap(), ci: i, cj: j, line: 7, vars: vv(i, j), info: "пара " + fmt(a) + " и " + fmt(b) + (overlap ? " — перекрываются" : " — нет") });
+          if (overlap) {
+            res[i] = [Math.min(a[0], b[0]), Math.max(a[1], b[1])];
+            res.splice(j, 1); changed = true;
+            steps.push({ res: snap(), ci: i, improved: true, line: 8, vars: vv(i, null), info: "слили в " + fmt(res[i]) + ", удалили " + fmt(b) + " → осталось " + res.length });
+            j--;
+          }
+        }
+      }
+    }
+    steps.push({ res: snap(), done: true, found: true, line: 16, vars: vv(), info: "стабилизировалось за " + passes + " проход(ов): " + res.map(fmt).join(", ") });
+    return steps;
+  }
+  function intervalBarsViz(panel, ctx) {
+    var minX = ctx.minX, maxX = ctx.maxX, span = (maxX - minX) || 1, W = 440, padL = 8;
+    function X(v) { return padL + (v - minX) / span * (W - padL - 8); }
+    var wrap = document.createElement("div"); wrap.style.cssText = "display:flex;flex-direction:column;gap:6px;padding:10px 0;min-height:60px;"; panel.appendChild(wrap);
+    return function (s) {
+      wrap.innerHTML = "";
+      (s.res || []).forEach(function (p, k) {
+        var row = document.createElement("div"); row.style.cssText = "position:relative;height:20px;";
+        var bar = document.createElement("div");
+        var bg = s.ci === k ? "#f59e0b" : (s.cj === k ? "#60a5fa" : "#475569");
+        bar.style.cssText = "position:absolute;left:" + X(p[0]) + "px;width:" + Math.max(16, X(p[1]) - X(p[0])) + "px;height:18px;border-radius:4px;background:" + bg + ";color:#fff;font-size:11px;line-height:18px;text-align:center;white-space:nowrap;overflow:hidden;";
+        bar.textContent = "[" + p[0] + "," + p[1] + "]";
+        row.appendChild(bar); wrap.appendChild(row);
+      });
+    };
+  }
+
+  // Наив tree-dfs: диаметр через отдельный height() для каждого узла — O(n²). На каждом узле
+  // заново обходим оба поддерева (подсвечиваем их). Рисует naiveTreeViz (current + measure-сет).
+  function bDiameterNaive(arr) {
+    var present = []; for (var i = 0; i < arr.length; i++) if (arr[i] != null) present.push(i);
+    function has(k) { return k < arr.length && arr[k] != null; }
+    function height(k) { if (!has(k)) return 0; return 1 + Math.max(height(2 * k + 1), height(2 * k + 2)); }
+    function subtree(k) { var out = []; (function go(x) { if (!has(x)) return; out.push(x); go(2 * x + 1); go(2 * x + 2); })(k); return out; }
+    var steps = [], best = 0;
+    function vv(node, through) { return { "узел": (node == null ? "—" : arr[node]), "через узел": (through == null ? "—" : through), "диаметр": best }; }
+    var order = []; (function go(k) { if (!has(k)) return; order.push(k); go(2 * k + 1); go(2 * k + 2); })(0);
+    order.forEach(function (k) {
+      var hl = height(2 * k + 1), hr = height(2 * k + 2), through = hl + hr;
+      var measure = subtree(2 * k + 1).concat(subtree(2 * k + 2));
+      var improved = through > best; if (improved) best = through;
+      steps.push({ cur: k, measure: measure, improved: improved, line: 11, vars: vv(k, through), info: "узел " + arr[k] + ": height(left)=" + hl + " + height(right)=" + hr + " = " + through + " — заново обошли оба поддерева" + (improved ? " → новый максимум диаметра!" : "") });
+    });
+    steps.push({ cur: -1, measure: [], done: true, found: true, line: 14, vars: vv(null, null), info: "return " + best + " — диаметр (самый длинный путь через какой-то узел)" });
+    return { arr: arr, present: present, steps: steps };
+  }
+  function naiveTreeViz(panel, ctx) {
+    var arr = ctx.arr, present = ctx.present;
+    function depth(i) { return Math.floor(Math.log(i + 1) / Math.LN2); }
+    var maxD = 0; present.forEach(function (i) { maxD = Math.max(maxD, depth(i)); });
+    var tree = document.createElement("div"); tree.className = "algo-tp__tree"; var byIdx = {};
+    for (var d = 0; d <= maxD; d++) { var row = document.createElement("div"); row.className = "algo-tp__trow"; present.filter(function (i) { return depth(i) === d; }).forEach(function (i) { var c = document.createElement("div"); c.className = "algo-tp__tnode"; c.textContent = arr[i]; row.appendChild(c); byIdx[i] = c; }); tree.appendChild(row); }
+    panel.appendChild(tree);
+    return function (s) {
+      var measure = s.measure || [];
+      present.forEach(function (i) { byIdx[i].classList.toggle("algo-tp__tnode--visited", measure.indexOf(i) >= 0); byIdx[i].classList.toggle("algo-tp__tnode--current", i === s.cur); });
+    };
+  }
+
+  // Наив grids: Rotting Oranges поминутной симуляцией с пересканированием ВСЕЙ сетки — O((R·C)²).
+  // Результат тот же (rotTime), но каждую минуту сканируем все клетки. Рисует orangesViz.
+  function bOrangesNaive(grid0) {
+    var R = grid0.length, C = grid0[0].length, dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    var rotTime = Array.from({ length: R }, function () { return new Array(C).fill(-1); });
+    var fresh = 0;
+    for (var r = 0; r < R; r++) for (var c = 0; c < C; c++) { if (grid0[r][c] === 2) rotTime[r][c] = 0; else if (grid0[r][c] === 1) fresh++; }
+    var steps = [], minute = 0, totalFresh = fresh, RC = R * C;
+    function vv(m, fr) { return { "минута": m, "свежих": fr, "сканов сетки": (m + 1) + "× по " + RC }; }
+    function fin() { return { steps: steps, rotTime: rotTime, grid: grid0, R: R, C: C, totalFresh: totalFresh }; }
+    steps.push({ minute: 0, line: 1, vars: vv(0, fresh), info: "Минута 0: гнилые (2) — старты, свежих " + fresh + ". Каждую минуту пересканируем все " + RC + " клеток" });
+    if (fresh === 0) { steps.push({ minute: 0, done: true, found: true, line: 20, vars: vv(0, 0), info: "Свежих нет — return 0" }); return fin(); }
+    var guard = 0;
+    while (fresh > 0 && guard++ < RC + 5) {
+      var infected = [];
+      for (var rr = 0; rr < R; rr++) for (var cc = 0; cc < C; cc++) { if (rotTime[rr][cc] >= 0 && rotTime[rr][cc] <= minute) { for (var d = 0; d < 4; d++) { var nr = rr + dirs[d][0], nc = cc + dirs[d][1]; if (nr >= 0 && nr < R && nc >= 0 && nc < C && grid0[nr][nc] === 1 && rotTime[nr][nc] < 0) { rotTime[nr][nc] = minute + 1; infected.push([nr, nc]); } } } }
+      if (!infected.length) break;
+      fresh -= infected.length; minute++;
+      steps.push({ minute: minute, line: 5, vars: vv(minute, fresh), info: "Минута " + minute + ": просканировали все " + RC + " клеток, заразили " + infected.length + ", свежих осталось " + fresh });
+    }
+    var ok = fresh === 0;
+    steps.push({ minute: minute, done: true, found: ok, line: ok ? 20 : 19, vars: vv(minute, fresh), info: ok ? ("Все сгнили за " + minute + " мин — return " + minute) : ("Остались " + fresh + " недостижимых → return -1") });
+    return fin();
+  }
+
+  // Наив greedy: динамика достижимости O(n²). Из каждой достижимой клетки помечаем весь
+  // диапазон прыжка — диапазоны жирно перекрываются (та самая повторная работа). reach[] зелёным.
+  function bJumpGameDp(arr) {
+    var n = arr.length, steps = [], reach = new Array(n).fill(false);
+    function snap() { return reach.slice(); }
+    function vv(i, step) { return { i: (i == null ? "—" : i), "nums[i]": (i != null && i < n ? arr[i] : "—"), step: (step == null ? "—" : step), reachable: (i != null && i < n ? (reach[i] ? "да" : "нет") : "—") }; }
+    if (!n) return [{ lo: -1, hi: -1, done: true, line: 12, reach: [], vars: vv(), info: "Пустой массив" }];
+    reach[0] = true;
+    steps.push({ lo: 0, hi: -1, reach: snap(), line: 3, vars: vv(0), info: "reachable[0] = true — старт достижим" });
+    for (var i = 0; i < n; i++) {
+      steps.push({ lo: i, hi: -1, reach: snap(), line: 4, vars: vv(i), info: "i = " + i });
+      if (!reach[i]) { steps.push({ lo: i, hi: -1, reach: snap(), line: 5, vars: vv(i), info: "reachable[" + i + "] = false → сюда не допрыгнуть, continue" }); continue; }
+      for (var step = 1; step <= arr[i] && i + step < n; step++) {
+        reach[i + step] = true;
+        steps.push({ lo: i, hi: i + step, improved: true, reach: snap(), line: 9, vars: vv(i, step), info: "reachable[" + (i + step) + "] = true — из " + i + " допрыгиваем (+" + step + ")" });
+      }
+    }
+    var ok = reach[n - 1];
+    steps.push({ lo: n - 1, hi: -1, done: true, found: ok, reach: snap(), line: 12, vars: vv(n - 1), info: "return reachable[" + (n - 1) + "] = " + (ok ? "true — конец достижим" : "false — не допрыгнуть") });
+    return steps;
+  }
+  // Наив modified-binary-search: линейный проход O(n). Игнорируем сортированность — трогаем
+  // каждый элемент; res[0] фиксируется на первом совпадении, res[1] перетирается на каждом.
+  function bSearchRangeNaive(arr, target) {
+    var n = arr.length, steps = [], first = -1, last = -1;
+    function vv(i) { return { i: (i == null ? "—" : i), "nums[i]": (i != null && i < n ? arr[i] : "—"), first: (first < 0 ? "-1" : first), last: (last < 0 ? "-1" : last) }; }
+    steps.push({ lo: -1, hi: -1, line: 1, vars: vv(), info: "res = [-1,-1] — пока не нашли" });
+    for (var i = 0; i < n; i++) {
+      var hit = arr[i] === target;
+      steps.push({ lo: i, hi: -1, match: hit, line: 3, vars: vv(i), info: "nums[" + i + "] = " + arr[i] + (hit ? " == target " + target + " — совпадение" : " ≠ target " + target) });
+      if (hit) {
+        if (first < 0) { first = i; steps.push({ lo: i, hi: -1, match: true, improved: true, line: 5, vars: vv(i), info: "первое совпадение → res[0] = " + i }); }
+        last = i;
+        steps.push({ lo: i, hi: -1, match: true, line: 7, vars: vv(i), info: "res[1] = " + i + " (последнее совпадение обновляется)" });
+      }
+    }
+    steps.push({ lo: first, hi: last, done: true, found: first >= 0, line: 10, vars: vv(), info: "return [" + first + ", " + last + "]" + (first >= 0 ? " — диапазон target" : " — target не найден") });
+    return steps;
+  }
+  // Наив string: для каждой позиции i прикладываем образец и сравниваем посимвольно O(n·m).
+  // На «злом» входе (aaaa / aa) окно почти совпадает и каждый раз сравнивается заново. Образец — панель.
+  function bStringMatchNaive(text, pat) {
+    var n = text.length, m = pat.length, steps = [], res = [];
+    function vv(i, j) { return { i: (i == null ? "—" : i), j: (j == null ? "—" : j), "сравнение": (i != null && j != null && i + j < n ? ("'" + text[i + j] + "' vs '" + pat[j] + "'") : "—"), "найдено": res.length }; }
+    if (!m || m > n) return [{ lo: -1, hi: -1, done: true, line: 12, patj: 0, vars: vv(), info: "Пустой или слишком длинный образец" }];
+    for (var i = 0; i + m <= n; i++) {
+      var j = 0;
+      steps.push({ lo: i, hi: i, patj: 0, line: 3, vars: vv(i, 0), info: "i = " + i + ": прикладываем образец к окну [" + i + ".." + (i + m - 1) + "]" });
+      while (j < m && text[i + j] === pat[j]) {
+        steps.push({ lo: i, hi: i + j, patj: j, match: true, line: 5, vars: vv(i, j), info: "text[" + (i + j) + "]='" + text[i + j] + "' == pat[" + j + "]='" + pat[j] + "' → j++" });
+        j++;
+      }
+      if (j < m) { steps.push({ lo: i, hi: i + j, patj: j, line: 5, vars: vv(i, j), info: "text[" + (i + j) + "]='" + text[i + j] + "' ≠ pat[" + j + "]='" + pat[j] + "' — несовпадение, окно +1" }); }
+      else { res.push(i); steps.push({ lo: i, hi: i + m - 1, patj: m, improved: true, line: 8, vars: vv(i, m - 1), info: "j == m — вхождение на позиции " + i + "!" }); }
+    }
+    steps.push({ lo: -1, hi: -1, done: true, found: res.length > 0, line: 12, patj: 0, vars: vv(), info: "return res = [" + res.join(", ") + "] — все вхождения" });
+    return steps;
+  }
+  // Разбор graphs: Number of Provinces — DFS по компонентам связности. Каждый новый
+  // незатронутый узел = новая провинция, запускаем DFS и красим достижимое. Рисует graphViz.
+  function bNumProvinces(labels, edges) {
+    var n = labels.length, adj = labels.map(function () { return []; });
+    edges.forEach(function (e) { adj[e[0]].push(e[1]); adj[e[1]].push(e[0]); });
+    var visited = new Array(n).fill(false), count = 0, steps = [];
+    function vv(v, c) { return { "вершина": (v < 0 ? "—" : labels[v]), "провинций": c, "посещено": visited.filter(Boolean).length + "/" + n }; }
+    function push(line, cur, c, info, done) { var s = { current: cur, visited: visited.slice(), line: line, vars: vv(cur, c), info: info }; if (done) { s.done = true; s.found = true; } steps.push(s); }
+    push(2, -1, 0, "visited := make([]bool, n) — все вершины не посещены");
+    for (var i = 0; i < n; i++) {
+      push(13, -1, count, "i = " + i + ": вершина " + labels[i] + " — посещена?");
+      if (!visited[i]) {
+        count++;
+        steps.push({ current: i, visited: visited.slice(), improved: true, line: 15, vars: vv(i, count), info: "вершина " + labels[i] + " не посещена → НОВАЯ провинция #" + count + ", запускаем DFS" });
+        (function dfs(v) {
+          visited[v] = true;
+          push(5, v, count, "visited[" + labels[v] + "] = true — вошли в DFS компоненты #" + count);
+          adj[v].forEach(function (u) {
+            push(7, v, count, "сосед " + labels[u] + ": ребро есть и " + (visited[u] ? "уже посещён — пропуск" : "не посещён → спускаемся"));
+            if (!visited[u]) { push(8, v, count, "dfs(" + labels[u] + ")"); dfs(u); }
+          });
+        })(i);
+      } else {
+        push(14, -1, count, "вершина " + labels[i] + " уже посещена — та же провинция, пропуск");
+      }
+    }
+    push(19, -1, count, "return count = " + count + " — число компонент связности (провинций)", true);
+    return steps;
+  }
+
+  // Разбор subsets: подмножества массива С ДУБЛЯМИ. sort + skip на уровне (i>start &&
+  // nums[i]==nums[i-1] → continue) вместо set. Рисует subsetsViz (множество/текущее/найдено).
+  function bSubsetsDup(set0) {
+    var set = set0.slice().sort(function (a, b) { return a - b; }), n = set.length, steps = [], result = [], current = [];
+    function vv(action) { return { action: action, cur: "[" + current.join(",") + "]", count: result.length }; }
+    function snap(extra) { var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }) }; for (var k in extra) s[k] = extra[k]; steps.push(s); }
+    (function bt(start) {
+      result.push(current.slice());
+      snap({ action: "record", line: 6, vars: vv("записать [" + current.join(",") + "]"), info: "записали подмножество [" + current.join(", ") + "]" });
+      for (var i = start; i < n; i++) {
+        if (i > start && set[i] === set[i - 1]) {
+          snap({ action: "skip", pick: i, line: 8, vars: vv("пропуск " + set[i]), info: "i = " + i + ": " + set[i] + " == предыдущего на этом уровне → continue (дубль)" });
+          continue;
+        }
+        snap({ action: "loop", pick: i, line: 7, vars: vv("i = " + i), info: "i = " + i + ": берём элемент " + set[i] });
+        current.push(set[i]);
+        snap({ action: "choose", pick: i, line: 11, vars: vv("выбрать " + set[i]), info: "current = append(current, " + set[i] + ")" });
+        snap({ action: "recurse", pick: i, line: 12, vars: vv("backtrack(" + (i + 1) + ")"), info: "backtrack(" + (i + 1) + ") — глубже" });
+        bt(i + 1);
+        current.pop();
+        snap({ action: "back", pick: i, line: 13, vars: vv("откат " + set[i]), info: "откат: убираем " + set[i] });
+      }
+    })(0);
+    snap({ done: true, found: true, line: 17, vars: vv("готово"), info: "Готово: " + result.length + " уникальных подмножеств" });
+    return steps;
+  }
+
+  // Разбор backtracking: Combination Sum. Несём остаток remain; база remain==0, отсечение
+  // candidates[i] > remain (break, т.к. отсортировано); i (не i+1) — повтор кандидата. Рисует subsetsViz.
+  function bCombSum(cands0, target) {
+    var c = cands0.slice().sort(function (a, b) { return a - b; }), n = c.length, steps = [], result = [], current = [], guard = 0;
+    function vv(action, remain) { return { action: action, cur: "[" + current.join(",") + "]", remain: (remain == null ? "—" : remain), count: result.length }; }
+    function snap(extra) { var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }) }; for (var k in extra) s[k] = extra[k]; steps.push(s); }
+    (function bt(start, remain) {
+      if (guard++ > 4000) return;
+      if (remain === 0) {
+        result.push(current.slice());
+        snap({ action: "record", line: 7, vars: vv("записать [" + current.join(",") + "]", 0), info: "remain == 0 → комбинация [" + current.join(", ") + "]!" });
+        return;
+      }
+      for (var i = start; i < n; i++) {
+        if (c[i] > remain) {
+          snap({ action: "prune", pick: i, line: 12, vars: vv("обрыв: " + c[i] + " > " + remain, remain), info: "candidates[" + i + "] = " + c[i] + " > remain " + remain + " → break (дальше только больше)" });
+          break;
+        }
+        snap({ action: "loop", pick: i, line: 10, vars: vv("i = " + i, remain), info: "i = " + i + ": кандидат " + c[i] + ", remain " + remain });
+        current.push(c[i]);
+        snap({ action: "choose", pick: i, line: 14, vars: vv("выбрать " + c[i], remain - c[i]), info: "берём " + c[i] + " → remain " + (remain - c[i]) });
+        snap({ action: "recurse", pick: i, line: 15, vars: vv("backtrack(" + i + ", " + (remain - c[i]) + ")", remain - c[i]), info: "backtrack(i=" + i + " — повтор разрешён, remain=" + (remain - c[i]) + ")" });
+        bt(i, remain - c[i]);
+        current.pop();
+        snap({ action: "back", pick: i, line: 16, vars: vv("откат " + c[i], remain), info: "откат: убираем " + c[i] });
+      }
+    })(0, target);
+    snap({ done: true, found: true, line: 20, vars: vv("готово", "—"), info: "Готово: " + result.length + " комбинаций" });
+    return steps;
+  }
+
+  // Разбор grids: Rotting Oranges — multi-source BFS, уровни = минуты. Все гнилые (2) —
+  // источники на минуте 0; каждая минута заражает 4-соседей-свежих (1). Рисует orangesViz по rotTime.
+  function bOrangesRotting(grid0) {
+    var R = grid0.length, C = grid0[0].length, dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    var rotTime = Array.from({ length: R }, function () { return new Array(C).fill(-1); });
+    var q = [], fresh = 0;
+    for (var r = 0; r < R; r++) for (var c = 0; c < C; c++) { if (grid0[r][c] === 2) { rotTime[r][c] = 0; q.push([r, c]); } else if (grid0[r][c] === 1) fresh++; }
+    var steps = [], minute = 0, totalFresh = fresh;
+    function vv(m, fr) { return { "минута": m, "свежих": fr, "источников": q.length }; }
+    function fin() { return { steps: steps, rotTime: rotTime, grid: grid0, R: R, C: C, totalFresh: totalFresh }; }
+    steps.push({ minute: 0, line: 1, vars: { "минута": 0, "свежих": fresh, "источников": q.length }, info: "Минута 0: все гнилые (2) — источники, свежих апельсинов " + fresh });
+    if (fresh === 0) { steps.push({ minute: 0, done: true, found: true, line: 2, vars: vv(0, 0), info: "fresh == 0 — гнить нечему, return 0" }); return fin(); }
+    var guard = 0;
+    while (q.length && fresh > 0 && guard++ < R * C + 5) {
+      var next = [];
+      for (var k = 0; k < q.length; k++) {
+        var rr = q[k][0], cc = q[k][1];
+        for (var d = 0; d < 4; d++) { var nr = rr + dirs[d][0], nc = cc + dirs[d][1]; if (nr >= 0 && nr < R && nc >= 0 && nc < C && grid0[nr][nc] === 1 && rotTime[nr][nc] < 0) { rotTime[nr][nc] = minute + 1; fresh--; next.push([nr, nc]); } }
+      }
+      if (!next.length) break;
+      minute++;
+      q = next;
+      steps.push({ minute: minute, line: 9, vars: vv(minute, fresh), info: "Минута " + minute + ": волна гниения заразила " + next.length + " апельсин(ов), свежих осталось " + fresh });
+    }
+    var ok = fresh === 0;
+    steps.push({ minute: minute, done: true, found: ok, line: ok ? 20 : 19, vars: vv(minute, fresh), info: ok ? ("Все апельсины сгнили за " + minute + " мин — return " + minute) : ("Осталось " + fresh + " недостижимых свежих → return -1") });
+    return fin();
+  }
+  function orangesViz(panel, ctx) {
+    var grid = ctx.grid, R = ctx.R, C = ctx.C, rotTime = ctx.rotTime;
+    var wrap = document.createElement("div"); wrap.className = "algo-viz__grid"; wrap.style.gridTemplateColumns = "repeat(" + C + ", 2.7em)";
+    var cells = [];
+    for (var r = 0; r < R; r++) { cells.push([]); for (var c = 0; c < C; c++) { var cd = document.createElement("div"); cd.className = "algo-viz__gcell" + (grid[r][c] === 0 ? " algo-viz__gcell--wall" : ""); wrap.appendChild(cd); cells[r].push(cd); } }
+    panel.appendChild(wrap);
+    return function (s) {
+      var m = s.minute;
+      for (var r = 0; r < R; r++) for (var c = 0; c < C; c++) {
+        if (grid[r][c] === 0) { cells[r][c].textContent = ""; continue; }
+        var rt = rotTime[r][c], rotted = rt >= 0 && rt <= m, justRotted = (rt === m) || (rt === 0 && m === 0);
+        cells[r][c].classList.toggle("algo-viz__gcell--visited", rotted && !justRotted);
+        cells[r][c].classList.toggle("algo-viz__gcell--current", rotted && justRotted);
+        cells[r][c].textContent = rotted ? "🦠" : "🍊";
+      }
+    };
+  }
+
   // BFS по сетке — построчный (debugger) проход; рисует gridViz (visitStep[][] = кадр
   // ПЕРВОГО открытия клетки, чтобы окраска «посещено» не сбивалась). Очередь — панель.
   function bGridBfs(grid) {
@@ -2480,6 +3469,51 @@
     };
   }
 
+  // Trie: разбор задачи Replace Words — спуск shortestRoot до ПЕРВОГО isEnd. Строим бор
+  // из корней dict, ведём слово query по символам; как только узел помечен isEnd — это
+  // кратчайший корень-префикс (идём от начала слова), возвращаем word[:i+1]. Путь оборвался
+  // (нет ребра) → корня нет, слово остаётся как есть. Рисуется тем же trieViz по path/upto.
+  function bTrieShortestRoot(words, query) {
+    var nodes = [{ ch: "•", depth: 0, end: false, children: {} }];
+    words.forEach(function (w) {
+      var cur = 0;
+      for (var k = 0; k < w.length; k++) {
+        var ch = w[k];
+        if (nodes[cur].children[ch] == null) { var id = nodes.length; nodes.push({ ch: ch, depth: k + 1, end: false, children: {} }); nodes[cur].children[ch] = id; }
+        cur = nodes[cur].children[ch];
+      }
+      nodes[cur].end = true;
+    });
+    // Путь спуска для trieViz: от корня по символам query, пока есть рёбра; стоп на первом isEnd.
+    var path = [0], pc = 0;
+    for (var k0 = 0; k0 < query.length; k0++) { var c0 = query[k0]; if (nodes[pc].children[c0] != null) { pc = nodes[pc].children[c0]; path.push(pc); if (nodes[pc].end) break; } else break; }
+    var steps = [], upto = 0;
+    function push(o) { steps.push({ upto: upto, line: o.line, vars: { i: (o.i == null ? "—" : o.i), char: (o.char || "—"), node: (o.node || "—"), isEnd: (o.isEnd || "—") }, info: o.info, done: o.done, found: o.found }); }
+    push({ line: 1, node: "корень", info: "node := корень. Ищем кратчайший корень-префикс для «" + query + "»" });
+    var cur2 = 0;
+    for (var k = 0; k < query.length; k++) {
+      var ch2 = query[k];
+      push({ line: 2, i: k, char: ch2, node: nodes[cur2].ch, info: "i = " + k + ": " + k + " < len(word) — берём символ '" + ch2 + "'" });
+      push({ line: 3, i: k, char: ch2, node: nodes[cur2].ch, info: "c = '" + ch2 + "'" });
+      var childId = nodes[cur2].children[ch2], has = childId != null;
+      push({ line: 4, i: k, char: ch2, node: nodes[cur2].ch, info: has ? "у узла «" + nodes[cur2].ch + "» есть потомок '" + ch2 + "'" : "у узла «" + nodes[cur2].ch + "» НЕТ потомка '" + ch2 + "' — корня нет" });
+      if (!has) {
+        push({ line: 5, done: true, i: k, char: ch2, node: nodes[cur2].ch, isEnd: "—", info: "return word — путь оборвался, корня-префикса нет, слово остаётся «" + query + "»" });
+        return { nodes: nodes, path: path, steps: steps };
+      }
+      cur2 = childId; upto++;
+      push({ line: 7, i: k, char: ch2, node: nodes[cur2].ch, info: "node = children['" + ch2 + "'] → спускаемся в «" + nodes[cur2].ch + "»" });
+      var isEnd = nodes[cur2].end;
+      push({ line: 8, i: k, char: ch2, node: nodes[cur2].ch, isEnd: isEnd ? "да" : "нет", info: isEnd ? "node.isEnd == true — встретили конец корня!" : "node.isEnd == false — ещё не конец корня, идём глубже" });
+      if (isEnd) {
+        var ans = query.slice(0, k + 1);
+        push({ line: 9, done: true, found: true, i: k, char: ch2, node: nodes[cur2].ch, isEnd: "да", info: "return word[:" + (k + 1) + "] = «" + ans + "» — первый (значит, кратчайший) корень-префикс" });
+        return { nodes: nodes, path: path, steps: steps };
+      }
+    }
+    push({ line: 12, done: true, node: nodes[cur2].ch, isEnd: "—", info: "return word — корень не встретился, слово остаётся «" + query + "»" });
+    return { nodes: nodes, path: path, steps: steps };
+  }
   // Trie: вставка слова — растим дерево, показывая создание vs переиспользование узлов.
   function bTrieInsert(words, ins) {
     // Стартовое дерево из уже вставленных слов (createdAt = -1 — существуют изначально).
@@ -3788,6 +4822,450 @@
       }
     },
 
+    "min-subarray-naive": {
+      badge: "Грубый перебор",
+      desc: "Наивно O(n²): для каждого левого конца i заново сканируем вправо. Эталон для сравнения — потом тот же ответ даёт окно за O(n).",
+      valuesLabel: "Массив (положительные)", codeKey: "min-subarray-naive", fillRange: false,
+      ptr1: { name: "i", cap: "(левый конец)" }, ptr2: { name: "j", cap: "(скан вправо)" },
+      complexity: { time: "O(n²)", space: "O(1)", good: "⚠ База для сравнения — медленно" },
+      varOrder: ["i", "j", "sum", "best"],
+      varDesc: { i: "Левый конец подмассива", j: "Правый конец (скан вправо)", sum: "Сумма подмассива [i..j]", best: "Лучшая (минимальная) длина" },
+      lineNotes: { 1: "best = len+1 — «бесконечность»: ещё ничего не нашли", 2: "Внешний цикл: перебираем КАЖДЫЙ левый конец i", 3: "Для нового i обнуляем сумму и сканируем вправо заново — вот она, повторная работа", 4: "Внутренний цикл: правый конец j ползёт вправо от i", 5: "Накапливаем сумму подмассива [i..j] за O(1)", 6: "Сумма дошла до target — подмассив подходит?", 7: "Короче прежнего — обновляем минимальную длину best", 8: "break: дальше тот же i даёт только длиннее", 12: "Ничего не нашли (best не изменился) → ответ 0", 13: "Возвращаем минимальную длину" },
+      rules: [{ head: "Новый левый конец i", body: "скан вправо с нуля", cls: "lt" }, { head: "sum ≥ target", body: "кандидат → break", cls: "eq" }, { head: "Соседние i", body: "пересчитывают тот же суффикс", cls: "gt" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var target = parseInt(root.getAttribute("data-target"), 10); return { arr: arr, target: target, steps: bMinSubNaive(arr, target) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-target", label: "target", sm: true }],
+      values: function (ctx) { return ctx.arr; },
+      title: function (ctx) { return "Мин. подмассив с суммой ≥ " + ctx.target + " — наивно O(n²)"; },
+      param: function (ctx) { return { label: "target (цель суммы)", value: ctx.target, ok: true }; },
+      cellState: function (s, j, lo, hi) { if (s.done && lo >= 0 && hi >= lo) return { found: j >= lo && j <= hi }; return { lo: j === lo && lo >= 0, hi: j === hi && hi >= 0, span: lo >= 0 && hi >= lo && j > lo && j < hi }; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Сумма подмассива", "Сравнение с target", "Лучшая длина"],
+      sumValues: function (s, ctx) {
+        var sum = s.vars.sum, best = s.vars.best;
+        if (typeof sum !== "number") return [{ text: "—" }, { text: "—" }, { text: best, cls: "warn" }];
+        var ok = sum >= ctx.target;
+        return [{ text: sum, cls: ok ? "ok" : "lo" }, { text: sum + (ok ? " ≥ " : " < ") + ctx.target, cls: ok ? "eq" : "lt" }, { text: best, cls: "warn" }];
+      },
+      status: function (s, idx, total) {
+        if (s.done) { if (s.lo >= 0 && s.hi >= s.lo) return { kind: "ok", icon: "✓", head: "Минимальная длина = " + (s.hi - s.lo + 1), text: s.info }; return { kind: "end", icon: "∅", head: "Подмассива нет", text: s.info }; }
+        return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info };
+      },
+      stepCard: function (s) { return { a: "i=" + s.vars.i + ", j=" + s.vars.j, b: "sum=" + s.vars.sum, c: "best=" + s.vars.best, cls: s.improved ? "eq" : "lt" }; },
+      varsOf: function (s) { return { i: s.vars.i, j: s.vars.j, sum: s.vars.sum, best: s.vars.best }; }
+    },
+
+    "min-subarray-window": {
+      badge: "Sliding Window",
+      desc: "Оптимум O(n): переменное окно. right расширяет окно, при sum ≥ target жадно сжимаем слева. left только вперёд — отсюда линейность.",
+      valuesLabel: "Массив (положительные)", codeKey: "min-subarray-window", fillRange: true,
+      ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
+      complexity: { time: "O(n)", space: "O(1)", good: "★ Подотрезок под условие суммы" },
+      varOrder: ["left", "right", "sum", "best"],
+      varDesc: { left: "Левая граница окна", right: "Правая граница окна", sum: "Сумма текущего окна", best: "Лучшая (минимальная) длина" },
+      lineNotes: { 1: "left и sum в ноль — окно пустое", 2: "best = len+1 — «бесконечность»", 3: "Правая граница right расширяет окно вправо", 4: "Добавляем nums[right] в сумму окна за O(1)", 5: "Пока окно валидно (sum ≥ target) — жадно сжимаем слева", 6: "Окно подходит — пробуем обновить минимальную длину", 7: "Убираем левый элемент из суммы (left только вперёд)", 8: "left++ — сжали окно слева, проверяем условие снова", 11: "Ничего не нашли → ответ 0", 12: "Возвращаем минимальную длину окна" },
+      rules: [{ head: "Расширяем right", body: "+ nums[right] в сумму", cls: "lt" }, { head: "sum ≥ target", body: "жадно сжимаем слева", cls: "gt" }, { head: "Обновляем best", body: "если окно короче", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var target = parseInt(root.getAttribute("data-target"), 10); return { arr: arr, target: target, steps: bMinSubWindow(arr, target) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-target", label: "target", sm: true }],
+      values: function (ctx) { return ctx.arr; },
+      title: function (ctx) { return "Мин. подмассив с суммой ≥ " + ctx.target + " — окно O(n)"; },
+      param: function (ctx) { return { label: "target (цель суммы)", value: ctx.target, ok: true }; },
+      cellState: function (s, j, lo, hi) { if (s.done && lo >= 0 && hi >= lo) return { found: j >= lo && j <= hi }; return { lo: j === lo && lo >= 0, hi: j === hi && hi >= 0, span: lo >= 0 && hi >= lo && j > lo && j < hi }; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Сумма окна", "Сравнение с target", "Лучшая длина"],
+      sumValues: function (s, ctx) {
+        var sum = s.vars.sum, best = s.vars.best, ok = sum >= ctx.target;
+        return [{ text: sum, cls: ok ? "ok" : "lo" }, { text: sum + (ok ? " ≥ " : " < ") + ctx.target, cls: ok ? "eq" : "lt" }, { text: best, cls: "warn" }];
+      },
+      status: function (s, idx, total) {
+        if (s.done) { if (s.lo >= 0 && s.hi >= s.lo) return { kind: "ok", icon: "✓", head: "Минимальная длина = " + (s.hi - s.lo + 1), text: s.info }; return { kind: "end", icon: "∅", head: "Подмассива нет", text: s.info }; }
+        return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info };
+      },
+      stepCard: function (s) { return { a: "left=" + s.vars.left + ", right=" + s.vars.right, b: "sum=" + s.vars.sum, c: "best=" + s.vars.best, cls: s.improved ? "eq" : "lt" }; },
+      varsOf: function (s) { return { left: s.vars.left, right: s.vars.right, sum: s.vars.sum, best: s.vars.best }; }
+    },
+
+    "num-provinces-naive": {
+      badge: "Грубый перебор",
+      desc: "Наивно O(V³): транзитивное замыкание Флойда–Уоршелла заполняет матрицу reach[i][j] тройным циклом, потом считаем компоненты. Эталон для DFS.",
+      valuesLabel: "", codeKey: "num-provinces-naive", fillRange: false,
+      complexity: { time: "O(V³)", space: "O(V²)", good: "⚠ База для сравнения — кубично" },
+      varOrder: ["k", "i", "j", "провинций"],
+      varDesc: { k: "Промежуточная вершина", i: "Из вершины", j: "В вершину", "провинций": "Найдено компонент" },
+      lineNotes: { 2: "Стартовая матрица: reach[i][j] = (i==j) или прямая связь", 6: "Если есть путь i→k и k→j — значит есть путь i→j", 7: "reach[i][j] = true (новый транзитивный путь)", 14: "Вершина уже в провинции — пропуск", 15: "Новая провинция: count++ и метим всех достижимых", 20: "Число компонент = число провинций" },
+      rules: [{ head: "reach[i][k] && reach[k][j]", body: "→ reach[i][j] = true", cls: "lt" }, { head: "тройной цикл k,i,j", body: "= O(V³)", cls: "gt" }, { head: "компонента", body: "→ новая провинция", cls: "eq" }],
+      parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = parseEdges(root.getAttribute("data-edges")); return { labels: labels, edges: edges, steps: bNumProvincesNaive(labels, edges) }; },
+      inputs: [{ attr: "data-nodes", label: "Города" }, { attr: "data-edges", label: "Связи a-b" }],
+      values: function () { return []; },
+      title: function () { return "Число провинций — Флойд–Уоршелл O(V³)"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Через k", "Пара (i, j)", "Провинций"],
+      sumValues: function (s) { return [{ text: s.vars.k }, { text: "(" + s.vars.i + ", " + s.vars.j + ")" }, { text: s.vars["провинций"], cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Провинций: " + s.vars["провинций"], text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "k=" + s.vars.k, b: "(" + s.vars.i + "," + s.vars.j + ")", c: s.improved ? "путь!" : "·", cls: s.improved ? "eq" : "" }; },
+      varsOf: function (s) { return { k: s.vars.k, i: s.vars.i, j: s.vars.j, "провинций": s.vars["провинций"] }; },
+      customViz: reachMatrixViz
+    },
+
+    "merge-intervals-naive": {
+      badge: "Грубый перебор",
+      desc: "Наивно O(n²): сливаем перекрывающиеся пары, пока что-то меняется. Без сортировки соседние интервалы сравниваются снова и снова. Эталон для сортировки + проход.",
+      valuesLabel: "", codeKey: "merge-intervals-naive", fillRange: false,
+      complexity: { time: "O(n²)", space: "O(n)", good: "⚠ Повторный перебор всех пар" },
+      varOrder: ["i", "j", "интервалов", "проходов"],
+      varDesc: { i: "Первый интервал пары", j: "Второй интервал пары", "интервалов": "Осталось в res", "проходов": "Проходов до стабилизации" },
+      lineNotes: { 1: "res — копия входа без сортировки", 3: "Новый проход: заново сравниваем все пары", 7: "Пара (i, j) перекрывается?", 8: "Сливаем в один, удаляем j — список укоротился", 16: "Стабилизировалось — возвращаем результат" },
+      rules: [{ head: "пара перекрывается", body: "→ слить, удалить j", cls: "lt" }, { head: "что-то слилось", body: "→ ещё проход", cls: "gt" }, { head: "ничего не меняется", body: "→ готово", cls: "eq" }],
+      parse: function (root) { var raw = (root.getAttribute("data-intervals") || "").split(",").map(function (s) { return s.trim().split("-").map(Number); }).filter(function (p) { return p.length === 2; }); var minX = Math.min.apply(null, raw.map(function (p) { return p[0]; })); var maxX = Math.max.apply(null, raw.map(function (p) { return p[1]; })); return { minX: minX, maxX: maxX, steps: bMergeNaive(raw) }; },
+      inputs: [{ attr: "data-intervals", label: "Интервалы a-b,c-d" }],
+      values: function () { return []; },
+      title: function () { return "Слияние интервалов — наивно O(n²)"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Пара (i, j)", "Интервалов в res", "Проходов"],
+      sumValues: function (s) { return [{ text: "(" + s.vars.i + ", " + s.vars.j + ")" }, { text: s.vars["интервалов"], cls: "eq" }, { text: s.vars["проходов"], cls: "warn" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Слито в " + s.vars["интервалов"] + " за " + s.vars["проходов"] + " прох.", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "(" + s.vars.i + "," + s.vars.j + ")", b: "res=" + s.vars["интервалов"], c: s.improved ? "слили" : "·", cls: s.improved ? "lt" : "" }; },
+      varsOf: function (s) { return { i: s.vars.i, j: s.vars.j, "интервалов": s.vars["интервалов"], "проходов": s.vars["проходов"] }; },
+      customViz: intervalBarsViz
+    },
+
+    "diameter-naive": {
+      badge: "Грубый перебор",
+      desc: "Наивно O(n²): для каждого узла отдельно вызываем height(), которая обходит всё поддерево. Узлы у вершины пересчитывают высоту тех же поддеревьев снова и снова. Эталон для одного DFS.",
+      valuesLabel: "", codeKey: "diameter-naive", fillRange: false,
+      complexity: { time: "O(n²)", space: "O(h)", good: "⚠ Повторный обход поддеревьев" },
+      varOrder: ["узел", "через узел", "диаметр"],
+      varDesc: { "узел": "Узел, для которого считаем путь через него", "через узел": "height(left) + height(right)", "диаметр": "Лучший диаметр пока" },
+      lineNotes: { 11: "through = height(left) + height(right) — заново обходим оба поддерева", 14: "Возвращаем максимум: через узел или целиком в поддереве" },
+      rules: [{ head: "height(node)", body: "обходит ВСЁ поддерево", cls: "gt" }, { head: "для каждого узла", body: "заново → O(n²)", cls: "lt" }, { head: "через узел", body: "= left + right", cls: "eq" }],
+      parse: function (root) { var arr = (root.getAttribute("data-tree") || "").split(",").map(function (x) { x = x.trim(); return x === "null" || x === "" ? null : Number(x); }); var r = bDiameterNaive(arr); return { arr: arr, present: r.present, steps: r.steps }; },
+      inputs: [{ attr: "data-tree", label: "Дерево (level-order, null)" }],
+      values: function () { return []; },
+      title: function () { return "Диаметр дерева — наивно O(n²)"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Узел", "Путь через узел", "Диаметр"],
+      sumValues: function (s) { return [{ text: s.vars["узел"] }, { text: s.vars["через узел"], cls: "lt" }, { text: s.vars["диаметр"], cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Диаметр = " + s.vars["диаметр"], text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "узел " + s.vars["узел"], b: "через=" + s.vars["через узел"], c: s.improved ? "макс!" : "·", cls: s.improved ? "eq" : "" }; },
+      varsOf: function (s) { return { "узел": s.vars["узел"], "через узел": s.vars["через узел"], "диаметр": s.vars["диаметр"] }; },
+      customViz: naiveTreeViz
+    },
+
+    "oranges-rotting-naive": {
+      badge: "Грубый перебор",
+      desc: "Наивно O((R·C)²): поминутная симуляция с пересканированием ВСЕЙ сетки каждую минуту. Результат тот же, но работы кратно больше. Эталон для multi-source BFS.",
+      valuesLabel: "", codeKey: "oranges-rotting-naive", fillRange: false,
+      complexity: { time: "O((R·C)²)", space: "O(R·C)", good: "⚠ Полный рескан каждую минуту" },
+      varOrder: ["минута", "свежих", "сканов сетки"],
+      varDesc: { "минута": "Прошло минут", "свежих": "Свежих осталось", "сканов сетки": "Сколько раз просканировали всю сетку" },
+      lineNotes: { 1: "minutes = 0; гнилые — старты", 3: "snap — копия: свежезаражённые в эту минуту пока не заражают", 5: "Сканируем ВСЮ сетку (вот она, лишняя работа)", 11: "Свежий сосед гнилого → заражается", 17: "Ничего не изменилось — стоп", 19: "Остались свежие → -1", 20: "Ответ в минутах" },
+      rules: [{ head: "каждую минуту", body: "→ скан всей сетки", cls: "gt" }, { head: "гнилой сосед свежего", body: "→ заражает", cls: "lt" }, { head: "нет изменений", body: "→ стоп", cls: "eq" }],
+      parse: function (root) { var grid = (root.getAttribute("data-grid") || "").split(";").map(function (r) { return r.split(",").map(Number); }); var res = bOrangesNaive(grid); return { grid: res.grid, R: res.R, C: res.C, steps: res.steps, rotTime: res.rotTime }; },
+      inputs: [{ attr: "data-grid", label: "Сетка (0/1/2)" }],
+      values: function () { return []; },
+      title: function () { return "Rotting Oranges — наивно O((R·C)²)"; },
+      legend: [{ cls: "current", label: "сгнил сейчас" }, { cls: "visited", label: "уже гнилой" }, { cls: "wall", label: "пусто" }],
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Минута", "Свежих осталось", "Сканов сетки"],
+      sumValues: function (s) { return [{ text: s.vars["минута"], cls: "eq" }, { text: s.vars["свежих"], cls: (s.vars["свежих"] === 0 ? "eq" : "warn") }, { text: s.vars["сканов сетки"], cls: "warn" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: s.found ? ("Сгнило за " + s.vars["минута"] + " мин") : "Остались недостижимые", text: s.info }; return { kind: "info", icon: idx + 1, head: "Минута " + s.vars["минута"], text: s.info }; },
+      stepCard: function (s) { return { a: "минута " + s.vars["минута"], b: "свежих " + s.vars["свежих"], c: s.done ? "✓" : "скан", cls: s.done ? "eq" : "gt" }; },
+      varsOf: function (s) { return { "минута": s.vars["минута"], "свежих": s.vars["свежих"], "сканов сетки": s.vars["сканов сетки"] }; },
+      customViz: orangesViz
+    },
+
+    "jump-game-dp": {
+      badge: "Грубый перебор",
+      desc: "Наивно O(n²): из каждой достижимой клетки помечаем весь диапазон прыжка. Диапазоны жирно перекрываются — повторная пометка одних позиций. Эталон для жадности.",
+      valuesLabel: "Массив (макс. прыжок)", codeKey: "jump-game-dp", fillRange: false,
+      ptr1: { name: "i", cap: "(откуда прыгаем)" }, ptr2: { name: "i+step", cap: "(помечаем)" },
+      complexity: { time: "O(n²)", space: "O(n)", good: "⚠ База для сравнения — медленно" },
+      varOrder: ["i", "nums[i]", "step", "reachable"],
+      varDesc: { i: "Текущая клетка", "nums[i]": "Длина прыжка", step: "Шаг внутри диапазона", reachable: "Достижима ли клетка i" },
+      lineNotes: { 3: "reachable[0] = true — старт достижим", 4: "Идём по всем клеткам", 5: "Клетка недостижима → пропуск", 9: "Помечаем достижимой каждую клетку в радиусе прыжка", 12: "Ответ — достижим ли последний индекс" },
+      rules: [{ head: "Клетка достижима", body: "→ метим весь диапазон", cls: "lt" }, { head: "Недостижима", body: "→ continue", cls: "gt" }, { head: "Диапазоны", body: "жирно перекрываются", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bJumpGameDp(arr) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function (ctx) { return ctx.arr; },
+      title: function () { return "Jump Game — наивная динамика O(n²)"; },
+      cellState: function (s, j) { var r = s.reach && s.reach[j]; return { found: !!r && j !== s.lo, lo: j === s.lo && s.lo >= 0, hi: j === s.hi && s.hi >= 0 }; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Клетка i", "nums[i] (прыжок)", "reachable[i]"],
+      sumValues: function (s) { return [{ text: s.vars.i }, { text: s.vars["nums[i]"] }, { text: s.vars.reachable, cls: s.vars.reachable === "да" ? "eq" : "" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: s.found ? "Конец достижим" : "Не допрыгнуть", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "i=" + s.vars.i, b: "reach=" + s.vars.reachable, c: s.improved ? "метим" : "·", cls: s.improved ? "lt" : "" }; },
+      varsOf: function (s) { return { i: s.vars.i, "nums[i]": s.vars["nums[i]"], step: s.vars.step, reachable: s.vars.reachable }; }
+    },
+
+    "search-range-naive": {
+      badge: "Грубый перебор",
+      desc: "Наивно O(n): линейный проход игнорирует сортированность. res[0] фиксируется на первом совпадении, res[1] перетирается на каждом. Эталон для двух бинарных поисков.",
+      valuesLabel: "Массив (отсортирован)", codeKey: "search-range-naive", fillRange: false,
+      ptr1: { name: "i", cap: "(сканер)" }, ptr2: { name: "", cap: "" },
+      complexity: { time: "O(n)", space: "O(1)", good: "⚠ Не использует сортировку" },
+      varOrder: ["i", "nums[i]", "first", "last"],
+      varDesc: { i: "Текущий индекс", "nums[i]": "Значение", first: "res[0] — первое совпадение", last: "res[1] — последнее" },
+      lineNotes: { 1: "res = [-1,-1] — пока не нашли", 3: "Совпадает ли с target?", 5: "Первое совпадение — фиксируем res[0]", 7: "res[1] обновляется на каждом совпадении", 10: "Возвращаем границы диапазона" },
+      rules: [{ head: "v == target", body: "→ обновляем границы", cls: "eq" }, { head: "первое совпадение", body: "→ res[0]", cls: "lt" }, { head: "каждое совпадение", body: "→ res[1]", cls: "gt" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var target = parseInt(root.getAttribute("data-target"), 10); return { arr: arr, target: target, steps: bSearchRangeNaive(arr, target) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-target", label: "target", sm: true }],
+      values: function (ctx) { return ctx.arr; },
+      title: function (ctx) { return "Поиск диапазона target = " + ctx.target + " — наивно O(n)"; },
+      param: function (ctx) { return { label: "target", value: ctx.target, ok: true }; },
+      cellState: function (s, j) { if (s.done && s.lo >= 0) return { found: j >= s.lo && j <= s.hi }; return { lo: j === s.lo && s.lo >= 0, found: !!s.match && j === s.lo }; },
+      pointers: function (s) { return { lo: s.lo, hi: -1 }; },
+      sumCells: ["nums[i] vs target", "res[0]", "res[1]"],
+      sumValues: function (s, ctx) { var v = s.vars["nums[i]"]; return [{ text: (typeof v === "number" ? v + (v === ctx.target ? " = " : " ≠ ") + ctx.target : "—"), cls: (v === ctx.target ? "eq" : "") }, { text: s.vars.first, cls: "lt" }, { text: s.vars.last, cls: "gt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: s.found ? ("Диапазон [" + s.lo + ", " + s.hi + "]") : "target не найден", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "i=" + s.vars.i, b: "first=" + s.vars.first + ", last=" + s.vars.last, c: s.match ? "✓" : "·", cls: s.match ? "eq" : "" }; },
+      varsOf: function (s) { return { i: s.vars.i, "nums[i]": s.vars["nums[i]"], first: s.vars.first, last: s.vars.last }; }
+    },
+
+    "string-match-naive": {
+      badge: "Грубый перебор",
+      desc: "Наивно O(n·m): для каждой позиции i прикладываем образец и сравниваем посимвольно. На «злом» входе окно почти совпадает и каждый раз пересравнивается заново. Эталон для KMP.",
+      valuesLabel: "Текст", codeKey: "string-match-naive", fillRange: true,
+      ptr1: { name: "i", cap: "(начало окна)" }, ptr2: { name: "i+j", cap: "(сравнение)" },
+      complexity: { time: "O(n·m)", space: "O(1)", good: "⚠ Откат указателя текста" },
+      varOrder: ["i", "j", "сравнение", "найдено"],
+      varDesc: { i: "Начало окна в тексте", j: "Позиция в образце", "сравнение": "Текущее сравнение символов", "найдено": "Найдено вхождений" },
+      lineNotes: { 3: "Для каждой позиции i прикладываем образец", 5: "Сравниваем символы окна с образцом, пока совпадают", 8: "j дошёл до конца образца — нашли вхождение на позиции i", 12: "Возвращаем все позиции вхождений" },
+      rules: [{ head: "Символы равны", body: "→ j++ (сравниваем дальше)", cls: "lt" }, { head: "Несовпадение", body: "→ сдвигаем окно на 1", cls: "gt" }, { head: "j == m", body: "→ вхождение на i", cls: "eq" }],
+      parse: function (root) { var text = (root.getAttribute("data-text") || "").split(""); var pat = (root.getAttribute("data-pattern") || "").split(""); return { text: text, pat: pat, steps: bStringMatchNaive(text, pat) }; },
+      inputs: [{ attr: "data-text", label: "Текст" }, { attr: "data-pattern", label: "Образец" }],
+      values: function (ctx) { return ctx.text; },
+      title: function (ctx) { return "Поиск «" + ctx.pat.join("") + "» — наивно O(n·m)"; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Окно с i", "Сравнение", "Найдено вхождений"],
+      sumValues: function (s) { return [{ text: (typeof s.vars.i === "number" ? "i = " + s.vars.i : "—") }, { text: s.vars["сравнение"], cls: (s.match ? "eq" : "") }, { text: s.vars["найдено"], cls: "warn" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: "Вхождений: " + s.vars["найдено"], text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "i=" + s.vars.i + ", j=" + s.vars.j, b: s.vars["сравнение"], c: s.improved ? "вхождение!" : (s.match ? "✓" : "·"), cls: s.improved ? "eq" : (s.match ? "lt" : "gt") }; },
+      varsOf: function (s) { return { i: s.vars.i, j: s.vars.j, "сравнение": s.vars["сравнение"], "найдено": s.vars["найдено"] }; },
+      mapViz: function (parent, ctx) {
+        var pat = ctx.pat;
+        var wrap = mkEl("div", "algo-tp__map");
+        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "Образец pat — сравниваем по символу (зелёный = текущий j)"));
+        var grid = mkEl("div", "algo-tp__mapgrid");
+        var cells = pat.map(function (ch, k) { var col = mkEl("div", "algo-tp__mapcell"); col.appendChild(mkEl("div", "algo-tp__mapkey", k)); var cnt = mkEl("div", "algo-tp__mapcnt", "'" + ch + "'"); col.appendChild(cnt); grid.appendChild(col); return col; });
+        wrap.appendChild(grid);
+        parent.appendChild(wrap);
+        return function (s) { cells.forEach(function (col, k) { var active = (typeof s.patj === "number" && k === s.patj); col.className = "algo-tp__mapcell" + (active ? " algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--add" : " algo-tp__mapcell--off"); }); };
+      }
+    },
+
+    "num-provinces": {
+      badge: "Graph DFS",
+      desc: "Оптимум O(V²): каждый незатронутый узел запускает DFS новой компоненты и красит всё достижимое. Число запусков = число провинций.",
+      valuesLabel: "Города", codeKey: "num-provinces", fillRange: false,
+      complexity: { time: "O(V²)", space: "O(V)", good: "★ Компоненты связности" },
+      varOrder: ["вершина", "провинций", "посещено"],
+      varDesc: { "вершина": "Текущая вершина DFS", "провинций": "Найдено компонент", "посещено": "Посещённых вершин" },
+      lineNotes: { 2: "visited — массив посещённости (все false)", 5: "visited[v] = true — вошли в DFS компоненты", 7: "Сосед связан (=1) и ещё не посещён?", 8: "dfs(u) — спускаемся в соседа той же компоненты", 13: "Внешний цикл по всем вершинам", 14: "Вершина уже посещена — та же провинция", 15: "Незатронутая вершина → count++ и новый DFS", 19: "Число запусков DFS = число провинций" },
+      rules: [{ head: "Незатронутая вершина", body: "→ новая провинция + DFS", cls: "eq" }, { head: "Связана и не посещена", body: "→ та же провинция", cls: "lt" }, { head: "Уже посещена", body: "→ пропуск", cls: "gt" }],
+      parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = parseEdges(root.getAttribute("data-edges")); return { labels: labels, edges: edges, steps: bNumProvinces(labels, edges) }; },
+      inputs: [{ attr: "data-nodes", label: "Города" }, { attr: "data-edges", label: "Связи a-b" }],
+      values: function (ctx) { return ctx.labels; },
+      title: function () { return "Число провинций (DFS по компонентам)"; },
+      legend: [{ cls: "current", label: "текущая" }, { cls: "visited", label: "в компоненте" }, { cls: "idle", label: "не обработана" }],
+      pointers: function (s) { return { lo: s.current, hi: -1 }; },
+      sumCells: ["Вершина", "Провинций"],
+      sumValues: function (s) { return [{ text: s.vars["вершина"] }, { text: s.vars["провинций"], cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Провинций: " + s.vars["провинций"], text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars["провинций"] + " провинций", c: "DFS", cls: "eq" }; return { a: "вершина " + s.vars["вершина"], b: "провинций " + s.vars["провинций"], c: s.improved ? "новая!" : "→", cls: s.improved ? "eq" : "lt" }; },
+      varsOf: function (s) { return { "вершина": s.vars["вершина"], "провинций": s.vars["провинций"], "посещено": s.vars["посещено"] }; },
+      customViz: graphViz
+    },
+
+    "subsets-with-dup": {
+      badge: "Backtracking",
+      desc: "Оптимум: подмножества массива с дубликатами. sort + skip на уровне (i>start && nums[i]==nums[i-1] → continue) — без set и конкатенации ключей.",
+      valuesLabel: "Множество (с дублями)", codeKey: "subsets-with-dup", fillRange: false,
+      complexity: { time: "O(2ⁿ·n)", space: "O(n)", good: "★ Подмножества без дублей" },
+      varOrder: ["action", "cur", "count"],
+      varDesc: { "action": "Текущий шаг", "cur": "Текущее частичное подмножество", "count": "Найдено уникальных подмножеств" },
+      lineNotes: { 6: "Записываем текущее подмножество (копию буфера)", 7: "Перебираем элементы начиная со start", 8: "Не первая копия дубля на этом уровне → continue", 11: "Выбираем элемент i — добавляем в текущее", 12: "Рекурсия по оставшимся (i+1)", 13: "Откат: убираем элемент", 17: "Все уникальные подмножества собраны" },
+      rules: [{ head: "Выбрать элемент", body: "append → рекурсия", cls: "lt" }, { head: "Дубль на уровне", body: "→ continue (пропуск)", cls: "gt" }, { head: "Записать", body: "current → результат", cls: "eq" }],
+      parse: function (root) { var set = nums(root.getAttribute("data-set")); return { set: set.slice().sort(function (a, b) { return a - b; }), steps: bSubsetsDup(set) }; },
+      inputs: [{ attr: "data-set", label: "Множество" }],
+      values: function (ctx) { return ctx.set; },
+      title: function () { return "Подмножества с дублями (sort + skip)"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущее", "Найдено подмножеств"],
+      sumValues: function (s) { return [{ text: s.vars.cur }, { text: s.vars.count, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: s.vars.count + " подмножеств", text: s.info }; if (s.action === "skip") return { kind: "info", icon: idx + 1, head: "Пропуск дубля", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.count + " шт.", c: "backtrack", cls: "eq" }; var cls = s.action === "choose" ? "lt" : (s.action === "back" || s.action === "skip" ? "gt" : "eq"); return { a: s.vars.action, b: s.vars.cur, c: s.action === "skip" ? "дубль" : "→", cls: cls }; },
+      varsOf: function (s) { return { "action": s.vars.action, "cur": s.vars.cur, "count": s.vars.count }; },
+      customViz: subsetsViz
+    },
+
+    "combination-sum": {
+      badge: "Backtracking",
+      desc: "Оптимум: все комбинации с суммой target (повтор кандидата разрешён). Несём остаток remain: база remain==0, отсечение candidates[i] > remain.",
+      valuesLabel: "Кандидаты", codeKey: "combination-sum", fillRange: false,
+      complexity: { time: "экспонента (с отсечением)", space: "O(target)", good: "★ Перебор с обрезкой ветвей" },
+      varOrder: ["action", "cur", "remain", "count"],
+      varDesc: { "action": "Текущий шаг", "cur": "Текущая комбинация", "remain": "Остаток до target", "count": "Найдено комбинаций" },
+      lineNotes: { 7: "remain == 0 — комбинация набрана, записываем снимок", 10: "Перебираем кандидатов начиная со start", 12: "candidates[i] > remain → break (отсортировано, дальше только больше)", 14: "Берём кандидата — remain уменьшается", 15: "Рекурсия с i (не i+1) — кандидата можно повторять", 16: "Откат: убираем кандидата", 20: "Все комбинации найдены" },
+      rules: [{ head: "remain == 0", body: "→ комбинация готова", cls: "eq" }, { head: "candidates[i] > remain", body: "→ break (отсечение)", cls: "gt" }, { head: "берём кандидата", body: "remain − candidates[i]", cls: "lt" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var target = parseInt(root.getAttribute("data-target"), 10); return { set: arr.slice().sort(function (a, b) { return a - b; }), target: target, steps: bCombSum(arr, target) }; },
+      inputs: [{ attr: "data-array", label: "Кандидаты" }, { attr: "data-target", label: "target", sm: true }],
+      values: function (ctx) { return ctx.set; },
+      title: function (ctx) { return "Combination Sum = " + ctx.target; },
+      param: function (ctx) { return { label: "target", value: ctx.target, ok: true }; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущая комбинация", "Остаток", "Найдено"],
+      sumValues: function (s) { return [{ text: s.vars.cur }, { text: s.vars.remain, cls: (s.vars.remain === 0 ? "eq" : "lt") }, { text: s.vars.count, cls: "warn" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: s.vars.count + " комбинаций", text: s.info }; if (s.action === "prune") return { kind: "info", icon: idx + 1, head: "Отсечение ветки", text: s.info }; if (s.action === "record") return { kind: "info", icon: idx + 1, head: "Комбинация найдена", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.count + " шт.", c: "backtrack", cls: "eq" }; var cls = s.action === "choose" ? "lt" : (s.action === "back" || s.action === "prune" ? "gt" : "eq"); return { a: s.vars.action, b: "remain=" + s.vars.remain, c: s.action === "prune" ? "обрыв" : "→", cls: cls }; },
+      varsOf: function (s) { return { "action": s.vars.action, "cur": s.vars.cur, "remain": s.vars.remain, "count": s.vars.count }; },
+      customViz: subsetsViz
+    },
+
+    "oranges-rotting": {
+      badge: "Multi-source BFS",
+      desc: "Оптимум O(R·C): все гнилые апельсины (2) — источники на минуте 0; каждая минута заражает свежих 4-соседей. Уровни BFS = минуты.",
+      valuesLabel: "", codeKey: "oranges-rotting", fillRange: false,
+      complexity: { time: "O(R·C)", space: "O(R·C)", good: "★ Волны от многих источников" },
+      varOrder: ["минута", "свежих", "источников"],
+      varDesc: { "минута": "Прошло минут", "свежих": "Свежих апельсинов осталось", "источников": "Гнилых на текущем уровне" },
+      lineNotes: { 1: "Собираем все гнилые (2) как старты, считаем свежие (1)", 2: "Свежих нет — гнить нечему, return 0", 4: "Минута за минутой, пока очередь не пуста и есть свежие", 9: "Сосед свежий → гниёт, fresh--, в следующий уровень", 19: "Остались недостижимые свежие → return -1", 20: "Все сгнили — ответ в минутах" },
+      rules: [{ head: "Гнилой 2", body: "источник на минуте 0", cls: "gt" }, { head: "Свежий сосед 1", body: "→ гниёт через минуту", cls: "lt" }, { head: "Остался свежий", body: "→ −1 (недостижим)", cls: "eq" }],
+      parse: function (root) { var grid = (root.getAttribute("data-grid") || "").split(";").map(function (r) { return r.split(",").map(Number); }); var res = bOrangesRotting(grid); return { grid: res.grid, R: res.R, C: res.C, steps: res.steps, rotTime: res.rotTime }; },
+      inputs: [{ attr: "data-grid", label: "Сетка (0 пусто, 1 свежий, 2 гнилой)" }],
+      values: function () { return []; },
+      title: function () { return "Rotting Oranges (multi-source BFS)"; },
+      legend: [{ cls: "current", label: "сгнил сейчас" }, { cls: "visited", label: "уже гнилой" }, { cls: "wall", label: "пусто" }],
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Минута", "Свежих осталось"],
+      sumValues: function (s) { return [{ text: s.vars["минута"], cls: "eq" }, { text: s.vars["свежих"], cls: (s.vars["свежих"] === 0 ? "eq" : "warn") }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: s.found ? ("Сгнило за " + s.vars["минута"] + " мин") : "Остались недостижимые", text: s.info }; return { kind: "info", icon: idx + 1, head: "Минута " + s.vars["минута"], text: s.info }; },
+      stepCard: function (s) { return { a: "минута " + s.vars["минута"], b: "свежих " + s.vars["свежих"], c: s.done ? "✓" : "волна", cls: s.done ? "eq" : "lt" }; },
+      varsOf: function (s) { return { "минута": s.vars["минута"], "свежих": s.vars["свежих"], "источников": s.vars["источников"] }; },
+      customViz: orangesViz
+    },
+
+    "first-missing-positive": {
+      badge: "Cyclic Sort",
+      desc: "Оптимум O(n): раскладываем число v на индекс v−1 (на месте), значения вне [1,n] пропускаем. Затем первый индекс, где nums[i] ≠ i+1, и есть ответ.",
+      valuesLabel: "Массив", codeKey: "first-missing-positive", fillRange: false,
+      ptr1: { name: "i", cap: "(текущий)" }, ptr2: { name: "correct", cap: "(куда ставим)" },
+      complexity: { time: "O(n)", space: "O(1)", good: "★ Числа из диапазона 1..n" },
+      varOrder: ["i", "v", "correct", "n"],
+      varDesc: { i: "Текущий индекс", v: "nums[i] — раскладываемое число", correct: "Целевой индекс v−1", n: "Размер массива" },
+      lineNotes: { 2: "i = 0 — фаза раскладки чисел по местам", 3: "Пока i < n продолжаем раскладку", 4: "v = nums[i] — какое число сейчас в руках", 5: "Его место — индекс v−1", 6: "v в диапазоне [1,n] и ещё не на месте?", 7: "Меняем местами — число уходит на свой индекс, i НЕ растёт", 9: "На месте или вне диапазона → i++", 13: "Фаза скана: первый индекс, где nums[i] ≠ i+1", 14: "Это и есть наименьшее пропущенное", 17: "Массив — ровно 1..n, ответ n+1" },
+      rules: [{ head: "v ∈ [1,n], не на месте", body: "→ swap на индекс v−1", cls: "lt" }, { head: "на месте / вне диапазона", body: "→ i++", cls: "gt" }, { head: "nums[i] ≠ i+1", body: "→ ответ i+1", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bFirstMissingPositive(arr) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function (ctx) { return ctx.arr; },
+      title: function () { return "Первое пропущенное положительное — O(n)"; },
+      cellState: function (s, j) { var inplace = s.values && s.values[j] === j + 1; return { lo: j === s.lo && s.lo >= 0, hi: j === s.hi && s.hi >= 0, found: !!inplace }; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["v = nums[i]", "Целевой индекс v−1", "Размер n"],
+      sumValues: function (s) { return [{ text: s.vars.v }, { text: s.vars.correct }, { text: s.vars.n, cls: "warn" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: s.info.replace(/^return /, "Ответ = ").replace(/ —.*/, ""), text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "i=" + s.vars.i, b: "v=" + s.vars.v, c: s.hi >= 0 ? "swap" : "·", cls: s.hi >= 0 ? "lt" : "" }; },
+      varsOf: function (s) { return { i: s.vars.i, v: s.vars.v, correct: s.vars.correct, n: s.vars.n }; }
+    },
+
+    "house-robber": {
+      badge: "Dynamic Programming",
+      desc: "Оптимум O(n), O(1): dp[i] = max(пропустить dp[i−1], взять dp[i−2]+nums[i]). Вся таблица свёрнута в две переменные prev2, prev1.",
+      valuesLabel: "Дома (деньги)", codeKey: "house-robber", fillRange: false,
+      ptr1: { name: "i", cap: "(текущий дом)" }, ptr2: { name: "—", cap: "" },
+      complexity: { time: "O(n)", space: "O(1)", good: "★ ДП с зависимостью от 1–2 шагов" },
+      varOrder: ["i", "x", "prev2", "prev1", "cur"],
+      varDesc: { i: "Индекс дома", x: "Деньги в доме i", prev2: "dp[i−2]", prev1: "dp[i−1]", cur: "dp[i] = max(...)" },
+      lineNotes: { 1: "prev2 = prev1 = 0 — пустое окно", 2: "Идём по домам слева направо", 3: "cur = max(пропустить prev1, взять prev2 + x)", 4: "Сдвигаем окно двух значений: prev2 ← prev1, prev1 ← cur", 6: "Ответ — prev1 (последнее dp)" },
+      rules: [{ head: "Пропустить дом", body: "→ берём prev1", cls: "lt" }, { head: "Взять дом", body: "→ prev2 + nums[i]", cls: "gt" }, { head: "dp[i]", body: "= максимум из двух", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bHouseRobber(arr) }; },
+      inputs: [{ attr: "data-array", label: "Дома (деньги)" }],
+      values: function (ctx) { return ctx.arr; },
+      title: function () { return "House Robber — ДП O(n), память O(1)"; },
+      pointers: function (s) { return { lo: s.lo, hi: -1 }; },
+      sumCells: ["prev2 = dp[i−2]", "prev1 = dp[i−1]", "cur = dp[i]"],
+      sumValues: function (s) { return [{ text: s.vars.prev2 }, { text: s.vars.prev1 }, { text: s.vars.cur, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Максимум = " + s.vars.prev1, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "дом " + s.vars.i, b: "x=" + s.vars.x, c: "dp=" + s.vars.cur, cls: s.improved ? "gt" : "lt" }; },
+      varsOf: function (s) { return { i: s.vars.i, x: s.vars.x, prev2: s.vars.prev2, prev1: s.vars.prev1, cur: s.vars.cur }; }
+    },
+
+    "two-single": {
+      badge: "Bit Manipulation",
+      desc: "Оптимум O(n), O(1): xorAll = a^b (пары сокращаются); diff — младший различающий бит; второй проход делит числа по diff и копит XOR в группах a и b.",
+      valuesLabel: "Массив", codeKey: "two-single", fillRange: false,
+      ptr1: { name: "i", cap: "(текущий)" }, ptr2: { name: "—", cap: "" },
+      complexity: { time: "O(n)", space: "O(1)", good: "★ Поиск одиночек среди пар" },
+      varOrder: ["i", "x", "xorAll", "diff", "a", "b"],
+      varDesc: { i: "Текущий индекс", x: "nums[i]", xorAll: "XOR всех (после прохода 1 = a^b)", diff: "Младший бит различия a и b", a: "XOR группы с битом 1", b: "XOR группы с битом 0" },
+      lineNotes: { 1: "xorAll = 0 — первый проход", 3: "xorAll ^= x: пары сокращаются, остаётся a ^ b", 5: "diff = xorAll & (−xorAll) — младший бит, где a и b различаются", 6: "a = b = 0 — второй проход делит по diff", 7: "Бит diff в x установлен?", 9: "Бит установлен → копим в a", 11: "Бит сброшен → копим в b", 14: "Возвращаем [a, b]" },
+      rules: [{ head: "x & diff ≠ 0", body: "→ группа a", cls: "gt" }, { head: "x & diff = 0", body: "→ группа b", cls: "lt" }, { head: "пары в группе", body: "→ XOR обнуляет", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bTwoSingle(arr) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function (ctx) { return ctx.arr; },
+      title: function () { return "Два числа-одиночки — двойной XOR O(n)"; },
+      pointers: function (s) { return { lo: s.lo, hi: -1 }; },
+      sumCells: ["a (бит = 1)", "b (бит = 0)", "xorAll / diff"],
+      sumValues: function (s) { return [{ text: s.vars.a, cls: "gt" }, { text: s.vars.b, cls: "lt" }, { text: (s.vars.diff !== "—" ? "diff = " + s.vars.diff : "xorAll = " + s.vars.xorAll), cls: "warn" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Одиночки: " + s.vars.a + ", " + s.vars.b, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "x=" + s.vars.x, b: "a=" + s.vars.a + ", b=" + s.vars.b, c: "·", cls: "lt" }; },
+      varsOf: function (s) { return { i: s.vars.i, x: s.vars.x, xorAll: s.vars.xorAll, diff: s.vars.diff, a: s.vars.a, b: s.vars.b }; }
+    },
+
+    "three-sum-naive": {
+      badge: "Грубый перебор",
+      desc: "Наивно O(n³): три вложенных цикла i<j<k перебирают все тройки, дубли отсекаем через set. Эталон для решения двумя указателями.",
+      valuesLabel: "Массив", codeKey: "three-sum-naive", fillRange: false,
+      ptr1: { name: "i", cap: "(первый)" }, ptr2: { name: "k", cap: "(третий)" },
+      complexity: { time: "O(n³)", space: "O(n)", good: "⚠ База для сравнения — медленно" },
+      varOrder: ["i", "j", "k", "sum", "found"],
+      varDesc: { i: "Первый индекс тройки", j: "Второй индекс", k: "Третий индекс", sum: "nums[i]+nums[j]+nums[k]", found: "Найдено уникальных троек" },
+      lineNotes: { 2: "res пуст — собираем тройки с суммой 0", 3: "Внешний цикл: первый элемент i", 4: "Средний цикл: второй элемент j > i", 5: "Внутренний цикл: третий элемент k > j", 6: "Сумма тройки равна 0?", 7: "Тройка найдена — добавляем, set отсекает дубли", 12: "Возвращаем все уникальные тройки" },
+      rules: [{ head: "sum == 0", body: "→ тройка-кандидат", cls: "eq" }, { head: "три цикла i<j<k", body: "все сочетания = O(n³)", cls: "gt" }, { head: "set", body: "отсев дублей разных порядков", cls: "lt" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bThreeSumNaive(arr) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function (ctx) { return ctx.arr; },
+      title: function () { return "3Sum — наивно O(n³)"; },
+      cellState: function (s, j) { return { lo: j === s.lo && s.lo >= 0, mid: j === s.mid && s.mid >= 0, hi: j === s.hi && s.hi >= 0 }; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Тройка (i, j, k)", "Сумма", "Найдено троек"],
+      sumValues: function (s, ctx) {
+        var i = s.vars.i, j = s.vars.j, k = s.vars.k, sum = s.vars.sum;
+        if (typeof sum !== "number") return [{ text: "—" }, { text: "—" }, { text: s.vars.found, cls: "warn" }];
+        var z = sum === 0;
+        return [{ text: "(" + ctx.arr[i] + ", " + ctx.arr[j] + ", " + ctx.arr[k] + ")" }, { text: sum + (z ? " = 0" : " ≠ 0"), cls: z ? "eq" : "lt" }, { text: s.vars.found, cls: "warn" }];
+      },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Уникальных троек: " + s.vars.found, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "i=" + s.vars.i + ", j=" + s.vars.j + ", k=" + s.vars.k, b: "sum=" + s.vars.sum, c: "троек=" + s.vars.found, cls: s.improved ? "eq" : "lt" }; },
+      varsOf: function (s) { return { i: s.vars.i, j: s.vars.j, k: s.vars.k, sum: s.vars.sum, found: s.vars.found }; }
+    },
+
+    "three-sum": {
+      badge: "Two Pointers",
+      desc: "Оптимум O(n²): сортируем, фиксируем nums[i], а пару с суммой −nums[i] ищем встречными указателями. Дедуп даётся отсортированным массивом даром.",
+      valuesLabel: "Массив (отсортирован)", codeKey: "three-sum", fillRange: false,
+      ptr1: { name: "left", cap: "(левый)" }, ptr2: { name: "right", cap: "(правый)" },
+      complexity: { time: "O(n²)", space: "O(1)", good: "★ Тройки/пары в отсортированном массиве" },
+      varOrder: ["i", "left", "right", "sum", "found"],
+      varDesc: { i: "Фиксированный первый элемент", left: "Левый указатель пары", right: "Правый указатель пары", sum: "nums[i]+nums[left]+nums[right]", found: "Найдено уникальных троек" },
+      lineNotes: { 1: "Сортируем — появляется монотонность для встречных указателей", 3: "Фиксируем первый элемент тройки i", 4: "Пропускаем дубль первого элемента (continue)", 5: "Ставим left=i+1, right=n−1 — пара для остатка −nums[i]", 6: "Сводим пару, пока left < right", 7: "Сумма тройки на текущих указателях", 10: "sum == 0 — записали тройку, сдвигаем обе границы и перешагиваем дубли", 12: "sum < 0 — нужна больше, left++", 14: "sum > 0 — нужна меньше, right--", 19: "Возвращаем все уникальные тройки" },
+      rules: [{ head: "sum < 0", body: "→ left++ (больше)", cls: "lt" }, { head: "sum > 0", body: "→ right-- (меньше)", cls: "gt" }, { head: "sum == 0", body: "→ тройка найдена", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var a = arr.slice().sort(function (x, y) { return x - y; }); return { arr: a, steps: bThreeSum(arr) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function (ctx) { return ctx.arr; },
+      title: function () { return "3Sum — сортировка + два указателя O(n²)"; },
+      cellState: function (s, j) { var r = { lo: j === s.lo && s.lo >= 0, mid: j === s.mid && s.mid >= 0, hi: j === s.hi && s.hi >= 0 }; if (s.lo >= 0 && s.hi >= 0 && j > s.lo && j < s.hi) r.span = true; return r; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Тройка (i, left, right)", "Сумма", "Найдено троек"],
+      sumValues: function (s, ctx) {
+        var i = s.vars.i, l = s.vars.left, r = s.vars.right, sum = s.vars.sum;
+        if (typeof sum !== "number") return [{ text: "—" }, { text: "—" }, { text: s.vars.found, cls: "warn" }];
+        var z = sum === 0;
+        return [{ text: "(" + ctx.arr[i] + ", " + ctx.arr[l] + ", " + ctx.arr[r] + ")" }, { text: sum + (z ? " = 0" : (sum < 0 ? " < 0" : " > 0")), cls: z ? "eq" : (sum < 0 ? "lt" : "gt") }, { text: s.vars.found, cls: "warn" }];
+      },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Уникальных троек: " + s.vars.found, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "i=" + s.vars.i + ", L=" + s.vars.left + ", R=" + s.vars.right, b: "sum=" + s.vars.sum, c: "троек=" + s.vars.found, cls: s.improved ? "eq" : "lt" }; },
+      varsOf: function (s) { return { i: s.vars.i, left: s.vars.left, right: s.vars.right, sum: s.vars.sum, found: s.vars.found }; }
+    },
+
     "two-pointers-dedup": {
       badge: "Two Pointers",
       desc: "Удаление дубликатов из отсортированного массива на месте (одно направление).",
@@ -4538,6 +6016,27 @@
       customViz: trieViz
     },
 
+    "trie-shortest-root": {
+      badge: "Trie", desc: "Replace Words: спускаемся по слову и возвращаем первый встреченный корень-префикс (узел с isEnd) — он же кратчайший.",
+      valuesLabel: "", codeKey: "trie-shortest-root", fillRange: false,
+      complexity: { time: "O(L)", space: "O(Σ·N·L)", good: "★ Замена по словарю префиксов" },
+      varOrder: ["i", "char", "node", "isEnd"],
+      varDesc: { "i": "Индекс символа в слове", "char": "Текущий символ слова", "node": "Текущий узел бора", "isEnd": "Конец корня (isEnd)?" },
+      lineNotes: { 1: "node := корень — стартуем спуск по слову", 2: "Идём по символам слова по одному", 3: "Берём текущий символ c", 4: "Есть ли у узла потомок по символу c?", 5: "Ребра нет — путь оборвался, корня-префикса нет", 7: "Спускаемся в потомка по символу c", 8: "Узел помечен isEnd — это конец корня из словаря?", 9: "Первый встреченный конец = кратчайший корень, возвращаем префикс word[:i+1]", 12: "Дошли до конца слова, корень не встретился — слово без изменений" },
+      rules: [{ head: "Есть ребёнок", body: "→ спускаемся глубже", cls: "lt" }, { head: "Узел isEnd", body: "→ кратчайший корень найден", cls: "eq" }, { head: "Ребра нет", body: "→ корня нет, слово как есть", cls: "gt" }],
+      parse: function (root) { var words = (root.getAttribute("data-words") || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); var query = (root.getAttribute("data-query") || "").trim(); var r = bTrieShortestRoot(words, query); return { words: words, query: query, nodes: r.nodes, path: r.path, steps: r.steps }; },
+      inputs: [{ attr: "data-words", label: "Корни словаря (через запятую)" }, { attr: "data-query", label: "слово" }],
+      values: function () { return []; },
+      title: function (ctx) { return "Trie: кратчайший корень для «" + ctx.query + "»"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Текущий узел", "isEnd?"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.isEnd, cls: s.vars.isEnd === "да" ? "eq" : "" }]; },
+      status: function (s, idx, total, ctx) { if (s.found) return { kind: "ok", icon: "✓", head: "Корень найден: «" + ctx.query.slice(0, (typeof s.vars.i === "number" ? s.vars.i : 0) + 1) + "»", text: s.info }; if (s.done) return { kind: "end", icon: idx + 1, head: "Корня нет — слово без изменений", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.found) return { a: "корень найден", b: "node.isEnd", c: "✓", cls: "eq" }; if (s.done) return { a: "корня нет", b: "слово как есть", c: "—", cls: "gt" }; return { a: "символ '" + s.vars.char + "'", b: "узел «" + s.vars.node + "»", c: "↓", cls: "lt" }; },
+      varsOf: function (s) { return { "i": s.vars.i, "char": s.vars.char, "node": s.vars.node, "isEnd": s.vars.isEnd }; },
+      customViz: trieViz
+    },
+
     "trie-insert": {
       badge: "Trie", desc: "Вставка слова: спускаемся по символам, создавая узел только там, где ребра ещё нет.",
       valuesLabel: "", codeKey: "trie-insert", fillRange: false,
@@ -4677,6 +6176,90 @@
       status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Добавили " + ctx.delta + " в индекс " + ctx.idx, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: "O(log n) узлов", c: "✓", cls: "eq" }; return { a: "узел " + s.vars.i, b: "зона " + s.vars.range, c: "+= " + s.vars.delta, cls: "lt" }; },
       varsOf: function (s) { return { "i": s.vars.i, "range": s.vars.range, "delta": s.vars.delta }; }
+    },
+
+    "count-inversions-naive": {
+      badge: "Грубый перебор",
+      desc: "Наивно O(n²): перебираем все пары i<j и считаем, где левый элемент больше правого. Эталон для BIT-решения ниже.",
+      valuesLabel: "Массив", codeKey: "count-inversions-naive", fillRange: false,
+      ptr1: { name: "i", cap: "(левый)" }, ptr2: { name: "j", cap: "(правый)" },
+      complexity: { time: "O(n²)", space: "O(1)", good: "⚠ База для сравнения — медленно" },
+      varOrder: ["i", "j", "nums[i]", "nums[j]", "cnt"],
+      varDesc: { i: "Левый индекс пары", j: "Правый индекс пары", "nums[i]": "Левый элемент", "nums[j]": "Правый элемент", cnt: "Найдено инверсий" },
+      lineNotes: { 1: "cnt = 0 — пока инверсий не нашли", 2: "Внешний цикл: левый индекс пары i", 3: "Внутренний цикл: правый индекс j > i", 4: "Левый больше правого — это инверсия, cnt++", 7: "Возвращаем общее число инверсий" },
+      rules: [{ head: "nums[i] > nums[j]", body: "→ инверсия, cnt++", cls: "eq" }, { head: "nums[i] ≤ nums[j]", body: "→ не инверсия", cls: "lt" }, { head: "Каждая пара i<j", body: "проверяется отдельно", cls: "gt" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bCountInvNaive(arr) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function (ctx) { return ctx.arr; },
+      title: function () { return "Число инверсий — наивно O(n²)"; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Пара (i, j)", "Сравнение", "Инверсий cnt"],
+      sumValues: function (s) {
+        var i = s.vars.i, j = s.vars.j;
+        if (typeof i !== "number" || typeof j !== "number") return [{ text: "—" }, { text: "—" }, { text: s.vars.cnt, cls: "warn" }];
+        var inv = s.vars["nums[i]"] > s.vars["nums[j]"];
+        return [{ text: "(" + i + ", " + j + ")" }, { text: s.vars["nums[i]"] + (inv ? " > " : " ≤ ") + s.vars["nums[j]"], cls: inv ? "eq" : "lt" }, { text: s.vars.cnt, cls: "warn" }];
+      },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Инверсий: " + s.vars.cnt, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "i=" + s.vars.i + ", j=" + s.vars.j, b: s.vars["nums[i]"] + " ? " + s.vars["nums[j]"], c: "cnt=" + s.vars.cnt, cls: s.improved ? "eq" : "lt" }; },
+      varsOf: function (s) { return { i: s.vars.i, j: s.vars.j, "nums[i]": s.vars["nums[i]"], "nums[j]": s.vars["nums[j]"], cnt: s.vars.cnt }; }
+    },
+
+    "count-inversions-bit": {
+      badge: "Fenwick Tree",
+      desc: "Оптимум O(n log n): идём справа налево, вклад nums[i] = prefix(rank−1) (меньших уже справа), затем add(rank). Снизу — BIT частот рангов.",
+      valuesLabel: "Массив", codeKey: "count-inversions-bit", fillRange: false,
+      ptr1: { name: "i", cap: "(текущий, справа налево)" }, ptr2: { name: "—", cap: "" },
+      complexity: { time: "O(n log n)", space: "O(n)", good: "★ Инверсии / меньших справа" },
+      varOrder: ["i", "rank", "contrib", "inv"],
+      varDesc: { i: "Текущий индекс (идём справа налево)", rank: "Ранг nums[i] после сжатия координат", contrib: "Вклад = prefix(rank−1)", inv: "Накопленное число инверсий" },
+      lineNotes: { 5: "inv = 0 — старт; BIT частот пуст", 6: "Идём справа налево: элементы правее i уже учтены в BIT", 7: "ri — ранг текущего значения после сжатия координат", 8: "prefix(ri−1): сколько уже встреченных (справа) рангов строго меньше — спуск idx −= idx&(−idx)", 9: "add(ri): регистрируем текущий ранг — подъём idx += idx&(−idx)", 11: "Возвращаем общее число инверсий" },
+      rules: [{ head: "prefix(rank−1)", body: "меньших уже справа → вклад", cls: "eq" }, { head: "add(rank)", body: "регистрируем элемент", cls: "gt" }, { head: "Справа налево", body: "правое уже в BIT", cls: "lt" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var r = bCountInvBit(arr); return { arr: arr, m: r.m, steps: r.steps }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function (ctx) { return ctx.arr; },
+      title: function () { return "Число инверсий через BIT — O(n log n)"; },
+      cellState: function (s, j) { var i = s.lo; if (i < 0) return { found: true }; return { lo: j === i, found: j > i, dim: j < i }; },
+      pointers: function (s) { return { lo: s.lo, hi: -1 }; },
+      sumCells: ["Ранг nums[i]", "Вклад = prefix(rank−1)", "Инверсий inv"],
+      sumValues: function (s) {
+        var c = s.vars.contrib;
+        return [{ text: s.vars.rank }, { text: (typeof c === "number" ? c : "—"), cls: (typeof c === "number" && c > 0) ? "eq" : "" }, { text: s.vars.inv, cls: "warn" }];
+      },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Инверсий: " + s.vars.inv, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "i=" + s.vars.i + ", rank=" + s.vars.rank, b: "вклад=" + s.vars.contrib, c: "inv=" + s.vars.inv, cls: s.improved ? "eq" : "lt" }; },
+      varsOf: function (s) { return { i: s.vars.i, rank: s.vars.rank, contrib: s.vars.contrib, inv: s.vars.inv }; },
+      mapViz: function (parent, ctx) {
+        var m = ctx.m;
+        var wrap = mkEl("div", "algo-tp__map");
+        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "tree[1.." + m + "] — BIT частот рангов (узел i отвечает за i&(−i) рангов)"));
+        var grid = mkEl("div", "algo-tp__mapgrid");
+        var cells = [];
+        for (var r = 1; r <= m; r++) {
+          var col = mkEl("div", "algo-tp__mapcell");
+          col.appendChild(mkEl("div", "algo-tp__mapkey", r));
+          var cnt = mkEl("div", "algo-tp__mapcnt", "0");
+          col.appendChild(cnt);
+          grid.appendChild(col);
+          cells.push({ col: col, cnt: cnt });
+        }
+        wrap.appendChild(grid);
+        var info = mkEl("div", "algo-tp__mapsize", "");
+        wrap.appendChild(info);
+        parent.appendChild(wrap);
+        return function (s) {
+          var tree = s.tree || [];
+          cells.forEach(function (c, k) {
+            var val = tree[k] || 0;
+            c.cnt.textContent = val;
+            var touched = s.touched === (k + 1);
+            c.col.className = "algo-tp__mapcell" + (val > 0 ? " algo-tp__mapcell--on" : " algo-tp__mapcell--off") + (touched ? " algo-tp__mapcell--hot algo-tp__mapcell--" + (s.action === "add" ? "add" : "dec") : "");
+          });
+          info.innerHTML = "";
+          info.appendChild(mkEl("span", "algo-tp__mapsizek", "inv = " + s.vars.inv));
+          if (typeof s.vars.contrib === "number") info.appendChild(mkEl("span", "algo-tp__mapsizecmp algo-tp__mapsizecmp--ok", "  вклад текущего = " + s.vars.contrib));
+        };
+      }
     },
 
     "union-find-find": {

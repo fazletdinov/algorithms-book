@@ -334,6 +334,11 @@ func combinationSum(candidates []int, target int) [][]int {
 Вместо «сумма» удобнее нести **остаток** `remain`: база — `remain == 0`, отсечение —
 `candidates[i] > remain`.
 
+Прогоните перебор с остатком на `candidates = [2,3,6,7]`, `target = 7`: берём кандидата
+(можно повторно), уменьшаем `remain`, а ветку с `candidates[i] > remain` обрываем:
+
+<div class="algo-viz" data-viz="combination-sum" data-array="2,3,6,7" data-target="7"></div>
+
 **Шаг 4. Трассировка** на отсортированном `candidates = [2,3,6,7]`, `target = 7`.
 Дерево вызовов `backtrack(start, remain)` (слева — `current`, справа — что
 происходит):

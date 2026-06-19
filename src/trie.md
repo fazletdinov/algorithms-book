@@ -111,6 +111,12 @@ func replaceWords(dict []string, sentence string) string {
 }
 ```
 
+Прогоните спуск `shortestRoot("cattle")` по бору с корнями `cat`, `bat`, `rat`: подсветка
+идёт по символам, и на узле `t` (конец корня `cat`) спуск останавливается — это первый, а
+значит кратчайший корень-префикс, до конца слова идти не пришлось:
+
+<div class="algo-viz" data-viz="trie-shortest-root" data-words="cat,bat,rat" data-query="cattle"></div>
+
 **Шаг 4. Трассировка** спуска `shortestRoot("cattle")` по бору с корнями
 `cat`, `bat`, `rat` (показана только ветка `c→a→t`):
 
