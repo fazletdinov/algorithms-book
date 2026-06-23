@@ -5,6 +5,8 @@
 (function () {
   "use strict";
 
+  // Список глав ведётся вручную — держи его в порядке и составе src/SUMMARY.md
+  // (включая главы-структуры), иначе «100%» в трекере не будет равно «прочитал всю книгу».
   var CHAPTERS = [
     { t: "Sliding Window", h: "sliding-window.html" },
     { t: "Two Pointers", h: "two-pointers.html" },
@@ -13,24 +15,37 @@
     { t: "Cyclic Sort", h: "cyclic-sort.html" },
     { t: "Modified Binary Search", h: "modified-binary-search.html" },
     { t: "Bit Manipulation", h: "bit-manipulation.html" },
+    { t: "Хеш-таблица: устройство", h: "hash-table-structure.html" },
+    { t: "Связный список: устройство", h: "linked-list-structure.html" },
     { t: "Reverse Linked List", h: "reverse-linked-list.html" },
+    { t: "Дек: устройство", h: "deque-structure.html" },
+    { t: "BST: устройство", h: "bst-structure.html" },
+    { t: "AVL-дерево: балансировка", h: "avl-tree-structure.html" },
     { t: "Tree BFS", h: "tree-bfs.html" },
     { t: "Tree DFS", h: "tree-dfs.html" },
+    { t: "Куча: устройство", h: "heap-structure.html" },
     { t: "Two Heaps", h: "two-heaps.html" },
     { t: "Top-K Elements", h: "top-k-elements.html" },
     { t: "K-way Merge", h: "k-way-merge.html" },
     { t: "Subsets", h: "subsets.html" },
     { t: "Backtracking", h: "backtracking.html" },
     { t: "Graphs (обход)", h: "graphs.html" },
+    { t: "Union-Find (DSU): устройство", h: "union-find-structure.html" },
     { t: "Сетки и кратчайшие пути", h: "grids-and-shortest-paths.html" },
     { t: "Графы: продвинутые", h: "advanced-graph-algorithms.html" },
     { t: "Topological Sort", h: "topological-sort.html" },
     { t: "Greedy", h: "greedy.html" },
     { t: "Dynamic Programming", h: "dynamic-programming.html" },
     { t: "Строковые алгоритмы", h: "string-algorithms.html" },
-    { t: "Trie", h: "trie.html" },
-    { t: "Segment Tree", h: "segment-tree.html" },
-    { t: "Fenwick Tree", h: "fenwick-tree.html" },
+    { t: "Trie: устройство", h: "trie-structure.html" },
+    { t: "Trie: разбор задач", h: "trie.html" },
+    { t: "Дерево отрезков: устройство", h: "segment-tree-structure.html" },
+    { t: "Дерево отрезков: задачи", h: "segment-tree.html" },
+    { t: "Дерево Фенвика: устройство", h: "fenwick-tree-structure.html" },
+    { t: "Дерево Фенвика: задачи", h: "fenwick-tree.html" },
+    { t: "Sparse Table: устройство", h: "sparse-table-structure.html" },
+    { t: "B-дерево: устройство", h: "btree-structure.html" },
+    { t: "Комбинации паттернов", h: "pattern-combinations.html" },
     { t: "Шпаргалка", h: "cheatsheet.html" },
     { t: "Тренажёр распознавания (квиз)", h: "quiz.html" }
   ];

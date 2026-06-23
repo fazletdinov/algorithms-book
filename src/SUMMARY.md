@@ -70,6 +70,10 @@
 - [🔭 Sparse Table: устройство и операции](sparse-table-structure.md)
 - [🗃️ B-дерево: устройство и операции](btree-structure.md)
 
+## Группа 9: Синтез
+
+- [🧬 Комбинации паттернов: задачи на связки](pattern-combinations.md)
+
 ## Дополнительные материалы
 
 - [Приложение: память, GC и профилирование в Go](appendix-go-memory.md)
