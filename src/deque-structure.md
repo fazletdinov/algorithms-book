@@ -178,6 +178,20 @@ go test -tags solution ./deque/  # эталон (зелёные)
 go test ./slidingwindow/   # MaxSlidingWindow — монотонный дек
 ```
 
+## 🧩 Задачи
+
+Дек встречается в двух ролях: как **готовая структура** (нужны оба конца) и как носитель
+техники **монотонного дека** — храним только потенциально полезные элементы в
+отсортированном порядке, выбрасывая заведомо ненужные с обоих концов.
+
+**LeetCode:**
+
+- [Design Circular Deque](https://leetcode.com/problems/design-circular-deque/) — прямая реализация API на кольцевом буфере (ровно пакет тренажёра)
+- [Number of Recent Calls](https://leetcode.com/problems/number-of-recent-calls/) — окно по времени очередью: один конец добавляет, другой выбрасывает устаревшее
+- [Sliding Window Maximum](https://leetcode.com/problems/sliding-window-maximum/) — **монотонный дек**: максимум окна за O(n)
+- [Jump Game VI](https://leetcode.com/problems/jump-game-vi/) — ДП + монотонный дек для максимума в окне допустимых переходов
+- [Shortest Subarray with Sum at Least K](https://leetcode.com/problems/shortest-subarray-with-sum-at-least-k/) — монотонный дек по префиксным суммам (hard)
+
 ## 🔗 Связанные шаблоны
 
 - **[Sliding Window](sliding-window.md)** — максимум окна за O(n) через монотонный дек.
