@@ -1584,57 +1584,59 @@
   // Разбор задачи двух указателей: 3Sum. Наивно O(n³) — три вложенных цикла i<j<k,
   // проверяем каждую тройку на сумму 0, дубли отсекаем set. lo=i, mid=j, hi=k.
   function bThreeSumNaive(arr) {
-    var n = arr.length, steps = [], seen = {}, found = 0;
+    var n = arr.length, steps = [], seen = {}, found = 0, res = [];
+    function P(o) { o.res = res.slice(); return o; } // снимок накопленного res на каждом шаге
     function key3(a, b, c) { var t = [a, b, c].slice().sort(function (x, y) { return x - y; }); return t.join(","); }
     function vv(i, j, k, sum) { return { i: (i == null ? "—" : i), j: (j == null ? "—" : j), k: (k == null ? "—" : k), sum: (sum == null ? "—" : sum), found: found }; }
-    if (n < 3) return [{ lo: -1, hi: -1, done: true, line: 12, vars: vv(), info: "Меньше трёх элементов — троек нет" }];
-    steps.push({ lo: -1, hi: -1, line: 2, vars: vv(), info: "res пуст — ищем тройки с суммой 0" });
+    if (n < 3) return [P({ lo: -1, hi: -1, done: true, line: 12, vars: vv(), info: "Меньше трёх элементов — троек нет" })];
+    steps.push(P({ lo: -1, hi: -1, line: 2, vars: vv(), info: "res пуст — ищем тройки с суммой 0" }));
     for (var i = 0; i < n; i++) {
-      steps.push({ lo: i, hi: -1, line: 3, vars: vv(i), info: "i = " + i + ": первый элемент тройки nums[" + i + "] = " + arr[i] });
+      steps.push(P({ lo: i, hi: -1, line: 3, vars: vv(i), info: "i = " + i + ": первый элемент тройки nums[" + i + "] = " + arr[i] }));
       for (var j = i + 1; j < n; j++) {
-        steps.push({ lo: i, mid: j, hi: -1, line: 4, vars: vv(i, j), info: "j = " + j + ": второй элемент nums[" + j + "] = " + arr[j] });
+        steps.push(P({ lo: i, mid: j, hi: -1, line: 4, vars: vv(i, j), info: "j = " + j + ": второй элемент nums[" + j + "] = " + arr[j] }));
         for (var k = j + 1; k < n; k++) {
           var sum = arr[i] + arr[j] + arr[k], zero = sum === 0, uniq = false;
-          if (zero) { var kk = key3(arr[i], arr[j], arr[k]); if (!seen[kk]) { seen[kk] = true; found++; uniq = true; } }
-          steps.push({ lo: i, mid: j, hi: k, improved: uniq, line: 6, vars: vv(i, j, k, sum), info: arr[i] + " + " + arr[j] + " + " + arr[k] + " = " + sum + (zero ? (uniq ? " = 0 — новая тройка [" + key3(arr[i], arr[j], arr[k]).split(",").join(", ") + "]!" : " = 0, но такая тройка уже была") : " ≠ 0") });
+          if (zero) { var kk = key3(arr[i], arr[j], arr[k]); if (!seen[kk]) { seen[kk] = true; found++; uniq = true; res.push("[" + kk.split(",").join(", ") + "]"); } }
+          steps.push(P({ lo: i, mid: j, hi: k, improved: uniq, line: 6, vars: vv(i, j, k, sum), info: arr[i] + " + " + arr[j] + " + " + arr[k] + " = " + sum + (zero ? (uniq ? " = 0 — новая тройка [" + key3(arr[i], arr[j], arr[k]).split(",").join(", ") + "]!" : " = 0, но такая тройка уже была") : " ≠ 0") }));
         }
       }
     }
-    steps.push({ lo: -1, hi: -1, done: true, line: 12, vars: vv(), info: "return res — всего уникальных троек: " + found });
+    steps.push(P({ lo: -1, hi: -1, done: true, line: 12, vars: vv(), info: "return res — всего уникальных троек: " + found }));
     return steps;
   }
   // Оптимум O(n²): сортируем, фиксируем i, остаток ищем встречными указателями left/right.
   // Массив показываем уже отсортированным (ctx.arr); i = mid (фиксирован), left = lo, right = hi.
   function bThreeSum(arr) {
-    var a = arr.slice().sort(function (x, y) { return x - y; }), n = a.length, steps = [], found = 0;
+    var a = arr.slice().sort(function (x, y) { return x - y; }), n = a.length, steps = [], found = 0, res = [];
+    function P(o) { o.res = res.slice(); return o; } // снимок накопленного res на каждом шаге
     function vv(i, l, r, sum) { return { i: (i == null ? "—" : i), left: (l == null ? "—" : l), right: (r == null ? "—" : r), sum: (sum == null ? "—" : sum), found: found }; }
-    steps.push({ lo: -1, mid: -1, hi: -1, line: 1, vars: vv(), info: "sort.Ints(nums) → [" + a.join(", ") + "] — появилась монотонность" });
+    steps.push(P({ lo: -1, mid: -1, hi: -1, line: 1, vars: vv(), info: "sort.Ints(nums) → [" + a.join(", ") + "] — появилась монотонность" }));
     for (var i = 0; i < n - 2; i++) {
       if (i > 0 && a[i] === a[i - 1]) {
-        steps.push({ lo: -1, mid: i, hi: -1, line: 4, vars: vv(i, null, null), info: "i = " + i + ": nums[" + i + "] = " + a[i] + " == nums[" + (i - 1) + "] — дубль первого элемента, continue" });
+        steps.push(P({ lo: -1, mid: i, hi: -1, line: 4, vars: vv(i, null, null), info: "i = " + i + ": nums[" + i + "] = " + a[i] + " == nums[" + (i - 1) + "] — дубль первого элемента, continue" }));
         continue;
       }
       var left = i + 1, right = n - 1;
-      steps.push({ lo: left, mid: i, hi: right, line: 5, vars: vv(i, left, right), info: "i = " + i + " (nums[i] = " + a[i] + "): left = " + left + ", right = " + right });
+      steps.push(P({ lo: left, mid: i, hi: right, line: 5, vars: vv(i, left, right), info: "i = " + i + " (nums[i] = " + a[i] + "): left = " + left + ", right = " + right }));
       while (left < right) {
         var sum = a[i] + a[left] + a[right];
-        steps.push({ lo: left, mid: i, hi: right, line: 7, vars: vv(i, left, right, sum), info: "sum = " + a[i] + " + " + a[left] + " + " + a[right] + " = " + sum });
+        steps.push(P({ lo: left, mid: i, hi: right, line: 7, vars: vv(i, left, right, sum), info: "sum = " + a[i] + " + " + a[left] + " + " + a[right] + " = " + sum }));
         if (sum === 0) {
-          found++;
-          steps.push({ lo: left, mid: i, hi: right, improved: true, line: 10, vars: vv(i, left, right, sum), info: "sum == 0 — тройка [" + a[i] + ", " + a[left] + ", " + a[right] + "]! left++, right-- и перешагиваем дубли" });
+          found++; res.push("[" + a[i] + ", " + a[left] + ", " + a[right] + "]");
+          steps.push(P({ lo: left, mid: i, hi: right, improved: true, line: 10, vars: vv(i, left, right, sum), info: "sum == 0 — тройка [" + a[i] + ", " + a[left] + ", " + a[right] + "]! left++, right-- и перешагиваем дубли" }));
           left++; right--;
           while (left < right && a[left] === a[left - 1]) left++;
           while (left < right && a[right] === a[right + 1]) right--;
         } else if (sum < 0) {
-          steps.push({ lo: left, mid: i, hi: right, line: 12, vars: vv(i, left, right, sum), info: "sum " + sum + " < 0 — нужна большая сумма, left++" });
+          steps.push(P({ lo: left, mid: i, hi: right, line: 12, vars: vv(i, left, right, sum), info: "sum " + sum + " < 0 — нужна большая сумма, left++" }));
           left++;
         } else {
-          steps.push({ lo: left, mid: i, hi: right, line: 14, vars: vv(i, left, right, sum), info: "sum " + sum + " > 0 — нужна меньшая сумма, right--" });
+          steps.push(P({ lo: left, mid: i, hi: right, line: 14, vars: vv(i, left, right, sum), info: "sum " + sum + " > 0 — нужна меньшая сумма, right--" }));
           right--;
         }
       }
     }
-    steps.push({ lo: -1, mid: -1, hi: -1, done: true, line: 19, vars: vv(), info: "return res — всего уникальных троек: " + found });
+    steps.push(P({ lo: -1, mid: -1, hi: -1, done: true, line: 19, vars: vv(), info: "return res — всего уникальных троек: " + found }));
     return steps;
   }
   // Одно направление: удаление дубликатов из отсортированного массива на месте.
@@ -5224,6 +5226,16 @@
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return ctx.arr; },
       title: function () { return "3Sum — наивно O(n³)"; },
+      mapViz: function (panel) {
+        var p = structPanel(panel, "res — собранные тройки (sum = 0)");
+        return function (s) {
+          p.grid.innerHTML = "";
+          var o = s.res || [];
+          if (!o.length) p.grid.appendChild(structCell("", "∅", "algo-tp__mapcell--off"));
+          else o.forEach(function (t, k) { p.grid.appendChild(structCell("#" + (k + 1), t, "algo-tp__mapcell--on" + (s.improved && k === o.length - 1 ? " algo-tp__mapcell--hot" : ""))); });
+          p.foot.textContent = "троек: " + o.length;
+        };
+      },
       cellState: function (s, j) { return { lo: j === s.lo && s.lo >= 0, mid: j === s.mid && s.mid >= 0, hi: j === s.hi && s.hi >= 0 }; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
       sumCells: ["Тройка (i, j, k)", "Сумма", "Найдено троек"],
@@ -5252,6 +5264,16 @@
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return ctx.arr; },
       title: function () { return "3Sum — сортировка + два указателя O(n²)"; },
+      mapViz: function (panel) {
+        var p = structPanel(panel, "res — собранные тройки (sum = 0)");
+        return function (s) {
+          p.grid.innerHTML = "";
+          var o = s.res || [];
+          if (!o.length) p.grid.appendChild(structCell("", "∅", "algo-tp__mapcell--off"));
+          else o.forEach(function (t, k) { p.grid.appendChild(structCell("#" + (k + 1), t, "algo-tp__mapcell--on" + (s.improved && k === o.length - 1 ? " algo-tp__mapcell--hot" : ""))); });
+          p.foot.textContent = "троек: " + o.length;
+        };
+      },
       cellState: function (s, j) { var r = { lo: j === s.lo && s.lo >= 0, mid: j === s.mid && s.mid >= 0, hi: j === s.hi && s.hi >= 0 }; if (s.lo >= 0 && s.hi >= 0 && j > s.lo && j < s.hi) r.span = true; return r; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
       sumCells: ["Тройка (i, left, right)", "Сумма", "Найдено троек"],
