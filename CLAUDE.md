@@ -93,7 +93,8 @@ Job `go-tests` (working-directory `exercises/`) проверяет четыре 
 
 ## Покрытие тренажёра
 
-Тренажёр покрывает все 25 паттернов книги (28 пакетов — продвинутые графы разбиты на
-`dijkstra`/`bellmanford`/`astar`/`mst`). Пакеты, добавленные при закрытии пробела:
-`fastslow`, `intervals`, `bits`, `treedfs`, `twoheaps`, `topk`, `kwaymerge`, `subsets`,
-`toposort`. Список функций каждого пакета — в `exercises/README.md`.
+Тренажёр покрывает все паттерны книги (**46 пакетов** — продвинутые графы разбиты на
+`dijkstra`/`bellmanford`/`astar`/`mst`; конкурентность — `parallel*`/`wordcount`). Пакеты
+главы «Комбинации паттернов»: `lru`, `wordladder`, `alienorder`, `meetingrooms` (связки
+2–3 техник) + `listcrud` (CRUD односвязного списка). Список функций каждого пакета — в
+`exercises/README.md`.

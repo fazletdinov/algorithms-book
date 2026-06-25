@@ -103,6 +103,11 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `wordcount`     | `FreqSeq` / `FreqConc` (подсчёт частот: worker pool + fan-in; урок «concurrent map writes») |
 | `parallelnqueens` | `CountNQueensSeq` / `CountNQueensConc` (N ферзей: fan-out по веткам, своя доска у горутины) |
 | `parallelsearch` | `CountOccurrencesSeq` / `CountOccurrencesConc` (поиск подстроки по чанкам; деление по началам, не по байтам) |
+| `listcrud`      | `InsertAt`, `Search`, `DeleteVal` (базовые операции односвязного списка через dummy-голову) |
+| `lru`           | `Constructor`, `LRUCache.Get` / `Put` (комбинация: хеш-таблица + двусвязный список, O(1)) |
+| `wordladder`    | `LadderLength` (комбинация: BFS по уровням + хеш-множество) |
+| `alienorder`    | `AlienOrder` (комбинация: граф из соседних слов + топологическая сортировка) |
+| `meetingrooms`  | `MinMeetingRooms` (комбинация: сортировка по началу + мин-куча концов) |
 
 ## Как добавить свой шаблон
 

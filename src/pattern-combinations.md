@@ -104,6 +104,12 @@ func (c *LRUCache) Put(key, value int) {
 }
 ```
 
+Прошагай последовательность операций (ёмкость 2): `map` даёт O(1) доступ, а
+список держит порядок свежести — видно, как обращение двигает узел в голову, а
+переполнение вытесняет хвост (старый конец):
+
+<div class="algo-viz" data-viz="lru" data-cap="2" data-ops="put 1 1; put 2 2; get 1; put 3 3; get 2; put 4 4; get 1; get 3; get 4"></div>
+
 > ⚠️ Узел хранит **и `key`, и `val`**. `val` нужен для `Get`, а `key` — чтобы при
 > вытеснении `tail.prev` знать, *что удалить из map*. Без `key` в узле вытеснение
 > деградирует до O(n) поиска по map.
@@ -590,13 +596,21 @@ func (h *maxHeap) Pop() any {
 - [Design Twitter](https://leetcode.com/problems/design-twitter/) — хеш + K-way merge
 - [The Skyline Problem](https://leetcode.com/problems/the-skyline-problem/) — sweep line + макс-куча
 
-**Тренажёр** — отдельного пакета у этой главы нет: каждая связка собирается из уже
-реализованных. Прогони составляющие, прежде чем кодить комбинацию:
+**Тренажёр** — для разобранных связок есть свои пакеты (реализуй сам, проверь тестами):
 
 ```bash
 cd exercises
-go test -tags solution ./linkedlist/ ./graphs/ ./toposort/ ./treedfs/ ./binheap/ ./kwaymerge/
+go test ./lru/ ./wordladder/ ./alienorder/ ./meetingrooms/                 # ваши решения
+go test -tags solution ./lru/ ./wordladder/ ./alienorder/ ./meetingrooms/  # эталон
 ```
+
+- `lru` — `Constructor`/`Get`/`Put` (хеш-таблица + двусвязный список);
+- `wordladder` — `LadderLength` (BFS + хеш-множество);
+- `alienorder` — `AlienOrder` (граф из строк + топосортировка);
+- `meetingrooms` — `MinMeetingRooms` (сортировка + мин-куча).
+
+Остальные связки (Twitter, Skyline, Serialize) собираются из уже реализованных пакетов
+(`binheap`/`kwaymerge`/`treedfs`) — прогони их составляющие, прежде чем кодить комбинацию.
 
 ## 🔗 Связанные шаблоны
 

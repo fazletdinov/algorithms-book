@@ -236,9 +236,16 @@ func deleteVal(head *ListNode, target int) *ListNode {
 
 ## 🏋️ Тренажёр
 
-Базовые операции узлов (`insertAt`, `search`, `deleteVal`) — отличное самостоятельное упражнение:
-заведи тип `ListNode` и реализуй их сам, проверяя на маленьких списках. Готовый пакет тренажёра
-`linkedlist` посвящён главной операции-приёму — **развороту** — и задачам на него:
+Базовые операции узлов (`InsertAt`, `Search`, `DeleteVal`) — в пакете `listcrud` (ровно те, что
+показаны виджетами выше):
+
+```bash
+cd exercises
+go test ./listcrud/                 # ваши решения
+go test -tags solution ./listcrud/  # эталон
+```
+
+Главной операции-приёму — **развороту** — посвящён отдельный пакет `linkedlist`:
 
 ```bash
 cd exercises
