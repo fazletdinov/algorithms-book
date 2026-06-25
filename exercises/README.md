@@ -108,6 +108,9 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `wordladder`    | `LadderLength` (комбинация: BFS по уровням + хеш-множество) |
 | `alienorder`    | `AlienOrder` (комбинация: граф из соседних слов + топологическая сортировка) |
 | `meetingrooms`  | `MinMeetingRooms` (комбинация: сортировка по началу + мин-куча концов) |
+| `serializetree` | `Serialize`, `Deserialize` (комбинация: DFS прямого обхода + парсинг токенов) |
+| `skyline`       | `GetSkyline` (комбинация: sweep line по событиям + макс-куча с ленивым удалением) |
+| `designtwitter` | `Twitter.PostTweet` / `Follow` / `Unfollow` / `GetNewsFeed` (комбинация: хеш-таблицы + K-way merge кучей) |
 
 ## Как добавить свой шаблон
 

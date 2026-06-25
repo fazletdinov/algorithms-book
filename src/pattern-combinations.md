@@ -596,21 +596,20 @@ func (h *maxHeap) Pop() any {
 - [Design Twitter](https://leetcode.com/problems/design-twitter/) — хеш + K-way merge
 - [The Skyline Problem](https://leetcode.com/problems/the-skyline-problem/) — sweep line + макс-куча
 
-**Тренажёр** — для разобранных связок есть свои пакеты (реализуй сам, проверь тестами):
+**Тренажёр** — у каждой разобранной связки есть свой пакет (реализуй сам, проверь тестами):
 
 ```bash
 cd exercises
-go test ./lru/ ./wordladder/ ./alienorder/ ./meetingrooms/                 # ваши решения
-go test -tags solution ./lru/ ./wordladder/ ./alienorder/ ./meetingrooms/  # эталон
+go test -tags solution ./lru/ ./wordladder/ ./alienorder/ ./meetingrooms/ ./serializetree/ ./skyline/ ./designtwitter/
 ```
 
 - `lru` — `Constructor`/`Get`/`Put` (хеш-таблица + двусвязный список);
 - `wordladder` — `LadderLength` (BFS + хеш-множество);
 - `alienorder` — `AlienOrder` (граф из строк + топосортировка);
-- `meetingrooms` — `MinMeetingRooms` (сортировка + мин-куча).
-
-Остальные связки (Twitter, Skyline, Serialize) собираются из уже реализованных пакетов
-(`binheap`/`kwaymerge`/`treedfs`) — прогони их составляющие, прежде чем кодить комбинацию.
+- `meetingrooms` — `MinMeetingRooms` (сортировка + мин-куча);
+- `serializetree` — `Serialize`/`Deserialize` (DFS + парсинг);
+- `skyline` — `GetSkyline` (sweep line + макс-куча);
+- `designtwitter` — `Twitter`: `PostTweet`/`Follow`/`Unfollow`/`GetNewsFeed` (хеш-таблица + K-way merge).
 
 ## 🔗 Связанные шаблоны
 
