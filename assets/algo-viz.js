@@ -658,6 +658,23 @@
       "    return dummy.Next",
       "}"
     ],
+    "lru": [
+      "func (c *LRUCache) Get(key int) int {",
+      "    n, ok := c.m[key]",
+      "    if !ok { return -1 }              // промах — ключа нет",
+      "    c.moveFront(n)                    // обращение делает узел свежим",
+      "    return n.val",
+      "}",
+      "func (c *LRUCache) Put(key, value int) {",
+      "    if n, ok := c.m[key]; ok {        // ключ уже есть",
+      "        n.val = value; c.moveFront(n); return",
+      "    }",
+      "    if len(c.m) == c.cap {            // переполнение",
+      "        c.evict(c.tail.prev)          // вытесняем самый старый",
+      "    }",
+      "    c.addFront(&node{key, value})     // новый узел — в голову",
+      "}"
+    ],
     "bst-search": [
       "func (t *BST) Search(val int) bool {",
       "    node := t.root",
@@ -3959,6 +3976,75 @@
     push({ line: 10, seq: seqOf(arr, {}), done: true, info: "return — " + target + " не найден, список без изменений" });
     return { steps: steps };
   }
+  // ===== LRU-кэш: хеш-таблица + двусвязный список (комбинация паттернов) =======
+  // Прогоняет последовательность put/get; каждый шаг несёт снимок списка
+  // (свежий→старый), множество ключей map и подсветку текущего узла.
+  function parseLruOps(str) {
+    return (str || "").split(";").map(function (t) {
+      var p = t.trim().split(/\s+/).filter(Boolean);
+      if (p[0] === "put") return { kind: "put", key: +p[1], val: +p[2] };
+      if (p[0] === "get") return { kind: "get", key: +p[1] };
+      return null;
+    }).filter(Boolean);
+  }
+  function bLRU(capacity, ops) {
+    var cap = Math.max(1, capacity || 1), list = [], steps = [];
+    function mark(k, cls) { var m = {}; m[k] = cls; return m; }
+    function keysStr() { return list.length ? "{" + list.map(function (e) { return e.key; }).join(", ") + "}" : "{ }"; }
+    function snap(marks) { return list.map(function (e) { return { val: e.key + ":" + e.val, cls: (marks && marks[e.key]) || "" }; }); }
+    function idxOf(k) { for (var i = 0; i < list.length; i++) if (list[i].key === k) return i; return -1; }
+    function push(o) { steps.push({ si: steps.length, line: o.line, seq: o.seq, keys: o.keys != null ? o.keys : keysStr(), vars: { op: o.op, key: (o.key == null ? "—" : o.key), result: (o.result == null ? "—" : o.result), size: list.length + "/" + cap }, info: o.info, done: o.done, created: o.created, removed: o.removed, hit: o.hit }); }
+    ops.forEach(function (op) {
+      if (op.kind === "put") {
+        var k = op.key, v = op.val, label = "Put(" + k + ", " + v + ")";
+        push({ line: 6, op: label, key: k, seq: snap(null), info: label + ": ищем ключ " + k + " в map" });
+        var i = idxOf(k);
+        if (i >= 0) {
+          push({ line: 7, op: label, key: k, seq: snap(mark(k, "found")), info: "ключ " + k + " уже есть — обновим значение на " + v });
+          list[i].val = v; var nd = list.splice(i, 1)[0]; list.unshift(nd);
+          push({ line: 8, op: label, key: k, hit: true, seq: snap(mark(k, "cur")), info: k + ":" + v + " — двигаем в голову (свежий)" });
+        } else {
+          if (list.length >= cap) {
+            var old = list[list.length - 1];
+            push({ line: 10, op: label, key: k, removed: true, seq: snap(mark(old.key, "removed")), info: "кэш полон (" + cap + ") — вытесняем самый старый: " + old.key });
+            list.pop();
+            push({ line: 11, op: label, key: k, seq: snap(null), info: old.key + " удалён из списка и из map" });
+          }
+          list.unshift({ key: k, val: v });
+          push({ line: 13, op: label, key: k, created: true, seq: snap(mark(k, "created")), info: k + ":" + v + " — новый узел в голову (свежий)" });
+        }
+      } else {
+        var g = op.key, gl = "Get(" + g + ")", j = idxOf(g);
+        push({ line: 1, op: gl, key: g, seq: snap(j >= 0 ? mark(g, "found") : null), info: gl + ": ищем ключ " + g + " в map" });
+        if (j < 0) {
+          push({ line: 2, op: gl, key: g, result: -1, seq: snap(null), info: "промах — ключа " + g + " нет, возвращаем -1" });
+        } else {
+          var node = list.splice(j, 1)[0]; list.unshift(node);
+          push({ line: 3, op: gl, key: g, hit: true, seq: snap(mark(g, "cur")), info: "попадание — двигаем " + g + " в голову (свежий)" });
+          push({ line: 4, op: gl, key: g, hit: true, result: node.val, seq: snap(mark(g, "cur")), info: "возвращаем " + node.val });
+        }
+      }
+    });
+    push({ line: 14, op: "готово", seq: snap(null), done: true, info: "все операции выполнены" });
+    return steps;
+  }
+  function lruViz(panel) {
+    var wrap = mkEl("div", "algo-tp__map");
+    wrap.appendChild(mkEl("div", "algo-tp__maphdr", "Двусвязный список: свежий → старый"));
+    var listRow = mkEl("div", "algo-tp__ll"); wrap.appendChild(listRow);
+    var mapRow = mkEl("div", "algo-tp__mapsize"); wrap.appendChild(mapRow);
+    panel.appendChild(wrap);
+    return function (s) {
+      listRow.innerHTML = "";
+      var seq = s.seq || [];
+      if (!seq.length) { listRow.appendChild(mkEl("div", "algo-tp__llnil", "∅ (кэш пуст)")); }
+      else seq.forEach(function (node, k) {
+        listRow.appendChild(mkEl("div", "algo-tp__llnode" + (node.cls ? " algo-tp__llnode--" + node.cls : ""), node.val));
+        if (k < seq.length - 1) listRow.appendChild(mkEl("div", "algo-tp__llarrow", "⇄"));
+      });
+      mapRow.textContent = "map (ключи): " + (s.keys || "{ }");
+    };
+  }
   // Обход дерева (BFS уровнями или DFS preorder). Возвращает ctx с present/order/steps.
   // Обход дерева — построчный (debugger) проход. BFS — с очередью, DFS — с рекурсивным
   // стеком вызовов (обе структуры показаны панелью). treeViz красит узлы (upto/nodeIdx).
@@ -5600,6 +5686,27 @@
       stepCard: function (s) { if (s.done) return { a: "готово", b: "", c: "✓", cls: "eq" }; if (s.removed) return { a: "узел «" + s.vars.node + "»", b: "вырезан", c: "–", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: "vs " + s.vars.target, c: "↓", cls: "lt" }; },
       varsOf: function (s) { return { "node": s.vars.node, "target": s.vars.target }; },
       customViz: llViz
+    },
+
+    "lru": {
+      badge: "Hash + Список", desc: "LRU-кэш: map(key→узел) даёт O(1) доступ, двусвязный список держит порядок свежести (голова — свежий, хвост — кандидат на вытеснение).",
+      valuesLabel: "", codeKey: "lru", fillRange: false,
+      complexity: { time: "O(1) Get/Put", space: "O(ёмкость)", good: "★ Кэш с вытеснением" },
+      varOrder: ["op", "key", "result", "size"],
+      varDesc: { op: "Текущая операция", key: "Ключ операции", result: "Результат Get (— для Put)", size: "Занято / ёмкость" },
+      lineNotes: { 0: "Get: доступ к узлу по ключу через map за O(1)", 2: "промах — ключа нет, возвращаем -1", 3: "обращение делает узел свежим — двигаем в голову", 6: "Put: вставка или обновление", 7: "ключ уже есть — обновим значение", 8: "новое значение, узел в голову (свежий)", 10: "кэш полон — надо освободить место", 11: "вытесняем хвост — самый давно используемый", 13: "новый узел добавляем в голову" },
+      rules: [{ head: "Get/Put по ключу", body: "→ узел в голову (свежий)", cls: "lt" }, { head: "переполнение", body: "→ вытеснить хвост", cls: "gt" }, { head: "map", body: "key → *узел, O(1)", cls: "eq" }],
+      parse: function (root) { var cap = parseInt(root.getAttribute("data-cap") || "2", 10); var ops = parseLruOps(root.getAttribute("data-ops") || ""); return { cap: cap, ops: ops, steps: bLRU(cap, ops) }; },
+      inputs: [{ attr: "data-cap", label: "ёмкость", sm: true }, { attr: "data-ops", label: "операции (put k v; get k)" }],
+      values: function () { return []; },
+      title: function (ctx) { return "LRU-кэш (ёмкость " + ctx.cap + ")"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Операция", "Результат", "Занято"],
+      sumValues: function (s) { return [{ text: s.vars.op }, { text: s.vars.result, cls: (s.hit ? "eq" : (String(s.vars.result) === "-1" ? "gt" : "lt")) }, { text: s.vars.size, cls: "warn" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Все операции выполнены", text: s.info }; if (s.removed) return { kind: "info", icon: idx + 1, head: "Вытеснение", text: s.info }; if (s.created) return { kind: "info", icon: idx + 1, head: "Новый узел", text: s.info }; if (s.hit) return { kind: "info", icon: idx + 1, head: "Попадание", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "", c: "✓", cls: "eq" }; if (s.removed) return { a: s.vars.op, b: "вытеснение", c: "–", cls: "gt" }; if (s.created) return { a: s.vars.op, b: "новый узел", c: "+", cls: "lt" }; return { a: s.vars.op, b: "размер " + s.vars.size, c: "·", cls: "eq" }; },
+      varsOf: function (s) { return { op: s.vars.op, key: s.vars.key, result: s.vars.result, size: s.vars.size }; },
+      customViz: lruViz
     },
 
     "bst-search": {
