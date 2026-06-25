@@ -76,8 +76,10 @@ go vet  -tags solution ./...               # линт эталонов — то�
 
 ## CI/CD
 
-`.github/workflows/ci.yml`: job `go-tests` и `build-book` (`mdbook build`) должны пройти;
-затем job `deploy` публикует `book/` на GitHub Pages **только из ветки main**.
+`.github/workflows/ci.yml`: job `go-tests`, `assets-check` и `build-book` (`mdbook build`
++ `check-links.js`) должны пройти; затем job `deploy` публикует `book/` на GitHub Pages
+**только из ветки main**. Job `build-book` после сборки прогоняет `node scripts/check-links.js`
+— целостность внутренних ссылок/якорей по собранному `book/`.
 
 Job `go-tests` (working-directory `exercises/`) проверяет четыре инварианта:
 1. `gofmt -l .` — всё отформатировано;
@@ -86,7 +88,8 @@ Job `go-tests` (working-directory `exercises/`) проверяет четыре 
 4. шаг «Заготовки ещё не решены» — untagged-тесты каждого пакета ДОЛЖНЫ падать (ловит решение, протёкшее в файл-заготовку).
 
 Перед коммитом локально прогоняй `gofmt -l exercises`, `go test -tags solution -count=1 ./...`
-(из `exercises/`) и `mdbook build` (из корня) — это ровно то, что проверит CI.
+(из `exercises/`), `mdbook build` и `node scripts/check-links.js` (из корня) — это ровно то,
+что проверит CI.
 
 В корне есть `go.work` (`use ./exercises`) — он нужен только для IDE/gopls, чтобы при открытии
 корня репозитория модуль из `exercises/` был виден (иначе gopls ругается «module not in workspace»).

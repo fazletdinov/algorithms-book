@@ -88,12 +88,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       - uses: peaceiris/actions-mdbook@v2
         with:
           # Запинено для воспроизводимости (совпадает с локальной сборкой). Если CI не
           # найдёт версию — поднять до доступной в action / вернуть 'latest'.
           mdbook-version: '0.5.2'
       - run: mdbook build
+      # Целостность внутренних ссылок/якорей по собранному book/ (битая ссылка иначе
+      # всплывёт только у читателя кликом).
+      - name: Проверка внутренних ссылок
+        run: node scripts/check-links.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: book
