@@ -41,6 +41,7 @@
 | [Строковые алгоритмы](string-algorithms.md) | поиск подстроки/образца | O(n+m) | префикс-функция (KMP) / rolling hash |
 | [Trie](trie-structure.md) | префикс, автодополнение, словарь | O(длины) | префиксное дерево |
 | [Segment Tree](segment-tree-structure.md) / [Fenwick](fenwick-tree-structure.md) | сумма/мин на диапазоне + обновления | O(log n) | дерево агрегатов |
+| [Комбинации паттернов](pattern-combinations.md) | задача = связка 2–3 паттернов (LRU, Word Ladder…) | зависит от связки | один даёт структуру, другой — порядок |
 
 ## Как готовиться по этой странице
 
