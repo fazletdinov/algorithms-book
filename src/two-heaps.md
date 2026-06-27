@@ -334,14 +334,36 @@ min-heap — большую, медиана читается с их верши�
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант, кнопка проверит. Готового решения рядом нет: дойди сам.
+Суть — «достать min/max за O(log n)»; в Go это `container/heap`.
 
-- [Find Median from Data Stream](https://leetcode.com/problems/find-median-from-data-stream/)
-- [Sliding Window Median](https://leetcode.com/problems/sliding-window-median/)
-- [IPO](https://leetcode.com/problems/ipo/) (сложная)
-- [Design Twitter](https://leetcode.com/problems/design-twitter/) (сложная)
-- [The Skyline Problem](https://leetcode.com/problems/the-skyline-problem/) (сложная)
-- [Kth Largest Element in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/)
+<div class="algo-challenge" data-type="choice" data-options="Max-heap|Min-heap|Стек" data-answer="0" data-explain="Last Stone Weight: каждый шаг нужны два НАИБОЛЬШИХ камня → max-heap, достаём два верхних.">
+<div class="algo-challenge__q">Какая структура нужна, когда на каждом шаге нужны два <b>наибольших</b> элемента?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Min-heap ровно из k наибольших|Max-heap из всех|Отсортированный массив" data-answer="0" data-explain="Держим min-heap из k наибольших: при переполнении выкидываем минимум, и корень всегда k-й по величине. Add за O(log k).">
+<div class="algo-challenge__q">Kth Largest в потоке: что держим, чтобы корень был k-м по величине?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Max-heap — меньшую половину, min-heap — большую|Max-heap — большую, min-heap — меньшую" data-answer="0" data-explain="Нижнюю половину держит max-heap (его вершина — наибольший из меньших), верхнюю — min-heap (вершина — наименьший из больших). Их вершины и дают медиану.">
+<div class="algo-challenge__q">Медиана потока двумя кучами: кто какую половину хранит?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Вершина max-heap (большей кучи)|Среднее двух вершин|Вершина min-heap" data-answer="0" data-explain="Размеры 4 и 3 — нечётное число элементов; медиана = вершина БОЛЬШЕЙ кучи (здесь max-heap нижней половины).">
+<div class="algo-challenge__q">Две кучи: max-heap содержит 4 элемента, min-heap — 3. Где медиана?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="O(log n)|O(1)|O(n)" data-answer="0" data-explain="heap.Push и heap.Pop просеивают элемент по высоте кучи — O(log n). Доступ к вершине (h[0]) — O(1).">
+<div class="algo-challenge__q">За сколько работают <code>heap.Push</code> и <code>heap.Pop</code> в Go?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Find Median from Data Stream](https://leetcode.com/problems/find-median-from-data-stream/) (LeetCode 295) — две кучи, ядро паттерна
+- [Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) (LeetCode 1046) — max-heap
+- [Kth Largest in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/) (LeetCode 703) — min-heap из k
+- [Smallest Number in Infinite Set](https://leetcode.com/problems/smallest-number-in-infinite-set/) (LeetCode 2336)
+- [Take Gifts After K Seconds](https://leetcode.com/problems/take-gifts-after-k-seconds/) (LeetCode 2558)
 
 **Тренажёр** — пакет `twoheaps`:
 
@@ -353,6 +375,14 @@ go test -tags solution ./twoheaps/  # эталон
 
 Реализуйте `MedianFinder` (медиана потока: `NewMedianFinder`/`AddNum`/`FindMedian`),
 `SlidingWindowMedian` (медиана скользящего окна) и `MaximizeCapital` (задача IPO).
+
+### 💻 Реши прямо здесь — пакет `twoheaps`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="twoheaps"></div>
 
 ## 🔗 Связанные шаблоны
 

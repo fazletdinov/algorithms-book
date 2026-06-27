@@ -19,8 +19,12 @@
 
 - [🔀 Merge Intervals (Слияние интервалов)](merge-intervals.md)
 - [🔄 Cyclic Sort (Циклическая сортировка)](cyclic-sort.md)
+- [🔢 Алгоритмы сортировки и порядковые статистики](sorting.md)
 - [🔍 Modified Binary Search (Модифицированный бинарный поиск)](modified-binary-search.md)
 - [⚙️ Bit Manipulation (Битовые операции)](bit-manipulation.md)
+- [🔢 Теория чисел: НОД, простые, быстрая степень](number-theory.md)
+- [🔁 Рекурсия и мастер-теорема](recursion.md)
+- [📈 Big-O и амортизированный анализ](big-o.md)
 - [🗂️ Хеш-таблица: устройство и операции](hash-table-structure.md)
 
 ## Группа 3: Структуры данных - списки
@@ -76,5 +80,6 @@
 
 ## Дополнительные материалы
 
+- [🐹 Go-рантайм: планировщик, GC и аллокатор](go-runtime.md)
 - [Приложение: память, GC и профилирование в Go](appendix-go-memory.md)
 - [Заключение](conclusion.md)

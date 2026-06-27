@@ -373,17 +373,42 @@ func rob(nums []int) int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: сначала сформулируй состояние и переход сам, потом проверь себя.
 
-- [Climbing Stairs](https://leetcode.com/problems/climbing-stairs/)
-- [House Robber](https://leetcode.com/problems/house-robber/)
-- [Coin Change](https://leetcode.com/problems/coin-change/)
-- [Longest Common Subsequence](https://leetcode.com/problems/longest-common-subsequence/)
-- [Unique Paths](https://leetcode.com/problems/unique-paths/) — 2D ДП на сетке
-- [Word Break](https://leetcode.com/problems/word-break/)
-- [Edit Distance](https://leetcode.com/problems/edit-distance/) (сложная)
-- [Longest Increasing Subsequence](https://leetcode.com/problems/longest-increasing-subsequence/) (сложная)
-- [Partition Equal Subset Sum](https://leetcode.com/problems/partition-equal-subset-sum/) — 0/1 рюкзак
+<div class="algo-challenge" data-type="choice" data-options="Состояние (что значит dp[i]) и переход|Сортировка и перебор|Куча и жадность" data-answer="0" data-explain="Любое ДП — это чёткое состояние («лучший ответ для префикса длины i») плюс переход (как dp[i] выражается через предыдущие). Назвать их словами — половина успеха.">
+<div class="algo-challenge__q">Два кита динамического программирования — это…</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Лучшая сумма подмассива, ЗАКАНЧИВАЮЩЕГОСЯ здесь|Сумма всего массива до i" data-answer="0" data-explain="Kadane: cur — лучшая сумма подмассива, кончающегося в текущей позиции. Переход: продолжить (cur+v) или начать заново (v).">
+<div class="algo-challenge__q">Kadane (Max Subarray): что означает состояние <code>cur</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="В обратном порядке (от target к v)|В прямом порядке" data-answer="0" data-explain="0/1 рюкзак на 1D dp: проход по вместимости ОБРАТНЫЙ, иначе предмет учтётся несколько раз (это превратит задачу в unbounded-рюкзак).">
+<div class="algo-challenge__q">0/1 рюкзак на одномерном dp: в каком порядке идём по вместимости?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Снаружи (монеты во внешнем цикле)|Внутри (сумма во внешнем цикле)" data-answer="0" data-explain="Coin Change II считает КОМБИНАЦИИ: цикл по монетам снаружи, поэтому каждый набор монет учитывается один раз. Поменяешь порядок — посчитаешь перестановки.">
+<div class="algo-challenge__q">Coin Change II (число способов): где должен быть цикл по монетам?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="5" data-hint="Это числа Фибоначчи: 1, 2, 3, 5…" data-explain="Способы подняться на n ступеней (по 1 или 2) — Фибоначчи: f(1)=1, f(2)=2, f(3)=3, f(4)=5.">
+<div class="algo-challenge__q">Сколькими способами подняться на <b>4</b> ступени, шагая по 1 или 2?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Число 10..26|Любые две цифры|Число 00..99" data-answer="0" data-explain="Decode Ways: две соседние цифры расшифровываются как одна буква, только если образуют число от 10 до 26 (A=1..Z=26).">
+<div class="algo-challenge__q">Decode Ways: две цифры можно взять вместе, если они образуют…</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Maximum Subarray](https://leetcode.com/problems/maximum-subarray/) (LeetCode 53) — Kadane
+- [Min Cost Climbing Stairs](https://leetcode.com/problems/min-cost-climbing-stairs/) (LeetCode 746)
+- [House Robber II](https://leetcode.com/problems/house-robber-ii/) (LeetCode 213) — дома по кругу
+- [Partition Equal Subset Sum](https://leetcode.com/problems/partition-equal-subset-sum/) (LeetCode 416) — 0/1 рюкзак
+- [Coin Change II](https://leetcode.com/problems/coin-change-ii/) (LeetCode 518) — число комбинаций
+- [Longest Palindromic Substring](https://leetcode.com/problems/longest-palindromic-substring/) (LeetCode 5)
+- [Decode Ways](https://leetcode.com/problems/decode-ways/) (LeetCode 91) — сложная
 
 **Тренажёр** — пакет `dp`:
 
@@ -401,6 +426,14 @@ go test -tags solution ./dp/  # эталон
 > наивно параллелить нельзя. Теоретически независимы клетки одной **антидиагонали** (например, в
 > `EditDistance`/`LCS`), но работы на клетку — копейки, и горутины тут проиграют. ДП почти всегда
 > последовательно.
+
+### 💻 Реши прямо здесь — пакет `dp`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="dp"></div>
 
 ## 🔗 Связанные шаблоны
 

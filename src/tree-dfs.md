@@ -335,18 +335,41 @@ func diameterOfTree(root *TreeNode) int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: дойди сам. Почти всё дерево — это «ответ узла = функция от ответов поддеревьев».
 
-- [Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/)
-- [Same Tree](https://leetcode.com/problems/same-tree/)
-- [Symmetric Tree](https://leetcode.com/problems/symmetric-tree/)
-- [Binary Tree Inorder Traversal](https://leetcode.com/problems/binary-tree-inorder-traversal/)
-- [Validate Binary Search Tree](https://leetcode.com/problems/validate-binary-search-tree/)
-- [Path Sum](https://leetcode.com/problems/path-sum/)
-- [Lowest Common Ancestor of a Binary Tree](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/)
-- [Construct Binary Tree from Preorder and Inorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/)
-- [Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/) (сложная)
-- [Serialize and Deserialize Binary Tree](https://leetcode.com/problems/serialize-and-deserialize-binary-tree/) (сложная)
+<div class="algo-challenge" data-type="choice" data-options="Вернуть p == q|Вернуть true|Вернуть false" data-answer="0" data-explain="Если хотя бы один узел nil: оба nil → равны (true), один nil → нет (false). Ровно это и даёт return p == q.">
+<div class="algo-challenge__q">Same Tree: когда один из узлов <code>nil</code>, что вернуть?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Недостаточно — нарушение бывает через несколько уровней|Достаточно" data-answer="0" data-explain="Локальная проверка left &lt; node &lt; right не ловит нарушения через уровни. Нужен диапазон (lo, hi), сужаемый при спуске.">
+<div class="algo-challenge__q">Validate BST: хватает ли локальной проверки «<code>left &lt; node &lt; right</code>»?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="В разных поддеревьях|В одном поддереве|Оба nil" data-answer="0" data-explain="Узел — это LCA, если p и q нашлись по РАЗНЫЕ стороны от него. Если оба в одном поддереве — общий предок глубже.">
+<div class="algo-challenge__q">LCA: узел является ответом, когда <code>p</code> и <code>q</code> нашлись…</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="1" data-explain="Дерево из одного узла (только корень-лист) имеет глубину 1.">
+<div class="algo-challenge__q">Чему равна максимальная глубина дерева из <b>одного</b> узла?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Копию среза пути|Сам срез пути|Указатель на путь" data-answer="0" data-explain="DFS переиспользует один буфер path с backtracking; без копии все найденные пути будут ссылаться на одну меняющуюся память.">
+<div class="algo-challenge__q">Path Sum II: что кладём в результат, найдя подходящий путь?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Только одну ветвь (n.Val + max(l, r))|Обе ветви|Сумму всего поддерева" data-answer="0" data-explain="Через узел путь может идти в обе ветви (это кандидат на ответ), но НАВЕРХ родителю отдаётся только одна ветвь — иначе путь бы разветвился.">
+<div class="algo-challenge__q">Max Path Sum: что узел отдаёт <b>наверх</b> родителю?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Same Tree](https://leetcode.com/problems/same-tree/) (LeetCode 100)
+- [Invert Binary Tree](https://leetcode.com/problems/invert-binary-tree/) (LeetCode 226)
+- [Validate BST](https://leetcode.com/problems/validate-binary-search-tree/) (LeetCode 98) — диапазон (lo, hi)
+- [Lowest Common Ancestor](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/) (LeetCode 236)
+- [Path Sum II](https://leetcode.com/problems/path-sum-ii/) (LeetCode 113) — DFS + backtracking
+- [Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/) (LeetCode 124) — сложная
 
 **Тренажёр** — пакет `treedfs`:
 
@@ -359,6 +382,14 @@ go test -tags solution ./treedfs/  # эталон
 Реализуйте `PreorderTraversal`, `InorderTraversal`, `PostorderTraversal`
 (три обхода), `MaxDepth` (максимальная глубина), `HasPathSum` (путь
 с заданной суммой) и `DiameterOfTree` (диаметр).
+
+### 💻 Реши прямо здесь — пакет `treedfs`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="treedfs"></div>
 
 ## 🔗 Связанные шаблоны
 

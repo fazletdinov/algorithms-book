@@ -336,15 +336,37 @@ func findOrder(numCourses int, prerequisites [][]int) []int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: дойди сам. Базовый каркас один — алгоритм Кана.
 
-- [Course Schedule](https://leetcode.com/problems/course-schedule/)
-- [Course Schedule II](https://leetcode.com/problems/course-schedule-ii/)
-- [Alien Dictionary](https://leetcode.com/problems/alien-dictionary/)
-- [Minimum Height Trees](https://leetcode.com/problems/minimum-height-trees/)
-- [Sequence Reconstruction](https://leetcode.com/problems/sequence-reconstruction/)
-- [Parallel Courses](https://leetcode.com/problems/parallel-courses/) (сложная)
-- [Sort Items by Groups Respecting Dependencies](https://leetcode.com/problems/sort-items-by-groups-respecting-dependencies/) (сложная)
+<div class="algo-challenge" data-type="choice" data-options="Равна 0|Максимальна|Равна 1" data-answer="0" data-explain="Алгоритм Кана начинает с вершин без входящих рёбер (indeg == 0) — у них нет невыполненных зависимостей; сняв их, уменьшаем степень соседей.">
+<div class="algo-challenge__q">С каких вершин начинает алгоритм Кана?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="В графе есть цикл|Граф пустой|Граф — дерево" data-answer="0" data-explain="Если топосорт уложил не все вершины, значит остались узлы с ненулевой входящей степенью, замкнутые в цикл — топологического порядка не существует.">
+<div class="algo-challenge__q">Топосорт обработал НЕ все вершины. Что это значит?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Ровно одна вершина (нет выбора)|Много вершин|Очередь пуста" data-answer="0" data-explain="Если на каком-то шаге в очереди больше одной вершины с indeg=0 — есть свобода выбора порядка, значит топосорт НЕ единственный.">
+<div class="algo-challenge__q">Топологический порядок единственен ⟺ на каждом шаге Кана в очереди…</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Ощипыванием листьев слоями (как Кан)|Обычным DFS из корня|Сортировкой вершин" data-answer="0" data-explain="Minimum Height Trees: снимаем листья (степень 1) слоями, пока не останется 1–2 центральные вершины — это и есть искомые корни.">
+<div class="algo-challenge__q">Minimum Height Trees решается…</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="3" data-hint="Считай слои Кана: что можно пройти параллельно за один семестр." data-explain="Слой 1: {0}; слой 2: {1, 2} (параллельно); слой 3: {3}. Итого 3 семестра.">
+<div class="algo-challenge__q">Зависимости курсов: 0→1, 0→2, 1→3, 2→3. Минимум семестров?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Course Schedule](https://leetcode.com/problems/course-schedule/) (LeetCode 207) — есть ли цикл
+- [Course Schedule II](https://leetcode.com/problems/course-schedule-ii/) (LeetCode 210) — сам порядок
+- [Minimum Height Trees](https://leetcode.com/problems/minimum-height-trees/) (LeetCode 310) — ощипывание листьев
+- [Parallel Courses](https://leetcode.com/problems/parallel-courses/) (LeetCode 1136) — слои Кана
+- [Course Schedule IV](https://leetcode.com/problems/course-schedule-iv/) (LeetCode 1462) — транзитивное замыкание
+- [Sequence Reconstruction](https://leetcode.com/problems/sequence-reconstruction/) (LeetCode 444) — единственность
 
 **Тренажёр** — пакет `toposort`:
 
@@ -357,6 +379,14 @@ go test -tags solution ./toposort/  # эталон
 Реализуйте `TopologicalSort` (порядок по Кану), `CanFinish` (нет ли цикла),
 `FindOrderLexSmallest` (лексикографически наименьший порядок) и `AlienOrder`
 (порядок алфавита по словарю).
+
+### 💻 Реши прямо здесь — пакет `toposort`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="toposort"></div>
 
 ## 🔗 Связанные шаблоны
 

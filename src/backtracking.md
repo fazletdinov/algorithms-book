@@ -369,16 +369,36 @@ backtrack(0, 7)                       current=[]
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: сначала нарисуй дерево перебора сам, потом проверь себя.
 
-- [Subsets](https://leetcode.com/problems/subsets/) — все подмножества
-- [Permutations](https://leetcode.com/problems/permutations/) — все перестановки
-- [Combinations](https://leetcode.com/problems/combinations/) — сочетания C(n, k)
-- [Generate Parentheses](https://leetcode.com/problems/generate-parentheses/) — корректные скобки
-- [Letter Combinations of a Phone Number](https://leetcode.com/problems/letter-combinations-of-a-phone-number/)
-- [N-Queens](https://leetcode.com/problems/n-queens/) — расстановка ферзей (сложная)
-- [Sudoku Solver](https://leetcode.com/problems/sudoku-solver/) — решение судоку (сложная)
-- [Word Search](https://leetcode.com/problems/word-search/) — поиск слова в сетке
+<div class="algo-challenge" data-type="choice" data-options="Выбрать → рекурсия → откатить|Перебрать всё одним циклом|Запомнить подзадачи в таблице" data-answer="0" data-explain="Каркас backtracking: сделать выбор, уйти в рекурсию, ОТКАТИТЬ выбор (вернуть состояние) и попробовать следующий. Откат — то, что отличает его от простого DFS.">
+<div class="algo-challenge__q">Универсальный каркас backtracking?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="16" data-hint="Каждый из n элементов — брать или нет." data-explain="2⁴ = 16 подмножеств для множества из 4 элементов.">
+<div class="algo-challenge__q">Сколько подмножеств у множества из <b>4</b> элементов?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Не повторять элементы и не переставлять их|Ускорить рекурсию|Сэкономить память" data-answer="0" data-explain="start задаёт «двигаться только вперёд»: каждый следующий выбор берётся из i ≥ start, поэтому наборы не повторяются и не переставляются (это сочетания/подмножества, а не перестановки).">
+<div class="algo-challenge__q">Зачем параметр <code>start</code> в Subsets/Combinations?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Временно меняем символ клетки (например на '#'), откатываем при возврате|Заводим visited-массив навсегда" data-answer="0" data-explain="Word Search метит клетку прямо в board на время ветки и восстанавливает её при возврате — классический backtracking-откат, без лишней памяти.">
+<div class="algo-challenge__q">Word Search: как помечаем клетку посещённой на время ветки?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="2" data-hint="Классический результат для доски 4×4." data-explain="У задачи 4 ферзей ровно 2 различные расстановки.">
+<div class="algo-challenge__q">Сколько решений у N-Queens для доски 4×4 (n=4)?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Subsets](https://leetcode.com/problems/subsets/) (LeetCode 78)
+- [Combinations](https://leetcode.com/problems/combinations/) (LeetCode 77)
+- [Word Search](https://leetcode.com/problems/word-search/) (LeetCode 79) — backtracking на сетке
+- [Palindrome Partitioning](https://leetcode.com/problems/palindrome-partitioning/) (LeetCode 131)
+- [N-Queens](https://leetcode.com/problems/n-queens/) (LeetCode 51) — сложная
 
 **Тренажёр** — пакет `backtracking`:
 
@@ -425,6 +445,18 @@ go test -tags solution ./parallelnqueens/          # эталон
 go test -tags solution -race ./parallelnqueens/    # гонок нет by design
 go test -tags solution -bench=. ./parallelnqueens/ # Conc обгоняет Seq
 ```
+
+### 💻 Реши прямо здесь — пакет `backtracking`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="backtracking"></div>
+
+**Конкурентный вариант — пакет `parallelnqueens`** (для проверки гонок запусти в CLI `go test -race`):
+
+<div class="algo-runner" data-pkg="parallelnqueens" data-race="true"></div>
 
 ## 🔗 Связанные шаблоны
 

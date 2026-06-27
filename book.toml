@@ -16,8 +16,8 @@ git-repository-url = ""
 edit-url-template = ""
 git-repository-icon = "fa-github"
 mathjax-support = true
-additional-css = ["assets/algo-viz.css", "assets/quiz.css"]
-additional-js = ["assets/algo-viz.js", "assets/quiz.js", "assets/progress.js"]
+additional-css = ["assets/algo-viz.css", "assets/quiz.css", "assets/challenge.css", "assets/runner.css"]
+additional-js = ["assets/algo-viz.js", "assets/quiz.js", "assets/progress.js", "assets/challenge.js", "assets/runner.js"]
 no-section-label = false
 # runnable = false: mdBook Playground выполняет только Rust; код на Go запускается локально (go run/go test)
 playground = { editable = true, copyable = true, copy-js = true, line-numbers = false, runnable = false }

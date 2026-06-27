@@ -344,15 +344,37 @@ func mergeOpt(intervals [][]int) [][]int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: дойди сам. Почти всё здесь начинается с **сортировки** — она и задаёт O(n log n).
 
-- [Merge Intervals](https://leetcode.com/problems/merge-intervals/)
-- [Insert Interval](https://leetcode.com/problems/insert-interval/)
-- [Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/)
-- [Meeting Rooms II](https://leetcode.com/problems/meeting-rooms-ii/)
-- [Interval List Intersections](https://leetcode.com/problems/interval-list-intersections/)
-- [Employee Free Time](https://leetcode.com/problems/employee-free-time/) (сложная)
-- [Minimum Number of Arrows to Burst Balloons](https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/)
+<div class="algo-challenge" data-type="choice" data-options="Сортировка (по началу или концу)|Хеш-таблица|Перебор всех пар" data-answer="0" data-explain="Сортировка по началу/концу выстраивает интервалы в линию — после неё всё решается одним проходом. Она и задаёт реальную сложность O(n log n).">
+<div class="algo-challenge__q">С чего начинается почти любая задача на интервалы?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Начало второго ≤ конца первого|Начало второго больше конца первого" data-answer="0" data-explain="Если интервалы упорядочены по началу (a ≤ c), они пересекаются ровно когда c ≤ b — второй начинается не позже, чем кончился первый.">
+<div class="algo-challenge__q">Два интервала [a, b] и [c, d] (a ≤ c) пересекаются, когда…</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="По концу; выкидываем интервал с бо́льшим концом|По началу; выкидываем с меньшим концом" data-answer="0" data-explain="Жадность по концу: при наложении выгоднее убрать тот, чей конец дальше — он сильнее мешает будущим интервалам.">
+<div class="algo-challenge__q">Non-overlapping Intervals: по чему сортируем и кого выкидываем при наложении?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="2" data-hint="Сортируй по концу, ставь стрелу в конец первого шара." data-explain="Сорт по концу: [1,3],[2,5],[6,8]. Стрела в 3 лопает [1,3] и [2,5] (2 ≤ 3); [6,8] начинается правее → вторая стрела. Итого 2.">
+<div class="algo-challenge__q">Сколько стрел нужно, чтобы лопнуть шары <code>[[1,3], [2,5], [6,8]]</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Начало следующего ≤ конца текущего|Всегда сливаем соседние|Только если они равны" data-answer="0" data-explain="После сортировки по началу два соседних интервала сливаются, если следующий начинается не позже, чем кончился текущий (перекрытие/касание).">
+<div class="algo-challenge__q">Merge Intervals: когда сливаем два соседних интервала?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Merge Intervals](https://leetcode.com/problems/merge-intervals/) (LeetCode 56) — слияние перекрытий
+- [Insert Interval](https://leetcode.com/problems/insert-interval/) (LeetCode 57)
+- [Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) (LeetCode 435) — жадность по концу
+- [Minimum Arrows to Burst Balloons](https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/) (LeetCode 452)
+- [Remove Covered Intervals](https://leetcode.com/problems/remove-covered-intervals/) (LeetCode 1288)
+- [Employee Free Time](https://leetcode.com/problems/employee-free-time/) (LeetCode 759) — сложная
 
 **Тренажёр** — пакет `intervals`:
 
@@ -365,6 +387,14 @@ go test -tags solution ./intervals/  # эталон
 Реализуйте `MergeIntervals` (слить пересекающиеся), `InsertInterval`
 (вставить и слить), `IntervalsIntersection` (пересечения двух списков),
 `CanAttendAllMeetings` (без наложений) и `MinMeetingRooms` (минимум переговорок).
+
+### 💻 Реши прямо здесь — пакет `intervals`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="intervals"></div>
 
 ## 🔗 Связанные шаблоны
 

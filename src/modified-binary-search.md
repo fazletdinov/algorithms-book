@@ -439,16 +439,45 @@ func searchRange(nums []int, target int) [2]int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: дойди сам. Главная ловушка — инвариант границ.
 
-- [Binary Search](https://leetcode.com/problems/binary-search/)
-- [Search Insert Position](https://leetcode.com/problems/search-insert-position/)
-- [First Bad Version](https://leetcode.com/problems/first-bad-version/)
-- [Find First and Last Position of Element in Sorted Array](https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/)
-- [Search in Rotated Sorted Array](https://leetcode.com/problems/search-in-rotated-sorted-array/)
-- [Search a 2D Matrix](https://leetcode.com/problems/search-a-2d-matrix/)
-- [Find Minimum in Rotated Sorted Array](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/)
-- [Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/) (сложная)
+<div class="algo-challenge" data-type="choice" data-options="lo = mid + 1|hi = mid|hi = mid - 1" data-answer="0" data-explain="nums[mid] меньше target, значит сам mid точно не ответ — отбрасываем его и всё левее: lo = mid + 1.">
+<div class="algo-challenge__q">Шаблон <code>[lo, hi)</code>: если <code>nums[mid] &lt; target</code>, как сдвигаем границу?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="10" data-hint="⌈log₂(1000)⌉. Сколько раз 1000 делится пополам?" data-explain="2¹⁰ = 1024 ≥ 1000, значит хватает 10 сравнений.">
+<div class="algo-challenge__q">Сколько сравнений максимум сделает бинарный поиск в массиве из <b>1000</b> элементов?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Защита от переполнения|Так быстрее|Даёт другой результат" data-answer="0" data-explain="lo + (hi−lo)/2 не переполняется, тогда как (lo+hi) может выйти за диапазон int при больших индексах.">
+<div class="algo-challenge__q">Зачем писать <code>mid = lo + (hi-lo)/2</code>, а не <code>(lo+hi)/2</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="1" data-hint="Это lower_bound: первая позиция, куда можно вставить 2." data-explain="2 встаёт между 1 и 3 → индекс 1.">
+<div class="algo-challenge__q">Что вернёт <code>searchInsert([1, 3, 5, 6], 2)</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="lo = mid + 1|hi = mid" data-answer="0" data-explain="nums[mid]=5 больше правого конца nums[hi]=2 → точка разрыва (и минимум) правее mid, значит lo = mid + 1.">
+<div class="algo-challenge__q">Find Min в <code>[3, 4, 5, 1, 2]</code>: mid=2 (значение 5), nums[hi]=2. Раз 5 > 2, то…</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Монотонна по скорости (быстрее → меньше часов)|Случайна|Не важна" data-answer="0" data-explain="Бинпоиск по ответу работает именно потому, что предикат «успеваем за h часов» монотонен по скорости — есть чёткая граница «нельзя/можно».">
+<div class="algo-challenge__q">Koko Eating Bananas — почему сюда годится «бинпоиск по ответу»?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Чтобы получить O(log(min)) и меньше граничных случаев|Случайный выбор|Для устойчивости" data-answer="0" data-explain="Бинпоиск идёт по разрезу меньшего массива — это и даёт O(log(min(m, n))), и сокращает диапазон разреза.">
+<div class="algo-challenge__q">Median of Two Sorted Arrays: почему бинпоиск ведут по <b>меньшему</b> массиву?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Search Insert Position](https://leetcode.com/problems/search-insert-position/) (LeetCode 35) — lower_bound
+- [First Bad Version](https://leetcode.com/problems/first-bad-version/) (LeetCode 278) — поиск по предикату
+- [Find Peak Element](https://leetcode.com/problems/find-peak-element/) (LeetCode 162) — бинпоиск по склону
+- [Find Minimum in Rotated Sorted Array](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/) (LeetCode 153)
+- [Koko Eating Bananas](https://leetcode.com/problems/koko-eating-bananas/) (LeetCode 875) — бинпоиск по ответу
+- [Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/) (LeetCode 4) — сложная
 
 **Тренажёр** — пакет `binarysearch`:
 
@@ -465,6 +494,14 @@ go test -tags solution ./binarysearch/  # эталон
 > 🧵 **Конкурентность?** Нет — бинарный поиск **принципиально последователен**: какую половину
 > смотреть дальше, известно только после сравнения с текущей серединой. Каждый шаг зависит от
 > предыдущего, делить нечего. Да и работы всего `O(log n)` — горутина дороже всего поиска.
+
+### 💻 Реши прямо здесь — пакет `binarysearch`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="binarysearch"></div>
 
 ## 🔗 Связанные шаблоны
 

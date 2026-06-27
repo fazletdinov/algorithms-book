@@ -232,6 +232,14 @@ go test ./graphs/   # HasCycleUndirected, CountComponents — на Union-Find
 go test ./mst/      # MST Краскала на Union-Find
 ```
 
+### 💻 Реши прямо здесь — пакет `dsu`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="dsu"></div>
+
 ## 🔗 Связанные шаблоны
 
 - **[Графы](graphs.md)** — компоненты связности и цикл в неориентированном графе на DSU.

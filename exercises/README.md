@@ -21,6 +21,24 @@
    go test ./...
    ```
 
+## Решать прямо в книге (in-book runner)
+
+Не хочется переключаться между книгой и редактором? Подними локальный helper-сервер —
+и решай задачи прямо на страницах книги, как на LeetCode:
+
+```bash
+go run ./cmd/runner        # http://localhost:8080, Ctrl+C чтобы остановить
+```
+
+Рядом с `mdbook serve` открой главу: виджет «💻 Реши прямо здесь» даёт редактор с
+заготовкой пакета. Пишешь реализацию, жмёшь «Прогнать тесты» — сервер прогоняет
+**настоящий `go test`** и показывает, какие тесты прошли/упали. Готовое решение не
+показывается: справился — зелёное, ошибся — видно, какой тест упал. У concurrency-
+пакетов виджет помечен `🏁 -race` и ловит гонки данных.
+
+Сервис локальный и однопользовательский (твой код на твоей машине), поэтому без
+песочницы. Код реализации — `cmd/runner/`.
+
 ## Подсмотреть эталонное решение
 
 У каждого шаблона есть проверенное эталонное решение под build-тегом `solution`:
@@ -67,6 +85,10 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `fastslow`      | `HasCycle`, `DetectCycle`, `MiddleNode`, `IsHappyNumber`, `CycleLength` |
 | `intervals`     | `MergeIntervals`, `InsertInterval`, `IntervalsIntersection`, `CanAttendAllMeetings`, `MinMeetingRooms` |
 | `cyclicsort`    | `CyclicSort`, `FindMissingNumber`, `FindAllMissingNumbers`, `FindDuplicate`, `FindAllDuplicates` |
+| `sorting`       | `MergeSort`, `QuickSort`, `HeapSort`, `CountingSort`, `QuickSelect` |
+| `numbertheory`  | `GCD`, `LCM`, `IsPrime`, `SieveOfEratosthenes`, `PowMod` |
+| `recursion`     | `Factorial`, `Fib`, `Power`, `HanoiMoves`, `SumDigits` |
+| `bigo`          | `MinStack`, `NextGreaterElement`, `DailyTemperatures`, `CountCopies` |
 | `binarysearch`  | `Search`, `FindCeiling`, `FindFloor`, `SearchRotated`, `FindFirstLast`, `IntSqrt` |
 | `bits`          | `SingleNumber`, `IsPowerOfTwo`, `HammingWeight`, `MissingNumber`, `CountBits`, `TwoSingleNumbers` |
 | `linkedlist`    | `ReverseList`, `ReverseSublist`, `ReverseKGroup`, `IsPalindrome` |

@@ -360,17 +360,45 @@ func threeSum(nums []int) [][]int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант, кнопка проверит. Готового решения рядом нет: смысл в том,
+чтобы дойти самому.
 
-- [Two Sum II - Input array is sorted](https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/)
-- [Valid Palindrome](https://leetcode.com/problems/valid-palindrome/)
-- [Remove Duplicates from Sorted Array](https://leetcode.com/problems/remove-duplicates-from-sorted-array/)
-- [3Sum](https://leetcode.com/problems/3sum/)
-- [Container With Most Water](https://leetcode.com/problems/container-with-most-water/)
-- [Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/)
-- [Squares of a Sorted Array](https://leetcode.com/problems/squares-of-a-sorted-array/)
-- [4Sum](https://leetcode.com/problems/4sum/) (сложная)
-- [Partition Labels](https://leetcode.com/problems/partition-labels/)
+<div class="algo-challenge" data-type="choice" data-options="Отсортирован|Любой|Без повторов" data-answer="0" data-explain="Встречные указатели опираются на монотонность: при сдвиге указателя сумма/значение меняется предсказуемо — это держится только на отсортированном массиве.">
+<div class="algo-challenge__q">Встречные указатели (с двух концов навстречу) корректны, когда массив…</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Левый вправо (i++)|Правый влево (j--)" data-answer="1" data-explain="Сумма слишком велика → нужно её уменьшить → сдвигаем правый (больший) указатель влево.">
+<div class="algo-challenge__q">Two Sum II: <code>numbers[i] + numbers[j] > target</code>. Какой указатель двигаем?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="У меньшей стенки|У большей стенки|Любой" data-answer="0" data-explain="Площадь ограничивает меньшая стенка. Сдвинуть большую — площадь только упадёт; сдвинуть меньшую — есть шанс на рост.">
+<div class="algo-challenge__q">Container With Most Water: какой указатель сдвигаем на каждом шаге?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Да|Нет" data-answer="0" data-explain="Игнорируя регистр и не-буквы, читается одинаково с обеих сторон: «amanaplanacanalpanama».">
+<div class="algo-challenge__q">Палиндром ли «A man, a plan, a canal: Panama» (игнорируя регистр и пробелы)?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="O(n)|O(1)|O(log n)" data-answer="1" data-explain="Два указателя + два максимума (lMax, rMax) — константная память, в отличие от решения через два префиксных массива O(n).">
+<div class="algo-challenge__q">Сколько доп. памяти у Trapping Rain Water через два указателя?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="1 3 0 0|3 1 0 0|0 0 1 3|1 0 3 0" data-answer="0" data-explain="Ненулевые сохраняют исходный порядок (1, затем 3) и уезжают вперёд; нули — в конец.">
+<div class="algo-challenge__q">Что вернёт <code>moveZeroes([0, 1, 0, 3])</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Чтобы применить встречные указатели и пропускать дубликаты|Для скорости чтения ввода|Сортировка тут не нужна" data-answer="0" data-explain="Без сортировки встречные указатели не работают, а пропуск дублей (nums[i]==nums[i-1]) опирается на то, что равные стоят рядом.">
+<div class="algo-challenge__q">Зачем в 3Sum сначала сортировать массив?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Valid Palindrome](https://leetcode.com/problems/valid-palindrome/) (LeetCode 125)
+- [Two Sum II](https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/) (LeetCode 167)
+- [3Sum](https://leetcode.com/problems/3sum/) (LeetCode 15) — сортировка + встречные указатели
+- [Container With Most Water](https://leetcode.com/problems/container-with-most-water/) (LeetCode 11)
+- [Move Zeroes](https://leetcode.com/problems/move-zeroes/) (LeetCode 283) — медленный/быстрый
+- [Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) (LeetCode 42) — сложная
 
 **Тренажёр** — пакет `twopointers`:
 
@@ -388,6 +416,14 @@ go test -tags solution ./twopointers/  # эталон
 > зависит от уже пройденного. Это последовательный проход с `O(1)` работы на шаг: параллелить
 > нечего, а синхронизация общих указателей съела бы всё. Параллельной тут бывает разве что
 > предшествующая **сортировка** (см. [конкурентная сортировка слиянием](k-way-merge.md#-конкурентная-сортировка-слиянием-go)).
+
+### 💻 Реши прямо здесь — пакет `twopointers`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="twopointers"></div>
 
 ## 🔗 Связанные шаблоны
 

@@ -398,16 +398,36 @@ O(V+E). Альтернатива без рекурсии — **Union-Find**: о�
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант, кнопка проверит. Готового решения рядом нет: дойди сам.
 
-- [Number of Islands](https://leetcode.com/problems/number-of-islands/) — компоненты на сетке
-- [Number of Connected Components in an Undirected Graph](https://leetcode.com/problems/number-of-connected-components-in-an-undirected-graph/)
-- [Graph Valid Tree](https://leetcode.com/problems/graph-valid-tree/) — связность + отсутствие цикла
-- [Course Schedule](https://leetcode.com/problems/course-schedule/) — цикл в ориентированном графе
-- [Rotting Oranges](https://leetcode.com/problems/rotting-oranges/) — многоисточниковый BFS
-- [Word Ladder](https://leetcode.com/problems/word-ladder/) — кратчайший путь через BFS (сложная)
-- [Redundant Connection](https://leetcode.com/problems/redundant-connection/) — Union-Find
-- [Accounts Merge](https://leetcode.com/problems/accounts-merge/) — Union-Find
+<div class="algo-challenge" data-type="choice" data-options="«Топим» — пишем '0' прямо в сетку|Заводим отдельную visited-матрицу" data-answer="0" data-explain="Number of Islands помечает посещённую сушу, перезаписывая её в '0' прямо в grid — экономит память. Счётчик запусков DFS = число островов.">
+<div class="algo-challenge__q">Number of Islands: как обычно помечают посещённую сушу?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Union-Find (старт n, каждое слияние −1)|Сортировкой вершин|Бинарным поиском" data-answer="0" data-explain="Число компонент: старт с n, каждое успешное union двух разных корней уменьшает счётчик. Со сжатием путей — почти O(1) на операцию.">
+<div class="algo-challenge__q">Чем удобно считать число компонент связности?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="ДО обхода соседей|После обхода соседей" data-answer="0" data-explain="Clone Graph регистрирует копию в map ДО рекурсии по соседям — иначе ребро «обратно» уведёт в бесконечный цикл (вершину начнут копировать заново).">
+<div class="algo-challenge__q">Clone Graph: когда регистрируем копию вершины в map?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="В графе есть цикл|Граф связен|Всё в порядке" data-answer="0" data-explain="Course Schedule = топосорт Кана. Если обработали не все вершины, значит остался цикл из взаимных зависимостей — пройти курсы нельзя.">
+<div class="algo-challenge__q">Course Schedule: топосорт снял НЕ все курсы. Что это значит?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="BFS|DFS|Жадность" data-answer="0" data-explain="Word Ladder ищет КРАТЧАЙШУЮ цепочку в невзвешенном графе слов → BFS: он находит кратчайший путь по числу рёбер (DFS этого не гарантирует).">
+<div class="algo-challenge__q">Word Ladder (кратчайшая цепочка) — какой обход графа?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Number of Islands](https://leetcode.com/problems/number-of-islands/) (LeetCode 200) — DFS/BFS на сетке
+- [Number of Connected Components](https://leetcode.com/problems/number-of-connected-components-in-an-undirected-graph/) (LeetCode 323) — Union-Find
+- [Clone Graph](https://leetcode.com/problems/clone-graph/) (LeetCode 133)
+- [Course Schedule](https://leetcode.com/problems/course-schedule/) (LeetCode 207) — обнаружение цикла
+- [Course Schedule II](https://leetcode.com/problems/course-schedule-ii/) (LeetCode 210) — порядок
+- [Word Ladder](https://leetcode.com/problems/word-ladder/) (LeetCode 127) — BFS по неявному графу
 
 **Тренажёр** — пакет `graphs`:
 
@@ -522,6 +542,18 @@ go test -tags solution -bench=. ./parallelbfs/  # Seq vs Conc(mutex) vs ConcLoca
 `BFSLevelsSeq`, `BFSLevelsConc` (мьютекс) и `BFSLevelsConcLocal` (atomic + локальные фронты)
 обязаны давать **одинаковый** результат (уровни, отсортированные внутри) — это и проверяет тест, а
 `-race` стережёт корректность синхронизации обеих конкурентных версий.
+
+### 💻 Реши прямо здесь — пакет `graphs`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="graphs"></div>
+
+**Конкурентный вариант — пакет `parallelbfs`** (для проверки гонок запусти в CLI `go test -race`):
+
+<div class="algo-runner" data-pkg="parallelbfs" data-race="true"></div>
 
 ## 🔗 Связанные шаблоны
 

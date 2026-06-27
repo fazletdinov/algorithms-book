@@ -134,12 +134,36 @@ func replaceWords(dict []string, sentence string) string {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант, кнопка проверит. Готового решения рядом нет: дойди сам.
+Базовый `Insert`/`Search` — в тренажёре; здесь применения бора.
 
-- [Implement Trie (Prefix Tree)](https://leetcode.com/problems/implement-trie-prefix-tree/)
-- [Design Add and Search Words Data Structure](https://leetcode.com/problems/design-add-and-search-words-data-structure/) — Trie с `.` (wildcard)
-- [Word Search II](https://leetcode.com/problems/word-search-ii/) — Trie + DFS по сетке
-- [Maximum XOR of Two Numbers in an Array](https://leetcode.com/problems/maximum-xor-of-two-numbers-in-an-array/) — бинарный Trie
+<div class="algo-challenge" data-type="choice" data-options="Разделяется одной общей веткой|Дублируется в каждом слове|Не хранится" data-answer="0" data-explain="Бор хранит слова с общим префиксом по одной ветке — поэтому поиск/вставка идут за O(длины слова), независимо от числа слов.">
+<div class="algo-challenge__q">Trie (бор): как хранится общий префикс нескольких слов?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Рекурсивно перебираем всех непустых детей|Пропускаем символ" data-answer="0" data-explain="Wildcard '.' совпадает с любой буквой, поэтому на нём Search рекурсивно пробует все непустые ветви; на обычной букве — идёт по одной.">
+<div class="algo-challenge__q">Add and Search Words: что делаем на символе-джокере <code>.</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="С флагом isEnd (конец корня)|С листом|С любым узлом" data-answer="0" data-explain="Replace Words: идём по бору и обрываемся на ПЕРВОМ узле с isEnd — это кратчайший корень-префикс данного слова.">
+<div class="algo-challenge__q">Replace Words: на каком узле бора обрываем спуск?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="В противоположную ветку (bit ^ 1)|В ту же ветку (bit)" data-answer="0" data-explain="Maximum XOR: в бинарном боре жадно идём в ПРОТИВОПОЛОЖНЫЙ бит — так каждый разряд XOR становится 1, максимизируя результат.">
+<div class="algo-challenge__q">Maximum XOR пары: в какую ветку бинарного бора идём жадно?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Отсекать ветки, которых нет в словаре|Ускорить ввод|Сэкономить память сетки" data-answer="0" data-explain="Word Search II: DFS по сетке спускается только пока в боре есть соответствующая ветка — бор сразу отсекает заведомо безнадёжные пути, в отличие от перебора каждого слова отдельно.">
+<div class="algo-challenge__q">Word Search II: зачем поверх DFS на сетке строить бор?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Implement Trie](https://leetcode.com/problems/implement-trie-prefix-tree/) (LeetCode 208) — базовый бор
+- [Add and Search Words](https://leetcode.com/problems/design-add-and-search-words-data-structure/) (LeetCode 211) — wildcard
+- [Replace Words](https://leetcode.com/problems/replace-words/) (LeetCode 648) — кратчайший корень
+- [Word Search II](https://leetcode.com/problems/word-search-ii/) (LeetCode 212) — бор + DFS
+- [Maximum XOR of Two Numbers](https://leetcode.com/problems/maximum-xor-of-two-numbers-in-an-array/) (LeetCode 421) — бинарный бор
 
 **Тренажёр** — пакет `trie` (реализуется в [главе про устройство](trie-structure.md#-тренажёр-собери-структуру-сам)):
 
@@ -148,6 +172,14 @@ cd exercises
 go test ./trie/                 # ваши решения
 go test -tags solution ./trie/  # эталон
 ```
+
+### 💻 Реши прямо здесь — пакет `trie`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="trie"></div>
 
 ## 🔗 Связанные шаблоны
 

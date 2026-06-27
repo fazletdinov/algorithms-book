@@ -180,17 +180,43 @@ go test ./slidingwindow/   # MaxSlidingWindow — монотонный дек
 
 ## 🧩 Задачи
 
-Дек встречается в двух ролях: как **готовая структура** (нужны оба конца) и как носитель
-техники **монотонного дека** — храним только потенциально полезные элементы в
-отсортированном порядке, выбрасывая заведомо ненужные с обоих концов.
+Реши прямо здесь — выбери вариант, кнопка проверит. Готового решения рядом нет: дойди сам.
+Дек встречается в двух ролях — как простая очередь/стек и как **монотонный дек**.
 
-**LeetCode:**
+<div class="algo-challenge" data-type="choice" data-options="С обоих концов за O(1)|Только с одного конца|Только из середины" data-answer="0" data-explain="Дек (double-ended queue) — добавление и удаление с обоих концов за O(1). Этим он и ценен для монотонной техники.">
+<div class="algo-challenge__q">Что умеет дек (deque)?</div>
+</div>
 
-- [Design Circular Deque](https://leetcode.com/problems/design-circular-deque/) — прямая реализация API на кольцевом буфере (ровно пакет тренажёра)
-- [Number of Recent Calls](https://leetcode.com/problems/number-of-recent-calls/) — окно по времени очередью: один конец добавляет, другой выбрасывает устаревшее
-- [Sliding Window Maximum](https://leetcode.com/problems/sliding-window-maximum/) — **монотонный дек**: максимум окна за O(n)
-- [Jump Game VI](https://leetcode.com/problems/jump-game-vi/) — ДП + монотонный дек для максимума в окне допустимых переходов
-- [Shortest Subarray with Sum at Least K](https://leetcode.com/problems/shortest-subarray-with-sum-at-least-k/) — монотонный дек по префиксным суммам (hard)
+<div class="algo-challenge" data-type="choice" data-options="Индексы, значения по убыванию|Сами значения по возрастанию" data-answer="0" data-explain="Монотонный дек в Sliding Window Maximum хранит ИНДЕКСЫ так, что значения убывают от переда к заду. Передний индекс — всегда максимум текущего окна.">
+<div class="algo-challenge__q">Что хранит монотонный дек в Sliding Window Maximum?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Меньше нового — они уже не понадобятся|Больше нового" data-answer="0" data-explain="С зада выбрасываем элементы меньше пришедшего: пока новый в окне, любой меньший слева никогда не станет максимумом. Так дек остаётся монотонным.">
+<div class="algo-challenge__q">Монотонный дек: какие элементы выбрасываем с <b>зада</b> при добавлении нового?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="O(n) — каждый индекс кладётся и снимается раз|O(n·k)|O(n log k)" data-answer="0" data-explain="Хотя есть вложенный while, каждый индекс попадает в дек и покидает его максимум один раз — суммарно ≤ 2n операций, амортизированно O(n).">
+<div class="algo-challenge__q">Sliding Window Maximum монотонным деком — сложность?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Вышедшие за границу окна|Самые большие по значению" data-answer="0" data-explain="С переда дека снимаем индексы, которые вышли за левую границу окна (dq[0] ≤ i − k) — они больше не могут быть ответом для текущего окна.">
+<div class="algo-challenge__q">Монотонный дек: какие индексы снимаем с <b>переда</b>?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре (пакет `deque`) и на LeetCode (там же проверка):
+
+- [Number of Recent Calls](https://leetcode.com/problems/number-of-recent-calls/) (LeetCode 933) — чистая очередь
+- [Sliding Window Maximum](https://leetcode.com/problems/sliding-window-maximum/) (LeetCode 239) — монотонный дек
+- [Jump Game VI](https://leetcode.com/problems/jump-game-vi/) (LeetCode 1696) — ДП + монотонный дек
+- [Shortest Subarray with Sum at Least K](https://leetcode.com/problems/shortest-subarray-with-sum-at-least-k/) (LeetCode 862) — сложная
+
+### 💻 Реши прямо здесь — пакет `deque`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="deque"></div>
 
 ## 🔗 Связанные шаблоны
 

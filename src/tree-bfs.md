@@ -313,15 +313,37 @@ func rightSideView(root *TreeNode) []int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант, кнопка проверит. Готового решения рядом нет: дойди сам.
+Каркас везде один — обход по уровням очередью.
 
-- [Binary Tree Level Order Traversal](https://leetcode.com/problems/binary-tree-level-order-traversal/)
-- [Average of Levels in Binary Tree](https://leetcode.com/problems/average-of-levels-in-binary-tree/)
-- [Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/)
-- [Binary Tree Zigzag Level Order Traversal](https://leetcode.com/problems/binary-tree-zigzag-level-order-traversal/)
-- [Binary Tree Right Side View](https://leetcode.com/problems/binary-tree-right-side-view/)
-- [Cousins in Binary Tree](https://leetcode.com/problems/cousins-in-binary-tree/)
-- [Serialize and Deserialize Binary Tree](https://leetcode.com/problems/serialize-and-deserialize-binary-tree/) (сложная)
+<div class="algo-challenge" data-type="choice" data-options="Ровно len(queue) узлов текущего уровня|Один узел|Сразу всё дерево" data-answer="0" data-explain="Перед проходом фиксируем размер уровня = len(queue) и обрабатываем ровно столько узлов — так уровни не перемешиваются.">
+<div class="algo-challenge__q">BFS по уровням: сколько узлов обрабатываем за одну итерацию внешнего цикла?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Число итераций внешнего цикла (уровней)|Число всех узлов|Размер самого широкого уровня" data-answer="0" data-explain="Каждая итерация BFS — спуск на уровень. Глубина = сколько раз мы спустились, то есть число итераций внешнего цикла.">
+<div class="algo-challenge__q">Глубина дерева через BFS — это…</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Первым элементом уровня (значения бывают отрицательными)|Нулём" data-answer="0" data-explain="Максимум уровня нельзя инициализировать нулём — если все значения отрицательные, ответ будет неверным. Берём первый элемент очереди.">
+<div class="algo-challenge__q">Find Largest Value in Each Row: чем инициализировать максимум уровня?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Один уровень, но разные родители|Один родитель|Соседние листья" data-answer="0" data-explain="Двоюродные узлы — на одной глубине (один уровень BFS), но НЕ дети одного узла. Оба условия проверяем в одном проходе по уровню.">
+<div class="algo-challenge__q">Cousins in Binary Tree: какие узлы считаются двоюродными?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Маркером (например '#')|Просто пропускаем" data-answer="0" data-explain="Без маркера отсутствующего ребёнка нельзя восстановить структуру при десериализации. Маркер '#' (null) сохраняет форму дерева.">
+<div class="algo-challenge__q">Serialize/Deserialize через BFS: как помечаем отсутствующего ребёнка?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/) (LeetCode 104)
+- [Average of Levels](https://leetcode.com/problems/average-of-levels-in-binary-tree/) (LeetCode 637)
+- [Find Largest Value in Each Tree Row](https://leetcode.com/problems/find-largest-value-in-each-tree-row/) (LeetCode 515)
+- [Cousins in Binary Tree](https://leetcode.com/problems/cousins-in-binary-tree/) (LeetCode 993)
+- [Maximum Width of Binary Tree](https://leetcode.com/problems/maximum-width-of-binary-tree/) (LeetCode 662)
+- [Serialize and Deserialize Binary Tree](https://leetcode.com/problems/serialize-and-deserialize-binary-tree/) (LeetCode 297) — сложная
 
 **Тренажёр** — пакет `treebfs`:
 
@@ -332,6 +354,14 @@ go test -tags solution ./treebfs/  # эталон
 ```
 
 Реализуйте `LevelOrder` (по уровням), `ZigzagLevelOrder` (змейкой), `RightSideView` (вид справа), `LevelAverages` (среднее по уровням) и `MinDepth` (минимальная глубина).
+
+### 💻 Реши прямо здесь — пакет `treebfs`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="treebfs"></div>
 
 ## 🔗 Связанные шаблоны
 

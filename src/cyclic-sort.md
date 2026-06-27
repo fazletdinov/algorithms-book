@@ -292,15 +292,35 @@ func firstMissingPositive(nums []int) int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант, кнопка проверит. Готового решения рядом нет: дойди сам.
+Ключ ко всем задачам один — значения это перестановка диапазона, значит подсказывают свой индекс.
 
-- [Missing Number](https://leetcode.com/problems/missing-number/)
-- [Find All Numbers Disappeared in an Array](https://leetcode.com/problems/find-all-numbers-disappeared-in-an-array/)
-- [Find the Duplicate Number](https://leetcode.com/problems/find-the-duplicate-number/)
-- [Find All Duplicates in an Array](https://leetcode.com/problems/find-all-duplicates-in-an-array/)
-- [Set Mismatch](https://leetcode.com/problems/set-mismatch/)
-- [First Missing Positive](https://leetcode.com/problems/first-missing-positive/) (сложная)
-- [Kth Missing Positive Number](https://leetcode.com/problems/kth-missing-positive-number/)
+<div class="algo-challenge" data-type="choice" data-options="Перестановка диапазона 1..n|Любые целые|Только положительные" data-answer="0" data-explain="Cyclic sort работает, когда значения — перестановка 1..n (или 0..n-1): тогда значение само указывает, на какой индекс лечь.">
+<div class="algo-challenge__q">Cyclic sort применим, когда значения массива — это…</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="v|v − 1|v + 1" data-answer="1" data-explain="Для диапазона 1..n значение v должно встать на индекс v−1 (1 → индекс 0, n → индекс n−1).">
+<div class="algo-challenge__q">В cyclic sort значение <code>v</code> (из 1..n) должно встать на индекс…</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="1 2 3|3 1 2|2 1 3" data-answer="0" data-explain="Каждое число уезжает на свой индекс v−1 за O(n): получаем отсортированный массив.">
+<div class="algo-challenge__q">Что вернёт cyclic sort массива <code>[3, 1, 2]</code> (числа 1..3)?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Алгоритм Флойда (поиск цикла)|Хеш-таблица|Сортировка" data-answer="0" data-explain="Значения 1..n задают функцию i → nums[i]; дубль создаёт цикл. Флойд (черепаха/заяц) находит вход в цикл за O(n)/O(1), НЕ меняя массив.">
+<div class="algo-challenge__q">Find the Duplicate (LeetCode 287) запрещает менять массив. Какой приём спасает?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="1..n+1|0..n|1..n" data-answer="0" data-explain="Среди n чисел минимальное отсутствующее положительное всегда лежит в 1..n+1 — остальные значения можно игнорировать.">
+<div class="algo-challenge__q">First Missing Positive: ответ всегда лежит в диапазоне…</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Set Mismatch](https://leetcode.com/problems/set-mismatch/) (LeetCode 645) — дубль + пропавшее
+- [Kth Missing Positive](https://leetcode.com/problems/kth-missing-positive-number/) (LeetCode 1539) — бинпоиск по числу пропущенных
+- [Find the Duplicate Number](https://leetcode.com/problems/find-the-duplicate-number/) (LeetCode 287) — Флойд без модификации
+- [First Missing Positive](https://leetcode.com/problems/first-missing-positive/) (LeetCode 41) — сложная, O(n)/O(1)
 
 **Тренажёр** — пакет `cyclicsort`:
 
@@ -313,6 +333,14 @@ go test -tags solution ./cyclicsort/  # эталон
 Реализуйте `CyclicSort` (сортировка на месте), `FindMissingNumber` (пропущенное число),
 `FindAllMissingNumbers` (все пропущенные), `FindDuplicate` (дубликат) и `FindAllDuplicates`
 (все дубликаты).
+
+### 💻 Реши прямо здесь — пакет `cyclicsort`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="cyclicsort"></div>
 
 ## 🔗 Связанные шаблоны
 

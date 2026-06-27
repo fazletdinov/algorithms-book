@@ -346,12 +346,35 @@ func mergeKWay(lists [][]int) []int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: дойди сам. Ключ k-way-merge — всегда брать минимальную из голов k потоков.
 
-- [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/)
-- [Kth Smallest Element in a Sorted Matrix](https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/)
-- [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) (сложная)
-- [Smallest Range Covering Elements from K Lists](https://leetcode.com/problems/smallest-range-covering-elements-from-k-lists/) (сложная)
+<div class="algo-challenge" data-type="choice" data-options="Минимальную из голов k потоков|Первую попавшуюся голову|Самый длинный поток" data-answer="0" data-explain="Все k потоков отсортированы, поэтому глобально наименьший элемент всегда среди их голов. Куча достаёт его за O(log k).">
+<div class="algo-challenge__q">k-way merge: какой элемент берём на каждом шаге?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="O(N log k)|O(N · k)|O(N²)" data-answer="0" data-explain="Каждый из N элементов проходит через кучу размера k (по одной голове на список) за O(log k). Лучше наивного попарного слияния O(N·k).">
+<div class="algo-challenge__q">Merge k Sorted Lists через кучу — сложность?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="По одной голове от каждого из k потоков|Сразу все элементы всех потоков" data-answer="0" data-explain="В куче ровно k элементов (по голове на поток). Вынимаем минимум, пушим следующий элемент того же потока — размер кучи держится около k.">
+<div class="algo-challenge__q">Что держит куча в k-way merge?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="12" data-hint="Перечисли: 1, 2, 3, 4, 5, 6, 8, 9, 10, …" data-explain="Уродливые (делители только 2,3,5): 1,2,3,4,5,6,8,9,10,12 — десятое это 12.">
+<div class="algo-challenge__q">Какое 10-е по счёту «уродливое» число (делители только 2, 3, 5)?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Тремя указателями (по одному на множитель 2, 3, 5)|Полной сортировкой|Рекурсией" data-answer="0" data-explain="Это k-way merge трёх потоков (×2, ×3, ×5): три указателя дают следующее число как минимум из dp[i2]·2, dp[i3]·3, dp[i5]·5 за O(n), без кучи.">
+<div class="algo-challenge__q">Ugly Number II обходится без кучи — чем?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/) (LeetCode 21) — базовый k=2
+- [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) (LeetCode 23) — куча голов
+- [Ugly Number II](https://leetcode.com/problems/ugly-number-ii/) (LeetCode 264) — три указателя
+- [Super Ugly Number](https://leetcode.com/problems/super-ugly-number/) (LeetCode 313) — сложная, k указателей
 
 **Тренажёр** — пакет `kwaymerge`:
 
@@ -408,6 +431,18 @@ go test -tags solution ./parallelsort/          # эталон
 go test -tags solution -race ./parallelsort/    # гонок нет by design
 go test -tags solution -bench=. ./parallelsort/ # Conc обгоняет Seq
 ```
+
+### 💻 Реши прямо здесь — пакет `kwaymerge`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="kwaymerge"></div>
+
+**Конкурентный вариант — пакет `parallelsort`** (для проверки гонок запусти в CLI `go test -race`):
+
+<div class="algo-runner" data-pkg="parallelsort" data-race="true"></div>
 
 ## 🔗 Связанные шаблоны
 

@@ -427,13 +427,34 @@ func networkDelay(times [][]int, n, k int) int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант, кнопка проверит. Готового решения рядом нет: дойди сам.
 
-- [Network Delay Time](https://leetcode.com/problems/network-delay-time/) — Дейкстра (разобрана выше)
-- [Cheapest Flights Within K Stops](https://leetcode.com/problems/cheapest-flights-within-k-stops/) — Bellman–Ford с ограничением на рёбра
-- [Min Cost to Connect All Points](https://leetcode.com/problems/min-cost-to-connect-all-points/) — MST (Prim/Kruskal)
-- [Connecting Cities With Minimum Cost](https://leetcode.com/problems/connecting-cities-with-minimum-cost/) — MST
-- [Sliding Puzzle](https://leetcode.com/problems/sliding-puzzle/) — A*/BFS по пространству состояний
+<div class="algo-challenge" data-type="choice" data-options="k + 1|n − 1|k" data-answer="0" data-explain="Cheapest Flights в ≤ K пересадок = Bellman–Ford с ограничением на число рёбер: путь из ≤ k+1 рёбер → ровно k+1 итераций релаксации.">
+<div class="algo-challenge__q">Cheapest Flights в ≤ K пересадок: сколько итераций релаксации Bellman–Ford?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Чтобы ребро не сработало несколько раз за один шаг|Для скорости|Чтобы сэкономить память" data-answer="0" data-explain="Релаксируем по СНИМКУ (tmp) прошлой итерации: иначе обновление одного ребра тут же используется другим в том же шаге, и путь пройдёт больше k рёбер.">
+<div class="algo-challenge__q">Зачем в этом Bellman–Ford релаксировать по снимку <code>tmp</code> прошлой итерации?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="MST (минимальное остовное дерево)|Кратчайший путь|Топологическая сортировка" data-answer="0" data-explain="Min Cost to Connect All Points — соединить все вершины с минимальной суммой рёбер = минимальное остовное дерево (Прим/Краскал). Вес ребра — манхэттенское расстояние.">
+<div class="algo-challenge__q">Min Cost to Connect All Points сводится к…</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Произведение вероятностей + максимизирующая куча|Сумма весов + минимизирующая куча" data-answer="0" data-explain="Path with Maximum Probability — Дейкстра, где вместо суммы весов перемножаем вероятности, а куча отдаёт наибольшую. Произведение монотонно, логарифмы не нужны.">
+<div class="algo-challenge__q">Path with Maximum Probability — это Дейкстра, но с чем вместо суммы весов?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Флойд–Уоршелл за O(n³)|Одним запуском Дейкстры|BFS" data-answer="0" data-explain="Find the City требует расстояния между ВСЕМИ парами городов — это Флойд–Уоршелл за O(n³), что просто и достаточно для малых n.">
+<div class="algo-challenge__q">Find the City: чем считаем кратчайшие пути между всеми парами?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Cheapest Flights Within K Stops](https://leetcode.com/problems/cheapest-flights-within-k-stops/) (LeetCode 787) — Bellman–Ford с лимитом
+- [Min Cost to Connect All Points](https://leetcode.com/problems/min-cost-to-connect-all-points/) (LeetCode 1584) — MST (Прим)
+- [Path with Maximum Probability](https://leetcode.com/problems/path-with-maximum-probability/) (LeetCode 1514) — Дейкстра на произведениях
+- [Find the City](https://leetcode.com/problems/find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance/) (LeetCode 1334) — Флойд–Уоршелл
 
 **Тренажёр** — пакеты `bellmanford`, `astar`, `mst`:
 
@@ -447,6 +468,20 @@ go test -tags solution ./bellmanford/ ./astar/ ./mst/  # эталон
 - `bellmanford`: `ShortestPath` (отриц. веса), `HasNegativeCycle`, `ShortestPathWithAtMostKEdges`.
 - `astar`: `ShortestPath` (сетка с эвристикой), `ManhattanDistance`, `PathExists`.
 - `mst`: `MSTWeight` (Краскал), `MSTWeightPrim` (Прим), `MSTWeightWithEdges`.
+
+### 💻 Реши прямо здесь — пакет `astar`
+
+Напиши реализацию сам и проверь её настоящими тестами, не выходя из книги — как на
+LeetCode. Готового решения тут нет: справишься — увидишь зелёное, ошибёшься — увидишь,
+какой тест упал. Сначала подними локальный runner: `cd exercises && go run ./cmd/runner`.
+
+<div class="algo-runner" data-pkg="astar"></div>
+
+<div class="algo-runner" data-pkg="bellmanford"></div>
+
+<div class="algo-runner" data-pkg="dijkstra"></div>
+
+<div class="algo-runner" data-pkg="mst"></div>
 
 ## 🔗 Связанные шаблоны
 

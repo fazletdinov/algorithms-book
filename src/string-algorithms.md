@@ -329,12 +329,35 @@ func findAllKMP(text, pat string) []int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: дойди сам. Большинство строковых задач — это префикс-функция (LPS) или сравнение частот.
 
-- [Find the Index of the First Occurrence in a String](https://leetcode.com/problems/find-the-index-of-the-first-occurrence-in-a-string/) — strStr (KMP)
-- [Repeated String Match](https://leetcode.com/problems/repeated-string-match/)
-- [Shortest Palindrome](https://leetcode.com/problems/shortest-palindrome/) — префикс-функция
-- [Longest Happy Prefix](https://leetcode.com/problems/longest-happy-prefix/) — прямое применение LPS
+<div class="algo-challenge" data-type="choice" data-options="Префикс-функции (LPS) — куда откатиться при несовпадении|Перебора всех сдвигов" data-answer="0" data-explain="LPS (longest proper prefix-suffix) подсказывает, на сколько откатить позицию в шаблоне при несовпадении, не сбрасывая прогресс в тексте — отсюда линейность.">
+<div class="algo-challenge__q">За счёт чего KMP избегает повторных сравнений?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="O(n + m)|O(n · m)|O(n log m)" data-answer="0" data-explain="Предобработка шаблона (LPS) — O(m), сам поиск — O(n): каждый символ текста сравнивается амортизированно константу раз. Итого O(n + m), гарантированно.">
+<div class="algo-challenge__q">Сложность KMP-поиска шаблона длины m в тексте длины n?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="s встречается в (s+s) без первого и последнего символа|s равна своему развороту" data-answer="0" data-explain="Изящный трюк: строка периодична тогда и только тогда, когда она находится внутри своей удвоенной копии, у которой срезаны крайние символы.">
+<div class="algo-challenge__q">Repeated Substring Pattern: <code>s</code> состоит из повторов ⟺…</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="2" data-hint="Длина наибольшего совпадающего собственного префикса-суффикса «aabaa»." data-explain="LPS «aabaa» по позициям: 0,1,0,1,2 — последнее значение 2 («aa» — и префикс, и суффикс).">
+<div class="algo-challenge__q">Последнее значение префикс-функции (LPS) для строки <code>"aabaa"</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Частотные массивы [26]int|Сами подстроки посимвольно" data-answer="0" data-explain="Анаграмма ⟺ совпадают частоты букв. Скользящее окно длины len(p) + сравнение двух [26]int через == даёт O(n).">
+<div class="algo-challenge__q">Find All Anagrams через окно: что сравниваем?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [String Matching in an Array](https://leetcode.com/problems/string-matching-in-an-array/) (LeetCode 1408)
+- [Repeated Substring Pattern](https://leetcode.com/problems/repeated-substring-pattern/) (LeetCode 459) — LPS / трюк (s+s)
+- [Find All Anagrams in a String](https://leetcode.com/problems/find-all-anagrams-in-a-string/) (LeetCode 438)
+- [Shortest Palindrome](https://leetcode.com/problems/shortest-palindrome/) (LeetCode 214) — сложная, KMP-префикс
 
 **Тренажёр** — пакет `strmatch`:
 
@@ -387,6 +410,18 @@ go test -tags solution -race ./parallelsearch/  # общий счётчик не
 ```
 
 `CountOccurrencesSeq` и `CountOccurrencesConc` обязаны дать одинаковое число (с перекрытиями).
+
+### 💻 Реши прямо здесь — пакет `strmatch`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="strmatch"></div>
+
+**Конкурентный вариант — пакет `parallelsearch`** (для проверки гонок запусти в CLI `go test -race`):
+
+<div class="algo-runner" data-pkg="parallelsearch" data-race="true"></div>
 
 ## 🔗 Связанные шаблоны
 

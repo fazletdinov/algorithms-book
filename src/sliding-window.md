@@ -385,14 +385,41 @@ func minSubArrayLen(target int, nums []int) int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: дойди сам. Спрашивай себя: окно фиксированное или переменное? что держим в его состоянии?
 
-- [Maximum Average Subarray I](https://leetcode.com/problems/maximum-average-subarray-i/) (фиксированное окно)
-- [Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/)
-- [Longest Substring with At Most K Distinct Characters](https://leetcode.com/problems/longest-substring-with-at-most-k-distinct-characters/)
-- [Fruit Into Baskets](https://leetcode.com/problems/fruit-into-baskets/)
-- [Minimum Window Substring](https://leetcode.com/problems/minimum-window-substring/) (сложная)
-- [Sliding Window Maximum](https://leetcode.com/problems/sliding-window-maximum/) (с deque)
+<div class="algo-challenge" data-type="choice" data-options="Фикс. — постоянный размер k; перем. — размер подстраивается под условие|Это одно и то же" data-answer="0" data-explain="Фиксированное окно держит ширину k и инкрементально обновляет сумму; переменное растёт вправо и сжимается слева при нарушении условия.">
+<div class="algo-challenge__q">Чем фиксированное окно отличается от переменного?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Каждый элемент входит в окно и выходит из него максимум по разу|Внутри есть сортировка" data-answer="0" data-explain="Оба указателя проходят массив всего по разу (left только растёт), поэтому суммарно ≤ 2n операций — амортизированно O(n), хотя цикл вложенный.">
+<div class="algo-challenge__q">Почему скользящее окно работает за O(n), а не O(n·k)?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="3" data-hint="«abc», затем повтор." data-explain="Самая длинная подстрока без повторов в «abcabc» — это «abc», длина 3.">
+<div class="algo-challenge__q">Длина самой длинной подстроки без повторов в <code>"abcabc"</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Когда нарушен инвариант окна|На каждом шаге right" data-answer="0" data-explain="Переменное окно сжимают слева только когда условие («не более k», «нулей ≤ k», «сумма ≥ target») нарушено — иначе окно растёт вправо.">
+<div class="algo-challenge__q">Переменное окно: когда двигаем left (сжимаем слева)?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Два частотных массива [26]int|Сами строки посимвольно каждый раз" data-answer="0" data-explain="Анаграмма ⟺ совпадают частоты символов. В Go массивы [26]int сравниваются по значению через ==, поэтому проверка окна — O(1).">
+<div class="algo-challenge__q">Permutation in String через окно: что сравниваем на каждом шаге?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Окно покрыло все нужные символы → можно сжимать слева|Нужно расширять дальше вправо" data-answer="0" data-explain="missing == 0 значит все символы t покрыты — окно валидно. Теперь жадно сжимаем слева, обновляя минимум, пока валидно.">
+<div class="algo-challenge__q">Minimum Window Substring: счётчик <code>missing</code> дошёл до 0 — что это значит?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Maximum Average Subarray I](https://leetcode.com/problems/maximum-average-subarray-i/) (LeetCode 643) — фикс. окно
+- [Contains Duplicate II](https://leetcode.com/problems/contains-duplicate-ii/) (LeetCode 219)
+- [Longest Repeating Character Replacement](https://leetcode.com/problems/longest-repeating-character-replacement/) (LeetCode 424)
+- [Permutation in String](https://leetcode.com/problems/permutation-in-string/) (LeetCode 567)
+- [Max Consecutive Ones III](https://leetcode.com/problems/max-consecutive-ones-iii/) (LeetCode 1004)
+- [Minimum Window Substring](https://leetcode.com/problems/minimum-window-substring/) (LeetCode 76) — сложная
 
 **Тренажёр** — пакет `slidingwindow`:
 
@@ -405,6 +432,14 @@ go test -tags solution ./slidingwindow/  # эталон
 Реализуйте `MaxSumSubarray` (фиксированное окно), `LongestSubstringKDistinct`
 (≤k различных символов), `SmallestSubarrayWithSum` (минимальная длина с суммой ≥ target),
 `LongestSubstringNoRepeat` (без повторов) и `MaxSlidingWindow` (максимум окна через дек).
+
+### 💻 Реши прямо здесь — пакет `slidingwindow`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="slidingwindow"></div>
 
 ## 🔗 Связанные шаблоны
 

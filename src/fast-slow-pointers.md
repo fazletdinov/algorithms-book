@@ -336,16 +336,36 @@ func detectCycle(head *ListNode) *ListNode {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант, кнопка проверит. Готового решения рядом нет: дойди сам.
+Все они — про один «next-указатель», пройденный двумя скоростями за O(1) памяти.
 
-- [Linked List Cycle](https://leetcode.com/problems/linked-list-cycle/)
-- [Middle of the Linked List](https://leetcode.com/problems/middle-of-the-linked-list/)
-- [Palindrome Linked List](https://leetcode.com/problems/palindrome-linked-list/)
-- [Linked List Cycle II](https://leetcode.com/problems/linked-list-cycle-ii/)
-- [Remove Nth Node From End of List](https://leetcode.com/problems/remove-nth-node-from-end-of-list/)
-- [Reorder List](https://leetcode.com/problems/reorder-list/)
-- [Find the Duplicate Number](https://leetcode.com/problems/find-the-duplicate-number/) (сложная)
-- [Sort List](https://leetcode.com/problems/sort-list/) (сложная)
+<div class="algo-challenge" data-type="choice" data-options="fast на 2, slow на 1|fast на 1, slow на 2|оба по 1" data-answer="0" data-explain="Когда fast (2 шага) дойдёт до конца, slow (1 шаг) будет ровно на середине — отсюда поиск середины за один проход.">
+<div class="algo-challenge__q">Чтобы найти середину списка, на сколько шагов за итерацию двигаются указатели?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="n|n + 1|1" data-answer="0" data-explain="Сначала уводим fast на n шагов вперёд — разрыв n. Когда fast дойдёт до конца, slow стоит перед удаляемым узлом.">
+<div class="algo-challenge__q">Remove Nth From End за один проход: какой разрыв задаём между fast и slow?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Дубликат даёт два индекса с одним значением → функция i→nums[i] зацикливается|Массив отсортирован|Чисто случайно" data-answer="0" data-explain="Значения 1..n задают переходы i→nums[i]; дубль означает, что в одно значение «целятся» два индекса, образуя цикл. Его вход — искомое число (Floyd).">
+<div class="algo-challenge__q">Find Duplicate (без модификации массива): почему возникает цикл?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="На входе в цикл|В середине цикла|Они не встретятся" data-answer="0" data-explain="После встречи внутри цикла: один указатель из головы, второй с места встречи, оба по 1 шагу — сходятся ровно на входе в цикл (следствие a = kL − b).">
+<div class="algo-challenge__q">Cycle II: где встретятся указатели, если после встречи пустить один из головы?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Нет цикла|Есть цикл" data-answer="0" data-explain="Если fast добрался до nil (конца списка) — значит, конец существует, цикла нет. В цикле fast никогда не упёрся бы в nil.">
+<div class="algo-challenge__q">Заяц/черепаха: <code>fast</code> достиг <code>nil</code>. Что это означает?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Linked List Cycle](https://leetcode.com/problems/linked-list-cycle/) (LeetCode 141) — есть ли цикл
+- [Remove Nth Node From End](https://leetcode.com/problems/remove-nth-node-from-end-of-list/) (LeetCode 19)
+- [Find the Duplicate Number](https://leetcode.com/problems/find-the-duplicate-number/) (LeetCode 287) — Floyd на массиве
+- [Reorder List](https://leetcode.com/problems/reorder-list/) (LeetCode 143) — середина + разворот + сшивка
+- [Linked List Cycle II](https://leetcode.com/problems/linked-list-cycle-ii/) (LeetCode 142) — вход в цикл
 
 **Тренажёр** — пакет `fastslow`:
 
@@ -358,6 +378,14 @@ go test -tags solution ./fastslow/  # эталон
 Реализуйте `HasCycle` (есть ли цикл), `DetectCycle` (начало цикла),
 `MiddleNode` (середина списка), `IsHappyNumber` (счастливое число)
 и `CycleLength` (длина цикла).
+
+### 💻 Реши прямо здесь — пакет `fastslow`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="fastslow"></div>
 
 ## 🔗 Связанные шаблоны
 

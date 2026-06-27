@@ -3,3 +3,6 @@
 # Сгенерированный вывод mdBook — собирается в CI и деплоится на Pages.
 # В репозитории не храним, чтобы правки src/ и assets/ не тянули шумный diff.
 /book
+
+# Бинарь in-book runner (собирается локально через `go run`/`go build ./cmd/runner`).
+/exercises/runner

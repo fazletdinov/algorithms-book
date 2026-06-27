@@ -312,13 +312,37 @@ func canJump(nums []int) bool {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: дойди сам. В жадных задачах главное — что локальный выбор не закрывает путь к оптимуму.
 
-- [Jump Game](https://leetcode.com/problems/jump-game/)
-- [Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) — выбор заявок
-- [Gas Station](https://leetcode.com/problems/gas-station/)
-- [Task Scheduler](https://leetcode.com/problems/task-scheduler/)
-- [Partition Labels](https://leetcode.com/problems/partition-labels/)
+<div class="algo-challenge" data-type="choice" data-options="Фиксирует локально лучший выбор без пересмотра|Перебирает все варианты с откатом|Запоминает подзадачи в таблице" data-answer="0" data-explain="Жадный делает локально оптимальный выбор и НЕ пересматривает его (в отличие от ДП и backtracking). Корректность нужно доказывать.">
+<div class="algo-challenge__q">Что отличает жадный алгоритм?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Существует и единственно|Может не существовать|Их может быть несколько" data-answer="0" data-explain="Если суммарно газа хватает (total ≥ 0), валидный старт существует и он единственный — та станция, после которой бак ни разу не ушёл в минус.">
+<div class="algo-challenge__q">Gas Station: если суммарно газа хватает (<code>total ≥ 0</code>), решение…</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Купюрой 10, потом тремя по 5|Сразу тремя по 5" data-answer="0" data-explain="Пятёрки «гибче» (нужны для сдачи с 10 и 20), поэтому сдачу с 20 сначала набираем десяткой, экономя пятёрки.">
+<div class="algo-challenge__q">Lemonade Change: как выгоднее давать сдачу с 20?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="8" data-hint="(maxF − 1)·(n + 1) + (число задач максимальной частоты)." data-explain="maxF=3 (и A, и B по 3 раза, cntMax=2): (3−1)·(2+1) + 2 = 8. Расписание: A B _ A B _ A B.">
+<div class="algo-challenge__q">Task Scheduler для <code>[A,A,A,B,B,B]</code>, кулдаун n=2 — минимальное время?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Нужно учесть и рост, и спад рейтинга — отсюда два прохода|Жадность тут вообще не работает" data-answer="0" data-explain="Один проход слева обеспечит рост, но не спад. Поэтому два прохода (слева направо и справа налево), берём максимум.">
+<div class="algo-challenge__q">Candy: почему одного жадного прохода недостаточно?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Assign Cookies](https://leetcode.com/problems/assign-cookies/) (LeetCode 455) — жадность по указателям
+- [Lemonade Change](https://leetcode.com/problems/lemonade-change/) (LeetCode 860)
+- [Gas Station](https://leetcode.com/problems/gas-station/) (LeetCode 134)
+- [Task Scheduler](https://leetcode.com/problems/task-scheduler/) (LeetCode 621)
+- [Partition Labels](https://leetcode.com/problems/partition-labels/) (LeetCode 763)
+- [Candy](https://leetcode.com/problems/candy/) (LeetCode 135) — сложная, два прохода
 
 **Тренажёр** — пакет `greedy`:
 
@@ -329,6 +353,14 @@ go test -tags solution ./greedy/  # эталон
 ```
 
 Реализуйте `MaxNonOverlapping` (выбор заявок), `CanJump` (Jump Game), `MinJumps` (мин. число прыжков), `MaxProfit` (акции, много сделок) и `FractionalKnapsack` (дробный рюкзак).
+
+### 💻 Реши прямо здесь — пакет `greedy`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="greedy"></div>
 
 ## 🔗 Связанные шаблоны
 

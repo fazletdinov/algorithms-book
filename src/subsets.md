@@ -296,16 +296,35 @@ func subsetsWithDup(nums []int) [][]int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: дойди сам. Главная тонкость — отсечение дубликатов.
 
-- [Subsets](https://leetcode.com/problems/subsets/)
-- [Subsets II](https://leetcode.com/problems/subsets-ii/)
-- [Combinations](https://leetcode.com/problems/combinations/)
-- [Combination Sum](https://leetcode.com/problems/combination-sum/)
-- [Permutations](https://leetcode.com/problems/permutations/)
-- [Letter Combinations of a Phone Number](https://leetcode.com/problems/letter-combinations-of-a-phone-number/)
-- [Generate Parentheses](https://leetcode.com/problems/generate-parentheses/)
-- [N-Queens](https://leetcode.com/problems/n-queens/) (сложная)
+<div class="algo-challenge" data-type="predict" data-answer="8" data-hint="Каждый элемент либо в подмножестве, либо нет." data-explain="2³ = 8: для каждого из 3 элементов независимый выбор «брать/не брать».">
+<div class="algo-challenge__q">Сколько всего подмножеств у множества из <b>3</b> элементов?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="bt(i, …) — тот же элемент снова|bt(i+1, …) — следующий" data-answer="0" data-explain="Повтор одного кандидата разрешён, поэтому рекурсируем в bt(i, …), не i+1. start всё равно запрещает переставлять — это комбинации, не перестановки.">
+<div class="algo-challenge__q">Combination Sum (повтор кандидата разрешён): в какую рекурсию уходим?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Повтор значения на этом уровне (nums[i]==nums[i-1])|Каждый второй элемент|Ничего" data-answer="0" data-explain="После сортировки равные стоят рядом; пропуская повтор значения на одном уровне рекурсии, мы не порождаем одинаковые комбинации.">
+<div class="algo-challenge__q">Чтобы не было дублей-комбинаций, что пропускаем?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="3" data-hint="3! / 2! — учитываем повтор единицы." data-explain="Уникальные перестановки [1,1,2]: 112, 121, 211 — три штуки (3!/2! = 3).">
+<div class="algo-challenge__q">Сколько <b>уникальных</b> перестановок у массива <code>[1, 1, 2]</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Значение больше 255 или ведущий ноль|Длина меньше 4|Сумма цифр чётна" data-answer="0" data-explain="Каждый из 4 кусков IP — это 0..255 без ведущего нуля; нарушение любого условия обрезает ветку перебора.">
+<div class="algo-challenge__q">Restore IP Addresses: когда отсекаем ветку перебора?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Combination Sum](https://leetcode.com/problems/combination-sum/) (LeetCode 39) — повтор разрешён
+- [Combination Sum II](https://leetcode.com/problems/combination-sum-ii/) (LeetCode 40) — каждый раз один раз, без дублей
+- [Permutations II](https://leetcode.com/problems/permutations-ii/) (LeetCode 47) — перестановки с повторами
+- [Restore IP Addresses](https://leetcode.com/problems/restore-ip-addresses/) (LeetCode 93) — сложная
 
 **Тренажёр** — пакет `subsets`:
 
@@ -318,6 +337,14 @@ go test -tags solution ./subsets/  # эталон
 Реализуйте `Subsets` (все подмножества), `SubsetsWithDup` (с дубликатами),
 `Combinations` (сочетания по k из [1..n]) и `LetterCasePermutation`
 (переключение регистра букв).
+
+### 💻 Реши прямо здесь — пакет `subsets`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="subsets"></div>
 
 ## 🔗 Связанные шаблоны
 

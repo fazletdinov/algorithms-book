@@ -256,6 +256,14 @@ go test -tags solution ./linkedlist/  # эталон
 Там реализуются `ReverseList`, `ReverseSublist`, `ReverseKGroup` и `IsPalindrome` (см. главу
 [«Reverse Linked List»](reverse-linked-list.md)).
 
+### 💻 Реши прямо здесь — пакет `listcrud`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="listcrud"></div>
+
 ## 🔗 Связанные шаблоны
 
 - **[Reverse Linked List](reverse-linked-list.md)** — приём разворота и задачи на списки.

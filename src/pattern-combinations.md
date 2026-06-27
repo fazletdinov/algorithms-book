@@ -129,6 +129,10 @@ func (c *LRUCache) Put(key, value int) {
 
 ---
 
+**💻 Реши сам — пакет `lru`** (подними runner: `cd exercises && go run ./cmd/runner`):
+
+<div class="algo-runner" data-pkg="lru"></div>
+
 ## 2. Word Ladder — BFS + хеш-множество
 
 > **Задача.** Дано `beginWord`, `endWord` и словарь. За один шаг можно изменить **одну
@@ -193,6 +197,10 @@ func ladderLength(beginWord, endWord string, wordList []string) int {
 > слоя — и сложность взорвётся.
 
 ---
+
+**💻 Реши сам — пакет `wordladder`** (подними runner: `cd exercises && go run ./cmd/runner`):
+
+<div class="algo-runner" data-pkg="wordladder"></div>
 
 ## 3. Alien Dictionary — граф из строк + топологическая сортировка
 
@@ -272,6 +280,10 @@ func alienOrder(words []string) string {
 
 ---
 
+**💻 Реши сам — пакет `alienorder`** (подними runner: `cd exercises && go run ./cmd/runner`):
+
+<div class="algo-runner" data-pkg="alienorder"></div>
+
 ## 4. Serialize / Deserialize Binary Tree — DFS + парсинг
 
 > **Задача.** Преврати произвольное бинарное дерево в строку и восстанови его обратно.
@@ -336,6 +348,10 @@ func deserialize(data string) *TreeNode {
 
 ---
 
+**💻 Реши сам — пакет `serializetree`** (подними runner: `cd exercises && go run ./cmd/runner`):
+
+<div class="algo-runner" data-pkg="serializetree"></div>
+
 ## 5. Meeting Rooms II — сортировка + мин-куча
 
 > **Задача.** Дан список интервалов встреч `[начало, конец]`. Сколько минимум нужно
@@ -391,6 +407,10 @@ func (h *minHeap) Pop() any {
 > освобождает комнату сама для себя.
 
 ---
+
+**💻 Реши сам — пакет `meetingrooms`** (подними runner: `cd exercises && go run ./cmd/runner`):
+
+<div class="algo-runner" data-pkg="meetingrooms"></div>
 
 ## 6. Design Twitter — хеш-таблица + K-way merge
 
@@ -485,6 +505,10 @@ K-way merge: в куче всегда «головы» всех потоков, 
 
 ---
 
+**💻 Реши сам — пакет `designtwitter`** (подними runner: `cd exercises && go run ./cmd/runner`):
+
+<div class="algo-runner" data-pkg="designtwitter"></div>
+
 ## 7. The Skyline Problem — sweep line + макс-куча (капстоун)
 
 > **Задача.** Здания заданы как `[left, right, height]`. Верни силуэт города — список
@@ -569,6 +593,10 @@ func (h *maxHeap) Pop() any {
 > [Dijkstra](advanced-graph-algorithms.md).
 
 ---
+
+**💻 Реши сам — пакет `skyline`** (подними runner: `cd exercises && go run ./cmd/runner`):
+
+<div class="algo-runner" data-pkg="skyline"></div>
 
 ## 🧠 Как это переносится на любую задачу
 

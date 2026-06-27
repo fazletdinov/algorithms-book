@@ -317,16 +317,40 @@ func twoSingle(nums []int) []int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — впиши ответ или выбери вариант, кнопка проверит. Готового решения рядом
+нет: дойди сам. Бит-трюк ценен тем, что даёт O(1) памяти.
 
-- [Single Number](https://leetcode.com/problems/single-number/) (136)
-- [Single Number II](https://leetcode.com/problems/single-number-ii/) (137)
-- [Single Number III](https://leetcode.com/problems/single-number-iii/) (260)
-- [Number of 1 Bits](https://leetcode.com/problems/number-of-1-bits/) (191)
-- [Power of Two](https://leetcode.com/problems/power-of-two/) (231)
-- [Hamming Distance](https://leetcode.com/problems/hamming-distance/) (461)
-- [Missing Number](https://leetcode.com/problems/missing-number/) (268) — XOR-решение
-- [Reverse Bits](https://leetcode.com/problems/reverse-bits/) (190)
+<div class="algo-challenge" data-type="predict" data-answer="0" data-explain="Одинаковые числа в XOR взаимно гасятся: каждый бит совпадает → 0.">
+<div class="algo-challenge__q">Чему равно <code>x ^ x</code> для любого x?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="0|x|Все единицы" data-answer="1" data-explain="0 — нейтральный элемент XOR: a ^ 0 = a. На этом держится Single Number.">
+<div class="algo-challenge__q">Чему равно <code>x ^ 0</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Гасит младший единичный бит|Зажигает старший бит|Делит на 2" data-answer="0" data-explain="n &= n-1 убирает самую правую единицу — отсюда подсчёт битов (Керниган) за O(числа единиц), а не O(32).">
+<div class="algo-challenge__q">Что делает <code>n &= n - 1</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="2" data-explain="1100 — две единицы.">
+<div class="algo-challenge__q">Сколько единичных битов в числе 12 (двоично <code>1100</code>)?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="2" data-hint="Посчитай единицы в 1 XOR 4." data-explain="001 ^ 100 = 101 — два различающихся бита.">
+<div class="algo-challenge__q">Hamming distance между 1 (<code>001</code>) и 4 (<code>100</code>)?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Сумму без переносов|Только переносы|Готовый результат" data-answer="0" data-explain="a ^ b — сумма без переносов; переносы считаются отдельно как (a & b), сдвинутое влево, и добавляются на следующей итерации.">
+<div class="algo-challenge__q">Сложение без оператора <code>+</code>: что даёт <code>a ^ b</code>?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Hamming Distance](https://leetcode.com/problems/hamming-distance/) (LeetCode 461) — XOR + Керниган
+- [Number Complement](https://leetcode.com/problems/number-complement/) (LeetCode 476) — маска значащих битов
+- [Single Number II](https://leetcode.com/problems/single-number-ii/) (LeetCode 137) — два битовых автомата
+- [Reverse Bits](https://leetcode.com/problems/reverse-bits/) (LeetCode 190)
+- [Sum of Two Integers](https://leetcode.com/problems/sum-of-two-integers/) (LeetCode 371) — сложение без +
 
 **Тренажёр** — пакет `bits`:
 
@@ -343,6 +367,14 @@ go test -tags solution ./bits/  # эталон
 > 🧵 **Конкурентность?** Незачем — битовые операции уже работают за единицы тактов на регистрах
 > процессора. Это самый дешёвый код, какой бывает; накладные расходы горутины в тысячи раз больше
 > самой операции. Параллелить здесь — чистый проигрыш.
+
+### 💻 Реши прямо здесь — пакет `bits`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="bits"></div>
 
 ## 🔗 Связанные шаблоны
 

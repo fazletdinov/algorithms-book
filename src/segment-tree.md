@@ -300,12 +300,30 @@ st.Query(1, 4)   // 18
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант, кнопка проверит. Готового решения рядом нет: дойди сам.
+Базовое дерево (`Update`/`Query`) — в тренажёре; здесь применения.
 
-- [Range Sum Query - Mutable](https://leetcode.com/problems/range-sum-query-mutable/)
-- [Count of Smaller Numbers After Self](https://leetcode.com/problems/count-of-smaller-numbers-after-self/)
-- [The Skyline Problem](https://leetcode.com/problems/the-skyline-problem/)
-- [Range Sum Query 2D - Mutable](https://leetcode.com/problems/range-sum-query-2d-mutable/)
+<div class="algo-challenge" data-type="choice" data-options="O(log n)|O(n)|O(1)" data-answer="0" data-explain="Дерево отрезков даёт и точечное обновление, и запрос на отрезке за O(log n) — вот зачем оно нужно вместо простого массива (где запрос O(n)) или префиксных сумм (где обновление O(n)).">
+<div class="algo-challenge__q">За сколько дерево отрезков делает обновление и запрос на отрезке?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Свёртку своего отрезка (например сумму)|Один элемент массива" data-answer="0" data-explain="Каждый узел хранит агрегат (сумму/мин/макс) своего подотрезка; родитель = свёртка двух детей. Это и позволяет отвечать на запрос за O(log n).">
+<div class="algo-challenge__q">Что хранит узел дерева отрезков?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Во второй половине (индексы n..2n−1)|В первой половине" data-answer="0" data-explain="В итеративном дереве отрезков на массиве 2n листья кладут во вторую половину, а внутренние узлы (свёртки) — в первую; родитель i имеет детей 2i и 2i+1.">
+<div class="algo-challenge__q">Итеративное дерево на массиве 2n: где лежат листья?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Чтобы размер дерева был O(числа различных значений), а не их диапазона|Для скорости ввода" data-answer="0" data-explain="Сжатие координат заменяет значения их рангами 0..k−1, поэтому дерево-счётчик имеет размер по числу РАЗЛИЧНЫХ значений, а не по огромному диапазону самих чисел.">
+<div class="algo-challenge__q">Count of Smaller After Self: зачем сжатие координат (ранги)?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Range Sum Query — Mutable](https://leetcode.com/problems/range-sum-query-mutable/) (LeetCode 307) — каноничный повод
+- [Range Sum Query 2D — Mutable](https://leetcode.com/problems/range-sum-query-2d-mutable/) (LeetCode 308)
+- [Count of Smaller Numbers After Self](https://leetcode.com/problems/count-of-smaller-numbers-after-self/) (LeetCode 315) — сложная
 
 **Тренажёр** — пакет `segtree`:
 
@@ -317,6 +335,14 @@ go test -tags solution ./segtree/  # эталон
 
 Реализуйте `NewSegmentTree` / `Update` / `Query` (сумма на отрезке), а также тип
 `MinSegmentTree` (`NewMinSegmentTree` / `Update` / `Query` — минимум на отрезке).
+
+### 💻 Реши прямо здесь — пакет `segtree`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="segtree"></div>
 
 ## 🔗 Связанные шаблоны
 

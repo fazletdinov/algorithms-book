@@ -376,15 +376,40 @@ func orangesRotting(grid [][]int) int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант, кнопка проверит. Готового решения рядом нет: дойди сам.
 
-- [Number of Islands](https://leetcode.com/problems/number-of-islands/)
-- [Max Area of Island](https://leetcode.com/problems/max-area-of-island/)
-- [Rotting Oranges](https://leetcode.com/problems/rotting-oranges/) — multi-source BFS
-- [Walls and Gates](https://leetcode.com/problems/walls-and-gates/)
-- [Network Delay Time](https://leetcode.com/problems/network-delay-time/) — Дейкстра
-- [Path with Minimum Effort](https://leetcode.com/problems/path-with-minimum-effort/)
-- [Cheapest Flights Within K Stops](https://leetcode.com/problems/cheapest-flights-within-k-stops/) — Bellman–Ford / BFS
+<div class="algo-challenge" data-type="choice" data-options="BFS (волной от источника)|DFS|Дейкстра" data-answer="0" data-explain="В невзвешенной сетке (каждый шаг = 1) кратчайший путь даёт BFS: он обходит клетки слоями расстояния, поэтому первая достигшая клетку волна и есть минимум.">
+<div class="algo-challenge__q">Кратчайший путь в <b>невзвешенной</b> сетке — какой обход?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Многоисточниковый BFS (все источники в очередь сразу)|BFS по очереди из каждого нуля" data-answer="0" data-explain="01 Matrix / Walls and Gates: кладём в очередь СРАЗУ все нули/ворота с дистанцией 0 и пускаем одну общую волну — она и даёт расстояние до ближайшего источника за O(m·n).">
+<div class="algo-challenge__q">01 Matrix: как за один проход найти расстояние до ближайшего нуля?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Пометить O, достижимые С КРАЯ (они выживают)|Перебрать каждую область и проверить окружение" data-answer="0" data-explain="Surrounded Regions: вместо тяжёлой проверки «окружён ли» инвертируем задачу — DFS от границы метит выживающие O, остальные переворачиваем в X.">
+<div class="algo-challenge__q">Surrounded Regions: какой приём проще проверки «окружён ли»?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Обратно — от океанов вверх по высотам|Вперёд от каждой клетки вниз" data-answer="0" data-explain="Pacific Atlantic: симулировать сток от каждой клетки дорого. Делаем DFS ОБРАТНО — от океанов вверх (сосед достижим, если не ниже); ответ — пересечение достижимости двух океанов.">
+<div class="algo-challenge__q">Pacific Atlantic Water Flow: в какую сторону запускаем DFS?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Дейкстра (с приоритетной очередью)|Обычный BFS|DFS" data-answer="0" data-explain="При положительных весах рёбер кратчайший путь даёт Дейкстра: куча всегда вынимает ближайший непосещённый узел. BFS годится только для равных весов.">
+<div class="algo-challenge__q">Кратчайший путь во <b>взвешенном</b> графе (положительные веса)?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Максимум перепадов высот на пути|Сумма перепадов|Число шагов" data-answer="0" data-explain="Path with Minimum Effort — Дейкстра, где «стоимость» пути это МАКСИМУМ перепада на нём; релаксация берёт max(текущее усилие, перепад до соседа).">
+<div class="algo-challenge__q">Path with Minimum Effort: что считается «длиной» пути в Дейкстре?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре (`grids`, `dijkstra`) и на LeetCode:
+
+- [Surrounded Regions](https://leetcode.com/problems/surrounded-regions/) (LeetCode 130) — DFS от границы
+- [01 Matrix](https://leetcode.com/problems/01-matrix/) (LeetCode 542) — многоисточниковый BFS
+- [Walls and Gates](https://leetcode.com/problems/walls-and-gates/) (LeetCode 286)
+- [Pacific Atlantic Water Flow](https://leetcode.com/problems/pacific-atlantic-water-flow/) (LeetCode 417)
+- [Network Delay Time](https://leetcode.com/problems/network-delay-time/) (LeetCode 743) — Дейкстра
+- [Path with Minimum Effort](https://leetcode.com/problems/path-with-minimum-effort/) (LeetCode 1631) — сложная
 
 **Тренажёр** — пакеты `grids` и `dijkstra`:
 
@@ -395,6 +420,14 @@ go test -tags solution ./grids/ ./dijkstra/  # эталон
 ```
 
 Реализуйте `NumIslands` (обход сетки), `MaxAreaOfIsland` (макс. площадь), `FloodFill` (заливка), `RottingOranges` (BFS-волна) и `ShortestPathInBinaryMatrix` (8 направлений); в пакете `dijkstra` — `ShortestPath` (Дейкстра).
+
+### 💻 Реши прямо здесь — пакет `grids`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="grids"></div>
 
 ## 🔗 Связанные шаблоны
 

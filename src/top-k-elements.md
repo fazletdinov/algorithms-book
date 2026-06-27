@@ -318,14 +318,37 @@ func topKFreqHeap(nums []int, k int) []int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант, кнопка проверит. Готового решения рядом нет: дойди сам.
+Общий приём — чтобы найти k «крайних», не сортируй весь вход: куча размера k или частоты.
 
-- [Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/)
-- [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/)
-- [K Closest Points to Origin](https://leetcode.com/problems/k-closest-points-to-origin/)
-- [Sort Characters By Frequency](https://leetcode.com/problems/sort-characters-by-frequency/)
-- [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) (сложная)
-- [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) (сложная)
+<div class="algo-challenge" data-type="choice" data-options="Min-heap размера k|Max-heap из всех элементов|Полностью отсортированный массив" data-answer="0" data-explain="Min-heap из k наибольших: корень — текущий порог, элементы меньше него отбрасываем. Память O(k), время O(n log k).">
+<div class="algo-challenge__q">Чтобы найти k <b>наибольших</b>, не сортируя весь массив, что держим?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="O(n log k)|O(n log n)|O(n²)" data-answer="0" data-explain="Каждый из n элементов проходит через кучу размера k за O(log k). Это лучше полной сортировки O(n log n), когда k мало.">
+<div class="algo-challenge__q">Top K через кучу размера k — какая сложность?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Bucket sort по частоте (частота лежит в 1..n)|Быстрая сортировка частот" data-answer="0" data-explain="Частота любого элемента — от 1 до n, узкий диапазон. Раскладываем по корзинам-частотам и идём с конца — O(n), без кучи и без полной сортировки.">
+<div class="algo-challenge__q">Top K Frequent Elements можно даже за O(n). Как?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="(n+1)/2|n/3|n" data-answer="0" data-explain="Если какой-то символ встречается чаще, чем (n+1)/2 раз, его копии неизбежно окажутся рядом — переставить без соседних повторов невозможно.">
+<div class="algo-challenge__q">Reorganize String невозможна, если частота символа превышает…</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Все n·m пар|Сами массивы" data-answer="0" data-explain="Min-heap «по фронту»: кладём стартовые пары (i, 0), при извлечении (i, j) добавляем (i, j+1). Перебираем кандидатов по возрастанию суммы, не материализуя все n·m пар.">
+<div class="algo-challenge__q">Find K Pairs with Smallest Sums: min-heap позволяет не строить…</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Kth Largest Element](https://leetcode.com/problems/kth-largest-element-in-an-array/) (LeetCode 215) — куча или QuickSelect
+- [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) (LeetCode 347) — bucket sort
+- [Sort Characters By Frequency](https://leetcode.com/problems/sort-characters-by-frequency/) (LeetCode 451)
+- [Top K Frequent Words](https://leetcode.com/problems/top-k-frequent-words/) (LeetCode 692) — составной компаратор
+- [Reorganize String](https://leetcode.com/problems/reorganize-string/) (LeetCode 767)
+- [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) (LeetCode 373) — сложная
 
 **Тренажёр** — пакет `topk`:
 
@@ -397,6 +420,18 @@ go test -tags solution -race ./wordcount/  # ловит запись в общу
 ```
 
 `FreqSeq` и `FreqConc` обязаны дать одинаковую карту — это и проверяет тест.
+
+### 💻 Реши прямо здесь — пакет `topk`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="topk"></div>
+
+**Конкурентный вариант — пакет `wordcount`** (для проверки гонок запусти в CLI `go test -race`):
+
+<div class="algo-runner" data-pkg="wordcount" data-race="true"></div>
 
 ## 🔗 Связанные шаблоны
 

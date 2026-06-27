@@ -210,12 +210,34 @@ func countInversionsBIT(nums []int) int {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: дойди сам. Инверсии и «меньших справа» — в тренажёре; здесь соседние задачи.
 
-- [Range Sum Query - Mutable](https://leetcode.com/problems/range-sum-query-mutable/)
-- [Count of Smaller Numbers After Self](https://leetcode.com/problems/count-of-smaller-numbers-after-self/)
-- [Reverse Pairs](https://leetcode.com/problems/reverse-pairs/)
-- [Create Sorted Array through Instructions](https://leetcode.com/problems/create-sorted-array-through-instructions/)
+<div class="algo-challenge" data-type="choice" data-options="O(log n)|O(n)|O(1)" data-answer="0" data-explain="Дерево Фенвика (BIT) делает и обновление, и префиксную сумму за O(log n) — компактнее дерева отрезков, но только для префиксных/обратимых операций.">
+<div class="algo-challenge__q">За сколько BIT (дерево Фенвика) делает обновление и префиксную сумму?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Младший установленный бит: i & (−i)|Деление на 2|Просто i+1" data-answer="0" data-explain="Вся магия BIT — в переходе по младшему биту: i += i&(-i) поднимается к родителю при обновлении, i -= i&(-i) спускается при запросе префикса.">
+<div class="algo-challenge__q">Через что BIT переходит к следующему индексу?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="prefix(r+1) − prefix(l)|prefix(r) + prefix(l)" data-answer="0" data-explain="Сумма на отрезке [l, r] = префикс до r+1 минус префикс до l. Один BIT отвечает на любой отрезочный запрос двумя префиксами.">
+<div class="algo-challenge__q">Сумма на отрезке [l, r] через BIT — это…</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="4" data-hint="Самый младший установленный бит числа 12 = 1100." data-explain="12 = 1100₂; i & (−i) выделяет младший единичный бит → 100₂ = 4.">
+<div class="algo-challenge__q">Чему равно <code>i & (-i)</code> для <code>i = 12</code> (двоично 1100)?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Счётчики уже встреченных значений (рангов)|Сами значения массива" data-answer="0" data-explain="В задачах на инверсии / «меньших справа» BIT хранит, сколько раз каждый ранг уже встретился; префиксный запрос даёт число меньших, добавленных ранее.">
+<div class="algo-challenge__q">Подсчёт инверсий через BIT: что хранит дерево?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Range Sum Query — Mutable](https://leetcode.com/problems/range-sum-query-mutable/) (LeetCode 307) — классический повод для BIT
+- [Reverse Pairs](https://leetcode.com/problems/reverse-pairs/) (LeetCode 493) — сложная, сжатие координат
+- [Create Sorted Array through Instructions](https://leetcode.com/problems/create-sorted-array-through-instructions/) (LeetCode 1649)
 
 **Тренажёр** — пакет `fenwick`:
 
@@ -226,6 +248,14 @@ go test -tags solution ./fenwick/  # эталон
 ```
 
 Реализуйте `NewFenwick`, `Update`, `PrefixSum`, `RangeSum`, `CountInversions` (число инверсий через BIT) и `CountSmallerToRight` (меньших справа).
+
+### 💻 Реши прямо здесь — пакет `fenwick`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="fenwick"></div>
 
 ## 🔗 Связанные шаблоны
 

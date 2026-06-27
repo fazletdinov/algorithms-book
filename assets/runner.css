@@ -1,0 +1,130 @@
+/* runner.css — стили виджета «решай прямо в книге» (см. runner.js). */
+
+.algo-runner {
+  border: 1px solid var(--quote-border, #cfd6e4);
+  border-radius: 10px;
+  padding: 12px;
+  margin: 1.4em 0;
+  background: var(--sidebar-bg, #fafbfc);
+}
+.algo-runner--ready { background: var(--bg, #fff); }
+
+.algo-runner__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.algo-runner__pkg {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #eef1f7;
+  color: #334;
+}
+.algo-runner__race {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #fdecec;
+  color: #b91c1c;
+}
+.algo-runner__status { font-size: 12px; opacity: 0.85; }
+.algo-runner__status.is-ok { color: #15803d; }
+.algo-runner__status.is-err { color: #b91c1c; }
+.algo-runner__status.is-wait { color: #b45309; }
+
+.algo-runner__editor {
+  border: 1px solid #d7deea;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.algo-runner__ta {
+  width: 100%;
+  min-height: 280px;
+  box-sizing: border-box;
+  border: 0;
+  padding: 10px;
+  resize: vertical;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  tab-size: 4;
+}
+
+.algo-runner__bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.algo-runner__btn {
+  cursor: pointer;
+  border: 1px solid #cfd6e4;
+  background: #fff;
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #243;
+}
+.algo-runner__btn:hover { background: #f1f4fa; }
+.algo-runner__btn:disabled { opacity: 0.5; cursor: default; }
+.algo-runner__btn--run {
+  background: #16a34a;
+  border-color: #15803d;
+  color: #fff;
+}
+.algo-runner__btn--run:hover { background: #15803d; }
+
+.algo-runner__out:empty { display: none; }
+.algo-runner__verdict {
+  font-weight: 700;
+  padding: 8px 10px;
+  border-radius: 7px;
+  margin-bottom: 8px;
+}
+.algo-runner__verdict.is-ok { background: #e9f8ef; color: #15803d; }
+.algo-runner__verdict.is-err { background: #fdecec; color: #b91c1c; }
+
+.algo-runner__tests { list-style: none; padding: 0; margin: 0; }
+.algo-runner__test {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.algo-runner__test.is-ok .algo-runner__test-mark { color: #15803d; }
+.algo-runner__test.is-err .algo-runner__test-mark { color: #b91c1c; }
+.algo-runner__test-mark { font-weight: 700; }
+.algo-runner__test-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.algo-runner__test details { flex-basis: 100%; }
+.algo-runner__test summary { cursor: pointer; font-size: 12px; opacity: 0.8; }
+
+.algo-runner__pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 10px;
+  border-radius: 7px;
+  overflow: auto;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.algo-runner__down {
+  border: 1px dashed #d97706;
+  background: #fffbeb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.algo-runner__down pre {
+  background: #1f2937;
+  color: #e5e7eb;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin: 6px 0;
+  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.algo-runner__err { margin-top: 6px; font-size: 11px; opacity: 0.7; }

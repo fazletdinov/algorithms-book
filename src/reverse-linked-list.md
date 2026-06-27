@@ -286,14 +286,36 @@ func reverseBetween(head *ListNode, m, n int) *ListNode {
 
 ## 🧩 Задачи
 
-**LeetCode:**
+Реши прямо здесь — выбери вариант или впиши ответ, кнопка проверит. Готового решения рядом
+нет: дойди сам. Ключ везде один — *сначала сохрани то, что перезапишешь*.
 
-- [Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/)
-- [Reverse String](https://leetcode.com/problems/reverse-string/)
-- [Reverse Linked List II](https://leetcode.com/problems/reverse-linked-list-ii/)
-- [Reverse Nodes in k-Group](https://leetcode.com/problems/reverse-nodes-in-k-group/)
-- [Swap Nodes in Pairs](https://leetcode.com/problems/swap-nodes-in-pairs/)
-- [Reverse Nodes in Even Length Groups](https://leetcode.com/problems/reverse-nodes-in-even-length-groups/) (сложная)
+<div class="algo-challenge" data-type="choice" data-options="Сохранить next, потом перецеплять|Перецеплять ссылку сразу" data-answer="0" data-explain="Если перезаписать curr.Next, не сохранив его, потеряешь хвост списка. Поэтому: next := curr.Next, и только потом curr.Next = prev.">
+<div class="algo-challenge__q">Главный принцип разворота списка тремя указателями?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="3" data-hint="prev, curr и ещё один — чтобы не потерять хвост." data-explain="prev, curr, next — три указателя: next запоминает хвост перед тем, как curr.Next перецепить на prev.">
+<div class="algo-challenge__q">Сколько указателей нужно для итеративного разворота односвязного списка?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="3 2 1|1 2 3|2 1 3" data-answer="0" data-explain="Разворот меняет порядок на обратный.">
+<div class="algo-challenge__q">Что вернёт разворот списка <code>1 → 2 → 3</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Единообразно обрабатывать вставку/удаление головы|Ускорить обход|Сэкономить память" data-answer="0" data-explain="Dummy-голова (фиктивный узел перед head) убирает спецслучай «меняем сам первый узел» — код работает одинаково для головы и середины.">
+<div class="algo-challenge__q">Зачем в задачах на список заводят dummy-голову?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Оставляем эту группу как есть|Разворачиваем частично|Это ошибка" data-answer="0" data-explain="Reverse Nodes in k-Group разворачивает только полные группы по k; если в хвосте осталось меньше k узлов — их оставляют в исходном порядке.">
+<div class="algo-challenge__q">Reverse Nodes in k-Group: что делаем, если в хвосте осталось меньше k узлов?</div>
+</div>
+
+**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+
+- [Reverse String](https://leetcode.com/problems/reverse-string/) (LeetCode 344) — на массиве
+- [Swap Nodes in Pairs](https://leetcode.com/problems/swap-nodes-in-pairs/) (LeetCode 24) — разворот парами
+- [Add Two Numbers II](https://leetcode.com/problems/add-two-numbers-ii/) (LeetCode 445) — разворот + перенос
+- [Rotate List](https://leetcode.com/problems/rotate-list/) (LeetCode 61) — кольцо и разрыв
+- [Reverse Nodes in k-Group](https://leetcode.com/problems/reverse-nodes-in-k-group/) (LeetCode 25) — сложная
 
 **Тренажёр** — пакет `linkedlist`:
 
@@ -305,6 +327,14 @@ go test -tags solution ./linkedlist/  # эталон
 
 Реализуйте `ReverseList` (итеративный разворот), `ReverseSublist` (разворот участка [p, q]),
 `ReverseKGroup` (разворот группами по k) и `IsPalindrome` (проверка палиндрома за O(1) памяти).
+
+### 💻 Реши прямо здесь — пакет `linkedlist`
+
+Напиши реализацию сам и проверь тестами, не выходя из книги. Готового решения нет:
+зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
+(`cd exercises && go run ./cmd/runner`), затем обнови страницу.
+
+<div class="algo-runner" data-pkg="linkedlist"></div>
 
 ## 🔗 Связанные шаблоны
 
