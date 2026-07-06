@@ -919,6 +919,19 @@
       "                             //   LIFO: #3 conn, #2 mu, #1 f",
       "}"
     ],
+    "json-marshal": [
+      "// encoding/json через reflect — сериализует ЛЮБОЙ тип",
+      "t := reflect.TypeOf(v)",
+      "for i := 0; i < t.NumField(); i++ {",
+      "    f := t.Field(i)",
+      "    tag := f.Tag.Get(\"json\")     // имя поля из тега json:",
+      "    val := rv.Field(i)",
+      "    if omitempty && val.IsZero() {",
+      "        continue                 // пропустить пустое",
+      "    }",
+      "    out[tag] = val               // добавить в JSON",
+      "}"
+    ],
     "hanoi": [
       "func hanoi(n, from, to, via int) {",
       "    if n == 0 {",
@@ -4918,6 +4931,33 @@
     return steps;
   }
 
+  // encoding/json через reflect — обход полей структуры в рантайме. Для каждого поля
+  // reflect даёт имя, тег json: и значение; omitempty пропускает пустые. Одна функция
+  // сериализует ЛЮБОЙ тип — ценой инспекции типа в рантайме (медленнее кодогенерации).
+  function bJsonMarshal() {
+    var fields = [
+      { name: "Name", tag: "name", val: '"Ann"', empty: false, omitempty: false },
+      { name: "Age", tag: "age", val: "30", empty: false, omitempty: false },
+      { name: "Email", tag: "email", val: '""', empty: true, omitempty: true }
+    ];
+    var out = [], state = {}, steps = [];
+    function outStr() { return "{" + out.join(",") + "}"; }
+    function snap(extra) { var o = { values: fields.map(function (f) { return f.name; }), state: fields.map(function (f) { return state[f.name] || "pending"; }), lo: -1, vars: { tag: "—", value: "—", out: outStr() } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 1, info: "encoding/json через reflect обходит поля структуры. Тип: struct{Name, Age, Email}." }));
+    fields.forEach(function (f, i) {
+      if (f.omitempty && f.empty) {
+        state[f.name] = "skip";
+        steps.push(snap({ lo: i, line: 7, vars: { tag: f.tag + ",omitempty", value: f.val, out: outStr() }, info: "Поле " + f.name + " (тег «" + f.tag + ",omitempty»): значение пустое → ПРОПУСКАЕМ." }));
+      } else {
+        out.push('"' + f.tag + '":' + f.val);
+        state[f.name] = "emit";
+        steps.push(snap({ lo: i, hot: true, line: 9, vars: { tag: f.tag, value: f.val, out: outStr() }, info: "Поле " + f.name + " → тег «" + f.tag + "», значение " + f.val + " → добавляем в JSON." }));
+      }
+    });
+    steps.push(snap({ done: true, line: 9, vars: { tag: "—", value: "—", out: outStr() }, info: "Готово: " + outStr() + ". reflect сериализует ЛЮБОЙ тип — ценой обхода полей в рантайме (медленнее кодогенерации)." }));
+    return steps;
+  }
+
   // QuickSelect — рекурсия только в ОДНУ половину к рангу target = k−1. partition
   // показан «чёрным ящиком» (его шаги — в quick-sort); здесь главное — СУЖЕНИЕ окна
   // [rangeLo, rangeHi] (вне его клетки dim), pivot после partition — mid.
@@ -7592,6 +7632,29 @@
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Все defer выполнены (LIFO)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
       stepCard: function (s) { return { a: "глубина " + s.vars.depth, b: s.vars.phase, c: "LIFO", cls: "eq" }; },
       varsOf: function (s) { return { depth: s.vars.depth, phase: s.vars.phase }; }
+    },
+
+    "json-marshal": {
+      badge: "encoding/json (reflect)",
+      desc: "json.Marshal через рефлексию обходит поля структуры в рантайме: для каждого поля reflect даёт имя, тег json: и значение; omitempty пропускает пустые. Одна функция сериализует ЛЮБОЙ тип — ценой инспекции типа в рантайме (медленнее сгенерированного кода).",
+      valuesLabel: "Поля структуры", codeKey: "json-marshal", fillRange: false,
+      ptr1: { name: "поле", cap: "(обходим)" },
+      complexity: { time: "O(полей)", space: "O(вывода)", good: "★ Любой тип без кодогенерации" },
+      varOrder: ["tag", "value", "out"],
+      varDesc: { tag: "Имя из тега json:", value: "Значение поля", out: "Собранный JSON" },
+      lineNotes: { 0: "Одна функция на любой тип — за счёт reflect", 1: "reflect.TypeOf берёт описание типа в рантайме", 2: "Обходим все поля структуры", 3: "Берём i-е поле", 4: "Имя ключа — из тега json:", 6: "omitempty: пустое значение пропускаем", 9: "Кладём пару ключ:значение в результат" },
+      rules: [{ head: "тег json:", body: "имя ключа (не имя поля Go)", cls: "gt" }, { head: "omitempty", body: "пустое поле → пропуск", cls: "lt" }, { head: "цена", body: "reflect в рантайме медленнее codegen", cls: "eq" }],
+      parse: function () { return { steps: bJsonMarshal() }; },
+      inputs: [],
+      values: function () { return bJsonMarshal()[0].values; },
+      title: function () { return "encoding/json: обход полей через reflect"; },
+      cellState: function (s, j) { var st = s.state[j]; var o = {}; if (st === "emit") o.found = true; else if (st === "skip") o.dim = true; if (j === s.lo && s.lo >= 0) o.mid = true; return o; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      sumCells: ["текущий тег", "JSON"],
+      sumValues: function (s) { return [{ text: s.vars.tag, cls: "gt" }, { text: s.vars.out, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "JSON собран", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { return { a: "тег " + s.vars.tag, b: "знач " + s.vars.value, c: "reflect", cls: "eq" }; },
+      varsOf: function (s) { return { tag: s.vars.tag, value: s.vars.value, out: s.vars.out }; }
     },
 
     "quick-select": {
