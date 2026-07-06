@@ -56,6 +56,12 @@
 
 <div class="algo-viz" data-viz="bit-xor" data-array="4,1,2,1,2"></div>
 
+> 🔧 **Где это в Go.** Упаковка флагов в биты — как устроен `sync.Mutex`: бит 0 `locked`, бит 1
+> `woken`, бит 2 `starving`, биты 3+ — счётчик ожидающих, всё в одном `int32`, меняется атомарным
+> CAS/Add ([`internal/sync/mutex.go`](https://github.com/golang/go/blob/master/src/internal/sync/mutex.go)).
+> Разбор с виджетом —
+> [«Структуры данных в экосистеме Go»](go-stdlib-structures.md#-разбор-почему-syncmutex--это-биты-в-одном-слове).
+
 ## ⚡ Шаблон для собеседования
 
 ```go
@@ -342,6 +348,19 @@ func twoSingle(nums []int) []int {
 
 <div class="algo-challenge" data-type="choice" data-options="Сумму без переносов|Только переносы|Готовый результат" data-answer="0" data-explain="a ^ b — сумма без переносов; переносы считаются отдельно как (a & b), сдвинутое влево, и добавляются на следующей итерации.">
 <div class="algo-challenge__q">Сложение без оператора <code>+</code>: что даёт <code>a ^ b</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="cloze" data-answer="&=n-1" data-hint="Трюк Кернигана: гасит самую правую единицу." data-explain="n &= n - 1 сбрасывает младший единичный бит, поэтому счётчик делает столько итераций, сколько единиц в числе — O(число единиц), а не O(32).">
+<div class="algo-challenge__q">Впиши шаг подсчёта единичных битов (Керниган):</div>
+<pre class="algo-challenge__code">count := 0
+for n != 0 {
+    n ______
+    count++
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Сумма без переносов: s = a ^ b|Переносы: c = (a &amp; b) &lt;&lt; 1|Присвоить a = s, b = c|Повторять, пока переносы b не станут 0" data-hint="XOR даёт сумму без переносов, AND со сдвигом — сами переносы." data-explain="Сложение без «+»: s = a^b (сумма без переносов), c = (a&amp;b)&lt;&lt;1 (переносы), затем a=s, b=c и повторяем, пока переносы не иссякнут.">
+<div class="algo-challenge__q">Расставь по порядку шаги сложения двух чисел без оператора <code>+</code>:</div>
 </div>
 
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):

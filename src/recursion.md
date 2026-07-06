@@ -291,6 +291,20 @@ func fib(n int) int {
 <div class="algo-challenge__q">Оптимизирует ли Go хвостовую рекурсию?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="n*factorial(n-1)" data-hint="Задачу для n сводим к задаче для n−1." data-explain="Рекурсивный шаг: factorial(n) = n · factorial(n−1). База (n ≤ 1 → 1) обрывает спуск, иначе рекурсия ушла бы в бесконечность.">
+<div class="algo-challenge__q">Впиши рекурсивный шаг факториала:</div>
+<pre class="algo-challenge__code">func factorial(n int) int {
+    if n &lt;= 1 {
+        return 1
+    }
+    return ______
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Проверить базовый случай (выход без рекурсии)|Свести задачу к меньшей подзадаче|Рекурсивный вызов на меньшем входе|Скомбинировать результат подзадачи с текущим шагом" data-hint="База — всегда первой, иначе рекурсия не остановится." data-explain="Анатомия рекурсии: база → уменьшение задачи → рекурсивный вызов → сборка ответа из результата подзадачи. Без базы в начале спуск не завершится (переполнение стека).">
+<div class="algo-challenge__q">Расставь по порядку части рекурсивной функции:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре (пакет `recursion`) и на LeetCode:
 
 - [Fibonacci Number](https://leetcode.com/problems/fibonacci-number/) (LeetCode 509) — наивно → мемоизация

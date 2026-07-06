@@ -335,6 +335,19 @@ func canJump(nums []int) bool {
 <div class="algo-challenge__q">Candy: почему одного жадного прохода недостаточно?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="i+1" data-hint="Если бак ушёл в минус, стартовать с любой станции до i бессмысленно." data-explain="Gas Station: как только tank &lt; 0, ни одна станция от start до i не годится как старт — рестартуем с i+1 и обнуляем бак.">
+<div class="algo-challenge__q">Gas Station — впиши точку рестарта, когда бак ушёл в минус:</div>
+<pre class="algo-challenge__code">tank += gas[i] - cost[i]
+if tank &lt; 0 {
+    start = ______
+    tank = 0
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Сформулировать жадный критерий (что значит «локально лучший»)|Отсортировать вход по этому критерию|Идти по порядку, каждый раз беря локально лучший вариант|Доказать оптимальность обмен-аргументом" data-hint="Сначала критерий, только потом сортировка под него." data-explain="Дисциплина жадности: критерий → сортировка по нему → жадный проход → доказательство обмен-аргументом. Без доказательства жадный выбор может закрыть путь к оптимуму.">
+<div class="algo-challenge__q">Расставь по порядку шаги построения жадного решения:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Assign Cookies](https://leetcode.com/problems/assign-cookies/) (LeetCode 455) — жадность по указателям

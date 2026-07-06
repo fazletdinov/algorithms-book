@@ -309,6 +309,21 @@ func reverseBetween(head *ListNode, m, n int) *ListNode {
 <div class="algo-challenge__q">Reverse Nodes in k-Group: что делаем, если в хвосте осталось меньше k узлов?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="next" data-hint="Мы заранее сохранили преемника — теперь шагаем на него." data-explain="Итеративный разворот: сохранили next, развернули ссылку (cur.Next=prev), сдвинули prev=cur и cur=next. Без сохранённого next после разворота ссылки путь вперёд был бы потерян.">
+<div class="algo-challenge__q">Разворот списка — впиши последний сдвиг указателя:</div>
+<pre class="algo-challenge__code">var prev *ListNode
+for cur != nil {
+    next := cur.Next
+    cur.Next = prev
+    prev = cur
+    cur = ______
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Сохранить next = cur.Next|Развернуть ссылку: cur.Next = prev|Сдвинуть prev = cur|Сдвинуть cur = next" data-hint="Сначала запоминаем преемника, потом рвём ссылку." data-explain="Одна итерация разворота: запомнить next → развернуть cur.Next на prev → prev=cur → cur=next. Порядок критичен: развернёшь ссылку до сохранения next — потеряешь хвост.">
+<div class="algo-challenge__q">Расставь по порядку шаги одной итерации разворота списка:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Reverse String](https://leetcode.com/problems/reverse-string/) (LeetCode 344) — на массиве

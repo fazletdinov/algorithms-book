@@ -1176,3 +1176,19 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__dcell--src { background: var(--tp-hi); border-color: var(--tp-hi); color: #fff; }
 .algo-tp__dcell--cur { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; transform: scale(1.12); }
 .algo-tp__dcell--done { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+
+/* TLS handshake (handshakeViz) — последовательность Клиент ↔ Сервер */
+.algo-tp__hs { display: flex; flex-direction: column; gap: 0.35em; width: 100%; }
+.algo-tp__hshdr { display: flex; justify-content: space-between; font-weight: 700; opacity: 0.85; padding: 0 0.3em 0.3em; border-bottom: 1px solid var(--tp-panel2, #2a3550); }
+.algo-tp__hsparty { font-size: 0.95em; }
+.algo-tp__hsrow { display: flex; align-items: center; gap: 0.5em; padding: 0.4em 0.55em; border-radius: 6px; opacity: 0.22; transition: opacity 0.2s, background 0.2s; font-size: 0.9em; }
+.algo-tp__hsrow--shown { opacity: 1; }
+.algo-tp__hsrow--current { background: rgba(224, 165, 0, 0.16); outline: 1px solid var(--tp-warn, #e0a500); }
+.algo-tp__hsrow--c2s { flex-direction: row; text-align: left; }
+.algo-tp__hsrow--s2c { flex-direction: row-reverse; text-align: right; }
+.algo-tp__hsrow--note { justify-content: center; font-style: italic; opacity: 0.22; background: rgba(46, 155, 87, 0.10); }
+.algo-tp__hsrow--note.algo-tp__hsrow--shown { opacity: 0.95; }
+.algo-tp__hsarrow { font-family: var(--mono-font, monospace); color: var(--tp-lo, #6c8cff); flex: none; }
+.algo-tp__hsrow--s2c .algo-tp__hsarrow { color: var(--tp-hi, #b48cff); }
+.algo-tp__hsrow--note .algo-tp__hsarrow { color: var(--tp-ok, #2e9b57); }
+.algo-tp__hsmsg { flex: 1; }

@@ -157,6 +157,21 @@ func replaceWords(dict []string, sentence string) string {
 <div class="algo-challenge__q">Word Search II: зачем поверх DFS на сетке строить бор?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="'a'" data-hint="Ветка выбирается по смещению буквы от начала алфавита." data-explain="idx := ch - 'a' переводит строчную букву в индекс ветки 0..25. Каждый узел бора держит массив из 26 детей — спуск по слову идёт по этим индексам.">
+<div class="algo-challenge__q">Бор (Trie) — впиши вычисление индекса ветки для буквы:</div>
+<pre class="algo-challenge__code">for _, ch := range word {
+    idx := ch - ______
+    if node.children[idx] == nil {
+        node.children[idx] = &amp;TrieNode{}
+    }
+    node = node.children[idx]
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Начать с корня бора|Для каждого символа слова взять индекс ветки|Нет узла под символ — создать новый|Спуститься в дочерний узел|В конце пометить узел концом слова (isEnd)" data-hint="Метку конца слова ставим только после всех символов." data-explain="Вставка в бор: от корня → по символам идём/создаём ветки → спускаемся → в конце помечаем последний узел концом слова. Общие префиксы разделяются между словами.">
+<div class="algo-challenge__q">Расставь по порядку шаги вставки слова в бор (Trie):</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Implement Trie](https://leetcode.com/problems/implement-trie-prefix-tree/) (LeetCode 208) — базовый бор

@@ -369,6 +369,19 @@ func mergeKWay(lists [][]int) []int {
 <div class="algo-challenge__q">Ugly Number II обходится без кучи — чем?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="top.Next" data-hint="После извлечения минимума добавляем его преемника из того же списка." data-explain="k-way merge: извлекли минимум top — тут же кладём в кучу top.Next (следующий элемент того же списка). Так фронт всегда содержит по одному кандидату от каждого непустого списка.">
+<div class="algo-challenge__q">K-way merge — впиши, кого добавляем в кучу после извлечения минимума:</div>
+<pre class="algo-challenge__code">top := heap.Pop(h).(*Node) // минимум среди фронтов
+res = append(res, top.Val)
+if top.Next != nil {
+    heap.Push(h, ______)
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Положить в min-heap первые элементы всех k списков|Пока куча не пуста|Извлечь минимум, добавить его в результат|Втолкнуть следующий элемент из того же списка (если есть)" data-hint="В куче всегда по одному «фронтовому» элементу от каждого списка." data-explain="K-way merge: загрузить фронт (по одному от каждого списка) → пока куча не пуста → снять минимум в ответ → добавить его преемника. Итог O(N log k), где k — число списков.">
+<div class="algo-challenge__q">Расставь по порядку шаги слияния K отсортированных списков:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/) (LeetCode 21) — базовый k=2

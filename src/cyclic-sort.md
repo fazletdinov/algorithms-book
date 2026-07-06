@@ -315,6 +315,20 @@ func firstMissingPositive(nums []int) int {
 <div class="algo-challenge__q">First Missing Positive: ответ всегда лежит в диапазоне…</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="i++;i+=1;i=i+1" data-hint="Если элемент уже на своём месте — просто идём дальше." data-explain="Когда nums[i] уже стоит на своём индексе (nums[i] == nums[correct]), обменивать нечего — сдвигаем i. Иначе i НЕ увеличиваем, чтобы доуложить только что пришедшее значение.">
+<div class="algo-challenge__q">Cyclic sort — впиши шаг, когда элемент уже на месте:</div>
+<pre class="algo-challenge__code">correct := nums[i] - 1
+if nums[i] != nums[correct] {
+    nums[i], nums[correct] = nums[correct], nums[i]
+} else {
+    ______
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Поставить указатель i = 0|Вычислить целевой индекс: correct = nums[i] − 1|Элемент не на месте → обменять nums[i] и nums[correct]|Иначе (на месте) — сдвинуть i дальше" data-hint="После обмена i НЕ двигаем — проверяем пришедшее значение." data-explain="Cyclic sort: i=0 → целевой индекс correct=nums[i]−1 → если не на месте, обмен (i не растёт) → иначе i++. Каждый элемент попадает на место за O(1) амортизированно, итог O(n).">
+<div class="algo-challenge__q">Расставь по порядку шаги циклической сортировки:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Set Mismatch](https://leetcode.com/problems/set-mismatch/) (LeetCode 645) — дубль + пропавшее

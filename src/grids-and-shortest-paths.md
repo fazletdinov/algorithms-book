@@ -402,6 +402,19 @@ func orangesRotting(grid [][]int) int {
 <div class="algo-challenge__q">Path with Minimum Effort: что считается «длиной» пути в Дейкстре?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="effort" data-hint="Стоимость до соседа — это уже посчитанное усилие пути." data-explain="Path with Minimum Effort: усилие пути до соседа = max(текущее усилие, перепад высот). Если оно меньше известного — обновляем dist[nr][nc] = effort и кладём клетку в кучу.">
+<div class="algo-challenge__q">Grid-Дейкстра (минимальное усилие) — впиши обновление расстояния:</div>
+<pre class="algo-challenge__code">effort := max(cur, abs(h[nr][nc] - h[r][c]))
+if effort &lt; dist[nr][nc] {
+    dist[nr][nc] = ______
+    heap.Push(pq, cell{nr, nc, effort})
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Положить старт в очередь, dist[start] = 0|Пока очередь не пуста|Снять клетку, перебрать 4 соседей|Сосед в границах и не посещён → dist+1, в очередь" data-hint="Для НЕвзвешенной сетки хватает обычного BFS." data-explain="Кратчайший путь в сетке равных весов — BFS по слоям: старт в очередь → снимаем клетку → раскрываем 4 соседей с dist+1. Первое достижение клетки уже кратчайшее.">
+<div class="algo-challenge__q">Расставь по порядку шаги поиска кратчайшего пути в сетке (BFS):</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре (`grids`, `dijkstra`) и на LeetCode:
 
 - [Surrounded Regions](https://leetcode.com/problems/surrounded-regions/) (LeetCode 130) — DFS от границы

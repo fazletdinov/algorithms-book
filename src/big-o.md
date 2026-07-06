@@ -261,6 +261,19 @@ func nextGreater(nums []int) []int {
 <div class="algo-challenge__q">Монотонный стек (next greater) работает за O(n), потому что…</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="nums[i]" data-hint="Тот, кто вытолкнул элемент со стека, и есть его ближайший больший справа." data-explain="Монотонный стек: снимая индекс j, чей элемент меньше текущего nums[i], записываем res[j] = nums[i] — это ближайший справа больший. Амортизированно O(n).">
+<div class="algo-challenge__q">Next Greater Element — впиши ответ для снятого со стека индекса:</div>
+<pre class="algo-challenge__code">for len(st) &gt; 0 &amp;&amp; nums[st[len(st)-1]] &lt; nums[i] {
+    j := st[len(st)-1]; st = st[:len(st)-1]
+    res[j] = ______
+}
+st = append(st, i)</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Идти по массиву слева направо, держа стек индексов|Пока вершина стека меньше текущего — снять её|Для снятого индекса текущий элемент — ближайший больший справа|Затолкнуть текущий индекс в стек" data-hint="Снимаем всех меньших ПЕРЕД тем, как положить текущий." data-explain="Монотонный стек (next greater): идём слева направо → выталкиваем меньших (для них текущий — ответ) → кладём текущий индекс. Каждый индекс входит и выходит раз → амортизированно O(n).">
+<div class="algo-challenge__q">Расставь по порядку шаги монотонного стека (следующий больший):</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре (пакет `bigo`) и на LeetCode:
 
 - [Min Stack](https://leetcode.com/problems/min-stack/) (LeetCode 155) — O(1) на каждую операцию

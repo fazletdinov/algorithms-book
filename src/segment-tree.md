@@ -319,6 +319,20 @@ st.Query(1, 4)   // 18
 <div class="algo-challenge__q">Count of Smaller After Self: зачем сжатие координат (ранги)?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="/=2;>>=1" data-hint="От узла к родителю — деление индекса на 2." data-explain="После записи в лист поднимаемся к корню (i /= 2), пересчитывая каждый узел как сумму детей tree[2i] и tree[2i+1]. Обновление точки — O(log n).">
+<div class="algo-challenge__q">Итеративное дерево отрезков — впиши подъём к родителю при обновлении:</div>
+<pre class="algo-challenge__code">i += n
+tree[i] = val
+for i &gt; 1 {
+    i ______
+    tree[i] = tree[2*i] + tree[2*i+1]
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Перейти к листу: i = pos + n|Записать новое значение в лист tree[i]|Подниматься к корню: i /= 2|Пересчитать узел: tree[i] = tree[2i] + tree[2i+1]" data-hint="Меняем лист, затем чиним предков снизу вверх." data-explain="Точечное обновление в итеративном дереве отрезков: спуск к листу (pos+n) → запись значения → подъём к корню с пересчётом каждого узла как суммы детей. Итог O(log n).">
+<div class="algo-challenge__q">Расставь по порядку шаги точечного обновления в дереве отрезков:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Range Sum Query — Mutable](https://leetcode.com/problems/range-sum-query-mutable/) (LeetCode 307) — каноничный повод

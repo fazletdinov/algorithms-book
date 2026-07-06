@@ -391,6 +391,20 @@ func threeSum(nums []int) [][]int {
 <div class="algo-challenge__q">Зачем в 3Sum сначала сортировать массив?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="left++;left+=1;left=left+1" data-hint="Сумма мала → нужен элемент побольше → двигаем левый указатель." data-explain="Массив отсортирован: если сумма меньше target, увеличить её можно только сдвигом левого указателя вправо (left++).">
+<div class="algo-challenge__q">Two Sum II — впиши пропущенный шаг, когда сумма меньше target:</div>
+<pre class="algo-challenge__code">sum := numbers[left] + numbers[right]
+if sum &lt; target {
+    ______
+} else {
+    right--
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Отсортировать массив|Зафиксировать i внешним циклом|Поставить left = i+1, right = n−1|Двигать left/right навстречу по знаку суммы|Пропустить дубликаты, чтобы не повторять тройки" data-hint="Сначала сортировка — без неё встречные указатели неприменимы." data-explain="3Sum: сортируем → фиксируем i → ставим два указателя → сходимся по знаку суммы → пропускаем дубликаты. Порядок неслучаен: сортировка обязана быть первой.">
+<div class="algo-challenge__q">Расставь по порядку шаги алгоритма 3Sum:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Valid Palindrome](https://leetcode.com/problems/valid-palindrome/) (LeetCode 125)

@@ -57,6 +57,13 @@
 
 <div class="algo-viz" data-viz="kmp" data-text="abxabcabcaby" data-pattern="abcaby"></div>
 
+> 🔧 **Где это в Go.** Рабин–Карп — не только для собеседований: `strings.Index` и `bytes.Index`
+> для длинных образцов переходят на **rolling hash (Рабин–Карп)**
+> ([`strings/strings.go`](https://github.com/golang/go/blob/master/src/strings/strings.go)), а
+> движок [`regexp`](https://pkg.go.dev/regexp) — на автоматы RE2 (линейное время, без ReDoS): разбор
+> с виджетом [«Почему regexp в Go линеен»](go-stdlib-structures.md#-разбор-почему-regexp-в-go-линеен-re2-а-не-экспоненциален).
+> Ещё примеры — [«Структуры данных в экосистеме Go»](go-stdlib-structures.md).
+
 ## ⚡ Шаблон для собеседования
 
 ```go
@@ -153,6 +160,12 @@ func rabinKarp(text, pattern string) int {
     return -1
 }
 ```
+
+Нажимайте «▶»: окно длины `m` скользит по тексту; сравнивается **хеш окна** с хешем образца
+(внизу). Хеши разные — сразу сдвиг; совпали — проверяем строки посимвольно (защита от
+коллизий) и подсвечиваем вхождение. Подставьте свой текст и образец:
+
+<div class="algo-viz" data-viz="rabin-karp" data-text="abracadabra" data-pattern="abra"></div>
 
 #### Сравнение
 
@@ -350,6 +363,18 @@ func findAllKMP(text, pat string) []int {
 
 <div class="algo-challenge" data-type="choice" data-options="Частотные массивы [26]int|Сами подстроки посимвольно" data-answer="0" data-explain="Анаграмма ⟺ совпадают частоты букв. Скользящее окно длины len(p) + сравнение двух [26]int через == даёт O(n).">
 <div class="algo-challenge__q">Find All Anagrams через окно: что сравниваем?</div>
+</div>
+
+<div class="algo-challenge" data-type="cloze" data-answer="lps[j-1]" data-hint="Откатываемся не в начало, а к длине уже совпавшего префикса-суффикса." data-explain="KMP: при несовпадении j откатывается на lps[j-1] — длину наибольшего совпавшего префикса-суффикса. Это и убирает повторные сравнения, давая O(n+m).">
+<div class="algo-challenge__q">KMP — впиши откат по префикс-функции при несовпадении:</div>
+<pre class="algo-challenge__code">// строим/применяем префикс-функцию lps
+for j &gt; 0 &amp;&amp; p[i] != p[j] {
+    j = ______
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Построить префикс-функцию lps для паттерна|Идти по тексту i, по паттерну j|Символы совпали → сдвинуть оба (i++, j++)|Не совпало → откатить j = lps[j-1] (i не двигаем)|j дошёл до len(pattern) → найдено вхождение" data-hint="Сначала предобработка паттерна, только потом проход по тексту." data-explain="KMP: предпосчитать lps → идти по тексту и паттерну → при совпадении двигать оба → при несовпадении откатывать j по lps без возврата i → j==len(pattern) значит найдено. Итог O(n+m).">
+<div class="algo-challenge__q">Расставь по порядку шаги поиска подстроки алгоритмом KMP:</div>
 </div>
 
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):

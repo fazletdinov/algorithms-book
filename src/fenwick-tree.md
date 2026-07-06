@@ -233,6 +233,17 @@ func countInversionsBIT(nums []int) int {
 <div class="algo-challenge__q">Подсчёт инверсий через BIT: что хранит дерево?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="i&amp;(-i);i&(-i)" data-hint="Прибавляем младший установленный бит, чтобы прыгнуть к следующему ответственному узлу." data-explain="update в дереве Фенвика идёт вверх шагом i += i &amp; (-i) — прибавляем младший единичный бит. За O(log n) обновляются все узлы, отвечающие за индекс.">
+<div class="algo-challenge__q">Дерево Фенвика — впиши шаг обновления (движение вверх):</div>
+<pre class="algo-challenge__code">for ; i &lt;= n; i += ______ {
+    tree[i] += delta
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Начать с i = index, sum = 0|Пока i &gt; 0|Прибавить tree[i] к sum|Сбросить младший бит: i -= i &amp; (-i)" data-hint="Префиксный запрос идёт ВНИЗ, сбрасывая младший бит." data-explain="Префиксная сумма в BIT: sum=0 → пока i&gt;0 → прибавить tree[i] → сбросить младший бит (i -= i &amp; -i). Каждый шаг убирает один бит → O(log n).">
+<div class="algo-challenge__q">Расставь по порядку шаги префиксного запроса в дереве Фенвика:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Range Sum Query — Mutable](https://leetcode.com/problems/range-sum-query-mutable/) (LeetCode 307) — классический повод для BIT

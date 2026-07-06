@@ -6,3 +6,6 @@
 
 # Бинарь in-book runner (собирается локально через `go run`/`go build ./cmd/runner`).
 /exercises/runner
+
+# локальный бинарь runner (make serve)
+exercises/.algo-runner

@@ -117,6 +117,95 @@
   background: rgba(214, 64, 69, 0.12);
 }
 
+.algo-challenge__btn--ghost {
+  background: transparent;
+  color: #6c8cff;
+  border-color: var(--quote-border, #c8cdd6);
+  font-weight: 600;
+}
+
+.algo-challenge__btn--ghost:hover {
+  background: rgba(108, 140, 255, 0.1);
+}
+
+/* ---- ordering (расставь шаги по порядку) ---- */
+.algo-challenge__seq {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  min-height: 2.4em;
+  padding: 0.55em 0.6em;
+  border: 1px dashed var(--quote-border, #c8cdd6);
+  border-radius: 6px;
+  background: rgba(127, 127, 127, 0.05);
+  align-items: center;
+}
+
+.algo-challenge__seq.is-ok {
+  border-color: #2e9b57;
+  border-style: solid;
+  background: rgba(46, 155, 87, 0.1);
+}
+
+.algo-challenge__seq-empty {
+  font-size: 0.88em;
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.algo-challenge__seq-sep {
+  text-align: center;
+  font-size: 0.76em;
+  opacity: 0.6;
+  margin: 0.35em 0;
+}
+
+.algo-challenge__pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  min-height: 2.4em;
+}
+
+.algo-challenge__chip {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--quote-border, #c8cdd6);
+  border-radius: 6px;
+  padding: 0.4em 0.7em;
+  background: var(--bg, #fff);
+  color: var(--fg, #333);
+  font-family: var(--mono-font, "Source Code Pro", monospace);
+  font-size: 0.9em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.algo-challenge__chip:hover {
+  border-color: #6c8cff;
+}
+
+.algo-challenge__chip.is-chosen {
+  border-color: #6c8cff;
+  background: rgba(108, 140, 255, 0.1);
+}
+
+.algo-challenge__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 50%;
+  background: #6c8cff;
+  color: #fff;
+  font-size: 0.8em;
+  font-weight: 700;
+  flex: none;
+}
+
 /* ---- обратная связь ---- */
 .algo-challenge__fb {
   margin-top: 0.7em;

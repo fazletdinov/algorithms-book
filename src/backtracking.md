@@ -392,6 +392,17 @@ backtrack(0, 7)                       current=[]
 <div class="algo-challenge__q">Сколько решений у N-Queens для доски 4×4 (n=4)?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="path[:len(path)-1]" data-hint="Убрать последний добавленный элемент — срез без последнего." data-explain="Откат (undo) в backtracking: path = path[:len(path)-1] снимает только что сделанный выбор, возвращая состояние перед рекурсией.">
+<div class="algo-challenge__q">Впиши шаг отката — убрать последний выбор из пути:</div>
+<pre class="algo-challenge__code">path = append(path, choice) // выбрать
+backtrack(next)             // рекурсия
+path = ______              // откатить</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="База: решение готово → записать в ответ|Сделать выбор: path = append(path, c)|Уйти в рекурсию глубже|Откатить выбор: убрать c из path" data-hint="Откат — последним, иначе следующая ветка увидит чужой выбор." data-explain="Каркас backtracking на одном уровне: проверить базу → выбрать → рекурсия → откатить. Именно откат отличает backtracking от обычного DFS.">
+<div class="algo-challenge__q">Расставь по порядку шаги одного уровня backtracking:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Subsets](https://leetcode.com/problems/subsets/) (LeetCode 78)

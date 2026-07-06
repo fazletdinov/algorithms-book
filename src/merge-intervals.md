@@ -367,6 +367,20 @@ func mergeOpt(intervals [][]int) [][]int {
 <div class="algo-challenge__q">Merge Intervals: когда сливаем два соседних интервала?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="max(last[1],iv[1]);max(iv[1],last[1])" data-hint="Слитый интервал кончается там, где кончается самый «дальний» из двух." data-explain="При слиянии конец текущего интервала расширяется до max(last[1], iv[1]) — вложенный интервал не должен «укоротить» текущий.">
+<div class="algo-challenge__q">Merge Intervals — впиши расширение конца при слиянии:</div>
+<pre class="algo-challenge__code">// intervals отсортированы по началу; last — текущий
+if iv[0] &lt;= last[1] {        // перекрытие/касание
+    last[1] = ______
+} else {
+    res = append(res, iv); last = iv
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Отсортировать интервалы по началу|Взять первый интервал как текущий|Следующий перекрывает текущий → расширить его конец|Иначе — закрыть текущий, начать новый" data-hint="Всё начинается с сортировки по началу." data-explain="Merge Intervals: сортировка по началу → текущий = первый → для каждого следующего либо расширяем конец (перекрытие), либо закрываем текущий и открываем новый. Сортировка и задаёт O(n log n).">
+<div class="algo-challenge__q">Расставь по порядку шаги слияния интервалов:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Merge Intervals](https://leetcode.com/problems/merge-intervals/) (LeetCode 56) — слияние перекрытий

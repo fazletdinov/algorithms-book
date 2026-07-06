@@ -10,8 +10,13 @@
  *   </div>
  *
  * Типы (data-type):
- *   predict — свободный ввод ответа (data-answer; несколько вариантов через «;»)
- *   choice  — выбор из вариантов (data-options="A|B|C", data-answer=индекс с 0)
+ *   predict  — свободный ввод ответа (data-answer; несколько вариантов через «;»)
+ *   choice   — выбор из вариантов (data-options="A|B|C", data-answer=индекс с 0)
+ *   cloze    — впиши пропущенное выражение в код; сравнение БЕЗ учёта пробелов,
+ *              поэтому "right-left+1" и "right - left + 1" считаются равными
+ *              (data-answer; варианты через «;»)
+ *   ordering — расставь шаги алгоритма по порядку; data-items="Шаг1|Шаг2|Шаг3"
+ *              перечислены в ПРАВИЛЬНОМ порядке, виджет их перемешивает
  *
  * Доп. атрибуты: data-explain (разбор после проверки), data-hint (подсказка),
  *   data-placeholder (подсказка в поле ввода).
@@ -21,6 +26,23 @@
 
   function norm(s) {
     return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
+  // normCode — нормализация для cloze: сравниваем код без учёта пробелов вообще,
+  // чтобы "right-left+1" и "right - left + 1" считались одинаковыми.
+  function normCode(s) {
+    return String(s == null ? "" : s).toLowerCase().replace(/\s+/g, "");
+  }
+
+  // shuffle — перемешивание на месте (Фишер — Йейтс).
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i];
+      a[i] = a[j];
+      a[j] = t;
+    }
+    return a;
   }
 
   function el(tag, cls, txt) {
@@ -80,11 +102,13 @@
     root.appendChild(box);
   }
 
-  function setupPredict(root) {
-    var answers = String(root.getAttribute("data-answer") || "").split(";").map(norm);
+  // setupInput — общий движок для predict и cloze; отличаются лишь нормализатором
+  // сравнения (norm — по словам, normCode — код без пробелов).
+  function setupInput(root, normalizer, defaultPlaceholder) {
+    var answers = String(root.getAttribute("data-answer") || "").split(";").map(normalizer);
     var explain = root.getAttribute("data-explain") || "";
     var hint = root.getAttribute("data-hint") || "";
-    var placeholder = root.getAttribute("data-placeholder") || "ваш ответ";
+    var placeholder = root.getAttribute("data-placeholder") || defaultPlaceholder;
 
     var row = el("div", "algo-challenge__row");
     var input = el("input", "algo-challenge__input");
@@ -103,7 +127,7 @@
     var fb = buildFeedback(root);
 
     function check() {
-      var val = norm(input.value);
+      var val = normalizer(input.value);
       if (val === "") {
         fb.className = "algo-challenge__fb algo-challenge__fb--no";
         fb.textContent = "Введите ответ.";
@@ -169,6 +193,108 @@
     var fb = buildFeedback(root);
   }
 
+  // setupOrdering — расставь шаги алгоритма по порядку. data-items перечислены в
+  // ПРАВИЛЬНОМ порядке; виджет перемешивает их в пул, читатель кликами собирает
+  // последовательность (клик по выбранному шагу возвращает его в пул).
+  function setupOrdering(root) {
+    var items = String(root.getAttribute("data-items") || "")
+      .split("|")
+      .map(function (s) { return s.trim(); })
+      .filter(Boolean);
+    var explain = root.getAttribute("data-explain") || "";
+    var hint = root.getAttribute("data-hint") || "";
+
+    var correct = items.slice();
+    var chosen = [];
+    var remaining = shuffle(items.slice());
+    // если перемешивание случайно совпало с правильным — сдвигаем.
+    if (items.length > 1 && remaining.join("") === correct.join("")) {
+      remaining.push(remaining.shift());
+    }
+
+    var seq = el("div", "algo-challenge__seq");
+    seq.setAttribute("aria-label", "Ваш порядок шагов");
+    var pool = el("div", "algo-challenge__pool");
+    pool.setAttribute("aria-label", "Доступные шаги");
+    root.appendChild(seq);
+    root.appendChild(el("div", "algo-challenge__seq-sep", "↑ ваш порядок · доступные шаги ↓"));
+    root.appendChild(pool);
+
+    var row = el("div", "algo-challenge__row");
+    var checkBtn = el("button", "algo-challenge__btn", "Проверить порядок");
+    checkBtn.type = "button";
+    var resetBtn = el("button", "algo-challenge__btn algo-challenge__btn--ghost", "Сбросить");
+    resetBtn.type = "button";
+    row.appendChild(checkBtn);
+    row.appendChild(resetBtn);
+    root.appendChild(row);
+    attachHint(root, hint);
+    var fb = buildFeedback(root);
+
+    function clearFb() {
+      fb.className = "algo-challenge__fb";
+      fb.textContent = "";
+    }
+
+    function chip(text, chosenFlag, index) {
+      var b = el("button", "algo-challenge__chip" + (chosenFlag ? " is-chosen" : ""));
+      b.type = "button";
+      if (chosenFlag) {
+        var num = el("span", "algo-challenge__num", String(index + 1));
+        b.appendChild(num);
+      }
+      b.appendChild(document.createTextNode(text));
+      b.addEventListener("click", function () {
+        if (chosenFlag) {
+          chosen.splice(index, 1);
+          remaining.push(text);
+        } else {
+          remaining.splice(index, 1);
+          chosen.push(text);
+        }
+        clearFb();
+        draw();
+      });
+      return b;
+    }
+
+    function draw() {
+      seq.innerHTML = "";
+      pool.innerHTML = "";
+      if (chosen.length === 0) {
+        seq.appendChild(el("span", "algo-challenge__seq-empty", "нажимайте шаги ниже в нужном порядке"));
+      }
+      chosen.forEach(function (t, i) { seq.appendChild(chip(t, true, i)); });
+      remaining.forEach(function (t, i) { pool.appendChild(chip(t, false, i)); });
+    }
+
+    checkBtn.addEventListener("click", function () {
+      if (chosen.length !== correct.length) {
+        fb.className = "algo-challenge__fb algo-challenge__fb--no";
+        fb.textContent = "Расставьте все шаги.";
+        return;
+      }
+      var ok = chosen.join("") === correct.join("");
+      showResult(fb, ok, explain);
+      if (ok) {
+        markSolved(root.getAttribute("data-id"));
+        seq.classList.add("is-ok");
+      } else {
+        seq.classList.remove("is-ok");
+      }
+    });
+
+    resetBtn.addEventListener("click", function () {
+      remaining = shuffle(correct.concat(chosen));
+      chosen = [];
+      seq.classList.remove("is-ok");
+      clearFb();
+      draw();
+    });
+
+    draw();
+  }
+
   function render(root) {
     if (root.getAttribute("data-ready") === "1") return;
     root.setAttribute("data-ready", "1");
@@ -181,8 +307,12 @@
     var type = root.getAttribute("data-type") || "predict";
     if (type === "choice") {
       setupChoice(root);
+    } else if (type === "cloze") {
+      setupInput(root, normCode, "выражение");
+    } else if (type === "ordering") {
+      setupOrdering(root);
     } else {
-      setupPredict(root);
+      setupInput(root, norm, "ваш ответ");
     }
   }
 

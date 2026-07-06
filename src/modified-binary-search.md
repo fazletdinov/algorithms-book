@@ -63,6 +63,12 @@
 
 <div class="algo-viz" data-viz="binary-search-first" data-array="1,2,2,2,3,4,5" data-target="2"></div>
 
+> 🔧 **Где это в Go.** Это ровно `sort.Search(n, f)` — бинпоиск по монотонному предикату
+> (`slices.BinarySearch`, `sort.SearchInts` — поверх него), с тем же безопасным
+> `h := int(uint(i+j) >> 1)` ([`sort/search.go`](https://github.com/golang/go/blob/master/src/sort/search.go)).
+> Разбор **почему это обобщённый бинпоиск** —
+> [«Структуры данных в экосистеме Go»](go-stdlib-structures.md#-разбор-почему-sortsearch--это-бинпоиск-по-предикату).
+
 ## ⚡ Шаблон для собеседования
 
 ```go
@@ -468,6 +474,18 @@ func searchRange(nums []int, target int) [2]int {
 
 <div class="algo-challenge" data-type="choice" data-options="Чтобы получить O(log(min)) и меньше граничных случаев|Случайный выбор|Для устойчивости" data-answer="0" data-explain="Бинпоиск идёт по разрезу меньшего массива — это и даёт O(log(min(m, n))), и сокращает диапазон разреза.">
 <div class="algo-challenge__q">Median of Two Sorted Arrays: почему бинпоиск ведут по <b>меньшему</b> массиву?</div>
+</div>
+
+<div class="algo-challenge" data-type="cloze" data-answer="lo+(hi-lo)/2" data-hint="Та самая формула без переполнения из раздела выше." data-explain="mid = lo + (hi−lo)/2 не переполняется, в отличие от (lo+hi)/2 при больших индексах.">
+<div class="algo-challenge__q">Впиши безопасное вычисление середины:</div>
+<pre class="algo-challenge__code">for lo &lt; hi {
+    mid := ______
+    ...
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Задать lo = 0, hi = n (полуинтервал [lo, hi))|Пока lo &lt; hi|Взять mid = lo + (hi−lo)/2|Сравнить nums[mid] с target|Сдвинуть границу: lo = mid+1 либо hi = mid" data-hint="Инвариант границ задаётся до цикла, сравнение — внутри." data-explain="Порядок модифицированного бинпоиска: инициализация границ → условие цикла → середина → сравнение → сдвиг границы. Инвариант [lo, hi) держится на каждом шаге.">
+<div class="algo-challenge__q">Расставь по порядку шаги бинпоиска в полуинтервале <code>[lo, hi)</code>:</div>
 </div>
 
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):

@@ -653,6 +653,223 @@
       "    return primes",
       "}"
     ],
+    "mod-exp": [
+      "func ModExp(base, exp, m int) int {",
+      "    result := 1 % m",
+      "    base %= m",
+      "    for exp > 0 {",
+      "        if exp&1 == 1 {",
+      "            result = result * base % m",
+      "        }",
+      "        base = base * base % m",
+      "        exp >>= 1",
+      "    }",
+      "    return result",
+      "}"
+    ],
+    "ext-gcd": [
+      "func ExtendedGCD(a, b int) (g, x, y int) {",
+      "    oldR, r := a, b",
+      "    oldS, s := 1, 0",
+      "    oldT, t := 0, 1",
+      "    for r != 0 {",
+      "        q := oldR / r",
+      "        oldR, r = r, oldR-q*r",
+      "        oldS, s = s, oldS-q*s",
+      "        oldT, t = t, oldT-q*t",
+      "    }",
+      "    return oldR, oldS, oldT",
+      "}"
+    ],
+    "miller-rabin": [
+      "func millerRabin(n, a int) bool {   // один свидетель a",
+      "    d, s := n-1, 0",
+      "    for d%2 == 0 { d /= 2; s++ }    // n-1 = d·2^s",
+      "    x := ModExp(a, d, n)            // старт цепочки",
+      "    if x == 1 || x == n-1 {",
+      "        return true                 // свидетель не уличает",
+      "    }",
+      "    for i := 0; i < s-1; i++ {",
+      "        x = x * x % n               // возводим в квадрат",
+      "        if x == n-1 { return true } // нетривиальный корень",
+      "    }",
+      "    return false                    // a уличает: n составное",
+      "}"
+    ],
+    "counting-sort": [
+      "func countingSort(a []int, k int) []int {",
+      "    count := make([]int, k+1)",
+      "    for _, v := range a {",
+      "        count[v]++              // гистограмма",
+      "    }",
+      "    out := make([]int, 0, len(a))",
+      "    for v := 0; v <= k; v++ {",
+      "        for count[v] > 0 {",
+      "            out = append(out, v) // выдаём по возрастанию",
+      "            count[v]--",
+      "        }",
+      "    }",
+      "    return out",
+      "}"
+    ],
+    "heap-sort": [
+      "func heapSort(a []int) {",
+      "    n := len(a)",
+      "    for i := n/2 - 1; i >= 0; i-- {",
+      "        siftDown(a, i, n)           // строим max-heap",
+      "    }",
+      "    for end := n - 1; end > 0; end-- {",
+      "        a[0], a[end] = a[end], a[0] // макс — в конец",
+      "        siftDown(a, 0, end)         // чиним кучу",
+      "    }",
+      "}"
+    ],
+    "rabin-karp": [
+      "func rabinKarp(text, pat string) []int {",
+      "    m := len(pat)",
+      "    ph := hash(pat)               // хеш образца",
+      "    wh := hash(text[:m])          // хеш первого окна",
+      "    var res []int",
+      "    for i := 0; i+m <= len(text); i++ {",
+      "        if wh == ph && text[i:i+m] == pat {",
+      "            res = append(res, i)  // хеши И строки совпали",
+      "        }",
+      "        wh = roll(wh, text, i, m) // сдвиг окна за O(1)",
+      "    }",
+      "    return res",
+      "}"
+    ],
+    "ring-buffer": [
+      "type ring struct {",
+      "    buf      []int // dataqsiz слотов, один блок",
+      "    dataqsiz uint  // ёмкость кольца",
+      "    sendx    uint  // индекс записи",
+      "    recvx    uint  // индекс чтения",
+      "    qcount   uint  // элементов в очереди",
+      "}",
+      "func (c *ring) send(v int) {",
+      "    c.buf[c.sendx] = v",
+      "    c.sendx++",
+      "    if c.sendx == c.dataqsiz { c.sendx = 0 } // заворот",
+      "    c.qcount++",
+      "}",
+      "func (c *ring) recv() (v int) {",
+      "    v = c.buf[c.recvx]",
+      "    c.recvx++",
+      "    if c.recvx == c.dataqsiz { c.recvx = 0 } // заворот",
+      "    c.qcount--",
+      "    return",
+      "}"
+    ],
+    "route-match": [
+      "func (n *node) match(segs, vals []string) (Handler, []string) {",
+      "    if len(segs) == 0 {",
+      "        return n.handler, vals // лист — вот обработчик",
+      "    }",
+      "    seg := segs[0]",
+      "    if c, ok := n.children[seg]; ok { // 1) точный литерал",
+      "        if h, v := c.match(segs[1:], vals); h != nil {",
+      "            return h, v",
+      "        }",
+      "    }",
+      "    if n.wildcard != nil { // 2) иначе переменная {id}",
+      "        return n.wildcard.match(segs[1:], append(vals, seg))",
+      "    }",
+      "    return nil, nil // ни того, ни другого — 404",
+      "}"
+    ],
+    "swiss-lookup": [
+      "func (t *table) get(key K) (V, bool) {",
+      "    h := hash(key)",
+      "    g := &t.groups[h1(h)%len(t.groups)] // группа из 8 слотов",
+      "    h2 := h2(h)                         // младшие 7 бит хеша",
+      "    // одно сравнение против ВСЕХ 8 control-байтов сразу:",
+      "    for _, i := range g.ctrl.matchH2(h2) { // слоты-кандидаты",
+      "        if g.slot[i].key == key {          // сверяем сам ключ",
+      "            return g.slot[i].val, true",
+      "        }",
+      "    }",
+      "    return zero, false // нет ключа",
+      "}"
+    ],
+    "mutex-bits": [
+      "type Mutex struct{ state int32 } // всё состояние — в одном слове",
+      "const (",
+      "    mutexLocked      = 1 << 0 // бит 0: захвачен",
+      "    mutexWoken       = 1 << 1 // бит 1: кто-то разбужен",
+      "    mutexStarving    = 1 << 2 // бит 2: режим голодания",
+      "    mutexWaiterShift = 3      // биты 3+: счётчик ожидающих",
+      ")",
+      "func (m *Mutex) Lock() {",
+      "    // быстрый путь: один CAS 0 → locked",
+      "    if atomic.CompareAndSwapInt32(&m.state, 0, mutexLocked) {",
+      "        return",
+      "    }",
+      "    // иначе: атомарно +1 к счётчику ожидающих и ждём",
+      "}",
+      "func (m *Mutex) Unlock() {",
+      "    new := atomic.AddInt32(&m.state, -mutexLocked) // снять бит 0",
+      "    // new != 0 → есть ожидающие, будим одного",
+      "}"
+    ],
+    "tls-handshake": [
+      "// TLS 1.3 — установка защищённого канала (1 round-trip)",
+      "client → ClientHello{ciphers, keyShare}      // шифры + ECDHE-share",
+      "server → ServerHello{keyShare}               // сервер шлёт свой share",
+      "//        sharedSecret = ECDHE(shares)        // общий секрет у обеих сторон",
+      "server → {Certificate, CertVerify, Finished} // уже под шифром",
+      "//        client: проверить сертификат до CA  // подлинность сервера",
+      "client → {Finished}                          // рукопожатие завершено",
+      "//        данные ← AES-GCM(sharedSecret)      // трафик зашифрован"
+    ],
+    "oauth-flow": [
+      "// OAuth 2.0 Authorization Code + PKCE (OIDC)",
+      "app  → /authorize?client_id&scope&code_challenge&state // redirect",
+      "//       пользователь входит и даёт согласие на Auth-сервере",
+      "auth → redirect_uri?code=…&state=…                     // authorization code",
+      "app  → /token: code + code_verifier                    // back-channel",
+      "auth → access_token + id_token(JWT) + refresh_token",
+      "app  → API: Authorization: Bearer access_token",
+      "//       id_token(JWT) сообщает, КТО пользователь (OIDC)"
+    ],
+    "context-tree": [
+      "ctx, cancel := context.WithTimeout(parent, 3*time.Second)",
+      "defer cancel()                    // всегда освобождаем ресурсы",
+      "go dbQuery(ctx, ...)              // дочерний контекст",
+      "go httpCall(ctx, ...)             // дочерний контекст",
+      "// таймаут/cancel закрывает ctx.Done() и течёт вниз по детям:",
+      "//   for child := range c.children { child.cancel(...) }",
+      "select {",
+      "case <-ctx.Done():                // отменили → сворачиваемся",
+      "    return ctx.Err()              // Canceled / DeadlineExceeded",
+      "}"
+    ],
+    "sync-pool": [
+      "var pool = sync.Pool{New: func() any {",
+      "    return new(bytes.Buffer)      // как создать, если пул пуст",
+      "}}",
+      "// Put: вернуть объект в пул для переиспользования",
+      "pool.Put(buf)",
+      "// Get: взять из пула ИЛИ создать новый (New)",
+      "buf := pool.Get().(*bytes.Buffer)",
+      "//   пул пуст → New() аллоцирует новый объект",
+      "buf.Reset(); use(buf); pool.Put(buf) // не забыть вернуть",
+      "// при GC пул очищается — это кэш, не хранилище"
+    ],
+    "nfa-match": [
+      "// RE2 (Thompson NFA): держим МНОЖЕСТВО активных состояний сразу",
+      "active := map[state]bool{start: true}",
+      "for _, ch := range input {",
+      "    next := map[state]bool{}",
+      "    for s := range active {          // из КАЖДОГО активного состояния",
+      "        for _, t := range trans(s, ch) {",
+      "            next[t] = true            // берём ВСЕ переходы разом",
+      "        }",
+      "    }",
+      "    active = next                     // |active| ≤ #состояний — без возврата",
+      "}",
+      "return active[accept]                 // совпало, если финал активен"
+    ],
     "hanoi": [
       "func hanoi(n, from, to, via int) {",
       "    if n == 0 {",
@@ -3641,6 +3858,63 @@
     };
   }
 
+  // handshakeViz — последовательность сообщений «Клиент ↔ Сервер» (для TLS-хендшейка).
+  // Две колонки-стороны, строки-сообщения появляются по шагам (s.reveal), последнее —
+  // подсвечено. Реюзабельно для любого протокола-диалога.
+  function handshakeViz(panel, ctx) {
+    var msgs = ctx.msgs;
+    var wrap = document.createElement("div"); wrap.className = "algo-tp__hs";
+    var hdr = document.createElement("div"); hdr.className = "algo-tp__hshdr";
+    var parties = ctx.parties || ["🧑‍💻 Клиент", "🖥️ Сервер"];
+    var pc = document.createElement("div"); pc.className = "algo-tp__hsparty"; pc.textContent = parties[0]; hdr.appendChild(pc);
+    var ps = document.createElement("div"); ps.className = "algo-tp__hsparty"; ps.textContent = parties[1]; hdr.appendChild(ps);
+    wrap.appendChild(hdr);
+    var rows = msgs.map(function (m) {
+      var r = document.createElement("div"); r.className = "algo-tp__hsrow algo-tp__hsrow--" + m.dir;
+      var a = document.createElement("div"); a.className = "algo-tp__hsarrow";
+      a.textContent = m.dir === "c2s" ? "──▶" : (m.dir === "s2c" ? "◀──" : "✔");
+      r.appendChild(a);
+      var t = document.createElement("div"); t.className = "algo-tp__hsmsg"; t.textContent = m.text;
+      r.appendChild(t);
+      wrap.appendChild(r);
+      return r;
+    });
+    panel.appendChild(wrap);
+    return function (s) {
+      rows.forEach(function (r, i) {
+        r.classList.toggle("algo-tp__hsrow--shown", i <= s.reveal);
+        r.classList.toggle("algo-tp__hsrow--current", i === s.reveal);
+      });
+    };
+  }
+
+  // ctxTreeViz — дерево контекстов (context.Context). Узлы по глубине; на каждом шаге
+  // красит отменённые (--removed) и «срабатывающий» таймаут (--current). Показывает,
+  // что отмена течёт ВНИЗ по поддереву, не задевая родителя и соседей.
+  function ctxTreeViz(panel, ctx) {
+    var nodes = ctx.nodes;
+    var maxDepth = nodes.reduce(function (m, n) { return Math.max(m, n.depth); }, 0);
+    var tree = document.createElement("div"); tree.className = "algo-tp__tree";
+    var byId = {};
+    for (var d = 0; d <= maxDepth; d++) {
+      var row = document.createElement("div"); row.className = "algo-tp__trow";
+      nodes.forEach(function (n, idx) {
+        if (n.depth !== d) return;
+        var c = document.createElement("div"); c.className = "algo-tp__tnode algo-tp__tnode--seg";
+        c.textContent = n.label; row.appendChild(c); byId[idx] = c;
+      });
+      tree.appendChild(row);
+    }
+    panel.appendChild(tree);
+    return function (s) {
+      nodes.forEach(function (n, id) {
+        var st = s.state[id];
+        byId[id].classList.toggle("algo-tp__tnode--removed", st === "cancelled");
+        byId[id].classList.toggle("algo-tp__tnode--current", st === "firing");
+      });
+    };
+  }
+
   // Trie: разбор задачи Replace Words — спуск shortestRoot до ПЕРВОГО isEnd. Строим бор
   // из корней dict, ведём слово query по символам; как только узел помечен isEnd — это
   // кратчайший корень-префикс (идём от начала слова), возвращаем word[:i+1]. Путь оборвался
@@ -4076,6 +4350,448 @@
       }
     }
     steps.push(snap({ done: true, line: 12, vars: { p: "—", m: "—", primes: cnt }, info: "Готово: " + cnt + " простых чисел в [2, " + n + "]" }));
+    return steps;
+  }
+
+  // Модульное возведение в степень (square-and-multiply) — ядро RSA. Ячейки —
+  // ДВОИЧНАЯ запись exp (MSB слева); указатель идёт СПРАВА НАЛЕВО, ровно как код
+  // читает exp&1 и делает exp>>=1. На бите 1 result домножается на base; на каждом
+  // шаге base возводится в квадрат — всё по модулю m. st: 1 — бит внёс вклад
+  // (result·base), 2 — бит пропущен (0), 0 — ещё не обработан.
+  function bModExp(base0, exp0, m) {
+    base0 = Math.max(0, Math.min(999, base0 | 0));
+    exp0 = Math.max(0, Math.min(255, exp0 | 0));
+    m = Math.max(1, Math.min(100000, m | 0));
+    var bits = exp0 > 0 ? exp0.toString(2).split("").map(Number) : [0];
+    var nb = bits.length;
+    var st = new Array(nb).fill(0), steps = [];
+    var result = 1 % m, base = ((base0 % m) + m) % m, exp = exp0;
+    function snap(extra) {
+      var b = { values: bits.slice(), st: st.slice(), lo: -1, hi: -1 };
+      for (var k in extra) { b[k] = extra[k]; }
+      return b;
+    }
+    steps.push(snap({ line: 1, vars: { base: base, result: result, bit: "—" }, info: "Старт: result = 1 mod m = " + result + ", base = " + base0 + " mod m = " + base }));
+    var idx = nb - 1;
+    while (exp > 0) {
+      var bit = exp & 1;
+      steps.push(snap({ lo: idx, line: 4, vars: { base: base, result: result, bit: bit }, info: "Бит " + bit + " (справа): " + (bit ? "нечётный → домножим result на base" : "чётный → result не меняем") }));
+      if (bit === 1) {
+        result = result * base % m;
+        st[idx] = 1;
+        steps.push(snap({ lo: idx, line: 5, vars: { base: base, result: result, bit: bit }, info: "result = result·base mod " + m + " = " + result }));
+      } else {
+        st[idx] = 2;
+      }
+      var sq = base * base % m;
+      steps.push(snap({ lo: idx, line: 7, vars: { base: sq, result: result, bit: bit }, info: "base = base² mod " + m + " = " + sq + " (готовим следующий бит)" }));
+      base = sq;
+      exp = Math.floor(exp / 2);
+      idx--;
+    }
+    steps.push(snap({ done: true, line: 10, vars: { base: base, result: result, bit: "—" }, info: base0 + "^" + exp0 + " mod " + m + " = " + result + " за " + nb + " бит вместо " + exp0 + " умножений" }));
+    return steps;
+  }
+
+  // Расширенный Евклид — цепочка остатков a, b, a%b, … до 0. Ячейки = эта цепочка;
+  // указатель идёт по ней, последний ненулевой остаток = НОД. Попутно считаются
+  // коэффициенты Безу x, y (a·x + b·y = НОД) — их и использует ModInverse.
+  function bExtGcd(a, b) {
+    a = Math.max(0, Math.min(9999, a | 0));
+    b = Math.max(0, Math.min(9999, b | 0));
+    var oldR = a, r = b, oldS = 1, s = 0, oldT = 0, t = 1;
+    var chain = [a, b], rows = [], guard = 0;
+    while (r !== 0 && guard++ < 60) {
+      var q = Math.floor(oldR / r);
+      var nr = oldR - q * r, ns = oldS - q * s, nt = oldT - q * t;
+      rows.push({ oldR: oldR, r: r, q: q, x: oldS, y: oldT, rem: nr });
+      oldR = r; r = nr; oldS = s; s = ns; oldT = t; t = nt;
+      chain.push(nr);
+    }
+    var gcd = oldR, x = oldS, y = oldT, gcdIdx = chain.length - 2;
+    if (gcdIdx < 0) gcdIdx = 0;
+    var st = new Array(chain.length).fill(0), steps = [];
+    function snap(extra) { var o = { values: chain.slice(), st: st.slice(), lo: -1, hi: -1 }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 0, vars: { q: "—", x: 1, y: 0, r: b }, info: "Евклид: цепочка остатков " + a + ", " + b + ", … до 0. Последний ненулевой — НОД." }));
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      steps.push(snap({ lo: i + 1, hi: i, line: 6, vars: { q: row.q, x: row.x, y: row.y, r: row.r }, info: row.oldR + " = " + row.q + "·" + row.r + " + " + row.rem + "  →  остаток " + row.rem + " (Безу: x=" + row.x + ", y=" + row.y + ")" }));
+      if (i > 0) st[i - 1] = 2;
+    }
+    for (var d = 0; d < gcdIdx; d++) st[d] = 2;
+    st[gcdIdx] = 1;
+    steps.push(snap({ done: true, lo: gcdIdx, line: 10, vars: { q: "—", x: x, y: y, r: 0 }, info: "НОД(" + a + ", " + b + ") = " + gcd + ";  " + a + "·(" + x + ") + " + b + "·(" + y + ") = " + gcd }));
+    return steps;
+  }
+
+  // Тест Миллера — Рабина для одного свидетеля a. Ячейки = цепочка возведений в
+  // квадрат x = a^d, (a^d)², … mod n. Если встретили 1 или n−1 — a НЕ уличает n
+  // (может быть простым); если n−1 так и не встретилось — a УЛИЧАЕТ: n составное.
+  // Именно так ловятся числа Кармайкла, которые обманывают тест Ферма.
+  function bMillerRabin(n, a) {
+    n = Math.max(3, Math.min(200000, n | 0));
+    if (n % 2 === 0) n++; // n нечётное для наглядности
+    a = Math.max(2, Math.min(n - 1, a | 0));
+    function modexp(base, e, m) { var res = 1 % m; base %= m; while (e > 0) { if (e & 1) res = res * base % m; base = base * base % m; e = Math.floor(e / 2); } return res; }
+    var d = n - 1, s = 0;
+    while (d % 2 === 0) { d = Math.floor(d / 2); s++; }
+    var chain = [], x = modexp(a, d, n);
+    chain.push(x);
+    for (var i = 0; i < s - 1; i++) { x = x * x % n; chain.push(x); }
+    var target = n - 1, st = new Array(chain.length).fill(0), steps = [];
+    function snap(extra) { var o = { values: chain.slice(), st: st.slice(), lo: -1, hi: -1 }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 1, vars: { a: a, x: "—", target: target }, info: "n−1 = " + d + "·2^" + s + "; проверяем свидетеля a = " + a }));
+    var first = chain[0];
+    steps.push(snap({ lo: 0, line: 3, vars: { a: a, x: first, target: target }, info: "x = " + a + "^" + d + " mod " + n + " = " + first }));
+    if (first === 1 || first === target) {
+      st[0] = 1;
+      steps.push(snap({ done: true, pass: true, lo: 0, line: 4, vars: { a: a, x: first, target: target }, info: "x = " + (first === 1 ? "1" : "n−1=" + target) + " → свидетель " + a + " НЕ уличает: " + n + " может быть простым" }));
+      return steps;
+    }
+    for (var j = 1; j < chain.length; j++) {
+      var v = chain[j];
+      st[j - 1] = 2;
+      if (v === target) {
+        st[j] = 1;
+        steps.push(snap({ done: true, pass: true, lo: j, line: 9, vars: { a: a, x: v, target: target }, info: "x² = n−1=" + target + " → нетривиальный корень: " + n + " может быть простым" }));
+        return steps;
+      }
+      steps.push(snap({ lo: j, line: 8, vars: { a: a, x: v, target: target }, info: "x = x² mod " + n + " = " + v + (v === 1 ? " (=1, но n−1 не встречалось!)" : "") }));
+    }
+    st[chain.length - 1] = 3;
+    steps.push(snap({ done: true, composite: true, lo: chain.length - 1, line: 11, vars: { a: a, x: chain[chain.length - 1], target: target }, info: "n−1=" + target + " так и не встретилось → свидетель " + a + " УЛИЧАЕТ: " + n + " составное" }));
+    return steps;
+  }
+
+  // Counting sort — гистограмма. Ячейки = count[v] (индекс = значение). Фаза 1:
+  // читаем вход, инкрементим бакеты. Фаза 2: обходим бакеты по возрастанию, выдаём
+  // каждое значение count[v] раз (бакет опустошается). O(n + k), устойчива, вне сравнений.
+  function bCountingSort(arr) {
+    var a = arr.slice().map(function (x) { return x | 0; }).filter(function (x) { return x >= 0; });
+    var k = a.length ? Math.max.apply(null, a) : 0;
+    k = Math.min(k, 15);
+    var count = new Array(k + 1).fill(0), steps = [], outLen = 0;
+    function snap(extra) { var o = { values: count.slice(), lo: -1, hi: -1, sorted: 0 }; for (var key in extra) { o[key] = extra[key]; } return o; }
+    steps.push(snap({ line: 1, vars: { v: "—", out: 0 }, info: "count[0.." + k + "] = 0 — гистограмма пуста" }));
+    for (var i = 0; i < a.length; i++) {
+      var v = a[i];
+      if (v > k) continue;
+      count[v]++;
+      steps.push(snap({ lo: v, line: 3, vars: { v: v, out: 0 }, info: "читаем " + v + " → count[" + v + "]++ = " + count[v] }));
+    }
+    for (var val = 0; val <= k; val++) {
+      while (count[val] > 0) {
+        count[val]--; outLen++;
+        steps.push(snap({ lo: val, line: 8, vars: { v: val, out: outLen }, info: "выдаём " + val + " (позиция " + outLen + " в результате), count[" + val + "]-- = " + count[val] }));
+      }
+    }
+    steps.push(snap({ done: true, line: 12, vars: { v: "—", out: outLen }, info: "Готово: " + outLen + " элементов выданы по возрастанию за O(n + k)" }));
+    return steps;
+  }
+
+  // Heap sort — построить max-heap просеиванием, затем n−1 раз менять корень
+  // (максимум) с концом кучи и чинить кучу. Отсортированный суффикс (dim) растёт
+  // справа. O(n log n), память O(1). Показываем каждый обмен просеивания.
+  function bHeapSort(arr) {
+    var a = arr.slice(), n = a.length, steps = [], swaps = 0;
+    function vv() { return { n: n, "обменов": swaps }; }
+    function snap(extra) { var o = { values: a.slice(), lo: -1, hi: -1, mid: -1, sorted: 0 }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    function siftDown(root, size, line, sortedCnt, tag) {
+      while (true) {
+        var largest = root, l = 2 * root + 1, r = 2 * root + 2;
+        if (l < size && a[l] > a[largest]) largest = l;
+        if (r < size && a[r] > a[largest]) largest = r;
+        if (largest === root) break;
+        var t = a[root]; a[root] = a[largest]; a[largest] = t; swaps++;
+        steps.push(snap({ lo: root, hi: largest, mid: largest, sorted: sortedCnt, line: line, vars: vv(), info: tag + ": a[" + root + "]=" + a[largest] + " < ребёнок a[" + largest + "]=" + a[root] + " → обмен (просеивание вниз)" }));
+        root = largest;
+      }
+    }
+    if (n <= 1) { steps.push(snap({ done: true, sorted: n, line: 9, vars: vv(), info: "Массив из " + n + " элемента(ов) уже отсортирован" })); return steps; }
+    steps.push(snap({ line: 0, vars: vv(), info: "Heap Sort: строим max-heap, затем извлекаем максимум в конец" }));
+    for (var i = Math.floor(n / 2) - 1; i >= 0; i--) {
+      steps.push(snap({ mid: i, line: 2, vars: vv(), info: "siftDown из узла " + i + " — достраиваем кучу снизу вверх" }));
+      siftDown(i, n, 3, 0, "build");
+    }
+    steps.push(snap({ line: 4, vars: vv(), info: "Max-heap готова: наибольший элемент в корне a[0]" }));
+    for (var end = n - 1; end > 0; end--) {
+      var t = a[0]; a[0] = a[end]; a[end] = t; swaps++;
+      steps.push(snap({ lo: 0, hi: end, mid: end, sorted: n - end, line: 6, vars: vv(), info: "максимум a[0]=" + a[end] + " → в конец (позиция " + end + "); отсортированный суффикс вырос" }));
+      siftDown(0, end, 7, n - end, "extract");
+    }
+    steps.push(snap({ done: true, sorted: n, line: 9, vars: vv(), info: "Готово за O(n log n), " + swaps + " обменов, память O(1)" }));
+    return steps;
+  }
+
+  // Rabin — Karp — поиск подстроки по хешам. Ячейки = текст; окно [lo,hi] скользит.
+  // Сравниваем хеш окна с хешем образца; при совпадении хешей проверяем строки
+  // (защита от коллизий). В среднем O(n+m) — хеш окна пересчитывается за O(1).
+  function bRabinKarp(text, pat) {
+    var n = text.length, m = pat.length, steps = [], res = [];
+    var B = 131, MOD = 1000000007, ps = pat.join("");
+    function hashOf(str) { var h = 0; for (var i = 0; i < str.length; i++) { h = (h * B + str.charCodeAt(i)) % MOD; } return h; }
+    var pHash = hashOf(ps);
+    function vv(i, wh) { return { i: (i == null ? "—" : i), "хеш образца": pHash, "хеш окна": (wh == null ? "—" : wh), "найдено": res.length }; }
+    if (!m || m > n) return [{ values: text.slice(), lo: -1, hi: -1, done: true, line: 0, vars: vv(), info: "Пустой или слишком длинный образец" }];
+    function snap(extra) { var o = { values: text.slice(), lo: -1, hi: -1 }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    for (var i = 0; i + m <= n; i++) {
+      var win = text.slice(i, i + m).join(""), wHash = hashOf(win), hm = wHash === pHash;
+      steps.push(snap({ lo: i, hi: i + m - 1, match: hm, line: 6, vars: vv(i, wHash), info: "окно [" + i + ".." + (i + m - 1) + "] хеш=" + wHash + (hm ? " == " : " ≠ ") + "хеш образца=" + pHash + (hm ? " → проверяем строки" : " → сдвиг за O(1)") }));
+      if (hm) {
+        if (win === ps) { res.push(i); steps.push(snap({ lo: i, hi: i + m - 1, improved: true, line: 7, vars: vv(i, wHash), info: "хеши совпали И строки равны → вхождение на позиции " + i + "!" })); }
+        else { steps.push(snap({ lo: i, hi: i + m - 1, line: 7, vars: vv(i, wHash), info: "хеши совпали, но строки разные — ложная тревога (коллизия), пропускаем" })); }
+      }
+    }
+    steps.push(snap({ lo: -1, hi: -1, done: true, found: res.length > 0, line: 11, vars: vv(), info: "return [" + res.join(", ") + "] — все вхождения, в среднем O(n + m)" }));
+    return steps;
+  }
+
+  // Кольцевой буфер (буфер канала). Ячейки = слоты; sendx (запись) и recvx (чтение)
+  // бегут по кругу, заворачиваясь в 0. Показывает FIFO без аллокаций: send заполняет
+  // слот и двигает sendx, recv освобождает слот и двигает recvx; при qcount==size
+  // send «блокируется» (буфер полон). ops: строка вроде "A,B,C,-,-,D" ('-' = recv).
+  function bRingBuffer(size, ops) {
+    size = Math.max(2, Math.min(8, size | 0));
+    var buf = new Array(size).fill("·"), filled = new Array(size).fill(0);
+    var sendx = 0, recvx = 0, qcount = 0, steps = [];
+    function snap(extra) { var o = { values: buf.slice(), st: filled.slice(), lo: sendx, hi: recvx }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 0, vars: { sendx: sendx, recvx: recvx, qcount: qcount }, info: "Кольцо на " + size + " слотов пусто. sendx и recvx на 0." }));
+    for (var i = 0; i < ops.length; i++) {
+      var op = ops[i];
+      if (op === "-" || op === "r" || op === "R") {
+        if (qcount === 0) {
+          steps.push(snap({ blocked: true, line: 13, vars: { sendx: sendx, recvx: recvx, qcount: qcount }, info: "recv: буфер пуст (qcount=0) → приём блокируется до записи" }));
+          continue;
+        }
+        var rv = buf[recvx];
+        buf[recvx] = "·"; filled[recvx] = 0;
+        steps.push(snap({ hot: true, line: 14, vars: { sendx: sendx, recvx: recvx, qcount: qcount }, info: "recv: читаем buf[" + recvx + "] = " + rv + " и освобождаем слот" }));
+        recvx = (recvx + 1) % size; qcount--;
+        steps.push(snap({ line: 16, vars: { sendx: sendx, recvx: recvx, qcount: qcount }, info: "recvx++ → " + recvx + (recvx === 0 ? " (заворот в 0)" : "") + "; в очереди " + qcount }));
+      } else {
+        if (qcount === size) {
+          steps.push(snap({ blocked: true, line: 7, vars: { sendx: sendx, recvx: recvx, qcount: qcount }, info: "send " + op + ": буфер полон (qcount=" + size + ") → отправка блокируется до чтения" }));
+          continue;
+        }
+        buf[sendx] = op; filled[sendx] = 1;
+        steps.push(snap({ hot: true, line: 8, vars: { sendx: sendx, recvx: recvx, qcount: qcount }, info: "send: пишем " + op + " в buf[" + sendx + "]" }));
+        sendx = (sendx + 1) % size; qcount++;
+        steps.push(snap({ line: 10, vars: { sendx: sendx, recvx: recvx, qcount: qcount }, info: "sendx++ → " + sendx + (sendx === 0 ? " (заворот в 0)" : "") + "; в очереди " + qcount }));
+      }
+    }
+    steps.push(snap({ done: true, line: 19, vars: { sendx: sendx, recvx: recvx, qcount: qcount }, info: "Готово: " + qcount + "/" + size + " в кольце. Ни одной аллокации — только два индекса по кругу." }));
+    return steps;
+  }
+
+  // Маршрутизатор ServeMux — дерево по СЕГМЕНТАМ пути. Строим дерево из паттернов
+  // (литеральные сегменты и wildcard {id}), затем ведём запрос сегмент за сегментом:
+  // сперва точный литерал, если нет — wildcard (захват значения), иначе 404. Литерал
+  // раньше wildcard = «самый конкретный побеждает». Рисуется тем же trieViz (узлы —
+  // сегменты, path — спуск совпадения).
+  function bRouteMatch(patterns, request) {
+    var nodes = [{ ch: "/", depth: 0, end: false, children: {} }];
+    patterns.forEach(function (p) {
+      var segs = p.split("/").filter(Boolean), cur = 0;
+      segs.forEach(function (seg, k) {
+        var key = seg[0] === "{" ? "{}" : seg; // все wildcard'ы под одним ключом
+        if (nodes[cur].children[key] == null) {
+          nodes.push({ ch: seg, depth: k + 1, end: false, children: {}, wild: seg[0] === "{" });
+          nodes[cur].children[key] = nodes.length - 1;
+        }
+        cur = nodes[cur].children[key];
+      });
+      nodes[cur].end = true;
+    });
+    var reqSegs = request.split("/").filter(Boolean);
+    var path = [0], cur = 0, upto = 0, caps = [], steps = [];
+    function push(o) { steps.push({ upto: upto, line: o.line, vars: { seg: o.seg || "—", node: nodes[cur].ch, caps: caps.length ? caps.join(", ") : "—" }, info: o.info, done: o.done, found: o.found }); }
+    push({ line: 0, info: "Запрос " + request + " → спускаемся по сегментам от корня «/»" });
+    for (var i = 0; i < reqSegs.length; i++) {
+      var seg = reqSegs[i];
+      var litId = nodes[cur].children[seg], wildId = nodes[cur].children["{}"];
+      push({ line: 5, seg: seg, info: "Сегмент «" + seg + "»: есть ли точный литеральный потомок?" });
+      if (litId != null) {
+        cur = litId; upto++; path.push(cur);
+        push({ line: 6, seg: seg, info: "Литерал «" + seg + "» есть → спускаемся (точное совпадение важнее wildcard)" });
+      } else if (wildId != null) {
+        cur = wildId; upto++; path.push(cur);
+        caps.push(nodes[cur].ch.replace(/[{}]/g, "") + "=" + seg);
+        push({ line: 10, seg: seg, info: "Литерала нет → wildcard «" + nodes[cur].ch + "», захватываем «" + seg + "»" });
+      } else {
+        push({ line: 13, done: true, seg: seg, info: "Ни литерала «" + seg + "», ни wildcard — обработчика нет → 404" });
+        return { nodes: nodes, path: path, steps: steps };
+      }
+    }
+    if (nodes[cur].end) {
+      push({ line: 2, found: true, done: true, info: "Сегменты кончились и узел — конец паттерна → совпало!" + (caps.length ? " Переменные: " + caps.join(", ") : "") });
+    } else {
+      push({ line: 13, done: true, info: "Сегменты кончились, но здесь нет обработчика (только префикс) → 404" });
+    }
+    return { nodes: nodes, path: path, steps: steps };
+  }
+
+  // Swiss Tables (реализация map с Go 1.24). Ячейки = control-байты одной группы из 8
+  // слотов: у каждого занятого слота хранится h2 (младшие 7 бит хеша), ∅ = пусто. Поиск
+  // вычисляет h2 ключа и одним сравнением (matchH2) находит ВСЕ слоты с этим h2 —
+  // кандидатов, затем сверяет сам ключ (h2 могут совпасть по редкой коллизии 7 бит).
+  // st: 1 — ключ найден, 2 — пусто (dim), 3 — кандидат (h2 совпал).
+  function bSwissLookup(ctrls, h2t, hit) {
+    var n = ctrls.length;
+    var vals = ctrls.map(function (c) { return c == null ? "∅" : String(c); });
+    var st = new Array(n).fill(0), steps = [];
+    function snap(extra) { var o = { values: vals.slice(), st: st.slice(), lo: -1, hi: -1 }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 3, vars: { h2: h2t, slot: "—", res: "—" }, info: "Ищем ключ. h2 = " + h2t + " — младшие 7 бит хеша (control-байт)" }));
+    var cands = [];
+    for (var i = 0; i < n; i++) { if (ctrls[i] === h2t) { st[i] = 3; cands.push(i); } else if (ctrls[i] == null) { st[i] = 2; } }
+    steps.push(snap({ line: 5, vars: { h2: h2t, slot: "—", res: "—" }, info: "matchH2: ОДНИМ сравнением control-слова находим все слоты с h2=" + h2t + " → кандидаты [" + cands.join(", ") + "]" }));
+    for (var c = 0; c < cands.length; c++) {
+      var idx = cands[c];
+      steps.push(snap({ lo: idx, line: 6, vars: { h2: h2t, slot: idx, res: "?" }, info: "Слот " + idx + ": h2 совпал — сверяем сам ключ" }));
+      if (idx === hit) {
+        st[idx] = 1;
+        steps.push(snap({ done: true, found: true, lo: idx, line: 7, vars: { h2: h2t, slot: idx, res: "найдено" }, info: "Ключ совпал в слоте " + idx + " → значение найдено. Проверок ключа: " + (c + 1) + " (а не все 8 слотов)." }));
+        return steps;
+      }
+      st[idx] = 0;
+      steps.push(snap({ lo: idx, line: 6, vars: { h2: h2t, slot: idx, res: "мимо" }, info: "Слот " + idx + ": h2 совпал, но КЛЮЧ другой (редкая коллизия по 7 битам) — следующий кандидат" }));
+    }
+    steps.push(snap({ done: true, line: 10, vars: { h2: h2t, slot: "—", res: "нет" }, info: "Кандидаты кончились, ключ не найден → нет в map" }));
+    return steps;
+  }
+
+  // sync.Mutex — всё состояние в одном int32: бит 0 locked, бит 1 woken, бит 2 starving,
+  // биты 3+ — счётчик ожидающих. Ячейки = биты 0..7 (слева направо). Показывает, как
+  // Lock/Unlock и приход горутины меняют флаги и счётчик АТОМАРНО (CAS/Add), без аллокаций.
+  function bMutexBits() {
+    var LOCKED = 1, WSHIFT = 3, state = 0, steps = [];
+    function bitsOf(st) { var a = []; for (var i = 0; i < 8; i++) { a.push(String((st >> i) & 1)); } return a; }
+    function snap(changed, line, info, done) { return { values: bitsOf(state), lo: (changed == null ? -1 : changed), changed: (changed == null ? -1 : changed), line: line, done: done, vars: { locked: (state & LOCKED) ? 1 : 0, starving: (state & 4) ? 1 : 0, waiters: state >> WSHIFT }, info: info }; }
+    steps.push(snap(null, 0, "state = 0 — мьютекс свободен, все биты нули"));
+    state |= LOCKED;
+    steps.push(snap(0, 9, "G1.Lock(): CAS 0→locked удался → бит 0 (locked) = 1. Быстрый путь, без блокировки."));
+    state += (1 << WSHIFT);
+    steps.push(snap(WSHIFT, 12, "G2.Lock(): лок занят → атомарно +1 к счётчику ожидающих (бит 3). Флаги не тронуты."));
+    state &= ~LOCKED;
+    steps.push(snap(0, 15, "G1.Unlock(): AddInt32 снимает бит 0 (locked=0); state≠0 (есть ожидающие) → будим одного."));
+    state += LOCKED; state -= (1 << WSHIFT);
+    steps.push(snap(0, 9, "G2 проснулась: захватывает лок (locked=1), счётчик ожидающих −1 (бит 3 гаснет)."));
+    steps.push(snap(null, 0, "Итог: 3 флага + счётчик — в ОДНОМ int32, всё через атомарные CAS/Add. Ни одной аллокации.", true));
+    return steps;
+  }
+
+  // TLS 1.3 handshake — последовательность сообщений. Показывает, как за 1 round-trip
+  // согласуется общий секрет (ECDHE), подтверждается подлинность (сертификат) и
+  // включается шифрование (AES-GCM): asymmetric → symmetric. Рисуется handshakeViz.
+  function bTLSHandshake() {
+    var msgs = [
+      { dir: "c2s", text: "ClientHello: список шифров + ключевой share (ECDHE)" },
+      { dir: "s2c", text: "ServerHello: свой ключевой share" },
+      { dir: "note", text: "Обе стороны вычислили ОДИН общий секрет (ECDHE), не передавая его" },
+      { dir: "s2c", text: "{Certificate, CertificateVerify, Finished} — уже зашифровано" },
+      { dir: "note", text: "Клиент проверил сертификат по цепочке до доверенного CA" },
+      { dir: "c2s", text: "{Finished} — рукопожатие завершено" },
+      { dir: "note", text: "Канал готов: прикладные данные идут под AES-GCM" }
+    ];
+    var steps = [];
+    for (var i = 0; i < msgs.length; i++) {
+      steps.push({ reveal: i, line: i + 1, done: i === msgs.length - 1, vars: { secret: i >= 2 ? "да" : "нет", auth: i >= 4 ? "да" : "нет", enc: i >= 3 ? "да" : "нет" }, info: msgs[i].text });
+    }
+    return { msgs: msgs, steps: steps };
+  }
+
+  // OAuth 2.0 Authorization Code + PKCE (OIDC) — как приложение получает токен, НЕ видя
+  // пароль пользователя (его видит только Auth-сервер). Переиспользует handshakeViz:
+  // колонки «Приложение ↔ Auth-сервер», действия пользователя — заметками.
+  function bOAuthFlow() {
+    var msgs = [
+      { dir: "c2s", text: "Redirect на Auth-сервер: client_id, scope, PKCE code_challenge, state" },
+      { dir: "note", text: "Пользователь входит и даёт согласие — пароль видит ТОЛЬКО Auth-сервер" },
+      { dir: "s2c", text: "Redirect обратно: authorization code (+ state)" },
+      { dir: "c2s", text: "Back-channel: обмен code + PKCE code_verifier на токены" },
+      { dir: "s2c", text: "access_token + id_token (JWT, OIDC) + refresh_token" },
+      { dir: "c2s", text: "Запрос к API с access_token (Authorization: Bearer)" },
+      { dir: "note", text: "id_token (JWT) сообщает, КТО пользователь — это уже OIDC" }
+    ];
+    var steps = [];
+    for (var i = 0; i < msgs.length; i++) {
+      steps.push({ reveal: i, line: i + 1, done: i === msgs.length - 1, vars: { code: i >= 2 ? "да" : "нет", token: i >= 4 ? "да" : "нет" }, info: msgs[i].text });
+    }
+    return { msgs: msgs, parties: ["🧑‍💻 Приложение", "🔐 Auth-сервер"], steps: steps };
+  }
+
+  // context.Context — дерево отмены. Отмена/таймаут узла каскадом валит всё поддерево
+  // (cancel перебирает c.children), не задевая родителя и соседей. Рисуется ctxTreeViz.
+  function bContextTree() {
+    var nodes = [
+      { label: "Background", depth: 0 },
+      { label: "srv (WithCancel)", depth: 1 },
+      { label: "req (WithTimeout)", depth: 2 },
+      { label: "db-запрос", depth: 3 },
+      { label: "http-вызов", depth: 3 },
+      { label: "req2", depth: 2 }
+    ];
+    var state = {}, steps = [];
+    function cnt() { var c = 0; for (var k in state) { if (state[k] === "cancelled") c++; } return c; }
+    function snap(line, info, done) { return { state: Object.assign({}, state), line: line, done: done, vars: { cancelled: cnt(), alive: nodes.length - cnt() }, info: info }; }
+    steps.push(snap(0, "Дерево контекстов запроса: Background → srv → req → {db, http}, плюс сосед req2. Все живы."));
+    state[2] = "firing";
+    steps.push(snap(4, "У req истёк таймаут (WithTimeout) → ctx.Done() закрывается, req отменяется"));
+    state[2] = "cancelled";
+    steps.push(snap(5, "Отмена течёт ВНИЗ: cancel() перебирает c.children и валит каждого ребёнка"));
+    state[3] = "cancelled";
+    steps.push(snap(7, "db-запрос ловит <-ctx.Done() и прерывается (ctx.Err() = DeadlineExceeded)"));
+    state[4] = "cancelled";
+    steps.push(snap(7, "http-вызов тоже отменён — вся работа под req свёрнута, ресурсы освобождены"));
+    steps.push(snap(8, "Сосед req2 и родитель srv НЕ затронуты: отмена идёт ТОЛЬКО вниз по поддереву", true));
+    return { nodes: nodes, steps: steps };
+  }
+
+  // sync.Pool — переиспользование временных объектов ради снижения аллокаций и нагрузки
+  // на GC. Ячейки = припасённые объекты. Get берёт из пула (reuse) или создаёт новый (New);
+  // Put возвращает объект; GC очищает пул (это КЭШ, не хранилище). ops: "put,get,gc,…".
+  function bSyncPool(ops) {
+    var MAX = 7, pool = [], reused = 0, allocs = 0, nextCode = 97, steps = [];
+    function vals() { var a = []; for (var i = 0; i < MAX; i++) { a.push(i < pool.length ? pool[i] : "·"); } return a; }
+    function snap(extra) { var o = { values: vals(), lo: -1, vars: { inpool: pool.length, reused: reused, allocs: allocs } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 0, info: "Пул пуст. Get берёт объект из пула (reuse) или создаёт новый (New); Put возвращает объект в пул." }));
+    ops.forEach(function (op) {
+      if (op === "put") {
+        if (pool.length < MAX) { var lbl = String.fromCharCode(nextCode++); pool.push(lbl); steps.push(snap({ lo: pool.length - 1, hot: true, line: 4, info: "Put: воркер вернул объект «" + lbl + "» в пул — теперь его можно переиспользовать" })); }
+      } else if (op === "get") {
+        if (pool.length > 0) { var l2 = pool.pop(); reused++; steps.push(snap({ lo: pool.length, line: 6, info: "Get: пул не пуст → переиспользуем «" + l2 + "» (аллокация СЭКОНОМЛЕНА). Всего reuse: " + reused })); }
+        else { allocs++; steps.push(snap({ hot: true, line: 7, info: "Get: пул пуст → New() создаёт НОВЫЙ объект (аллокация + работа для GC). Всего alloc: " + allocs })); }
+      } else if (op === "gc") {
+        pool = []; steps.push(snap({ line: 9, info: "Сборщик мусора очистил пул — припасённые объекты освобождены (пул это КЭШ, полагаться на его содержимое нельзя)" }));
+      }
+    });
+    steps.push(snap({ done: true, line: 8, info: "Итог: переиспользовано " + reused + ", новых аллокаций " + allocs + ". Пул срезал " + reused + " аллокаций — меньше давление на GC." }));
+    return steps;
+  }
+
+  // regexp (RE2, Thompson NFA) — держим МНОЖЕСТВО активных состояний и читаем вход по
+  // одному символу: из каждого активного состояния берём все переходы. Размер множества
+  // ограничен числом состояний → линейное время, без катастрофического бэктрекинга (ReDoS).
+  // Демо-регэксп: a(b|c)*c. Ячейки = вход; варс = активное множество состояний.
+  function bNfaMatch(input) {
+    var chars = String(input || "abcc").split("").slice(0, 12);
+    function label(s) { return s === 0 ? "q0" : (s === 1 ? "q1" : "q2✓"); }
+    function trans(s, ch) { if (s === 0) return ch === "a" ? [1] : []; if (s === 1) return ch === "b" ? [1] : (ch === "c" ? [1, 2] : []); return []; }
+    function setStr(a) { return a.length ? "{" + a.map(label).join(", ") + "}" : "{}"; }
+    var active = [0], steps = [];
+    function snap(extra) { var o = { values: chars.slice(), lo: -1, vars: { active: setStr(active), size: active.length, matched: active.indexOf(2) >= 0 ? "да" : "нет" } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 1, info: "Регэксп a(b|c)*c → NFA. Старт: активно " + setStr(active) + ". RE2 держит МНОЖЕСТВО состояний одновременно." }));
+    for (var i = 0; i < chars.length; i++) {
+      var ch = chars[i], next = [];
+      active.forEach(function (s) { trans(s, ch).forEach(function (t) { if (next.indexOf(t) < 0) next.push(t); }); });
+      next.sort(function (a, b) { return a - b; });
+      active = next;
+      var info = "Читаем «" + ch + "» → активные " + setStr(active) + " (размер " + active.length + " ≤ 3 состояний). Без возврата.";
+      if (active.length === 0) { info = "Читаем «" + ch + "» → активных состояний нет: дальше совпадения быть не может."; }
+      steps.push(snap({ lo: i, line: 9, info: info }));
+      if (active.length === 0) break;
+    }
+    var m = active.indexOf(2) >= 0;
+    steps.push(snap({ done: true, found: m, line: 11, info: m ? "Финал: q2✓ в активном множестве → строка ПОДХОДИТ под a(b|c)*c" : "Финал: финальное состояние не активно → строка НЕ подходит" }));
     return steps;
   }
 
@@ -6320,6 +7036,347 @@
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Решето построено", text: s.vars.primes + " простых чисел" }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "p=" + s.vars.p, b: "m=" + s.vars.m, c: "простых " + s.vars.primes, cls: "gt" }; },
       varsOf: function (s) { return { p: s.vars.p, m: s.vars.m, primes: s.vars.primes }; }
+    },
+
+    "mod-exp": {
+      badge: "Modular Exponentiation",
+      desc: "Быстрое возведение base^exp mod m (square-and-multiply) — ядро RSA. Степень читается по битам справа налево: на бите 1 домножаем result, на каждом шаге возводим base в квадрат — всё по модулю.",
+      valuesLabel: "Биты exp (MSB слева, читаем справа налево)", codeKey: "mod-exp", fillRange: false,
+      ptr1: { name: "бит", cap: "(текущий бит exp)" },
+      complexity: { time: "O(log exp)", space: "O(1)", good: "★ Основа RSA и «по модулю»" },
+      varOrder: ["base", "result", "bit"],
+      varDesc: { base: "Текущий base² mod m", result: "Накопленный результат mod m", bit: "Текущий бит степени" },
+      lineNotes: { 0: "base^exp mod m без переполнения и гигантских чисел", 1: "result = 1 (нейтральный по умножению)", 2: "base приводим по модулю m", 3: "Пока в exp остались биты", 4: "Младший бит exp равен 1?", 5: "Бит 1 → домножаем result на текущий base (mod m)", 7: "Возводим base в квадрат: base, base², base⁴, …", 8: "Сдвигаем exp вправо — переходим к следующему биту", 10: "Биты кончились → result и есть ответ" },
+      rules: [{ head: "бит = 1", body: "→ result·base mod m", cls: "gt" }, { head: "каждый шаг", body: "base = base² mod m", cls: "lt" }, { head: "почему log", body: "битов у exp всего ⌊log₂exp⌋+1", cls: "eq" }],
+      parse: function (root) { var b = parseInt(root.getAttribute("data-base"), 10); var e = parseInt(root.getAttribute("data-exp"), 10); var m = parseInt(root.getAttribute("data-m"), 10); if (isNaN(b)) b = 2; if (isNaN(e)) e = 10; if (isNaN(m)) m = 1000; return { base: b, exp: e, m: m, steps: bModExp(b, e, m) }; },
+      inputs: [{ attr: "data-base", label: "base" }, { attr: "data-exp", label: "exp" }, { attr: "data-m", label: "m" }],
+      values: function (ctx) { return bModExp(ctx.base, ctx.exp, ctx.m)[0].values; },
+      title: function (ctx) { return "ModExp: " + ctx.base + "^" + ctx.exp + " mod " + ctx.m; },
+      cellState: function (s, j) { var st = {}; if (s.st[j] === 1) st.found = true; else if (s.st[j] === 2) st.dim = true; if (j === s.lo && s.lo >= 0) st.lo = true; return st; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      sumCells: ["result", "base"],
+      sumValues: function (s) { return [{ text: s.vars.result, cls: "gt" }, { text: s.vars.base, cls: "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { var mul = s.line === 5; return { a: "бит=" + s.vars.bit, b: "result=" + s.vars.result, c: mul ? "·base" : "base²", cls: mul ? "gt" : "lt" }; },
+      varsOf: function (s) { return { base: s.vars.base, result: s.vars.result, bit: s.vars.bit }; }
+    },
+
+    "ext-gcd": {
+      badge: "Extended Euclid",
+      desc: "Расширенный алгоритм Евклида: цепочка остатков a, b, a%b, … сходится к НОД (последний ненулевой). Попутно считаются коэффициенты Безу x, y с a·x + b·y = НОД — основа обратного по модулю.",
+      valuesLabel: "Цепочка остатков (последний ненулевой = НОД)", codeKey: "ext-gcd", fillRange: false,
+      ptr1: { name: "r", cap: "(текущий остаток)" }, ptr2: { name: "oldR", cap: "(делимое)" },
+      complexity: { time: "O(log min(a,b))", space: "O(1)", good: "★ НОД + коэффициенты Безу" },
+      varOrder: ["q", "x", "y", "r"],
+      varDesc: { q: "Частное oldR / r", x: "Коэффициент Безу при a", y: "Коэффициент Безу при b", r: "Текущий остаток" },
+      lineNotes: { 0: "g = НОД(a,b) и x,y с a·x + b·y = g", 4: "Пока остаток r не стал нулём", 5: "Частное q = oldR / r", 6: "Сдвиг остатков: (oldR, r) = (r, oldR − q·r)", 7: "Те же сдвиги для коэффициентов при a…", 8: "…и при b", 10: "Возвращаем НОД и коэффициенты Безу" },
+      rules: [{ head: "остаток → 0", body: "предыдущий = НОД", cls: "gt" }, { head: "Безу", body: "a·x + b·y = НОД", cls: "eq" }, { head: "зачем", body: "x = a⁻¹ mod b (основа RSA)", cls: "lt" }],
+      parse: function (root) { var a = parseInt(root.getAttribute("data-a"), 10); var b = parseInt(root.getAttribute("data-b"), 10); if (isNaN(a)) a = 240; if (isNaN(b)) b = 46; return { a: a, b: b, steps: bExtGcd(a, b) }; },
+      inputs: [{ attr: "data-a", label: "a" }, { attr: "data-b", label: "b" }],
+      values: function (ctx) { return bExtGcd(ctx.a, ctx.b)[0].values; },
+      title: function (ctx) { return "Расширенный Евклид: НОД(" + ctx.a + ", " + ctx.b + ")"; },
+      cellState: function (s, j) { if (s.st[j] === 1) return { found: true }; var o = {}; if (s.st[j] === 2) o.dim = true; if (j === s.lo && s.lo >= 0) o.lo = true; if (j === s.hi && s.hi >= 0) o.hi = true; return o; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: (s.hi == null ? -1 : s.hi) }; },
+      sumCells: ["x (Безу)", "y (Безу)"],
+      sumValues: function (s) { return [{ text: s.vars.x, cls: "gt" }, { text: s.vars.y, cls: "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "НОД найден", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "q=" + s.vars.q, b: "r=" + s.vars.r, c: "x=" + s.vars.x + ", y=" + s.vars.y, cls: "eq" }; },
+      varsOf: function (s) { return { q: s.vars.q, x: s.vars.x, y: s.vars.y, r: s.vars.r }; }
+    },
+
+    "miller-rabin": {
+      badge: "Miller — Rabin",
+      desc: "Тест простоты для одного свидетеля a: цепочка x = a^d, (a^d)², … mod n. Встретили 1 или n−1 — a не уличает n. Не встретили n−1 — a уличает: n составное. Так ловятся числа Кармайкла, обманывающие тест Ферма.",
+      valuesLabel: "Цепочка возведений в квадрат x = a^d, (a^d)², … mod n", codeKey: "miller-rabin", fillRange: false,
+      ptr1: { name: "x", cap: "(текущий член цепочки)" },
+      complexity: { time: "O(k·log³n)", space: "O(1)", good: "★ Простота больших чисел (RSA)" },
+      varOrder: ["a", "x", "target"],
+      varDesc: { a: "Свидетель", x: "Текущий член цепочки", target: "Искомое значение n−1" },
+      lineNotes: { 1: "Раскладываем n−1 = d·2^s (d нечётно)", 3: "Старт цепочки: x = a^d mod n", 4: "x равен 1 или n−1?", 5: "Да → свидетель не уличает n", 7: "Возводим в квадрат до s−1 раз", 8: "x = x² mod n", 9: "Встретили n−1 → нетривиальный корень, n может быть простым", 11: "n−1 не встретилось → n составное" },
+      rules: [{ head: "1 или n−1", body: "→ a не уличает", cls: "gt" }, { head: "нет n−1", body: "→ n составное", cls: "lt" }, { head: "Кармайкл", body: "Ферма обманут, Миллер—Рабин нет", cls: "eq" }],
+      parse: function (root) { var n = parseInt(root.getAttribute("data-n"), 10); var a = parseInt(root.getAttribute("data-a"), 10); if (isNaN(n)) n = 561; if (isNaN(a)) a = 2; return { n: n, a: a, steps: bMillerRabin(n, a) }; },
+      inputs: [{ attr: "data-n", label: "n" }, { attr: "data-a", label: "свидетель a" }],
+      values: function (ctx) { return bMillerRabin(ctx.n, ctx.a)[0].values; },
+      title: function (ctx) { return "Миллер — Рабин: n = " + ctx.n + ", свидетель a = " + ctx.a; },
+      cellState: function (s, j) { if (s.st[j] === 1) return { found: true }; if (s.st[j] === 3) return { mid: true }; var o = {}; if (s.st[j] === 2) o.dim = true; if (j === s.lo && s.lo >= 0) o.lo = true; return o; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      sumCells: ["x", "цель n−1"],
+      sumValues: function (s) { return [{ text: s.vars.x }, { text: s.vars.target, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done && s.composite) return { kind: "end", icon: "✗", head: "Составное", text: s.info }; if (s.done) return { kind: "ok", icon: "✓", head: "Может быть простым", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { var comp = s.composite; return { a: "a=" + s.vars.a, b: "x=" + s.vars.x, c: comp ? "составное" : (s.pass ? "n−1 / 1" : "x²"), cls: comp ? "lt" : "gt" }; },
+      varsOf: function (s) { return { a: s.vars.a, x: s.vars.x, target: s.vars.target }; }
+    },
+
+    "counting-sort": {
+      badge: "Counting Sort",
+      desc: "Сортировка подсчётом: без сравнений. Ячейки — гистограмма count[v] (индекс = значение). Сначала считаем, сколько раз встретилось каждое значение, потом обходим бакеты по возрастанию и выдаём. O(n + k), устойчива.",
+      valuesLabel: "Гистограмма count[v] (индекс ячейки = значение)", codeKey: "counting-sort", fillRange: false,
+      ptr1: { name: "v", cap: "(текущее значение)" },
+      complexity: { time: "O(n + k)", space: "O(k)", good: "★ Без сравнений, при малом k" },
+      varOrder: ["v", "out"],
+      varDesc: { v: "Читаемое / выдаваемое значение", out: "Сколько уже выдано в результат" },
+      lineNotes: { 0: "k — максимальное значение; count размера k+1", 1: "Обнуляем счётчики бакетов", 3: "Гистограмма: count[v]++ на каждое значение", 6: "Обходим бакеты по возрастанию v", 7: "Выдаём v столько раз, сколько его встретилось", 8: "Добавляем v в результат", 12: "out уже отсортирован по возрастанию" },
+      rules: [{ head: "фаза 1", body: "count[v]++ — гистограмма", cls: "gt" }, { head: "фаза 2", body: "бакеты по порядку → out", cls: "lt" }, { head: "когда", body: "малый диапазон k значений", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bCountingSort(arr) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function (ctx) { return bCountingSort(ctx.arr)[0].values; },
+      title: function () { return "Counting Sort — сортировка подсчётом"; },
+      cellState: function (s, j) { var o = {}; if (s.values[j] > 0) o.found = true; if (j === s.lo && s.lo >= 0) o.lo = true; return o; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      sumCells: ["значение v", "выдано"],
+      sumValues: function (s) { return [{ text: s.vars.v }, { text: s.vars.out, cls: "gt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Отсортировано", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "v=" + s.vars.v, b: "выдано " + s.vars.out, c: s.line === 3 ? "count++" : (s.line === 8 ? "→ out" : ""), cls: s.line === 3 ? "gt" : "lt" }; },
+      varsOf: function (s) { return { v: s.vars.v, out: s.vars.out }; }
+    },
+
+    "heap-sort": {
+      badge: "Heap Sort",
+      desc: "Пирамидальная сортировка: строим max-heap просеиванием, затем n−1 раз меняем корень (максимум) с концом кучи и чиним кучу. Отсортированный суффикс (затемнён) растёт справа. O(n log n), память O(1).",
+      valuesLabel: "Массив (отсортированный суффикс затемнён)", codeKey: "heap-sort", fillRange: false,
+      ptr1: { name: "root", cap: "(просеиваемый узел)" }, ptr2: { name: "child", cap: "(больший ребёнок)" },
+      complexity: { time: "O(n log n)", space: "O(1)", good: "★ Гарантия n log n, на месте" },
+      varOrder: ["n", "обменов"],
+      varDesc: { n: "Размер массива", "обменов": "Сделано обменов" },
+      lineNotes: { 0: "Сортировка на месте через двоичную кучу", 2: "Строим кучу снизу вверх, от последнего родителя", 3: "siftDown опускает узел, пока он меньше ребёнка", 5: "Извлечение: n−1 раз снимаем максимум", 6: "Максимум (корень) меняем с концом кучи", 7: "Чиним кучу на суженном диапазоне" },
+      rules: [{ head: "фаза 1", body: "build max-heap за O(n)", cls: "gt" }, { head: "фаза 2", body: "extract max n раз", cls: "lt" }, { head: "суффикс", body: "справа — уже отсортирован", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bHeapSort(arr) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function (ctx) { return ctx.arr; },
+      title: function () { return "Heap Sort — пирамидальная сортировка"; },
+      cellState: function (s, j) { var start = s.values.length - (s.sorted || 0); if (j >= start) return { found: true }; var o = {}; if (j === s.mid && s.mid >= 0) o.mid = true; if (j === s.lo && s.lo >= 0) o.lo = true; if (j === s.hi && s.hi >= 0) o.hi = true; return o; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: (s.hi == null ? -1 : s.hi) }; },
+      sumCells: ["n", "обменов"],
+      sumValues: function (s) { return [{ text: s.vars.n }, { text: s.vars["обменов"], cls: "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Отсортировано", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { var ex = s.line === 6; return { a: "обменов " + s.vars["обменов"], b: ex ? "макс → в конец" : "просеивание", c: s.line === 4 ? "куча готова" : "", cls: ex ? "lt" : "gt" }; },
+      varsOf: function (s) { return { n: s.vars.n, "обменов": s.vars["обменов"] }; }
+    },
+
+    "rabin-karp": {
+      badge: "Rabin — Karp",
+      desc: "Поиск подстроки по хешам: окно длины m скользит по тексту, сравниваем ХЕШ окна с хешем образца (за O(1) на сдвиг). При совпадении хешей проверяем строки — защита от коллизий. В среднем O(n + m).",
+      valuesLabel: "Текст", codeKey: "rabin-karp", fillRange: true,
+      ptr1: { name: "i", cap: "(начало окна)" }, ptr2: { name: "i+m−1", cap: "(конец окна)" },
+      complexity: { time: "O(n + m) в ср.", space: "O(1)", good: "★ Хеш окна за O(1) на сдвиг" },
+      varOrder: ["i", "хеш образца", "хеш окна", "найдено"],
+      varDesc: { i: "Начало окна", "хеш образца": "Полиномиальный хеш pat", "хеш окна": "Хеш текущего окна", "найдено": "Найдено вхождений" },
+      lineNotes: { 2: "Хеш образца — считаем один раз", 3: "Хеш первого окна текста", 5: "Скользим окном по тексту", 6: "Хеши равны И строки равны → вхождение", 7: "Записываем позицию вхождения", 9: "Пересчитываем хеш окна за O(1) (rolling)", 11: "Возвращаем все позиции" },
+      rules: [{ head: "хеши разные", body: "→ точно не вхождение, сдвиг", cls: "gt" }, { head: "хеши равны", body: "→ проверяем строки (коллизия?)", cls: "lt" }, { head: "rolling", body: "хеш окна за O(1)", cls: "eq" }],
+      parse: function (root) { var text = (root.getAttribute("data-text") || "").split(""); var pat = (root.getAttribute("data-pattern") || "").split(""); return { text: text, pat: pat, steps: bRabinKarp(text, pat) }; },
+      inputs: [{ attr: "data-text", label: "Текст" }, { attr: "data-pattern", label: "Образец" }],
+      values: function (ctx) { return ctx.text; },
+      title: function (ctx) { return "Rabin — Karp: поиск «" + ctx.pat.join("") + "»"; },
+      cellState: function (s, j) { if (s.improved && j >= s.lo && j <= s.hi) return { found: true }; var o = {}; if (j === s.lo && s.lo >= 0) o.lo = true; if (j === s.hi && s.hi >= 0) o.hi = true; if (s.lo >= 0 && j > s.lo && j < s.hi) o.span = true; return o; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["хеш окна", "хеш образца", "найдено"],
+      sumValues: function (s) { return [{ text: s.vars["хеш окна"], cls: (s.match ? "eq" : "") }, { text: s.vars["хеш образца"] }, { text: s.vars["найдено"], cls: "gt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: "Вхождений: " + s.vars["найдено"], text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "i=" + s.vars.i, b: "хеш " + s.vars["хеш окна"], c: s.improved ? "вхождение!" : (s.match ? "хеши=" : "·"), cls: s.improved ? "eq" : (s.match ? "lt" : "gt") }; },
+      varsOf: function (s) { return { i: s.vars.i, "хеш образца": s.vars["хеш образца"], "хеш окна": s.vars["хеш окна"], "найдено": s.vars["найдено"] }; }
+    },
+
+    "ring-buffer": {
+      badge: "Ring Buffer (chan)",
+      desc: "Кольцевой буфер — как устроен буфер канала Go. Слоты выделены одним блоком; sendx (запись) и recvx (чтение) бегут по кругу, заворачиваясь в 0. FIFO фиксированной ёмкости без аллокаций; при заполнении send блокируется, при пустом — recv.",
+      valuesLabel: "Слоты кольца (· — свободно)", codeKey: "ring-buffer", fillRange: false,
+      ptr1: { name: "sendx", cap: "(куда пишем)" }, ptr2: { name: "recvx", cap: "(откуда читаем)" },
+      complexity: { time: "O(1) send/recv", space: "O(n)", good: "★ FIFO без аллокаций на элемент" },
+      varOrder: ["sendx", "recvx", "qcount"],
+      varDesc: { sendx: "Индекс следующей записи", recvx: "Индекс следующего чтения", qcount: "Элементов в очереди" },
+      lineNotes: { 0: "Буфер канала = кольцо из dataqsiz слотов", 7: "send: положить значение в очередь", 8: "Пишем в слот sendx", 10: "sendx по кругу: дошёл до конца → в 0", 13: "recv: взять значение из очереди", 14: "Читаем слот recvx", 16: "recvx по кругу: дошёл до конца → в 0", 19: "qcount==0 — пусто; qcount==dataqsiz — полно (send ждёт)" },
+      rules: [{ head: "send", body: "buf[sendx]=v, sendx++ (по кругу)", cls: "gt" }, { head: "recv", body: "v=buf[recvx], recvx++ (по кругу)", cls: "lt" }, { head: "полно", body: "qcount==size → send блокируется", cls: "eq" }],
+      parse: function (root) { var size = parseInt(root.getAttribute("data-size"), 10); if (isNaN(size)) size = 4; var raw = root.getAttribute("data-ops") || "A,B,C,-,-,D,E,F,G"; var ops = raw.split(",").map(function (s) { return s.trim(); }); return { size: size, ops: ops, steps: bRingBuffer(size, ops) }; },
+      inputs: [{ attr: "data-size", label: "Ёмкость" }, { attr: "data-ops", label: "Операции (— = recv)" }],
+      values: function (ctx) { return bRingBuffer(ctx.size, ctx.ops)[0].values; },
+      title: function (ctx) { return "Кольцевой буфер канала (ёмкость " + Math.max(2, Math.min(8, ctx.size | 0)) + ")"; },
+      cellState: function (s, j) { var o = {}; if (s.st[j] === 1) o.found = true; else o.dim = true; if (j === s.lo && s.lo >= 0) o.lo = true; if (j === s.hi && s.hi >= 0) o.hi = true; return o; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: (s.hi == null ? -1 : s.hi) }; },
+      sumCells: ["в очереди", "ёмкость"],
+      sumValues: function (s, ctx) { return [{ text: s.vars.qcount, cls: "gt" }, { text: Math.max(2, Math.min(8, ctx.size | 0)) }]; },
+      status: function (s, idx, total) { if (s.blocked) return { kind: "end", icon: "⛔", head: "Блокировка", text: s.info }; if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { var send = s.line === 8 || s.line === 10; return { a: "sendx=" + s.vars.sendx, b: "recvx=" + s.vars.recvx, c: "q=" + s.vars.qcount, cls: send ? "gt" : "lt" }; },
+      varsOf: function (s) { return { sendx: s.vars.sendx, recvx: s.vars.recvx, qcount: s.vars.qcount }; }
+    },
+
+    "route-match": {
+      badge: "ServeMux routing",
+      desc: "Маршрутизатор http.ServeMux (Go 1.22+) — дерево по сегментам пути. Запрос спускается сегмент за сегментом: сперва точный литерал, если нет — wildcard {id} (с захватом значения), иначе 404. Литерал раньше wildcard = «самый конкретный побеждает».",
+      valuesLabel: "", codeKey: "route-match", fillRange: false,
+      complexity: { time: "O(длина пути)", space: "O(паттернов)", good: "★ Матч по префиксам, а не перебор" },
+      varOrder: ["seg", "node", "caps"],
+      varDesc: { seg: "Текущий сегмент запроса", node: "Текущий узел дерева", caps: "Захваченные переменные" },
+      lineNotes: { 0: "Матч пути по дереву сегментов", 1: "Сегменты кончились — проверяем, лист ли это", 2: "Лист с обработчиком — маршрут найден", 4: "Берём следующий сегмент пути", 5: "Есть ли точный литеральный потомок?", 6: "Литерал есть — спускаемся (он важнее wildcard)", 10: "Литерала нет — пробуем wildcard {id}, запоминаем значение", 13: "Ни литерала, ни wildcard — 404" },
+      rules: [{ head: "литерал есть", body: "→ спускаемся (важнее wildcard)", cls: "lt" }, { head: "иначе wildcard", body: "→ захват {id}", cls: "eq" }, { head: "ничего", body: "→ 404", cls: "gt" }],
+      parse: function (root) { var patterns = (root.getAttribute("data-patterns") || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); var request = (root.getAttribute("data-request") || "").trim(); var r = bRouteMatch(patterns, request); return { patterns: patterns, request: request, nodes: r.nodes, path: r.path, steps: r.steps }; },
+      inputs: [{ attr: "data-patterns", label: "Паттерны (через запятую)" }, { attr: "data-request", label: "запрос" }],
+      values: function () { return []; },
+      title: function (ctx) { return "ServeMux: матч «" + ctx.request + "»"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["текущий узел", "захвачено"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.caps, cls: "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.found) return { kind: "ok", icon: "✓", head: "Маршрут найден", text: s.info }; if (s.done) return { kind: "end", icon: "∅", head: "404 — нет маршрута", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.found) return { a: "лист", b: "обработчик", c: "✓", cls: "eq" }; if (s.done) return { a: "нет ветки", b: "404", c: "✗", cls: "gt" }; return { a: "сегмент «" + s.vars.seg + "»", b: "узел «" + s.vars.node + "»", c: "↓", cls: "lt" }; },
+      varsOf: function (s) { return { seg: s.vars.seg, node: s.vars.node, caps: s.vars.caps }; },
+      customViz: trieViz
+    },
+
+    "swiss-lookup": {
+      badge: "Swiss Tables (map)",
+      desc: "Реализация map с Go 1.24: open addressing группами по 8 слотов + control-слово (по байту h2 на слот). Поиск одним сравнением matchH2 находит всех кандидатов в группе, затем сверяет ключ. Меньше промахов кэша и погони за указателями, чем у цепочек.",
+      valuesLabel: "Control-байты группы (h2 занятых слотов; ∅ — пусто)", codeKey: "swiss-lookup", fillRange: false,
+      ptr1: { name: "слот", cap: "(сверяем ключ)" },
+      complexity: { time: "O(1) в среднем", space: "O(n)", good: "★ Кэш-дружелюбный поиск по группе" },
+      varOrder: ["h2", "slot", "res"],
+      varDesc: { h2: "Младшие 7 бит хеша ключа", slot: "Проверяемый слот", res: "Результат сверки ключа" },
+      lineNotes: { 1: "Считаем полный хеш ключа", 2: "h1 выбирает группу из 8 слотов", 3: "h2 — младшие 7 бит, кладутся в control-байт", 4: "Сравнение идёт против всех 8 байтов сразу (SIMD-подобно)", 5: "matchH2 → индексы слотов-кандидатов", 6: "У кандидата сверяем настоящий ключ (h2 бывает совпал случайно)", 7: "Ключ совпал — вернуть значение", 10: "Кандидаты кончились — ключа нет" },
+      rules: [{ head: "matchH2", body: "1 сравнение → все кандидаты группы", cls: "lt" }, { head: "control-слово", body: "лежит рядом со слотами — 1 кэш-линия", cls: "eq" }, { head: "vs цепочки", body: "нет аллокаций и погони за указателями", cls: "gt" }],
+      parse: function (root) { var ctrls = (root.getAttribute("data-ctrls") || "42,7,-,42,13,99,-,5").split(",").map(function (x) { x = x.trim(); return (x === "" || x === "-" || x === "∅") ? null : parseInt(x, 10); }); var h2 = parseInt(root.getAttribute("data-h2"), 10); if (isNaN(h2)) h2 = 42; var hit = parseInt(root.getAttribute("data-hit"), 10); if (isNaN(hit)) hit = 3; return { ctrls: ctrls, h2: h2, hit: hit, steps: bSwissLookup(ctrls, h2, hit) }; },
+      inputs: [{ attr: "data-ctrls", label: "Control-байты (8, - = пусто)" }, { attr: "data-h2", label: "h2 ключа" }],
+      values: function (ctx) { return bSwissLookup(ctx.ctrls, ctx.h2, ctx.hit)[0].values; },
+      title: function (ctx) { return "Swiss Tables: поиск ключа с h2 = " + ctx.h2; },
+      cellState: function (s, j) { if (s.st[j] === 1) return { found: true }; if (s.st[j] === 3) return { mid: true }; var o = {}; if (s.st[j] === 2) o.dim = true; if (j === s.lo && s.lo >= 0) o.lo = true; return o; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      sumCells: ["h2 ключа", "слот"],
+      sumValues: function (s) { return [{ text: s.vars.h2, cls: "eq" }, { text: s.vars.slot }]; },
+      status: function (s, idx, total) { if (s.found) return { kind: "ok", icon: "✓", head: "Ключ найден", text: s.info }; if (s.done) return { kind: "end", icon: "∅", head: "Ключа нет", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.found) return { a: "слот " + s.vars.slot, b: "ключ совпал", c: "✓", cls: "eq" }; return { a: "h2=" + s.vars.h2, b: "слот " + s.vars.slot, c: s.vars.res, cls: s.vars.res === "мимо" ? "gt" : "lt" }; },
+      varsOf: function (s) { return { h2: s.vars.h2, slot: s.vars.slot, res: s.vars.res }; }
+    },
+
+    "mutex-bits": {
+      badge: "sync.Mutex (биты)",
+      desc: "Всё состояние sync.Mutex упаковано в один int32: бит 0 — locked, бит 1 — woken, бит 2 — starving, биты 3+ — счётчик ожидающих. Lock/Unlock меняют флаги и счётчик атомарно (CAS/Add) — компактно и без аллокаций. Ячейки — биты 0..7 слева направо.",
+      valuesLabel: "Биты state (0..7 слева направо; бит 0 = locked)", codeKey: "mutex-bits", fillRange: false,
+      ptr1: { name: "бит", cap: "(изменённый бит)" },
+      complexity: { time: "O(1) атомарно", space: "1 слово", good: "★ Флаги + счётчик в одном int32" },
+      varOrder: ["locked", "starving", "waiters"],
+      varDesc: { locked: "Бит 0: захвачен ли мьютекс", starving: "Бит 2: режим против голодания", waiters: "Биты 3+: сколько горутин ждут" },
+      lineNotes: { 0: "Одно 32-битное слово хранит всё состояние", 2: "Бит 0 — захвачен", 3: "Бит 1 — кто-то разбужен", 4: "Бит 2 — режим голодания", 5: "Биты 3+ — счётчик ожидающих", 9: "Быстрый путь: один CAS 0→locked", 12: "Занято → атомарно +1 к счётчику ожидающих", 15: "Unlock снимает бит locked атомарным Add" },
+      rules: [{ head: "1 слово", body: "3 флага + счётчик вместе", cls: "eq" }, { head: "CAS/Add", body: "меняем биты атомарно, без лока", cls: "lt" }, { head: "зачем", body: "компактно и без аллокаций", cls: "gt" }],
+      parse: function () { return { steps: bMutexBits() }; },
+      inputs: [],
+      values: function () { return bMutexBits()[0].values; },
+      title: function () { return "sync.Mutex: состояние в битах int32"; },
+      cellState: function (s, j) { if (j === s.changed && s.changed >= 0) return { mid: true }; if (s.values[j] === "1") return { found: true }; return { dim: true }; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      sumCells: ["locked", "ожидающих"],
+      sumValues: function (s) { return [{ text: s.vars.locked, cls: s.vars.locked ? "gt" : "" }, { text: s.vars.waiters, cls: "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Одно слово — всё состояние", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: s.changed >= 0 }; },
+      stepCard: function (s) { return { a: "locked=" + s.vars.locked, b: "ждут=" + s.vars.waiters, c: "starving=" + s.vars.starving, cls: "eq" }; },
+      varsOf: function (s) { return { locked: s.vars.locked, starving: s.vars.starving, waiters: s.vars.waiters }; }
+    },
+
+    "tls-handshake": {
+      badge: "TLS 1.3 handshake",
+      desc: "Установка защищённого канала за один round-trip: стороны согласуют общий ключ (ECDHE, не передавая его), сервер доказывает подлинность сертификатом, затем весь трафик шифруется AES-GCM. Асимметрикой согласуют ключ — данные шифруют симметрикой.",
+      valuesLabel: "", codeKey: "tls-handshake", fillRange: false,
+      complexity: { time: "1-RTT", space: "—", good: "★ Ключ + подлинность + шифр за одно рукопожатие" },
+      varOrder: ["secret", "auth", "enc"],
+      varDesc: { secret: "Общий секрет (ECDHE) установлен", auth: "Сервер аутентифицирован сертификатом", enc: "Трафик зашифрован" },
+      lineNotes: { 0: "Цель: согласовать ключ + подтвердить подлинность + включить шифрование", 1: "Клиент шлёт поддерживаемые шифры и свой ECDHE-share", 2: "Сервер выбирает шифр и шлёт свой share", 3: "По двум share обе стороны считают ОДИН секрет — не передавая его по сети", 4: "Сервер шлёт сертификат и подпись — уже под шифром", 5: "Клиент проверяет цепочку сертификата до доверенного CA", 6: "Клиент подтверждает — рукопожатие завершено", 7: "Дальше прикладные данные идут под AES-GCM" },
+      rules: [{ head: "ECDHE", body: "общий ключ без передачи по сети", cls: "eq" }, { head: "сертификат", body: "подлинность сервера (защита от MITM)", cls: "lt" }, { head: "итог", body: "asymmetric → symmetric", cls: "gt" }],
+      parse: function () { var r = bTLSHandshake(); return { msgs: r.msgs, steps: r.steps }; },
+      inputs: [],
+      values: function () { return []; },
+      title: function () { return "TLS 1.3: установка защищённого канала"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["секрет", "аутентификация", "шифрование"],
+      sumValues: function (s) { return [{ text: s.vars.secret, cls: s.vars.secret === "да" ? "gt" : "" }, { text: s.vars.auth, cls: s.vars.auth === "да" ? "lt" : "" }, { text: s.vars.enc, cls: s.vars.enc === "да" ? "eq" : "" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "🔒", head: "Защищённый канал установлен", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "секрет:" + s.vars.secret, b: "auth:" + s.vars.auth, c: "шифр:" + s.vars.enc, cls: "eq" }; },
+      varsOf: function (s) { return { secret: s.vars.secret, auth: s.vars.auth, enc: s.vars.enc }; },
+      customViz: handshakeViz
+    },
+
+    "oauth-flow": {
+      badge: "OAuth 2.0 / OIDC",
+      desc: "Authorization Code flow с PKCE: приложение получает токен доступа, НЕ видя пароль пользователя (его вводят только на Auth-сервере). Код авторизации меняется на токены по back-channel; id_token (JWT) добавляет OpenID Connect — «кто это».",
+      valuesLabel: "", codeKey: "oauth-flow", fillRange: false,
+      complexity: { time: "redirect + back-channel", space: "—", good: "★ Доступ без передачи пароля приложению" },
+      varOrder: ["code", "token"],
+      varDesc: { code: "Получен authorization code", token: "Получены access/id токены" },
+      lineNotes: { 0: "Цель: дать приложению доступ, не показывая ему пароль пользователя", 1: "Приложение уводит пользователя на Auth-сервер (client_id, scope, PKCE)", 2: "Пользователь логинится и подтверждает согласие — на Auth-сервере", 3: "Auth-сервер возвращает одноразовый authorization code", 4: "Приложение по back-channel меняет code + code_verifier на токены", 5: "Выдаются access_token, id_token (JWT) и refresh_token", 6: "К API ходят с access_token в заголовке Authorization: Bearer", 7: "id_token (JWT) удостоверяет личность — это OpenID Connect" },
+      rules: [{ head: "PKCE", body: "code_verifier не даёт перехватить code", cls: "eq" }, { head: "пароль", body: "видит только Auth-сервер, не приложение", cls: "lt" }, { head: "OIDC", body: "id_token (JWT) = «кто пользователь»", cls: "gt" }],
+      parse: function () { var r = bOAuthFlow(); return { msgs: r.msgs, parties: r.parties, steps: r.steps }; },
+      inputs: [],
+      values: function () { return []; },
+      title: function () { return "OAuth 2.0 / OIDC: доступ без пароля приложению"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["authorization code", "токены"],
+      sumValues: function (s) { return [{ text: s.vars.code, cls: s.vars.code === "да" ? "lt" : "" }, { text: s.vars.token, cls: s.vars.token === "да" ? "gt" : "" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "🔑", head: "Доступ выдан без пароля приложению", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "code:" + s.vars.code, b: "token:" + s.vars.token, c: "PKCE", cls: "eq" }; },
+      varsOf: function (s) { return { code: s.vars.code, token: s.vars.token }; },
+      customViz: handshakeViz
+    },
+
+    "context-tree": {
+      badge: "context.Context",
+      desc: "Контексты образуют ДЕРЕВО: WithCancel/WithTimeout создают дочерние. Отмена или таймаут узла каскадом отменяет всё поддерево (cancel перебирает c.children), не задевая родителя и соседей. Так одним ctx сворачивают все подзадачи запроса.",
+      valuesLabel: "", codeKey: "context-tree", fillRange: false,
+      complexity: { time: "O(поддерева) на отмену", space: "O(узлов)", good: "★ Отмена всей ветки за раз" },
+      varOrder: ["alive", "cancelled"],
+      varDesc: { alive: "Живых контекстов", cancelled: "Отменённых контекстов" },
+      lineNotes: { 0: "WithTimeout создаёт дочерний ctx с дедлайном", 1: "defer cancel() освобождает ресурсы даже при раннем выходе", 2: "Подзадачи получают ЭТОТ ctx — становятся его детьми", 3: "…и тоже дети того же ctx", 4: "Таймаут/cancel закрывает ctx.Done()", 5: "cancel перебирает c.children и валит каждого — вниз по дереву", 7: "Подзадача слушает <-ctx.Done() и сворачивается", 8: "ctx.Err(): Canceled или DeadlineExceeded" },
+      rules: [{ head: "отмена", body: "течёт ВНИЗ по поддереву", cls: "lt" }, { head: "родитель/соседи", body: "не затронуты", cls: "gt" }, { head: "defer cancel", body: "обязателен — иначе утечка", cls: "eq" }],
+      parse: function () { var r = bContextTree(); return { nodes: r.nodes, steps: r.steps }; },
+      inputs: [],
+      values: function () { return []; },
+      title: function () { return "context.Context: дерево отмены"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["живых", "отменённых"],
+      sumValues: function (s) { return [{ text: s.vars.alive, cls: "gt" }, { text: s.vars.cancelled, cls: "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Отмена свернула поддерево req", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: s.line === 5 }; },
+      stepCard: function (s) { return { a: "живых " + s.vars.alive, b: "отменено " + s.vars.cancelled, c: "↓ subtree", cls: "lt" }; },
+      varsOf: function (s) { return { alive: s.vars.alive, cancelled: s.vars.cancelled }; },
+      customViz: ctxTreeViz
+    },
+
+    "sync-pool": {
+      badge: "sync.Pool",
+      desc: "Пул переиспользуемых временных объектов (буферов) — чтобы не аллоцировать их заново на каждый запрос и не грузить GC. Get берёт из пула или создаёт новый (New), Put возвращает. Пул — это КЭШ: GC его очищает, полагаться на содержимое нельзя.",
+      valuesLabel: "Объекты в пуле (· — свободный слот)", codeKey: "sync-pool", fillRange: false,
+      ptr1: { name: "слот", cap: "(затронутый)" },
+      complexity: { time: "O(1) Get/Put", space: "O(припасено)", good: "★ Меньше аллокаций и работы GC" },
+      varOrder: ["inpool", "reused", "allocs"],
+      varDesc: { inpool: "Объектов сейчас в пуле", reused: "Переиспользовано (аллокаций избежали)", allocs: "Новых аллокаций (пул был пуст)" },
+      lineNotes: { 0: "New — фабрика: как создать объект, если пул пуст", 1: "Например, новый буфер", 3: "Put кладёт объект обратно для переиспользования", 4: "Возвращаем буфер в пул", 5: "Get достаёт из пула или зовёт New", 6: "Пул не пуст → переиспользуем (без аллокации)", 7: "Пул пуст → New() аллоцирует новый", 8: "Использовали и вернули (Reset + Put)", 9: "GC очищает пул — это кэш, не хранилище" },
+      rules: [{ head: "Get из пула", body: "→ аллокации нет", cls: "gt" }, { head: "Get пуст", body: "→ New() аллоцирует", cls: "lt" }, { head: "GC", body: "чистит пул — не для хранения", cls: "eq" }],
+      parse: function (root) { var raw = root.getAttribute("data-ops") || "put,put,get,put,get,gc,get,get"; var ops = raw.split(",").map(function (s) { return s.trim(); }); return { ops: ops, steps: bSyncPool(ops) }; },
+      inputs: [{ attr: "data-ops", label: "Операции (put/get/gc)" }],
+      values: function (ctx) { return bSyncPool(ctx.ops)[0].values; },
+      title: function () { return "sync.Pool: переиспользование объектов"; },
+      cellState: function (s, j) { var o = {}; if (s.values[j] !== "·") o.found = true; else o.dim = true; if (j === s.lo && s.lo >= 0) o.mid = true; return o; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      sumCells: ["переиспользовано", "новых аллокаций"],
+      sumValues: function (s) { return [{ text: s.vars.reused, cls: "gt" }, { text: s.vars.allocs, cls: "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "reuse " + s.vars.reused + " · alloc " + s.vars.allocs, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { return { a: "в пуле " + s.vars.inpool, b: "reuse " + s.vars.reused, c: "alloc " + s.vars.allocs, cls: "gt" }; },
+      varsOf: function (s) { return { inpool: s.vars.inpool, reused: s.vars.reused, allocs: s.vars.allocs }; }
+    },
+
+    "nfa-match": {
+      badge: "regexp (RE2 / NFA)",
+      desc: "Go regexp — это RE2 (Thompson NFA): вместо перебора с возвратом держим МНОЖЕСТВО активных состояний и читаем вход по символу. Размер множества ≤ числа состояний → время линейно, никакого катастрофического бэктрекинга (ReDoS). Демо: a(b|c)*c.",
+      valuesLabel: "Входная строка (по символу)", codeKey: "nfa-match", fillRange: true,
+      ptr1: { name: "позиция", cap: "(текущий символ)" },
+      complexity: { time: "O(n·m)", space: "O(m)", good: "★ Линейно, без ReDoS" },
+      varOrder: ["active", "size", "matched"],
+      varDesc: { active: "Активное множество состояний NFA", size: "Его размер (ограничен числом состояний)", matched: "Финальное состояние активно?" },
+      lineNotes: { 0: "RE2 симулирует ВСЕ пути сразу — множеством состояний", 1: "Старт: активно начальное состояние", 2: "Читаем вход по одному символу", 4: "Из КАЖДОГО активного состояния…", 5: "…берём все переходы по текущему символу", 6: "…и добавляем в новое множество", 9: "Размер множества ≤ числа состояний — отсюда линейность", 11: "Совпало, если финальное состояние активно" },
+      rules: [{ head: "множество", body: "все пути сразу, |active| ≤ #состояний", cls: "lt" }, { head: "без возврата", body: "→ линейное время", cls: "gt" }, { head: "vs backtracking", body: "у PCRE бывает экспонента (ReDoS)", cls: "eq" }],
+      parse: function (root) { var inp = (root.getAttribute("data-input") || "abcc"); return { input: inp, steps: bNfaMatch(inp) }; },
+      inputs: [{ attr: "data-input", label: "Строка" }],
+      values: function (ctx) { return bNfaMatch(ctx.input)[0].values; },
+      title: function (ctx) { return "RE2 / NFA: a(b|c)*c на «" + ctx.input + "»"; },
+      cellState: function (s, j) { if (s.done) return s.found ? { found: true } : { dim: true }; var o = {}; if (j === s.lo && s.lo >= 0) o.mid = true; else if (s.lo >= 0 && j < s.lo) o.dim = true; return o; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      sumCells: ["активных состояний", "подходит?"],
+      sumValues: function (s) { return [{ text: s.vars.size, cls: "lt" }, { text: s.vars.matched, cls: s.vars.matched === "да" ? "gt" : "" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: s.found ? "Строка подходит" : "Не подходит", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "актив " + s.vars.active, b: "размер " + s.vars.size, c: "финал:" + s.vars.matched, cls: "lt" }; },
+      varsOf: function (s) { return { active: s.vars.active, size: s.vars.size, matched: s.vars.matched }; }
     },
 
     "quick-select": {

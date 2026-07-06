@@ -362,6 +362,20 @@ func diameterOfTree(root *TreeNode) int {
 <div class="algo-challenge__q">Max Path Sum: что узел отдаёт <b>наверх</b> родителю?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="0" data-hint="Глубина пустого поддерева." data-explain="База рекурсии: у nil-узла глубина 0. На этом стоит вся индукция по поддеревьям — ответ узла собирается из ответов детей.">
+<div class="algo-challenge__q">Впиши базу рекурсии для максимальной глубины дерева:</div>
+<pre class="algo-challenge__code">func maxDepth(node *TreeNode) int {
+    if node == nil {
+        return ______
+    }
+    return 1 + max(maxDepth(node.Left), maxDepth(node.Right))
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="База: узел nil → вернуть нейтральное значение|Рекурсия в левое поддерево|Рекурсия в правое поддерево|Скомбинировать ответы детей в ответ узла" data-hint="Сначала база, ответ узла собирается ПОСЛЕ обхода детей (пост-order)." data-explain="DFS «ответ узла = функция от ответов поддеревьев»: сначала база (nil), затем спуск в оба поддерева, и только потом комбинирование их результатов — классический пост-order.">
+<div class="algo-challenge__q">Расставь по порядку шаги пост-order DFS по дереву:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Same Tree](https://leetcode.com/problems/same-tree/) (LeetCode 100)

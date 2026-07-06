@@ -359,6 +359,19 @@ func detectCycle(head *ListNode) *ListNode {
 <div class="algo-challenge__q">Заяц/черепаха: <code>fast</code> достиг <code>nil</code>. Что это означает?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="fast.Next.Next" data-hint="Заяц бежит вдвое быстрее черепахи." data-explain="fast = fast.Next.Next — заяц делает два шага за итерацию против одного у slow. Именно разница скоростей гарантирует встречу внутри цикла.">
+<div class="algo-challenge__q">Впиши шаг «зайца» (fast) в детекции цикла:</div>
+<pre class="algo-challenge__code">for fast != nil &amp;&amp; fast.Next != nil {
+    slow = slow.Next
+    fast = ______
+    if slow == fast { return true }
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Пустить slow по 1 шагу, fast по 2 шага|slow и fast встретились внутри цикла → цикл есть|Вернуть один указатель в голову списка|Двигать оба по 1 шагу — встреча на входе в цикл" data-hint="Сначала детекция цикла, только потом поиск его входа." data-explain="Флойд (Cycle II): разноскоростная встреча доказывает цикл → возвращаем указатель в голову → синхронный ход по 1 шагу сводит их ко входу в цикл (следствие a = kL − b).">
+<div class="algo-challenge__q">Расставь по порядку шаги поиска входа в цикл (Cycle II):</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Linked List Cycle](https://leetcode.com/problems/linked-list-cycle/) (LeetCode 141) — есть ли цикл

@@ -420,6 +420,19 @@ O(V+E). Альтернатива без рекурсии — **Union-Find**: о�
 <div class="algo-challenge__q">Word Ladder (кратчайшая цепочка) — какой обход графа?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="'0'" data-hint="«Топим» сушу, чтобы не зайти в неё повторно." data-explain="Number of Islands: помечаем посещённую сушу, перезаписывая её в '0' прямо в grid — это и служит visited без лишней памяти.">
+<div class="algo-challenge__q">Number of Islands — впиши пометку посещённой суши:</div>
+<pre class="algo-challenge__code">if r &lt; 0 || r &gt;= rows || c &lt; 0 || c &gt;= cols || grid[r][c] != '1' {
+    return
+}
+grid[r][c] = ______
+// дальше — dfs во все 4 стороны</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Положить старт в очередь, пометить посещённым|Пока очередь не пуста|Взять вершину из головы очереди|Для каждого непосещённого соседа — пометить и добавить в очередь" data-hint="Помечаем ПРИ добавлении в очередь, а не при извлечении." data-explain="Каркас BFS: старт в очередь (+visited) → пока очередь не пуста → снять вершину → добавить непосещённых соседей (сразу помечая). Пометка при добавлении не даёт узлу попасть в очередь дважды.">
+<div class="algo-challenge__q">Расставь по порядку шаги обхода графа в ширину (BFS):</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Number of Islands](https://leetcode.com/problems/number-of-islands/) (LeetCode 200) — DFS/BFS на сетке

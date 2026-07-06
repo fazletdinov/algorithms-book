@@ -336,6 +336,21 @@ func rightSideView(root *TreeNode) []int {
 <div class="algo-challenge__q">Serialize/Deserialize через BFS: как помечаем отсутствующего ребёнка?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="len(queue)" data-hint="Число узлов на текущем уровне — это длина очереди ДО прохода по уровню." data-explain="size := len(queue) фиксирует ровно узлы текущего уровня; внутренний цикл обрабатывает их, добавляя детей — так уровни не перемешиваются.">
+<div class="algo-challenge__q">Уровневый BFS — впиши фиксацию размера уровня:</div>
+<pre class="algo-challenge__code">for len(queue) &gt; 0 {
+    size := ______
+    for i := 0; i &lt; size; i++ {
+        node := queue[0]; queue = queue[1:]
+        // ...добавляем детей node в очередь
+    }
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Положить корень в очередь|Пока очередь не пуста|Зафиксировать size = len(queue) — узлы уровня|Обработать ровно size узлов, добавляя их детей в очередь" data-hint="Размер уровня фиксируем ДО внутреннего прохода." data-explain="Уровневый BFS: корень в очередь → пока не пуста → зафиксировать size=len(queue) → обработать ровно size узлов, накапливая их детей. Фиксация size разделяет уровни.">
+<div class="algo-challenge__q">Расставь по порядку шаги обхода дерева по уровням:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/) (LeetCode 104)

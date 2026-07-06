@@ -58,6 +58,13 @@
 > своим виджетом сразу после кода: вставка и поиск. Подсвечен текущий бакет и сканируемая запись.
 > Виджеты работают в собранной книге.
 
+> 🔧 **Где это в Go.** Это устройство встроенного `map` — самой используемой структуры языка.
+> С Go 1.24 map реализован как **Swiss Table**
+> ([`internal/runtime/maps`](https://github.com/golang/go/tree/master/src/internal/runtime/maps)):
+> open addressing, control-word, лучше ложится в кэш. Разбор реального `map` под капотом — ниже в
+> этой главе; **почему Swiss Tables, с виджетом `matchH2`** —
+> [«Структуры данных в экосистеме Go»](go-stdlib-structures.md#-разбор-почему-map-с-go-124--это-swiss-tables).
+
 ## 🧱 Как устроено
 
 Хеш-таблица — это **массив бакетов**. Хеш-функция отображает ключ в индекс бакета; при разрешении
@@ -100,9 +107,9 @@ hash(key) % 4:
 ```go
 func (h *HashMap) Put(key, val int) {
     i := hash(key) % len(h.buckets)   // в какой бакет
-    for _, e := range h.buckets[i] {  // уже есть такой ключ?
-        if e.key == key {
-            e.val = val               // обновляем на месте
+    for j := range h.buckets[i] {     // уже есть такой ключ?
+        if h.buckets[i][j].key == key {
+            h.buckets[i][j].val = val // обновляем по индексу (range даёт КОПИЮ — правка через e потерялась бы)
             return
         }
     }

@@ -278,7 +278,8 @@ LeetCode — ASCII, но на этом регулярно спотыкаются
 ## ⚠️ Типичные ошибки
 
 1. **Пересчёт всей суммы окна заново** в цикле — это возвращает O(n·k). Обновляйте
-   инкрементально: `windowSum += arr[right] - arr[left]`.
+   инкрементально: для фиксированного окна `windowSum += arr[i] - arr[i-k]` (добавили
+   новый, вычли ушедший k позиций назад).
 2. **Off-by-one в размере окна** — длина окна это `right - left + 1`, а не `right - left`.
 3. **Забыли обновить результат после сжатия** переменного окна — обновляйте `maxLen`
    после того, как условие снова выполнено.
@@ -410,6 +411,15 @@ func minSubArrayLen(target int, nums []int) int {
 
 <div class="algo-challenge" data-type="choice" data-options="Окно покрыло все нужные символы → можно сжимать слева|Нужно расширять дальше вправо" data-answer="0" data-explain="missing == 0 значит все символы t покрыты — окно валидно. Теперь жадно сжимаем слева, обновляя минимум, пока валидно.">
 <div class="algo-challenge__q">Minimum Window Substring: счётчик <code>missing</code> дошёл до 0 — что это значит?</div>
+</div>
+
+<div class="algo-challenge" data-type="cloze" data-answer="right-left+1" data-hint="Длина отрезка [left..right] с включёнными обеими границами." data-explain="Длина окна — это right − left + 1 (обе границы включены), а не right − left. Классический off-by-one.">
+<div class="algo-challenge__q">Впиши пропущенное выражение — обновление ответа для переменного окна:</div>
+<pre class="algo-challenge__code">best = max(best, ______)</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Расширить окно: add(s[right])|Проверить инвариант окна|Сжать слева: пока невалидно — remove(s[left]), left++|Обновить ответ: best = max(best, right−left+1)" data-hint="Сначала впускаем новый элемент, потом чиним окно, только затем считаем длину." data-explain="Порядок одного шага переменного окна: расширить вправо → проверить условие → сжать слева при нарушении → обновить ответ.">
+<div class="algo-challenge__q">Расставь по порядку шаги переменного окна (одна итерация по <code>right</code>):</div>
 </div>
 
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):

@@ -357,6 +357,18 @@ min-heap — большую, медиана читается с их верши�
 <div class="algo-challenge__q">За сколько работают <code>heap.Push</code> и <code>heap.Pop</code> в Go?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="2;2.0" data-hint="При равных размерах медиана — среднее двух вершин." data-explain="Когда кучи равны (чётное число элементов), медиана = (вершина max-heap + вершина min-heap) / 2. При нечётном — вершина большей кучи.">
+<div class="algo-challenge__q">Медиана двумя кучами (<code>low</code> — max-heap, <code>high</code> — min-heap):</div>
+<pre class="algo-challenge__code">if len(low) == len(high) {
+    return float64(low.top() + high.top()) / ______
+}
+return float64(low.top())</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Втолкнуть число в max-heap (нижняя половина)|Переложить вершину max-heap в min-heap|Если min-heap стал больше — вернуть его вершину в max-heap|Медиана: вершина большей кучи (или среднее вершин при равных размерах)" data-hint="Сначала кладём, потом выравниваем размеры куч." data-explain="addNum двумя кучами: число → в max-heap → перекинуть вершину в min-heap → выровнять размеры (не дать верхней куче перевесить) → медиана из вершин. Инвариант: |size(low) − size(high)| ≤ 1.">
+<div class="algo-challenge__q">Расставь по порядку шаги добавления числа в «две кучи» (медиана потока):</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Find Median from Data Stream](https://leetcode.com/problems/find-median-from-data-stream/) (LeetCode 295) — две кучи, ядро паттерна

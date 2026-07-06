@@ -23,6 +23,7 @@
 - [🔍 Modified Binary Search (Модифицированный бинарный поиск)](modified-binary-search.md)
 - [⚙️ Bit Manipulation (Битовые операции)](bit-manipulation.md)
 - [🔢 Теория чисел: НОД, простые, быстрая степень](number-theory.md)
+- [🔐 Криптография: модульная арифметика в деле](cryptography.md)
 - [🔁 Рекурсия и мастер-теорема](recursion.md)
 - [📈 Big-O и амортизированный анализ](big-o.md)
 - [🗂️ Хеш-таблица: устройство и операции](hash-table-structure.md)
@@ -81,5 +82,7 @@
 ## Дополнительные материалы
 
 - [🐹 Go-рантайм: планировщик, GC и аллокатор](go-runtime.md)
+- [🔧 Структуры данных в экосистеме Go](go-stdlib-structures.md)
+- [🔐 Криптография на практике: библиотеки Go](go-crypto-libraries.md)
 - [Приложение: память, GC и профилирование в Go](appendix-go-memory.md)
 - [Заключение](conclusion.md)

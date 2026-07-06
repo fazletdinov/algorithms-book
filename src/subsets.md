@@ -319,6 +319,20 @@ func subsetsWithDup(nums []int) [][]int {
 <div class="algo-challenge__q">Restore IP Addresses: когда отсекаем ветку перебора?</div>
 </div>
 
+<div class="algo-challenge" data-type="cloze" data-answer="i+1" data-hint="Следующий выбор берём строго правее текущего." data-explain="Рекурсия с start = i+1 запрещает повторять и переставлять элементы — так получаются подмножества/сочетания, а не перестановки.">
+<div class="algo-challenge__q">Генерация подмножеств — впиши старт следующего уровня:</div>
+<pre class="algo-challenge__code">res = append(res, append([]int{}, path...)) // записать подмножество
+for i := start; i &lt; len(nums); i++ {
+    path = append(path, nums[i])
+    backtrack(______)
+    path = path[:len(path)-1]
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Записать текущий path в ответ|Перебирать кандидатов с i = start|Выбрать nums[i] — добавить в path|Рекурсия со start = i+1|Откатить выбор — убрать nums[i] из path" data-hint="Подмножество записываем в начале узла, до перебора детей." data-explain="Subsets через backtracking: записать текущий набор → перебор с i=start → выбрать → рекурсия (start=i+1) → откатить. start=i+1 не даёт повторов и перестановок.">
+<div class="algo-challenge__q">Расставь по порядку шаги генерации подмножеств:</div>
+</div>
+
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
 
 - [Combination Sum](https://leetcode.com/problems/combination-sum/) (LeetCode 39) — повтор разрешён

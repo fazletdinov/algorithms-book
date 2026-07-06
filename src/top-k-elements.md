@@ -153,7 +153,11 @@ func topKFrequent(nums []int, k int) []int {
 | Задача                | Время       | Память |
 |-----------------------|-------------|--------|
 | K наибольших/наименьших | O(n log k) | O(k)   |
-| K наиболее частых     | O(n + k log k) | O(n)  |
+| K наиболее частых     | O(n + m log m)¹ | O(n)  |
+
+¹ `m` — число **различных** значений: показанный код сортирует все `m` пар «значение—частота»,
+отсюда `m log m`. Куча размера `k` вместо полной сортировки пар даёт `O(n + m log k)`, а корзинная
+сортировка по частоте — вовсе `O(n)`.
 
 Куча размера K даёт O(n log k) против O(n log n) полной сортировки — заметный выигрыш
 при малом k.
@@ -339,6 +343,18 @@ func topKFreqHeap(nums []int, k int) []int {
 
 <div class="algo-challenge" data-type="choice" data-options="Все n·m пар|Сами массивы" data-answer="0" data-explain="Min-heap «по фронту»: кладём стартовые пары (i, 0), при извлечении (i, j) добавляем (i, j+1). Перебираем кандидатов по возрастанию суммы, не материализуя все n·m пар.">
 <div class="algo-challenge__q">Find K Pairs with Smallest Sums: min-heap позволяет не строить…</div>
+</div>
+
+<div class="algo-challenge" data-type="cloze" data-answer="k" data-hint="В куче держим ровно столько, сколько ищем." data-explain="Пока в min-heap больше k элементов, выкидываем минимум (корень). Остаются k наибольших, а корень — k-й по величине. Add за O(log k).">
+<div class="algo-challenge__q">Top K через min-heap — впиши порог, при котором выкидываем минимум:</div>
+<pre class="algo-challenge__code">heap.Push(h, x)
+if h.Len() &gt; ______ {
+    heap.Pop(h) // выкидываем минимум
+}</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Завести min-heap ёмкости k|Для каждого элемента — добавить его в кучу|Если размер превысил k — удалить минимум (корень)|В куче остались k наибольших; корень — k-й" data-hint="Держим кучу размера k, а не сортируем всё." data-explain="Top K за O(n log k): min-heap размера k. Добавляем элемент, при переполнении удаляем минимум. В конце в куче — k наибольших, корень — ровно k-й. Дешевле полной сортировки O(n log n).">
+<div class="algo-challenge__q">Расставь по порядку шаги поиска K наибольших через min-heap:</div>
 </div>
 
 **Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):

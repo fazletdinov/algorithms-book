@@ -87,6 +87,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `cyclicsort`    | `CyclicSort`, `FindMissingNumber`, `FindAllMissingNumbers`, `FindDuplicate`, `FindAllDuplicates` |
 | `sorting`       | `MergeSort`, `QuickSort`, `HeapSort`, `CountingSort`, `QuickSelect` |
 | `numbertheory`  | `GCD`, `LCM`, `IsPrime`, `SieveOfEratosthenes`, `PowMod` |
+| `cryptography`  | `ExtendedGCD`, `ModInverse`, `ModExp`, `IsProbablePrime`, `RSAPrivateExponent`, `RSAEncrypt`, `RSADecrypt` |
 | `recursion`     | `Factorial`, `Fib`, `Power`, `HanoiMoves`, `SumDigits` |
 | `bigo`          | `MinStack`, `NextGreaterElement`, `DailyTemperatures`, `CountCopies` |
 | `binarysearch`  | `Search`, `FindCeiling`, `FindFloor`, `SearchRotated`, `FindFirstLast`, `IntSqrt` |
