@@ -906,6 +906,19 @@
       "    }",
       "}"
     ],
+    "defer-stack": [
+      "func handle() error {",
+      "    f, _ := os.Open(name)",
+      "    defer f.Close()          // #1 — в стек defer",
+      "    mu.Lock()",
+      "    defer mu.Unlock()        // #2 — в стек defer",
+      "    conn, _ := dial()",
+      "    defer conn.Close()       // #3 — в стек defer",
+      "    // ...работа...",
+      "    return nil               // ← здесь стек defer разворачивается",
+      "                             //   LIFO: #3 conn, #2 mu, #1 f",
+      "}"
+    ],
     "hanoi": [
       "func hanoi(n, from, to, via int) {",
       "    if n == 0 {",
@@ -4887,6 +4900,24 @@
     return steps;
   }
 
+  // defer — LIFO-стек отложенных вызовов на горутине (runtime: d.link = gp._defer).
+  // Каждый defer кладётся на вершину; на return/panic стек разворачивается сверху вниз:
+  // последний отложенный выполняется первым — ресурсы закрываются в обратном порядке.
+  function bDeferStack() {
+    var labels = ["f.Close()", "mu.Unlock()", "conn.Close()"], pushLines = [2, 4, 6];
+    var stack = [], steps = [];
+    function snap(extra) { var o = { values: stack.slice(), lo: -1, vars: { depth: stack.length, phase: "—" } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 0, vars: { depth: 0, phase: "вход" }, info: "Функция начала выполняться. Стек defer пуст." }));
+    labels.forEach(function (l, i) { stack.push(l); steps.push(snap({ lo: stack.length - 1, hot: true, line: pushLines[i], vars: { depth: stack.length, phase: "defer" }, info: "defer " + l + " — кладётся на вершину стека defer (#" + (i + 1) + "). Аргументы вычисляются СЕЙЧАС." })); });
+    steps.push(snap({ line: 8, vars: { depth: stack.length, phase: "return" }, info: "return → рантайм разворачивает стек defer сверху вниз (LIFO): последний отложенный — первым." }));
+    for (var k = labels.length - 1; k >= 0; k--) {
+      steps.push(snap({ lo: stack.length - 1, hot: true, line: 9, vars: { depth: stack.length, phase: "exec" }, info: "Выполняется " + stack[stack.length - 1] + " (снимаем с вершины стека)." }));
+      stack.pop();
+    }
+    steps.push(snap({ done: true, line: 9, vars: { depth: 0, phase: "готово" }, info: "Все defer выполнены в порядке #3 → #2 → #1 — ресурсы закрыты в ОБРАТНОМ порядке открытия. Это и есть LIFO." }));
+    return steps;
+  }
+
   // QuickSelect — рекурсия только в ОДНУ половину к рангу target = k−1. partition
   // показан «чёрным ящиком» (его шаги — в quick-sort); здесь главное — СУЖЕНИЕ окна
   // [rangeLo, rangeHi] (вне его клетки dim), pivot после partition — mid.
@@ -7538,6 +7569,29 @@
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "init выполнен ровно один раз", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
       stepCard: function (s) { return { a: "done:" + s.vars.done, b: "запусков init: " + s.vars.ran, c: "once", cls: "eq" }; },
       varsOf: function (s) { return { done: s.vars.done, ran: s.vars.ran }; }
+    },
+
+    "defer-stack": {
+      badge: "defer (LIFO-стек)",
+      desc: "defer откладывает вызов до выхода из функции. Рантайм держит отложенные вызовы СТЕКОМ на горутине: каждый defer — на вершину; на return/panic стек разворачивается сверху вниз — последний отложенный выполняется первым. Поэтому ресурсы закрываются в обратном порядке открытия.",
+      valuesLabel: "Стек defer (вершина — справа)", codeKey: "defer-stack", fillRange: false,
+      ptr1: { name: "вершина", cap: "(текущий defer)" },
+      complexity: { time: "O(1) на defer", space: "O(глубины)", good: "★ Гарантированная очистка (в т.ч. при panic)" },
+      varOrder: ["depth", "phase"],
+      varDesc: { depth: "Глубина стека defer", phase: "Что происходит" },
+      lineNotes: { 0: "Тело функции", 2: "defer #1 — кладётся на стек (выполнится последним)", 4: "defer #2 — на стек", 6: "defer #3 — на стек (выполнится первым)", 8: "На выходе стек defer разворачивается", 9: "LIFO: #3 → #2 → #1" },
+      rules: [{ head: "push", body: "каждый defer — на вершину", cls: "gt" }, { head: "return/panic", body: "разворот сверху вниз (LIFO)", cls: "lt" }, { head: "аргументы", body: "вычисляются в момент defer, не вызова", cls: "eq" }],
+      parse: function () { return { steps: bDeferStack() }; },
+      inputs: [],
+      values: function () { return bDeferStack()[0].values; },
+      title: function () { return "defer: LIFO-стек отложенных вызовов"; },
+      cellState: function (s, j) { if (j === s.lo && s.lo >= 0) return { mid: true }; return { found: true }; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      sumCells: ["глубина стека", "фаза"],
+      sumValues: function (s) { return [{ text: s.vars.depth, cls: "gt" }, { text: s.vars.phase, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Все defer выполнены (LIFO)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { return { a: "глубина " + s.vars.depth, b: s.vars.phase, c: "LIFO", cls: "eq" }; },
+      varsOf: function (s) { return { depth: s.vars.depth, phase: s.vars.phase }; }
     },
 
     "quick-select": {
