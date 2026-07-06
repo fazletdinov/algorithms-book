@@ -891,6 +891,21 @@
       "    // иначе кто-то опередил: old устарел, пробуем снова",
       "}"
     ],
+    "sync-once": [
+      "func (o *Once) Do(f func()) {",
+      "    if !o.done.Load() {           // быстрый атомарный чек",
+      "        o.doSlow(f)",
+      "    }",
+      "}",
+      "func (o *Once) doSlow(f func()) {",
+      "    o.m.Lock()",
+      "    defer o.m.Unlock()",
+      "    if !o.done.Load() {           // double-check под локом",
+      "        defer o.done.Store(true)",
+      "        f()                       // выполняем РОВНО один раз",
+      "    }",
+      "}"
+    ],
     "hanoi": [
       "func hanoi(n, from, to, via int) {",
       "    if n == 0 {",
@@ -4852,6 +4867,26 @@
     return steps;
   }
 
+  // sync.Once — потокобезопасная одноразовая инициализация (double-checked locking):
+  // быстрый атомарный чек done; если 0 — под мьютексом ещё раз проверяем и выполняем f
+  // РОВНО один раз. Остальные горутины ждут/выходят сразу. Ячейки = горутины, зовущие Do.
+  function bSyncOnce() {
+    var g = ["G1", "G2", "G3"], state = ["call", "call", "call"], steps = [];
+    function ran() { return (state.indexOf("init") >= 0 || state.indexOf("ranok") >= 0) ? 1 : 0; }
+    function snap(extra) { var o = { values: g.slice(), state: state.slice(), lo: -1, vars: { done: state.indexOf("ranok") >= 0 ? "да" : "нет", ran: ran() } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 1, info: "Три горутины почти одновременно зовут once.Do(init). done == false." }));
+    state[0] = "init";
+    steps.push(snap({ lo: 0, hot: true, line: 10, vars: { done: "нет", ran: 1 }, info: "G1 первой: done==false → берёт лок и ВЫПОЛНЯЕТ init (единственный раз)." }));
+    state[1] = "wait"; state[2] = "wait";
+    steps.push(snap({ lo: 1, line: 6, vars: { done: "нет", ran: 1 }, info: "G2 и G3 подошли, пока G1 в init → мьютекс занят, они ЖДУТ." }));
+    state[0] = "ranok";
+    steps.push(snap({ lo: 0, line: 9, vars: { done: "да", ran: 1 }, info: "G1 закончил init → done=true, отпускает лок." }));
+    state[1] = "skip"; state[2] = "skip";
+    steps.push(snap({ lo: 1, line: 1, vars: { done: "да", ran: 1 }, info: "G2, G3: done==true (быстрый атомарный чек) → выходят СРАЗУ, init не повторяют." }));
+    steps.push(snap({ done: true, line: 10, vars: { done: "да", ran: 1 }, info: "init выполнен РОВНО один раз; все три горутины получили один результат. Дальше Do() — один атомарный Load." }));
+    return steps;
+  }
+
   // QuickSelect — рекурсия только в ОДНУ половину к рангу target = k−1. partition
   // показан «чёрным ящиком» (его шаги — в quick-sort); здесь главное — СУЖЕНИЕ окна
   // [rangeLo, rangeHi] (вне его клетки dim), pivot после partition — mid.
@@ -7480,6 +7515,29 @@
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Оба +1 без лока и без потерь", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
       stepCard: function (s) { return { a: s.vars.gor, b: "значение " + s.vars.value, c: s.vars.result, cls: "eq" }; },
       varsOf: function (s) { return { value: s.vars.value, gor: s.vars.gor, result: s.vars.result }; }
+    },
+
+    "sync-once": {
+      badge: "sync.Once",
+      desc: "Потокобезопасная одноразовая инициализация (ленивый синглтон, загрузка конфига). Do(f) выполняет f РОВНО один раз, сколько бы горутин ни звали параллельно: double-checked locking — быстрый атомарный чек done, а под мьютексом ещё одна проверка перед запуском.",
+      valuesLabel: "Горутины, зовущие once.Do(init)", codeKey: "sync-once", fillRange: false,
+      ptr1: { name: "горутина", cap: "(действует)" },
+      complexity: { time: "1 атомарный Load после init", space: "O(1)", good: "★ init ровно один раз, дёшево потом" },
+      varOrder: ["done", "ran"],
+      varDesc: { done: "Инициализация завершена?", ran: "Сколько раз реально запущен init" },
+      lineNotes: { 0: "Do можно звать из многих горутин", 1: "Быстрый путь: атомарно проверяем done", 5: "Медленный путь — под мьютексом", 6: "Только одна горутина войдёт под лок", 8: "Double-check: вдруг кто-то уже сделал init", 9: "Отметить done после f (defer)", 10: "Выполнить f ровно один раз" },
+      rules: [{ head: "первая", body: "выполняет init под локом", cls: "gt" }, { head: "остальные", body: "ждут, потом выходят сразу", cls: "lt" }, { head: "потом", body: "Do = один атомарный Load", cls: "eq" }],
+      parse: function () { return { steps: bSyncOnce() }; },
+      inputs: [],
+      values: function () { return bSyncOnce()[0].values; },
+      title: function () { return "sync.Once: init ровно один раз"; },
+      cellState: function (s, j) { var st = s.state[j]; var o = {}; if (st === "ranok") o.found = true; else if (st === "init") o.mid = true; else if (st === "wait" || st === "skip") o.dim = true; if (j === s.lo && s.lo >= 0) o.lo = true; return o; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      sumCells: ["init выполнен?", "раз запущено"],
+      sumValues: function (s) { return [{ text: s.vars.done, cls: s.vars.done === "да" ? "gt" : "" }, { text: s.vars.ran, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "init выполнен ровно один раз", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { return { a: "done:" + s.vars.done, b: "запусков init: " + s.vars.ran, c: "once", cls: "eq" }; },
+      varsOf: function (s) { return { done: s.vars.done, ran: s.vars.ran }; }
     },
 
     "quick-select": {
