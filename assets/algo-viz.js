@@ -943,6 +943,17 @@
       "//   она снова в очереди, Read() возвращает данные",
       "return n"
     ],
+    "chan-block": [
+      "ch := make(chan int)     // небуферизованный",
+      "// отправитель:",
+      "ch <- 42                 // блокируется, пока нет получателя",
+      "//   chansend: recvq пуст → кладём себя в sendq и gopark",
+      "// получатель:",
+      "v := <-ch                // chanrecv",
+      "//   нашёл ждущего в sendq → копируем 42 НАПРЯМУЮ,",
+      "//   goready(отправитель) — оба идут дальше",
+      "// (буферизованный блокирует, лишь когда буфер полон/пуст)"
+    ],
     "hanoi": [
       "func hanoi(n, from, to, via int) {",
       "    if n == 0 {",
@@ -3992,7 +4003,7 @@
   // обновляется по шагам, изменившийся ряд подсвечивается. Показывает, как «блокирующий»
   // conn.Read() паркует горутину, освобождает поток и будится через epoll.
   function netpollViz(panel, ctx) {
-    var rows = ["🧵 Горутина G", "⚙️ Поток M (ОС)", "🐧 epoll (ядро)"];
+    var rows = ctx.rows || ["🧵 Горутина G", "⚙️ Поток M (ОС)", "🐧 epoll (ядро)"];
     var wrap = document.createElement("div"); wrap.className = "algo-tp__np";
     var cells = rows.map(function (label) {
       var r = document.createElement("div"); r.className = "algo-tp__np-row";
@@ -5010,6 +5021,29 @@
       step(["выполняет Read() → получила данные ✓", "занят: выполняет G", "—"], [0, 1], 8,
         "Поток подхватывает G, conn.Read() возвращает данные. Для кода это был обычный «блокирующий» вызов.", true)
     ];
+  }
+
+  // Блокировка канала — как send/recv паркуют горутины и передают значение напрямую.
+  // Небуферизованный канал: отправитель ждёт в sendq, пришедший получатель забирает
+  // значение ПРЯМО из его стека (rendezvous) и будит его. Рисуется netpollViz (3 ряда).
+  function bChanBlock() {
+    var rows = ["📤 Отправитель G1", "📦 Канал ch", "📥 Получатель G2"];
+    function step(state, changed, line, info, done) { return { state: state, changed: changed, line: line, info: info, done: done, vars: { g1: state[0], g2: state[2] } }; }
+    var steps = [
+      step(["ch <- 42 (хочет отправить)", "небуферизованный, recvq пуст", "ещё не читает"], [0, 1], 2,
+        "G1 делает ch <- 42. Канал без буфера, ждущих получателей нет — значит, отправить некому."),
+      step(["🅿️ паркуется в sendq", "sendq: [G1 ждёт со значением 42]", "…"], [0, 1], 3,
+        "chansend: recvq пуст → G1 кладёт себя (и значение 42) в очередь sendq и паркуется (gopark)."),
+      step(["спит", "sendq: [G1]", "v := <-ch (пришёл читать)"], [2], 5,
+        "Позже G2 делает <-ch. Проверяет: есть ли ждущий отправитель?"),
+      step(["спит", "нашёл G1 в sendq → ПРЯМАЯ передача 42 (минуя буфер)", "получает 42 напрямую"], [1, 2], 6,
+        "chanrecv нашёл G1 в sendq → копирует 42 ПРЯМО из стека G1 в переменную G2. Буфер не участвует."),
+      step(["🔔 разбужен (goready): отправка завершена", "sendq пуст", "получил 42, работает"], [0, 1, 2], 7,
+        "goready возвращает G1 в очередь планировщика. Оба идут дальше — это rendezvous («встреча»)."),
+      step(["работает дальше", "пуст", "работает дальше (v = 42)"], [], 8,
+        "Небуферизованный канал = синхронная встреча: значение копируется стек-в-стек, без буфера. Буферизованный блокирует лишь на полном (send) или пустом (recv) буфере.", true)
+    ];
+    return { rows: rows, steps: steps };
   }
 
   // QuickSelect — рекурсия только в ОДНУ половину к рангу target = k−1. partition
@@ -7730,6 +7764,28 @@
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Данные получены — поток не был занят ожиданием", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!(s.changed && s.changed.length) }; },
       stepCard: function (s) { return { a: "G: " + s.vars.g, b: "M: " + s.vars.m, c: "epoll", cls: "eq" }; },
       varsOf: function (s) { return { g: s.vars.g, m: s.vars.m }; },
+      customViz: netpollViz
+    },
+
+    "chan-block": {
+      badge: "chan (блокировка)",
+      desc: "Как канал блокирует и будит горутины. Небуферизованный: отправитель ждёт в очереди sendq, пришедший получатель забирает значение ПРЯМО из его стека (rendezvous) и будит его. Буферизованный блокирует, лишь когда буфер полон (send) или пуст (recv). Одна из очередей sendq/recvq всегда пуста.",
+      valuesLabel: "", codeKey: "chan-block", fillRange: false,
+      complexity: { time: "O(1) на send/recv", space: "O(ждущих)", good: "★ Синхронизация без общей памяти" },
+      varOrder: ["g1", "g2"],
+      varDesc: { g1: "Отправитель G1", g2: "Получатель G2" },
+      lineNotes: { 0: "Небуферизованный канал: dataqsiz = 0", 2: "send блокируется, пока нет получателя", 3: "recvq пуст → в sendq и gopark", 5: "recv ищет ждущего отправителя", 6: "Нашёл → прямое копирование значения, минуя буфер", 7: "goready будит отправителя — оба идут дальше", 8: "Буферизованный блокирует только на полном/пустом буфере" },
+      rules: [{ head: "recvq пуст", body: "отправитель ждёт в sendq (gopark)", cls: "lt" }, { head: "есть получатель", body: "прямая передача стек-в-стек", cls: "gt" }, { head: "инвариант", body: "sendq или recvq всегда пуста", cls: "eq" }],
+      parse: function () { var r = bChanBlock(); return { rows: r.rows, steps: r.steps }; },
+      inputs: [],
+      values: function () { return []; },
+      title: function () { return "Канал: блокировка send/recv и прямая передача"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["отправитель", "получатель"],
+      sumValues: function (s) { return [{ text: s.vars.g1, cls: "lt" }, { text: s.vars.g2, cls: "gt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Rendezvous: значение передано стек-в-стек", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!(s.changed && s.changed.length) }; },
+      stepCard: function (s) { return { a: "G1: " + s.vars.g1, b: "G2: " + s.vars.g2, c: "chan", cls: "eq" }; },
+      varsOf: function (s) { return { g1: s.vars.g1, g2: s.vars.g2 }; },
       customViz: netpollViz
     },
 
