@@ -870,6 +870,27 @@
       "}",
       "return active[accept]                 // совпало, если финал активен"
     ],
+    "errgroup": [
+      "g, ctx := errgroup.WithContext(ctx) // общий ctx на всю группу",
+      "for _, src := range sources {",
+      "    g.Go(func() error {             // параллельная подзадача",
+      "        return fetch(ctx, src)      // слушает <-ctx.Done()",
+      "    })",
+      "}",
+      "if err := g.Wait(); err != nil {    // ждём всех; вернёт ПЕРВУЮ ошибку",
+      "    return err                      // остальные уже отменены общим ctx",
+      "}"
+    ],
+    "cas-loop": [
+      "// лок-free инкремент через Compare-And-Swap",
+      "for {",
+      "    old := counter.Load()           // читаем текущее значение",
+      "    if counter.CompareAndSwap(old, old+1) {",
+      "        break                       // успех: было old → стало old+1",
+      "    }",
+      "    // иначе кто-то опередил: old устарел, пробуем снова",
+      "}"
+    ],
     "hanoi": [
       "func hanoi(n, from, to, via int) {",
       "    if n == 0 {",
@@ -4795,6 +4816,42 @@
     return steps;
   }
 
+  // errgroup — параллельный fan-out с fail-fast: N подзадач с общим ctx; первая ошибка
+  // отменяет ctx, остальные сворачиваются, g.Wait() возвращает эту ошибку. Ячейки —
+  // подзадачи; состояния run/ok/err/cancel. Построен на context (дерево отмены) + WaitGroup.
+  function bErrgroup() {
+    var tasks = ["db", "http", "cache"], state = ["run", "run", "run"], steps = [];
+    function cnt(v) { return state.filter(function (s) { return s === v; }).length; }
+    function snap(extra) { var o = { values: tasks.slice(), state: state.slice(), lo: -1, vars: { running: cnt("run"), ok: cnt("ok"), failed: cnt("err") + cnt("cancel") } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 2, info: "Fan-out: g.Go запускает 3 подзадачи параллельно с общим ctx" }));
+    state[0] = "ok";
+    steps.push(snap({ lo: 0, line: 3, info: "db завершился успешно (nil error)" }));
+    state[1] = "err";
+    steps.push(snap({ lo: 1, hot: true, line: 3, info: "http вернул ОШИБКУ → errgroup отменяет общий ctx для всей группы" }));
+    state[2] = "cancel";
+    steps.push(snap({ lo: 2, line: 3, info: "cache видит <-ctx.Done() и сворачивается, не доделывая (лишняя работа не нужна)" }));
+    steps.push(snap({ done: true, line: 6, info: "g.Wait() вернул ПЕРВУЮ ошибку (http). Остальные уже отменены — быстрый отказ (fail-fast)." }));
+    return steps;
+  }
+
+  // sync/atomic CAS-цикл — лок-free инкремент. Две горутины делают +1 без мьютекса:
+  // read → CompareAndSwap(old, old+1). Если между read и CAS значение изменилось,
+  // CAS проваливается → перечитать и повторить. Оба инкремента доходят, потерь нет.
+  // Ячейки = значения счётчика во времени (5 → 6 → 7).
+  function bCasLoop() {
+    var seq = [5, 6, 7], pos = 0, steps = [];
+    function snap(extra) { var o = { values: seq.slice(), lo: pos, vars: { value: seq[pos], gor: "—", result: "—" } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 0, info: "Счётчик = 5. G1 и G2 одновременно хотят сделать +1 — без мьютекса, через atomic." }));
+    pos = 1;
+    steps.push(snap({ lo: 1, hot: true, line: 3, vars: { value: 6, gor: "G1", result: "CAS(5→6) OK" }, info: "G1: прочитал 5, CompareAndSwap(5→6) удался — счётчик стал 6." }));
+    steps.push(snap({ lo: 1, hot: true, line: 5, vars: { value: 6, gor: "G2", result: "CAS(5→6) FAIL" }, info: "G2: прочитал 5 (устарело), CAS(5→6) ПРОВАЛ — значение уже 6. Кто-то опередил → повтор." }));
+    steps.push(snap({ lo: 1, line: 2, vars: { value: 6, gor: "G2", result: "read 6" }, info: "G2: перечитывает актуальное значение — 6." }));
+    pos = 2;
+    steps.push(snap({ lo: 2, hot: true, line: 3, vars: { value: 7, gor: "G2", result: "CAS(6→7) OK" }, info: "G2: CompareAndSwap(6→7) удался — счётчик стал 7." }));
+    steps.push(snap({ done: true, lo: 2, line: 3, vars: { value: 7, gor: "—", result: "7" }, info: "Оба +1 применились (5→6→7): ни одного потерянного обновления и ни одного лока." }));
+    return steps;
+  }
+
   // QuickSelect — рекурсия только в ОДНУ половину к рангу target = k−1. partition
   // показан «чёрным ящиком» (его шаги — в quick-sort); здесь главное — СУЖЕНИЕ окна
   // [rangeLo, rangeHi] (вне его клетки dim), pivot после partition — mid.
@@ -7377,6 +7434,52 @@
       status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: s.found ? "Строка подходит" : "Не подходит", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "актив " + s.vars.active, b: "размер " + s.vars.size, c: "финал:" + s.vars.matched, cls: "lt" }; },
       varsOf: function (s) { return { active: s.vars.active, size: s.vars.size, matched: s.vars.matched }; }
+    },
+
+    "errgroup": {
+      badge: "errgroup (fan-out)",
+      desc: "Параллельный запуск подзадач с общим контекстом: первая же ошибка отменяет ctx, остальные подзадачи сворачиваются, g.Wait() возвращает эту ошибку (fail-fast). Structured concurrency поверх context (дерево отмены) + WaitGroup.",
+      valuesLabel: "Подзадачи группы", codeKey: "errgroup", fillRange: false,
+      ptr1: { name: "задача", cap: "(изменилась)" },
+      complexity: { time: "max(подзадач)", space: "O(N)", good: "★ Параллельно + отмена по первой ошибке" },
+      varOrder: ["running", "ok", "failed"],
+      varDesc: { running: "Ещё выполняются", ok: "Завершились успешно", failed: "Ошибка или отменены" },
+      lineNotes: { 0: "WithContext даёт группе общий ctx (дочерний от родителя)", 2: "g.Go запускает подзадачу в своей горутине", 3: "Подзадача обязана слушать <-ctx.Done()", 6: "g.Wait ждёт всех и возвращает ПЕРВУЮ ненулевую ошибку", 7: "Остальные к этому моменту уже отменены общим ctx" },
+      rules: [{ head: "первая ошибка", body: "→ cancel общего ctx", cls: "lt" }, { head: "соседи", body: "видят ctx.Done() и сворачиваются", cls: "gt" }, { head: "Wait", body: "возвращает первую ошибку (fail-fast)", cls: "eq" }],
+      parse: function () { return { steps: bErrgroup() }; },
+      inputs: [],
+      values: function () { return bErrgroup()[0].values; },
+      title: function () { return "errgroup: параллельный fan-out с fail-fast"; },
+      cellState: function (s, j) { var st = s.state[j]; var o = {}; if (st === "ok") o.found = true; else if (st === "cancel") o.dim = true; else if (st === "err") o.mid = true; if (j === s.lo && s.lo >= 0) o.lo = true; return o; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      sumCells: ["выполнено ok", "провал/отмена"],
+      sumValues: function (s) { return [{ text: s.vars.ok, cls: "gt" }, { text: s.vars.failed, cls: "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Fail-fast сработал", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { return { a: "работают " + s.vars.running, b: "ok " + s.vars.ok, c: "стоп " + s.vars.failed, cls: "lt" }; },
+      varsOf: function (s) { return { running: s.vars.running, ok: s.vars.ok, failed: s.vars.failed }; }
+    },
+
+    "cas-loop": {
+      badge: "atomic (CAS)",
+      desc: "Лок-free инкремент через Compare-And-Swap: читаем значение и меняем его на old+1 только если оно всё ещё old. Если между чтением и CAS другая горутина опередила — CAS проваливается, перечитываем и повторяем. Без мьютекса, без потерянных обновлений.",
+      valuesLabel: "Значение счётчика во времени (5 → 6 → 7)", codeKey: "cas-loop", fillRange: false,
+      ptr1: { name: "счётчик", cap: "(текущее значение)" },
+      complexity: { time: "O(1) амортиз.", space: "O(1)", good: "★ Лок-free, дешевле мьютекса при низкой конкуренции" },
+      varOrder: ["value", "gor", "result"],
+      varDesc: { value: "Текущее значение счётчика", gor: "Какая горутина действует", result: "Итог операции (CAS/read)" },
+      lineNotes: { 0: "Инкремент без мьютекса — на атомарном CAS", 1: "Цикл повтора (optimistic concurrency)", 2: "Читаем текущее значение (снимок)", 3: "CAS: меняем на old+1, только если значение всё ещё old", 4: "Успех → выходим из цикла", 6: "CAS провалился (значение изменилось) → повторяем" },
+      rules: [{ head: "CAS удался", body: "значение было old → стало old+1", cls: "gt" }, { head: "CAS провал", body: "кто-то опередил → перечитать и повтор", cls: "lt" }, { head: "итог", body: "без лока, без потерь обновлений", cls: "eq" }],
+      parse: function () { return { steps: bCasLoop() }; },
+      inputs: [],
+      values: function () { return bCasLoop()[0].values; },
+      title: function () { return "atomic CAS: лок-free инкремент"; },
+      cellState: function (s, j) { if (j > s.lo) return { dim: true }; if (j === s.lo) return { mid: true }; return { found: true }; },
+      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      sumCells: ["значение", "операция"],
+      sumValues: function (s) { return [{ text: s.vars.value, cls: "gt" }, { text: s.vars.result, cls: (String(s.vars.result).indexOf("FAIL") >= 0 ? "lt" : "eq") }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Оба +1 без лока и без потерь", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { return { a: s.vars.gor, b: "значение " + s.vars.value, c: s.vars.result, cls: "eq" }; },
+      varsOf: function (s) { return { value: s.vars.value, gor: s.vars.gor, result: s.vars.result }; }
     },
 
     "quick-select": {
