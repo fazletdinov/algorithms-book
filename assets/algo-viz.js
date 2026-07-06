@@ -932,6 +932,17 @@
       "    out[tag] = val               // добавить в JSON",
       "}"
     ],
+    "netpoll": [
+      "// conn.Read() выглядит блокирующим, но под капотом:",
+      "n, err := conn.Read(buf)          // fd в НЕблокирующем режиме",
+      "// если данных нет (EAGAIN):",
+      "//   runtime кладёт fd в epoll и паркует горутину (gopark),",
+      "//   поток M освобождается и выполняет ДРУГИЕ горутины",
+      "// планировщик периодически зовёт netpoll(0):",
+      "//   epoll сообщает готовый fd → goready будит горутину",
+      "//   она снова в очереди, Read() возвращает данные",
+      "return n"
+    ],
     "hanoi": [
       "func hanoi(n, from, to, via int) {",
       "    if n == 0 {",
@@ -3977,6 +3988,28 @@
     };
   }
 
+  // netpollViz — три ряда (Горутина G / Поток M / epoll), текст состояния каждого
+  // обновляется по шагам, изменившийся ряд подсвечивается. Показывает, как «блокирующий»
+  // conn.Read() паркует горутину, освобождает поток и будится через epoll.
+  function netpollViz(panel, ctx) {
+    var rows = ["🧵 Горутина G", "⚙️ Поток M (ОС)", "🐧 epoll (ядро)"];
+    var wrap = document.createElement("div"); wrap.className = "algo-tp__np";
+    var cells = rows.map(function (label) {
+      var r = document.createElement("div"); r.className = "algo-tp__np-row";
+      var l = document.createElement("div"); l.className = "algo-tp__np-label"; l.textContent = label; r.appendChild(l);
+      var v = document.createElement("div"); v.className = "algo-tp__np-val"; r.appendChild(v);
+      wrap.appendChild(r);
+      return { row: r, val: v };
+    });
+    panel.appendChild(wrap);
+    return function (s) {
+      cells.forEach(function (o, i) {
+        o.val.textContent = s.state[i];
+        o.row.classList.toggle("algo-tp__np-row--hot", !!(s.changed && s.changed.indexOf(i) >= 0));
+      });
+    };
+  }
+
   // Trie: разбор задачи Replace Words — спуск shortestRoot до ПЕРВОГО isEnd. Строим бор
   // из корней dict, ведём слово query по символам; как только узел помечен isEnd — это
   // кратчайший корень-префикс (идём от начала слова), возвращаем word[:i+1]. Путь оборвался
@@ -4956,6 +4989,27 @@
     });
     steps.push(snap({ done: true, line: 9, vars: { tag: "—", value: "—", out: outStr() }, info: "Готово: " + outStr() + ". reflect сериализует ЛЮБОЙ тип — ценой обхода полей в рантайме (медленнее кодогенерации)." }));
     return steps;
+  }
+
+  // netpoll — как «блокирующий» conn.Read() масштабируется на тысячи соединений.
+  // Три ряда состояний: Горутина / Поток M / epoll. Горутина паркуется на I/O, поток
+  // освобождается и крутит другие горутины, epoll будит её при готовности данных.
+  function bNetpoll() {
+    function step(state, changed, line, info, done) { return { state: state, changed: changed, line: line, info: info, done: done, vars: { g: state[0], m: state[1] } }; }
+    return [
+      step(["выполняет conn.Read()", "занят: выполняет G", "—"], [0, 1], 1,
+        "G вызывает conn.Read(). Поток M занят этой горутиной. fd — в неблокирующем режиме."),
+      step(["🅿️ паркуется: данных ещё нет (EAGAIN)", "освобождается", "регистрирует fd, начинает следить"], [0, 1, 2], 4,
+        "Данных нет → runtime кладёт fd в epoll и ПАРКУЕТ горутину (gopark). Поток M больше ею не занят."),
+      step(["спит — НЕ занимает поток", "выполняет ДРУГУЮ горутину G2", "следит за fd"], [1], 4,
+        "Поток M не простаивает: берёт из очереди другую готовую горутину. Тысячи парков — единицы потоков."),
+      step(["спит", "выполняет G2", "✅ fd ГОТОВ: пришли данные"], [2], 6,
+        "Ядро сообщает epoll, что на fd появились данные — сокет готов к чтению."),
+      step(["🔔 разбужена (goready) → в очередь", "…", "вернул готовый fd планировщику"], [0, 2], 6,
+        "Планировщик в findRunnable зовёт netpoll(0); epoll отдаёт готовый fd → goready ставит G обратно в очередь."),
+      step(["выполняет Read() → получила данные ✓", "занят: выполняет G", "—"], [0, 1], 8,
+        "Поток подхватывает G, conn.Read() возвращает данные. Для кода это был обычный «блокирующий» вызов.", true)
+    ];
   }
 
   // QuickSelect — рекурсия только в ОДНУ половину к рангу target = k−1. partition
@@ -7655,6 +7709,28 @@
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "JSON собран", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
       stepCard: function (s) { return { a: "тег " + s.vars.tag, b: "знач " + s.vars.value, c: "reflect", cls: "eq" }; },
       varsOf: function (s) { return { tag: s.vars.tag, value: s.vars.value, out: s.vars.out }; }
+    },
+
+    "netpoll": {
+      badge: "netpoll (epoll)",
+      desc: "Как «блокирующий» conn.Read() держит тысячи соединений на единицах потоков. Нет данных → горутина паркуется (gopark) и её fd уходит в epoll; поток M освобождается и крутит другие горутины; планировщик через netpoll узнаёт о готовности и будит горутину (goready). Простой код, неблокирующий рантайм.",
+      valuesLabel: "", codeKey: "netpoll", fillRange: false,
+      complexity: { time: "O(готовых) на poll", space: "O(1) на горутину", good: "★ Тысячи соединений на GOMAXPROCS потоках" },
+      varOrder: ["g", "m"],
+      varDesc: { g: "Состояние горутины G", m: "Что делает поток M" },
+      lineNotes: { 0: "Снаружи это обычный блокирующий вызов", 1: "fd в неблокирующем режиме — рантайм сам решает, ждать ли", 3: "Нет данных → epoll + gopark (парковка горутины)", 4: "Поток M освобождён и берёт другую горутину", 5: "Планировщик периодически опрашивает netpoll", 6: "epoll вернул готовый fd → goready будит горутину", 8: "Read() возвращает данные — как будто и не блокировались" },
+      rules: [{ head: "нет данных", body: "горутина паркуется, поток свободен", cls: "lt" }, { head: "epoll", body: "будит горутину при готовности fd", cls: "gt" }, { head: "итог", body: "простой код + масштаб event-loop", cls: "eq" }],
+      parse: function () { return { steps: bNetpoll() }; },
+      inputs: [],
+      values: function () { return []; },
+      title: function () { return "netpoll: «блокирующий» I/O без блокировки потока"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["горутина G", "поток M"],
+      sumValues: function (s) { return [{ text: s.vars.g, cls: "eq" }, { text: s.vars.m, cls: "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Данные получены — поток не был занят ожиданием", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!(s.changed && s.changed.length) }; },
+      stepCard: function (s) { return { a: "G: " + s.vars.g, b: "M: " + s.vars.m, c: "epoll", cls: "eq" }; },
+      varsOf: function (s) { return { g: s.vars.g, m: s.vars.m }; },
+      customViz: netpollViz
     },
 
     "quick-select": {

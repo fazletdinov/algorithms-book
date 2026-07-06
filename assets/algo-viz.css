@@ -1192,3 +1192,10 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__hsrow--s2c .algo-tp__hsarrow { color: var(--tp-hi, #b48cff); }
 .algo-tp__hsrow--note .algo-tp__hsarrow { color: var(--tp-ok, #2e9b57); }
 .algo-tp__hsmsg { flex: 1; }
+
+/* netpoll (netpollViz) — ряды состояний Горутина / Поток M / epoll */
+.algo-tp__np { display: flex; flex-direction: column; gap: 0.4em; width: 100%; }
+.algo-tp__np-row { display: flex; align-items: center; gap: 0.6em; padding: 0.5em 0.6em; border-radius: 6px; background: rgba(127,127,127,0.06); border: 1px solid transparent; transition: background 0.2s, border-color 0.2s; }
+.algo-tp__np-row--hot { background: rgba(224,165,0,0.16); border-color: var(--tp-warn, #e0a500); }
+.algo-tp__np-label { flex: 0 0 8.5em; font-weight: 700; font-size: 0.9em; }
+.algo-tp__np-val { flex: 1; font-size: 0.9em; }
