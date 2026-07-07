@@ -47,3 +47,12 @@ func (h *Heap) Peek() (int, bool) {
 func (h *Heap) Len() int {
 	panic("TODO: реализуйте Len")
 }
+
+// BuildHeap строит кучу из готового среза за O(n) (heapify снизу вверх).
+// Исходный срез не изменяется.
+func BuildHeap(data []int) *Heap {
+	// TODO: скопируйте data в новую кучу и просейте вниз (siftDown) каждый узел
+	// от последнего внутреннего (len/2-1) к корню. Это O(n), а не O(n log n)
+	// от n поэлементных Push: нижняя половина — листья, их сеять не нужно.
+	panic("TODO: реализуйте BuildHeap")
+}

@@ -36,6 +36,15 @@ func (h *Heap) Pop() (int, bool) {
 	return top, true
 }
 
+// BuildHeap строит кучу из готового среза за O(n) (heapify снизу вверх).
+func BuildHeap(data []int) *Heap {
+	h := &Heap{data: append([]int(nil), data...)} // копия — исходник не трогаем
+	for i := len(h.data)/2 - 1; i >= 0; i-- {     // от последнего внутреннего к корню
+		h.siftDown(i)
+	}
+	return h
+}
+
 // siftUp поднимает элемент i, пока он меньше своего родителя.
 func (h *Heap) siftUp(i int) {
 	for i > 0 {

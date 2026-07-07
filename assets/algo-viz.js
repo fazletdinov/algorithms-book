@@ -1293,6 +1293,25 @@
       "    return min",
       "}"
     ],
+    "heap-build": [
+      "func BuildHeap(a []int) {",
+      "    // с последнего ВНУТРЕННЕГО узла (n/2−1) — к корню",
+      "    for i := len(a)/2 - 1; i >= 0; i-- {",
+      "        siftDown(a, i)             // просеиваем вниз",
+      "    }",
+      "    // листья (нижняя половина) уже кучи — их не трогаем",
+      "}",
+      "func siftDown(a []int, i int) {",
+      "    for {",
+      "        l, r, small := 2*i+1, 2*i+2, i",
+      "        if l < len(a) && a[l] < a[small] { small = l }",
+      "        if r < len(a) && a[r] < a[small] { small = r }",
+      "        if small == i { break }",
+      "        a[i], a[small] = a[small], a[i]",
+      "        i = small",
+      "    }",
+      "}"
+    ],
     "tree-bfs": [
       "func bfs(root *TreeNode) []int {",
       "    if root == nil { return nil }",
@@ -6614,6 +6633,36 @@
     push({ line: 14, marks: {}, i: i, action: "готово", done: true, info: "вернули " + min + "; куча: [" + h.join(", ") + "]" });
     return { steps: steps };
   }
+  // Построение кучи из массива за O(n) (Флойд): siftDown от последнего ВНУТРЕННЕГО
+  // узла (n/2−1) к корню. Листья (нижняя половина) — уже кучи по одному узлу.
+  function bHeapBuild(initial) {
+    var h = initial.slice(), n = h.length, steps = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, heap: h.slice(), marks: o.marks || {}, vars: { i: (o.i == null ? "—" : String(o.i)), action: (o.action || "—") }, info: o.info, done: o.done }); }
+    push({ line: 0, marks: {}, action: "старт", info: "Массив [" + h.join(", ") + "] — ещё не куча. Строим min-кучу на месте, за O(n)" });
+    var firstInternal = Math.floor(n / 2) - 1;
+    if (firstInternal < 0) { push({ line: 4, marks: {}, done: true, action: "готово", info: "0–1 элемент — уже куча" }); return { steps: steps }; }
+    var mleaf = {}; for (var L = firstInternal + 1; L < n; L++) mleaf[L] = "found";
+    push({ line: 5, marks: mleaf, action: "листья", info: "нижняя половина (индексы " + (firstInternal + 1) + ".." + (n - 1) + ") — листья: каждый уже куча из одного узла, их НЕ трогаем" });
+    for (var start = firstInternal; start >= 0; start--) {
+      var mp = {}; mp[start] = "current";
+      push({ line: 3, marks: mp, i: start, action: "внутренний узел", info: "берём внутренний узел " + h[start] + " (индекс " + start + ") и просеиваем вниз" });
+      var i = start;
+      while (true) {
+        var l = 2 * i + 1, r = 2 * i + 2, small = i;
+        var mc = {}; mc[i] = "current"; if (l < n) mc[l] = "found"; if (r < n) mc[r] = "found";
+        push({ line: 10, marks: mc, i: i, action: "дети", info: "сравниваем " + h[i] + " с детьми" + (l < n ? " " + h[l] : "") + (r < n ? ", " + h[r] : "") });
+        if (l < n && h[l] < h[small]) small = l;
+        if (r < n && h[r] < h[small]) small = r;
+        if (small === i) { push({ line: 12, marks: mc, i: i, action: "стоп", info: h[i] + " не больше детей — на месте" }); break; }
+        var tmp = h[i]; h[i] = h[small]; h[small] = tmp;
+        var ms = {}; ms[i] = "found"; ms[small] = "current";
+        push({ line: 13, marks: ms, i: small, action: "swap↓", info: "меняем: " + h[i] + " вверх, " + h[small] + " вниз" });
+        i = small;
+      }
+    }
+    push({ line: 4, marks: {}, done: true, action: "готово", info: "куча построена: [" + h.join(", ") + "]. Всего " + (firstInternal + 1) + " просеиваний, но нижние — короткие: суммарно O(n)" });
+    return { steps: steps };
+  }
 
   // Подписанный ряд ячеек для multi-collection visualizations.
   function vizRow(wrap, label) {
@@ -9002,6 +9051,27 @@
       sumValues: function (s) { return [{ text: s.vars.i }, { text: s.vars.action, cls: s.removed ? "gt" : "lt" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Минимум извлечён", text: s.info }; if (s.removed) return { kind: "info", icon: idx + 1, head: "Извлекаем корень", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.removed) return { a: "корень", b: "минимум", c: "–", cls: "gt" }; return { a: "i = " + s.vars.i, b: s.vars.action, c: "↓", cls: "lt" }; },
+      varsOf: function (s) { return { "i": s.vars.i, "action": s.vars.action }; },
+      customViz: heapViz
+    },
+
+    "heap-build": {
+      badge: "Binary Heap · Build", desc: "Построение кучи из массива за O(n) (Флойд): siftDown от последнего внутреннего узла (n/2−1) к корню. Нижняя половина — листья, уже кучи по одному узлу. Дешевле, чем n вставок за O(n log n).",
+      valuesLabel: "", codeKey: "heap-build", fillRange: false,
+      complexity: { time: "O(n)", space: "O(1)", good: "★ Куча из массива за O(n)" },
+      varOrder: ["i", "action"],
+      varDesc: { "i": "Индекс просеиваемого узла", "action": "Что делаем на шаге" },
+      lineNotes: { 0: "Строим кучу на месте из готового массива", 2: "Идём от последнего внутреннего узла к корню", 3: "Просеиваем узел вниз до его места", 5: "Листья не трогаем — они уже кучи", 8: "Просеивание вниз", 10: "Левый ребёнок меньше?", 11: "Правый ребёнок меньше?", 12: "Узел на месте — стоп", 13: "Меняем с меньшим ребёнком" },
+      rules: [{ head: "с n/2−1 к 0", body: "только внутренние узлы", cls: "lt" }, { head: "листья", body: "→ уже кучи, пропускаем", cls: "eq" }, { head: "почему O(n)", body: "нижние узлы сеются коротко", cls: "gt" }],
+      parse: function (root) { var initial = nums(root.getAttribute("data-array")); var r = bHeapBuild(initial); return { initial: initial, steps: r.steps }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function () { return []; },
+      title: function () { return "Куча: построение из массива за O(n)"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Индекс i", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.i }, { text: s.vars.action, cls: s.vars.action && s.vars.action.indexOf("swap") === 0 ? "gt" : "lt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Куча построена за O(n)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "i = " + s.vars.i, b: s.vars.action, c: s.vars.action && s.vars.action.indexOf("swap") === 0 ? "↓" : "·", cls: s.vars.action && s.vars.action.indexOf("swap") === 0 ? "gt" : "lt" }; },
       varsOf: function (s) { return { "i": s.vars.i, "action": s.vars.action }; },
       customViz: heapViz
     },
