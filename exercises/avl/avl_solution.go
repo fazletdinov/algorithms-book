@@ -121,3 +121,33 @@ func (t *AVL) InOrder() []int {
 	walk(t.root)
 	return out
 }
+
+func (t *AVL) Delete(val int) {
+	t.root = deleteNode(t.root, val)
+}
+
+func deleteNode(n *node, val int) *node {
+	if n == nil {
+		return nil
+	}
+	switch {
+	case val < n.val:
+		n.left = deleteNode(n.left, val)
+	case val > n.val:
+		n.right = deleteNode(n.right, val)
+	default:
+		if n.left == nil {
+			return n.right
+		}
+		if n.right == nil {
+			return n.left
+		}
+		s := n.right // преемник — минимум правого поддерева
+		for s.left != nil {
+			s = s.left
+		}
+		n.val = s.val
+		n.right = deleteNode(n.right, s.val)
+	}
+	return rebalance(n) // балансируем на обратном ходе — на каждом уровне пути
+}

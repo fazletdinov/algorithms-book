@@ -46,6 +46,47 @@ func TestAVLStaysBalanced(t *testing.T) {
 	}
 }
 
+func TestAVLDelete(t *testing.T) {
+	tr := NewAVL()
+	for _, v := range []int{50, 30, 70, 20, 40, 60, 80, 10, 25} {
+		tr.Insert(v)
+	}
+	// лист (10), узел с одним ребёнком (70), с двумя детьми (30), корень (50)
+	for _, v := range []int{10, 70, 30, 50} {
+		tr.Delete(v)
+		if tr.Search(v) {
+			t.Errorf("после Delete(%d) значение всё ещё находится", v)
+		}
+		checkBalanced(t, tr.root)
+	}
+	if got, want := tr.InOrder(), []int{20, 25, 40, 60, 80}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("после удалений InOrder() = %v, ожидалось %v", got, want)
+	}
+	// удаление отсутствующего значения не паникует и не меняет дерево
+	tr.Delete(999)
+	if got, want := tr.InOrder(), []int{20, 25, 40, 60, 80}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("Delete отсутствующего изменил дерево: %v", got)
+	}
+}
+
+// Удаляем половину из 1..n — дерево остаётся сбалансированным и корректным.
+func TestAVLDeleteStaysBalanced(t *testing.T) {
+	tr := NewAVL()
+	const n = 500
+	for i := 1; i <= n; i++ {
+		tr.Insert(i)
+	}
+	for i := 1; i <= n; i += 2 { // удаляем нечётные
+		tr.Delete(i)
+	}
+	checkBalanced(t, tr.root)
+	for i := 1; i <= n; i++ {
+		if want := i%2 == 0; tr.Search(i) != want {
+			t.Fatalf("Search(%d) = %v, ожидалось %v", i, tr.Search(i), want)
+		}
+	}
+}
+
 // checkBalanced проверяет инвариант AVL напрямую: у каждого узла высоты
 // поддеревьев отличаются не более чем на 1. Возвращает фактическую высоту.
 func checkBalanced(t *testing.T, n *node) int {

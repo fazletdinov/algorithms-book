@@ -721,6 +721,23 @@
       "    t.root.color = BLACK   // корень всегда чёрный",
       "}"
     ],
+    "rb-delete": [
+      "func (t *RBTree) Delete(val int) {",
+      "    z := t.find(val)",
+      "    if z == nil { return }",
+      "    y := z                     // узел, что физически уйдёт",
+      "    if z.left != nil && z.right != nil {",
+      "        y = min(z.right)       // преемник",
+      "        z.val = y.val          // копируем значение",
+      "    }",
+      "    x := y.child()             // у y ≤ 1 ребёнка",
+      "    removed := y.color",
+      "    t.transplant(y, x)         // y уходит, на место — x",
+      "    if removed == BLACK {",
+      "        t.deleteFixup(x)       // чиним «двойной чёрный» вверх",
+      "    }",
+      "}"
+    ],
     "skip-search": [
       "func (s *SkipList) Search(target int) bool {",
       "    node := s.head",
@@ -1656,6 +1673,24 @@
       "    return node",
       "}"
     ],
+    "avl-delete": [
+      "func (t *AVL) Delete(val int) {",
+      "    node := t.find(val)                 // спуск как в BST",
+      "    if node == nil { return }           // нет такого — выходим",
+      "    if node.left != nil && node.right != nil {",
+      "        s := min(node.right)            // преемник: min правого поддерева",
+      "        node.val = s.val                // копируем значение",
+      "        node = s                        // физически удаляем преемника",
+      "    }",
+      "    unlink(node)                        // отцепляем (у node ≤ 1 ребёнка)",
+      "    for n := node.parent; n != nil; n = n.parent {",
+      "        update(n)                       // пересчитать высоту",
+      "        if abs(balance(n)) > 1 {",
+      "            rebalance(n)                // поворот; идём ВЫШЕ (не break!)",
+      "        }",
+      "    }",
+      "}"
+    ],
     "btree-insert": [
       "func (t *BTree) Insert(k int) {",
       "    if root.full() {                 // корень полон — растим высоту",
@@ -1685,6 +1720,22 @@
       "        n = n.children[i]                               // спуск к ребёнку",
       "    }",
       "    return false",
+      "}"
+    ],
+    "btree-delete": [
+      "func del(n *Node, k int) {",
+      "    i := n.find(k)                       // позиция k в узле",
+      "    if n.leaf() {",
+      "        n.removeKey(k)                   // лист — просто убираем",
+      "    } else if i < len(n.keys) && n.keys[i] == k {",
+      "        replaceWithPredOrSucc(n, i)      // заменяем и удаляем ниже",
+      "        // если оба ребёнка бедны — сливаем и удаляем в слитом",
+      "    } else {",
+      "        if len(n.children[i].keys) < t {",
+      "            fill(n, i)                   // заём у соседа или слияние",
+      "        }",
+      "        del(n.children[i], k)            // спускаемся",
+      "    }",
       "}"
     ],
     "segtree-query": [
@@ -2845,6 +2896,79 @@
     return { steps: steps };
   }
 
+  // AVL-удаление: BST-удаление + балансировка ВВЕРХ по всему пути (в отличие от
+  // вставки, поворотов может понадобиться несколько). Стек пути + снимки bstSnap.
+  function bAVLDelete(initialVals, val) {
+    var seq = { n: 0 };
+    function mk(v) { return { id: seq.n++, val: v, left: null, right: null, h: 1 }; }
+    function H(n) { return n ? n.h : 0; }
+    function upd(n) { n.h = 1 + Math.max(H(n.left), H(n.right)); }
+    function bal(n) { return n ? H(n.left) - H(n.right) : 0; }
+    function rotR(y) { var x = y.left; y.left = x.right; x.right = y; upd(y); upd(x); return x; }
+    function rotL(x) { var y = x.right; x.right = y.left; y.left = x; upd(x); upd(y); return y; }
+    var root = null;
+    (function () {
+      function ins(n, v) {
+        if (!n) return mk(v);
+        if (v < n.val) n.left = ins(n.left, v); else if (v > n.val) n.right = ins(n.right, v); else return n;
+        upd(n); var b = bal(n);
+        if (b > 1 && bal(n.left) >= 0) return rotR(n);
+        if (b > 1) { n.left = rotL(n.left); return rotR(n); }
+        if (b < -1 && bal(n.right) <= 0) return rotL(n);
+        if (b < -1) { n.right = rotR(n.right); return rotL(n); }
+        return n;
+      }
+      initialVals.forEach(function (v) { root = ins(root, v); });
+    })();
+    var steps = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, vars: { node: (o.node == null ? "—" : String(o.node)), action: (o.action || "—") }, info: o.info, done: o.done }); }
+    push({ line: 1, tree: bstSnap(root, {}), node: (root ? root.val : "—"), action: "старт", info: "удаляем " + val + ": находим узел, убираем как в BST, затем балансируем вверх по пути" });
+    // поиск с накоплением пути (предки удаляемого)
+    var path = [], cur = root;
+    while (cur && cur.val !== val) {
+      var md = {}; md[cur.id] = "current";
+      push({ line: 1, tree: bstSnap(root, md), node: cur.val, action: "спуск", info: val + " vs " + cur.val + (val < cur.val ? " — влево" : " — вправо") });
+      path.push(cur); cur = val < cur.val ? cur.left : cur.right;
+    }
+    if (!cur) { push({ line: 2, tree: bstSnap(root, {}), node: "—", action: "нет узла", done: true, info: val + " в дереве нет — удалять нечего" }); return { steps: steps }; }
+    var target = cur, mf = {}; mf[target.id] = "found";
+    push({ line: 1, tree: bstSnap(root, mf), node: target.val, action: "нашли", info: "нашли узел " + target.val });
+    var removeNode;
+    if (target.left && target.right) {
+      path.push(target);
+      var s = target.right;
+      var ms = {}; ms[target.id] = "current"; ms[s.id] = "found";
+      push({ line: 4, tree: bstSnap(root, ms), node: s.val, action: "преемник", info: "у " + target.val + " два ребёнка → берём преемника (минимум правого поддерева), идём влево до упора" });
+      while (s.left) { path.push(s); s = s.left; var ml = {}; ml[target.id] = "current"; ml[s.id] = "found"; push({ line: 4, tree: bstSnap(root, ml), node: s.val, action: "влево", info: "минимум пока: " + s.val }); }
+      target.val = s.val;
+      var mcp = {}; mcp[target.id] = "created";
+      push({ line: 5, tree: bstSnap(root, mcp), node: target.val, action: "копируем", info: "копируем значение преемника " + s.val + " в узел; теперь физически убираем преемника (у него ≤1 ребёнка)" });
+      removeNode = s;
+    } else removeNode = target;
+    var child = removeNode.left || removeNode.right || null;
+    var parent = path.length ? path[path.length - 1] : null;
+    var mrm = {}; mrm[removeNode.id] = "removed";
+    push({ line: 8, tree: bstSnap(root, mrm), node: removeNode.val, action: "отцепляем", info: "отцепляем " + removeNode.val + (child ? " — на его место встаёт " + child.val : " (лист)") });
+    if (!parent) root = child; else if (parent.left === removeNode) parent.left = child; else parent.right = child;
+    var rotations = 0;
+    for (var i = path.length - 1; i >= 0; i--) {
+      var n = path[i]; upd(n); var b = bal(n);
+      var mb = {}; mb[n.id] = "current";
+      push({ line: 10, tree: bstSnap(root, mb), node: n.val, action: "баланс", info: "узел " + n.val + ": высота " + n.h + ", баланс = " + b + (Math.abs(b) <= 1 ? " (ок)" : " — ДИСБАЛАНС, поворот") });
+      if (Math.abs(b) <= 1) continue;
+      var sub, caseName, ln;
+      if (b > 1) { if (bal(n.left) < 0) { caseName = "LR"; ln = 12; n.left = rotL(n.left); } else { caseName = "LL"; ln = 12; } sub = rotR(n); }
+      else { if (bal(n.right) > 0) { caseName = "RL"; ln = 12; n.right = rotR(n.right); } else { caseName = "RR"; ln = 12; } sub = rotL(n); }
+      var par = path[i - 1];
+      if (!par) root = sub; else if (par.left === n) par.left = sub; else par.right = sub;
+      var mr = {}; mr[sub.id] = "found";
+      push({ line: 12, tree: bstSnap(root, mr), node: sub.val, action: "поворот " + caseName, info: "случай " + caseName + ": поворот вокруг " + n.val + " → корень поддерева " + sub.val + ". Балансируем ДАЛЬШЕ вверх" });
+      rotations++;
+    }
+    push({ line: 15, tree: bstSnap(root, {}), node: (root ? root.val : "—"), action: "готово", done: true, info: rotations ? (val + " удалён; сбалансировано (" + rotations + " поворот(ов) вверх по пути)") : (val + " удалён; дерево осталось сбалансированным") });
+    return { steps: steps };
+  }
+
   // ===== B-дерево (минимальная степень t=2, до 3 ключей в узле): Insert/Search
   // Многопутевое сбалансированное дерево. btreeSnap раскладывает узлы (x по DFS,
   // глубина), рёбра parent→child. Вставка top-down делит полные узлы заранее.
@@ -2957,6 +3081,56 @@
       push({ line: 7, tree: btreeSnap(root, m), node: n.keys.join(","), info: "спускаемся в ребёнка #" + i + " (между ключами)" });
       n = n.children[i];
     }
+    return { steps: steps };
+  }
+  // B-дерево УДАЛЕНИЕ (CLRS, t=2): спускаемся, следя, чтобы у узла было ≥ t ключей
+  // (иначе заимствуем у соседа или сливаем). Слияний/новых узлов не создаём — id
+  // стабильны, снимок через btreeSnap. Алгоритм выверен инвариантами B-дерева.
+  function bBTreeDelete(keys, key) {
+    var seq = { n: 0 }, rootRef = { root: { id: seq.n++, keys: [], children: [] } };
+    keys.forEach(function (k) { btreeSilentInsert(rootRef, k, seq); });
+    var steps = [];
+    function snap(marks) { return btreeSnap(rootRef.root, marks || {}); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: snap(o.marks), vars: { node: (o.node || "—"), action: (o.action || "—") }, info: o.info, done: o.done, fix: o.fix }); }
+    function leaf(n) { return n.children.length === 0; }
+    function maxKey(n) { while (!leaf(n)) n = n.children[n.children.length - 1]; return n.keys[n.keys.length - 1]; }
+    function minKey(n) { while (!leaf(n)) n = n.children[0]; return n.keys[0]; }
+    function merge(n, i) { var c = n.children[i], r = n.children[i + 1]; c.keys.push(n.keys[i]); c.keys = c.keys.concat(r.keys); c.children = c.children.concat(r.children); n.keys.splice(i, 1); n.children.splice(i + 1, 1); }
+    function fill(n, i) {
+      if (i > 0 && n.children[i - 1].keys.length >= BT_T) {
+        var c = n.children[i], l = n.children[i - 1], mb = {}; mb[c.id] = "found"; mb[l.id] = "current"; mb[n.id] = "fix";
+        push({ line: 9, node: c.keys.join(","), action: "заём слева", fix: true, marks: mb, info: "у [" + c.keys.join(",") + "] мало ключей → берём взаймы у ЛЕВОГО соседа через ключ родителя" });
+        c.keys.unshift(n.keys[i - 1]); n.keys[i - 1] = l.keys.pop(); if (!leaf(l)) c.children.unshift(l.children.pop());
+      } else if (i < n.children.length - 1 && n.children[i + 1].keys.length >= BT_T) {
+        var c2 = n.children[i], rr = n.children[i + 1], mr = {}; mr[c2.id] = "found"; mr[rr.id] = "current"; mr[n.id] = "fix";
+        push({ line: 9, node: c2.keys.join(","), action: "заём справа", fix: true, marks: mr, info: "у [" + c2.keys.join(",") + "] мало ключей → берём взаймы у ПРАВОГО соседа через ключ родителя" });
+        c2.keys.push(n.keys[i]); n.keys[i] = rr.keys.shift(); if (!leaf(rr)) c2.children.push(rr.children.shift());
+      } else {
+        var mi = (i < n.children.length - 1) ? i : i - 1, mm = {}; mm[n.children[mi].id] = "fix"; mm[n.children[mi + 1].id] = "fix"; mm[n.id] = "current";
+        push({ line: 9, node: n.children[mi].keys.join(","), action: "слияние", fix: true, marks: mm, info: "и у соседей мало ключей → СЛИВАЕМ двух детей с ключом-разделителем родителя в один узел" });
+        merge(n, mi);
+      }
+    }
+    function del(n, k) {
+      var i = 0; while (i < n.keys.length && k > n.keys[i]) i++;
+      if (i < n.keys.length && n.keys[i] === k) {
+        if (leaf(n)) { var ml = {}; ml[n.id] = "removed"; push({ line: 3, node: n.keys.join(","), action: "удаляем из листа", marks: ml, info: k + " в листе [" + n.keys.join(",") + "] — просто убираем ключ" }); n.keys.splice(i, 1); return; }
+        var mf = {}; mf[n.id] = "found"; push({ line: 5, node: n.keys.join(","), action: "ключ внутри", marks: mf, info: k + " во внутреннем узле — заменяем соседним ключом (предшественник/преемник) или сливаем детей" });
+        if (n.children[i].keys.length >= BT_T) { var pred = maxKey(n.children[i]); n.keys[i] = pred; var mp = {}; mp[n.id] = "created"; push({ line: 5, node: String(pred), action: "предшественник", marks: mp, info: "левый ребёнок не беден → заменяем " + k + " на предшественника " + pred + ", удаляем " + pred + " ниже" }); del(n.children[i], pred); }
+        else if (n.children[i + 1].keys.length >= BT_T) { var succ = minKey(n.children[i + 1]); n.keys[i] = succ; var ms = {}; ms[n.id] = "created"; push({ line: 5, node: String(succ), action: "преемник", marks: ms, info: "правый ребёнок не беден → заменяем " + k + " на преемника " + succ + ", удаляем " + succ + " ниже" }); del(n.children[i + 1], succ); }
+        else { var m2 = {}; m2[n.children[i].id] = "fix"; m2[n.children[i + 1].id] = "fix"; push({ line: 6, node: n.keys.join(","), action: "слияние", fix: true, marks: m2, info: "оба ребёнка бедны → сливаем их с ключом " + k + " и удаляем " + k + " в слитом узле" }); merge(n, i); del(n.children[i], k); }
+      } else {
+        if (leaf(n)) { push({ line: 3, node: n.keys.join(","), action: "нет ключа", done: false, info: k + " в дереве нет — удалять нечего" }); return; }
+        var atLast = (i === n.keys.length), mc = {}; mc[n.id] = "current"; mc[n.children[i].id] = "found";
+        push({ line: 11, node: n.children[i].keys.join(","), action: "спуск", marks: mc, info: "спускаемся к ребёнку [" + n.children[i].keys.join(",") + "], где может быть " + k });
+        if (n.children[i].keys.length < BT_T) { fill(n, i); if (atLast && i > n.keys.length) i = i - 1; }
+        del(n.children[i], k);
+      }
+    }
+    push({ line: 0, node: (rootRef.root.keys.join(",") || "∅"), action: "старт", info: "Удаляем " + key + ": по пути следим, чтобы у узла было ≥ t ключей (иначе заимствуем у соседа или сливаем)" });
+    del(rootRef.root, key);
+    if (rootRef.root.keys.length === 0 && !leaf(rootRef.root)) { rootRef.root = rootRef.root.children[0]; push({ line: 3, node: rootRef.root.keys.join(","), action: "корень сжался", info: "корень опустел → его единственный ребёнок становится новым корнем (высота дерева −1)" }); }
+    push({ line: 13, node: (rootRef.root.keys.join(",") || "∅"), action: "готово", done: true, info: key + " удалён; инварианты сохранены: все листья на одной глубине, у каждого узла ≥ t−1 ключей" });
     return { steps: steps };
   }
   // Дерево отрезков: запрос суммы на [ql, qr].
@@ -6274,6 +6448,61 @@
     push({ line: 13, node: T.root.val, action: "корень чёрный", done: true, info: "Корень всегда чёрный. Все инварианты восстановлены — дерево сбалансировано" });
     return { steps: steps };
   }
+  // Красно-чёрное УДАЛЕНИЕ (CLRS, вариант с копированием значения преемника).
+  // Убираем узел как в BST; если ушёл ЧЁРНЫЙ — возникает «двойной чёрный», его
+  // чиним fixup'ом вверх (брат красный/чёрный, его дети — 4 случая). Выверено.
+  function bRbDelete(keys, val) {
+    var seq = { n: 0 };
+    var NIL = { color: RB_BLACK, val: null }; NIL.left = NIL.right = NIL.parent = NIL;
+    var T = { root: NIL };
+    function mk(v, c) { return { id: seq.n++, val: v, color: c, left: NIL, right: NIL, parent: NIL }; }
+    function rotL(x) { var y = x.right; x.right = y.left; if (y.left !== NIL) y.left.parent = x; y.parent = x.parent; if (x.parent === NIL) T.root = y; else if (x === x.parent.left) x.parent.left = y; else x.parent.right = y; y.left = x; x.parent = y; }
+    function rotR(x) { var y = x.left; x.left = y.right; if (y.right !== NIL) y.right.parent = x; y.parent = x.parent; if (x.parent === NIL) T.root = y; else if (x === x.parent.right) x.parent.right = y; else x.parent.left = y; y.right = x; x.parent = y; }
+    function insFix(z) { while (z.parent.color === RB_RED) { if (z.parent === z.parent.parent.left) { var u = z.parent.parent.right; if (u.color === RB_RED) { z.parent.color = RB_BLACK; u.color = RB_BLACK; z.parent.parent.color = RB_RED; z = z.parent.parent; } else { if (z === z.parent.right) { z = z.parent; rotL(z); } z.parent.color = RB_BLACK; z.parent.parent.color = RB_RED; rotR(z.parent.parent); } } else { var u2 = z.parent.parent.left; if (u2.color === RB_RED) { z.parent.color = RB_BLACK; u2.color = RB_BLACK; z.parent.parent.color = RB_RED; z = z.parent.parent; } else { if (z === z.parent.left) { z = z.parent; rotR(z); } z.parent.color = RB_BLACK; z.parent.parent.color = RB_RED; rotL(z.parent.parent); } } } T.root.color = RB_BLACK; }
+    function rawInsert(v) { var z = mk(v, RB_RED), y = NIL, x = T.root; while (x !== NIL) { y = x; x = v < x.val ? x.left : x.right; } z.parent = y; if (y === NIL) T.root = z; else if (v < y.val) y.left = z; else y.right = z; insFix(z); }
+    function transplant(u, v) { if (u.parent === NIL) T.root = v; else if (u === u.parent.left) u.parent.left = v; else u.parent.right = v; v.parent = u.parent; }
+    function minimum(x) { while (x.left !== NIL) x = x.left; return x; }
+    keys.forEach(rawInsert);
+    var steps = [];
+    function snap(marks) { return rbSnap(T.root, NIL, marks || {}); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: snap(o.marks), vars: { node: o.node == null ? "—" : String(o.node), action: o.action || "—" }, info: o.info, done: o.done, fix: o.fix }); }
+    push({ line: 1, node: val, action: "старт", info: "Удаляем " + val + ": убираем как в BST; если ушедший узел ЧЁРНЫЙ — чиним «двойной чёрный»" });
+    var z = T.root; while (z !== NIL && z.val !== val) z = val < z.val ? z.left : z.right;
+    if (z === NIL) { push({ line: 2, node: "—", action: "нет узла", done: true, info: val + " в дереве нет — удалять нечего" }); return { steps: steps }; }
+    var mfound = {}; mfound[z.id] = "fix"; push({ line: 1, node: z.val, action: "нашли", marks: mfound, info: "нашли узел " + z.val + " (" + (z.color === RB_RED ? "красный" : "чёрный") + ")" });
+    var toRemove;
+    if (z.left !== NIL && z.right !== NIL) {
+      var s = minimum(z.right);
+      var ms = {}; ms[z.id] = "fix"; ms[s.id] = "created"; push({ line: 5, node: s.val, action: "преемник", marks: ms, info: "два ребёнка → преемник = минимум правого поддерева = " + s.val });
+      z.val = s.val;
+      var mc = {}; mc[z.id] = "created"; push({ line: 6, node: z.val, action: "копируем", marks: mc, info: "копируем " + s.val + " в узел; физически убираем преемника (у него ≤1 ребёнка)" });
+      toRemove = s;
+    } else toRemove = z;
+    var x = (toRemove.left !== NIL) ? toRemove.left : toRemove.right;
+    var removedColor = toRemove.color;
+    var mrm = {}; mrm[toRemove.id] = "removed"; push({ line: 10, node: toRemove.val, action: "убираем", marks: mrm, info: "убираем " + (removedColor === RB_RED ? "КРАСНЫЙ" : "ЧЁРНЫЙ") + " узел " + toRemove.val + (removedColor === RB_RED ? " — цвет не нарушен, чинить не надо" : " — возникает «двойной чёрный», чиним") });
+    transplant(toRemove, x);
+    if (removedColor === RB_BLACK) {
+      // fixup со снимками
+      while (x !== T.root && x.color === RB_BLACK) {
+        var dbNode = (x === NIL) ? x.parent : x; // что подсветить (NIL невидим — берём родителя)
+        if (x === x.parent.left) {
+          var w = x.parent.right;
+          if (w.color === RB_RED) { w.color = RB_BLACK; x.parent.color = RB_RED; rotL(x.parent); w = x.parent.right; var m1 = {}; m1[dbNode.id] = "fix"; push({ line: 12, node: dbNode.val, action: "брат красный", fix: true, marks: m1, info: "брат красный → перекраска + поворот, сводим к чёрному брату" }); }
+          if (w.left.color === RB_BLACK && w.right.color === RB_BLACK) { w.color = RB_RED; x = x.parent; var m2 = {}; m2[x.id] = "fix"; push({ line: 12, node: x.val, action: "брат чёрный", fix: true, marks: m2, info: "брат чёрный, оба его ребёнка чёрные → красим брата красным, дефицит поднимается к " + x.val }); }
+          else { if (w.right.color === RB_BLACK) { w.left.color = RB_BLACK; w.color = RB_RED; rotR(w); w = x.parent.right; } w.color = x.parent.color; x.parent.color = RB_BLACK; w.right.color = RB_BLACK; rotL(x.parent); var m3 = {}; m3[T.root.id] = "fix"; push({ line: 12, node: x.parent.val, action: "поворот", fix: true, marks: m3, info: "у брата есть красный ребёнок → перекраска + поворот: «двойной чёрный» устранён" }); x = T.root; }
+        } else {
+          var w2 = x.parent.left;
+          if (w2.color === RB_RED) { w2.color = RB_BLACK; x.parent.color = RB_RED; rotR(x.parent); w2 = x.parent.left; var n1 = {}; n1[dbNode.id] = "fix"; push({ line: 12, node: dbNode.val, action: "брат красный", fix: true, marks: n1, info: "брат красный → перекраска + поворот, сводим к чёрному брату" }); }
+          if (w2.right.color === RB_BLACK && w2.left.color === RB_BLACK) { w2.color = RB_RED; x = x.parent; var n2 = {}; n2[x.id] = "fix"; push({ line: 12, node: x.val, action: "брат чёрный", fix: true, marks: n2, info: "брат чёрный, оба его ребёнка чёрные → красим брата красным, дефицит поднимается к " + x.val }); }
+          else { if (w2.left.color === RB_BLACK) { w2.right.color = RB_BLACK; w2.color = RB_RED; rotL(w2); w2 = x.parent.left; } w2.color = x.parent.color; x.parent.color = RB_BLACK; w2.left.color = RB_BLACK; rotR(x.parent); var n3 = {}; n3[T.root.id] = "fix"; push({ line: 12, node: x.parent.val, action: "поворот", fix: true, marks: n3, info: "у брата есть красный ребёнок → перекраска + поворот: «двойной чёрный» устранён" }); x = T.root; }
+        }
+      }
+      x.color = RB_BLACK;
+    }
+    push({ line: 15, node: (T.root === NIL ? "—" : T.root.val), action: "готово", done: true, info: val + " удалён; все инварианты (корень чёрный, нет красный-красный, равная чёрная высота) восстановлены" });
+    return { steps: steps };
+  }
   function rbViz(panel) {
     var CW = 48, CH = 66, R = 15;
     var host = mkEl("div", "algo-tp__bst"); panel.appendChild(host);
@@ -7766,6 +7995,28 @@
       sumCells: ["узел", "действие"],
       sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: s.fix ? "warn" : "" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Вставлено и сбалансировано", text: s.info }; if (s.fix) return { kind: "info", icon: idx + 1, head: "Чиним нарушение", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "узел " + s.vars.node, b: s.vars.action, c: s.fix ? "fix" : "", cls: s.fix ? "warn" : "" }; },
+      varsOf: function (s) { return { node: s.vars.node, action: s.vars.action }; },
+      customViz: rbViz
+    },
+
+    "rb-delete": {
+      badge: "Red-Black · Delete",
+      desc: "Удаление из красно-чёрного дерева: убираем узел как в BST (у узла с двумя детьми — через преемника). Если ушёл ЧЁРНЫЙ узел — на его месте «двойной чёрный», который чиним вверх по дереву перекрасками и поворотами (4 случая по цвету брата и его детей).",
+      valuesLabel: "", codeKey: "rb-delete", fillRange: false,
+      complexity: { time: "O(log n)", space: "O(1)", good: "★ ≤3 поворотов на удаление" },
+      varOrder: ["node", "action"],
+      varDesc: { node: "Текущий узел", action: "Что делаем" },
+      lineNotes: { 1: "Находим удаляемый узел", 2: "Нет такого — выходим", 4: "Два ребёнка → берём преемника", 5: "Преемник = минимум правого поддерева", 6: "Копируем значение преемника", 8: "У физически удаляемого ≤1 ребёнка", 10: "Пересаживаем: на место узла — его ребёнок x", 11: "Ушёл чёрный? Тогда есть «двойной чёрный»", 12: "Чиним вверх: перекраски и повороты" },
+      rules: [{ head: "ушёл красный", body: "→ чинить не надо", cls: "lt" }, { head: "ушёл чёрный", body: "→ «двойной чёрный», fixup", cls: "gt" }, { head: "брат и его дети", body: "→ 4 случая ремонта", cls: "eq" }],
+      parse: function (root) { var keys = (root.getAttribute("data-keys") || "10,20,30,15,25,5,1,40,35,50").split(",").map(function (x) { return parseInt(x.trim(), 10); }); var val = parseInt(root.getAttribute("data-delete"), 10); if (isNaN(val)) val = 1; return { keys: keys, val: val, steps: bRbDelete(keys, val).steps }; },
+      inputs: [],
+      values: function () { return []; },
+      title: function (ctx) { return "Красно-чёрное дерево · удаление " + ctx.val; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["узел", "действие"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: s.fix ? "warn" : "" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Удалено и восстановлено", text: s.info }; if (s.fix) return { kind: "info", icon: idx + 1, head: "Чиним «двойной чёрный»", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "узел " + s.vars.node, b: s.vars.action, c: s.fix ? "fix" : "", cls: s.fix ? "warn" : "" }; },
       varsOf: function (s) { return { node: s.vars.node, action: s.vars.action }; },
       customViz: rbViz
@@ -9500,6 +9751,27 @@
       customViz: bstViz
     },
 
+    "avl-delete": {
+      badge: "AVL Tree · Delete", desc: "Удаление из АВЛ-дерева: убираем узел как в BST (у узла с двумя детьми — через преемника), затем балансируем поворотами ВВЕРХ по всему пути — в отличие от вставки, поворотов может быть несколько.",
+      valuesLabel: "", codeKey: "avl-delete", fillRange: false,
+      complexity: { time: "O(log n)", space: "O(log n)", good: "★ до O(log n) поворотов" },
+      varOrder: ["node", "action"],
+      varDesc: { "node": "Текущий узел", "action": "Что делаем на шаге" },
+      lineNotes: { 1: "Находим удаляемый узел спуском как в BST", 2: "Нет такого значения — выходим", 4: "Два ребёнка → преемник = минимум правого поддерева", 5: "Копируем значение преемника в узел", 8: "Отцепляем узел (у него ≤1 ребёнка)", 10: "Пересчитываем высоту предка", 11: "Баланс нарушен?", 12: "Поворот — и продолжаем вверх (не останавливаемся)", 15: "Дерево сбалансировано" },
+      rules: [{ head: "два ребёнка", body: "→ через преемника", cls: "eq" }, { head: "|баланс| > 1", body: "→ поворот", cls: "gt" }, { head: "отличие от вставки", body: "поворотов может быть несколько", cls: "lt" }],
+      parse: function (root) { var initial = nums(root.getAttribute("data-tree")); var val = parseInt(root.getAttribute("data-delete"), 10); var r = bAVLDelete(initial, val); return { initial: initial, val: val, steps: r.steps }; },
+      inputs: [{ attr: "data-tree", label: "Дерево (порядок)" }, { attr: "data-delete", label: "удалить", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "AVL: удаление " + ctx.val; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Узел", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: (s.vars.action && s.vars.action.indexOf("поворот") === 0) ? "gt" : "lt" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: ctx.val + " удалён", text: s.info }; if (s.vars.action && s.vars.action.indexOf("поворот") === 0) return { kind: "info", icon: idx + 1, head: s.vars.action, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "узел " + s.vars.node, b: s.vars.action, c: (s.vars.action && s.vars.action.indexOf("поворот") === 0) ? "↻" : "·", cls: (s.vars.action && s.vars.action.indexOf("поворот") === 0) ? "gt" : "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
+      customViz: bstViz
+    },
+
     "btree-insert": {
       badge: "B-Tree", desc: "Вставка в B-дерево: спускаемся, деля полные узлы заранее; средний ключ поднимается в родителя.",
       valuesLabel: "", codeKey: "btree-insert", fillRange: false,
@@ -9539,6 +9811,27 @@
       status: function (s, idx, total, ctx) { if (s.found) return { kind: "ok", icon: "✓", head: ctx.key + " найден", text: s.info }; if (s.done) return { kind: "end", icon: idx + 1, head: ctx.key + " не найден", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.found) return { a: "найдено", b: s.vars.key, c: "✓", cls: "eq" }; if (s.done) return { a: "не найдено", b: "", c: "✗", cls: "gt" }; return { a: "узел " + s.vars.node, b: "поиск", c: "↓", cls: "lt" }; },
       varsOf: function (s) { return { "node": s.vars.node, "key": s.vars.key }; },
+      customViz: btreeViz
+    },
+
+    "btree-delete": {
+      badge: "B-Tree · Delete", desc: "Удаление из B-дерева: спускаемся к ключу, но перед входом в «бедный» узел (t−1 ключей) чиним его — заимствуем ключ у соседа через родителя или сливаем два узла. Из внутреннего узла удаляем через предшественника/преемника. Все листья остаются на одной глубине.",
+      valuesLabel: "", codeKey: "btree-delete", fillRange: false,
+      complexity: { time: "O(log n)", space: "O(1)", good: "★ баланс без поворотов" },
+      varOrder: ["node", "action"],
+      varDesc: { "node": "Текущий узел / ключ", "action": "Что делаем" },
+      lineNotes: { 0: "Находим позицию ключа в узле", 3: "В листе — просто убираем ключ", 5: "Ключ во внутреннем узле → заменяем соседним и удаляем ниже", 6: "Оба ребёнка бедны → слияние", 9: "Перед спуском чиним бедного ребёнка: заём у соседа или слияние", 11: "Спускаемся к нужному ребёнку", 13: "Инварианты B-дерева сохранены" },
+      rules: [{ head: "лист", body: "→ просто убрать", cls: "lt" }, { head: "внутри", body: "→ пред./преемник", cls: "eq" }, { head: "бедный узел", body: "→ заём или слияние", cls: "gt" }],
+      parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var key = parseInt(root.getAttribute("data-delete"), 10); var r = bBTreeDelete(keys, key); return { keys: keys, key: key, steps: r.steps }; },
+      inputs: [{ attr: "data-keys", label: "Ключи (порядок)" }, { attr: "data-delete", label: "удалить", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "B-дерево: удаление " + ctx.key; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Узел/ключ", "Действие"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: s.fix ? "warn" : "" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: ctx.key + " удалён", text: s.info }; if (s.fix) return { kind: "info", icon: idx + 1, head: s.vars.action, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: s.vars.node, b: s.vars.action, c: s.fix ? "⚖" : "·", cls: s.fix ? "gt" : "lt" }; },
+      varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
       customViz: btreeViz
     },
 

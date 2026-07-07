@@ -118,7 +118,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `binheap`       | `NewHeap`, `Heap.Push` / `Pop` / `Peek` / `Len` (бинарная min-куча, siftUp/siftDown) |
 | `dsu`           | `NewUnionFind`, `UnionFind.Find` / `Union` / `Connected` / `Count` (сжатие путей + по размеру) |
 | `bst`           | `NewBST`, `BST.Search` / `Insert` / `Delete` / `InOrder` (двоичное дерево поиска) |
-| `avl`           | `NewAVL`, `AVL.Insert` / `Search` / `Height` / `InOrder` (самобалансировка поворотами) |
+| `avl`           | `NewAVL`, `AVL.Insert` / `Delete` / `Search` / `Height` / `InOrder` (самобалансировка поворотами вверх по пути) |
 | `sparsetable`   | `NewSparse`, `Sparse.Query` (идемпотентный RMQ-минимум за O(1)) |
 | `btree`         | `NewBTree`, `BTree.Search` / `Insert` / `InOrder` (split узла, степень t) |
 | `probabilistic` | `NewBloom`, `Bloom.Add` / `MightContain` (Bloom-фильтр: 0 ложноотрицательных, приём двух хешей) |
