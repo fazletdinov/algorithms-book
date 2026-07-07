@@ -120,7 +120,8 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `bst`           | `NewBST`, `BST.Search` / `Insert` / `Delete` / `InOrder` (двоичное дерево поиска) |
 | `avl`           | `NewAVL`, `AVL.Insert` / `Delete` / `Search` / `Height` / `InOrder` (самобалансировка поворотами вверх по пути) |
 | `sparsetable`   | `NewSparse`, `Sparse.Query` (идемпотентный RMQ-минимум за O(1)) |
-| `btree`         | `NewBTree`, `BTree.Search` / `Insert` / `InOrder` (split узла, степень t) |
+| `btree`         | `NewBTree`, `BTree.Search` / `Insert` / `Delete` / `InOrder` (split, заимствование/слияние, степень t) |
+| `rbtree`        | `NewRBTree`, `RBTree.Insert` / `Search` / `Delete` / `InOrder` (красно-чёрное: перекраска/повороты, «двойной чёрный») |
 | `probabilistic` | `NewBloom`, `Bloom.Add` / `MightContain` (Bloom-фильтр: 0 ложноотрицательных, приём двух хешей) |
 | `parallelbfs`   | `BFSLevelsSeq` / `BFSLevelsConc` (мьютекс) / `BFSLevelsConcLocal` (atomic+локальные фронты); гонка на `visited`, `-race`, бенч |
 | `parallelsort`  | `MergeSortSeq` / `MergeSortConc` (сортировка слиянием: fan-out + cutoff; здесь конкурентность ускоряет) |
