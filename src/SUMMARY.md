@@ -38,6 +38,7 @@
 
 - [🪴 Бинарное дерево поиска (BST): устройство и операции](bst-structure.md)
 - [⚖️ AVL-дерево: балансировка](avl-tree-structure.md)
+- [🔴 Красно-чёрное дерево: балансировка через цвет](red-black-tree-structure.md)
 - [🌳 Tree BFS (Обход дерева в ширину)](tree-bfs.md)
 - [🌲 Tree DFS (Обход дерева в глубину)](tree-dfs.md)
 
@@ -74,6 +75,7 @@
 - [📏 Дерево Фенвика: разбор задач](fenwick-tree.md)
 - [🔭 Sparse Table: устройство и операции](sparse-table-structure.md)
 - [🗃️ B-дерево: устройство и операции](btree-structure.md)
+- [🎲 Вероятностные структуры: Bloom, HyperLogLog, count-min](probabilistic-structures.md)
 
 ## Группа 9: Синтез
 

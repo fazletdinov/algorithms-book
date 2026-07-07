@@ -319,8 +319,8 @@ func canJump(nums []int) bool {
 <div class="algo-challenge__q">Что отличает жадный алгоритм?</div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="Существует и единственно|Может не существовать|Их может быть несколько" data-answer="0" data-explain="Если суммарно газа хватает (total ≥ 0), валидный старт существует и он единственный — та станция, после которой бак ни разу не ушёл в минус.">
-<div class="algo-challenge__q">Gas Station: если суммарно газа хватает (<code>total ≥ 0</code>), решение…</div>
+<div class="algo-challenge" data-type="choice" data-options="Существует и единственно|Может не существовать|Их может быть несколько" data-answer="0" data-explain="Если суммарно газа хватает (total ≥ 0), валидный старт гарантированно существует — та станция, после которой бак ни разу не ушёл в минус. Единственность — это доп. гарантия постановки LeetCode 134; в общем случае валидных стартов может быть несколько (крайний пример: все gas = cost = 0 — годится любая станция).">
+<div class="algo-challenge__q">Gas Station (в постановке LeetCode 134): если суммарно газа хватает (<code>total ≥ 0</code>), решение…</div>
 </div>
 
 <div class="algo-challenge" data-type="choice" data-options="Купюрой 10, потом тремя по 5|Сразу тремя по 5" data-answer="0" data-explain="Пятёрки «гибче» (нужны для сдачи с 10 и 20), поэтому сдачу с 20 сначала набираем десяткой, экономя пятёрки.">

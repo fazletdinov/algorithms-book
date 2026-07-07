@@ -121,6 +121,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `avl`           | `NewAVL`, `AVL.Insert` / `Search` / `Height` / `InOrder` (самобалансировка поворотами) |
 | `sparsetable`   | `NewSparse`, `Sparse.Query` (идемпотентный RMQ-минимум за O(1)) |
 | `btree`         | `NewBTree`, `BTree.Search` / `Insert` / `InOrder` (split узла, степень t) |
+| `probabilistic` | `NewBloom`, `Bloom.Add` / `MightContain` (Bloom-фильтр: 0 ложноотрицательных, приём двух хешей) |
 | `parallelbfs`   | `BFSLevelsSeq` / `BFSLevelsConc` (мьютекс) / `BFSLevelsConcLocal` (atomic+локальные фронты); гонка на `visited`, `-race`, бенч |
 | `parallelsort`  | `MergeSortSeq` / `MergeSortConc` (сортировка слиянием: fan-out + cutoff; здесь конкурентность ускоряет) |
 | `wordcount`     | `FreqSeq` / `FreqConc` (подсчёт частот: worker pool + fan-in; урок «concurrent map writes») |
