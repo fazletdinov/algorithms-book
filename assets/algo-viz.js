@@ -1654,6 +1654,24 @@
       "    return 0, false                   // нет в бакете",
       "}"
     ],
+    "hash-resize": [
+      "func (h *HashMap) Put(key, val int) {",
+      "    // ... обычная вставка в цепочку ...",
+      "    if h.n > len(h.buckets)*3/4 {   // load factor превысил порог",
+      "        h.resize(len(h.buckets) * 2) // растём вдвое",
+      "    }",
+      "}",
+      "func (h *HashMap) resize(newM int) {",
+      "    nb := make([][]entry, newM)",
+      "    for _, chain := range h.buckets {",
+      "        for _, e := range chain {",
+      "            i := e.key % newM        // НОВЫЙ индекс (% newM!)",
+      "            nb[i] = append(nb[i], e) // перехешируем каждый ключ",
+      "        }",
+      "    }",
+      "    h.buckets = nb                   // старый массив выброшен",
+      "}"
+    ],
     "deque-ops": [
       "// двусторонняя очередь (deque): вставка/удаление с обоих концов",
       "func (d *Deque) PushBack(x int)  { d.data = append(d.data, x) }",
@@ -2572,6 +2590,30 @@
       if (chain[j] === key) { var mf = {}; mf[i] = {}; mf[i][j] = "found"; push({ line: 4, snap: snap(mf), curBucket: i, i: i, done: true, found: true, info: "нашли ключ " + key + " в бакете " + i }); return { steps: steps }; }
     }
     push({ line: 7, snap: snap({}), curBucket: i, i: i, done: true, info: "ключа " + key + " нет в бакете " + i + " → return false" });
+    return { steps: steps };
+  }
+
+  // Рост хеш-таблицы: load factor превысил порог → массив удваивается и ВСЕ ключи
+  // перехешируются по НОВОМУ модулю (% 2m). Коллизии при m часто расходятся при 2m.
+  function bHashResize(keys, m) {
+    var oldB = hashBuild(keys, m), n = keys.length, newM = m * 2, steps = [];
+    function snapOf(buckets, curB, marks) { return buckets.map(function (chain, i) { return chain.map(function (k, j) { return { key: k, cls: (marks && marks[i] != null && marks[i][j]) || "" }; }); }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, buckets: o.snap, curBucket: (o.curBucket == null ? -1 : o.curBucket), vars: { key: (o.key == null ? "—" : String(o.key)), load: o.load }, info: o.info, done: o.done, fix: o.fix }); }
+    var loadOld = (n / m).toFixed(2);
+    push({ line: 2, snap: snapOf(oldB, -1, {}), load: loadOld, info: "В таблице " + n + " ключей на " + m + " бакетов: load factor = " + n + "/" + m + " = " + loadOld + " > 0.75 → цепочки длинны, пора расти" });
+    push({ line: 3, snap: snapOf(oldB, -1, {}), load: loadOld, info: "Создаём массив вдвое больше — " + newM + " бакетов — и перехешируем в него КАЖДЫЙ ключ по новому модулю % " + newM });
+    // перехешируем ключи в порядке старых бакетов
+    var newB = []; for (var b = 0; b < newM; b++) newB.push([]);
+    for (var ob = 0; ob < oldB.length; ob++) {
+      for (var c = 0; c < oldB[ob].length; c++) {
+        var k = oldB[ob][c], ni = ((k % newM) + newM) % newM;
+        newB[ni].push(k);
+        var mk = {}; mk[ni] = {}; mk[ni][newB[ni].length - 1] = "created";
+        push({ line: 10, snap: snapOf(newB, ni, mk), curBucket: ni, key: k, load: loadOld, info: k + " был в бакете " + ob + " (% " + m + "); теперь " + k + " % " + newM + " = " + ni + " → бакет " + ni });
+      }
+    }
+    var loadNew = (n / newM).toFixed(2);
+    push({ line: 14, snap: snapOf(newB, -1, {}), load: loadNew, done: true, info: "Готово: load factor упал до " + n + "/" + newM + " = " + loadNew + ". Цепочки короче — доступ снова близок к O(1). Ключи, что коллизировали при " + m + ", часто расходятся при " + newM });
     return { steps: steps };
   }
 
@@ -9734,6 +9776,27 @@
       status: function (s, idx, total, ctx) { if (s.found) return { kind: "ok", icon: "✓", head: "Ключ " + ctx.key + " найден", text: s.info }; if (s.done) return { kind: "end", icon: idx + 1, head: "Ключ " + ctx.key + " не найден", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.found) return { a: "найдено", b: "ключ " + s.vars.key, c: "✓", cls: "eq" }; if (s.done) return { a: "не найдено", b: "", c: "✗", cls: "gt" }; return { a: "бакет " + s.vars.i, b: "скан", c: "↓", cls: "lt" }; },
       varsOf: function (s) { return { "i": s.vars.i, "key": s.vars.key }; },
+      customViz: hashViz
+    },
+
+    "hash-resize": {
+      badge: "Hash Map · Resize", desc: "Рост таблицы: когда load factor (ключей на бакет) превышает порог, массив удваивается и ВСЕ ключи перехешируются по новому модулю % 2m. Ключи, что коллизировали при m, часто расходятся при 2m — цепочки снова короткие.",
+      valuesLabel: "", codeKey: "hash-resize", fillRange: false,
+      complexity: { time: "O(n) разово", space: "O(n)", good: "★ амортизированно O(1) на Put" },
+      varOrder: ["key", "load"],
+      varDesc: { "key": "Перехешируемый ключ", "load": "Load factor (n / бакетов)" },
+      lineNotes: { 2: "Load factor превысил порог (обычно ~0.75)", 3: "Удваиваем число бакетов", 7: "Новый массив вдвое больше", 10: "НОВЫЙ индекс: key % newM (не % старого m!)", 11: "Кладём ключ в новый бакет", 14: "Старый массив выброшен, цепочки короче" },
+      rules: [{ head: "load > порог", body: "→ удвоить и перехешировать", cls: "gt" }, { head: "% newM", body: "новый индекс каждого ключа", cls: "lt" }, { head: "коллизии при m", body: "часто расходятся при 2m", cls: "eq" }],
+      parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var m = parseInt(root.getAttribute("data-buckets"), 10); if (isNaN(m)) m = 4; var r = bHashResize(keys, m); return { keys: keys, m: m, steps: r.steps }; },
+      inputs: [{ attr: "data-keys", label: "Ключи в таблице" }, { attr: "data-buckets", label: "бакетов (m)", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "Хеш-таблица: рост " + ctx.m + " → " + (ctx.m * 2) + " бакетов"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Ключ", "Load factor"],
+      sumValues: function (s) { return [{ text: s.vars.key }, { text: s.vars.load, cls: s.done ? "ok" : "warn" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Перехешировано, load factor " + s.vars.load, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "ключ " + s.vars.key, b: "load " + s.vars.load, c: s.done ? "✓" : "↻", cls: s.done ? "eq" : "lt" }; },
+      varsOf: function (s) { return { "key": s.vars.key, "load": s.vars.load }; },
       customViz: hashViz
     },
 
