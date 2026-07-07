@@ -111,3 +111,33 @@ go tool pprof cpu.prof   # команда top покажет самые «дор
 3. Ищите функции, занимающие >10% времени (`top` в pprof).
 4. Профилируйте на **репрезентативных** данных — результаты на игрушечных входах
    обманчивы.
+
+## 🧩 Задачи
+
+Проверь понимание — выбери вариант, впиши ответ или расставь по порядку.
+
+<div class="algo-challenge" data-type="choice" data-options="Компилятор — на основе escape analysis|Программист — явными аннотациями new/make|Сборщик мусора в рантайме" data-answer="0" data-explain="Куда поместить переменную — на стек или в кучу — решает не программист, а компилятор, на основе escape analysis: «убегает» ли переменная за пределы функции.">
+<div class="algo-challenge__q">Кто решает, попадёт ли переменная на стек или в кучу?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Убегает в кучу — возврат указателя на локальную переменную|Остаётся на стеке — это просто локальная переменная|Не компилируется — нельзя возвращать адрес локальной переменной" data-answer="0" data-explain="Возврат указателя на локальную переменную (return &x) — одна из типичных причин побега в кучу: переменная переживает функцию, значит на стеке её оставить нельзя.">
+<div class="algo-challenge__q">Что делает escape analysis с переменной x в func bad() *int { x := 42; return &x }?</div>
+</div>
+
+<div class="algo-challenge" data-type="cloze" data-answer="-m" data-hint="Флаг передаётся через -gcflags и выводит moved to heap / escapes to heap." data-explain="go build -gcflags=-m печатает решения escape analysis: строки вида «moved to heap: x» или «x escapes to heap».">
+<div class="algo-challenge__q">Впиши флаг компилятора:</div>
+<pre class="algo-challenge__code">go build -gcflags=______ ./...</pre>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="2" data-hint="Регулируется переменной GOGC (по умолчанию 100)." data-explain="По умолчанию GC запускается, когда куча вырастает примерно вдвое относительно прошлого цикла. Меньшее GOGC — агрессивнее GC, меньше памяти, но больше пауз.">
+<div class="algo-challenge__q">Во сколько раз должна вырасти куча, чтобы по умолчанию сработал GC?</div>
+</div>
+
+<div class="algo-challenge" data-type="cloze" data-answer="чёрный" data-hint="Третий цвет трёхцветной маркировки mark-and-sweep." data-explain="Go использует конкурентный mark-and-sweep с трёхцветной маркировкой: белый (мусор), серый (в обработке), чёрный (живой, обработан).">
+<div class="algo-challenge__q">Впиши цвет:</div>
+<pre class="algo-challenge__code">трёхцветная маркировка GC: белый, серый, ______</pre>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Измерь (профилируй)|Найди узкое место|Оптимизируй|Снова измерь" data-hint="Не оптимизируй «на глаз»." data-explain="Профилирование — это измерение перед оптимизацией: сначала измерь, найди узкое место, потом улучшай и снова измеряй. Иначе оптимизация «на глаз» может ничего не дать.">
+<div class="algo-challenge__q">Расставь шаги оптимизации по порядку:</div>
+</div>

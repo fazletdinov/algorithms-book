@@ -209,6 +209,35 @@ go test ./fenwick/                 # ваши решения
 go test -tags solution ./fenwick/  # эталон
 ```
 
+## 🧩 Задачи
+
+Проверь понимание — выбери вариант, впиши ответ или расставь по порядку. Готового решения рядом нет: дойди сам.
+
+<div class="algo-challenge" data-type="predict" data-answer="4" data-hint="i & −i выделяет младший установленный бит; 12 = 1100₂." data-explain="12 = 1100₂, младший установленный бит — 100₂ = 4. Значит узел 12 отвечает за 4 элемента (8, 12]. Формула i & −i обнуляет всё, кроме младшего бита.">
+<div class="algo-challenge__q">i = 12 = 1100₂. Чему равно i & (−i)?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="2" data-hint="lowbit(6): 6 = 110₂." data-explain="6 = 110₂, младший бит — 10₂ = 2. Узел 6 отвечает за 2 элемента — пару [5, 6]. Число элементов зоны узла i равно i & −i.">
+<div class="algo-challenge__q">За сколько элементов отвечает узел i = 6?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Вверх: i += i & (−i)|Вниз: i −= i & (−i)" data-answer="0" data-explain="Add поднимается вверх (i += i & −i) по всем узлам, чья зона накрывает позицию. Вниз (i −= i & −i) идёт PrefixSum, собирая дизъюнктные зоны, замощающие [1, i].">
+<div class="algo-challenge__q">Как движется Add (обновление) по индексам?</div>
+</div>
+
+<div class="algo-challenge" data-type="cloze" data-answer="PrefixSum(l-1)" data-hint="Диапазонная сумма — разность двух префиксных." data-explain="RangeSum(l, r) = PrefixSum(r) − PrefixSum(l−1). Эта формула опирается на вычитание — потому BIT работает только с обратимыми операциями.">
+<div class="algo-challenge__q">Впиши недостающую часть:</div>
+<pre class="algo-challenge__code">RangeSum(l, r) = PrefixSum(r) − ______</pre>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="RangeSum опирается на вычитание, а у min нет обратного элемента|min слишком медленно считается" data-answer="0" data-explain="Из min[0..r] и min[0..l−1] нельзя получить min[l..r] — обратной операции у минимума нет. Поэтому диапазонный min/max — это дерево отрезков, а не Фенвик.">
+<div class="algo-challenge__q">Почему обычный BIT не хранит min на диапазоне?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="3" data-hint="Число прыжков = число единичных битов в i; 7 = 111₂." data-explain="Число шагов в Add/PrefixSum равно числу единичных битов в i. Для i = 7 = 111₂ это три бита → три прыжка. Отсюда верхняя граница ≤ log n.">
+<div class="algo-challenge__q">Сколько прыжков сделает PrefixSum при i = 7 = 111₂?</div>
+</div>
+
 ## 🔗 Связанные шаблоны
 
 - **[Дерево Фенвика: разбор задач](fenwick-tree.md)** — инверсии, «меньших справа», сжатие координат.

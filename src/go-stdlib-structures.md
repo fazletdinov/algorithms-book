@@ -886,3 +886,32 @@ append копирование всего — суммарно O(n²). Go рас�
 > 💡 Полезная привычка: встретив незнакомый пакет stdlib, загляни в его исходник. Go специально
 > написан читаемо — `container/heap`, `strings`, `sort` разбираются за вечер и показывают те же
 > приёмы, что в этой книге, но на боевом коде.
+
+## 🧩 Задачи
+
+Проверь понимание — выбери вариант, впиши ответ или расставь по порядку.
+
+<div class="algo-challenge" data-type="choice" data-options="Вставка таймера — самая частая операция, в куче она O(log n), а в отсортированном срезе — O(n) на сдвиг хвоста|В срезе быстрее, но куча экономит память|Куча даёт get-min за O(1), а срез — нет, в остальном они равны" data-answer="0" data-explain="Любой сетевой вызов с таймаутом регистрирует таймер, поэтому вставка — самая частая операция. В отсортированном срезе каждая вставка сдвигает хвост за O(n); куча даёт вставку siftUp за O(log n) и при этом мгновенный доступ к минимуму (корень).">
+<div class="algo-challenge__q">Почему таймеры рантайма хранят в куче, а не в отсортированном срезе?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="4" data-hint="const timerHeapN в runtime/time.go — у каждого узла до стольких детей." data-explain="В рантайме куча таймеров не двоичная, а 4-арная (timerHeapN = 4): дерево ниже (log₄ вместо log₂), меньше прыжков по памяти при просеивании → лучше кэш процессора.">
+<div class="algo-challenge__q">Сколько детей у каждого узла в куче таймеров рантайма Go?</div>
+</div>
+
+<div class="algo-challenge" data-type="cloze" data-answer="кольцевой" data-hint="FIFO фиксированного размера, индексы sendx/recvx бегут по кругу." data-explain="Буфер канала — один непрерывный блок из n слотов и два индекса (sendx/recvx), которые заворачиваются в 0 на границе. Фиксированная ёмкость, O(1) операции, ни одной аллокации после make.">
+<div class="algo-challenge__q">Впиши слово:</div>
+<pre class="algo-challenge__code">буфер буферизованного канала chan — это ______ буфер</pre>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Swiss Tables — open addressing группами по 8 слотов с control-словом|Красно-чёрное дерево для гарантии O(log n)|B-дерево, как в базах данных" data-answer="0" data-explain="С Go 1.24 map — это Swiss Tables: control-слово (по байту h2 на каждый из 8 слотов группы) и поиск кандидатов одним сравнением matchH2. Выигрыш не в асимптотике (та же O(1)), а в константе — данные в одной-двух кэш-линиях вместо цепочки прыжков по указателям.">
+<div class="algo-challenge__q">Как реализован встроенный map начиная с Go 1.24?</div>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Точный литеральный сегмент (children[seg])|Wildcard-переменная {id}" data-hint="«Самый конкретный побеждает»: литерал важнее переменной." data-explain="На каждом уровне дерева ServeMux сперва пробует точный литеральный сегмент через map, и только если его нет — wildcard-ребёнка. Поэтому /users/me/posts не перехватывается паттерном /users/{id}.">
+<div class="algo-challenge__q">Расставь по порядку проверки при матче сегмента пути в ServeMux:</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="12" data-hint="maxInsertion в pdqsort — граница, ниже которой quicksort не нужен." data-explain="pdqsort (slices.Sort) на кусках ≤ 12 элементов переключается на insertion sort — на мелочи он быстрее из-за нулевых накладных. Основной проход — quicksort, а при слишком многих плохих разбиениях — fallback на heapsort ради гарантии O(n log n).">
+<div class="algo-challenge__q">До какого размера куска pdqsort использует insertion sort вместо quicksort?</div>
+</div>

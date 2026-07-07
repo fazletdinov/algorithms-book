@@ -226,6 +226,36 @@ O(1)). Рандом-тест сверяет твой O(1)-запрос с brute-
 
 <div class="algo-runner" data-pkg="sparsetable"></div>
 
+## 🧩 Задачи
+
+Проверь понимание — выбери вариант, впиши ответ или расставь по порядку. Готового решения рядом нет: дойди сам.
+
+<div class="algo-challenge" data-type="cloze" data-answer="O(1)" data-hint="Вычислить k по таблице логарифмов и два обращения к таблице." data-explain="Запрос — это вычисление k = ⌊log2(len)⌋ по предпосчитанной таблице логарифмов и минимум двух готовых значений. Всё за константу — O(1).">
+<div class="algo-challenge__q">Впиши асимптотику:</div>
+<pre class="algo-challenge__code">запрос min на [l, r] в sparse table = ______</pre>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Сумма — перекрытие двух отрезков посчитает середину дважды|Минимум — идемпотентен, перекрытие безвредно" data-answer="0" data-explain="Sparse table работает только для идемпотентных операций (min/max/gcd): min(a, a) = a, поэтому повторный учёт элемента в перекрытии ничего не портит. Для суммы x + x ≠ x — серединка сложилась бы дважды.">
+<div class="algo-challenge__q">Для какой операции sparse table НЕ годится?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="2" data-hint="k = ⌊log2(r − l + 1)⌋, длина = 5." data-explain="Длина [0, 4] равна 5, k = ⌊log2 5⌋ = 2. Берём два отрезка длины 2^2 = 4: [0, 3] и [1, 4]. Они перекрываются на [1, 3] и вместе покрывают [0, 4].">
+<div class="algo-challenge__q">Запрос на [0, 4] (длина 5). Чему равно k = ⌊log2(len)⌋?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="2" data-hint="Отрезок от l и отрезок, заканчивающийся в r." data-explain="Любой отрезок [l, r] накрывается ровно ДВУМЯ отрезками длины 2^k: один от l, другой заканчивается в r. Так как 2^k > len/2, они гарантированно перекрываются в середине без дыр.">
+<div class="algo-challenge__q">Сколькими отрезками длины степени двойки покрывается любой [l, r]?</div>
+</div>
+
+<div class="algo-challenge" data-type="cloze" data-answer="2^k" data-hint="Строка k удваивает длину относительно k−1." data-explain="table[k][i] — минимум на отрезке длины 2^k, начинающемся в i. Строка k=0 — сам массив (длина 1), каждая следующая строка удваивает длину отрезка.">
+<div class="algo-challenge__q">Впиши длину отрезка:</div>
+<pre class="algo-challenge__code">table[k][i] = min на отрезке длины ______, начиная с i</pre>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="O(n log n) — log n строк по n ячеек, каждая за O(1)|O(n) — один проход по массиву" data-answer="0" data-explain="Построение заполняет log n строк по n ячеек, каждую за O(1) (минимум двух половин снизу) → O(n log n) времени и столько же памяти. Это плата за O(1)-запрос.">
+<div class="algo-challenge__q">Какова сложность построения sparse table?</div>
+</div>
+
 ## 🔗 Связанные шаблоны
 
 - **[Дерево отрезков](segment-tree-structure.md)** — когда массив меняется или нужна сумма.

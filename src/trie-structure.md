@@ -308,6 +308,35 @@ go test -tags solution ./trie/  # эталон (зелёные)
 обрезкой висячих узлов) и `WordsWithPrefix` (слова по префиксу обходом). Это ровно те операции,
 что разобраны выше: сначала построй и обживи объект, а в следующей главе применишь его к задачам.
 
+## 🧩 Задачи
+
+Проверь понимание — выбери вариант, впиши ответ или расставь по порядку. Готового решения рядом нет: дойди сам.
+
+<div class="algo-challenge" data-type="cloze" data-answer="O(L)" data-hint="L — длина запроса; каждый символ — один шаг за O(1)." data-explain="Поиск проходит ровно L рёбер (по одному на символ), каждый шаг — индексация массива детей за O(1). Число слов в боре на это не влияет.">
+<div class="algo-challenge__q">Впиши асимптотику:</div>
+<pre class="algo-challenge__code">поиск слова длины L в Trie = ______</pre>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="От длины запроса L|От числа слов в боре" data-answer="0" data-explain="Общие префиксы лишь делят узлы, но не удлиняют путь. Число слов влияет на память O(ALPHABET·N·L), а не на время поиска.">
+<div class="algo-challenge__q">От чего зависит время поиска слова в боре?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="5" data-hint="По одному ребру на символ запроса." data-explain="Поиск проходит ровно L рёбер, по одному на символ. Для слова длины 5 — это 5 шагов, независимо от того, сколько ещё слов лежит в боре.">
+<div class="algo-challenge__q">Сколько рёбер проходит поиск слова длины 5?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="false — путь есть, но узел не помечен isEnd|true — раз путь c→a существует" data-answer="0" data-explain="Search требует оба условия: путь существует И финальный узел помечен isEnd. Слово «ca» не вставляли, флага нет → Search=false. А вот StartsWith(«ca»)=true, ведь путь существует.">
+<div class="algo-challenge__q">В боре есть путь c→a (от слов car, cat), но узел «a» не помечен isEnd. Что вернёт Search("ca")?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Да — узел может быть и словом (isEnd), и префиксом (есть дети)|Нет — конец слова обязан быть листом" data-answer="0" data-explain="Конец слова — это флаг isEnd, а не «лист». Узел do помечен isEnd, но имеет ребёнка g (dog): он одновременно и слово, и префикс.">
+<div class="algo-challenge__q">Слово «do» помечено isEnd и при этом имеет ребёнка «g» (dog). Может ли один узел быть и словом, и префиксом?</div>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Спуск по c — узел переиспользуется|Спуск по a — узел переиспользуется|Символ r — узла нет, создаём|Ставим isEnd на узле r" data-hint="Общий префикс с cat не создаёт узлов; развилка начинается там, где путь обрывается." data-explain="Insert(«car») в бор с cat: шаги c и a идут по уже проложенному пути (ничего не создаётся), на r бор растёт — новый узел, и в конце ставится isEnd.">
+<div class="algo-challenge__q">Расставь шаги Insert("car") в бор, где уже лежит «cat»:</div>
+</div>
+
 ## 🔗 Связанные шаблоны
 
 - **[Trie: разбор задач](trie.md)** — применение бора: Replace Words, Word Search II, Maximum XOR.

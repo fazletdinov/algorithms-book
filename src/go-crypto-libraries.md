@@ -278,3 +278,32 @@ tok, err := conf.Exchange(ctx, code, oauth2.VerifierOption(verifier))
 (генерация простых для ключей), [обратный по модулю](cryptography.md#1-расширенный-евклид-и-обратный-по-модулю).
 Библиотеки берут те же идеи и делают их **безопасными в проде** — константное время, правильные
 паддинги, проверенные параметры. Твоя задача инженера — не переписать их, а **выбрать правильную**.
+
+## 🧩 Задачи
+
+Проверь понимание — выбери вариант, впиши ответ или расставь по порядку.
+
+<div class="algo-challenge" data-type="choice" data-options="crypto/rand — криптографически стойкий источник|math/rand — быстрее и проще|time.Now().UnixNano() как сид для math/rand" data-answer="0" data-explain="Всё секретное (ключи, соли, nonce, токены сессий, CSRF) берётся только из crypto/rand. math/rand детерминирован от сида — его выход предсказуем, по нему восстанавливают токены.">
+<div class="algo-challenge__q">Откуда брать случайные токены и ключи?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Медленный хеш с солью: bcrypt или argon2id|Быстрый хеш SHA-256 с солью|AES-шифрование пароля секретным ключом" data-answer="0" data-explain="Пароль нельзя шифровать (шифр обратим — украли ключ, прочитали всё) и нельзя хешировать быстрым SHA-256 (перебирают миллиардами в секунду). Нужен намеренно медленный хеш с солью: bcrypt или argon2id.">
+<div class="algo-challenge__q">Как правильно хранить пароли пользователей?</div>
+</div>
+
+<div class="algo-challenge" data-type="cloze" data-answer="уникальный" data-hint="Повтор его в GCM катастрофичен — раскрывает открытый текст." data-explain="Ключевое правило AES-GCM: nonce должен быть уникальным на каждое сообщение и браться из crypto/rand. Повтор nonce в GCM раскрывает открытый текст и ломает аутентичность.">
+<div class="algo-challenge__q">Впиши слово:</div>
+<pre class="algo-challenge__code">в AES-GCM nonce должен быть ______ на каждое сообщение</pre>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="16" data-hint="AES-128; размер ключа = длине в битах / 8." data-explain="aes.NewCipher принимает ключ 16/24/32 байта — это AES-128/192/256. Значит, AES-128 использует ключ ровно 16 байт.">
+<div class="algo-challenge__q">Сколько байт занимает ключ AES-128?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Жёстко зафиксировать ожидаемый тип метода подписи (alg) при проверке|Разрешить любой alg из заголовка токена — так гибче|Проверять только exp, а подпись доверять клиенту" data-answer="0" data-explain="Если сервер не фиксирует alg, возможны атаки alg:none (токен без подписи) и путаница HS256/RS256 (атакующий подписывает по HS256, используя публичный RSA-ключ как HMAC-секрет). Всегда жёстко проверяй тип метода подписи.">
+<div class="algo-challenge__q">Как защититься от атак «alg:none» и подмены RS256→HS256 в JWT?</div>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="ClientHello / ServerHello + обмен ключевыми share (ECDHE)|Сертификат сервера — проверка подписи по цепочке до CA|Finished и переход на симметричный AES-GCM" data-hint="Сначала согласовать секрет, затем доказать подлинность, затем шифровать данные." data-explain="TLS 1.3 за один round-trip: (1) стороны обмениваются ECDHE-share и каждый вычисляет общий секрет, сам секрет по сети не идёт; (2) сервер шлёт сертификат — клиент проверяет подпись до доверенного CA (против MITM); (3) Finished и весь трафик шифруется быстрым AES-GCM.">
+<div class="algo-challenge__q">Расставь шаги TLS 1.3-хендшейка по порядку:</div>
+</div>

@@ -238,6 +238,35 @@ go test -tags solution ./segtree/  # эталон
 go test -bench=. ./segtree/        # асимптотика
 ```
 
+## 🧩 Задачи
+
+Проверь понимание — выбери вариант, впиши ответ или расставь по порядку. Готового решения рядом нет: дойди сам.
+
+<div class="algo-challenge" data-type="cloze" data-answer="O(log n)" data-hint="Диапазон раскладывается на столько же канонических узлов, сколько уровней в дереве." data-explain="Любой диапазон [l, r] покрывается O(log n) готовыми узлами: на каждом из O(log n) уровней границу частично пересекают не больше двух узлов.">
+<div class="algo-challenge__q">Впиши асимптотику:</div>
+<pre class="algo-challenge__code">запрос суммы на диапазоне [l, r] в дереве отрезков = ______</pre>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="4" data-hint="make([]int, ?*n) — при n не степени двойки крайние индексы «разъезжаются»." data-explain="Под массив берут ~4n ячеек: 2n не хватает, когда n не степень двойки, потому что крайние индексы кучной нумерации разъезжаются.">
+<div class="algo-challenge__q">Во сколько раз больше n ячеек обычно выделяют под массив дерева отрезков?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="tree[node] = tree[left] + tree[right]|tree[node] = tree[left] − tree[right]" data-answer="0" data-explain="Инвариант дерева отрезков (для суммы): значение узла всегда равно агрегату детей. Build его устанавливает, Update восстанавливает, Query им пользуется.">
+<div class="algo-challenge__q">Какой инвариант держит дерево отрезков (для суммы)?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Префиксные суммы — запрос O(1), без дерева|Дерево отрезков" data-answer="0" data-explain="Если массив не меняется, дерево избыточно: префиксные суммы дают запрос на диапазоне за O(1) и без всякой структуры.">
+<div class="algo-challenge__q">Массив не меняется, нужны суммы на диапазоне. Что уместнее?</div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="2" data-hint="Всё, что целиком внутри, берётся одной суммой; снаружи — отсекается." data-explain="Границу запроса на каждом уровне частично пересекают максимум два узла (левая и правая граница). Отсюда O(log n) посещённых узлов.">
+<div class="algo-challenge__q">Сколько узлов максимум частично пересекают границу [l, r] на каждом уровне дерева?</div>
+</div>
+
+<div class="algo-challenge" data-type="ordering" data-items="Построить левое поддерево|Построить правое поддерево|Записать tree[node] = сумма детей" data-hint="Пост-обход: сначала дети, потом узел." data-explain="Build — пост-обход: сначала строим оба поддерева, и только когда дети готовы, вычисляем узел как их сумму. Иначе инвариант не выполнится.">
+<div class="algo-challenge__q">Расставь шаги build(node) по порядку:</div>
+</div>
+
 ## 🔗 Связанные шаблоны
 
 - **[Дерево отрезков: разбор задач](segment-tree.md)** — lazy propagation и задачи (Range Sum Mutable, Count Smaller, Skyline).
