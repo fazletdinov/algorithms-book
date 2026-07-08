@@ -125,6 +125,24 @@
       "    return -1, -1",
       "}"
     ],
+    "dutch-flag": [
+      "func dutchFlagSort(nums []int) {",
+      "    low, mid, high := 0, 0, len(nums)-1",
+      "    for mid <= high {",
+      "        switch nums[mid] {",
+      "        case 0:",
+      "            nums[low], nums[mid] = nums[mid], nums[low]",
+      "            low++",
+      "            mid++ // с low пришёл уже просмотренный",
+      "        case 1:",
+      "            mid++",
+      "        default: // 2",
+      "            nums[mid], nums[high] = nums[high], nums[mid]",
+      "            high-- // mid НЕ двигаем: пришёл непросмотренный",
+      "        }",
+      "    }",
+      "}"
+    ],
     "dp-coins": [
       "func coinChange(coins []int, amount int) int {",
       "    dp := make([]int, amount+1) // dp[0]=0, остальное ∞",
@@ -1104,6 +1122,40 @@
       "    return append(s, x) // на месте: амортизированно O(1)",
       "}"
     ],
+    "monotonic-stack": [
+      "func nextGreater(nums []int) []int {",
+      "    res := make([]int, len(nums))",
+      "    stack := []int{} // индексы, значения убывают",
+      "    for i, v := range nums {",
+      "        res[i] = -1",
+      "        for len(stack) > 0 && nums[stack[len(stack)-1]] < v {",
+      "            res[stack[len(stack)-1]] = v // нашли больший",
+      "            stack = stack[:len(stack)-1]",
+      "        }",
+      "        stack = append(stack, i)",
+      "    }",
+      "    return res",
+      "}"
+    ],
+    "monotonic-deque": [
+      "func maxSlidingWindow(nums []int, k int) []int {",
+      "    res := []int{}",
+      "    deque := []int{} // индексы, значения убывают",
+      "    for i, v := range nums {",
+      "        if len(deque) > 0 && deque[0] == i-k {",
+      "            deque = deque[1:] // спереди: вышел из окна",
+      "        }",
+      "        for len(deque) > 0 && nums[deque[len(deque)-1]] < v {",
+      "            deque = deque[:len(deque)-1] // сзади: меньшие не нужны",
+      "        }",
+      "        deque = append(deque, i)",
+      "        if i >= k-1 {",
+      "            res = append(res, nums[deque[0]]) // максимум — в голове",
+      "        }",
+      "    }",
+      "    return res",
+      "}"
+    ],
     "scheduler": [
       "func schedule() {",
       "    for {",
@@ -1593,6 +1645,25 @@
       "    return -1",
       "}"
     ],
+    "build-lps": [
+      "func buildLPS(pattern string) []int {",
+      "    lps := make([]int, len(pattern))",
+      "    length := 0",
+      "    for i := 1; i < len(pattern); {",
+      "        if pattern[i] == pattern[length] {",
+      "            length++",
+      "            lps[i] = length",
+      "            i++",
+      "        } else if length > 0 {",
+      "            length = lps[length-1] // откат по уже посчитанным",
+      "        } else {",
+      "            lps[i] = 0",
+      "            i++",
+      "        }",
+      "    }",
+      "    return lps",
+      "}"
+    ],
     "fenwick-prefix": [
       "func (f *Fenwick) PrefixSum(i int) int {",
       "    sum := 0",
@@ -1840,6 +1911,27 @@
       "        update(2*node+1, mid+1, hi, i, val)         // i в правом",
       "    }",
       "    tree[node] = tree[2*node] + tree[2*node+1]      // пересчёт узла",
+      "}"
+    ],
+    "lazy-range": [
+      "func (t *Lazy) update(node, lo, hi, ql, qr, d int) {",
+      "    if qr < lo || hi < ql { return } // мимо",
+      "    if ql <= lo && hi <= qr {        // целиком внутри",
+      "        t.tree[node] += (hi - lo + 1) * d",
+      "        t.lazy[node] += d // долг детям записан",
+      "        return            // вниз НЕ идём — экономия",
+      "    }",
+      "    t.push(node, lo, hi) // перед спуском — спустить долг",
+      "    t.update(2*node, lo, mid, ql, qr, d)",
+      "    t.update(2*node+1, mid+1, hi, ql, qr, d)",
+      "    t.tree[node] = t.tree[2*node] + t.tree[2*node+1]",
+      "}",
+      "func (t *Lazy) query(node, lo, hi, ql, qr int) int {",
+      "    if qr < lo || hi < ql { return 0 }",
+      "    if ql <= lo && hi <= qr { return t.tree[node] }",
+      "    t.push(node, lo, hi) // push и при чтении!",
+      "    return t.query(2*node, lo, mid, ql, qr) +",
+      "        t.query(2*node+1, mid+1, hi, ql, qr)",
       "}"
     ],
     "mst-kruskal": [
@@ -3401,6 +3493,109 @@
     push({ line: 8, tree: snap({}), node: "[0," + (arr.length - 1) + "]", action: "готово", done: true, info: "индекс " + idx + " обновлён; суммы по пути пересчитаны, корень = " + nodes[0].sum });
     return { steps: steps };
   }
+  // Lazy propagation: UpdateRange(ql,qr,+d), затем Query(sl,sr). Три случая спуска
+  // (мимо / целиком внутри → apply+метка, стоп / частично → push и рекурсия); запрос
+  // делает push по пути — долг доезжает до листьев ровно когда понадобился.
+  // Выверено прототипом: [1,3,5,7,9,11], Update(1,4,+10) → корень 76, на [3,4]
+  // lazy=10 при нетронутых листьях 7 и 9; Query(4,5) пушит долг и возвращает 30.
+  function bLazyRange(arr, ql, qr, delta, sl, sr) {
+    var nodes = [];
+    (function build(lo, hi, depth) {
+      var id = nodes.length; nodes.push({ id: id, lo: lo, hi: hi, sum: 0, lazy: 0, left: -1, right: -1, depth: depth });
+      if (lo === hi) { nodes[id].sum = arr[lo]; return id; }
+      var mid = (lo + hi) >> 1;
+      var L = build(lo, mid, depth + 1), R = build(mid + 1, hi, depth + 1);
+      nodes[id].left = L; nodes[id].right = R; nodes[id].sum = nodes[L].sum + nodes[R].sum;
+      return id;
+    })(0, arr.length - 1, 0);
+    var state = {}, steps = [], total = 0;
+    function lbl(nd) { return "[" + nd.lo + "," + nd.hi + "]"; }
+    function snap(cur) {
+      return nodes.map(function (n) {
+        var cls = (n.id === cur) ? "current" : (state[n.id] || "");
+        return { lo: n.lo, hi: n.hi, sum: n.sum, lazy: n.lazy, depth: n.depth, cls: cls };
+      });
+    }
+    function push_(o) { steps.push({ si: steps.length, line: o.line, tree: snap(o.cur), vars: { node: (o.node || "—"), action: (o.action || "—"), lazyv: (o.lazyv == null ? "—" : o.lazyv), total: (o.total == null ? "—" : o.total) }, info: o.info, done: o.done, hot: o.hot }); }
+    function applyTo(id, d) { var nd = nodes[id]; nd.sum += (nd.hi - nd.lo + 1) * d; nd.lazy += d; }
+    function doPush(id, line, phase) {
+      var nd = nodes[id];
+      if (nd.lazy === 0) return false;
+      var d = nd.lazy;
+      applyTo(nd.left, d); applyTo(nd.right, d); nd.lazy = 0;
+      push_({ line: line, cur: id, node: lbl(nd), action: "push ↓", lazyv: 0, hot: true, total: (phase === "q" ? total : null), info: "PUSH: долг +" + d + " спускается детям " + lbl(nodes[nd.left]) + " и " + lbl(nodes[nd.right]) + " (их суммы и lazy выросли), lazy узла " + lbl(nd) + " обнулён" });
+      return true;
+    }
+    push_({ line: 0, node: "—", action: "старт", info: "UpdateRange(" + ql + "," + qr + ",+" + delta + "): прибавить " + delta + " каждому элементу на [" + ql + "," + qr + "]" });
+    (function upd(id) {
+      var nd = nodes[id], L = lbl(nd);
+      if (qr < nd.lo || nd.hi < ql) {
+        state[id] = "skip";
+        push_({ line: 1, cur: id, node: L, action: "мимо", lazyv: nd.lazy, info: L + " не пересекается с [" + ql + "," + qr + "] → return, поддерево не трогаем" });
+        return;
+      }
+      if (ql <= nd.lo && nd.hi <= qr) {
+        applyTo(id, delta);
+        state[id] = "take";
+        var leaf = nd.lo === nd.hi;
+        push_({ line: 4, cur: id, node: L, action: "apply + метка", lazyv: nd.lazy, hot: !leaf, info: L + " целиком внутри → сумма узла сразу +" + ((nd.hi - nd.lo + 1) * delta) + " (= " + nd.sum + "), lazy=" + nd.lazy + (leaf ? "" : " — ДЕТЕЙ НЕ ТРОГАЕМ, долг записан. Вот она, экономия: стоп, ниже не идём") });
+        return;
+      }
+      state[id] = "split";
+      if (!doPush(id, 7, "u")) {
+        push_({ line: 7, cur: id, node: L, action: "push (пусто) + спуск", lazyv: 0, info: L + " пересекает [" + ql + "," + qr + "] частично → перед спуском push (lazy=0, спускать нечего), идём к детям" });
+      }
+      upd(nd.left);
+      upd(nd.right);
+      nd.sum = nodes[nd.left].sum + nodes[nd.right].sum;
+      push_({ line: 10, cur: id, node: L, action: "пересчёт", lazyv: nd.lazy, info: "возврат вверх: " + L + " = сумма детей = " + nd.sum });
+    })(0);
+    state = {}; // новая фаза — раскраску узлов начинаем заново
+    push_({ line: 12, node: "—", action: "старт запроса", total: 0, info: "Дерево после update: суммы верхних узлов уже верны, но у помеченного узла висит lazy — его листья ещё старые. Query(" + sl + "," + sr + ") это увидит" });
+    (function q(id) {
+      var nd = nodes[id], L = lbl(nd);
+      if (sr < nd.lo || nd.hi < sl) {
+        state[id] = "skip";
+        push_({ line: 13, cur: id, node: L, action: "мимо", lazyv: nd.lazy, total: total, info: L + " вне [" + sl + "," + sr + "] → вклад 0" });
+        return;
+      }
+      if (sl <= nd.lo && nd.hi <= sr) {
+        total += nd.sum;
+        state[id] = "take";
+        push_({ line: 14, cur: id, node: L, action: "take", lazyv: nd.lazy, total: total, info: L + " целиком внутри → берём готовую сумму " + nd.sum + " (итог " + total + ")" });
+        return;
+      }
+      state[id] = "split";
+      if (!doPush(id, 15, "q")) {
+        push_({ line: 15, cur: id, node: L, action: "push (пусто) + спуск", lazyv: 0, total: total, info: L + " пересекает частично → push перед спуском (lazy=0 — долгов нет), к детям" });
+      }
+      q(nd.left);
+      q(nd.right);
+    })(0);
+    push_({ line: 16, done: true, node: "[" + sl + "," + sr + "]", action: "готово", total: total, info: "Сумма на [" + sl + "," + sr + "] = " + total + ". Долг дошёл до листьев ровно тогда, когда понадобился — обе операции O(log n)" });
+    return { steps: steps };
+  }
+  // customViz lazy propagation: перерисовка дерева по снимку s.tree (как segTreeViz),
+  // плюс оранжевый бейдж «+d» на узле с ненулевой lazy-меткой.
+  function lazySegViz(panel) {
+    var host = mkEl("div", "algo-tp__tree"); panel.appendChild(host);
+    return function (s) {
+      host.innerHTML = "";
+      var nodes = s.tree || [];
+      if (!nodes.length) return;
+      var maxD = 0; nodes.forEach(function (n) { maxD = Math.max(maxD, n.depth); });
+      for (var d = 0; d <= maxD; d++) {
+        var row = mkEl("div", "algo-tp__trow");
+        nodes.filter(function (n) { return n.depth === d; }).sort(function (a, b) { return a.lo - b.lo; }).forEach(function (n) {
+          var c = mkEl("div", "algo-tp__tnode algo-tp__tnode--seg algo-tp__tnode--lazyhost" + (n.cls ? " algo-tp__tnode--" + n.cls : ""), String(n.sum));
+          c.title = "[" + n.lo + "," + n.hi + "]";
+          if (n.lazy) c.appendChild(mkEl("span", "algo-tp__lazytag", "+" + n.lazy));
+          row.appendChild(c);
+        });
+        host.appendChild(row);
+      }
+    };
+  }
   // MST (алгоритм Краскала): рёбра add/skip + Union-Find.
   // MST (Краскал) — построчный (debugger) проход; рисует mstViz (рёбра add/skip/cur через
   // edgeStep/edgeState/_i). Каждый кадр несёт снимок parent[] — его рисует панель Union-Find.
@@ -4858,6 +5053,41 @@
     push({ line: 13, done: true, info: "i дошёл до конца текста — образец не найден (return -1)" });
     return steps;
   }
+  // Построение префикс-функции (lps) для KMP: два указателя по образцу.
+  // i — куда пишем lps, length — длина текущего кандидата «префикс = суффикс».
+  // «Aha»-шаг: при несовпадении length откатывается по УЖЕ посчитанной таблице
+  // (length = lps[length-1]), а i стоит на месте. Выверено прототипом: для
+  // образца главы "abcaby" выходит lps = [0,0,0,1,2,0] (числа из текста главы).
+  function bBuildLps(pat) {
+    var m = pat.length, lps = new Array(m).fill(null), steps = [];
+    var length = 0;
+    lps[0] = 0; // make([]int, m) зануляет: у префикса из 1 символа нет собственного префикса-суффикса
+    function snap(extra) {
+      var o = { lps: lps.slice(), pref: length, lo: -1, hi: -1, lpsActive: -1, wrote: -1 };
+      for (var k in extra) o[k] = extra[k];
+      return o;
+    }
+    steps.push(snap({ line: 1, vars: { i: "—", length: 0, cmp: "—", written: "lps[0]=0" }, info: "make зануляет массив: lps[0] = 0 — у префикса из одного символа нет собственного префикса-суффикса" }));
+    for (var i = 1; i < m;) {
+      steps.push(snap({ lo: length, hi: i, line: 4, vars: { i: i, length: length, cmp: "'" + pat[i] + "' ≟ '" + pat[length] + "'", written: "—" }, info: "Сравниваем pattern[" + i + "]='" + pat[i] + "' с pattern[length]='" + pat[length] + "' — можно ли удлинить префикс-суффикс?" }));
+      if (pat[i] === pat[length]) {
+        length++;
+        lps[i] = length;
+        steps.push(snap({ lo: length, hi: i, line: 6, wrote: i, vars: { i: i, length: length, cmp: "'" + pat[i] + "' = '" + pat[length - 1] + "'", written: "lps[" + i + "]=" + length }, info: "Совпало → префикс-суффикс удлинился: lps[" + i + "] = " + length + ", двигаем оба (length=" + length + ", i=" + (i + 1) + ")" }));
+        i++;
+      } else if (length > 0) {
+        var old = length;
+        length = lps[length - 1];
+        steps.push(snap({ lo: length, hi: i, line: 9, hot: true, lpsActive: old - 1, vars: { i: i, length: length, cmp: "✗", written: "—" }, info: "Несовпало → ОТКАТ по готовой таблице: length = lps[" + (old - 1) + "] = " + length + ". Не начинаем с нуля — более короткий префикс-суффикс уже посчитан; i стоит на месте" }));
+      } else {
+        lps[i] = 0;
+        steps.push(snap({ hi: i, line: 11, wrote: i, vars: { i: i, length: 0, cmp: "✗", written: "lps[" + i + "]=0" }, info: "Несовпало и length=0: удлинять нечего → lps[" + i + "] = 0, i двигается дальше" }));
+        i++;
+      }
+    }
+    steps.push(snap({ done: true, line: 15, vars: { i: m, length: length, cmp: "—", written: "—" }, info: "Готово: lps = [" + lps.join(",") + "]. i ни разу не откатывался — построение линейно, O(m)" }));
+    return steps;
+  }
   function kmpViz(panel, ctx) {
     var text = ctx.text, pat = ctx.pattern;
     var wrap = document.createElement("div"); wrap.className = "algo-tp__kmp";
@@ -6190,6 +6420,104 @@
       }
       foot.textContent = "длина " + s.len + " / ёмкость " + s.cap + (s.copied ? "  ·  скопировано " + s.copied + " (дорогой шаг)" : "");
     };
+  }
+
+  // Монотонный стек (Next Greater Element): стек индексов, значения убывают.
+  // Пока вершина < нового элемента — pop, её ответ найден (hot); затем push i.
+  // Амортизация: каждый индекс кладётся и снимается ≤ 1 раза → O(n) при вложенном
+  // цикле. Выверено прототипом: массив главы [2,1,3,1] даёт res = [3,3,-1,-1].
+  function bMonoStack(nums) {
+    var n = nums.length, res = new Array(n).fill(null), stack = [], steps = [];
+    function resStr() { return "[" + res.map(function (x) { return x == null ? "·" : x; }).join(",") + "]"; }
+    function snap(extra) {
+      var o = { stack: stack.slice(), res: res.slice(), popped: -1, pushed: -1, lo: -1, hi: -1 };
+      for (var k in extra) o[k] = extra[k];
+      return o;
+    }
+    steps.push(snap({ line: 2, vars: { i: "—", v: "—", top: "—", resv: resStr() }, info: "Стек индексов пуст. Пойдём слева направо: стек будет хранить тех, кто ещё ЖДЁТ своего большего справа" }));
+    for (var i = 0; i < n; i++) {
+      var v = nums[i];
+      res[i] = -1;
+      steps.push(snap({ lo: i, line: 4, vars: { i: i, v: v, top: stack.length ? "[" + stack[stack.length - 1] + "]=" + nums[stack[stack.length - 1]] : "—", resv: resStr() }, info: "Новый элемент nums[" + i + "]=" + v + "; пока его больший справа неизвестен (res[" + i + "]=-1). Сравниваем с вершиной стека" }));
+      while (stack.length > 0 && nums[stack[stack.length - 1]] < v) {
+        var top = stack.pop();
+        res[top] = v;
+        steps.push(snap({ lo: i, hi: top, line: 6, hot: true, popped: top, vars: { i: i, v: v, top: "[" + top + "]=" + nums[top], resv: resStr() }, info: "nums[" + top + "]=" + nums[top] + " < " + v + " → индекс " + top + " дождался: res[" + top + "] = " + v + ", снимаем его со стека НАВСЕГДА" }));
+      }
+      stack.push(i);
+      steps.push(snap({ lo: i, line: 9, pushed: i, vars: { i: i, v: v, top: "[" + i + "]=" + v, resv: resStr() }, info: (stack.length > 1 ? "вершина " + nums[stack[stack.length - 2]] + " ≥ " + v + " — не её больший; " : "стек пуст; ") + "кладём индекс " + i + " ждать своего большего. Значения в стеке убывают снизу вверх" }));
+    }
+    steps.push(snap({ done: true, line: 11, vars: { i: "—", v: "—", top: "—", resv: resStr() }, info: "Оставшиеся в стеке большего справа не встретили — у них res = -1. Каждый индекс лёг и снялся ≤ 1 раза: суммарно ≤ 2n операций → O(n), хоть цикл и вложенный" }));
+    return steps;
+  }
+
+  // Монотонный дек (MaxSlidingWindow): дек индексов, значения убывают от головы
+  // к хвосту, максимум окна всегда в голове. Спереди снимаем вышедший из окна
+  // индекс, сзади — всех меньших нового («зачем хранить 3, если пришёл 5» — hot).
+  // Выверено прототипом: [1,3,-1,-3,5,3,6,7], k=3 → res = [3,3,5,5,6,7].
+  function bMonoDeque(nums, k) {
+    var n = nums.length, dq = [], res = [], steps = [];
+    function resStr() { return "[" + res.join(",") + "]"; }
+    function frontStr() { return dq.length ? "[" + dq[0] + "]=" + nums[dq[0]] : "—"; }
+    function snap(extra) {
+      var o = { dq: dq.slice(), res: res.slice(), popped: -1, poppedFront: -1, pushed: -1, lo: -1, hi: -1 };
+      for (var kk in extra) o[kk] = extra[kk];
+      return o;
+    }
+    steps.push(snap({ line: 2, vars: { i: "—", v: "—", front: "—", resv: "[]" }, info: "Дек индексов пуст. Инвариант: значения по деку убывают от головы к хвосту, максимум окна всегда в голове" }));
+    for (var i = 0; i < n; i++) {
+      var v = nums[i], wlo = Math.max(0, i - k + 1);
+      if (dq.length > 0 && dq[0] === i - k) {
+        var out = dq.shift();
+        steps.push(snap({ lo: wlo, hi: i, poppedFront: out, line: 5, vars: { i: i, v: v, front: frontStr(), resv: resStr() }, info: "Окно уехало: индекс " + out + " (=" + nums[out] + ") больше не в [" + wlo + ".." + i + "] → снимаем СПЕРЕДИ" }));
+      }
+      while (dq.length > 0 && nums[dq[dq.length - 1]] < v) {
+        var top = dq.pop();
+        steps.push(snap({ lo: wlo, hi: i, popped: top, line: 8, hot: true, vars: { i: i, v: v, front: frontStr(), resv: resStr() }, info: "nums[" + top + "]=" + nums[top] + " < " + v + " → зачем хранить " + nums[top] + ", если пришёл " + v + "? Он никогда не станет максимумом — снимаем СЗАДИ" }));
+      }
+      dq.push(i);
+      steps.push(snap({ lo: wlo, hi: i, pushed: i, line: 10, vars: { i: i, v: v, front: frontStr(), resv: resStr() }, info: "Кладём индекс " + i + " (=" + v + ") в хвост" + (dq.length > 1 ? " — перед ним только большие, инвариант цел" : " — дек был пуст") }));
+      if (i >= k - 1) {
+        res.push(nums[dq[0]]);
+        steps.push(snap({ lo: wlo, hi: i, line: 12, ans: true, vars: { i: i, v: v, front: frontStr(), resv: resStr() }, info: "Окно [" + wlo + ".." + i + "] собрано: максимум — голова дека, res += " + nums[dq[0]] }));
+      }
+    }
+    steps.push(snap({ done: true, line: 15, vars: { i: "—", v: "—", front: frontStr(), resv: resStr() }, info: "res = " + resStr() + ". Каждый индекс вошёл в дек и вышел ≤ 1 раза → O(n), а не O(n·k)" }));
+    return steps;
+  }
+
+  // Dutch National Flag (Дейкстра): три указателя делят массив на зоны
+  // нулей / единиц / непросмотренного / двоек за один проход. Асимметрия —
+  // «aha»-шаг: после swap с high mid НЕ двигается (приехал непросмотренный).
+  // Выверено прототипом: [2,0,2,1,1,0] → [0,0,1,1,2,2], инвариант зон на каждом шаге.
+  function bDutchFlag(arr) {
+    var a = arr.slice(), n = a.length, steps = [];
+    var low = 0, mid = 0, high = n - 1;
+    function snap(extra) {
+      var o = { values: a.slice(), low: low, mid: mid, high: high, lo: low, hi: high };
+      for (var k in extra) o[k] = extra[k];
+      return o;
+    }
+    steps.push(snap({ line: 1, vars: { low: low, mid: mid, high: high, v: "—" }, info: "Три границы: слева от low — нули, между low и mid — единицы, справа от high — двойки. Между mid и high — ещё не просмотренное" }));
+    var guard = 0;
+    while (mid <= high && guard++ < 4 * n + 8) {
+      var v = a[mid];
+      steps.push(snap({ line: 3, vars: { low: low, mid: mid, high: high, v: v }, info: "Смотрим nums[mid] = nums[" + mid + "] = " + v + (v === 0 ? " — ноль, ему место слева" : v === 1 ? " — единица, она уже там, где надо" : " — двойка, ей место справа") }));
+      if (v === 0) {
+        var t0 = a[low]; a[low] = a[mid]; a[mid] = t0;
+        low++; mid++;
+        steps.push(snap({ line: 5, vars: { low: low, mid: mid, high: high, v: v }, info: "swap(low, mid)" + (t0 === v ? " (совпали — обмен вхолостую)" : "") + ": ноль ушёл в свою зону. Оба вперёд: с позиции low мог прийти только 0 или 1 — он УЖЕ просмотрен, перепроверять нечего" }));
+      } else if (v === 1) {
+        mid++;
+        steps.push(snap({ line: 9, vars: { low: low, mid: mid, high: high, v: v }, info: "Единица между low и mid — уже в своей зоне: просто mid++" }));
+      } else {
+        var t2 = a[mid]; a[mid] = a[high]; a[high] = t2;
+        high--;
+        steps.push(snap({ line: 11, hot: true, vars: { low: low, mid: mid, high: high, v: v }, info: "swap(mid, high), high−−, а mid СТОИТ: с позиции high приехал НЕпросмотренный элемент (" + a[mid] + ") — его ещё надо классифицировать на следующем шаге" }));
+      }
+    }
+    steps.push(snap({ done: true, line: 15, vars: { low: low, mid: mid, high: high, v: "—" }, info: "mid перегнал high — непросмотренного не осталось: [" + a.join(",") + "]. Один проход, O(n) времени, O(1) памяти" }));
+    return steps;
   }
 
   // ===== Go-рантайм: планировщик GMP =====
@@ -7596,6 +7924,29 @@
         return { a: "lo = " + s.lo + ", hi = " + s.hi, b: "lo ≥ hi", c: "конец", cls: "" };
       },
       varsOf: function (s, ctx) { return { lo: s.lo, hi: s.hi, "arr[lo]": s.vars["arr[lo]"], "arr[hi]": s.vars["arr[hi]"], sum: (typeof s.vars.sum === "number" ? s.vars.sum : "—"), target: ctx.target }; }
+    },
+
+    "dutch-flag": {
+      badge: "Dutch National Flag",
+      desc: "Сортировка 0/1/2 за один проход: mid сканирует непросмотренное, low — граница нулей, high — граница двоек. Ноль улетает влево (оба указателя вперёд), двойка — вправо (mid стоит: приехал непросмотренный).",
+      valuesLabel: "Массив (зелёное — нули, светлое — единицы, оранжевое — двойки, рамка — mid)", codeKey: "dutch-flag", fillRange: false,
+      ptr1: { name: "low", cap: "(граница нулей)" }, ptr2: { name: "high", cap: "(граница двоек)" },
+      complexity: { time: "O(n)", space: "O(1)", good: "★ Разбиение на 3 класса за проход" },
+      varOrder: ["low", "mid", "high", "v"],
+      varDesc: { low: "Конец зоны нулей (первая НЕ-ноль)", mid: "Сканер непросмотренного (рамка)", high: "Перед зоной двоек (последний непросмотренный)", v: "Текущий элемент nums[mid]" },
+      lineNotes: { 1: "Зоны: [0..low) нули, [low..mid) единицы, (high..] двойки, [mid..high] — неизвестно", 2: "Пока между mid и high есть непросмотренное", 3: "Классифицируем текущий элемент nums[mid]", 4: "Ноль — ему место в левой зоне", 5: "Обмен с границей нулей: ноль встал к своим", 6: "Зона нулей выросла на 1", 7: "mid++ безопасен: с low мог прийти только уже просмотренный 0 или 1", 8: "Единица — уже в своей зоне [low..mid)", 9: "Просто расширяем зону единиц", 10: "Двойка — ей место в правой зоне", 11: "Обмен с границей двоек: двойка встала к своим", 12: "«Aha»: high−−, но mid СТОИТ — с high приехал непросмотренный элемент", 15: "mid > high — всё классифицировано за один проход" },
+      rules: [{ head: "nums[mid] = 0", body: "swap(low, mid), low++ и mid++", cls: "eq" }, { head: "nums[mid] = 1", body: "уже на месте → mid++", cls: "lt" }, { head: "nums[mid] = 2", body: "swap(mid, high), high−−, mid СТОИТ", cls: "gt" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")).map(function (x) { return Math.max(0, Math.min(2, x)); }); if (!arr.length) arr = [2, 0, 2, 1, 1, 0]; return { arr: arr, steps: bDutchFlag(arr) }; },
+      inputs: [{ attr: "data-array", label: "Массив из 0/1/2" }],
+      values: function (ctx) { return ctx.arr; },
+      title: function (ctx) { return "Dutch National Flag: [" + ctx.arr.join(", ") + "]"; },
+      cellState: function (s, j) { var st = {}; if (j < s.low) st.found = true; else if (j < s.mid) st.span = true; if (j > s.high) st.hi = true; if (j === s.mid && !s.done) st.mid = true; return st; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Зоны 0 | 1 | ? | 2", "nums[mid]"],
+      sumValues: function (s, ctx) { var n = ctx.arr.length; return [{ text: s.low + " | " + (s.mid - s.low) + " | " + Math.max(0, s.high - s.mid + 1) + " | " + (n - 1 - s.high), cls: "eq" }, { text: String(s.vars.v), cls: s.vars.v === 0 ? "eq" : (s.vars.v === 2 ? "gt" : "lt") }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Разложено за один проход", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "[" + s.values.join(",") + "]", c: "O(n)", cls: "eq" }; return { a: "mid=" + s.mid + " v=" + s.vars.v, b: s.hot ? "swap с high, mid стоит" : (s.line === 5 ? "swap с low" : "mid++"), c: "low=" + s.low + " high=" + s.high, cls: s.hot ? "gt" : "eq" }; },
+      varsOf: function (s) { return { low: s.low, mid: s.mid, high: s.high, v: s.vars.v }; }
     },
 
     "sliding-window-fixed": {
@@ -9237,6 +9588,99 @@
       customViz: dynArrayViz
     },
 
+    "monotonic-stack": {
+      badge: "Монотонный стек",
+      desc: "Next Greater Element за O(n): стек хранит индексы, ещё не встретившие большего (значения в нём убывают). Новый элемент выталкивает всех меньших — для каждого он и есть ответ — и встаёт ждать сам.",
+      valuesLabel: "Массив (зелёное — ответ найден, оранжевое — ждёт в стеке)", codeKey: "monotonic-stack", fillRange: false,
+      ptr1: { name: "i", cap: "(текущий элемент)" }, ptr2: { name: "top", cap: "(снимается со стека)" },
+      complexity: { time: "O(n) амортизированно", space: "O(n)", good: "★ Ближайший больший справа" },
+      varOrder: ["i", "v", "top", "resv"],
+      varDesc: { i: "Текущий индекс", v: "Текущее значение nums[i]", top: "Вершина стека [индекс]=значение", resv: "Ответ res (· — ещё не известен)" },
+      lineNotes: { 1: "res — ответы: для каждого индекса его ближайший больший справа", 2: "Стек индексов: их значения строго убывают снизу вверх", 3: "Один проход слева направо", 4: "Пока большего справа не видели — заготовка −1", 5: "Вершина меньше нового? Тогда v — её ближайший больший!", 6: "Ответ для вершины найден — записываем v", 7: "pop: индекс уходит из стека НАВСЕГДА (второй раз не вернётся)", 9: "Сам i встаёт в стек ждать своего большего", 11: "Кто остался в стеке — большего не встретил, у них −1" },
+      rules: [{ head: "nums[top] < v", body: "→ pop: res[top] = v", cls: "eq" }, { head: "nums[top] ≥ v", body: "→ push i, стек остаётся убывающим", cls: "lt" }, { head: "почему O(n)", body: "каждый индекс кладётся и снимается ≤ 1 раза", cls: "gt" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); if (!arr.length) arr = [2, 1, 3, 1]; return { arr: arr, steps: bMonoStack(arr) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      values: function (ctx) { return ctx.arr; },
+      title: function (ctx) { return "Next Greater Element: [" + ctx.arr.join(", ") + "]"; },
+      cellState: function (s, j) { var st = {}; if (s.res[j] != null && s.res[j] !== -1) st.found = true; else if (s.stack.indexOf(j) >= 0) st.mid = true; if (j === s.lo && s.lo >= 0) st.lo = true; if (j === s.hi && s.hi >= 0) st.hi = true; return st; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Вершина стека", "res (строится)"],
+      sumValues: function (s) { return [{ text: s.vars.top, cls: s.popped >= 0 ? "gt" : "" }, { text: s.vars.resv, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "res = " + s.vars.resv + " за O(n)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "res = " + s.vars.resv, c: "O(n)", cls: "eq" }; return { a: "i=" + s.vars.i + " v=" + s.vars.v, b: s.popped >= 0 ? "pop " + s.popped : "push " + s.vars.i, c: "стек: " + s.stack.length, cls: s.popped >= 0 ? "eq" : "lt" }; },
+      varsOf: function (s) { return { i: s.vars.i, v: s.vars.v, top: s.vars.top, resv: s.vars.resv }; },
+      // Столбик стека: вершина сверху; только что положенный — зелёная вспышка,
+      // снимаемый — красная (рисуется над стеком в момент pop).
+      mapViz: function (panel, ctx) {
+        var wrap = mkEl("div", "algo-tp__map");
+        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "stack — индексы, ждущие большего (вершина сверху, значения убывают вверх)"));
+        var col = mkEl("div", "algo-tp__mstack");
+        wrap.appendChild(col);
+        var foot = mkEl("div", "algo-tp__mapsize", "");
+        wrap.appendChild(foot);
+        panel.appendChild(wrap);
+        return function (s) {
+          col.innerHTML = "";
+          if (s.popped >= 0) col.appendChild(mkEl("div", "algo-tp__mstackcell algo-tp__mstackcell--del", "[" + s.popped + "] = " + ctx.arr[s.popped] + " → pop"));
+          for (var k = s.stack.length - 1; k >= 0; k--) {
+            var j = s.stack[k];
+            col.appendChild(mkEl("div", "algo-tp__mstackcell" + (k === s.stack.length - 1 ? " algo-tp__mstackcell--top" : "") + (j === s.pushed ? " algo-tp__mstackcell--add" : ""), "[" + j + "] = " + ctx.arr[j]));
+          }
+          if (!col.children.length) col.appendChild(mkEl("div", "algo-tp__mstackempty", "пусто"));
+          foot.textContent = "res = " + s.vars.resv;
+        };
+      }
+    },
+
+    "monotonic-deque": {
+      badge: "Монотонный дек",
+      desc: "Максимум скользящего окна за O(n): дек хранит индексы-«кандидаты», значения убывают от головы к хвосту. Спереди выбывает вышедший из окна, сзади — все меньшие нового; максимум окна всегда в голове.",
+      valuesLabel: "Массив (рамка — окно; зелёное — голова дека, максимум окна)", codeKey: "monotonic-deque", fillRange: false,
+      ptr1: { name: "lo", cap: "(левый край окна)" }, ptr2: { name: "i", cap: "(правый край окна)" },
+      complexity: { time: "O(n) амортизированно", space: "O(k)", good: "★ Максимум/минимум скользящего окна" },
+      varOrder: ["i", "v", "front", "resv"],
+      varDesc: { i: "Текущий индекс (правый край окна)", v: "Новый элемент nums[i]", front: "Голова дека — максимум текущего окна", resv: "Ответы по окнам" },
+      lineNotes: { 1: "Ответ: максимум каждого окна длины k", 2: "Дек индексов: значения убывают от головы к хвосту", 3: "Один проход; окно — [i−k+1 .. i]", 4: "Голова дека уехала за левый край окна?", 5: "Снимаем спереди: индекс i−k больше не в окне", 7: "Хвост меньше нового? Он уже никогда не будет максимумом", 8: "Снимаем сзади — «зачем хранить 3, если пришёл 5»", 10: "Новый индекс — в хвост: перед ним только большие", 11: "Первое полное окно собирается при i = k−1", 12: "Максимум окна — всегда голова дека, за O(1)", 15: "Каждый индекс вошёл и вышел ≤ 1 раза → O(n)" },
+      rules: [{ head: "спереди", body: "выбывает индекс, вышедший из окна", cls: "lt" }, { head: "сзади", body: "nums[хвост] < v → долой: максимумом не станет", cls: "gt" }, { head: "почему O(n)", body: "каждый индекс входит в дек и выходит ≤ 1 раза", cls: "eq" }],
+      parse: function (root) {
+        var arr = nums(root.getAttribute("data-array")); if (!arr.length) arr = [1, 3, -1, -3, 5, 3, 6, 7];
+        var k = parseInt(root.getAttribute("data-k"), 10); if (isNaN(k) || k < 1) k = 3; if (k > arr.length) k = arr.length;
+        return { arr: arr, k: k, steps: bMonoDeque(arr, k) };
+      },
+      inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-k", label: "k", sm: true }],
+      values: function (ctx) { return ctx.arr; },
+      title: function (ctx) { return "MaxSlidingWindow: окно " + ctx.k + " по [" + ctx.arr.join(", ") + "]"; },
+      param: function (ctx) { return { label: "k (ширина окна)", value: ctx.k, ok: true }; },
+      cellState: function (s, j) { var st = {}; if (s.lo >= 0) { var inWin = j >= s.lo && j <= s.hi; if (!inWin) st.dim = true; else if (s.dq.length && j === s.dq[0]) st.found = true; else if (s.dq.indexOf(j) >= 0) st.mid = true; else if (j > s.lo && j < s.hi) st.span = true; if (j === s.lo) st.lo = true; if (j === s.hi) st.hi = true; } return st; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Голова дека (максимум окна)", "res (по окнам)"],
+      sumValues: function (s) { return [{ text: s.vars.front, cls: "eq" }, { text: s.vars.resv, cls: s.ans ? "eq" : "" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "res = " + s.vars.resv, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "res = " + s.vars.resv, c: "O(n)", cls: "eq" }; return { a: "i=" + s.vars.i + " v=" + s.vars.v, b: s.popped >= 0 ? "pop сзади " + s.popped : (s.poppedFront >= 0 ? "pop спереди " + s.poppedFront : (s.ans ? "ответ" : "push " + s.vars.i)), c: "дек: " + s.dq.length, cls: s.popped >= 0 ? "gt" : (s.ans ? "eq" : "lt") }; },
+      varsOf: function (s) { return { i: s.vars.i, v: s.vars.v, front: s.vars.front, resv: s.vars.resv }; },
+      // Лента дека: голова слева (максимум окна), хвост справа; снимаемые
+      // элементы — красная вспышка с той стороны, откуда их выкинули.
+      mapViz: function (panel, ctx) {
+        var wrap = mkEl("div", "algo-tp__map");
+        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "deque — индексы-кандидаты (голова слева = максимум окна, значения убывают вправо)"));
+        var row = mkEl("div", "algo-tp__mdq");
+        wrap.appendChild(row);
+        var foot = mkEl("div", "algo-tp__mapsize", "");
+        wrap.appendChild(foot);
+        panel.appendChild(wrap);
+        return function (s) {
+          row.innerHTML = "";
+          if (s.poppedFront >= 0) row.appendChild(mkEl("div", "algo-tp__mstackcell algo-tp__mstackcell--del", "[" + s.poppedFront + "] = " + ctx.arr[s.poppedFront] + " ← из окна"));
+          s.dq.forEach(function (j, k) {
+            row.appendChild(mkEl("div", "algo-tp__mstackcell" + (k === 0 ? " algo-tp__mstackcell--top" : "") + (j === s.pushed ? " algo-tp__mstackcell--add" : ""), "[" + j + "] = " + ctx.arr[j]));
+          });
+          if (s.popped >= 0) row.appendChild(mkEl("div", "algo-tp__mstackcell algo-tp__mstackcell--del", "[" + s.popped + "] = " + ctx.arr[s.popped] + " ← меньше нового"));
+          if (!row.children.length) row.appendChild(mkEl("div", "algo-tp__mstackempty", "пусто"));
+          foot.textContent = "res = " + s.vars.resv;
+        };
+      }
+    },
+
     "scheduler": {
       badge: "Go-рантайм · планировщик GMP",
       desc: "G — горутина, M — поток ОС, P — логический процессор с локальной очередью. Планировщик мультиплексирует тысячи G на немного M через P: локальная очередь, глобальная, кража работы, handoff на syscall.",
@@ -10102,6 +10546,47 @@
       customViz: kmpViz
     },
 
+    "build-lps": {
+      badge: "KMP · префикс-функция",
+      desc: "Построение таблицы lps: length — длина текущего «префикс = суффикс» (зелёное поле). Совпало — удлиняем и пишем lps[i]; несовпало — length откатывается по уже посчитанной таблице, i стоит на месте.",
+      valuesLabel: "Образец pattern (зелёное — текущий префикс-суффикс длины length)", codeKey: "build-lps", fillRange: false,
+      ptr1: { name: "length", cap: "(символ после префикса)" }, ptr2: { name: "i", cap: "(куда пишем lps)" },
+      complexity: { time: "O(m)", space: "O(m)", good: "★ Предвычисление для KMP" },
+      varOrder: ["i", "length", "cmp", "written"],
+      varDesc: { i: "Позиция в образце, для которой считаем lps[i]", length: "Длина текущего префикса-суффикса (и индекс сравниваемого символа)", cmp: "Сравнение pattern[i] ≟ pattern[length]", written: "Что записали в таблицу на этом шаге" },
+      lineNotes: { 1: "make зануляет: lps[0] = 0 по определению (собственный префикс короче строки)", 2: "length = 0 — кандидата «префикс = суффикс» пока нет", 3: "i идёт по образцу только вперёд — с 1 до конца", 4: "Удлиняется ли префикс-суффикс символом pattern[i]?", 5: "Совпало — префикс-суффикс стал на 1 длиннее", 6: "Записываем ответ для позиции i", 7: "i вперёд — к следующей позиции", 8: "Несовпало, но кандидат был — не сбрасываем в 0!", 9: "«Aha»: откат к более короткому префиксу-суффиксу, он уже в таблице", 11: "Кандидата нет и не совпало → lps[i] = 0", 12: "i вперёд (только в ветках записи, не при откате)", 15: "Таблица готова — её ждёт kmpSearch" },
+      rules: [{ head: "совпало", body: "length++, lps[i] = length, i++", cls: "eq" }, { head: "несовпало, length > 0", body: "откат length = lps[length−1], i на месте", cls: "gt" }, { head: "несовпало, length = 0", body: "lps[i] = 0, i++", cls: "lt" }],
+      parse: function (root) { var pat = (root.getAttribute("data-pattern") || "abcaby").trim(); if (pat.length < 2) pat = "abcaby"; return { pat: pat, steps: bBuildLps(pat) }; },
+      inputs: [{ attr: "data-pattern", label: "Образец" }],
+      values: function (ctx) { return ctx.pat.split(""); },
+      title: function (ctx) { return "Префикс-функция «" + ctx.pat + "»"; },
+      cellState: function (s, j) { if (s.done) return { found: true }; var st = {}; if (j < s.pref) st.found = true; if (j === s.lo && s.lo >= 0) st.lo = true; if (j === s.hi && s.hi >= 0) st.hi = true; return st; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Сравнение", "length (префикс-суффикс)"],
+      sumValues: function (s) { var cls = s.line === 6 ? "eq" : (s.line === 9 ? "gt" : (s.line === 11 ? "lt" : "")); return [{ text: s.vars.cmp, cls: cls }, { text: s.vars.length }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "lps построена за O(m)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "lps = [" + s.lps.join(",") + "]", c: "O(m)", cls: "eq" }; return { a: "i=" + s.vars.i, b: s.vars.cmp, c: "length=" + s.vars.length, cls: s.hot ? "gt" : "eq" }; },
+      varsOf: function (s) { return { i: s.vars.i, length: s.vars.length, cmp: s.vars.cmp, written: s.vars.written }; },
+      // Панель таблицы lps: заполняется по шагам; только что записанная ячейка — зелёная
+      // вспышка, при откате подсвечивается читаемая lps[length−1].
+      mapViz: function (panel, ctx) {
+        var pat = ctx.pat;
+        var p = structPanel(panel, "lps — заполняется слева направо");
+        var cells = [];
+        for (var k = 0; k < pat.length; k++) { var c = structCell(pat[k] + " [" + k + "]", "·", ""); cells.push(c); p.grid.appendChild(c); }
+        return function (s) {
+          cells.forEach(function (col, k) {
+            var v = s.lps[k];
+            col.lastChild.textContent = (v == null ? "·" : v);
+            col.className = "algo-tp__mapcell " + (v == null ? "algo-tp__mapcell--off" : "algo-tp__mapcell--on") +
+              (k === s.wrote ? " algo-tp__mapcell--hot algo-tp__mapcell--add" : "") +
+              (k === s.lpsActive ? " algo-tp__mapcell--hot algo-tp__mapcell--dec" : "");
+          });
+          p.foot.textContent = "lps[k] — длина наибольшего собственного префикса pattern[0..k], равного его суффиксу";
+        };
+      }
+    },
+
     "fenwick-prefix": {
       badge: "Fenwick Tree", desc: "Префиксная сумма через дерево Фенвика (BIT): складываем зоны ответственности узлов.",
       valuesLabel: "Массив", codeKey: "fenwick-prefix", fillRange: true,
@@ -10564,6 +11049,41 @@
       stepCard: function (s) { return { a: "узел " + s.vars.node, b: s.vars.action, c: "·", cls: "lt" }; },
       varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
       customViz: segTreeViz
+    },
+
+    "lazy-range": {
+      badge: "Segment Tree · Lazy",
+      desc: "Обновление диапазона с ленивым проталкиванием: узел целиком внутри — меняем его сумму и вешаем lazy-метку (оранжевый бейдж), к детям НЕ идём. Долг спускается push'ем, только когда запрос реально заходит ниже.",
+      valuesLabel: "", codeKey: "lazy-range", fillRange: false,
+      complexity: { time: "O(log n) на операцию", space: "O(n)", good: "★ Обновление сразу диапазона" },
+      varOrder: ["node", "action", "lazyv", "total"],
+      varDesc: { node: "Отрезок текущего узла", action: "Что делаем на шаге", lazyv: "lazy текущего узла (несёт долг детям)", total: "Накопленный ответ запроса" },
+      lineNotes: { 0: "UpdateRange: +d каждому элементу на [ql, qr]", 1: "Узел мимо диапазона — return, поддерево не трогаем", 2: "Отрезок узла целиком внутри диапазона?", 3: "Сумма узла верна сразу: +d за каждый из (hi−lo+1) элементов", 4: "lazy-метка: долг записан, дети о нём ещё не знают", 5: "Стоп — вниз не идём, в этом вся экономия", 7: "Частичное пересечение: перед спуском спустить старый долг детям", 8: "Рекурсия в левого ребёнка", 9: "Рекурсия в правого ребёнка", 10: "Возврат вверх: узел = сумма обновлённых детей", 12: "Query: сумма на [ql, qr] — те же три случая", 13: "Мимо — вклад 0", 14: "Целиком внутри — готовая сумма узла (она всегда верна!)", 15: "Ключ: push и при ЧТЕНИИ, иначе дети вернут устаревшее", 16: "Складываем ответы детей" },
+      rules: [{ head: "целиком внутри", body: "apply: сумма + lazy-метка, вниз не идём", cls: "eq" }, { head: "частично", body: "push долг детям, потом спуск", cls: "gt" }, { head: "инвариант", body: "tree[node] всегда верен для своего отрезка", cls: "lt" }],
+      parse: function (root) {
+        var arr = nums(root.getAttribute("data-array"));
+        if (arr.length < 2) arr = [1, 3, 5, 7, 9, 11];
+        var d = parseInt(root.getAttribute("data-add"), 10); if (isNaN(d) || d === 0) d = 10;
+        var ql = parseInt(root.getAttribute("data-l"), 10); if (isNaN(ql)) ql = 1;
+        var qr = parseInt(root.getAttribute("data-r"), 10); if (isNaN(qr)) qr = Math.min(4, arr.length - 1);
+        var sl = parseInt(root.getAttribute("data-ql"), 10); if (isNaN(sl)) sl = Math.min(4, arr.length - 1);
+        var sr = parseInt(root.getAttribute("data-qr"), 10); if (isNaN(sr)) sr = arr.length - 1;
+        ql = Math.max(0, Math.min(ql, arr.length - 1)); qr = Math.max(ql, Math.min(qr, arr.length - 1));
+        sl = Math.max(0, Math.min(sl, arr.length - 1)); sr = Math.max(sl, Math.min(sr, arr.length - 1));
+        var r = bLazyRange(arr, ql, qr, d, sl, sr);
+        return { arr: arr, d: d, ql: ql, qr: qr, sl: sl, sr: sr, steps: r.steps };
+      },
+      inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-add", label: "+d", sm: true }, { attr: "data-l", label: "l", sm: true }, { attr: "data-r", label: "r", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "Lazy: Update(" + ctx.ql + "," + ctx.qr + ",+" + ctx.d + "), затем Query(" + ctx.sl + "," + ctx.sr + ")"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      legend: [{ cls: "take", label: "apply / take (целиком внутри)" }, { cls: "split", label: "частичное пересечение (спуск)" }, { cls: "skip", label: "мимо диапазона" }],
+      sumCells: ["Текущий узел", "lazy узла", "Ответ запроса"],
+      sumValues: function (s) { return [{ text: s.vars.node }, { text: String(s.vars.lazyv), cls: (s.vars.lazyv !== "—" && s.vars.lazyv !== 0) ? "gt" : "" }, { text: String(s.vars.total), cls: "eq" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Query(" + ctx.sl + "," + ctx.sr + ") = " + s.vars.total, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "сумма = " + s.vars.total, c: "O(log n)", cls: "eq" }; return { a: "узел " + s.vars.node, b: s.vars.action, c: "lazy=" + s.vars.lazyv, cls: s.hot ? "gt" : "lt" }; },
+      varsOf: function (s) { return { node: s.vars.node, action: s.vars.action, lazyv: s.vars.lazyv, total: s.vars.total }; },
+      customViz: lazySegViz
     },
 
     "mst-kruskal": {

@@ -335,6 +335,33 @@ go tool pprof -top -nodecount=8 slidingwindow.test cpu.prof
 добавляем в конец, снимаем с обоих концов. Резервируй ёмкость заранее —
 `make([]int, 0, k)` — чтобы избежать перевыделений при росте.
 
+```go
+func maxSlidingWindow(nums []int, k int) []int {
+    res := []int{}
+    deque := []int{} // индексы, значения убывают
+    for i, v := range nums {
+        if len(deque) > 0 && deque[0] == i-k {
+            deque = deque[1:] // спереди: вышел из окна
+        }
+        for len(deque) > 0 && nums[deque[len(deque)-1]] < v {
+            deque = deque[:len(deque)-1] // сзади: меньшие не нужны
+        }
+        deque = append(deque, i)
+        if i >= k-1 {
+            res = append(res, nums[deque[0]]) // максимум — в голове
+        }
+    }
+    return res
+}
+```
+
+Нажми ▶ и следи за лентой дека под массивом: спереди выбывает индекс, уехавший за
+окно, а сзади новый элемент **выкидывает всех меньших** (зачем хранить 3, если пришёл
+5 — оно уже никогда не станет максимумом). Максимум окна всегда в голове, ответ
+снимается за O(1):
+
+<div class="algo-viz" data-viz="monotonic-deque" data-array="1,3,-1,-3,5,3,6,7" data-k="3"></div>
+
 ### Байты против рун
 
 `len(s)` и `s[i]` работают с **байтами**, не символами. Для ASCII-задач это именно

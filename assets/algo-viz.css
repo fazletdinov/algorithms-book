@@ -1184,6 +1184,17 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__tnode--split { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
 .algo-tp__tnode--skip { opacity: 0.35; }
 
+/* lazy propagation: бейдж непроброшенного долга на узле дерева отрезков */
+.algo-tp__tnode--lazyhost { position: relative; }
+.algo-tp__lazytag {
+  position: absolute; top: -0.85em; right: -1.1em; padding: 0 0.32em;
+  border: 1px solid #e0a500; border-radius: 8px; background: color-mix(in srgb, #e0a500 24%, var(--bg, #fff));
+  color: var(--fg, #333); font-size: 0.68em; font-weight: 800; line-height: 1.5; white-space: nowrap;
+}
+.algo-tp__legdot--take { background: var(--tp-ok); border-color: var(--tp-ok); }
+.algo-tp__legdot--split { background: var(--tp-lo); border-color: var(--tp-lo); }
+.algo-tp__legdot--skip { background: var(--tp-panel2); opacity: 0.5; }
+
 /* Дейкстра: подпись текущего расстояния под вершиной графа */
 .algo-viz__gdist { fill: var(--tp-ok, #22c55e); font-size: 11px; font-weight: 800; pointer-events: none; }
 
@@ -1278,6 +1289,20 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__lsmcell { font-family: var(--mono-font, "Source Code Pro", monospace); font-size: 0.82em; padding: 0.15em 0.45em; border: 1px solid var(--quote-border, #c8cdd6); border-radius: 5px; background: var(--bg, #fff); }
 .algo-tp__lsmcell--cur { border-color: #f2a33c; box-shadow: 0 0 0 2px rgba(242, 163, 60, 0.35); }
 .algo-tp__lsmempty { font-size: 0.78em; opacity: 0.5; font-style: italic; }
+
+/* монотонный стек: вертикальный столбик индексов (вершина сверху) */
+.algo-tp__mstack { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25em; min-height: 2em; }
+.algo-tp__mstackcell {
+  font-family: var(--mono-font, "Source Code Pro", monospace); font-size: 0.82em;
+  min-width: 6.5em; text-align: center; padding: 0.18em 0.55em;
+  border: 1px solid var(--quote-border, #c8cdd6); border-radius: 5px; background: var(--bg, #fff);
+}
+.algo-tp__mstackcell--top { border-width: 2px; } /* вершина стека */
+.algo-tp__mstackcell--add { border-color: var(--tp-ok, #2e9b57); box-shadow: 0 0 0 2px color-mix(in srgb, var(--tp-ok, #2e9b57) 35%, transparent); }
+.algo-tp__mstackcell--del { border-color: var(--tp-bad, #d9534f); color: var(--tp-bad, #d9534f); text-decoration: line-through; opacity: 0.85; }
+.algo-tp__mstackempty { font-size: 0.78em; opacity: 0.5; font-style: italic; }
+/* монотонный дек: горизонтальная лента (голова слева) — ячейки те же, что у стека */
+.algo-tp__mdq { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25em; min-height: 2em; }
 
 /* ---- кривые роста O(...) ---- */
 .algo-tp__growthsvg { width: 100%; max-width: 420px; display: block; margin: 0 auto; }
