@@ -11,27 +11,57 @@
  *
  * Типы (data-type):
  *   predict  — свободный ввод ответа (data-answer; несколько вариантов через «;»)
- *   choice   — выбор из вариантов (data-options="A|B|C", data-answer=индекс с 0)
+ *   choice   — выбор из вариантов (data-options="A|B|C", data-answer=индекс с 0;
+ *              виджет ПЕРЕМЕШИВАЕТ кнопки, поэтому индекс — про исходный порядок
+ *              в data-options, а не про позицию на экране; сами варианты не должны
+ *              содержать символ «|» — он разделитель)
  *   cloze    — впиши пропущенное выражение в код; сравнение БЕЗ учёта пробелов,
  *              поэтому "right-left+1" и "right - left + 1" считаются равными
  *              (data-answer; варианты через «;»)
  *   ordering — расставь шаги алгоритма по порядку; data-items="Шаг1|Шаг2|Шаг3"
  *              перечислены в ПРАВИЛЬНОМ порядке, виджет их перемешивает
  *
- * Доп. атрибуты: data-explain (разбор после проверки), data-hint (подсказка),
+ * Доп. атрибуты: data-explain (разбор), data-hint (подсказка),
  *   data-placeholder (подсказка в поле ввода).
+ *
+ * Принцип «реши сам»: при верном ответе разбор показывается сразу; при неверном —
+ * НЕ показывается (иначе первая же ошибка спойлерит ответ). После второй неудачной
+ * попытки появляется кнопка «Показать разбор» — читатель открывает его осознанно.
+ * У choice попытка одна (правильная кнопка всё равно подсвечивается), поэтому там
+ * разбор виден сразу после ответа.
  */
 (function () {
   "use strict";
 
+  // foldHomoglyphs — кириллические двойники латиницы приводим к латинице.
+  // Русскоязычный читатель в ответе «O(1)» почти наверняка наберёт кириллическую
+  // «О» — визуально она неотличима, и без свёртки честный ответ не засчитается.
+  // Применяется к ОБЕИМ сторонам сравнения (и к data-answer, и к вводу), поэтому
+  // русские слова в ответах («минимум») продолжают сравниваться корректно.
+  var HOMOGLYPHS = {
+    "а": "a", "е": "e", "ё": "e", "о": "o", "с": "c",
+    "р": "p", "х": "x", "у": "y", "к": "k", "м": "m", "т": "t",
+  };
+  function foldHomoglyphs(s) {
+    return s.replace(/[аеёосрхукмт]/g, function (ch) { return HOMOGLYPHS[ch]; });
+  }
+
+  // Пробелы-разделители разрядов внутри чисел убираем: «1 048 576» == «1048576»
+  // (\s в JS покрывает и NBSP/узкий NBSP, которыми числа форматируют в тексте).
+  function joinDigits(s) {
+    return s.replace(/(\d)\s+(?=\d)/g, "$1");
+  }
+
   function norm(s) {
-    return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " ");
+    return joinDigits(
+      foldHomoglyphs(String(s == null ? "" : s).trim().toLowerCase())
+    ).replace(/\s+/g, " ");
   }
 
   // normCode — нормализация для cloze: сравниваем код без учёта пробелов вообще,
   // чтобы "right-left+1" и "right - left + 1" считались одинаковыми.
   function normCode(s) {
-    return String(s == null ? "" : s).toLowerCase().replace(/\s+/g, "");
+    return foldHomoglyphs(String(s == null ? "" : s).toLowerCase()).replace(/\s+/g, "");
   }
 
   // shuffle — перемешивание на месте (Фишер — Йейтс).
@@ -93,6 +123,21 @@
     }
   }
 
+  // addReveal — кнопка «Показать разбор» после повторной неудачи. Разбор при
+  // неверном ответе не спойлерим автоматически (принцип «реши сам»), но и не
+  // бросаем читателя без выхода: после двух промахов он может открыть его сам.
+  function addReveal(fb, explain) {
+    if (!explain) return;
+    var btn = el("button", "algo-challenge__reveal", "Показать разбор");
+    btn.type = "button";
+    btn.addEventListener("click", function () {
+      btn.remove();
+      fb.appendChild(el("span", "algo-challenge__explain", explain));
+    });
+    fb.appendChild(document.createTextNode(" "));
+    fb.appendChild(btn);
+  }
+
   function attachHint(root, hint) {
     if (!hint) return;
     var box = el("details", "algo-challenge__hint");
@@ -126,6 +171,7 @@
     attachHint(root, hint);
     var fb = buildFeedback(root);
 
+    var fails = 0;
     function check() {
       var val = normalizer(input.value);
       if (val === "") {
@@ -134,11 +180,14 @@
         return;
       }
       var ok = answers.indexOf(val) !== -1;
-      showResult(fb, ok, explain);
+      // Разбор — только при верном ответе; при промахе он раскрыл бы ответ.
+      showResult(fb, ok, ok ? explain : "");
       if (ok) {
         input.classList.add("algo-challenge__input--ok");
         markSolved(root.getAttribute("data-id"));
       } else {
+        fails++;
+        if (fails >= 2) addReveal(fb, explain);
         input.classList.remove("algo-challenge__input--ok");
       }
     }
@@ -165,19 +214,25 @@
     list.setAttribute("role", "group");
     var answered = false;
     var buttons = [];
+    var correctBtn = null;
 
-    opts.forEach(function (text, i) {
-      var b = el("button", "algo-challenge__opt", text.trim());
+    // Кнопки перемешиваем: иначе позиция правильного варианта в data-options
+    // становится подсказкой (а исторически он почти всегда шёл первым).
+    var order = shuffle(opts.map(function (_, i) { return i; }));
+
+    order.forEach(function (orig) {
+      var b = el("button", "algo-challenge__opt", opts[orig].trim());
       b.type = "button";
       b.setAttribute("aria-pressed", "false");
+      if (orig === correct) correctBtn = b;
       b.addEventListener("click", function () {
         if (answered) return;
         answered = true;
-        var ok = i === correct;
+        var ok = orig === correct;
         b.classList.add(ok ? "algo-challenge__opt--ok" : "algo-challenge__opt--no");
         b.setAttribute("aria-pressed", "true");
-        if (!ok && buttons[correct]) {
-          buttons[correct].classList.add("algo-challenge__opt--reveal");
+        if (!ok && correctBtn) {
+          correctBtn.classList.add("algo-challenge__opt--reveal");
         }
         buttons.forEach(function (x) {
           x.disabled = true;
@@ -268,6 +323,7 @@
       remaining.forEach(function (t, i) { pool.appendChild(chip(t, false, i)); });
     }
 
+    var fails = 0;
     checkBtn.addEventListener("click", function () {
       if (chosen.length !== correct.length) {
         fb.className = "algo-challenge__fb algo-challenge__fb--no";
@@ -275,11 +331,13 @@
         return;
       }
       var ok = chosen.join("") === correct.join("");
-      showResult(fb, ok, explain);
+      showResult(fb, ok, ok ? explain : "");
       if (ok) {
         markSolved(root.getAttribute("data-id"));
         seq.classList.add("is-ok");
       } else {
+        fails++;
+        if (fails >= 2) addReveal(fb, explain);
         seq.classList.remove("is-ok");
       }
     });

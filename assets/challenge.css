@@ -231,6 +231,24 @@
   opacity: 0.92;
 }
 
+/* «Показать разбор» — появляется после второй неудачной попытки */
+.algo-challenge__reveal {
+  font: inherit;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--quote-border, #c8cdd6);
+  border-radius: 6px;
+  padding: 0.15em 0.6em;
+  background: transparent;
+  color: #6c8cff;
+  transition: background 0.15s;
+}
+
+.algo-challenge__reveal:hover {
+  background: rgba(108, 140, 255, 0.1);
+}
+
 .algo-challenge__hint {
   margin-top: 0.6em;
   font-size: 0.88em;
