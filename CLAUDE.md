@@ -109,8 +109,11 @@ Job `go-tests` (working-directory `exercises/`) проверяет четыре 
 
 ## Покрытие тренажёра
 
-Тренажёр покрывает все паттерны книги (**49 пакетов** — продвинутые графы разбиты на
-`dijkstra`/`bellmanford`/`astar`/`mst`; конкурентность — `parallel*`/`wordcount`). Пакеты
-главы «Комбинации паттернов» (все 7 связок): `lru`, `wordladder`, `alienorder`,
-`meetingrooms`, `serializetree`, `skyline`, `designtwitter` + `listcrud` (CRUD односвязного
-списка). Список функций каждого пакета — в `exercises/README.md`.
+Тренажёр покрывает все паттерны книги (**61 пакет** — продвинутые графы разбиты на
+`dijkstra`/`bellmanford`/`astar`/`mst`; конкурентность — `parallel*`/`wordcount`; потоки —
+`maxflow`). Пакеты главы «Комбинации паттернов» (все 7 связок): `lru`, `wordladder`,
+`alienorder`, `meetingrooms`, `serializetree`, `skyline`, `designtwitter` + `listcrud` (CRUD
+односвязного списка). «Боевые мини-проекты» (флагманы, паттерн- + прод-версия в одном пакете):
+`ratelimiter`, `streamstats`, `leaderboard`, `cache`. Список функций каждого пакета — в
+`exercises/README.md`. При добавлении/удалении пакета обнови это число (проверка:
+`ls -d exercises/*/ | grep -v cmd | wc -l`).

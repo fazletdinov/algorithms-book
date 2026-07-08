@@ -54,7 +54,9 @@ go test -tags solution ./slidingwindow/   # прогнать тесты на э�
 
 Тесты проверяют корректность, но не сложность: наивное O(n²)-решение пройдёт
 их молча. Чтобы увидеть реальную асимптотику своего кода, есть бенчмарки на
-двух размерах входа (пакеты `slidingwindow`, `dp`, `topk`, `segtree`):
+двух размерах входа (пакеты `slidingwindow`, `dp`, `topk`, `segtree`, а в
+конкурентных `parallelbfs`, `parallelsort`, `parallelnqueens` — ещё и
+сравнение последовательной и параллельной версий):
 
 ```bash
 go test -bench=. ./dp/                       # бенч ВАШЕГО решения (после реализации)
@@ -77,6 +79,13 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 Шапка каждой заготовки (`<пакет>/<пакет>.go`) ссылается на главу книги с теорией
 этого паттерна (`../../src/*.md`), а в самой главе — ссылки на задачи LeetCode для
 практики. Так три слоя связаны: тренажёр → теория → задачи.
+
+Помимо табличных тестов, у пакетов есть рандомизированные (`<пакет>_rand_test.go`):
+тысячи случайных входов на фиксированном сиде сверяются с наивной моделью-эталоном —
+они ловят ошибки на границах, которые маленькие ручные кейсы пропускают. Есть они и
+у боевых мини-проектов (`ratelimiter`, `cache`, `leaderboard`, `streamstats`): там
+модель — «наивная, но очевидно корректная» версия той же структуры (полный лог
+запросов, пересортировка на каждый запрос и т.п.).
 
 | Пакет           | Функции                                      |
 |-----------------|----------------------------------------------|
@@ -106,6 +115,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `bellmanford`   | `ShortestPath` (отрицательные веса), `HasNegativeCycle`, `ShortestPathWithAtMostKEdges` |
 | `astar`         | `ShortestPath` (сетка с эвристикой), `ManhattanDistance`, `PathExists` |
 | `mst`           | `MSTWeight` (Краскал), `MSTWeightPrim` (Прим), `MSTWeightWithEdges` |
+| `maxflow`       | `MaxFlow` (Эдмондс—Карп), `MaxBipartiteMatching` (Кун) |
 | `toposort`      | `TopologicalSort`, `CanFinish`, `FindOrderLexSmallest`, `AlienOrder` |
 | `greedy`        | `MaxNonOverlapping`, `CanJump`, `MinJumps`, `MaxProfit`, `FractionalKnapsack` |
 | `dp`            | `ClimbStairs`, `CoinChange`, `LongestCommonSubsequence`, `EditDistance`, `LongestIncreasingSubsequence`, `Knapsack01`, `HouseRobber`, `UniquePaths`, `WordBreak` |
@@ -136,6 +146,10 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `serializetree` | `Serialize`, `Deserialize` (комбинация: DFS прямого обхода + парсинг токенов) |
 | `skyline`       | `GetSkyline` (комбинация: sweep line по событиям + макс-куча с ленивым удалением) |
 | `designtwitter` | `Twitter.PostTweet` / `Follow` / `Unfollow` / `GetNewsFeed` (комбинация: хеш-таблицы + K-way merge кучей) |
+| `ratelimiter`   | `RateLimiter.Allow` / `RetryAfter` (sliding window log) + `TokenBucket.Allow` (модель `x/time/rate`) + `SafeTokenBucket.Allow` (сделай ведро потокобезопасным: mutex против гонки check-then-act, конкурентный тест под `-race`) — боевой мини-проект: два лимитера, паттерн главы и то, что в проде |
+| `streamstats`   | `MedianFinder.Add` / `Median` (две кучи) + `Histogram.Observe` / `Quantile` / `Merge` (боевой мини-проект: перцентили p50/p99, модель Prometheus/HdrHistogram) |
+| `leaderboard`   | `TopK.Add` / `Top` (min-куча размера K) + `Leaderboard.Set` / `Incr` / `Score` / `TopN` / `Rank` (боевой мини-проект: лидерборд, модель Redis Sorted Set) |
+| `cache`         | `TTLCache.Get` / `Put` (боевой мини-проект: LRU-кэш с TTL — прод-версия LRU, модель hashicorp/golang-lru expirable) |
 
 ## Как добавить свой шаблон
 

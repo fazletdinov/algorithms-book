@@ -11,6 +11,9 @@
 //
 // Безопасность: сервис ЛОКАЛЬНЫЙ и однопользовательский — он запускает твой же
 // код на твоей машине, поэтому песочница не нужна. Слушает только localhost.
+// НО: /api/run исполняет присланный код, поэтому CORS ограничен известными
+// origin'ами книги (localhost + GitHub Pages) — иначе любой открытый в браузере
+// сайт мог бы fetch'ем прогнать произвольный Go-код на машине читателя.
 package main
 
 import (
@@ -22,6 +25,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -83,11 +87,32 @@ func findModuleRoot() (string, error) {
 
 // ---- CORS ----
 
+// allowedOrigin — только сама книга: локальный mdbook serve (любой порт на
+// localhost/127.0.0.1) и опубликованная версия на GitHub Pages. Запросы из
+// не-браузерных клиентов (curl) идут без Origin — их CORS не касается.
+func allowedOrigin(origin string) bool {
+	u, err := url.Parse(origin)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return false
+	}
+	if u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1") {
+		return true
+	}
+	return origin == "https://fazletdinov.github.io"
+}
+
 func withCORS(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		if origin := r.Header.Get("Origin"); origin != "" {
+			if !allowedOrigin(origin) {
+				http.Error(w, "origin not allowed", http.StatusForbidden)
+				return
+			}
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		}
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -318,8 +343,8 @@ func copyModule(src, dst string) error {
 		}
 		name := d.Name()
 		if d.IsDir() {
-			// пропускаем скрытые/служебные и временные каталоги
-			if path != src && (strings.HasPrefix(name, ".") || name == "testdata" && false) {
+			// пропускаем скрытые/служебные каталоги
+			if path != src && strings.HasPrefix(name, ".") {
 				return filepath.SkipDir
 			}
 			return nil
