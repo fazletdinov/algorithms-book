@@ -346,6 +346,31 @@
 .algo-viz__gedge--skip { stroke-dasharray: 4 3; opacity: 0.45; }
 .algo-viz__gedge--cur { stroke: #e0a500; stroke-width: 3.5; }
 
+/* сеть потока: исток/сток, дополняющий путь, минимальный разрез */
+.algo-viz__gnode--scut { fill: color-mix(in srgb, var(--tp-lo) 55%, transparent); stroke: var(--tp-lo); }
+.algo-viz__gnode--source { fill: #2e9b57; stroke: #2e9b57; }
+.algo-viz__gnode--sink { fill: #d9534f; stroke: #d9534f; }
+.algo-viz__gnode--path { outline: 3px solid #e0a500; }
+.algo-viz__gnode--source + .algo-viz__gtext,
+.algo-viz__gnode--sink + .algo-viz__gtext,
+.algo-viz__gnode--scut + .algo-viz__gtext { fill: #fff; }
+.algo-viz__gedge--path { stroke: #e0a500; stroke-width: 3.5; }
+.algo-viz__gedge--cut { stroke: #d9534f; stroke-width: 3.5; stroke-dasharray: 5 3; }
+.algo-viz__gbadge--flow { fill: #2e9b57; }
+.algo-tp__legdot--source { background: #2e9b57; border-color: #2e9b57; }
+.algo-tp__legdot--sink { background: #d9534f; border-color: #d9534f; }
+.algo-tp__legdot--scut { background: color-mix(in srgb, var(--tp-lo) 55%, transparent); border-color: var(--tp-lo); }
+
+/* fan-out дерево параллельного merge sort */
+.algo-tp__fnode { fill: var(--tp-panel2, #2a2f3a); stroke: var(--tp-border, #555); stroke-width: 1.5; transition: fill 0.15s, stroke 0.15s; }
+.algo-tp__fnode--ghost { opacity: 0.35; stroke-dasharray: 3 3; }
+.algo-tp__fnode--split { fill: color-mix(in srgb, #e0a500 30%, var(--tp-panel2)); stroke: #e0a500; }
+.algo-tp__fnode--go { fill: color-mix(in srgb, var(--tp-hi) 40%, var(--tp-panel2)); stroke: var(--tp-hi); }
+.algo-tp__fnode--seq { fill: color-mix(in srgb, var(--tp-lo) 45%, var(--tp-panel2)); stroke: var(--tp-lo); }
+.algo-tp__fnode--merged { fill: color-mix(in srgb, #2e9b57 42%, var(--tp-panel2)); stroke: #2e9b57; }
+.algo-tp__fnode--cur { stroke-width: 3; }
+.algo-tp__fnodetext { fill: var(--fg, #eee); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
+
 .algo-viz__info {
   min-height: 1.4em;
   text-align: center;
@@ -1229,3 +1254,46 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__np-row--hot { background: rgba(224,165,0,0.16); border-color: var(--tp-warn, #e0a500); }
 .algo-tp__np-label { flex: 0 0 8.5em; font-weight: 700; font-size: 0.9em; }
 .algo-tp__np-val { flex: 1; font-size: 0.9em; }
+
+/* ---- consistent hashing: кольцо ---- */
+.algo-tp__ringsvg { width: 100%; max-width: 340px; display: block; margin: 0 auto; }
+.algo-tp__ringbase { fill: none; stroke: var(--quote-border, #c8cdd6); stroke-width: 2; }
+.algo-tp__ringarc { fill: none; stroke: var(--links, #4c84c4); stroke-width: 3; stroke-dasharray: 5 4; opacity: 0.85; }
+.algo-tp__ringsrv { fill: var(--links, #4c84c4); stroke: var(--bg, #fff); stroke-width: 1.5; }
+.algo-tp__ringsrv--new { fill: #8e6cc9; }
+.algo-tp__ringsrv--cur { stroke: #f2a33c; stroke-width: 3; }
+.algo-tp__ringsrvtext { fill: #fff; font-size: 11px; font-weight: 700; }
+.algo-tp__ringkey { fill: #2e9b57; }
+.algo-tp__ringkey--moved { fill: #8e6cc9; }
+.algo-tp__ringkey--cur { stroke: #f2a33c; stroke-width: 3; }
+.algo-tp__ringlabel { fill: var(--fg, #555); font-size: 8.5px; }
+
+/* ---- LSM-дерево ---- */
+.algo-tp__lsm { display: flex; flex-direction: column; gap: 0.5em; }
+.algo-tp__lsmrow { display: flex; align-items: center; gap: 0.6em; }
+.algo-tp__lsmlabel { flex: 0 0 10.5em; font-size: 0.78em; opacity: 0.75; text-align: right; }
+.algo-tp__lsmcells { display: flex; flex-wrap: wrap; gap: 0.3em; min-height: 1.9em; padding: 0.25em 0.4em; border: 1px dashed var(--quote-border, #c8cdd6); border-radius: 6px; flex: 1; align-items: center; }
+.algo-tp__lsmrow--mem .algo-tp__lsmcells { border-style: solid; border-color: var(--links, #4c84c4); }
+.algo-tp__lsmrow--l1 .algo-tp__lsmcells { border-style: solid; border-color: #2e9b57; }
+.algo-tp__lsmcell { font-family: var(--mono-font, "Source Code Pro", monospace); font-size: 0.82em; padding: 0.15em 0.45em; border: 1px solid var(--quote-border, #c8cdd6); border-radius: 5px; background: var(--bg, #fff); }
+.algo-tp__lsmcell--cur { border-color: #f2a33c; box-shadow: 0 0 0 2px rgba(242, 163, 60, 0.35); }
+.algo-tp__lsmempty { font-size: 0.78em; opacity: 0.5; font-style: italic; }
+
+/* ---- кривые роста O(...) ---- */
+.algo-tp__growthsvg { width: 100%; max-width: 420px; display: block; margin: 0 auto; }
+.algo-tp__growthaxis { stroke: var(--quote-border, #c8cdd6); stroke-width: 1.5; }
+.algo-tp__growthlabel { fill: var(--fg, #555); font-size: 9px; opacity: 0.7; }
+.algo-tp__growthline { fill: none; stroke-width: 2; }
+.algo-tp__growthline--cur { stroke-width: 3.5; }
+.algo-tp__growthline--log { stroke: #2e9b57; }
+.algo-tp__growthline--n { stroke: #4c84c4; }
+.algo-tp__growthline--nlogn { stroke: #8e6cc9; }
+.algo-tp__growthline--n2 { stroke: #f2a33c; }
+.algo-tp__growthline--exp { stroke: #d64045; }
+.algo-tp__growthtext { font-size: 9.5px; font-weight: 700; }
+.algo-tp__growthtext--log { fill: #2e9b57; }
+.algo-tp__growthtext--n { fill: #4c84c4; }
+.algo-tp__growthtext--nlogn { fill: #8e6cc9; }
+.algo-tp__growthtext--n2 { fill: #f2a33c; }
+.algo-tp__growthtext--exp { fill: #d64045; }
+.algo-tp__growthmark { stroke: var(--fg, #555); stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 0.7; }

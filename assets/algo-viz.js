@@ -11,7 +11,7 @@
  * описаниями и подсветкой изменений, подпись «строка N: что делает»
  * (cfg.lineNotes), кликабельный таймлайн, авто-проигрывание (кнопка/пробел).
  *
- * ~28 типов data-viz заданы конфигами в DASH. Чтобы добавить виджет: запись в
+ * ~130 типов data-viz заданы конфигами в DASH. Чтобы добавить виджет: запись в
  * DASH (badge/codeKey/varOrder/varDesc/lineNotes/parse/...) и, если нужна панель
  * кода, запись в CODE. Степ-билдер b*() возвращает шаги с полями vars, line
  * (индекс в CODE), found/done и индексами указателей. Согласованность проверяет
@@ -746,9 +746,42 @@
       "            node = node.next[lvl] // прыжок по express-полосе",
       "        }",
       "    }",
-      "    node = node.next[0]",
-      "    return node != nil && node.key == target",
+      "    return node != s.head && node.key == target",
       "}"
+    ],
+    "hash-ring": [
+      "// r.pos — отсортированные позиции серверов на кольце 0..359",
+      "func (r *Ring) AddServer(name string) {",
+      "    r.pos = insertSorted(r.pos, hash(name) % 360)",
+      "}",
+      "func (r *Ring) Lookup(key string) string {",
+      "    h := hash(key) % 360",
+      "    i := sort.Search(len(r.pos), func(j int) bool { return r.pos[j] >= h })",
+      "    if i == len(r.pos) { i = 0 } // справа никого — заворот",
+      "    return r.serverAt[r.pos[i]]",
+      "}"
+    ],
+    "growth-curves": [
+      "// сколько операций сделает алгоритм при размере входа n",
+      "count(log n)   // деление пополам: бинарный поиск",
+      "count(n)       // один проход: сумма, максимум",
+      "count(n log n) // сортировка сравнениями",
+      "count(n^2)     // вложенные циклы: все пары",
+      "count(2^n)     // перебор всех подмножеств"
+    ],
+    "lsm-put": [
+      "func (db *LSM) Put(key string, val int) {",
+      "    db.memtable.Insert(key, val) // запись всегда в ПАМЯТЬ",
+      "    if db.memtable.Len() >= db.cap {",
+      "        db.flush() // memtable полон",
+      "    }",
+      "}",
+      "func (db *LSM) flush() {",
+      "    sst := db.memtable.Sorted() // неизменяемый отсортированный файл",
+      "    db.sstables = append(db.sstables, sst)",
+      "    db.memtable = NewMemtable()",
+      "}",
+      "// фоново: compact() сливает SSTable k-way merge, схлопывая дубликаты"
     ],
     "mod-exp": [
       "func ModExp(base, exp, m int) int {",
@@ -1837,6 +1870,36 @@
       "        }",
       "    }",
       "    return dist",
+      "}"
+    ],
+    "max-flow": [
+      "func maxFlow(cap [][]int, s, t int) int {",
+      "    flow := 0",
+      "    for {                              // пока есть путь",
+      "        parent := bfs(cap, s, t)       // BFS в остаточной сети",
+      "        if parent[t] == -1 { break }   // пути нет — поток максимален",
+      "        b := bottleneck(cap, parent, s, t) // узкое место вдоль пути",
+      "        for v := t; v != s; v = parent[v] { // проталкиваем поток",
+      "            u := parent[v]",
+      "            cap[u][v] -= b             // прямое ребро",
+      "            cap[v][u] += b             // обратное (остаточное)",
+      "        }",
+      "        flow += b",
+      "    }",
+      "    return flow // = величина потока = пропускная способность мин. разреза",
+      "}"
+    ],
+    "parallel-dc": [
+      "func mergeSortConc(a []int) []int {",
+      "    if len(a) < cutoff {           // порог",
+      "        return mergeSortSeq(a)     // мелочь — последовательно",
+      "    }",
+      "    mid := len(a) / 2",
+      "    var wg sync.WaitGroup; wg.Add(2)",
+      "    go func() { l = mergeSortConc(a[:mid]); wg.Done() }() // fan-out",
+      "    go func() { r = mergeSortConc(a[mid:]); wg.Done() }()",
+      "    wg.Wait()                      // ждём обе половины",
+      "    return merge(l, r)             // join: слить отсортированные",
       "}"
     ],
     "dp-lcs": [
@@ -3489,6 +3552,191 @@
     };
   }
 
+  // Максимальный поток (Эдмондс—Карп) + минимальный разрез. Кадры: BFS находит
+  // дополняющий путь → узкое место → проталкивание; в конце — мин-разрез
+  // (вершины, достижимые из истока в остаточной сети). Выверен node-прототипом.
+  function bMaxFlow(labels, edges, s, t) {
+    var n = labels.length, cap = [], f = [], i;
+    for (i = 0; i < n; i++) { cap.push(new Array(n).fill(0)); f.push(new Array(n).fill(0)); }
+    var origPair = {}, adj = labels.map(function () { return []; });
+    edges.forEach(function (e, ei) { cap[e.u][e.v] += e.cap; origPair[e.u + "," + e.v] = ei; adj[e.u].push(e.v); adj[e.v].push(e.u); });
+    var steps = [], total = 0, aug = 0;
+    function flowSnap() { return edges.map(function (e) { return f[e.u][e.v]; }); }
+    function push(o) {
+      steps.push({
+        flow: flowSnap(), pathEdges: o.pathEdges || [], cut: o.cut || null, sSide: o.sSide || null,
+        line: o.line, info: o.info, done: !!o.done, found: !!o.found, hot: !!o.hot,
+        vars: { "путь": o.path || "—", "узкое место": o.bottleneck == null ? "—" : o.bottleneck, "поток": total, "аугментаций": aug }
+      });
+    }
+    push({ line: 1, info: "flow = 0, остаточная сеть = исходные пропускные способности" });
+    var guard = 0, lim = 4 * (n + edges.length) + 40;
+    while (guard++ < lim) {
+      var parent = new Array(n).fill(-1); parent[s] = s;
+      var q = [s];
+      while (q.length && parent[t] === -1) {
+        var u = q.shift();
+        for (var k = 0; k < adj[u].length; k++) { var v = adj[u][k]; if (parent[v] === -1 && cap[u][v] > 0) { parent[v] = u; q.push(v); } }
+      }
+      if (parent[t] === -1) { push({ line: 4, info: "BFS: дополняющего пути s→t больше нет — поток максимален (" + total + ")" }); break; }
+      var path = [], edgeIdxs = [], b = Infinity, x;
+      for (x = t; x !== s; x = parent[x]) path.unshift(x);
+      path.unshift(s);
+      for (var pi = 0; pi + 1 < path.length; pi++) {
+        var a = path[pi], c = path[pi + 1];
+        if (cap[a][c] < b) b = cap[a][c];
+        var idx = origPair[a + "," + c]; if (idx == null) idx = origPair[c + "," + a];
+        if (idx != null) edgeIdxs.push(idx);
+      }
+      var pathLabel = path.map(function (id) { return labels[id]; }).join("→");
+      push({ line: 5, path: pathLabel, bottleneck: b, pathEdges: edgeIdxs, hot: true, info: "BFS нашёл путь " + pathLabel + ", узкое место = " + b });
+      for (var pj = 0; pj + 1 < path.length; pj++) {
+        var au = path[pj], av = path[pj + 1];
+        cap[au][av] -= b; cap[av][au] += b;
+        if (origPair[au + "," + av] != null) f[au][av] += b; else if (origPair[av + "," + au] != null) f[av][au] -= b;
+      }
+      aug++; total += b;
+      push({ line: 8, path: pathLabel, bottleneck: b, pathEdges: edgeIdxs, hot: true, info: "протолкнули поток " + b + " вдоль " + pathLabel + " → всего " + total });
+    }
+    var reach = new Array(n).fill(false); reach[s] = true; var q2 = [s];
+    while (q2.length) { var u2 = q2.shift(); for (var kk = 0; kk < adj[u2].length; kk++) { var v2 = adj[u2][kk]; if (!reach[v2] && cap[u2][v2] > 0) { reach[v2] = true; q2.push(v2); } } }
+    var cutEdges = []; edges.forEach(function (e, ei) { if (reach[e.u] && !reach[e.v]) cutEdges.push(ei); });
+    push({ line: 13, done: true, found: true, sSide: reach.slice(), cut: cutEdges, info: "Мин. разрез: S = {" + labels.filter(function (l, id) { return reach[id]; }).join(",") + "}, его пропускная способность = " + total + " = макс. поток." });
+    steps.forEach(function (st, ii) { st._i = ii; });
+    return { labels: labels, edges: edges, s: s, t: t, steps: steps };
+  }
+  // Рендер сети потока: слои BFS от истока s (столбцы слева направо), рёбра с
+  // подписью «поток/пропускная», подсветка дополняющего пути и мин-разреза.
+  function maxflowViz(panel, ctx) {
+    var labels = ctx.labels, edges = ctx.edges, n = labels.length, s = ctx.s, t = ctx.t, i;
+    var layer = new Array(n).fill(-1); layer[s] = 0;
+    var adjF = labels.map(function () { return []; });
+    edges.forEach(function (e) { adjF[e.u].push(e.v); });
+    var q = [s];
+    while (q.length) { var u = q.shift(); adjF[u].forEach(function (v) { if (layer[v] === -1) { layer[v] = layer[u] + 1; q.push(v); } }); }
+    var maxL = 0; for (i = 0; i < n; i++) if (layer[i] > maxL) maxL = layer[i];
+    for (i = 0; i < n; i++) if (layer[i] < 0) layer[i] = maxL;
+    if (layer[t] < maxL) layer[t] = maxL;
+    var W = 470, H = 300, padX = 42, padY = 34;
+    var colW = maxL > 0 ? (W - 2 * padX) / maxL : 0;
+    var byCol = []; for (i = 0; i < n; i++) { (byCol[layer[i]] = byCol[layer[i]] || []).push(i); }
+    var pos = new Array(n);
+    byCol.forEach(function (list, L) { if (!list) return; var m = list.length; list.forEach(function (node, k) { pos[node] = { x: padX + L * colW, y: m === 1 ? H / 2 : padY + k * (H - 2 * padY) / (m - 1) }; }); });
+    var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-viz__graph");
+    var defs = document.createElementNS(SVGNS, "defs");
+    var marker = document.createElementNS(SVGNS, "marker");
+    marker.setAttribute("id", "algoarrow-flow"); marker.setAttribute("viewBox", "0 0 10 10"); marker.setAttribute("refX", "9"); marker.setAttribute("refY", "5");
+    marker.setAttribute("markerWidth", "7"); marker.setAttribute("markerHeight", "7"); marker.setAttribute("orient", "auto-start-reverse");
+    var mp = document.createElementNS(SVGNS, "path"); mp.setAttribute("d", "M0,0 L10,5 L0,10 z"); mp.setAttribute("fill", "#888");
+    marker.appendChild(mp); defs.appendChild(marker); svg.appendChild(defs);
+    var edgeEls = edges.map(function (e) {
+      var a = pos[e.u], b = pos[e.v], dx = b.x - a.x, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / len, uy = dy / len, px = -uy, py = ux, off = (e.u < e.v ? 1 : -1) * 6;
+      var ln = document.createElementNS(SVGNS, "line");
+      ln.setAttribute("x1", a.x + ux * 17 + px * off); ln.setAttribute("y1", a.y + uy * 17 + py * off);
+      ln.setAttribute("x2", b.x - ux * 20 + px * off); ln.setAttribute("y2", b.y - uy * 20 + py * off);
+      ln.setAttribute("marker-end", "url(#algoarrow-flow)"); ln.setAttribute("class", "algo-viz__gedge"); svg.appendChild(ln);
+      var badge = document.createElementNS(SVGNS, "text"); badge.setAttribute("x", (a.x + b.x) / 2 + px * (off + 9)); badge.setAttribute("y", (a.y + b.y) / 2 + py * (off + 9)); badge.setAttribute("text-anchor", "middle"); badge.setAttribute("class", "algo-viz__gbadge"); svg.appendChild(badge);
+      return { ln: ln, badge: badge };
+    });
+    var circles = [];
+    labels.forEach(function (lab, id) {
+      var c = document.createElementNS(SVGNS, "circle"); c.setAttribute("cx", pos[id].x); c.setAttribute("cy", pos[id].y); c.setAttribute("r", 16); c.setAttribute("class", "algo-viz__gnode"); svg.appendChild(c); circles.push(c);
+      var tx = document.createElementNS(SVGNS, "text"); tx.setAttribute("x", pos[id].x); tx.setAttribute("y", pos[id].y + 4); tx.setAttribute("text-anchor", "middle"); tx.setAttribute("class", "algo-viz__gtext"); tx.textContent = lab; svg.appendChild(tx);
+    });
+    panel.appendChild(svg);
+    return function (st) {
+      edgeEls.forEach(function (o, ei) {
+        o.badge.textContent = st.flow[ei] + "/" + edges[ei].cap;
+        var onPath = st.pathEdges && st.pathEdges.indexOf(ei) >= 0, onCut = st.cut && st.cut.indexOf(ei) >= 0;
+        o.ln.classList.toggle("algo-viz__gedge--path", !!onPath && !st.done);
+        o.ln.classList.toggle("algo-viz__gedge--cut", !!onCut);
+        o.badge.classList.toggle("algo-viz__gbadge--flow", st.flow[ei] > 0);
+      });
+      var pn = {}; if (st.pathEdges && !st.done) st.pathEdges.forEach(function (ei) { pn[edges[ei].u] = 1; pn[edges[ei].v] = 1; });
+      circles.forEach(function (c, id) {
+        c.classList.toggle("algo-viz__gnode--scut", !!(st.sSide && st.sSide[id]));
+        c.classList.toggle("algo-viz__gnode--path", !!pn[id]);
+        c.classList.toggle("algo-viz__gnode--source", id === s);
+        c.classList.toggle("algo-viz__gnode--sink", id === t);
+      });
+    };
+  }
+
+  // Fan-out дерево параллельного merge sort: деление на подзадачи, порождение
+  // горутин (fan-out), cutoff-листья (последовательно), merge на подъёме (join).
+  // Выверен node-прототипом (сортировка верна, горутин = 2·внутренних).
+  function bFanoutSort(arr, cutoff) {
+    function merge(l, r) { var out = [], i = 0, j = 0; while (i < l.length && j < r.length) { if (l[i] <= r[j]) out.push(l[i++]); else out.push(r[j++]); } while (i < l.length) out.push(l[i++]); while (j < r.length) out.push(r[j++]); return out; }
+    var nodes = [], steps = [], spawned = 0;
+    function build(lo, hi, depth) {
+      var id = nodes.length, node = { id: id, lo: lo, hi: hi, depth: depth, vals: arr.slice(lo, hi), sorted: null, left: -1, right: -1, leaf: (hi - lo < cutoff) };
+      nodes.push(node);
+      if (!node.leaf) { var mid = (lo + hi) >> 1; node.left = build(lo, mid, depth + 1); node.right = build(mid, hi, depth + 1); }
+      return id;
+    }
+    var root = build(0, arr.length, 0), leafIdx = 0;
+    function layout(id) { var nd = nodes[id]; if (nd.left < 0) nd.x = leafIdx++; else { layout(nd.left); layout(nd.right); nd.x = (nodes[nd.left].x + nodes[nd.right].x) / 2; } }
+    layout(root);
+    var maxX = (leafIdx - 1) || 1, maxDepth = 0;
+    nodes.forEach(function (nd) { nd.xf = nd.x / maxX; if (nd.depth > maxDepth) maxDepth = nd.depth; });
+    var cls = {}, text = {};
+    nodes.forEach(function (nd) { cls[nd.id] = "ghost"; text[nd.id] = nd.vals.join(" "); });
+    function snap() { return nodes.map(function (nd) { return { cls: cls[nd.id], text: text[nd.id] }; }); }
+    function rng(nd) { return "[" + nd.lo + "," + nd.hi + ")"; }
+    function push(o) {
+      steps.push({ tree: snap(), cur: o.cur == null ? -1 : o.cur, line: o.line, info: o.info, done: !!o.done, found: !!o.found, hot: !!o.hot,
+        vars: { "подзадача": o.range || "—", "размер": o.size == null ? "—" : o.size, "режим": o.mode || "—", "горутин запущено": spawned } });
+    }
+    function sortRec(id) {
+      var nd = nodes[id];
+      if (nd.leaf) {
+        cls[id] = "seq"; nd.sorted = nd.vals.slice().sort(function (a, b) { return a - b; }); text[id] = nd.sorted.join(" ");
+        push({ cur: id, line: 2, range: rng(nd), size: nd.hi - nd.lo, mode: "cutoff → последовательно", hot: true, info: "Размер " + (nd.hi - nd.lo) + " < cutoff " + cutoff + " → сортируем последовательно, новую горутину не плодим" });
+        return nd.sorted;
+      }
+      cls[id] = "split"; cls[nd.left] = "go"; cls[nd.right] = "go"; spawned += 2;
+      push({ cur: id, line: 6, range: rng(nd), size: nd.hi - nd.lo, mode: "fan-out: +2 горутины", hot: true, info: "Делим " + rng(nd) + " пополам и запускаем 2 горутины на половины" });
+      var l = sortRec(nd.left), r = sortRec(nd.right), m = merge(l, r);
+      nd.sorted = m; text[id] = m.join(" "); cls[id] = "merged";
+      push({ cur: id, line: 9, range: rng(nd), size: nd.hi - nd.lo, mode: "merge (join)", info: "wg.Wait(): половины готовы → merge в отсортированный " + rng(nd) });
+      return m;
+    }
+    push({ line: 0, info: "Старт: массив [" + arr.join(" ") + "], cutoff = " + cutoff });
+    sortRec(root); cls[root] = "merged";
+    push({ line: 9, done: true, found: true, cur: root, range: "весь массив", size: arr.length, mode: "готово", info: "Отсортировано: [" + nodes[root].sorted.join(" ") + "]. Горутин запущено: " + spawned });
+    steps.forEach(function (s, i) { s._i = i; });
+    return { nodes: nodes, maxDepth: maxDepth, steps: steps };
+  }
+  // Рендер fan-out дерева: узлы-подзадачи (значения) по глубине, рёбра деления,
+  // цвет = режим (делим / горутина / cutoff-лист / merged).
+  function fanoutViz(panel, ctx) {
+    var nodes = ctx.nodes, maxDepth = ctx.maxDepth;
+    var W = 540, H = 300, padX = 34, padY = 26, rowH = maxDepth > 0 ? (H - 2 * padY) / maxDepth : 0;
+    var pos = nodes.map(function (nd) { return { x: padX + nd.xf * (W - 2 * padX), y: padY + nd.depth * rowH }; });
+    var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-viz__graph");
+    nodes.forEach(function (nd) {
+      [nd.left, nd.right].forEach(function (ch) {
+        if (ch < 0) return;
+        var ln = document.createElementNS(SVGNS, "line");
+        ln.setAttribute("x1", pos[nd.id].x); ln.setAttribute("y1", pos[nd.id].y + 11); ln.setAttribute("x2", pos[ch].x); ln.setAttribute("y2", pos[ch].y - 11);
+        ln.setAttribute("class", "algo-viz__gedge"); svg.appendChild(ln);
+      });
+    });
+    var rects = [], texts = [];
+    nodes.forEach(function (nd, id) {
+      var w = Math.max(30, nd.vals.length * 13);
+      var rc = document.createElementNS(SVGNS, "rect"); rc.setAttribute("x", pos[id].x - w / 2); rc.setAttribute("y", pos[id].y - 11); rc.setAttribute("width", w); rc.setAttribute("height", 22); rc.setAttribute("rx", 5); rc.setAttribute("class", "algo-tp__fnode"); svg.appendChild(rc); rects.push(rc);
+      var tx = document.createElementNS(SVGNS, "text"); tx.setAttribute("x", pos[id].x); tx.setAttribute("y", pos[id].y + 4); tx.setAttribute("text-anchor", "middle"); tx.setAttribute("class", "algo-tp__fnodetext"); svg.appendChild(tx); texts.push(tx);
+    });
+    panel.appendChild(svg);
+    return function (s) {
+      s.tree.forEach(function (t, id) {
+        texts[id].textContent = t.text;
+        rects[id].setAttribute("class", "algo-tp__fnode algo-tp__fnode--" + t.cls + (id === s.cur ? " algo-tp__fnode--cur" : ""));
+      });
+    };
+  }
+
   // Bellman–Ford: V−1 проходов релаксации по ВСЕМ рёбрам + V-й проход как детектор
   // отрицательного цикла. Переиспользует dijkstraViz (settled = «расстояние конечно»).
   // Беллман–Форд — построчный (debugger) проход; граф рисует dijkstraViz, dist[] — панель.
@@ -4913,7 +5161,7 @@
         if (nk <= target) {
           cur = nx; if (cur >= 0) trail.push(cur);
           steps.push(snap(cur, L, { line: 4, vars: { level: L, node: nodes[cur].key, target: target }, info: nk + " ≤ " + target + " → прыгаем к " + nk + " (express-полоса уровня " + L + ")" }));
-          if (nk === target) { steps.push(snap(cur, L, { found: true, done: true, line: 8, vars: { level: L, node: nk, target: target }, info: "Нашли " + target + " — и не за линейный проход, а прыжками" })); return steps; }
+          if (nk === target) { steps.push(snap(cur, L, { found: true, done: true, line: 7, vars: { level: L, node: nk, target: target }, info: "Нашли " + target + " — и не за линейный проход, а прыжками" })); return steps; }
         } else {
           steps.push(snap(cur, L, { line: 3, vars: { level: L, node: cur < 0 ? "head" : nodes[cur].key, target: target }, info: "следующий " + (nk === Infinity ? "nil" : nk) + " > " + target + " → спускаемся ниже" }));
           break;
@@ -4921,8 +5169,219 @@
       }
     }
     var found = cur >= 0 && nodes[cur].key === target;
-    steps.push(snap(cur, 0, { done: true, found: found, line: 8, vars: { level: 0, node: cur < 0 ? "head" : nodes[cur].key, target: target }, info: found ? "Нашли " + target : target + " нет в списке (дошли до " + (cur < 0 ? "head" : nodes[cur].key) + ")" }));
+    steps.push(snap(cur, 0, { done: true, found: found, line: 7, vars: { level: 0, node: cur < 0 ? "head" : nodes[cur].key, target: target }, info: found ? "Нашли " + target : target + " нет в списке (дошли до " + (cur < 0 ? "head" : nodes[cur].key) + ")" }));
     return steps;
+  }
+
+  // Кривые роста O(...): пошагово добавляем кривые на один график (линейная
+  // шкала до yMax — квадрат и экспонента честно «пробивают потолок»), в конце —
+  // вертикаль n=20 со значениями всех кривых.
+  var GROWTH_CURVES = [
+    { id: "log", label: "log n", line: 1, f: function (n) { return Math.log2(n); }, at20: "4.3", info: "log n почти не растёт: миллион элементов — всего 20 шагов бинарного поиска" },
+    { id: "n", label: "n", line: 2, f: function (n) { return n; }, at20: "20", info: "n — честный один проход: вдвое больше данных, вдвое больше работы" },
+    { id: "nlogn", label: "n log n", line: 3, f: function (n) { return n * Math.log2(n); }, at20: "86", info: "n log n — чуть круче линии: цена хорошей сортировки" },
+    { id: "n2", label: "n²", line: 4, f: function (n) { return n * n; }, at20: "400", info: "n² вылетает за график почти сразу: на n=64 это уже 4096 операций" },
+    { id: "exp", label: "2ⁿ", line: 5, f: function (n) { return Math.pow(2, n); }, at20: "1 048 576", info: "2ⁿ пробивает потолок уже при n≈8 — та самая «стена» перебора" }
+  ];
+  function bGrowthCurves() {
+    var steps = [];
+    steps.push({ show: [], marker: false, line: 0, vars: { curve: "—", at20: "—" }, info: "Оси: по горизонтали размер входа n (1..64), по вертикали — число операций (до 320)" });
+    GROWTH_CURVES.forEach(function (c, i) {
+      steps.push({ show: GROWTH_CURVES.slice(0, i + 1).map(function (x) { return x.id; }), marker: false, cur: c.id, line: c.line, vars: { curve: "O(" + c.label + ")", at20: c.at20 }, info: c.info });
+    });
+    steps.push({ show: GROWTH_CURVES.map(function (x) { return x.id; }), marker: true, done: true, line: 0, vars: { curve: "все при n=20", at20: "4.3 · 20 · 86 · 400 · 1 048 576" }, info: "Срез при n=20: от log n до 2ⁿ разрыв уже в ~250 000 раз. На больших n побеждает ФОРМА кривой, а не константа" });
+    return steps;
+  }
+  function growthViz(panel, ctx) {
+    var W = 340, H = 230, L = 34, B = 200, R = 326, T = 14, NMAX = 64, YMAX = 320;
+    var svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("class", "algo-tp__growthsvg");
+    panel.appendChild(svg);
+    function X(n) { return L + (n - 1) / (NMAX - 1) * (R - L); }
+    function Y(v) { return B - Math.min(v, YMAX) / YMAX * (B - T); }
+    function mk(tag, attrs, txt) { var e = document.createElementNS(SVGNS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; svg.appendChild(e); return e; }
+    return function (s) {
+      svg.innerHTML = "";
+      mk("line", { x1: L, y1: B, x2: R, y2: B, "class": "algo-tp__growthaxis" });
+      mk("line", { x1: L, y1: B, x2: L, y2: T, "class": "algo-tp__growthaxis" });
+      mk("text", { x: R, y: B + 12, "text-anchor": "end", "class": "algo-tp__growthlabel" }, "n → 64");
+      mk("text", { x: L - 4, y: T + 4, "text-anchor": "end", "class": "algo-tp__growthlabel" }, "320");
+      GROWTH_CURVES.forEach(function (c) {
+        if ((s.show || []).indexOf(c.id) < 0) return;
+        var pts = [], clippedAt = null;
+        for (var n = 1; n <= NMAX; n++) {
+          var v = c.f(n);
+          pts.push(X(n).toFixed(1) + "," + Y(v).toFixed(1));
+          if (v > YMAX && clippedAt === null) clippedAt = n;
+          if (v > YMAX) break; // кривая ушла за потолок — дальше не рисуем
+        }
+        var cls = "algo-tp__growthline algo-tp__growthline--" + c.id + (s.cur === c.id ? " algo-tp__growthline--cur" : "");
+        mk("polyline", { points: pts.join(" "), "class": cls });
+        var lastN = clippedAt || NMAX;
+        var lx = Math.min(X(lastN) + 3, R - 20), ly = Math.max(Y(c.f(lastN)) - 3, T + 8);
+        mk("text", { x: lx, y: ly, "class": "algo-tp__growthtext algo-tp__growthtext--" + c.id }, c.label);
+      });
+      if (s.marker) {
+        mk("line", { x1: X(20), y1: B, x2: X(20), y2: T, "class": "algo-tp__growthmark" });
+        mk("text", { x: X(20) + 3, y: B - 4, "class": "algo-tp__growthlabel" }, "n=20");
+      }
+    };
+  }
+
+  // LSM-дерево: запись в memtable (в памяти, отсортирован), при заполнении —
+  // flush в неизменяемый SSTable; компакция сливает SSTable k-way merge'ем,
+  // схлопывая перезаписанные ключи (остаётся значение из более нового файла).
+  function bLsmPut(puts, memcap) {
+    var mem = [], sst = [], l1 = null, steps = [];
+    function memSorted() { return mem.slice().sort(function (a, b) { return a.k < b.k ? -1 : a.k > b.k ? 1 : 0; }); }
+    function snap(extra) {
+      var o = { mem: memSorted(), sst: sst.map(function (t) { return t.slice(); }), l1: l1 ? l1.slice() : null, cur: null };
+      for (var p in extra) o[p] = extra[p];
+      return o;
+    }
+    steps.push(snap({ line: 0, vars: { op: "—", memlen: 0, sstn: 0 }, info: "LSM: пишем в память, на диск — только большими отсортированными кусками" }));
+    puts.forEach(function (kv) {
+      var existed = false;
+      for (var i = 0; i < mem.length; i++) if (mem[i].k === kv.k) { mem[i] = kv; existed = true; }
+      if (!existed) mem.push(kv);
+      steps.push(snap({ line: 1, cur: { k: kv.k }, vars: { op: "put(" + kv.k + ":" + kv.v + ")", memlen: mem.length, sstn: sst.length }, info: "put(" + kv.k + ":" + kv.v + ") → memtable" + (existed ? " (перезапись ключа " + kv.k + ")" : "") + " — на диск не ходим" }));
+      if (mem.length >= memcap) {
+        sst.push(memSorted());
+        mem = [];
+        steps.push(snap({ line: 7, hot: true, vars: { op: "flush", memlen: 0, sstn: sst.length }, info: "memtable полон (" + memcap + ") → flush: отсортированный НЕИЗМЕНЯЕМЫЙ SSTable №" + sst.length + " одной последовательной записью" }));
+      }
+    });
+    if (sst.length >= 2) {
+      var seen = {}, merged = [], dups = [];
+      for (var t = sst.length - 1; t >= 0; t--) { // новые файлы приоритетнее
+        sst[t].forEach(function (kv) {
+          if (seen[kv.k]) { dups.push(kv.k); return; }
+          seen[kv.k] = true;
+          merged.push(kv);
+        });
+      }
+      merged.sort(function (a, b) { return a.k < b.k ? -1 : a.k > b.k ? 1 : 0; });
+      l1 = merged;
+      var old = sst;
+      sst = [];
+      steps.push(snap({ line: 11, hot: true, vars: { op: "compact", memlen: mem.length, sstn: 0 }, info: "Компакция: " + old.length + " SSTable сливаются k-way merge'ем" + (dups.length ? "; ключ " + dups.join(", ") + " был в двух файлах — остаётся НОВОЕ значение" : "") }));
+    }
+    steps.push(snap({ done: true, line: 11, vars: { op: "готово", memlen: mem.length, sstn: (l1 ? 1 : sst.length) }, info: "Чтение теперь: memtable → SSTable сверху вниз, на каждом сперва Bloom-фильтр («точно нет» экономит чтение диска)" }));
+    return steps;
+  }
+
+  // customViz LSM: ряды memtable (RAM) / SSTable №i (диск) / L1; ячейки k:v.
+  function lsmViz(panel, ctx) {
+    var wrap = mkEl("div", "algo-tp__lsm");
+    panel.appendChild(wrap);
+    function row(label, cells, mods) {
+      var r = mkEl("div", "algo-tp__lsmrow" + (mods && mods.row ? " " + mods.row : ""));
+      r.appendChild(mkEl("div", "algo-tp__lsmlabel", label));
+      var box = mkEl("div", "algo-tp__lsmcells");
+      if (!cells.length) box.appendChild(mkEl("div", "algo-tp__lsmempty", "пусто"));
+      cells.forEach(function (kv) {
+        var cls = "algo-tp__lsmcell" + (mods && mods.cur && mods.cur === kv.k ? " algo-tp__lsmcell--cur" : "");
+        box.appendChild(mkEl("div", cls, kv.k + ":" + kv.v));
+      });
+      r.appendChild(box);
+      wrap.appendChild(r);
+    }
+    return function (s) {
+      wrap.innerHTML = "";
+      row("memtable · RAM", s.mem, { cur: s.cur && s.cur.k, row: "algo-tp__lsmrow--mem" });
+      (s.sst || []).forEach(function (t, i) { row("SSTable №" + (i + 1) + " · диск", t, {}); });
+      if (s.l1) row("L1 после компакции · диск", s.l1, { row: "algo-tp__lsmrow--l1" });
+    };
+  }
+
+  // Consistent hashing: кольцо 0–359°. И серверы, и ключи хешируются на кольцо
+  // (fnv32 с СУФФИКСНОЙ солью "!1" — на префиксной однобуквенные имена слипаются);
+  // ключ принадлежит первому серверу по часовой. Добавление сервера крадёт
+  // ровно один сегмент — переезжает ~1/N ключей. Соль выверена прототипом:
+  // на дефолтных данных углы разнесены (зазор ≥ 15°) и переезжает 1 ключ из 4.
+  function ringAng(name) { return fnv32(name + "!1") % 360; }
+  function ringOwner(kAng, srv) {
+    var best = null, min = null;
+    for (var i = 0; i < srv.length; i++) {
+      if (min === null || srv[i].a < min.a) min = srv[i];
+      var d = srv[i].a - kAng;
+      if (d >= 0 && (best === null || d < best.d)) best = { s: srv[i], d: d };
+    }
+    return best ? best.s : min; // справа никого — заворот к минимальной позиции
+  }
+  function bHashRing(servers, keys, addName) {
+    var srv = [], placedKeys = [], steps = [];
+    function snap(extra) {
+      var o = { srv: srv.map(function (v) { return { n: v.n, a: v.a, isNew: v.isNew }; }), keys: placedKeys.map(function (k) { return { n: k.n, a: k.a, owner: k.owner, moved: k.moved }; }), arc: null, cur: null };
+      for (var p in extra) o[p] = extra[p];
+      return o;
+    }
+    steps.push(snap({ line: 0, vars: { key: "—", pos: "—", server: "—" }, info: "Кольцо 0–359°: хешировать будем и серверы, и ключи" }));
+    servers.forEach(function (name) {
+      var a = ringAng(name);
+      srv.push({ n: name, a: a });
+      steps.push(snap({ line: 2, cur: { type: "srv", n: name }, vars: { key: "сервер " + name, pos: a + "°", server: name }, info: "Сервер " + name + " → hash % 360 = " + a + "° — встаёт на кольцо" }));
+    });
+    keys.forEach(function (name) {
+      var a = ringAng(name), o = ringOwner(a, srv), wrap = o.a < a;
+      placedKeys.push({ n: name, a: a, owner: o.n, moved: false });
+      steps.push(snap({ line: wrap ? 7 : 6, cur: { type: "key", n: name }, arc: { from: a, to: o.a }, vars: { key: name, pos: a + "°", server: o.n }, info: "Ключ " + name + " → " + a + "°; по часовой ближайший сервер — " + o.n + " (" + o.a + "°)" + (wrap ? " — с заворотом через 0°" : "") }));
+    });
+    if (addName) {
+      var na = ringAng(addName);
+      srv.push({ n: addName, a: na, isNew: true });
+      steps.push(snap({ line: 2, cur: { type: "srv", n: addName }, vars: { key: "сервер " + addName, pos: na + "°", server: addName }, info: "Добавляем сервер " + addName + " → " + na + "°. Кто из ключей переедет?" }));
+      var movedCnt = 0;
+      placedKeys.forEach(function (k) {
+        var o = ringOwner(k.a, srv);
+        if (o.n !== k.owner) {
+          movedCnt++;
+          var was = k.owner;
+          k.owner = o.n; k.moved = true;
+          steps.push(snap({ line: 6, hot: true, cur: { type: "key", n: k.n }, arc: { from: k.a, to: o.a }, vars: { key: k.n, pos: k.a + "°", server: was + " → " + o.n }, info: "ПЕРЕЕХАЛ: " + k.n + " теперь у " + o.n + " — лежал в украденном сегменте" }));
+        } else {
+          steps.push(snap({ line: 6, cur: { type: "key", n: k.n }, vars: { key: k.n, pos: k.a + "°", server: k.owner }, info: k.n + " остался у " + k.owner + " — его сегмент не тронут" }));
+        }
+      });
+      steps.push(snap({ done: true, line: 8, vars: { key: "итог", pos: "—", server: "—" }, info: "Переехало " + movedCnt + " из " + placedKeys.length + " ключей (~1/N) — против почти всех при hash % N" }));
+    } else {
+      steps.push(snap({ done: true, line: 8, vars: { key: "итог", pos: "—", server: "—" }, info: "Все ключи разложены по кольцу" }));
+    }
+    return steps;
+  }
+
+  // customViz consistent hashing: SVG-кольцо, серверы — кружки с именем,
+  // ключи — точки с подписью снаружи; дуга — путь ключа по часовой к владельцу.
+  function hashRingViz(panel, ctx) {
+    var W = 260, H = 250, CX = 130, CY = 128, R = 86;
+    var svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("class", "algo-tp__ringsvg");
+    panel.appendChild(svg);
+    function pt(ang, r) { var rad = (ang - 90) * Math.PI / 180; return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) }; }
+    function mk(tag, attrs) { var e = document.createElementNS(SVGNS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); svg.appendChild(e); return e; }
+    return function (s) {
+      svg.innerHTML = "";
+      mk("circle", { cx: CX, cy: CY, r: R, "class": "algo-tp__ringbase" });
+      if (s.arc && s.arc.from !== s.arc.to) {
+        var a1 = pt(s.arc.from, R), a2 = pt(s.arc.to, R);
+        var delta = (s.arc.to - s.arc.from + 360) % 360;
+        mk("path", { d: "M " + a1.x.toFixed(1) + " " + a1.y.toFixed(1) + " A " + R + " " + R + " 0 " + (delta > 180 ? 1 : 0) + " 1 " + a2.x.toFixed(1) + " " + a2.y.toFixed(1), "class": "algo-tp__ringarc" });
+      }
+      (s.keys || []).forEach(function (k) {
+        var p = pt(k.a, R), lp = pt(k.a, R + 22);
+        var cls = "algo-tp__ringkey" + (k.moved ? " algo-tp__ringkey--moved" : "") + (s.cur && s.cur.type === "key" && s.cur.n === k.n ? " algo-tp__ringkey--cur" : "");
+        mk("circle", { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: 4.5, "class": cls });
+        mk("text", { x: lp.x.toFixed(1), y: (lp.y + 3).toFixed(1), "text-anchor": "middle", "class": "algo-tp__ringlabel" }).textContent = k.n;
+      });
+      (s.srv || []).forEach(function (v) {
+        var p = pt(v.a, R);
+        var cls = "algo-tp__ringsrv" + (v.isNew ? " algo-tp__ringsrv--new" : "") + (s.cur && s.cur.type === "srv" && s.cur.n === v.n ? " algo-tp__ringsrv--cur" : "");
+        mk("circle", { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: 11, "class": cls });
+        mk("text", { x: p.x.toFixed(1), y: (p.y + 4).toFixed(1), "text-anchor": "middle", "class": "algo-tp__ringsrvtext" }).textContent = v.n;
+      });
+    };
   }
 
   // customViz count-min: сетка d×w счётчиков; подсветка проверяемых/минимальной ячеек.
@@ -7956,6 +8415,82 @@
       varsOf: function (s) { return { p: s.vars.p, m: s.vars.m, primes: s.vars.primes }; }
     },
 
+    "growth-curves": {
+      badge: "Иерархия роста",
+      desc: "Один график — пять кривых: log n, n, n log n, n², 2ⁿ. Линейная шкала честно показывает, как квадрат и экспонента «пробивают потолок», пока log n стелется по оси.",
+      valuesLabel: "", codeKey: "growth-curves", fillRange: false,
+      complexity: { time: "—", space: "—", good: "★ форма кривой решает" },
+      varOrder: ["curve", "at20"],
+      varDesc: { curve: "Какая кривая добавлена", at20: "Её значение при n=20" },
+      lineNotes: { 1: "Деление пополам: log₂ от миллиона — всего ~20", 2: "Один проход по входу", 3: "Сортировка сравнениями — её нижняя граница", 4: "Все пары: вложенные циклы", 5: "Все подмножества: стена перебора" },
+      rules: [{ head: "малые n", body: "константа может решать", cls: "eq" }, { head: "большие n", body: "решает форма кривой", cls: "gt" }, { head: "2ⁿ", body: "не лечится константой", cls: "lt" }],
+      parse: function () { return { steps: bGrowthCurves() }; },
+      inputs: [],
+      values: function () { return []; },
+      title: function () { return "Рост функций: от log n до 2ⁿ"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Кривая", "Значение при n=20"],
+      sumValues: function (s) { return [{ text: s.vars.curve, cls: "eq" }, { text: s.vars.at20 }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Иерархия целиком", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: s.vars.curve, b: "n=20", c: String(s.vars.at20), cls: "eq" }; },
+      varsOf: function (s) { return { curve: s.vars.curve, at20: s.vars.at20 }; },
+      customViz: growthViz
+    },
+
+    "lsm-put": {
+      badge: "LSM-дерево · Put",
+      desc: "Запись идёт в memtable (память, отсортирован); при заполнении — flush в неизменяемый SSTable одной последовательной записью. Фоновая компакция сливает SSTable k-way merge'ем, схлопывая перезаписанные ключи.",
+      valuesLabel: "", codeKey: "lsm-put", fillRange: false,
+      complexity: { time: "запись O(log n) в RAM", space: "O(n)", good: "★ диск — только последовательно" },
+      varOrder: ["op", "memlen", "sstn"],
+      varDesc: { op: "Операция", memlen: "Записей в memtable", sstn: "SSTable на диске" },
+      lineNotes: { 1: "Запись в отсортированный memtable (обычно skip-list)", 3: "Порог достигнут — пора на диск", 7: "Снимок memtable: отсортированный неизменяемый файл", 8: "SSTable дописывается ПОСЛЕДОВАТЕЛЬНО — это дёшево", 9: "Память очищается под новые записи", 11: "Компакция = k-way merge, дубликаты схлопываются" },
+      rules: [{ head: "запись", body: "всегда в память", cls: "gt" }, { head: "SSTable", body: "неизменяем, отсортирован", cls: "eq" }, { head: "компакция", body: "= k-way merge", cls: "lt" }],
+      parse: function (root) {
+        var puts = (root.getAttribute("data-puts") || "d:1,b:2,a:3,c:4,b:5,e:6").split(",").map(function (x) { var p = x.trim().split(":"); return { k: p[0], v: parseInt(p[1], 10) }; });
+        var memcap = parseInt(root.getAttribute("data-memcap"), 10);
+        if (isNaN(memcap) || memcap < 2) memcap = 3;
+        return { puts: puts, memcap: memcap, steps: bLsmPut(puts, memcap) };
+      },
+      inputs: [{ attr: "data-puts", label: "Записи (k:v)" }, { attr: "data-memcap", label: "Ёмкость memtable" }],
+      values: function () { return []; },
+      title: function (ctx) { return "LSM: " + ctx.puts.length + " записей, memtable на " + ctx.memcap; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Операция", "memtable", "SSTable"],
+      sumValues: function (s) { return [{ text: s.vars.op, cls: "gt" }, { text: s.vars.memlen }, { text: s.vars.sstn }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: s.vars.op, b: "RAM: " + s.vars.memlen, c: "диск: " + s.vars.sstn, cls: "gt" }; },
+      varsOf: function (s) { return { op: s.vars.op, memlen: s.vars.memlen, sstn: s.vars.sstn }; },
+      customViz: lsmViz
+    },
+
+    "hash-ring": {
+      badge: "Consistent hashing",
+      desc: "Кольцо 0–359°: хешируются и серверы, и ключи. Ключ принадлежит первому серверу по часовой. Добавленный сервер крадёт один сегмент — переезжает ~1/N ключей, а не почти все, как при hash % N.",
+      valuesLabel: "", codeKey: "hash-ring", fillRange: false,
+      complexity: { time: "O(log N)", space: "O(N)", good: "★ переезд ~K/N ключей" },
+      varOrder: ["key", "pos", "server"],
+      varDesc: { key: "Кто хешируется", pos: "Позиция на кольце", server: "Сервер-владелец" },
+      lineNotes: { 2: "Сервер — тоже точка на кольце", 5: "Хеш ключа — точка на кольце", 6: "Первый сервер по часовой: позиция ≥ h", 7: "Справа никого — заворачиваемся к первому серверу", 8: "Этот сервер владеет ключом" },
+      rules: [{ head: "ключ", body: "→ первый сервер по часовой", cls: "eq" }, { head: "новый сервер", body: "крадёт один сегмент", cls: "gt" }, { head: "переезд", body: "~1/N ключей, не все", cls: "lt" }],
+      parse: function (root) {
+        var servers = (root.getAttribute("data-servers") || "A,B,C").split(",").map(function (x) { return x.trim(); }).filter(Boolean);
+        var keys = (root.getAttribute("data-keys") || "user:42,cart:7,img:9,sess:3").split(",").map(function (x) { return x.trim(); }).filter(Boolean);
+        var add = (root.getAttribute("data-add") || "D").trim();
+        return { servers: servers, keys: keys, add: add, steps: bHashRing(servers, keys, add) };
+      },
+      inputs: [{ attr: "data-servers", label: "Серверы" }, { attr: "data-keys", label: "Ключи" }, { attr: "data-add", label: "Добавить сервер" }],
+      values: function () { return []; },
+      title: function (ctx) { return "Кольцо: серверы " + ctx.servers.join(", ") + ", затем +" + ctx.add; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Кто", "Позиция", "Владелец"],
+      sumValues: function (s) { return [{ text: s.vars.key }, { text: s.vars.pos }, { text: s.vars.server, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: s.vars.key, b: s.vars.pos, c: String(s.vars.server), cls: "eq" }; },
+      varsOf: function (s) { return { key: s.vars.key, pos: s.vars.pos, server: s.vars.server }; },
+      customViz: hashRingViz
+    },
+
     "bloom-add": {
       badge: "Bloom filter · Add",
       desc: "Добавление в Bloom-фильтр: URL прогоняется через k хешей, каждый указывает на бит — эти биты ставятся в 1. Сам URL не хранится.",
@@ -8120,7 +8655,7 @@
       complexity: { time: "O(log n)", space: "O(n)", good: "★ проще balanced-дерева" },
       varOrder: ["level", "node", "target"],
       varDesc: { level: "Текущий уровень (полоса)", node: "Где стоим", target: "Что ищем" },
-      lineNotes: { 1: "Старт с головы (−∞)", 2: "Идём с верхнего уровня вниз", 3: "Прыгаем вправо, пока следующий ключ ≤ цели", 4: "Переход на следующий узел этого уровня", 7: "На нижнем уровне — следующий и есть кандидат", 8: "Совпал ключ — нашли" },
+      lineNotes: { 1: "Старт с головы (−∞)", 2: "Идём с верхнего уровня вниз", 3: "Прыгаем вправо, пока следующий ключ ≤ цели", 4: "Переход на следующий узел этого уровня", 7: "Стоим на наибольшем ключе ≤ цели — совпал с целью, значит нашли" },
       rules: [{ head: "верхний уровень", body: "перепрыгивает узлы", cls: "gt" }, { head: "ключ > цели", body: "→ спускаемся ниже", cls: "lt" }, { head: "высота узла", body: "случайна (бросок монеты)", cls: "eq" }],
       parse: function (root) { var keys = (root.getAttribute("data-keys") || "3,6,7,9,12,17,19,21,25,26").split(",").map(function (x) { return parseInt(x.trim(), 10); }); var target = parseInt(root.getAttribute("data-target"), 10); if (isNaN(target)) target = 19; return { nodes: skipNodes(keys), maxLevel: skipNodes(keys).reduce(function (a, n) { return Math.max(a, n.level); }, 0), target: target, steps: bSkipSearch(keys, target) }; },
       inputs: [],
@@ -10132,6 +10667,50 @@
       customViz: dijkstraViz
     },
 
+    "max-flow": {
+      badge: "Max Flow", desc: "Эдмондс—Карп: пока BFS находит дополняющий путь в остаточной сети, проталкиваем поток по узкому месту. Обратные рёбра дают возможность отмены. В конце — минимальный разрез.",
+      valuesLabel: "", codeKey: "max-flow", fillRange: false,
+      complexity: { time: "O(V·E²)", space: "O(V²)", good: "★ Макс. поток = мин. разрез" },
+      varOrder: ["путь", "узкое место", "поток", "аугментаций"],
+      varDesc: { "путь": "Дополняющий путь s→t, найденный BFS", "узкое место": "Минимум остаточной пропускной вдоль пути", "поток": "Накопленная величина потока", "аугментаций": "Сколько путей уже протолкнули" },
+      lineNotes: { 1: "flow = 0, остаточная сеть = исходные пропускные способности", 3: "BFS ищет кратчайший путь s→t по рёбрам с остаточной пропускной > 0", 4: "Дополняющего пути нет — поток максимален", 5: "Узкое место — минимум остаточной пропускной вдоль найденного пути", 8: "Прямому ребру −b (заняли), обратному +b — возможность позже отменить", 13: "Величина потока равна пропускной способности минимального разреза" },
+      rules: [{ head: "BFS нашёл путь", body: "→ проталкиваем узкое место", cls: "lt" }, { head: "Обратное ребро +b", body: "отмена прежнего потока", cls: "eq" }, { head: "Пути больше нет", body: "поток = мин. разрез", cls: "gt" }],
+      parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = (root.getAttribute("data-edges") || "").split(",").map(function (e) { return e.trim().split("-"); }).map(function (p) { return { u: labels.indexOf(p[0]), v: labels.indexOf(p[1]), cap: Number(p[2]) }; }).filter(function (e) { return e.u >= 0 && e.v >= 0; }); var s = labels.indexOf((root.getAttribute("data-source") || "").trim()); var t = labels.indexOf((root.getAttribute("data-sink") || "").trim()); if (s < 0) s = 0; if (t < 0) t = labels.length - 1; return { labels: labels, edges: edges, s: s, t: t, steps: bMaxFlow(labels, edges, s, t).steps }; },
+      inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b-пропускная (ориент.)" }],
+      values: function () { return []; },
+      title: function (ctx) { return "Максимальный поток: " + ctx.labels[ctx.s] + " → " + ctx.labels[ctx.t]; },
+      legend: [{ cls: "source", label: "исток s" }, { cls: "sink", label: "сток t" }, { cls: "path", label: "дополняющий путь" }, { cls: "scut", label: "S-сторона разреза" }],
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Путь", "Узкое место", "Поток · аугментаций"],
+      sumValues: function (s) { return [{ text: s.vars["путь"] }, { text: s.vars["узкое место"], cls: "eq" }, { text: s.vars["поток"] + " · " + s.vars["аугментаций"], cls: "gt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Поток " + s.vars["поток"] + " = мин. разрез", text: s.info }; if (s.line === 4) return { kind: "end", icon: idx + 1, head: "Дополняющего пути нет", text: s.info }; if (s.line === 5) return { kind: "info", icon: idx + 1, head: "Нашли путь, узкое место " + s.vars["узкое место"], text: s.info, hot: true }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "поток " + s.vars["поток"], c: "мин-разрез", cls: "eq" }; if (s.line === 5) return { a: s.vars["путь"], b: "узкое " + s.vars["узкое место"], c: "найден", cls: "lt" }; if (s.line === 8) return { a: "протолкнули", b: "+" + s.vars["узкое место"], c: "поток " + s.vars["поток"], cls: "eq" }; if (s.line === 4) return { a: "путей нет", b: "поток " + s.vars["поток"], c: "максимум", cls: "gt" }; return { a: "старт", b: "flow = 0", c: "→", cls: "lt" }; },
+      varsOf: function (s) { return { "путь": s.vars["путь"], "узкое место": s.vars["узкое место"], "поток": s.vars["поток"], "аугментаций": s.vars["аугментаций"] }; },
+      customViz: maxflowViz
+    },
+
+    "parallel-dc": {
+      badge: "Concurrency", desc: "Параллельный merge sort: divide-and-conquer с fan-out (горутина на половину) и cutoff (мелочь — последовательно), затем merge на подъёме (join). Ветви независимы — гонки нет.",
+      valuesLabel: "", codeKey: "parallel-dc", fillRange: false,
+      complexity: { time: "O(n log n)", space: "O(n)", good: "★ Независимые ветви → параллель почти бесплатна" },
+      varOrder: ["подзадача", "размер", "режим", "горутин запущено"],
+      varDesc: { "подзадача": "Текущий подотрезок [lo,hi)", "размер": "Его длина", "режим": "fan-out (горутины) / cutoff (последовательно) / merge (join)", "горутин запущено": "Сколько горутин породил fan-out" },
+      lineNotes: { 1: "Порог: подзадача меньше cutoff — не плодим горутину", 2: "Мелкий кусок сортируем последовательно (горутина дороже работы)", 6: "Fan-out: две половины независимы — каждой своя горутина", 8: "wg.Wait(): барьер — ждём, пока обе половины отсортированы", 9: "Join: сливаем две отсортированные половины в одну" },
+      rules: [{ head: "size ≥ cutoff", body: "→ fan-out: 2 горутины", cls: "lt" }, { head: "size < cutoff", body: "→ последовательно (без горутины)", cls: "gt" }, { head: "обе готовы", body: "→ merge (join)", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var cutoff = parseInt(root.getAttribute("data-cutoff") || "3", 10); if (isNaN(cutoff) || cutoff < 2) cutoff = 2; var res = bFanoutSort(arr, cutoff); return { nodes: res.nodes, maxDepth: res.maxDepth, steps: res.steps }; },
+      inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-cutoff", label: "cutoff", sm: true }],
+      values: function () { return []; },
+      title: function () { return "Параллельный merge sort: fan-out + cutoff"; },
+      legend: [{ cls: "current", label: "делим пополам" }, { cls: "frontier", label: "горутина (fan-out)" }, { cls: "visited", label: "cutoff → последовательно" }, { cls: "path", label: "merged (join)" }],
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Подзадача (размер)", "Режим", "Горутин запущено"],
+      sumValues: function (s) { return [{ text: s.vars["подзадача"] + " (" + s.vars["размер"] + ")" }, { text: s.vars["режим"], cls: (s.line === 6 ? "eq" : "") }, { text: s.vars["горутин запущено"], cls: "gt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Отсортировано, горутин запущено: " + s.vars["горутин запущено"], text: s.info }; if (s.line === 6) return { kind: "info", icon: idx + 1, head: "Fan-out: +2 горутины", text: s.info, hot: true }; if (s.line === 2) return { kind: "info", icon: idx + 1, head: "Cutoff → последовательно", text: s.info, hot: true }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "горутин " + s.vars["горутин запущено"], c: "merged", cls: "eq" }; if (s.line === 6) return { a: s.vars["подзадача"], b: "size " + s.vars["размер"], c: "fan-out", cls: "lt" }; if (s.line === 2) return { a: s.vars["подзадача"], b: "size " + s.vars["размер"], c: "cutoff", cls: "gt" }; return { a: s.vars["подзадача"], b: "merge", c: "join", cls: "eq" }; },
+      varsOf: function (s) { return { "подзадача": s.vars["подзадача"], "размер": s.vars["размер"], "режим": s.vars["режим"], "горутин запущено": s.vars["горутин запущено"] }; },
+      customViz: fanoutViz
+    },
+
     "dp-lcs": {
       badge: "Dynamic Programming", desc: "Longest Common Subsequence: 2D-таблица dp[i][j] по префиксам. Совпали символы → диагональ +1, иначе → max(верх, слева).",
       valuesLabel: "", codeKey: "dp-lcs", fillRange: false,
@@ -10618,7 +11197,7 @@
     }
     bPlay.onclick = function () { timer ? stopPlay() : startPlay(); };
     // смена скорости на лету — перезапускаем таймер с новым интервалом
-    speedInp.addEventListener("input", function () { if (timer) { clearInterval(timer); timer = setInterval(function () { if (idx >= steps.length - 1) { if (loopChk.checked) { show(0); return; } stopPlay(); return; } show(idx + 1); }, playDelay()); } });
+    speedInp.addEventListener("input", function () { if (timer) { stopPlay(); startPlay(); } });
 
     bFirst.onclick = function () { stopPlay(); show(0); };
     bPrev.onclick = function () { stopPlay(); show(idx - 1); };
