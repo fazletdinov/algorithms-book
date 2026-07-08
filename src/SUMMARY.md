@@ -1,4 +1,4 @@
-# Алгоритмические шаблоны для решения задач на собеседованиях
+# Алгоритмы и структуры данных: от фундамента к синтезу
 
 [Введение](README.md)
 
@@ -9,62 +9,56 @@
 
 # Шаблоны
 
-## Группа 1: Базовые техники (массивы и строки)
+## Группа 1: Фундамент — язык анализа и базовые контейнеры
+
+- [📈 Big-O и амортизированный анализ](big-o.md)
+- [🔁 Рекурсия и мастер-теорема](recursion.md)
+- [🗂️ Хеш-таблица: устройство и операции](hash-table-structure.md)
+- [🔗 Связный список: устройство и операции](linked-list-structure.md)
+- [↔️ Дек (Deque): устройство и операции](deque-structure.md)
+- [🔢 Алгоритмы сортировки и порядковые статистики](sorting.md)
+
+## Группа 2: Базовые паттерны (массивы и строки)
 
 - [🪟 Sliding Window (Скользящее окно)](sliding-window.md)
 - [🎯 Two Pointers (Два указателя)](two-pointers.md)
 - [🐢 Fast & Slow Pointers (Быстрые и медленные указатели)](fast-slow-pointers.md)
-
-## Группа 2: Работа с данными
-
+- [↩️ Reverse Linked List (Разворот связанного списка)](reverse-linked-list.md)
 - [🔀 Merge Intervals (Слияние интервалов)](merge-intervals.md)
 - [🔄 Cyclic Sort (Циклическая сортировка)](cyclic-sort.md)
-- [🔢 Алгоритмы сортировки и порядковые статистики](sorting.md)
 - [🔍 Modified Binary Search (Модифицированный бинарный поиск)](modified-binary-search.md)
 - [⚙️ Bit Manipulation (Битовые операции)](bit-manipulation.md)
-- [🔢 Теория чисел: НОД, простые, быстрая степень](number-theory.md)
-- [🔐 Криптография: модульная арифметика в деле](cryptography.md)
-- [🔁 Рекурсия и мастер-теорема](recursion.md)
-- [📈 Big-O и амортизированный анализ](big-o.md)
-- [🗂️ Хеш-таблица: устройство и операции](hash-table-structure.md)
 
-## Группа 3: Структуры данных - списки
-
-- [🔗 Связный список: устройство и операции](linked-list-structure.md)
-- [↩️ Reverse Linked List (Разворот связанного списка)](reverse-linked-list.md)
-- [↔️ Дек (Deque): устройство и операции](deque-structure.md)
-
-## Группа 4: Структуры данных - деревья
+## Группа 3: Деревья и кучи
 
 - [🪴 Бинарное дерево поиска (BST): устройство и операции](bst-structure.md)
 - [⚖️ AVL-дерево: балансировка](avl-tree-structure.md)
 - [🔴 Красно-чёрное дерево: балансировка через цвет](red-black-tree-structure.md)
 - [🌳 Tree BFS (Обход дерева в ширину)](tree-bfs.md)
 - [🌲 Tree DFS (Обход дерева в глубину)](tree-dfs.md)
-
-## Группа 5: Продвинутые структуры данных
-
 - [⛰️ Бинарная куча (Binary Heap): устройство и операции](heap-structure.md)
 - [🗻 Two Heaps (Две кучи)](two-heaps.md)
 - [🏆 Top K Elements (Топ K элементов)](top-k-elements.md)
 - [🧵 K-way Merge (K-way слияние)](k-way-merge.md)
 
-## Группа 6: Комбинаторика и графы
+## Группа 4: Комбинаторика и графы
 
 - [🎰 Subsets (Подмножества)](subsets.md)
 - [🧩 Backtracking (Поиск с возвратом)](backtracking.md)
 - [🕸️ Graphs (Обход графов)](graphs.md)
 - [🪢 Union-Find (DSU): устройство и операции](union-find-structure.md)
+- [🪜 Topological Sort (Топологическая сортировка)](topological-sort.md)
 - [🗺️ Графы: сетки и кратчайшие пути](grids-and-shortest-paths.md)
 - [🛰️ Графы: продвинутые алгоритмы](advanced-graph-algorithms.md)
-- [🪜 Topological Sort (Топологическая сортировка)](topological-sort.md)
+- [🌊 Потоки в сетях: максимальный поток и паросочетания](max-flow.md)
 
-## Группа 7: Оптимизация (жадность и ДП)
+## Группа 5: Оптимизация и границы возможного
 
 - [💰 Greedy (Жадные алгоритмы)](greedy.md)
 - [🧮 Dynamic Programming (Динамическое программирование)](dynamic-programming.md)
+- [🚧 Классы сложности: P, NP и что делать, когда задача трудна](complexity-classes.md)
 
-## Группа 8: Строки и структуры данных
+## Группа 6: Строки и продвинутые структуры
 
 - [🔤 Строковые алгоритмы: поиск подстроки](string-algorithms.md)
 - [🌿 Trie: устройство и построение](trie-structure.md)
@@ -77,9 +71,15 @@
 - [🗃️ B-дерево: устройство и операции](btree-structure.md)
 - [🎲 Вероятностные структуры: Bloom, HyperLogLog, count-min](probabilistic-structures.md)
 
-## Группа 9: Синтез
+## Группа 7: Прикладная математика
+
+- [🔢 Теория чисел: НОД, простые, быстрая степень](number-theory.md)
+- [🔐 Криптография: модульная арифметика в деле](cryptography.md)
+
+## Группа 8: Синтез
 
 - [🧬 Комбинации паттернов: задачи на связки](pattern-combinations.md)
+- [🌍 Карта: структуры данных в реальных системах](real-world-map.md)
 
 ## Дополнительные материалы
 

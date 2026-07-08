@@ -55,6 +55,22 @@
 > Полный разбор **почему гибрид трёх сортировок** —
 > [«Структуры данных в экосистеме Go»](go-stdlib-structures.md#-разбор-почему-slicessort--это-гибрид-трёх-сортировок).
 
+<div class="algo-mental">
+  <div class="algo-mental__icon">🔁</div>
+  <div class="algo-mental__body">
+    <div class="algo-mental__title">Вспомни — 30 секунд перед стартом</div>
+    <p>Эта глава стоит на главе <a href="recursion.md">«Рекурсия и мастер-теорема»</a>. Ответь по памяти, не подглядывая: извлечение из памяти закрепляет сильнее перечитывания. Если вопрос буксует — освежи ту главу по ссылке, дальше будет заметно легче.</p>
+  </div>
+</div>
+
+<div class="algo-challenge" data-type="predict" data-answer="O(n log n);n log n;Θ(n log n);nlogn;n*log n;n·log n;n log2 n;n log₂ n" data-hint="Ничья между работой уровня и лавиной листьев — случай 2." data-explain="log₂2 = 1, вес листьев n¹ = n — ровно как f(n) = n: «ничья», случай 2, Θ(n log n). Это рекуррента merge sort, и глава ниже выведет его сложность именно отсюда: log n уровней по O(n) слияния на каждом.">
+<div class="algo-challenge__q">Вспомни мастер-теорему: T(n) = 2·T(n/2) + O(n) — две подзадачи половинного размера плюс линейное слияние. Каков ответ?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Глубина станет n — и при O(n) работы на уровне итог рухнет до O(n²)|Останется log n: глубина не зависит от того, как именно делим|Рекурсия не завершится: без деления пополам база недостижима" data-answer="0" data-explain="log n уровней даёт только деление в константу раз; шаг «минус один» растягивает дерево вызовов в цепочку глубины n. Ровно это случается с quick sort при неудачном pivot: разбиения размера n−1 и 0 дают худший случай O(n²) — глава разбирает его ниже и лечит случайным выбором опорного.">
+<div class="algo-challenge__q">Из главы о рекурсии: что будет с глубиной дерева вызовов, если рекурсия уменьшает задачу не вдвое, а всего на один элемент за шаг?</div>
+</div>
+
 ## ⚡ Что помнить на собеседовании
 
 В памяти языка почти всегда вызывают встроенную сортировку — `slices.Sort` в Go (это
@@ -64,11 +80,14 @@
 минимум.
 
 ```go
-import "slices"
+import (
+    "cmp"
+    "slices"
+)
 
 slices.Sort(nums)                                   // по возрастанию, O(n log n)
 slices.SortFunc(p, func(a, b Point) int {           // по своему компаратору
-    return a.X - b.X                                // <0, 0, >0
+    return cmp.Compare(a.X, b.X)                    // <0, 0, >0; НЕ a.X-b.X — вычитание переполняется
 })
 slices.SortStableFunc(recs, byKey)                  // устойчивая (сохраняет порядок равных)
 ```
@@ -242,7 +261,7 @@ func siftDown(a []int, i, size int) {
 ```
 
 Нажимайте «▶»: сначала строится max-heap, затем максимум (корень) меняется с концом кучи —
-**отсортированный суффикс справа растёт** (затемнён), а куща чинится просеиванием. Механику
+**отсортированный суффикс справа растёт** (затемнён), а куча чинится просеиванием. Механику
 самого `siftDown` на дереве см. в главе [«Бинарная куча: устройство»](heap-structure.md):
 
 <div class="algo-viz" data-viz="heap-sort" data-array="5,2,8,1,9,3,7"></div>
@@ -471,12 +490,24 @@ func findKthLargest(nums []int, k int) int {
 <div class="algo-challenge__q">За сколько в среднем QuickSelect находит k-й элемент?</div>
 </div>
 
+<div class="algo-challenge" data-type="predict" data-answer="2" data-hint="k считается от 1: k=1 — минимум (см. комментарий к функции)." data-explain="Контракт главы: k от 1, значит k=1 — минимум, то есть 2. Внутри target := k−1 переводит в 0-индексацию partition. Половина багов QuickSelect — рассинхрон контрактов «от 0 или от 1»: зафиксируй один и переводи в единственном месте.">
+<div class="algo-challenge__q">По контракту главы (<code>k</code> от 1): что вернёт <code>quickSelect([5, 2, 9], 1)</code>?</div>
+</div>
+
 <div class="algo-challenge" data-type="choice" data-options="Данные почти отсортированы|Диапазон значений k мал|Массив очень большой|Нужна устойчивость" data-answer="1" data-explain="Counting sort — O(n + k); она выигрывает, только когда k = O(n) (узкий диапазон). Иначе тратит память и время на весь диапазон.">
 <div class="algo-challenge__q">Когда counting sort выгоднее quicksort?</div>
 </div>
 
+<div class="algo-challenge" data-type="choice" data-options="Паника: count[-3] — отрицательный индекс среза|Отрицательные молча уедут в конец результата|Компилятор откажется собирать код с отрицательными значениями" data-answer="0" data-explain="Индекс счётчика — само значение, и для −3 это count[-3]: отрицательный индекс среза — runtime panic. Поэтому код главы сначала находит min и индексирует count[v-min] — смещение прижимает диапазон к нулю и заодно экономит память при min больше нуля.">
+<div class="algo-challenge__q">Counting sort для <code>[-3, 5]</code> без смещения на <code>min</code> — что произойдёт?</div>
+</div>
+
 <div class="algo-challenge" data-type="choice" data-options="Merge sort|Pattern-defeating quicksort (pdqsort)|Heap sort|Пузырёк" data-answer="1" data-explain="slices.Sort → pdqsortOrdered: quicksort + insertion для мелких кусков + откат на heapsort от глубокой рекурсии.">
 <div class="algo-challenge__q">Что под капотом у <code>slices.Sort</code> в Go?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="Сумма lo + hi может переполнить тип индекса, разность hi − lo — никогда|Разность вычисляется процессором быстрее суммы|Ничем: выражения эквивалентны при любых значениях" data-answer="0" data-explain="Когда lo и hi близки к максимуму типа, их сумма переполняется и mid становится мусором — классический баг, живший годами в JDK. В Go с 64-битным int на реальных срезах это недостижимо, но привычка бесплатна и спасает там, где индексы 32-битные. Эквивалентны выражения только пока сумма не переполнилась.">
+<div class="algo-challenge__q">Чем запись <code>mid := lo + (hi-lo)/2</code> надёжнее <code>(lo+hi)/2</code>?</div>
 </div>
 
 <div class="algo-challenge" data-type="predict" data-answer="3" data-hint="Снизу вверх ширина окна удваивается: 1, 2, 4…" data-explain="Bottom-up merge: проходы ширины 1→2→4 для 8 элементов = log₂8 = 3 уровня слияния.">
