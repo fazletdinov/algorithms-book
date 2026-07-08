@@ -102,11 +102,13 @@
     var pkg = root.getAttribute("data-pkg");
     if (!pkg) return;
     var race = root.getAttribute("data-race") === "true";
+    var flagship = root.getAttribute("data-flagship") === "true";
     root.classList.add("algo-runner--ready");
     root.innerHTML = "";
 
     var head = el("div", "algo-runner__head");
     head.appendChild(el("span", "algo-runner__pkg", "пакет " + pkg));
+    if (flagship) head.appendChild(el("span", "algo-runner__flagship", "⚔️ боевой мини-проект"));
     if (race) head.appendChild(el("span", "algo-runner__race", "🏁 -race"));
     var status = el("span", "algo-runner__status", "");
     head.appendChild(status);

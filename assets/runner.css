@@ -33,6 +33,15 @@
   background: #fdecec;
   color: #b91c1c;
 }
+.algo-runner__flagship {
+  font-weight: 700;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
 .algo-runner__status { font-size: 12px; opacity: 0.85; }
 .algo-runner__status.is-ok { color: #15803d; }
 .algo-runner__status.is-err { color: #b91c1c; }
