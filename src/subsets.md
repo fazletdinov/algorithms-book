@@ -7,7 +7,7 @@
   </div>
   <div class="algo-hero__metrics">
     <div class="algo-hero__metric"><span>Время</span><b>O(2ⁿ·n)</b></div>
-    <div class="algo-hero__metric"><span>Память</span><b>O(n)</b></div>
+    <div class="algo-hero__metric"><span>Память</span><b>O(n) без вывода</b></div>
   </div>
 </div>
 

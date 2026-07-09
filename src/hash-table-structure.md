@@ -206,7 +206,7 @@ func (h *HashMap) resize(newM int) {
     nb := make([][]entry, newM)
     for _, chain := range h.buckets {
         for _, e := range chain {
-            i := e.key % newM        // НОВЫЙ индекс (по 2m, не по старому m!)
+            i := hash(e.key) % newM  // НОВЫЙ индекс (по 2m, не по старому m!)
             nb[i] = append(nb[i], e)
         }
     }
