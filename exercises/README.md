@@ -117,6 +117,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `bellmanford`   | `ShortestPath` (отрицательные веса), `HasNegativeCycle`, `ShortestPathWithAtMostKEdges` |
 | `astar`         | `ShortestPath` (сетка с эвристикой), `ManhattanDistance`, `PathExists` |
 | `mst`           | `MSTWeight` (Краскал), `MSTWeightPrim` (Прим), `MSTWeightWithEdges` |
+| `scc`           | `SCC` (Косарайю), `Bridges`, `ArticulationPoints` (low-link) |
 | `maxflow`       | `MaxFlow` (Эдмондс—Карп), `MaxBipartiteMatching` (Кун) |
 | `toposort`      | `TopologicalSort`, `CanFinish`, `FindOrderLexSmallest`, `AlienOrder` |
 | `greedy`        | `MaxNonOverlapping`, `CanJump`, `MinJumps`, `MaxProfit`, `FractionalKnapsack` |

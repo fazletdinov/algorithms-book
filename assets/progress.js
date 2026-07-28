@@ -33,6 +33,7 @@
     { t: "Union-Find (DSU): устройство", h: "union-find-structure.html" },
     { t: "Сетки и кратчайшие пути", h: "grids-and-shortest-paths.html" },
     { t: "Графы: продвинутые", h: "advanced-graph-algorithms.html" },
+    { t: "Графы: связность (SCC, мосты)", h: "graph-connectivity.html" },
     { t: "Topological Sort", h: "topological-sort.html" },
     { t: "Greedy", h: "greedy.html" },
     { t: "Dynamic Programming", h: "dynamic-programming.html" },

@@ -36,6 +36,7 @@
 | [Topological Sort](topological-sort.md) | зависимости/порядок, DAG | O(V+E) | Кан: убираем вершины с in-degree 0 |
 | BFS / [Dijkstra](grids-and-shortest-paths.md) | кратчайший путь (1 / неотриц. веса) | O(V+E) / O((V+E)log V) | очередь / приоритетная очередь |
 | [Bellman–Ford / A\*/ MST](advanced-graph-algorithms.md) | отрицат. веса / эвристика / остов | O(V·E) / — / O(E log E) | релаксация / f=g+h / жадно+DSU |
+| [SCC / мосты / точки сочленения](graph-connectivity.md) | циклы зависимостей, критичное ребро/узел, «без чего граф распадётся» | O(V+E) | DFS: порядок завершения / low-link |
 | [Greedy](greedy.md) | макс/мин с доказуемым локальным выбором | O(n log n) | локально оптимальный шаг |
 | [Dynamic Programming](dynamic-programming.md) | мин/макс/счёт + перекрыв. подзадачи | завис. от состояний | состояние + переход + мемоизация |
 | [Строковые алгоритмы](string-algorithms.md) | поиск подстроки/образца | O(n+m) | префикс-функция (KMP) / rolling hash |
