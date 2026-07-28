@@ -300,7 +300,7 @@ func (h *HLL) Add(id string) {
 поправочные коэффициенты — в оригинальной статье Flajolet; на практике берут готовую реализацию.
 
 > 🔧 **Где это в Go и в реальных системах.** `PFADD`/`PFCOUNT` в **Redis** — это HyperLogLog
-> (12 КБ на структуру, ошибка 0.81%); **Presto/BigQuery** — `APPROX_DISTINCT`; аналитика уникальных
+> (12 КБ на структуру, ошибка 0.81%); **Presto** — `approx_distinct`, **BigQuery** — `APPROX_COUNT_DISTINCT`; аналитика уникальных
 > посетителей у всех крупных систем. В Go — [`axiomhq/hyperloglog`](https://github.com/axiomhq/hyperloglog),
 > [`clarkduvall/hyperloglog`](https://github.com/clarkduvall/hyperloglog).
 

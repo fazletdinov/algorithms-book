@@ -45,7 +45,10 @@ func (c *LRUCache) Put(key, value int) {
 		c.addFront(n)
 		return
 	}
-	if len(c.m) == c.cap {
+	if c.cap <= 0 { // вырожденный кэш: хранить негде, Put — no-op
+		return
+	}
+	if len(c.m) >= c.cap {
 		lru := c.tail.prev
 		c.remove(lru)
 		delete(c.m, lru.key)

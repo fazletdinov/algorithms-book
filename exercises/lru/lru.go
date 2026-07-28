@@ -20,6 +20,8 @@ type LRUCache struct {
 }
 
 // Constructor создаёт пустой кэш на capacity элементов.
+// Контракт вырожденного случая: при capacity <= 0 кэш ничего не хранит —
+// Put становится no-op, Get всегда возвращает -1 (и ничего не паникует).
 func Constructor(capacity int) LRUCache {
 	// TODO: создайте map и связку head<->tail из двух фиктивных узлов.
 	panic("TODO: реализуйте Constructor")

@@ -45,6 +45,15 @@ func TestLRUUpdateExisting(t *testing.T) {
 	}
 }
 
+// Вырожденный случай: при ёмкости 0 кэш ничего не хранит — Put не паникует.
+func TestLRUZeroCapacity(t *testing.T) {
+	c := Constructor(0)
+	c.Put(1, 1)
+	if got := c.Get(1); got != -1 {
+		t.Errorf("Get(1) = %d, ожидалось -1 (ёмкость 0 ничего не хранит)", got)
+	}
+}
+
 // Кэш ёмкости 1: каждая новая вставка вытесняет предыдущую.
 func TestLRUCapacityOne(t *testing.T) {
 	c := Constructor(1)
