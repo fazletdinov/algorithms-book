@@ -97,6 +97,8 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `sorting`       | `MergeSort`, `QuickSort`, `HeapSort`, `CountingSort`, `QuickSelect` |
 | `numbertheory`  | `GCD`, `LCM`, `IsPrime`, `SieveOfEratosthenes`, `PowMod` |
 | `cryptography`  | `ExtendedGCD`, `ModInverse`, `ModExp`, `IsProbablePrime`, `RSAPrivateExponent`, `RSAEncrypt`, `RSADecrypt` |
+| `combinatorics` | `Binomial`, `Permutations`, `CountDivisibleByAny`, `Derangements` |
+| `sampling`      | `Shuffle`, `ReservoirSample`, `ExpectedCollisions`, `BirthdayThreshold` |
 | `recursion`     | `Factorial`, `Fib`, `Power`, `HanoiMoves`, `SumDigits` |
 | `bigo`          | `MinStack`, `NextGreaterElement`, `DailyTemperatures`, `CountCopies` |
 | `binarysearch`  | `Search`, `FindCeiling`, `FindFloor`, `SearchRotated`, `FindFirstLast`, `IntSqrt` |

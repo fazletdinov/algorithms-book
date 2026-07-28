@@ -109,9 +109,9 @@ Job `go-tests` (working-directory `exercises/`) проверяет четыре 
 
 ## Покрытие тренажёра
 
-Тренажёр покрывает все паттерны книги (**61 пакет** — продвинутые графы разбиты на
+Тренажёр покрывает все паттерны книги (**63 пакета** — продвинутые графы разбиты на
 `dijkstra`/`bellmanford`/`astar`/`mst`; конкурентность — `parallel*`/`wordcount`; потоки —
-`maxflow`). Пакеты главы «Комбинации паттернов» (все 7 связок): `lru`, `wordladder`,
+`maxflow`; дискретная математика — `combinatorics`/`sampling`). Пакеты главы «Комбинации паттернов» (все 7 связок): `lru`, `wordladder`,
 `alienorder`, `meetingrooms`, `serializetree`, `skyline`, `designtwitter` + `listcrud` (CRUD
 односвязного списка). «Боевые мини-проекты» (флагманы, паттерн- + прод-версия в одном пакете):
 `ratelimiter`, `streamstats`, `leaderboard`, `cache`. Список функций каждого пакета — в
