@@ -21,6 +21,10 @@
 // конфликтовать с уже запущенным настоящим redis-server. Слушаем только
 // localhost — как и cmd/runner, это локальный однопользовательский
 // инструмент, ему незачем быть доступным по сети.
+//
+// Каждое соединение получает своё ведро токенов (miniredis.RateLimitReply,
+// этап 5) — больше 5 команд подряд без паузы сервер начнёт отвечать ERR,
+// пока ведро не пополнится (2 токена/сек).
 package main
 
 import (
@@ -30,8 +34,10 @@ import (
 	"io"
 	"log"
 	"net"
+	"time"
 
 	"github.com/fazletdinov/algorithms-book/exercises/miniredis"
+	"github.com/fazletdinov/algorithms-book/exercises/ratelimiter"
 )
 
 func main() {
@@ -58,8 +64,13 @@ func main() {
 
 // handleConn обслуживает одно соединение до разрыва или ошибки протокола:
 // читает команду, диспетчерит, пишет и сбрасывает ответ, повторяет.
+//
+// bucket — ведро лимита СВОЁ на это соединение (не общее на сервер): его
+// никогда не делят две горутины, поэтому оно передаётся в
+// miniredis.RateLimitReply без какой-либо синхронизации.
 func handleConn(conn net.Conn, store *miniredis.Store) {
 	defer conn.Close()
+	bucket := ratelimiter.NewTokenBucket(5, 2) // всплеск до 5 команд подряд, дальше 2/сек
 	r := bufio.NewReader(conn)
 	w := bufio.NewWriter(conn)
 	for {
@@ -73,7 +84,12 @@ func handleConn(conn net.Conn, store *miniredis.Store) {
 		if len(args) == 0 {
 			continue // пустая inline-строка — настоящий Redis тоже её просто пропускает
 		}
-		if err := miniredis.Dispatch(store, args).WriteTo(w); err != nil {
+
+		reply := miniredis.RateLimitReply(bucket, time.Now().UnixMilli())
+		if reply == nil {
+			reply = miniredis.Dispatch(store, args)
+		}
+		if err := reply.WriteTo(w); err != nil {
 			log.Printf("miniredis: %s: запись ответа: %v", conn.RemoteAddr(), err)
 			return
 		}

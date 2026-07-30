@@ -5,6 +5,8 @@ package miniredis
 import (
 	"strconv"
 	"time"
+
+	"github.com/fazletdinov/algorithms-book/exercises/ratelimiter"
 )
 
 func dispatchSet(store *Store, args []string) Reply {
@@ -201,4 +203,11 @@ func dispatchZRank(store *Store, args []string) Reply {
 		}
 	}
 	return NilBulk() // недостижимо при консистентном zset, но не паникуем
+}
+
+func RateLimitReply(bucket *ratelimiter.TokenBucket, nowMs int64) Reply {
+	if bucket.Allow(nowMs) {
+		return nil
+	}
+	return Err("ERR rate limit exceeded, try again later")
 }

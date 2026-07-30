@@ -154,7 +154,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `streamstats`   | `MedianFinder.Add` / `Median` (две кучи) + `Histogram.Observe` / `Quantile` / `Merge` (боевой мини-проект: перцентили p50/p99, модель Prometheus/HdrHistogram) |
 | `leaderboard`   | `TopK.Add` / `Top` (min-куча размера K) + `Leaderboard.Set` / `Incr` / `Score` / `TopN` / `Rank` (боевой мини-проект: лидерборд, модель Redis Sorted Set) |
 | `cache`         | `TTLCache.Get` / `Put` (боевой мини-проект: LRU-кэш с TTL — прод-версия LRU, модель hashicorp/golang-lru expirable) |
-| `miniredis`     | `dispatchSet` / `dispatchGet` / `dispatchDel` / `dispatchExpire` / `dispatchTTL` / `dispatchZAdd` / `dispatchZScore` / `dispatchZRange` / `dispatchZRank` (этап 4: строки+TTL из этапов 2-3 плюс sorted set — модель `leaderboard`, но по возрастанию очков и с `NilBulk` вместо сентинела) — капстоун книги, растёт по этапам (см. [главу](../src/miniredis.md)); протокол (`resp.go`), маршрутизация и `PING`/`ECHO` (`dispatch.go`), `Store`/`live()`/`zsetOrdered()` (`store.go`), сервер (`cmd/miniredis`) даны готовыми |
+| `miniredis`     | `dispatchSet` / `dispatchGet` / `dispatchDel` / `dispatchExpire` / `dispatchTTL` / `dispatchZAdd` / `dispatchZScore` / `dispatchZRange` / `dispatchZRank` / `RateLimitReply` (этап 5: строки+TTL+sorted set из этапов 2-4 плюс мидлварь лимита запросов — `ratelimiter.TokenBucket` на соединение, без мьютекса) — капстоун книги, растёт по этапам (см. [главу](../src/miniredis.md)); протокол (`resp.go`), маршрутизация и `PING`/`ECHO` (`dispatch.go`), `Store`/`live()`/`zsetOrdered()` (`store.go`), сервер с созданием ведра на соединение (`cmd/miniredis`) даны готовыми |
 
 ## Как добавить свой шаблон
 

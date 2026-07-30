@@ -140,16 +140,21 @@ Job `go-tests` (working-directory `exercises/`) проверяет четыре 
 `ratelimiter`, `streamstats`, `leaderboard`, `cache`. `miniredis` (глава
 [«Капстоун»](../src/miniredis.md)) — сквозной проект поверх этих флагманов, растёт по этапам;
 с этапа 2 у него обычная пара заготовка/эталон (`miniredis.go`/`miniredis_solution.go` —
-на этапе 4: `dispatchSet`/`dispatchGet`/`dispatchDel`/`dispatchExpire`/`dispatchTTL`/
-`dispatchZAdd`/`dispatchZScore`/`dispatchZRange`/`dispatchZRank`), а протокол (`resp.go`),
-маршрутизация и `PING`/`ECHO` (`dispatch.go`), тип `Store` с TTL/ZSET и `live()`/
+на этапе 5: `dispatchSet`/`dispatchGet`/`dispatchDel`/`dispatchExpire`/`dispatchTTL`/
+`dispatchZAdd`/`dispatchZScore`/`dispatchZRange`/`dispatchZRank`/`RateLimitReply`), а протокол
+(`resp.go`), маршрутизация и `PING`/`ECHO` (`dispatch.go`), тип `Store` с TTL/ZSET и `live()`/
 `zsetOrdered()` (`store.go`) даны готовыми без тега — общая инфраструктура, не задача с
 решением. `Store.now func() time.Time` — впрыск часов для тестов TTL без `time.Sleep`
 (протокол `EXPIRE`/`TTL` не пробрасывает время параметром, в отличие от
 `cache.TTLCache.Get(key, nowMs)` — значит, часы пришлось внедрить на уровень стора, а не
 функции). `zsetOrdered` сортирует ПО ВОЗРАСТАНИЮ очков (в отличие от
 `leaderboard.Leaderboard.ordered()`, который по убыванию) — так `ZRANGE`/`ZRANK` ведут себя
-как настоящий Redis, а не как таблица лидеров. Проверка «Заготовки ещё не решены» в CI
+как настоящий Redis, а не как таблица лидеров. Этап 5 — не RESP-команда, а мидлварь:
+`RateLimitReply` оборачивает `ratelimiter.TokenBucket` (пакет `ratelimiter`, уже реализован
+читателем во флагмане) в готовый `Reply`-или-`nil`; ведро заводится НА СОЕДИНЕНИЕ в
+`cmd/miniredis/main.go` (не в `Store`, который общий на всех клиентов) — поэтому обычный
+`TokenBucket`, без `SafeTokenBucket`, корректен без мьютекса: наглядный контраст со `Store`,
+которому мьютекс нужен именно потому, что он shared. Проверка «Заготовки ещё не решены» в CI
 (`.github/workflows/ci.yml`)
 принципиально смотрит только на пакеты с физическим `<pkg>_solution.go`, поэтому `miniredis`
 (и `cmd/*`) сама собой не ловится, пока решать нечего, и сама начинает ловиться, как только

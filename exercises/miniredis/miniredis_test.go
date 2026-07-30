@@ -3,6 +3,8 @@ package miniredis
 import (
 	"testing"
 	"time"
+
+	"github.com/fazletdinov/algorithms-book/exercises/ratelimiter"
 )
 
 // newStoreForTest создаёт Store с управляемыми часами вместо time.Now —
@@ -285,6 +287,32 @@ func TestDispatchZAddTieBreak(t *testing.T) {
 	}
 	if got, want := writeReply(t, Dispatch(store, []string{"ZRANK", "ties", "zebra"})), ":1\r\n"; got != want {
 		t.Fatalf("ZRANK zebra = %q, want %q", got, want)
+	}
+}
+
+// TestRateLimitReply — ведро на 3 токена без пополнения (nowMs не двигаем):
+// первые 3 вызова разрешены, 4-й отклонён с конкретным wire-текстом ошибки,
+// затем ход часов на секунду вперёд пополняет ведро и 5-й снова проходит.
+func TestRateLimitReply(t *testing.T) {
+	bucket := ratelimiter.NewTokenBucket(3, 1)
+	now := int64(1000)
+
+	for i := 0; i < 3; i++ {
+		if reply := RateLimitReply(bucket, now); reply != nil {
+			t.Fatalf("вызов %d: ожидался nil (разрешено), получили wire %q", i, writeReply(t, reply))
+		}
+	}
+
+	reply := RateLimitReply(bucket, now)
+	if reply == nil {
+		t.Fatal("4-й вызов подряд без пополнения должен быть отклонён")
+	}
+	if got, want := writeReply(t, reply), "-ERR rate limit exceeded, try again later\r\n"; got != want {
+		t.Fatalf("wire = %q, want %q", got, want)
+	}
+
+	if reply := RateLimitReply(bucket, now+1000); reply != nil {
+		t.Fatalf("после пополнения (+1с) ожидался nil, получили wire %q", writeReply(t, reply))
 	}
 }
 

@@ -27,7 +27,16 @@
 // как в лидерборде), а отсутствующий участник — это NilBulk, а не сентинел
 // -1. На этот раз ничего из SET/GET/DEL/EXPIRE/TTL менять не пришлось —
 // ZSET живёт в своей карте, независимо от строковых ключей.
+//
+// Этап 5 — не новая RESP-команда, а мидлварь: лимит запросов на клиента
+// через ratelimiter.TokenBucket, уже реализованный в отдельной главе. В
+// отличие от Store (общего на все подключения и потому защищённого
+// store.mu), ведро — на СОЕДИНЕНИЕ: создаёт и хранит его
+// cmd/miniredis/main.go, поэтому его никогда не делят две горутины и
+// обычный TokenBucket, без Safe-обёртки, вполне корректен.
 package miniredis
+
+import "github.com/fazletdinov/algorithms-book/exercises/ratelimiter"
 
 // SET key value — сохраняет значение по ключу, отвечает +OK. Ровно 2
 // аргумента, иначе — ошибка "wrong number of arguments". Настоящий Redis
@@ -170,4 +179,18 @@ func dispatchZRank(store *Store, args []string) Reply {
 	// zsetOrdered(store.zsets[key]) и верните Integer(int64(индекс)) для
 	// найденной позиции member.
 	panic("TODO: реализуйте ZRANK")
+}
+
+// RateLimitReply — проверка ведра ПЕРЕД вызовом Dispatch (сам Dispatch о
+// лимите ничего не знает — это отдельная забота, вызывающий код в
+// cmd/miniredis/main.go запускает её первой). nil означает «токен потрачен,
+// можно выполнять команду»; иначе — уже готовый ответ об ошибке, который
+// нужно отправить клиенту ВМЕСТО вызова Dispatch.
+//
+// Пример: bucket := ratelimiter.NewTokenBucket(5, 2) — первые 5 вызовов
+// подряд (без хода часов) вернут nil, 6-й — ошибку.
+func RateLimitReply(bucket *ratelimiter.TokenBucket, nowMs int64) Reply {
+	// TODO: bucket.Allow(nowMs) — true, верните nil (команда разрешена);
+	// false — верните Err("ERR rate limit exceeded, try again later").
+	panic("TODO: реализуйте RateLimitReply")
 }
