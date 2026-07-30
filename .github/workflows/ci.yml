@@ -53,13 +53,22 @@ jobs:
         run: go vet ./...
       # Заготовки НЕ должны проходить тесты без тега solution: если какой-то
       # пакет зелёный на untagged-сборке — значит решение случайно попало в
-      # файл-заготовку вместо panic("TODO"). Пакеты под cmd/ (раннер и его
-      # helper'ы вроде traceinstr) — не пары заготовка/эталон, а обычная
-      # инфраструктура: их тесты ДОЛЖНЫ проходить всегда, поэтому исключены.
+      # файл-заготовку вместо panic("TODO"). Проверка касается только пакетов
+      # с РЕАЛЬНОЙ парой заготовка/эталон (<pkg>/<pkg>_solution.go существует)
+      # — у пакетов без неё просто нечему "протечь": это либо инфраструктура
+      # (cmd/runner и его helper'ы вроде traceinstr — обычный код, не задача с
+      # решением), либо капстоун miniredis на этапе, где solution ещё не
+      # заведён (см. src/miniredis.md) — эта проверка сама начнёт его
+      # контролировать, как только появится miniredis_solution.go.
       - name: Заготовки ещё не решены
         run: |
           fail=0
-          for pkg in $(go list ./... | grep -v '/cmd/'); do
+          for pkg in $(go list ./...); do
+            dir=$(go list -f '{{.Dir}}' "$pkg")
+            base=$(basename "$dir")
+            if [ ! -f "$dir/${base}_solution.go" ]; then
+              continue
+            fi
             if out=$(go test -count=1 "$pkg" 2>&1); then
               if ! echo "$out" | grep -q "no test files"; then
                 echo "::error::Пакет $pkg проходит тесты БЕЗ -tags solution — решение попало в заготовку"

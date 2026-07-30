@@ -131,12 +131,28 @@ Job `go-tests` (working-directory `exercises/`) проверяет четыре 
 
 ## Покрытие тренажёра
 
-Тренажёр покрывает все паттерны книги (**65 пакетов** — продвинутые графы разбиты на
+Тренажёр покрывает все паттерны книги (**66 пакетов** — продвинутые графы разбиты на
 `dijkstra`/`bellmanford`/`astar`/`mst`, связность — `scc`; конкурентность —
 `parallel*`/`wordcount`; потоки — `maxflow`; дискретная математика —
 `combinatorics`/`sampling`; классы сложности — `npcomplete`). Пакеты главы «Комбинации паттернов» (все 7 связок): `lru`, `wordladder`,
 `alienorder`, `meetingrooms`, `serializetree`, `skyline`, `designtwitter` + `listcrud` (CRUD
 односвязного списка). «Боевые мини-проекты» (флагманы, паттерн- + прод-версия в одном пакете):
-`ratelimiter`, `streamstats`, `leaderboard`, `cache`. Список функций каждого пакета — в
-`exercises/README.md`. При добавлении/удалении пакета обнови это число (проверка:
-`ls -d exercises/*/ | grep -v cmd | wc -l`).
+`ratelimiter`, `streamstats`, `leaderboard`, `cache`. `miniredis` (глава
+[«Капстоун»](../src/miniredis.md)) — сквозной проект поверх этих флагманов, растёт по этапам;
+с этапа 2 у него обычная пара заготовка/эталон (`miniredis.go`/`miniredis_solution.go` —
+на этапе 4: `dispatchSet`/`dispatchGet`/`dispatchDel`/`dispatchExpire`/`dispatchTTL`/
+`dispatchZAdd`/`dispatchZScore`/`dispatchZRange`/`dispatchZRank`), а протокол (`resp.go`),
+маршрутизация и `PING`/`ECHO` (`dispatch.go`), тип `Store` с TTL/ZSET и `live()`/
+`zsetOrdered()` (`store.go`) даны готовыми без тега — общая инфраструктура, не задача с
+решением. `Store.now func() time.Time` — впрыск часов для тестов TTL без `time.Sleep`
+(протокол `EXPIRE`/`TTL` не пробрасывает время параметром, в отличие от
+`cache.TTLCache.Get(key, nowMs)` — значит, часы пришлось внедрить на уровень стора, а не
+функции). `zsetOrdered` сортирует ПО ВОЗРАСТАНИЮ очков (в отличие от
+`leaderboard.Leaderboard.ordered()`, который по убыванию) — так `ZRANGE`/`ZRANK` ведут себя
+как настоящий Redis, а не как таблица лидеров. Проверка «Заготовки ещё не решены» в CI
+(`.github/workflows/ci.yml`)
+принципиально смотрит только на пакеты с физическим `<pkg>_solution.go`, поэтому `miniredis`
+(и `cmd/*`) сама собой не ловится, пока решать нечего, и сама начинает ловиться, как только
+solution-файл появляется — обновлять исключение вручную не нужно. Список функций каждого
+пакета — в `exercises/README.md`. При добавлении/
+удалении пакета обнови это число (проверка: `ls -d exercises/*/ | grep -v cmd | wc -l`).
