@@ -387,6 +387,23 @@ func minServers(weights []int, cap int) int {
 - Пакет `dp` (`Knapsack01`) — псевдополиномиальное ДП: как «маленькие числа» спасают рюкзак.
 - Классическая NP-полная постановка на LeetCode: [Partition Equal Subset Sum](https://leetcode.com/problems/partition-equal-subset-sum/) (LeetCode 416, это Subset Sum). А [Word Break II](https://leetcode.com/problems/word-break-ii/) (LeetCode 140) показывает экспоненту с другой стороны: сама проверка «разбивается ли строка» решается ДП за полином, но *перечислить все* разбиения может потребовать экспоненциально длинного ответа.
 
+### 💻 Реши прямо здесь — пакет `npcomplete`
+
+Собственный пакет главы: реализуй `VerifySubsetSum` (сертификат — почему задача в NP),
+`SubsetSumExact` (полный перебор — стена), `FirstFitDecreasing` (приближение с гарантией для
+Bin Packing) и `VertexCoverGreedy2Approx` (2-приближение для Vertex Cover, ровно то, что
+упомянуто в разделе про приближения). Готового решения нет: зелёное — справился.
+
+```bash
+cd exercises
+go test ./npcomplete/                 # ваши реализации (красные)
+go test -tags solution ./npcomplete/  # эталон (зелёные)
+```
+
+Подними локальный runner (`cd exercises && go run ./cmd/runner`), затем обнови страницу:
+
+<div class="algo-runner" data-pkg="npcomplete"></div>
+
 ## 🔗 Связанные темы
 
 - **[Backtracking](backtracking.md)** — перебор с отсечениями: инструмент точного решения NP-трудных

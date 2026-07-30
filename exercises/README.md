@@ -122,6 +122,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `toposort`      | `TopologicalSort`, `CanFinish`, `FindOrderLexSmallest`, `AlienOrder` |
 | `greedy`        | `MaxNonOverlapping`, `CanJump`, `MinJumps`, `MaxProfit`, `FractionalKnapsack` |
 | `dp`            | `ClimbStairs`, `CoinChange`, `LongestCommonSubsequence`, `EditDistance`, `LongestIncreasingSubsequence`, `Knapsack01`, `HouseRobber`, `UniquePaths`, `WordBreak` |
+| `npcomplete`    | `VerifySubsetSum` (сертификат за полином — почему задача в NP), `SubsetSumExact` (перебор — стена), `FirstFitDecreasing` (приближение для Bin Packing), `VertexCoverGreedy2Approx` (2-приближение для Vertex Cover) |
 | `strmatch`      | `KMPSearch`, `RabinKarp`, `CountOccurrences`, `LongestPrefixSuffix`, `ZSearch` |
 | `trie`          | `Trie.Insert` / `Search` / `StartsWith` / `Delete` / `WordsWithPrefix` |
 | `segtree`       | `SegmentTree` (`Update`/`Query`, сумма), `MinSegmentTree` (`Update`/`Query`, минимум), `LazySegmentTree` (`NewLazySegmentTree`/`RangeUpdate`/`RangeQuery`, отложенное распространение) |
