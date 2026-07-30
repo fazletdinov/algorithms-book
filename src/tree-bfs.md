@@ -400,7 +400,11 @@ go test -tags solution ./treebfs/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="treebfs"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения твоего собственного кода на том же дереве,
+что и в примерах выше.
+
+<div class="algo-runner" data-pkg="treebfs" data-trace-calls='[{"func": "LevelOrder", "call": "LevelOrder(&treebfs.TreeNode{Val: 1, Left: &treebfs.TreeNode{Val: 2, Left: &treebfs.TreeNode{Val: 4}, Right: &treebfs.TreeNode{Val: 5}}, Right: &treebfs.TreeNode{Val: 3}})"}, {"func": "ZigzagLevelOrder", "call": "ZigzagLevelOrder(&treebfs.TreeNode{Val: 1, Left: &treebfs.TreeNode{Val: 2, Left: &treebfs.TreeNode{Val: 4}, Right: &treebfs.TreeNode{Val: 5}}, Right: &treebfs.TreeNode{Val: 3}})"}, {"func": "RightSideView", "call": "RightSideView(&treebfs.TreeNode{Val: 1, Left: &treebfs.TreeNode{Val: 2, Left: &treebfs.TreeNode{Val: 4}, Right: &treebfs.TreeNode{Val: 5}}, Right: &treebfs.TreeNode{Val: 3}})"}, {"func": "LevelAverages", "call": "LevelAverages(&treebfs.TreeNode{Val: 1, Left: &treebfs.TreeNode{Val: 2, Left: &treebfs.TreeNode{Val: 4}, Right: &treebfs.TreeNode{Val: 5}}, Right: &treebfs.TreeNode{Val: 3}})"}, {"func": "MinDepth", "call": "MinDepth(&treebfs.TreeNode{Val: 1, Left: &treebfs.TreeNode{Val: 2, Left: &treebfs.TreeNode{Val: 4}, Right: &treebfs.TreeNode{Val: 5}}, Right: &treebfs.TreeNode{Val: 3}})"}]'></div>
 
 ## 🔗 Связанные шаблоны
 

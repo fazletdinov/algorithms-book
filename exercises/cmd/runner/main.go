@@ -57,6 +57,7 @@ func main() {
 	mux.HandleFunc("/api/health", withCORS(handleHealth))
 	mux.HandleFunc("/api/stub", withCORS(handleStub))
 	mux.HandleFunc("/api/run", withCORS(handleRun))
+	mux.HandleFunc("/api/trace", withCORS(handleTrace))
 
 	log.Printf("runner: слушаю http://localhost%s — Ctrl+C для остановки", *addr)
 	if err := http.ListenAndServe("localhost"+strings.TrimPrefix(*addr, "localhost"), mux); err != nil {

@@ -240,7 +240,11 @@ O(1)). Рандом-тест сверяет твой O(1)-запрос с brute-
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="sparsetable"></div>
+Когда `NewSparse` пройдёт тесты, нажми «🎞 Визуализировать» — увидишь, как
+таблица заполняется уровень за уровнем (`Query` — метод, для визуализации
+пока недоступен: инструментатор не трассирует методы).
+
+<div class="algo-runner" data-pkg="sparsetable" data-trace-calls='[{"func": "NewSparse", "call": "NewSparse([]int{5, 2, 6, 1, 8, 3})"}]'></div>
 
 ## 🧩 Задачи
 

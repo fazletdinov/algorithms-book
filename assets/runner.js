@@ -103,6 +103,14 @@
     if (!pkg) return;
     var race = root.getAttribute("data-race") === "true";
     var flagship = root.getAttribute("data-flagship") === "true";
+    // data-trace-calls — JSON-массив [{"func":"Имя","call":"Имя(...)"}, ...]:
+    // одна функция пакета — один элемент. Читатель выбирает функцию сам,
+    // потому что в файле пакета их обычно несколько.
+    var traceCalls = [];
+    var traceCallsAttr = root.getAttribute("data-trace-calls");
+    if (traceCallsAttr) {
+      try { traceCalls = JSON.parse(traceCallsAttr); } catch (e) { console.warn("algo-runner: битый data-trace-calls", e); }
+    }
     root.classList.add("algo-runner--ready");
     root.innerHTML = "";
 
@@ -121,10 +129,27 @@
     var runBtn = btn("▶ Прогнать тесты", "algo-runner__btn algo-runner__btn--run");
     var resetBtn = btn("Сбросить", "algo-runner__btn");
     bar.appendChild(runBtn); bar.appendChild(resetBtn);
+    var traceBtn = null, traceSelect = null;
+    if (traceCalls.length) {
+      if (traceCalls.length > 1) {
+        traceSelect = document.createElement("select");
+        traceSelect.className = "algo-runner__trace-select";
+        traceCalls.forEach(function (t) {
+          var opt = document.createElement("option");
+          opt.value = t.func; opt.textContent = t.func;
+          traceSelect.appendChild(opt);
+        });
+        bar.appendChild(traceSelect);
+      }
+      traceBtn = btn("🎞 Визуализировать", "algo-runner__btn algo-runner__btn--trace");
+      bar.appendChild(traceBtn);
+    }
     root.appendChild(bar);
 
     var out = el("div", "algo-runner__out");
     root.appendChild(out);
+    var traceOut = el("div", "algo-runner__trace");
+    if (traceCalls.length) root.appendChild(traceOut);
 
     var editor = null;
     var stubCode = "";
@@ -182,8 +207,36 @@
       editor.setValue(stubCode);
       localStorage.removeItem(lsKey);
       out.innerHTML = "";
+      traceOut.innerHTML = "";
       setStatus("сброшено к условию", "ok");
     });
+
+    if (traceBtn) {
+      if (traceSelect) traceSelect.addEventListener("change", function () { traceOut.innerHTML = ""; });
+      traceBtn.addEventListener("click", function () {
+        if (!editor) return;
+        var wantFunc = traceSelect ? traceSelect.value : traceCalls[0].func;
+        var chosen = null;
+        for (var i = 0; i < traceCalls.length; i++) {
+          if (traceCalls[i].func === wantFunc) { chosen = traceCalls[i]; break; }
+        }
+        if (!chosen) return;
+        traceBtn.disabled = true;
+        traceOut.innerHTML = "";
+        setStatus("строим трассу выполнения…", "wait");
+        api("/api/trace", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pkg: pkg, code: editor.getValue(), func: chosen.func, call: chosen.call }),
+        })
+          .then(function (res) {
+            if (window.AlgoTraceViz) window.AlgoTraceViz.render(traceOut, res);
+            setStatus(res.ok ? "✓ трасса построена" : (res.unsupported ? "△ форма не поддерживается" : "✗ трасса не построена"), res.ok ? "ok" : "err");
+          })
+          .catch(function (err) { serverDownView(traceOut, err); setStatus("ошибка связи", "err"); })
+          .then(function () { traceBtn.disabled = false; });
+      });
+    }
   }
 
   // ---- рендер результата ----

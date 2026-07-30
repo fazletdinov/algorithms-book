@@ -306,7 +306,10 @@ go test -tags solution ./linkedlist/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="listcrud"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения твоего собственного кода.
+
+<div class="algo-runner" data-pkg="listcrud" data-trace-calls='[{"func": "InsertAt", "call": "InsertAt(&listcrud.ListNode{Val: 1, Next: &listcrud.ListNode{Val: 2, Next: &listcrud.ListNode{Val: 3, Next: nil}}}, 9, 1)"}, {"func": "Search", "call": "Search(&listcrud.ListNode{Val: 1, Next: &listcrud.ListNode{Val: 2, Next: &listcrud.ListNode{Val: 3, Next: &listcrud.ListNode{Val: 4, Next: nil}}}}, 3)"}, {"func": "DeleteVal", "call": "DeleteVal(&listcrud.ListNode{Val: 1, Next: &listcrud.ListNode{Val: 2, Next: &listcrud.ListNode{Val: 3, Next: &listcrud.ListNode{Val: 4, Next: nil}}}}, 3)"}]'></div>
 
 ## 🧩 Задачи
 

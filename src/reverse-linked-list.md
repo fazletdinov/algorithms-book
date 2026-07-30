@@ -379,7 +379,11 @@ go test -tags solution ./linkedlist/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="linkedlist"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения твоего собственного кода: указатели
+списка отрисуются цепочкой значений, а не сырым адресом.
+
+<div class="algo-runner" data-pkg="linkedlist" data-trace-calls='[{"func": "ReverseList", "call": "ReverseList(&linkedlist.ListNode{Val: 1, Next: &linkedlist.ListNode{Val: 2, Next: &linkedlist.ListNode{Val: 3, Next: nil}}})"}, {"func": "ReverseSublist", "call": "ReverseSublist(&linkedlist.ListNode{Val: 1, Next: &linkedlist.ListNode{Val: 2, Next: &linkedlist.ListNode{Val: 3, Next: &linkedlist.ListNode{Val: 4, Next: &linkedlist.ListNode{Val: 5, Next: nil}}}}}, 2, 4)"}, {"func": "ReverseKGroup", "call": "ReverseKGroup(&linkedlist.ListNode{Val: 1, Next: &linkedlist.ListNode{Val: 2, Next: &linkedlist.ListNode{Val: 3, Next: &linkedlist.ListNode{Val: 4, Next: &linkedlist.ListNode{Val: 5, Next: nil}}}}}, 2)"}, {"func": "IsPalindrome", "call": "IsPalindrome(&linkedlist.ListNode{Val: 1, Next: &linkedlist.ListNode{Val: 2, Next: &linkedlist.ListNode{Val: 2, Next: &linkedlist.ListNode{Val: 1, Next: nil}}}})"}]'></div>
 
 ## 🔗 Связанные шаблоны
 

@@ -503,7 +503,11 @@ go test -tags solution ./twopointers/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="twopointers"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения твоего собственного кода с подсветкой
+текущей строки.
+
+<div class="algo-runner" data-pkg="twopointers" data-trace-calls='[{"func": "PairWithTargetSum", "call": "PairWithTargetSum([]int{1, 2, 3, 4, 6}, 6)"}, {"func": "RemoveDuplicates", "call": "RemoveDuplicates([]int{2, 3, 3, 3, 6, 9, 9})"}, {"func": "SortedSquares", "call": "SortedSquares([]int{-2, -1, 0, 2, 3})"}, {"func": "TripletsSumToZero", "call": "TripletsSumToZero([]int{-3, 0, 1, 2, -1, 1, -2})"}, {"func": "DutchFlagSort", "call": "DutchFlagSort([]int{2, 0, 2, 1, 1, 0})"}]'></div>
 
 ## 🏗️ Инженерный кейс
 

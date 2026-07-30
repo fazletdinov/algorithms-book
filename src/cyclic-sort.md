@@ -372,7 +372,11 @@ go test -tags solution ./cyclicsort/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="cyclicsort"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения твоего собственного кода с подсветкой
+текущей строки.
+
+<div class="algo-runner" data-pkg="cyclicsort" data-trace-calls='[{"func": "CyclicSort", "call": "CyclicSort([]int{3, 1, 5, 4, 2})"}, {"func": "FindMissingNumber", "call": "FindMissingNumber([]int{4, 0, 3, 1})"}, {"func": "FindAllMissingNumbers", "call": "FindAllMissingNumbers([]int{2, 3, 1, 8, 2, 3, 5, 1})"}, {"func": "FindDuplicate", "call": "FindDuplicate([]int{1, 4, 4, 3, 2})"}, {"func": "FindAllDuplicates", "call": "FindAllDuplicates([]int{3, 4, 4, 5, 5})"}]'></div>
 
 ## 🏗️ Инженерный кейс
 

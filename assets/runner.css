@@ -82,6 +82,20 @@
   color: #fff;
 }
 .algo-runner__btn--run:hover { background: #15803d; }
+.algo-runner__btn--trace {
+  background: #4f46e5;
+  border-color: #4338ca;
+  color: #fff;
+}
+.algo-runner__btn--trace:hover { background: #4338ca; }
+.algo-runner__trace-select {
+  border: 1px solid #cfd6e4;
+  border-radius: 7px;
+  padding: 6px 8px;
+  font-size: 13px;
+  background: #fff;
+  color: #243;
+}
 
 .algo-runner__out:empty { display: none; }
 .algo-runner__verdict {

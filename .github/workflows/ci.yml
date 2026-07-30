@@ -53,11 +53,13 @@ jobs:
         run: go vet ./...
       # Заготовки НЕ должны проходить тесты без тега solution: если какой-то
       # пакет зелёный на untagged-сборке — значит решение случайно попало в
-      # файл-заготовку вместо panic("TODO").
+      # файл-заготовку вместо panic("TODO"). Пакеты под cmd/ (раннер и его
+      # helper'ы вроде traceinstr) — не пары заготовка/эталон, а обычная
+      # инфраструктура: их тесты ДОЛЖНЫ проходить всегда, поэтому исключены.
       - name: Заготовки ещё не решены
         run: |
           fail=0
-          for pkg in $(go list ./...); do
+          for pkg in $(go list ./... | grep -v '/cmd/'); do
             if out=$(go test -count=1 "$pkg" 2>&1); then
               if ! echo "$out" | grep -q "no test files"; then
                 echo "::error::Пакет $pkg проходит тесты БЕЗ -tags solution — решение попало в заготовку"
