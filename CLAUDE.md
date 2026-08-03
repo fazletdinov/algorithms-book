@@ -166,3 +166,16 @@ Job `go-tests` (working-directory `exercises/`) проверяет четыре 
 solution-файл появляется — обновлять исключение вручную не нужно. Список функций каждого
 пакета — в `exercises/README.md`. При добавлении/
 удалении пакета обнови это число (проверка: `ls -d exercises/*/ | grep -v cmd | wc -l`).
+
+После завершения маршрута в `miniredis` добавлен непронумерованный бонус про fuzzing
+(`exercises/miniredis/resp_fuzz_test.go`, дан готовым, без TODO — `FuzzReadCommand`) —
+демонстрация нативного `go test -fuzz` (coverage-guided, в отличие от model-based
+`*_rand_test.go` в других пакетах) на реальном найденном баге: заголовок bulk-строки `$N`
+около `math.MaxInt64` в `parseMultibulk` (`resp.go`) переполнял `int` при `blen+2` и валил
+`ReadCommand` паникой `"makeslice: len out of range"` — фаззер нашёл это за секунды. Так как
+`handleConn` (`cmd/miniredis/main.go`) не оборачивает `ReadCommand` в `recover()`, паника в
+одной горутине убивала весь процесс — не только вызвавшее её соединение. Исправлено границами
+`maxBulkLen`/`maxMultibulkLen` в `resp.go` (аналог `proto-max-bulk-len`/`proto-max-multibulk-len`
+настоящего Redis); упавший вход остался в затравке `FuzzReadCommand` как регрессионный тест.
+Раздел в `src/miniredis.md` также оставляет читателю парную самостоятельную задачу — так же
+ограничить `readLine` (аналог `proto-inline-max-size`) и дописать для неё свою затравку.

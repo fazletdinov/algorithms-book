@@ -45,14 +45,30 @@ func readLine(r *bufio.Reader) (string, error) {
 	return strings.TrimRight(line, "\r\n"), nil
 }
 
+// maxBulkLen и maxMultibulkLen ограничивают длины, которые клиент указывает В САМОМ
+// ПРОТОКОЛЕ (заголовки "$N" и "*N") — числу, которое мы читаем ДО того, как успели ему не
+// поверить. Без этой границы фаззер (см. FuzzReadCommand в resp_fuzz_test.go) за секунды
+// находит: заголовок "$9223372036854775807" (около math.MaxInt64) проходит strconv.Atoi
+// (int — 64 бита на обычной платформе) и проверку blen<0 (число положительное), а затем
+// падает на make([]byte, blen+2) — blen+2 переполняет int и оборачивается в отрицательное
+// число, make паникует "makeslice: len out of range". handleConn (cmd/miniredis/main.go) не
+// оборачивает ReadCommand в recover() — необработанная паника в горутине одного соединения
+// убивает ВЕСЬ процесс, включая чужие подключения. Настоящий Redis защищается ровно так же:
+// proto-max-bulk-len (по умолчанию 512MB в redis.conf) и proto-max-multibulk-len ограничивают
+// ровно эти два числа, прежде чем сервер поверит клиенту и полезет аллоцировать под них память.
+const (
+	maxBulkLen      = 512 * 1024 * 1024 // как redis.conf: proto-max-bulk-len по умолчанию
+	maxMultibulkLen = 1024 * 1024       // консервативная граница на число элементов *N
+)
+
 // parseMultibulk разбирает тело массива *N после уже прочитанного заголовка.
 func parseMultibulk(r *bufio.Reader, header string) ([]string, error) {
 	n, err := strconv.Atoi(header[1:])
 	if err != nil {
 		return nil, fmt.Errorf("miniredis: битый заголовок массива %q: %w", header, err)
 	}
-	if n < 0 {
-		return nil, fmt.Errorf("miniredis: отрицательная длина массива в %q", header)
+	if n < 0 || n > maxMultibulkLen {
+		return nil, fmt.Errorf("miniredis: недопустимая длина массива в %q", header)
 	}
 	args := make([]string, 0, n)
 	for range n {
@@ -64,8 +80,8 @@ func parseMultibulk(r *bufio.Reader, header string) ([]string, error) {
 			return nil, fmt.Errorf("miniredis: ожидался $-заголовок bulk-строки, получено %q", bulkHeader)
 		}
 		blen, err := strconv.Atoi(bulkHeader[1:])
-		if err != nil || blen < 0 {
-			return nil, fmt.Errorf("miniredis: битая длина bulk-строки %q", bulkHeader)
+		if err != nil || blen < 0 || blen > maxBulkLen {
+			return nil, fmt.Errorf("miniredis: недопустимая длина bulk-строки %q", bulkHeader)
 		}
 		buf := make([]byte, blen+2) // +2 на завершающий "\r\n" bulk-строки
 		if _, err := io.ReadFull(r, buf); err != nil {
