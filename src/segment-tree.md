@@ -388,7 +388,10 @@ go test -tags solution ./segtree/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="segtree"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как дерево строится снизу вверх и что оказывается в каждом внутреннем узле.
+
+<div class="algo-runner" data-pkg="segtree" data-trace-calls='[{"func": "NewSegmentTree", "call": "NewSegmentTree([]int{1, 3, 5, 7, 9, 11})"}, {"func": "NewMinSegmentTree", "call": "NewMinSegmentTree([]int{5, 2, 8, 1, 9, 3})"}]'></div>
 
 ## 🔗 Связанные шаблоны
 

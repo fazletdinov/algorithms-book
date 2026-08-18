@@ -449,7 +449,10 @@ go test -tags solution ./fastslow/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="fastslow"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как зазор между указателями сокращается ровно на единицу за шаг — на входе с настоящим циклом видно и саму встречу, и почему перескочить невозможно.
+
+<div class="algo-runner" data-pkg="fastslow" data-trace-calls='[{"func": "HasCycle", "call": "HasCycle(func() *fastslow.ListNode { a := &fastslow.ListNode{Val: 1}; b := &fastslow.ListNode{Val: 2}; c := &fastslow.ListNode{Val: 3}; d := &fastslow.ListNode{Val: 4}; a.Next = b; b.Next = c; c.Next = d; d.Next = b; return a }())"}, {"func": "DetectCycle", "call": "DetectCycle(func() *fastslow.ListNode { a := &fastslow.ListNode{Val: 1}; b := &fastslow.ListNode{Val: 2}; c := &fastslow.ListNode{Val: 3}; d := &fastslow.ListNode{Val: 4}; a.Next = b; b.Next = c; c.Next = d; d.Next = b; return a }())"}, {"func": "CycleLength", "call": "CycleLength(func() *fastslow.ListNode { a := &fastslow.ListNode{Val: 1}; b := &fastslow.ListNode{Val: 2}; c := &fastslow.ListNode{Val: 3}; d := &fastslow.ListNode{Val: 4}; a.Next = b; b.Next = c; c.Next = d; d.Next = b; return a }())"}, {"func": "MiddleNode", "call": "MiddleNode(&fastslow.ListNode{Val: 1, Next: &fastslow.ListNode{Val: 2, Next: &fastslow.ListNode{Val: 3, Next: &fastslow.ListNode{Val: 4, Next: &fastslow.ListNode{Val: 5}}}}})"}]'></div>
 
 ## 🏗️ Инженерный кейс
 

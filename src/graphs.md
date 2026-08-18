@@ -611,11 +611,17 @@ go test -tags solution -bench=. ./parallelbfs/  # Seq vs Conc(mutex) vs ConcLoca
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="graphs"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как фронт BFS растёт по уровням и в какой момент вершина красится в противоположный цвет.
+
+<div class="algo-runner" data-pkg="graphs" data-trace-calls='[{"func": "BFSOrder", "call": "BFSOrder(6, [][]int{{0, 1}, {0, 2}, {1, 3}, {2, 4}, {3, 5}}, 0)"}, {"func": "ShortestPathUnweighted", "call": "ShortestPathUnweighted(6, [][]int{{0, 1}, {0, 2}, {1, 3}, {2, 4}, {3, 5}}, 0, 5)"}, {"func": "IsBipartite", "call": "IsBipartite(4, [][]int{{0, 1}, {1, 2}, {2, 3}, {3, 0}})"}]'></div>
 
 **Конкурентный вариант — пакет `parallelbfs`** (для проверки гонок запусти в CLI `go test -race`):
 
-<div class="algo-runner" data-pkg="parallelbfs" data-race="true"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: последовательный BFS по уровням — ровно то, что в конкурентной версии разносится по горутинам.
+
+<div class="algo-runner" data-pkg="parallelbfs" data-race="true" data-trace-calls='[{"func": "BFSLevelsSeq", "call": "BFSLevelsSeq([][]int{{1, 2}, {0, 3}, {0, 3}, {1, 2, 4}, {3}}, 0)"}]'></div>
 
 ## 🔗 Связанные шаблоны
 

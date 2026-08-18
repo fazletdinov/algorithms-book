@@ -485,7 +485,10 @@ go test -tags solution ./grids/ ./dijkstra/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="grids"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как волна обходит клетки по уровням — «минута гниения» и есть номер уровня BFS.
+
+<div class="algo-runner" data-pkg="grids" data-trace-calls='[{"func": "RottingOranges", "call": "RottingOranges([][]int{{2, 1, 1}, {1, 1, 0}, {0, 1, 1}})"}, {"func": "ShortestPathInBinaryMatrix", "call": "ShortestPathInBinaryMatrix([][]int{{0, 0, 0}, {1, 1, 0}, {1, 1, 0}})"}]'></div>
 
 ## 🏗️ Инженерный кейс
 

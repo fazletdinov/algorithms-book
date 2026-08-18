@@ -426,7 +426,10 @@ func maxMatching(nLeft, nRight int, adj [][]int) int {
 красное — видно, какой тест упал. Подними локальный runner (`cd exercises && go run ./cmd/runner`), затем
 обнови страницу.
 
-<div class="algo-runner" data-pkg="maxflow"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как находится дополняющий путь и на сколько после него падают остаточные пропускные способности.
+
+<div class="algo-runner" data-pkg="maxflow" data-trace-calls='[{"func": "MaxFlow", "call": "MaxFlow(4, [][]int{{0, 1, 3}, {0, 2, 2}, {1, 2, 1}, {1, 3, 2}, {2, 3, 3}}, 0, 3)"}]'></div>
 
 ## 🏗️ Инженерный кейс
 

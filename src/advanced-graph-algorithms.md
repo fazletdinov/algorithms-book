@@ -553,13 +553,25 @@ go test -tags solution ./bellmanford/ ./astar/ ./mst/  # эталон
 LeetCode. Готового решения тут нет: справишься — увидишь зелёное, ошибёшься — увидишь,
 какой тест упал. Сначала подними локальный runner: `cd exercises && go run ./cmd/runner`.
 
-<div class="algo-runner" data-pkg="astar"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как эвристика меняет порядок раскрытия клеток по сравнению с обычным BFS.
 
-<div class="algo-runner" data-pkg="bellmanford"></div>
+<div class="algo-runner" data-pkg="astar" data-trace-calls='[{"func": "PathExists", "call": "PathExists([][]int{{0, 0, 0}, {1, 1, 0}, {0, 0, 0}})"}]'></div>
 
-<div class="algo-runner" data-pkg="dijkstra"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как расстояния сходятся за проходы по всем рёбрам — и что при отрицательном цикле лишний проход всё ещё что-то меняет.
 
-<div class="algo-runner" data-pkg="mst"></div>
+<div class="algo-runner" data-pkg="bellmanford" data-trace-calls='[{"func": "HasNegativeCycle", "call": "HasNegativeCycle(4, [][]int{{0, 1, 1}, {1, 2, -1}, {2, 3, -1}, {3, 1, -1}})"}, {"func": "ShortestPathWithAtMostKEdges", "call": "ShortestPathWithAtMostKEdges(4, [][]int{{0, 1, 100}, {0, 2, 500}, {1, 2, 100}, {2, 3, 100}}, 0, 3, 2)"}]'></div>
+
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как из кучи выходит вершина с минимальной оценкой и какие рёбра её улучшают.
+
+<div class="algo-runner" data-pkg="dijkstra" data-trace-calls='[{"func": "ShortestPath", "call": "ShortestPath(5, [][]int{{0, 1, 4}, {0, 2, 1}, {2, 1, 2}, {1, 3, 1}, {2, 3, 5}, {3, 4, 3}}, 0, 4)"}, {"func": "ShortestPathsFrom", "call": "ShortestPathsFrom(5, [][]int{{0, 1, 4}, {0, 2, 1}, {2, 1, 2}, {1, 3, 1}, {2, 3, 5}, {3, 4, 3}}, 0)"}, {"func": "NetworkDelayTime", "call": "NetworkDelayTime(4, [][]int{{0, 1, 1}, {0, 2, 4}, {1, 2, 2}, {2, 3, 1}}, 0)"}]'></div>
+
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как Прим добавляет по одной вершине через минимальное ребро на границе разреза.
+
+<div class="algo-runner" data-pkg="mst" data-trace-calls='[{"func": "MSTWeightPrim", "call": "MSTWeightPrim(4, [][]int{{0, 1, 1}, {1, 2, 2}, {0, 2, 4}, {2, 3, 3}})"}]'></div>
 
 ## 🏗️ Инженерный кейс
 

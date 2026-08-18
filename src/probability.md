@@ -408,7 +408,10 @@ O(k) памяти), `ExpectedCollisions` (формула C(n,2)/m) и `BirthdayT
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="sampling"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как резервуар заменяет элемент с вероятностью k/i, а перемешивание меняет каждый элемент с позицией из уже пройденной части (генератор с фиксированным зерном — трасса воспроизводима).
+
+<div class="algo-runner" data-pkg="sampling" data-trace-calls='[{"func": "Shuffle", "call": "Shuffle([]int{1, 2, 3, 4, 5, 6}, rand.New(rand.NewSource(42)))"}, {"func": "ReservoirSample", "call": "ReservoirSample([]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, 3, rand.New(rand.NewSource(42)))"}, {"func": "BirthdayThreshold", "call": "BirthdayThreshold(365)"}]'></div>
 
 ## 🔗 Связанные шаблоны
 

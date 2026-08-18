@@ -402,7 +402,10 @@ go test -tags solution ./npcomplete/  # эталон (зелёные)
 
 Подними локальный runner (`cd exercises && go run ./cmd/runner`), затем обнови страницу:
 
-<div class="algo-runner" data-pkg="npcomplete"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: сколько шагов занимает ПРОВЕРКА сертификата — прямой контраст с перебором рядом.
+
+<div class="algo-runner" data-pkg="npcomplete" data-trace-calls='[{"func": "VerifySubsetSum", "call": "VerifySubsetSum([]int{3, 34, 4, 12, 5, 2}, []int{2, 3, 5}, 18)"}, {"func": "VertexCoverGreedy2Approx", "call": "VertexCoverGreedy2Approx(5, [][2]int{{0, 1}, {1, 2}, {2, 3}, {3, 4}})"}]'></div>
 
 ## 🔗 Связанные темы
 

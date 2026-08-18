@@ -481,7 +481,10 @@ go test -tags solution -race ./wordcount/  # ловит запись в общу
 
 **Конкурентный вариант — пакет `wordcount`** (для проверки гонок запусти в CLI `go test -race`):
 
-<div class="algo-runner" data-pkg="wordcount" data-race="true"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как накапливается map частот — последовательная версия, с которой сравнивается конкурентная.
+
+<div class="algo-runner" data-pkg="wordcount" data-race="true" data-trace-calls='[{"func": "FreqSeq", "call": "FreqSeq([]int{3, 1, 3, 7, 1, 3})"}]'></div>
 
 ## 🔗 Связанные шаблоны
 

@@ -315,7 +315,10 @@ go test ./twoheaps/   # медиана потока двумя кучами
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="binheap"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как heapify идёт снизу вверх — по числу шагов видно, что это O(n), а не n вставок по O(log n).
+
+<div class="algo-runner" data-pkg="binheap" data-trace-calls='[{"func": "BuildHeap", "call": "BuildHeap([]int{9, 4, 7, 1, 8, 2, 6})"}]'></div>
 
 ## 🧩 Задачи
 

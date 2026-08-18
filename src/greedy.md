@@ -421,7 +421,10 @@ go test -tags solution ./greedy/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="greedy"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как ведётся максимальный достижимый индекс — и почему одного прохода хватает, чтобы ответить.
+
+<div class="algo-runner" data-pkg="greedy" data-trace-calls='[{"func": "CanJump", "call": "CanJump([]int{2, 3, 1, 1, 4})"}, {"func": "MinJumps", "call": "MinJumps([]int{2, 3, 1, 1, 4})"}, {"func": "MaxProfit", "call": "MaxProfit([]int{7, 1, 5, 3, 6, 4})"}]'></div>
 
 ## 🏗️ Инженерный кейс
 

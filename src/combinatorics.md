@@ -393,7 +393,10 @@ A(n,k)), `CountDivisibleByAny` (включение-исключение по б�
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="combinatorics"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как значение собирается по одной итерации — и почему деление внутри цикла не даёт дробей.
+
+<div class="algo-runner" data-pkg="combinatorics" data-trace-calls='[{"func": "Binomial", "call": "Binomial(10, 4)"}, {"func": "Permutations", "call": "Permutations(6, 3)"}, {"func": "CountDivisibleByAny", "call": "CountDivisibleByAny(100, []int{3, 5})"}, {"func": "Derangements", "call": "Derangements(6)"}]'></div>
 
 ## 🔗 Связанные шаблоны
 

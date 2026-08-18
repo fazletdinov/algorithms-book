@@ -249,7 +249,10 @@ func ladderLength(beginWord, endWord string, wordList []string) int {
 
 **💻 Реши сам — пакет `wordladder`** (подними runner: `cd exercises && go run ./cmd/runner`):
 
-<div class="algo-runner" data-pkg="wordladder"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как BFS перебирает все 26 букв на каждой позиции слова — сразу видно, откуда берётся цена.
+
+<div class="algo-runner" data-pkg="wordladder" data-trace-calls='[{"func": "LadderLength", "call": "LadderLength(\"hit\", \"cog\", []string{\"hot\", \"dot\", \"dog\", \"cog\"})"}]'></div>
 
 ## 3. Alien Dictionary — граф из строк + топологическая сортировка
 

@@ -126,7 +126,10 @@ func ParseAndSum(strs []string) (int, error) {
 отдаёт файл целиком (все три функции), а не пустой TODO. Проверка гонки (случай 1) —
 дополнительно `🏁 -race`.
 
-<div class="algo-runner" data-pkg="codereview" data-race="true"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: два вложенных цикла: квадратичность видна прямо по числу шагов, ещё до бенчмарка.
+
+<div class="algo-runner" data-pkg="codereview" data-race="true" data-trace-calls='[{"func": "HasDuplicate", "call": "HasDuplicate([]int{4, 7, 2, 9, 7, 1})"}]'></div>
 
 ## 🧩 Задачи
 

@@ -506,7 +506,10 @@ go test -tags solution -race ./parallelsearch/  # общий счётчик не
 
 **Конкурентный вариант — пакет `parallelsearch`** (для проверки гонок запусти в CLI `go test -race`):
 
-<div class="algo-runner" data-pkg="parallelsearch" data-race="true"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: последовательный поиск по чанкам — видно, почему делить надо по началам вхождений, а не по байтам.
+
+<div class="algo-runner" data-pkg="parallelsearch" data-race="true" data-trace-calls='[{"func": "CountOccurrencesSeq", "call": "CountOccurrencesSeq(\"abababa\", \"aba\")"}]'></div>
 
 ## 🏗️ Инженерный кейс
 

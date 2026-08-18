@@ -503,7 +503,10 @@ go test -tags solution -bench=. ./parallelsort/ # Conc обгоняет Seq
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="kwaymerge"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как куча размера k отдаёт минимум и тут же принимает следующий элемент из того же массива.
+
+<div class="algo-runner" data-pkg="kwaymerge" data-trace-calls='[{"func": "MergeKSortedArrays", "call": "MergeKSortedArrays([][]int{{2, 6, 8}, {3, 6, 7}, {1, 3, 4}})"}, {"func": "KthSmallestInSortedArrays", "call": "KthSmallestInSortedArrays([][]int{{2, 6, 8}, {3, 6, 7}, {1, 3, 4}}, 5)"}, {"func": "SmallestRange", "call": "SmallestRange([][]int{{1, 5, 8}, {4, 12}, {7, 8, 10}})"}, {"func": "KthSmallestInMatrix", "call": "KthSmallestInMatrix([][]int{{1, 5, 9}, {10, 11, 13}, {12, 13, 15}}, 8)"}]'></div>
 
 **Конкурентный вариант — пакет `parallelsort`** (для проверки гонок запусти в CLI `go test -race`):
 

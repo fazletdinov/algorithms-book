@@ -142,7 +142,103 @@ var traceTargets = map[string][]string{
 		"SieveOfEratosthenes",
 		"PowMod",
 	},
+	"fastslow": {
+		"HasCycle",
+		"DetectCycle",
+		"CycleLength",
+		"MiddleNode",
+	},
+	"graphs": {
+		"BFSOrder",
+		"ShortestPathUnweighted",
+		"IsBipartite",
+	},
+	"grids": {
+		"RottingOranges",
+		"ShortestPathInBinaryMatrix",
+	},
+	"dijkstra": {
+		"ShortestPath",
+		"ShortestPathsFrom",
+		"NetworkDelayTime",
+	},
+	"bellmanford": {
+		"HasNegativeCycle",
+		"ShortestPathWithAtMostKEdges",
+	},
+	"astar": {
+		"PathExists",
+	},
+	"mst": {
+		"MSTWeightPrim",
+	},
+	"maxflow": {
+		"MaxFlow",
+	},
+	"greedy": {
+		"CanJump",
+		"MinJumps",
+		"MaxProfit",
+	},
+	"kwaymerge": {
+		"MergeKSortedArrays",
+		"KthSmallestInSortedArrays",
+		"SmallestRange",
+		"KthSmallestInMatrix",
+	},
+	"combinatorics": {
+		"Binomial",
+		"Permutations",
+		"CountDivisibleByAny",
+		"Derangements",
+	},
+	"cryptography": {
+		"ModExp",
+		"IsProbablePrime",
+	},
+	"sampling": {
+		"Shuffle",
+		"ReservoirSample",
+		"BirthdayThreshold",
+	},
+	"binheap": {
+		"BuildHeap",
+	},
+	"fenwick": {
+		"NewFenwick",
+		"CountInversions",
+		"CountSmallerToRight",
+	},
+	"segtree": {
+		"NewSegmentTree",
+		"NewMinSegmentTree",
+	},
+	"npcomplete": {
+		"VerifySubsetSum",
+		"VertexCoverGreedy2Approx",
+	},
+	"wordladder": {
+		"LadderLength",
+	},
+	"parallelbfs": {
+		"BFSLevelsSeq",
+	},
+	"parallelsearch": {
+		"CountOccurrencesSeq",
+	},
+	"wordcount": {
+		"FreqSeq",
+	},
+	"codereview": {
+		"HasDuplicate",
+	},
 }
+
+// Намеренно НЕ подключены, хотя инструментацию проходят (см. cmd/tracescan):
+// dsu.NewUnionFind — тривиальный init-цикл, смотреть нечего; miniredis.SaveSnapshot
+// — пишет файл на диск, трассировке тут делать нечего; profiling.FormatScores —
+// её глава как раз про то, что по шагам проблему НЕ видно, надо профилировать
+// (и на 1000 элементах трасса была бы неподъёмной).
 
 // traceVoidFuncs — функции без возвращаемого значения (мутируют аргумент на
 // месте, например сортировка в массиве): харнесс вызывает их отдельным
@@ -152,6 +248,7 @@ var traceVoidFuncs = map[string]bool{
 	"CyclicSort":    true,
 	"DutchFlagSort": true,
 	"HeapSort":      true,
+	"Shuffle":       true,
 }
 
 func isTraceTarget(pkg, fn string) bool {
@@ -309,10 +406,18 @@ var harnessTmpl = template.Must(template.New("harness").Parse(`package main
 import (
 	{{if not .Void}}"encoding/json"
 	{{end}}"fmt"
+	"math/rand"
 	"os"
 
 	{{.Pkg}} "{{.ImportPath}}"
 )
+
+// math/rand импортируется всегда — вызов в data-trace-calls может создавать
+// генератор с фиксированным зерном (sampling.Shuffle, ReservoirSample:
+// рандомизированный алгоритм без rng не вызвать, а трасса обязана быть
+// воспроизводимой). Пустая ссылка держит импорт использованным для вызовов,
+// которым rand не нужен, — а таких большинство.
+var _ = rand.Int
 
 func main() {
 	defer func() {

@@ -427,7 +427,10 @@ go test -tags solution ./cryptography/  # эталон (зелёные)
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="cryptography"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как быстрое возведение идёт по битам показателя, а тест Миллера—Рабина ловит число Кармайкла.
+
+<div class="algo-runner" data-pkg="cryptography" data-trace-calls='[{"func": "ModExp", "call": "ModExp(7, 22, 1000000007)"}, {"func": "IsProbablePrime", "call": "IsProbablePrime(561)"}]'></div>
 
 ## 🔗 Связанные шаблоны
 

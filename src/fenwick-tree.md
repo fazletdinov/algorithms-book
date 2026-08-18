@@ -346,7 +346,10 @@ go test -tags solution ./fenwick/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="fenwick"></div>
+Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» — увидишь
+пошаговую трассу **своего** кода: как индексы прыгают по младшему установленному биту — самая неинтуитивная часть структуры.
+
+<div class="algo-runner" data-pkg="fenwick" data-trace-calls='[{"func": "NewFenwick", "call": "NewFenwick([]int{3, 2, -1, 6, 5, 4})"}, {"func": "CountInversions", "call": "CountInversions([]int{5, 4, 3, 2, 1})"}, {"func": "CountSmallerToRight", "call": "CountSmallerToRight([]int{5, 2, 6, 1})"}]'></div>
 
 ## 🔗 Связанные шаблоны
 
