@@ -480,6 +480,32 @@
 
   // Рекорд храним в localStorage как "score/total" последнего ЛУЧШЕГО прохождения.
   var BEST_KEY = "algoQuizBest";
+
+  // Промахи по вопросам копятся отдельно от рекорда: до сих пор ошибка исчезала
+  // вместе с прохождением («40/57» не говорит, ЧТО именно не далось). Теперь
+  // промах живёт до тех пор, пока на этот вопрос не ответят верно, и питает
+  // две вещи: карточки повторений (srs.js) и диагностику слабых мест по
+  // шаблонам (review.js).
+  var QUIZ_MISSED = "algoQuizMissed"; // {"<вопрос>": {n, pattern, href, q}}
+  function loadQuizMissed() {
+    try { return JSON.parse(localStorage.getItem(QUIZ_MISSED) || "{}") || {}; } catch (e) { return {}; }
+  }
+  function saveQuizMissed(m) {
+    try { localStorage.setItem(QUIZ_MISSED, JSON.stringify(m)); } catch (e) {}
+  }
+  // Ключ — сам текст вопроса: он стабилен при перестановке банка, в отличие от
+  // индекса (вопросы каждый раз перемешиваются, а банк дополняется).
+  function recordAnswer(item, ok) {
+    var m = loadQuizMissed();
+    var id = item.q;
+    if (ok) {
+      if (m[id]) { delete m[id]; saveQuizMissed(m); }
+      return;
+    }
+    var prev = m[id] || { n: 0 };
+    m[id] = { n: prev.n + 1, pattern: item.correct, href: item.href, q: item.q };
+    saveQuizMissed(m);
+  }
   function loadBest() {
     try {
       var raw = localStorage.getItem(BEST_KEY);
@@ -568,6 +594,7 @@
       var item = qs[idx];
       var ok = selected === item.correct;
       if (ok) score++; else missed.push(item);
+      recordAnswer(item, ok);
       Array.prototype.forEach.call(optsBox.children, function (c) {
         c.disabled = true;
         if (c.textContent === item.correct) { c.classList.add("algo-quiz__opt--correct"); c.setAttribute("aria-label", c.textContent + " — верный ответ"); }

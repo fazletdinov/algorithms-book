@@ -20,6 +20,14 @@ node scripts/progress-render-check.js
 node scripts/review-render-check.js
 node scripts/srs-check.js
 node scripts/explain-check.js   # требует собранной книги: mdbook build
+node scripts/mixed-check.js     # тоже после mdbook build
+```
+
+Если правил док-комментарий заготовки — перегенерируй банк задач смешанной
+тренировки (CI проверяет актуальность):
+
+```bash
+cd exercises && go run ./cmd/problembank
 ```
 
 ## Добавить пакет в тренажёр

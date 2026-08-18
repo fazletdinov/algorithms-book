@@ -1,5 +1,10 @@
 //go:build !solution
 
+// Package listcrud — базовые операции односвязного списка (CRUD).
+// Теория — в книге: ../../src/linked-list-structure.md
+//
+//	go test ./listcrud/                 # ваши решения
+//	go test -tags solution ./listcrud/  # эталон
 package listcrud
 
 // InsertAt вставляет новый узел со значением val на позицию pos (0 — новая

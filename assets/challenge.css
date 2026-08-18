@@ -367,3 +367,78 @@
   flex-basis: 100%;
   margin: 0 0 0.2em;
 }
+
+/* Смешанная тренировка (mixed.js): условие без темы -> выбор шаблона -> решение. */
+.algo-mixed {
+  margin: 1.4em 0;
+}
+
+.algo-mixed__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 0.9em;
+}
+
+.algo-mixed__stat {
+  font-size: 0.85em;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+.algo-mixed__card,
+.algo-mixed__result {
+  border: 1px solid var(--quote-border, #cccccc44);
+  border-radius: 8px;
+  padding: 0.9em 1em;
+  background: var(--quote-bg, #00000008);
+  margin-bottom: 0.9em;
+}
+
+.algo-mixed__label {
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.65;
+  margin-bottom: 0.35em;
+}
+
+.algo-mixed__text {
+  margin: 0 0 0.5em;
+}
+
+.algo-mixed__text:last-child {
+  margin-bottom: 0;
+}
+
+.algo-mixed__q {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 0.9em;
+}
+
+.algo-mixed__verdict {
+  font-weight: 600;
+  margin-bottom: 0.35em;
+}
+
+.algo-mixed__verdict.is-ok { color: #2e9b57; }
+.algo-mixed__verdict.is-no { color: #c0392b; }
+
+.algo-mixed__hints {
+  margin-top: 0.7em;
+  padding-top: 0.6em;
+  border-top: 1px solid var(--quote-border, #cccccc44);
+}
+
+.algo-mixed__solve {
+  margin: 0.7em 0 0;
+  font-size: 0.93em;
+  opacity: 0.85;
+}
+
+.algo-mixed__empty {
+  opacity: 0.8;
+}

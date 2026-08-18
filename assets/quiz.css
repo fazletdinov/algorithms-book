@@ -349,3 +349,30 @@
   font-size: 0.88em;
   opacity: 0.75;
 }
+
+/* Диагностика слабых мест: какой ПРИЁМ не узнаётся по условию (review.js). */
+.algo-weak__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93em;
+}
+
+.algo-weak__table th,
+.algo-weak__table td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--quote-border, #cccccc33);
+}
+
+.algo-weak__table th {
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.65;
+}
+
+.algo-weak__n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  width: 5em;
+}

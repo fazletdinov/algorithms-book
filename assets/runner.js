@@ -346,6 +346,10 @@
     Array.prototype.forEach.call(nodes, initWidget);
   }
 
+  // Смешанная тренировка (mixed.js) создаёт виджет уже после загрузки страницы —
+  // DOMContentLoaded к тому моменту давно прошёл, поэтому она поднимает его явно.
+  window.ALGO_RUNNER_INIT = initAll;
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initAll);
   } else {

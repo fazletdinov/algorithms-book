@@ -30,7 +30,7 @@ const chapterFiles = fs
 // Страницы книги, которых в трекере намеренно нет: точка входа, справочник и
 // страница повторений — их не «проходят» главу за главой (страница повторений
 // вообще про уже пройденное).
-const TRACKER_EXEMPT = new Set(["README", "glossary", "review"]);
+const TRACKER_EXEMPT = new Set(["README", "glossary", "review", "mixed"]);
 
 // ---------- 1. трекер прогресса <-> оглавление ----------
 const summary = read(path.join(srcDir, "SUMMARY.md"));

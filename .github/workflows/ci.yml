@@ -53,6 +53,10 @@ jobs:
       # «undefined». Псевдокод помечается <!-- snippet:pseudo --> перед ```go.
       - name: Листинги книги разбираются как Go
         run: go run ./cmd/checksnippets -src ../src
+      # Банк задач для смешанной тренировки генерируется из док-комментариев
+      # заготовок: закоммиченный assets/problems.js обязан совпадать с исходниками.
+      - name: Банк задач актуален
+        run: go run ./cmd/problembank -check
       # Заготовки должны КОМПИЛИРОВАТЬСЯ без тега solution: ловит рассинхрон
       # сигнатур между заготовкой, эталоном и тестом (тест — общая спецификация).
       - name: go vet (заготовки компилируются)
@@ -159,6 +163,10 @@ jobs:
         run: |
           npm install --no-save jsdom
           node scripts/explain-check.js
+      # Смешанная тренировка и диагностика слабых мест: главное здесь — что до
+      # ответа НЕ видно ни темы, ни пакета, ни подсказок из условия.
+      - name: Смоук смешанной тренировки (jsdom)
+        run: node scripts/mixed-check.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: book

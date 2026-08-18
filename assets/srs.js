@@ -14,7 +14,9 @@
  *   expl:<глава> — как только читатель сформулировал предусловие и инвариант своими
  *                  словами в виджете «объясни сам» (explain.js);
  *   pkg:<пакет>  — как только тесты пакета позеленели в виджете «Реши прямо здесь»;
- *   task:<id>    — как только задача в тексте не далась (промах из challenge.js).
+ *   task:<id>    — как только задача в тексте не далась (промах из challenge.js);
+ *   quiz:<вопрос> — промах в квизе распознавания шаблонов (quiz.js);
+ *   mix:<pkg>.<fn> — в смешанной тренировке шаблон выбран неверно (mixed.js).
  *
  * Расписание — SM-2 в упрощённом виде: у карточки есть интервал (дни) и «лёгкость»
  * ease. «Помню» умножает интервал на ease, «с трудом» растит его чуть-чуть,
@@ -34,6 +36,8 @@
   var MISSED = "algoChallengeMissed";
   var SOLVED = "algoChallengeSolved";
   var EXPLAINED = "algoExplainDone";
+  var QUIZ_MISSED = "algoQuizMissed";
+  var MIXED_MISSED = "algoMixedMissed";
 
   var DAY = 24 * 60 * 60 * 1000;
   var EASE_START = 2.5;
@@ -106,6 +110,25 @@
       changed = true;
     });
 
+    // Промахи квиза и смешанной тренировки — это «не узнал шаблон», то есть
+    // ровно то, что надо возвращать; поэтому они, как и промахи задач, встают
+    // в очередь СЕГОДНЯ, а не завтра.
+    var quizMissed = loadMap(QUIZ_MISSED);
+    Object.keys(quizMissed).forEach(function (q) {
+      var id = "quiz:" + q;
+      if (cards[id]) return;
+      cards[id] = newCard(now, quizMissed[q]);
+      changed = true;
+    });
+
+    var mixMissed = loadMap(MIXED_MISSED);
+    Object.keys(mixMissed).forEach(function (k) {
+      var id = "mix:" + k;
+      if (cards[id]) return;
+      cards[id] = newCard(now, mixMissed[k]);
+      changed = true;
+    });
+
     var missed = loadMap(MISSED);
     var solved = loadMap(SOLVED);
     Object.keys(missed).forEach(function (taskId) {
@@ -159,6 +182,22 @@
     var meta = card.meta || {};
     if (kindOf(id) === "ch") {
       return { kind: "Глава", title: chapterTitle(meta.href || ""), href: meta.href || "", what: "Вспомни предусловие и инвариант, не заглядывая в текст, — потом сверься." };
+    }
+    if (kindOf(id) === "quiz") {
+      return {
+        kind: "Квиз: распознать шаблон",
+        title: meta.q || id.slice(5),
+        href: "quiz.html",
+        what: "Назови шаблон и, главное, триггер в условии, по которому ты его узнал — правильный ответ без триггера не считается.",
+      };
+    }
+    if (kindOf(id) === "mix") {
+      return {
+        kind: "Смешанная тренировка",
+        title: (meta.pkg || "") + "." + (meta.fn || "") + " — шаблон был выбран неверно",
+        href: "mixed.html",
+        what: "Здесь ты не узнал приём по условию. Открой смешанную тренировку — задача выпадет снова, такие показываются чаще.",
+      };
     }
     if (kindOf(id) === "expl") {
       var href = (meta.chapter || "") + ".html";

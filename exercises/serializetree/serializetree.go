@@ -1,5 +1,11 @@
 //go:build !solution
 
+// Package serializetree — связка «DFS прямого обхода + парсинг токенов»:
+// сериализация дерева в строку и восстановление обратно.
+// Теория — в книге: ../../src/pattern-combinations.md
+//
+//	go test ./serializetree/                 # ваши решения
+//	go test -tags solution ./serializetree/  # эталон
 package serializetree
 
 // Serialize превращает дерево в строку (прямой обход с маркерами пустых узлов).

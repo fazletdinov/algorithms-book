@@ -123,7 +123,88 @@
     root.appendChild(clear);
   }
 
+  // ---- слабые места: где буксует РАСПОЗНАВАНИЕ, а не реализация ----
+  //
+  // Список промахов выше сгруппирован по главам — он отвечает на вопрос «где я
+  // ошибался». Этот виджет отвечает на другой: «какой ПРИЁМ я не узнаю в
+  // условии». Данные — промахи квиза (там ответ и есть название шаблона) и
+  // смешанной тренировки (там шаблон выбирается по условию без темы). Это две
+  // независимые проверки одного навыка, поэтому и считаются вместе.
+  var QUIZ_MISSED = "algoQuizMissed";
+  var MIXED_MISSED = "algoMixedMissed";
+
+  function weakSpots() {
+    var byPattern = {};
+    var quiz = load(QUIZ_MISSED);
+    Object.keys(quiz).forEach(function (q) {
+      var rec = quiz[q] || {};
+      var name = rec.pattern || "?";
+      var w = (byPattern[name] = byPattern[name] || { name: name, quiz: 0, mixed: 0, href: rec.href || "" });
+      w.quiz += rec.n || 1;
+    });
+    var mixed = load(MIXED_MISSED);
+    Object.keys(mixed).forEach(function (k) {
+      var rec = mixed[k] || {};
+      var name = chapterTitle(rec.chapter);
+      var w = (byPattern[name] = byPattern[name] || { name: name, quiz: 0, mixed: 0, href: (rec.chapter || "") + ".html" });
+      w.mixed += rec.n || 1;
+      if (!w.href) w.href = (rec.chapter || "") + ".html";
+    });
+    return Object.keys(byPattern)
+      .map(function (k) { return byPattern[k]; })
+      .sort(function (a, b) { return b.quiz + b.mixed - (a.quiz + a.mixed); });
+  }
+
+  function chapterTitle(chapter) {
+    var list = window.ALGO_CHAPTERS || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].h === chapter + ".html") return list[i].t;
+    }
+    return chapter || "?";
+  }
+
+  function buildWeak(root) {
+    root.innerHTML = "";
+    var spots = weakSpots();
+    if (!spots.length) {
+      root.appendChild(el("p", "algo-review__empty",
+        "Пока пусто. Сюда попадают шаблоны, которые не удалось УЗНАТЬ по условию: " +
+        "промахи в квизе распознавания и в смешанной тренировке."));
+      return;
+    }
+    var list = el("table", "algo-weak__table");
+    var head = el("tr");
+    ["Шаблон", "Квиз", "Смешанная", "Всего"].forEach(function (h) {
+      head.appendChild(el("th", null, h));
+    });
+    list.appendChild(head);
+    spots.forEach(function (s) {
+      var tr = el("tr");
+      var td = el("td");
+      if (s.href) {
+        var a = el("a", null, s.name);
+        a.href = s.href;
+        td.appendChild(a);
+      } else {
+        td.textContent = s.name;
+      }
+      tr.appendChild(td);
+      tr.appendChild(el("td", "algo-weak__n", String(s.quiz || "—")));
+      tr.appendChild(el("td", "algo-weak__n", String(s.mixed || "—")));
+      tr.appendChild(el("td", "algo-weak__n", String(s.quiz + s.mixed)));
+      list.appendChild(tr);
+    });
+    root.appendChild(list);
+  }
+
   function init() {
+    Array.prototype.forEach.call(
+      document.querySelectorAll(".algo-weakspots:not(.algo-weakspots--ready)"),
+      function (el) {
+        el.classList.add("algo-weakspots--ready");
+        buildWeak(el);
+      }
+    );
     Array.prototype.forEach.call(
       document.querySelectorAll(".algo-review:not(.algo-review--ready)"),
       function (el) {
