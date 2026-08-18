@@ -37,9 +37,12 @@ build:
 
 ## check: локально прогнать то, что проверяет CI
 check:
-	cd exercises && gofmt -l . && go vet -tags solution ./... && go test -tags solution -count=1 ./...
+	cd exercises && gofmt -l . && go vet -tags solution ./... && go test -tags solution -count=1 ./... && go run ./cmd/checksnippets -src ../src
 	mdbook build
 	node scripts/check-links.js
+	node scripts/check-viz.js
+	node scripts/check-challenges.js
+	node scripts/check-registries.js
 
 ## help: список целей
 help:
