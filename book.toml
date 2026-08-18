@@ -1,7 +1,7 @@
 [book]
-title = "Алгоритмические шаблоны для решения задач на собеседованиях"
-description = "Подробное изучение 25 основных алгоритмических шаблонов с примерами на Go"
-authors = ["Algorithm Study Guide"]
+title = "Алгоритмы и структуры данных: от фундамента к синтезу"
+description = "Учебник-тренажёр по алгоритмам и структурам данных для инженера на Go: 60+ глав с доказательствами корректности и ценой на практике, пошаговые визуализации, 670+ задач в тексте и Go-тренажёр на 68 пакетов"
+authors = ["Idel Fazletdinov"]
 language = "ru"
 src = "src"
 
@@ -12,9 +12,9 @@ create-missing = true
 [output.html]
 default-theme = "navy"
 preferred-dark-theme = "navy"
-git-repository-url = ""
-edit-url-template = ""
-git-repository-icon = "fa-github"
+git-repository-url = "https://github.com/fazletdinov/algorithms-book"
+edit-url-template = "https://github.com/fazletdinov/algorithms-book/edit/main/{path}"
+git-repository-icon = "fab-github"  # с mdBook 0.5 нужен префикс типа: fab (brands), а не голое fa-github
 mathjax-support = true
 additional-css = ["assets/algo-viz.css", "assets/quiz.css", "assets/challenge.css", "assets/runner.css", "assets/trace-viz.css"]
 additional-js = ["assets/algo-viz.js", "assets/quiz.js", "assets/progress.js", "assets/challenge.js", "assets/runner.js", "assets/trace-viz.js"]
