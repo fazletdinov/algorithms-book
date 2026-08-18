@@ -48,6 +48,7 @@ check:
 	node scripts/check-viz.js
 	node scripts/check-challenges.js
 	node scripts/check-registries.js
+	node scripts/check-explain.js
 
 ## help: список целей
 help:

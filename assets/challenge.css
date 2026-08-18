@@ -265,3 +265,105 @@
   padding-left: 0.4em;
   border-left: 2px solid rgba(108, 140, 255, 0.4);
 }
+
+/* Режим «объясни сам» (explain.js): сначала своя формулировка, потом книга. */
+.algo-explain {
+  margin: 1.4em 0;
+  padding: 1.1em;
+  border: 1px dashed var(--quote-border, #cccccc66);
+  border-radius: 8px;
+  background: var(--quote-bg, #00000008);
+}
+
+.algo-explain__intro {
+  margin: 0.3em 0 0.9em;
+  font-size: 0.92em;
+  opacity: 0.85;
+}
+
+.algo-explain__item--live {
+  margin-bottom: 1em;
+}
+
+.algo-explain__q {
+  font-weight: 600;
+  margin-bottom: 0.35em;
+}
+
+.algo-explain__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--quote-border, #cccccc66);
+  border-radius: 6px;
+  background: var(--bg, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 0.95em;
+  resize: vertical;
+}
+
+.algo-explain__prevbtn {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85em;
+  opacity: 0.7;
+  text-decoration: underline dotted;
+  cursor: pointer;
+}
+
+.algo-explain__prev {
+  margin-top: 6px;
+  padding: 0.4em 0.6em;
+  border-left: 3px solid var(--quote-border, #cccccc66);
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+
+.algo-explain__refbox {
+  margin-top: 0.7em;
+  padding: 0.6em 0.8em;
+  border-left: 3px solid #2e9b57;
+  background: #2e9b5711;
+  border-radius: 0 6px 6px 0;
+}
+
+.algo-explain__reflabel {
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  margin-bottom: 0.3em;
+}
+
+.algo-explain__ref p:last-child {
+  margin-bottom: 0;
+}
+
+.algo-explain__hint,
+.algo-explain__compare,
+.algo-explain__saved {
+  font-size: 0.88em;
+  opacity: 0.8;
+}
+
+.algo-explain__hint {
+  margin-top: 6px;
+}
+
+.algo-explain__grades {
+  margin-top: 0.9em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.algo-explain__grades p {
+  flex-basis: 100%;
+  margin: 0 0 0.2em;
+}

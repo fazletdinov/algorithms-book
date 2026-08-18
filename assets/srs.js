@@ -11,6 +11,8 @@
  * Что попадает в очередь (карточки заводятся сами, вручную ничего размечать не
  * нужно):
  *   ch:<глава>   — как только глава отмечена пройденной в трекере;
+ *   expl:<глава> — как только читатель сформулировал предусловие и инвариант своими
+ *                  словами в виджете «объясни сам» (explain.js);
  *   pkg:<пакет>  — как только тесты пакета позеленели в виджете «Реши прямо здесь»;
  *   task:<id>    — как только задача в тексте не далась (промах из challenge.js).
  *
@@ -31,6 +33,7 @@
   var PKG_SOLVED = "algoPkgSolved";
   var MISSED = "algoChallengeMissed";
   var SOLVED = "algoChallengeSolved";
+  var EXPLAINED = "algoExplainDone";
 
   var DAY = 24 * 60 * 60 * 1000;
   var EASE_START = 2.5;
@@ -95,6 +98,14 @@
       changed = true;
     });
 
+    var explained = loadMap(EXPLAINED);
+    Object.keys(explained).forEach(function (chapKey) {
+      var id = "expl:" + chapKey;
+      if (cards[id]) return;
+      cards[id] = newCard(now + DAY, { chapter: chapKey });
+      changed = true;
+    });
+
     var missed = loadMap(MISSED);
     var solved = loadMap(SOLVED);
     Object.keys(missed).forEach(function (taskId) {
@@ -148,6 +159,15 @@
     var meta = card.meta || {};
     if (kindOf(id) === "ch") {
       return { kind: "Глава", title: chapterTitle(meta.href || ""), href: meta.href || "", what: "Вспомни предусловие и инвариант, не заглядывая в текст, — потом сверься." };
+    }
+    if (kindOf(id) === "expl") {
+      var href = (meta.chapter || "") + ".html";
+      return {
+        kind: "Формулировка",
+        title: chapterTitle(href),
+        href: href + "#explain",
+        what: "Скажи вслух предусловие и инвариант этого шаблона — и только потом открывай разбор.",
+      };
     }
     if (kindOf(id) === "pkg") {
       return { kind: "Пакет тренажёра", title: meta.pkg || id.slice(4), href: "", what: "Открой пакет и перереши с чистой заготовки: код забывается быстрее теории." };

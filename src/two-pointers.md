@@ -214,6 +214,17 @@ func dutchFlagSort(nums []int) {
 
 ## 🧠 Почему это корректно
 
+<div class="algo-explain" data-key="two-pointers">
+  <div class="algo-explain__item">
+    <div class="algo-explain__q">Почему, сдвигая указатель, мы не выбрасываем правильную пару? Разбери оба случая.</div>
+    <div class="algo-explain__ref">Массив отсортирован, поэтому <code>arr[left] + arr[right]</code> — самая <b>большая</b> сумма среди пар с этим <code>arr[left]</code>. Если она меньше target, <code>arr[left]</code> не входит ни в одно решение → <code>left++</code> ничего не теряет. Симметрично при sum &gt; target: это самая <b>маленькая</b> сумма с <code>arr[right]</code>, значит <code>arr[right]</code> непригоден → <code>right--</code>.</div>
+  </div>
+  <div class="algo-explain__item">
+    <div class="algo-explain__q">Сформулируй инвариант и объясни, почему цикл обязан завершиться.</div>
+    <div class="algo-explain__ref">Инвариант: если решение существует, обе его позиции лежат внутри <code>[left, right]</code> — каждый шаг удаляет из диапазона только заведомо непригодный элемент. Завершаемость: на каждой итерации либо <code>left</code> строго растёт, либо <code>right</code> строго убывает, поэтому за ≤ n шагов указатели встретятся; на месте мы не стоим никогда.</div>
+  </div>
+</div>
+
 Вопрос, который отделяет «работает на примерах» от «я знаю, почему»: **почему,
 сдвигая указатель, мы не выбрасываем правильную пару?**
 

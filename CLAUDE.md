@@ -88,6 +88,17 @@ runner'а задаётся через `localStorage.setItem('algoRunnerUrl', ...
   там же кнопки экспорта/импорта: выгружают ВСЕ ключи книги (`algoProgress`, `algoChallengeSolved`,
   `algoChallengeMissed`, `algoQuizBest`, `algoRunnerCode:*`) в один JSON и вливают его обратно
   СЛИЯНИЕМ, а не заменой — иначе перенос с другой машины стирал бы уже пройденное здесь
+- `<div class="algo-explain" data-key="слаг-главы">` — режим «объясни сам» (`explain.js`):
+  стоит В НАЧАЛЕ раздела «🧠 Почему это корректно» в 10 главах, где инвариант — суть дела
+  (`sliding-window`, `two-pointers`, `modified-binary-search`, `fast-slow-pointers`,
+  `cyclic-sort`, `merge-intervals`, `greedy`, `dynamic-programming`, `topological-sort`,
+  `union-find-structure`). Вопросы и эталоны лежат в разметке главы (`__q`/`__ref`), эталон
+  скрыт, пока не заполнены ВСЕ поля — единственный жёсткий гейт в книге и он намеренный:
+  разбор лежит абзацем ниже, обойти можно, но осознанно. Самооценка пишет `algoExplainDone`
+  → карточка `expl:<глава>` в `srs.js`. При повторном заходе поле пустое, прошлый ответ — под
+  кнопкой (предзаполненное поле убивает воспроизведение). Линт — `scripts/check-explain.js`
+  (ключ = слаг главы, ≥2 вопроса, эталон не заглушка, виджет до разбора), поведение —
+  `scripts/explain-check.js` на СОБРАННОЙ странице
 - `<div class="algo-today"></div>` — очередь интервальных повторений (`srs.js`, страница
   [«Повторение»](../src/review.md)). Карточки заводятся САМИ из трёх источников: отмеченная в
   трекере глава (`algoProgress`), позеленевший в runner'е пакет (`algoPkgSolved` — пишется в

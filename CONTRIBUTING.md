@@ -19,6 +19,7 @@ node scripts/challenge-engine-check.js
 node scripts/progress-render-check.js
 node scripts/review-render-check.js
 node scripts/srs-check.js
+node scripts/explain-check.js   # требует собранной книги: mdbook build
 ```
 
 ## Добавить пакет в тренажёр
@@ -52,6 +53,25 @@ node scripts/srs-check.js
 
 Пункты 2 и 4 сверяет `scripts/check-registries.js`, виджеты — `check-viz.js` и
 `check-challenges.js`.
+
+## Режим «объясни сам»
+
+Виджет в начале раздела «🧠 Почему это корректно»: читатель формулирует предусловие и
+инвариант своими словами, и только потом открывается формулировка книги.
+
+```html
+<div class="algo-explain" data-key="слаг-главы">
+  <div class="algo-explain__item">
+    <div class="algo-explain__q">Вопрос читателю</div>
+    <div class="algo-explain__ref">Формулировка книги (можно с HTML)</div>
+  </div>
+</div>
+```
+
+`data-key` обязан совпадать со слагом главы — он же идентификатор карточки повторения.
+Вопросов минимум два (предусловие и инвариант), у каждого свой эталон, эталон пишется
+не с нуля, а выжимается из разбора этой же главы. `scripts/check-explain.js` проверяет
+всё перечисленное, включая то, что виджет стоит ДО разбора, а не после.
 
 ## Go-листинги в главах
 
