@@ -96,6 +96,22 @@
     });
   }
 
+  // markPkgSolved отмечает пакет решённым, когда тесты позеленели. Единственный
+  // момент, когда это вообще известно: «прошёл ли читатель пакет» больше нигде
+  // не фиксируется. Данные забирает движок повторений (srs.js) — код забывается
+  // быстрее теории, поэтому решённый пакет через несколько недель имеет смысл
+  // перерешать с чистой заготовки.
+  var PKG_SOLVED = "algoPkgSolved";
+  function markPkgSolved(pkg) {
+    try {
+      var s = JSON.parse(localStorage.getItem(PKG_SOLVED) || "{}") || {};
+      s[pkg] = Date.now();
+      localStorage.setItem(PKG_SOLVED, JSON.stringify(s));
+    } catch (e) {
+      /* приватный режим — молча игнорируем */
+    }
+  }
+
   // ---- рендер одного виджета ----
 
   function initWidget(root) {
@@ -196,7 +212,11 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pkg: pkg, code: editor.getValue(), race: race }),
       })
-        .then(function (res) { renderResult(out, res); setStatus(res.ok ? "✓ всё зелёное · " + res.duration : (res.race ? "🏁 гонка данных · " : "✗ есть падения · ") + res.duration, res.ok ? "ok" : "err"); })
+        .then(function (res) {
+          renderResult(out, res);
+          setStatus(res.ok ? "✓ всё зелёное · " + res.duration : (res.race ? "🏁 гонка данных · " : "✗ есть падения · ") + res.duration, res.ok ? "ok" : "err");
+          if (res.ok) markPkgSolved(pkg);
+        })
         .catch(function (err) { serverDownView(out, err); setStatus("ошибка связи", "err"); })
         .then(function () { runBtn.disabled = false; });
     });

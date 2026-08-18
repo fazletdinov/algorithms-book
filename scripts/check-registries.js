@@ -27,9 +27,10 @@ const chapterFiles = fs
   .readdirSync(srcDir)
   .filter((f) => f.endsWith(".md") && f !== "SUMMARY.md");
 
-// Страницы книги, которых в трекере намеренно нет: точка входа и справочник —
-// их не «проходят» главу за главой.
-const TRACKER_EXEMPT = new Set(["README", "glossary"]);
+// Страницы книги, которых в трекере намеренно нет: точка входа, справочник и
+// страница повторений — их не «проходят» главу за главой (страница повторений
+// вообще про уже пройденное).
+const TRACKER_EXEMPT = new Set(["README", "glossary", "review"]);
 
 // ---------- 1. трекер прогресса <-> оглавление ----------
 const summary = read(path.join(srcDir, "SUMMARY.md"));

@@ -158,7 +158,7 @@
     // без единого способа это перенести. Забираем ВСЕ ключи книги (главы,
     // решённые задачи, промахи, рекорд квиза и код, написанный в виджетах),
     // а не только этот трекер.
-    var PREFIXES = ["algoProgress", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:"];
+    var PREFIXES = ["algoProgress", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:", "algoPkgSolved", "algoSRS"];
     function isOurs(key) {
       return PREFIXES.some(function (p) { return key === p || key.indexOf(p) === 0; });
     }
@@ -237,6 +237,11 @@
 
     refresh();
   }
+
+  // Список глав нужен и движку повторений (srs.js) — чтобы показывать название
+  // главы, а не слаг из адреса. Отдельного модуля ради одной константы не
+  // заводим: оглавление и так живёт здесь.
+  window.ALGO_CHAPTERS = CHAPTERS;
 
   function init() {
     Array.prototype.forEach.call(document.querySelectorAll(".algo-progress:not(.algo-progress--ready)"), function (el) {

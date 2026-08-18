@@ -263,3 +263,89 @@
   opacity: 0.65;
   font-variant-numeric: tabular-nums;
 }
+
+/* Виджет «Сегодня к повторению» (srs.js). */
+.algo-today {
+  margin: 1.4em 0;
+  padding: 1.1em;
+  border: 1px solid var(--quote-border, #cccccc44);
+  border-radius: 8px;
+  background: var(--quote-bg, #00000008);
+}
+
+.algo-today__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 0.7em;
+}
+
+.algo-today__sub,
+.algo-today__empty {
+  font-size: 0.88em;
+  opacity: 0.75;
+}
+
+.algo-today__empty {
+  margin: 0;
+}
+
+.algo-today__card {
+  border: 1px solid var(--quote-border, #cccccc44);
+  border-radius: 8px;
+  padding: 0.9em 1em;
+}
+
+.algo-today__kind {
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.65;
+}
+
+.algo-today__title {
+  display: block;
+  font-size: 1.05em;
+  font-weight: 600;
+  margin: 0.15em 0 0.4em;
+}
+
+.algo-today__what {
+  margin: 0 0 0.7em;
+  font-size: 0.93em;
+  opacity: 0.85;
+}
+
+.algo-today__note {
+  margin: 0 0 0.7em;
+  padding: 0.4em 0.6em;
+  border-left: 3px solid #d97706;
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+.algo-today__grades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.algo-today__noteform {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 0.8em;
+}
+
+.algo-today__notelabel {
+  font-size: 0.88em;
+  opacity: 0.8;
+}
+
+.algo-today__toast {
+  margin-top: 0.6em;
+  font-size: 0.88em;
+  opacity: 0.75;
+}

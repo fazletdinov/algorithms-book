@@ -18,6 +18,7 @@ node scripts/viz-render-check.js
 node scripts/challenge-engine-check.js
 node scripts/progress-render-check.js
 node scripts/review-render-check.js
+node scripts/srs-check.js
 ```
 
 ## Добавить пакет в тренажёр
