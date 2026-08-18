@@ -44,7 +44,9 @@ node scripts/progress-render-check.js
    `assets/algo-viz.js`), `algo-challenge` (задача в тексте), `algo-runner`
    (`data-pkg` существующего пакета).
 4. Чтобы в главе работала кнопка «🎞 Визуализировать», функция должна быть
-   разрешена в `traceTargets` (`exercises/cmd/runner/trace.go`).
+   разрешена в `traceTargets` (`exercises/cmd/runner/trace.go`). Что вообще можно
+   подключить — покажет `cd exercises && go run ./cmd/tracescan`; вызовы для
+   `data-trace-calls` стоит проверить живьём, подняв runner и дёрнув `/api/trace`.
 
 Пункты 2 и 4 сверяет `scripts/check-registries.js`, виджеты — `check-viz.js` и
 `check-challenges.js`.

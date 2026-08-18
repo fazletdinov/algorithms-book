@@ -601,7 +601,11 @@ go test -tags solution ./dp/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="dp"></div>
+Когда какая-то функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения **твоего собственного** кода, а не канонического
+примера: как заполняется таблица `dp` — ячейка за ячейкой, в том порядке, в котором это делает именно твой цикл. Самый быстрый способ понять, почему ответ «не тот»: обычно видно, что какая-то ячейка читается раньше, чем в неё записали.
+
+<div class="algo-runner" data-pkg="dp" data-trace-calls='[{"func": "ClimbStairs", "call": "ClimbStairs(6)"}, {"func": "CoinChange", "call": "CoinChange([]int{1, 3, 5}, 11)"}, {"func": "LongestCommonSubsequence", "call": "LongestCommonSubsequence(\"abcde\", \"ace\")"}, {"func": "EditDistance", "call": "EditDistance(\"kitten\", \"sitting\")"}, {"func": "LongestIncreasingSubsequence", "call": "LongestIncreasingSubsequence([]int{10, 9, 2, 5, 3, 7, 101, 18})"}, {"func": "Knapsack01", "call": "Knapsack01([]int{1, 3, 4, 5}, []int{1, 4, 5, 7}, 7)"}, {"func": "HouseRobber", "call": "HouseRobber([]int{2, 7, 9, 3, 1})"}, {"func": "UniquePaths", "call": "UniquePaths(3, 4)"}, {"func": "WordBreak", "call": "WordBreak(\"leetcode\", []string{\"leet\", \"code\"})"}]'></div>
 
 ## 🏗️ Инженерный кейс
 

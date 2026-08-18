@@ -473,7 +473,11 @@ go test -tags solution -race ./wordcount/  # ловит запись в общу
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="topk"></div>
+Когда какая-то функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения **твоего собственного** кода, а не канонического
+примера: как куча размера `k` принимает очередной элемент и кого вытесняет — видно, что она никогда не растёт больше `k`, ради чего весь приём и затеян.
+
+<div class="algo-runner" data-pkg="topk" data-trace-calls='[{"func": "FindKLargest", "call": "FindKLargest([]int{3, 1, 5, 12, 2, 11}, 3)"}, {"func": "KthLargest", "call": "KthLargest([]int{3, 2, 1, 5, 6, 4}, 2)"}, {"func": "KClosestPoints", "call": "KClosestPoints([][]int{{1, 3}, {-2, 2}, {5, 8}, {0, 1}}, 2)"}, {"func": "KClosestNumbers", "call": "KClosestNumbers([]int{1, 2, 3, 4, 5}, 4, 3)"}]'></div>
 
 **Конкурентный вариант — пакет `wordcount`** (для проверки гонок запусти в CLI `go test -race`):
 

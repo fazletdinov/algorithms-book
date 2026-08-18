@@ -405,7 +405,11 @@ go test -tags solution ./bits/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="bits"></div>
+Когда какая-то функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения **твоего собственного** кода, а не канонического
+примера: что происходит с числом на каждом шаге — сдвиг, маска, накопленный XOR. Здесь трасса особенно полезна: значения в отладчике обычно показывают десятичными, а вся суть — в битах.
+
+<div class="algo-runner" data-pkg="bits" data-trace-calls='[{"func": "SingleNumber", "call": "SingleNumber([]int{4, 1, 2, 1, 2})"}, {"func": "HammingWeight", "call": "HammingWeight(uint32(11))"}, {"func": "MissingNumber", "call": "MissingNumber([]int{3, 0, 1})"}, {"func": "CountBits", "call": "CountBits(8)"}, {"func": "TwoSingleNumbers", "call": "TwoSingleNumbers([]int{1, 2, 1, 3, 2, 5})"}]'></div>
 
 ## 🏗️ Инженерный кейс
 

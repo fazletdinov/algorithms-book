@@ -438,7 +438,11 @@ go test -tags solution ./intervals/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="intervals"></div>
+Когда какая-то функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения **твоего собственного** кода, а не канонического
+примера: как ответ собирается слева направо и какое именно условие пересечения сработало на каждом интервале.
+
+<div class="algo-runner" data-pkg="intervals" data-trace-calls='[{"func": "InsertInterval", "call": "InsertInterval([][]int{{1, 3}, {6, 9}}, []int{2, 5})"}, {"func": "IntervalsIntersection", "call": "IntervalsIntersection([][]int{{1, 3}, {5, 6}, {7, 9}}, [][]int{{2, 3}, {5, 7}})"}, {"func": "MinMeetingRooms", "call": "MinMeetingRooms([][]int{{0, 30}, {5, 10}, {15, 20}})"}]'></div>
 
 ## 🏗️ Инженерный кейс
 

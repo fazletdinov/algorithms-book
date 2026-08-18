@@ -434,7 +434,11 @@ go test -tags solution ./toposort/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="toposort"></div>
+Когда какая-то функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения **твоего собственного** кода, а не канонического
+примера: как убывают степени входа и в каком порядке узлы попадают в очередь — а на цикле в графе видно, что очередь опустела раньше, чем кончились вершины.
+
+<div class="algo-runner" data-pkg="toposort" data-trace-calls='[{"func": "TopologicalSort", "call": "TopologicalSort(4, [][]int{{1, 0}, {2, 0}, {3, 1}, {3, 2}})"}, {"func": "FindOrderLexSmallest", "call": "FindOrderLexSmallest(4, [][]int{{1, 0}, {2, 0}, {3, 1}, {3, 2}})"}, {"func": "AlienOrder", "call": "AlienOrder([]string{\"wrt\", \"wrf\", \"er\", \"ett\", \"rftt\"})"}]'></div>
 
 ## 🏗️ Инженерный кейс
 

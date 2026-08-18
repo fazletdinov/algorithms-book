@@ -361,7 +361,11 @@ st = append(st, i)</pre>
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="bigo"></div>
+Когда какая-то функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения **твоего собственного** кода, а не канонического
+примера: как монотонный стек растёт и схлопывается (и почему суммарно это `O(n)`, хотя внутри цикла есть ещё цикл), а в `CountCopies` — на каких именно вставках случается перевыделение.
+
+<div class="algo-runner" data-pkg="bigo" data-trace-calls='[{"func": "NextGreaterElement", "call": "NextGreaterElement([]int{2, 1, 2, 4, 3})"}, {"func": "DailyTemperatures", "call": "DailyTemperatures([]int{73, 74, 75, 71, 69, 72, 76, 73})"}, {"func": "CountCopies", "call": "CountCopies(20)"}]'></div>
 
 ## 🔗 Связанные шаблоны
 

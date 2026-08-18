@@ -498,7 +498,11 @@ go test -tags solution -race ./parallelsearch/  # общий счётчик не
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="strmatch"></div>
+Когда какая-то функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения **твоего собственного** кода, а не канонического
+примера: как двигаются указатели по тексту и образцу и куда откатывается сравнение после несовпадения — у KMP видно, что откат идёт по префикс-функции, а не в начало, то есть указатель по тексту не возвращается никогда.
+
+<div class="algo-runner" data-pkg="strmatch" data-trace-calls='[{"func": "KMPSearch", "call": "KMPSearch(\"ababcabcabababd\", \"ababd\")"}, {"func": "RabinKarp", "call": "RabinKarp(\"hello world\", \"world\")"}, {"func": "CountOccurrences", "call": "CountOccurrences(\"aaaaa\", \"aa\")"}, {"func": "ZSearch", "call": "ZSearch(\"aabcaabxaabc\", \"aabc\")"}]'></div>
 
 **Конкурентный вариант — пакет `parallelsearch`** (для проверки гонок запусти в CLI `go test -race`):
 

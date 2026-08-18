@@ -104,11 +104,16 @@ for внутри for, или for/range вперемешку) и if/else любо
 списка, скобочная запись дерева), а не сырым адресом. `trace-viz.js` — отдельный универсальный
 движок (панель кода с подсветкой текущей строки + таблица переменных + подсветка индексов на
 массиве + автопроигрывание), НЕ переиспользующий `DASH`/`buildDashboard` из `algo-viz.js`.
-Список включённых функций по пакетам — `traceTargets` в `cmd/runner/trace.go` (сейчас:
-`slidingwindow`, `cyclicsort`, `twopointers`, `linkedlist`, `listcrud`, `treebfs`,
-`sparsetable` — итого 28 функций в 7 пакетах; ещё ~90 функций в других пакетах уже проходят
-`traceinstr`, но не подключены в главах — добавление нового пакета: строка в `traceTargets` +
-`data-trace-calls` в его главе).
+Список включённых функций по пакетам — `traceTargets` в `cmd/runner/trace.go` (сейчас 71 функция
+в 17 пакетах: `slidingwindow`, `cyclicsort`, `twopointers`, `linkedlist`, `listcrud`, `treebfs`,
+`sparsetable` + `binarysearch`, `dp`, `bits`, `strmatch`, `sorting`, `topk`, `intervals`, `bigo`,
+`toposort`, `numbertheory`). Добавление пакета — строка в `traceTargets` + `data-trace-calls` в
+его главе; согласованность этих двух мест проверяет `scripts/check-registries.js`. Что ещё МОЖНО
+подключить, показывает `go run ./cmd/tracescan` (разведчик: гоняет `traceinstr.Instrument` по
+ЭТАЛОНАМ — в заготовке тело `panic("TODO")`, там нет циклов и не проходит ничего, — и печатает
+пригодные, но не подключённые функции; сейчас таких ещё 49). Пригодность = экспортирована,
+не более одного возвращаемого значения (без возврата — плюс строка в `traceVoidFuncs`, как
+`CyclicSort`/`DutchFlagSort`/`HeapSort`) и форма проходит инструментацию.
 
 ## Структура книги
 

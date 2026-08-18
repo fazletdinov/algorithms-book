@@ -366,7 +366,11 @@ go test -tags solution ./numbertheory/  # эталон (зелёные)
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="numbertheory"></div>
+Когда какая-то функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения **твоего собственного** кода, а не канонического
+примера: остатки в алгоритме Евклида, вычёркивание кратных в решете и удвоение степени в быстром возведении — три классических цикла, каждый в своей колонке.
+
+<div class="algo-runner" data-pkg="numbertheory" data-trace-calls='[{"func": "GCD", "call": "GCD(48, 18)"}, {"func": "IsPrime", "call": "IsPrime(97)"}, {"func": "SieveOfEratosthenes", "call": "SieveOfEratosthenes(30)"}, {"func": "PowMod", "call": "PowMod(3, 13, 1000000007)"}]'></div>
 
 ## 🔗 Связанные шаблоны
 

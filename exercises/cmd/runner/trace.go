@@ -79,6 +79,69 @@ var traceTargets = map[string][]string{
 	"sparsetable": {
 		"NewSparse",
 	},
+	"binarysearch": {
+		"Search",
+		"FindCeiling",
+		"FindFloor",
+		"SearchRotated",
+		"IntSqrt",
+	},
+	"dp": {
+		"ClimbStairs",
+		"CoinChange",
+		"LongestCommonSubsequence",
+		"EditDistance",
+		"LongestIncreasingSubsequence",
+		"Knapsack01",
+		"HouseRobber",
+		"UniquePaths",
+		"WordBreak",
+	},
+	"bits": {
+		"SingleNumber",
+		"HammingWeight",
+		"MissingNumber",
+		"CountBits",
+		"TwoSingleNumbers",
+	},
+	"strmatch": {
+		"KMPSearch",
+		"RabinKarp",
+		"CountOccurrences",
+		"ZSearch",
+	},
+	"sorting": {
+		"HeapSort",
+		"CountingSort",
+		"QuickSelect",
+	},
+	"topk": {
+		"FindKLargest",
+		"KthLargest",
+		"KClosestPoints",
+		"KClosestNumbers",
+	},
+	"intervals": {
+		"InsertInterval",
+		"IntervalsIntersection",
+		"MinMeetingRooms",
+	},
+	"bigo": {
+		"NextGreaterElement",
+		"DailyTemperatures",
+		"CountCopies",
+	},
+	"toposort": {
+		"TopologicalSort",
+		"FindOrderLexSmallest",
+		"AlienOrder",
+	},
+	"numbertheory": {
+		"GCD",
+		"IsPrime",
+		"SieveOfEratosthenes",
+		"PowMod",
+	},
 }
 
 // traceVoidFuncs — функции без возвращаемого значения (мутируют аргумент на
@@ -88,6 +151,7 @@ var traceTargets = map[string][]string{
 var traceVoidFuncs = map[string]bool{
 	"CyclicSort":    true,
 	"DutchFlagSort": true,
+	"HeapSort":      true,
 }
 
 func isTraceTarget(pkg, fn string) bool {

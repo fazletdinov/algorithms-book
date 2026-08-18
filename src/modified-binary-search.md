@@ -553,7 +553,11 @@ go test -tags solution ./binarysearch/  # эталон
 зелёное — справился, красное — видно, какой тест упал. Подними локальный runner
 (`cd exercises && go run ./cmd/runner`), затем обнови страницу.
 
-<div class="algo-runner" data-pkg="binarysearch"></div>
+Когда какая-то функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
+увидишь пошаговую трассу выполнения **твоего собственного** кода, а не канонического
+примера: как на каждом шаге сходятся `lo` и `hi` и в какую сторону ушла граница — тот случай, когда «отрезок вдвое короче» перестаёт быть словами и становится колонкой чисел; заодно видно, отработал ли твой вариант `mid` без переполнения.
+
+<div class="algo-runner" data-pkg="binarysearch" data-trace-calls='[{"func": "Search", "call": "Search([]int{1, 3, 5, 7, 9, 11}, 7)"}, {"func": "FindCeiling", "call": "FindCeiling([]int{1, 3, 8, 10, 15}, 12)"}, {"func": "FindFloor", "call": "FindFloor([]int{1, 3, 8, 10, 15}, 12)"}, {"func": "SearchRotated", "call": "SearchRotated([]int{4, 5, 6, 7, 0, 1, 2}, 0)"}, {"func": "IntSqrt", "call": "IntSqrt(50)"}]'></div>
 
 ## 🏗️ Инженерный кейс
 
