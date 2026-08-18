@@ -153,13 +153,87 @@
       });
     });
 
+    // Экспорт/импорт: весь прогресс живёт в localStorage одного браузера —
+    // чистка кэша или переход на другую машину стирали два-три месяца работы
+    // без единого способа это перенести. Забираем ВСЕ ключи книги (главы,
+    // решённые задачи, промахи, рекорд квиза и код, написанный в виджетах),
+    // а не только этот трекер.
+    var PREFIXES = ["algoProgress", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:"];
+    function isOurs(key) {
+      return PREFIXES.some(function (p) { return key === p || key.indexOf(p) === 0; });
+    }
+
+    var exportBtn = document.createElement("button"); exportBtn.type = "button"; exportBtn.className = "algo-quiz__btn"; exportBtn.textContent = "Экспорт прогресса";
+    exportBtn.onclick = function () {
+      var dump = { kind: "algorithms-book-progress", version: 1, data: {} };
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (isOurs(k)) dump.data[k] = localStorage.getItem(k);
+      }
+      var blob = new Blob([JSON.stringify(dump, null, 2)], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "algorithms-book-progress.json";
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    };
+
+    var importInput = document.createElement("input");
+    importInput.type = "file"; importInput.accept = "application/json,.json"; importInput.style.display = "none";
+    importInput.onchange = function () {
+      var file = importInput.files && importInput.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var dump;
+        try { dump = JSON.parse(String(reader.result)); } catch (e) { dump = null; }
+        if (!dump || dump.kind !== "algorithms-book-progress" || !dump.data) {
+          alert("Это не файл прогресса книги.");
+          return;
+        }
+        // Слияние, а не замена: импорт с другой машины не должен стирать то,
+        // что уже пройдено здесь. Для карт-объектов объединяем ключи.
+        Object.keys(dump.data).forEach(function (k) {
+          if (!isOurs(k)) return;
+          var incoming = dump.data[k];
+          var current = localStorage.getItem(k);
+          if (current && k !== "algoQuizBest" && k.indexOf("algoRunnerCode:") !== 0) {
+            try {
+              var merged = JSON.parse(current);
+              var add = JSON.parse(incoming);
+              Object.keys(add).forEach(function (id) { merged[id] = add[id]; });
+              incoming = JSON.stringify(merged);
+            } catch (e) { /* не JSON — берём как есть */ }
+          }
+          try { localStorage.setItem(k, incoming); } catch (e) { /* приватный режим */ }
+        });
+        state = load();
+        boxes.forEach(function (cb) {
+          var href = cb.parentNode.querySelector(".algo-prog__link").getAttribute("href");
+          cb.checked = !!state[href];
+          cb.parentNode.classList.toggle("algo-prog__item--done", cb.checked);
+        });
+        refresh();
+        importInput.value = "";
+      };
+      reader.readAsText(file);
+    };
+    var importBtn = document.createElement("button"); importBtn.type = "button"; importBtn.className = "algo-quiz__btn"; importBtn.textContent = "Импорт";
+    importBtn.onclick = function () { importInput.click(); };
+
     var reset = document.createElement("button"); reset.type = "button"; reset.className = "algo-quiz__btn"; reset.textContent = "Сбросить прогресс";
     reset.onclick = function () {
       state = {}; save(state);
       boxes.forEach(function (cb) { cb.checked = false; cb.parentNode.classList.remove("algo-prog__item--done"); });
       refresh();
     };
-    el.appendChild(reset);
+    // Имя не bar: так уже названа сама полоса прогресса выше, и повторный var
+    // в той же функции молча перетирал бы её — refresh() тогда красит ширину
+    // не тому элементу.
+    var actions = document.createElement("div"); actions.className = "algo-prog__bar-actions";
+    actions.appendChild(exportBtn); actions.appendChild(importBtn); actions.appendChild(reset);
+    actions.appendChild(importInput);
+    el.appendChild(actions);
 
     refresh();
   }

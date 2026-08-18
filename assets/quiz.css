@@ -196,3 +196,70 @@
   text-decoration: line-through;
 }
 
+
+/* Ряд действий трекера: экспорт/импорт/сброс. */
+.algo-prog__bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Список «повторить промахи» (review.js). */
+.algo-review {
+  margin: 1.4em 0;
+  padding: 1.1em;
+  border: 1px solid var(--quote-border, #cccccc44);
+  border-radius: 8px;
+  background: var(--quote-bg, #00000008);
+}
+
+.algo-review__head {
+  margin-bottom: 0.6em;
+}
+
+.algo-review__empty {
+  margin: 0 0 0.4em;
+  font-size: 0.92em;
+  opacity: 0.8;
+}
+
+.algo-review__chapter {
+  margin-bottom: 0.9em;
+}
+
+.algo-review__ch {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 1px solid var(--quote-border, #cccccc44);
+  padding-bottom: 0.2em;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.algo-review__count {
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.algo-review__list {
+  list-style: none;
+  margin: 0.4em 0 0;
+  padding: 0;
+}
+
+.algo-review__item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 0.92em;
+}
+
+.algo-review__n {
+  font-size: 0.85em;
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
+}

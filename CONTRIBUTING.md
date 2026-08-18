@@ -17,6 +17,7 @@ make check      # ровно то, что гоняет CI: эталоны, ли�
 node scripts/viz-render-check.js
 node scripts/challenge-engine-check.js
 node scripts/progress-render-check.js
+node scripts/review-render-check.js
 ```
 
 ## Добавить пакет в тренажёр

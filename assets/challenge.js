@@ -82,24 +82,73 @@
     return e;
   }
 
-  // Прогресс решённых задач в localStorage (необязательный, мягкий).
+  // Прогресс задач в localStorage (необязательный, мягкий).
+  //
+  // Идентификатор задачи раньше брался из data-id — атрибута, которого нет НИ В
+  // ОДНОЙ главе, поэтому markSolved молча не сохранял ничего. Теперь id
+  // выводится сам: «страница#порядковый-номер задачи на ней». Он стабилен,
+  // пока в главу не вставили новую задачу в середину, — для личного трекера
+  // этого достаточно (в худшем случае устареет одна запись), а платить за
+  // стабильность ручной разметкой 672 задач никто не станет. Явный data-id,
+  // если он появится, по-прежнему главнее.
   var STORE = "algoChallengeSolved";
-  function loadSolved() {
+  var MISSED = "algoChallengeMissed";
+
+  function pageKey() {
+    var m = /([^/]+)\.html?$/.exec(location.pathname);
+    return m ? m[1] : (location.pathname || "page");
+  }
+  function challengeId(root, index) {
+    return root.getAttribute("data-id") || pageKey() + "#" + index;
+  }
+
+  function loadMap(key) {
     try {
-      return JSON.parse(localStorage.getItem(STORE) || "{}") || {};
+      return JSON.parse(localStorage.getItem(key) || "{}") || {};
     } catch (e) {
       return {};
     }
   }
-  function markSolved(id) {
-    if (!id) return;
+  function loadSolved() { return loadMap(STORE); }
+
+  function save(key, obj) {
     try {
-      var s = loadSolved();
-      s[id] = true;
-      localStorage.setItem(STORE, JSON.stringify(s));
+      localStorage.setItem(key, JSON.stringify(obj));
     } catch (e) {
       /* приватный режим — молча игнорируем */
     }
+  }
+
+  function markSolved(root) {
+    var id = root && root.__algoId;
+    if (!id) return;
+    var s = loadSolved();
+    s[id] = true;
+    save(STORE, s);
+    // Решённая задача уходит из списка «повторить»: смысл списка — то, что
+    // ещё НЕ далось, а не журнал всех когда-либо сделанных ошибок.
+    var m = loadMap(MISSED);
+    if (m[id]) {
+      delete m[id];
+      save(MISSED, m);
+    }
+  }
+
+  // markMissed копит промахи для режима «повторить» (см. review.js): что за
+  // задача, в какой главе и сколько раз не далась.
+  function markMissed(root) {
+    var id = root && root.__algoId;
+    if (!id) return;
+    if (loadSolved()[id]) return; // уже решена — промах не в счёт
+    var m = loadMap(MISSED);
+    var q = root.querySelector(".algo-challenge__q");
+    m[id] = {
+      n: ((m[id] && m[id].n) || 0) + 1,
+      page: pageKey(),
+      anchor: root.id || "",
+      q: (q ? q.textContent : "").trim().slice(0, 120),
+    };
+    save(MISSED, m);
   }
 
   function buildFeedback(root) {
@@ -184,8 +233,9 @@
       showResult(fb, ok, ok ? explain : "");
       if (ok) {
         input.classList.add("algo-challenge__input--ok");
-        markSolved(root.getAttribute("data-id"));
+        markSolved(root);
       } else {
+        markMissed(root);
         fails++;
         if (fails >= 2) addReveal(fb, explain);
         input.classList.remove("algo-challenge__input--ok");
@@ -238,7 +288,7 @@
           x.disabled = true;
         });
         showResult(fb, ok, explain);
-        if (ok) markSolved(root.getAttribute("data-id"));
+        if (ok) markSolved(root); else markMissed(root);
       });
       buttons.push(b);
       list.appendChild(b);
@@ -333,9 +383,10 @@
       var ok = chosen.join("") === correct.join("");
       showResult(fb, ok, ok ? explain : "");
       if (ok) {
-        markSolved(root.getAttribute("data-id"));
+        markSolved(root);
         seq.classList.add("is-ok");
       } else {
+        markMissed(root);
         fails++;
         if (fails >= 2) addReveal(fb, explain);
         seq.classList.remove("is-ok");
@@ -378,6 +429,9 @@
     var nodes = document.querySelectorAll(".algo-challenge");
     for (var i = 0; i < nodes.length; i++) {
       try {
+        // id для хранилища и якорь для ссылки «повторить» из списка промахов
+        nodes[i].__algoId = challengeId(nodes[i], i);
+        if (!nodes[i].id) nodes[i].id = "task-" + i;
         render(nodes[i]);
       } catch (e) {
         if (window.console && console.warn) console.warn("challenge render error", e);

@@ -84,7 +84,16 @@ runner'а задаётся через `localStorage.setItem('algoRunnerUrl', ...
   (`algo-viz.js`; типы: `sliding-window-fixed`, `two-pointers-sum`, `binary-search`,
   `cyclic-sort`, `dp-coins`, `tree-bfs`/`tree-dfs`, `graph-bfs` и др.)
 - `<div class="algo-quiz"></div>` — квиз распознавания паттернов (`quiz.js`, см. `src/quiz.md`)
-- `<div class="algo-progress"></div>` — трекер прогресса в localStorage (`progress.js`, см. `src/cheatsheet.md`)
+- `<div class="algo-progress"></div>` — трекер прогресса в localStorage (`progress.js`, см. `src/cheatsheet.md`);
+  там же кнопки экспорта/импорта: выгружают ВСЕ ключи книги (`algoProgress`, `algoChallengeSolved`,
+  `algoChallengeMissed`, `algoQuizBest`, `algoRunnerCode:*`) в один JSON и вливают его обратно
+  СЛИЯНИЕМ, а не заменой — иначе перенос с другой машины стирал бы уже пройденное здесь
+- `<div class="algo-review"></div>` — «повторить промахи» (`review.js`, см. `src/cheatsheet.md`):
+  список задач, которые не дались, сгруппированный по главам, со ссылкой на конкретную задачу.
+  Данные копит `challenge.js`. Важная деталь: id задачи выводится сам («страница#порядковый
+  номер»), потому что `data-id` не проставлен НИ В ОДНОЙ главе — раньше `markSolved` из-за этого
+  молча не сохранял ничего, и `algoChallengeSolved` всегда был пуст. Виджеты задач заодно
+  получают якорь `id="task-N"`, чтобы ссылка вела прямо к задаче
 
 Виджеты поддерживают пошаговую навигацию стрелками (←/→, Home/End).
 
