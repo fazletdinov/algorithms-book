@@ -278,13 +278,33 @@
     if (!res.ok && res.output) out.appendChild(pre(res.output));
   }
 
+  // Виджет бесполезен без helper-сервера, а «сервер не отвечает» — самое частое
+  // первое впечатление от книги (на опубликованном сайте runner'а нет в принципе:
+  // он гоняет go test на машине читателя). Поэтому здесь не сообщение об ошибке,
+  // а инструкция: три способа поднять runner, включая вариант без установленного Go.
   function serverDownView(out, err) {
     out.innerHTML = "";
+    var hosted = /\.github\.io$/.test(location.hostname);
     var box = el("div", "algo-runner__down");
     box.innerHTML =
-      "<strong>Локальный runner не отвечает.</strong> Запусти его рядом с книгой:" +
-      "<pre>cd exercises &amp;&amp; go run ./cmd/runner</pre>" +
-      "и обнови страницу. Сервис локальный — гоняет настоящий <code>go&nbsp;test</code> на твоей машине." +
+      "<strong>Runner не отвечает — а без него тут ничего не запустится.</strong> " +
+      "Виджет гоняет НАСТОЯЩИЙ <code>go&nbsp;test</code>, поэтому ему нужен helper-сервер " +
+      "на твоей машине (" + escapeHtml(RUNNER_URL) + "), а не на сайте." +
+      (hosted
+        ? "<p>Ты читаешь опубликованную книгу — подними её локально, тогда заработают и виджеты:</p>" +
+          "<pre>git clone https://github.com/fazletdinov/algorithms-book\ncd algorithms-book\nmake serve</pre>"
+        : "<p>Одной командой из корня репозитория — книга и runner вместе:</p>" +
+          "<pre>make serve</pre>" +
+          "<p>Или только runner:</p>" +
+          "<pre>cd exercises &amp;&amp; go run ./cmd/runner</pre>") +
+      "<p>Go не установлен? Тот же runner через Docker, из корня репозитория:</p>" +
+      "<pre>docker run --rm -p 127.0.0.1:8080:8080 -v \"$PWD:/w\" \\\n  -w /w/exercises golang:1.24 go run ./cmd/runner -listen-all</pre>" +
+      "<p class='algo-runner__hint'>Публикация именно на <code>127.0.0.1</code> и <code>-listen-all</code> " +
+      "только внутри контейнера — снаружи runner не должен быть доступен никому: он исполняет " +
+      "присланный код.</p>" +
+      "<p>Runner слушает на другом адресе (Codespaces, удалённая машина)? Укажи его явно " +
+      "в консоли браузера и обнови страницу:</p>" +
+      "<pre>localStorage.setItem('algoRunnerUrl', 'https://…')</pre>" +
       "<div class='algo-runner__err'>" + escapeHtml(String(err && err.message || err)) + "</div>";
     out.appendChild(box);
   }

@@ -151,3 +151,11 @@
   font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .algo-runner__err { margin-top: 6px; font-size: 11px; opacity: 0.7; }
+
+/* Мелкая сноска в подсказке «runner не отвечает» — предупреждение про сеть,
+   которое не должно спорить по весу с самими командами. */
+.algo-runner__hint {
+  font-size: 11px;
+  opacity: 0.75;
+  margin: 4px 0 0;
+}

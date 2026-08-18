@@ -1,0 +1,19 @@
+{
+  "name": "algorithms-book",
+  "image": "mcr.microsoft.com/devcontainers/go:1.24",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" }
+  },
+  "postCreateCommand": ".devcontainer/setup.sh",
+  "forwardPorts": [3000, 8080],
+  "portsAttributes": {
+    "3000": { "label": "Книга (mdbook serve)", "onAutoForward": "openPreview" },
+    "8080": { "label": "Runner («Реши прямо здесь»)" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["golang.go"],
+      "settings": { "go.toolsManagement.autoUpdate": false }
+    }
+  }
+}

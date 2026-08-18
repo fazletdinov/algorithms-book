@@ -52,21 +52,42 @@
 Требования: **Go 1.24+** (тренажёр) и **[mdBook](https://rust-lang.github.io/mdBook/)** (книга).
 
 ```bash
-mdbook serve                              # книга на http://localhost:3000
+make serve                                # книга :3000 + runner :8080 одной командой
 
 cd exercises
 go test ./slidingwindow/                  # твоё решение (красное, пока не написано)
 go test -tags solution ./slidingwindow/   # эталон (зелёный)
 ```
 
+Ничего ставить не хочется? В репозитории есть
+[devcontainer](.devcontainer/devcontainer.json): «Open in GitHub Codespaces» или
+«Reopen in Container» в VS Code — Go, Node и mdBook нужной версии приедут сами,
+порты 3000/8080 пробросятся.
+
 ## Решать прямо в книге
 
 Виджет «Реши прямо здесь» в главах гоняет твой код через настоящий `go test`:
 
 ```bash
-cd exercises
-go run ./cmd/runner    # локальный helper-сервер на http://localhost:8080
+make serve             # книга и runner вместе
+
+# или только runner:
+cd exercises && go run ./cmd/runner    # http://localhost:8080
 ```
+
+Без установленного Go — тот же runner в контейнере (из корня репозитория):
+
+```bash
+docker run --rm -p 127.0.0.1:8080:8080 -v "$PWD:/w" -w /w/exercises \
+  golang:1.24 go run ./cmd/runner -listen-all
+```
+
+Runner слушает **только localhost** и это инвариант, а не настройка: `/api/run`
+исполняет присланный код, поэтому доступный по сети runner означал бы удалённое
+выполнение кода на твоей машине. `-listen-all` снимает ограничение ровно для
+запуска внутри контейнера, а `-p 127.0.0.1:8080:8080` держит опубликованный порт
+на петле хоста. Книга на другом адресе (Codespaces в браузере) —
+`localStorage.setItem('algoRunnerUrl', 'https://…')` в консоли и обновить страницу.
 
 Дальше открой любую главу с тренажёром — стартовый код подтянется сам, кнопка
 запускает тесты и показывает результат; для конкурентных пакетов — с `-race`.

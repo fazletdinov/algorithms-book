@@ -10,10 +10,23 @@
 //	go run ./cmd/runner -addr :9000
 //
 // Безопасность: сервис ЛОКАЛЬНЫЙ и однопользовательский — он запускает твой же
-// код на твоей машине, поэтому песочница не нужна. Слушает только localhost.
-// НО: /api/run исполняет присланный код, поэтому CORS ограничен известными
-// origin'ами книги (localhost + GitHub Pages) — иначе любой открытый в браузере
-// сайт мог бы fetch'ем прогнать произвольный Go-код на машине читателя.
+// код на твоей машине, поэтому песочница не нужна. Слушает только localhost, и
+// это НЕ настройка по умолчанию, а инвариант: адрес принудительно приводится к
+// localhost, что бы ни передали в -addr. НО: /api/run исполняет присланный код,
+// поэтому CORS ограничен известными origin'ами книги (localhost + GitHub Pages)
+// — иначе любой открытый в браузере сайт мог бы fetch'ем прогнать произвольный
+// Go-код на машине читателя.
+//
+// Единственное исключение — флаг -listen-all, и он нужен ровно для одного
+// сценария: runner работает ВНУТРИ контейнера (docker/devcontainer), где
+// «наружу» — это всё ещё изолированная сеть контейнера, а до хоста порт
+// доводит уже docker, которому и решать, кому его показывать:
+//
+//	docker run --rm -p 127.0.0.1:8080:8080 -v "$PWD:/w" -w /w/exercises \
+//	  golang:1.24 go run ./cmd/runner -listen-all
+//
+// Публикация вида `-p 8080:8080` (без 127.0.0.1) отдаст исполнение
+// произвольного кода всей локальной сети — так делать не надо.
 package main
 
 import (
@@ -44,6 +57,7 @@ var pkgName = regexp.MustCompile(`^[a-z][a-z0-9]*$`)
 
 func main() {
 	addr := flag.String("addr", ":8080", "адрес прослушивания (localhost)")
+	listenAll := flag.Bool("listen-all", false, "слушать на всех интерфейсах — ТОЛЬКО внутри контейнера/ВМ")
 	flag.Parse()
 
 	root, err := findModuleRoot()
@@ -59,8 +73,19 @@ func main() {
 	mux.HandleFunc("/api/run", withCORS(handleRun))
 	mux.HandleFunc("/api/trace", withCORS(handleTrace))
 
+	// По умолчанию — жёстко localhost: /api/run исполняет присланный код, и
+	// доступный по сети runner означал бы удалённое выполнение кода на машине
+	// читателя. -listen-all снимает ограничение осознанно и только для запуска
+	// в контейнере (см. док-комментарий пакета).
+	listen := "localhost" + strings.TrimPrefix(*addr, "localhost")
+	if *listenAll {
+		listen = *addr
+		log.Printf("runner: ВНИМАНИЕ — слушаю %s на всех интерфейсах (-listen-all). "+
+			"/api/run исполняет присланный код: это безопасно только внутри контейнера/ВМ, "+
+			"порт которого опубликован на 127.0.0.1", listen)
+	}
 	log.Printf("runner: слушаю http://localhost%s — Ctrl+C для остановки", *addr)
-	if err := http.ListenAndServe("localhost"+strings.TrimPrefix(*addr, "localhost"), mux); err != nil {
+	if err := http.ListenAndServe(listen, mux); err != nil {
 		log.Fatal(err)
 	}
 }

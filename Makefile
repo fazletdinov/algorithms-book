@@ -8,7 +8,7 @@
 #   make build   — сборка книги в ./book
 #   make check   — то же, что проверяет CI (gofmt, эталоны, книга, ссылки)
 
-.PHONY: serve book runner build check help
+.PHONY: serve book runner docker-runner build check help
 .DEFAULT_GOAL := help
 
 ## serve: книга + runner вместе (Ctrl+C гасит оба)
@@ -34,6 +34,11 @@ runner:
 ## build: собрать статическую книгу в ./book
 build:
 	mdbook build
+
+## docker-runner: runner в контейнере (если Go локально не установлен)
+docker-runner:
+	docker run --rm -p 127.0.0.1:8080:8080 -v "$(CURDIR):/w" -w /w/exercises \
+	  golang:1.24 go run ./cmd/runner -listen-all
 
 ## check: локально прогнать то, что проверяет CI
 check:
