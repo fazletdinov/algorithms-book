@@ -13,8 +13,8 @@ import (
 // на этот случай — полезно для тестов.
 //
 // Сам роутинг и PING/ECHO даны готовыми (протокольная демонстрация с этапа
-// 1, решать там нечего); SET/GET/DEL/EXPIRE/TTL/ZADD/ZSCORE/ZRANGE/ZRANK —
-// задача этапов 2-4, см. miniredis.go.
+// 1, решать там нечего); SET/GET/DEL/EXPIRE/TTL/ZADD/ZSCORE/ZRANGE/ZRANK/SAVE —
+// задача этапов 2-4 и 7, см. miniredis.go.
 func Dispatch(store *Store, args []string) Reply {
 	if len(args) == 0 {
 		return Err("ERR empty command")
@@ -42,6 +42,8 @@ func Dispatch(store *Store, args []string) Reply {
 		return dispatchZRange(store, args[1:])
 	case "ZRANK":
 		return dispatchZRank(store, args[1:])
+	case "SAVE":
+		return dispatchSave(store, args[1:])
 	default:
 		return Err(fmt.Sprintf("ERR unknown command '%s'", args[0]))
 	}

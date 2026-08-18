@@ -140,8 +140,9 @@ Job `go-tests` (working-directory `exercises/`) проверяет четыре 
 `ratelimiter`, `streamstats`, `leaderboard`, `cache`. `miniredis` (глава
 [«Капстоун»](../src/miniredis.md)) — сквозной проект поверх этих флагманов, растёт по этапам;
 с этапа 2 у него обычная пара заготовка/эталон (`miniredis.go`/`miniredis_solution.go` —
-на этапе 5: `dispatchSet`/`dispatchGet`/`dispatchDel`/`dispatchExpire`/`dispatchTTL`/
-`dispatchZAdd`/`dispatchZScore`/`dispatchZRange`/`dispatchZRank`/`RateLimitReply`), а протокол
+на этапе 7: `dispatchSet`/`dispatchGet`/`dispatchDel`/`dispatchExpire`/`dispatchTTL`/
+`dispatchZAdd`/`dispatchZScore`/`dispatchZRange`/`dispatchZRank`/`RateLimitReply`/
+`SaveSnapshot`/`LoadSnapshot`/`dispatchSave`), а протокол
 (`resp.go`), маршрутизация и `PING`/`ECHO` (`dispatch.go`), тип `Store` с TTL/ZSET и `live()`/
 `zsetOrdered()` (`store.go`) даны готовыми без тега — общая инфраструктура, не задача с
 решением. `Store.now func() time.Time` — впрыск часов для тестов TTL без `time.Sleep`
@@ -154,11 +155,26 @@ Job `go-tests` (working-directory `exercises/`) проверяет четыре 
 читателем во флагмане) в готовый `Reply`-или-`nil`; ведро заводится НА СОЕДИНЕНИЕ в
 `cmd/miniredis/main.go` (не в `Store`, который общий на всех клиентов) — поэтому обычный
 `TokenBucket`, без `SafeTokenBucket`, корректен без мьютекса: наглядный контраст со `Store`,
-которому мьютекс нужен именно потому, что он shared. Этап 6 (опциональный, маршрут капстоуна
-завершён) не добавляет TODO — `store.mu` был обязателен уже с этапа 2, здесь неявное допущение
+которому мьютекс нужен именно потому, что он shared. Этап 6 (опциональный) не добавляет TODO — `store.mu` был обязателен уже с этапа 2, здесь неявное допущение
 делается явным: `miniredis_concurrent_test.go` (дан готовым) гоняет `DEL` по общим 200 ключам из
 8 горутин под `-race` и проверяет точный инвариант (сумма удалений по всем горутинам == 200,
-как `TestSafeTokenBucketConcurrent` в `ratelimiter`), а не просто «тест не упал». Проверка
+как `TestSafeTokenBucketConcurrent` в `ratelimiter`), а не просто «тест не упал». Этап 7
+(маршрут капстоуна завершён) — персистентность: `SaveSnapshot`/`LoadSnapshot`/`dispatchSave`
+(`SAVE`), автозагрузка при старте и сохранение по SIGINT/SIGTERM даны готовыми в
+`cmd/miniredis/main.go` (флаг `-db`, по умолчанию `dump.rdb`; сам файл — в `.gitignore`).
+Суть этапа не в команде, а в АТОМАРНОСТИ записи: снапшот пишется во временный файл рядом
+с целью (`os.CreateTemp(filepath.Dir(path), ...)` — тот же раздел ФС, иначе `os.Rename`
+провалится cross-device) и переносится `os.Rename`; прямой `os.WriteFile` открывает файл с
+`O_TRUNC` и делает состояние наблюдаемым «наполовину». `TestSnapshotSaveIsAtomic`
+(`persistence_test.go`, дан готовым) это ГОНЯЕТ, а не описывает: 300 раундов SaveSnapshot
+против 300 раундов LoadSnapshot в отдельных горутинах, допустимо НОЛЬ ошибок декодирования —
+намеренный контраст с этапом 6, где разделяемой была память (её сторожит `store.mu` и видит
+`-race`), а здесь разделяемый ресурс — файл, и `-race`/мьютекс про него ничего не знают.
+Сериализуется НЕ `*Store` (мьютекс + неэкспортируемые поля), а отдельный `snapshotData` с
+экспортируемыми полями (`gob`), причём копия карт снимается под `store.mu`, а кодирование и
+запись идут уже без него — критическая секция не включает дисковую операцию (учебный аналог
+`BGSAVE`-мотивации настоящего Redis). TTL в снапшоте — АБСОЛЮТНЫЕ `time.Time`, как unix-ms в
+настоящем RDB: ключ, протухший за время простоя, после загрузки мёртв, а не воскресает. Проверка
 «Заготовки ещё не решены» в CI
 (`.github/workflows/ci.yml`)
 принципиально смотрит только на пакеты с физическим `<pkg>_solution.go`, поэтому `miniredis`

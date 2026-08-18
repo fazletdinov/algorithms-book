@@ -25,6 +25,13 @@
 // Каждое соединение получает своё ведро токенов (miniredis.RateLimitReply,
 // этап 5) — больше 5 команд подряд без паузы сервер начнёт отвечать ERR,
 // пока ведро не пополнится (2 токена/сек).
+//
+// Persistence (этап 7): при старте сервер пытается загрузить снапшот из
+// -db (по умолчанию "dump.rdb" в текущем каталоге, как настоящий Redis);
+// файла нет — не ошибка, просто пустое хранилище. Команда SAVE сохраняет
+// состояние в тот же файл вручную; Ctrl+C (SIGINT) или SIGTERM тоже
+// сохраняют перед выходом — ровно как настоящий redis-server на штатной
+// остановке.
 package main
 
 import (
@@ -34,6 +41,9 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/fazletdinov/algorithms-book/exercises/miniredis"
@@ -42,6 +52,7 @@ import (
 
 func main() {
 	addr := flag.String("addr", "localhost:6380", "адрес прослушивания")
+	dbPath := flag.String("db", "dump.rdb", "файл снапшота (SAVE и автозагрузка при старте)")
 	flag.Parse()
 
 	ln, err := net.Listen("tcp", *addr)
@@ -52,6 +63,23 @@ func main() {
 	log.Printf("miniredis: проверка — redis-cli -p 6380 PING (порт свой, если запускали с -addr)")
 
 	store := miniredis.NewStore()
+	if err := miniredis.LoadSnapshot(store, *dbPath); err != nil {
+		log.Printf("miniredis: не удалось загрузить снапшот %s: %v (старт с пустым хранилищем)", *dbPath, err)
+	} else {
+		log.Printf("miniredis: снапшот %s загружен (или ещё не существовал — тогда пусто)", *dbPath)
+	}
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigCh
+		log.Printf("miniredis: получен сигнал остановки, сохраняю снапшот в %s...", *dbPath)
+		if err := miniredis.SaveSnapshot(store, *dbPath); err != nil {
+			log.Printf("miniredis: не удалось сохранить снапшот: %v", err)
+		}
+		os.Exit(0)
+	}()
+
 	for {
 		conn, err := ln.Accept()
 		if err != nil {

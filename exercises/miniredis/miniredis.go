@@ -194,3 +194,59 @@ func RateLimitReply(bucket *ratelimiter.TokenBucket, nowMs int64) Reply {
 	// false — верните Err("ERR rate limit exceeded, try again later").
 	panic("TODO: реализуйте RateLimitReply")
 }
+
+// SaveSnapshot сериализует ТЕКУЩЕЕ состояние store (данные, TTL, zset'ы) в
+// файл path — команда SAVE (dispatchSave) и автозагрузка при старте сервера
+// (cmd/miniredis/main.go) вызывают её/LoadSnapshot напрямую.
+//
+// Критично: пишите не в path напрямую, а во ВРЕМЕННЫЙ файл рядом с ним,
+// затем os.Rename(tmp, path). Rename на одной файловой системе — атомарная
+// операция: кто угодно, открывший path на чтение в этот момент, увидит либо
+// целиком старый файл, либо целиком новый, никогда — наполовину записанный.
+// Прямая запись в path (os.WriteFile/os.Create) сначала обнуляет файл, потом
+// заполняет его — упади процесс (или открой файл конкурентный читатель)
+// между этими шагами, и снапшот окажется пустым или битым. Это не абстрактная
+// осторожность: persistence_test.go проверяет ровно это гонкой, а не
+// описанием — TestSnapshotSaveIsAtomic реально гоняет SAVE и чтение файла на
+// живых горутинах одновременно и требует НИ ОДНОГО сбоя декодирования.
+func SaveSnapshot(store *Store, path string) error {
+	// TODO: под store.mu скопируйте store.data/store.expire/store.zsets в
+	// СОБСТВЕННЫЙ тип с экспортируемыми полями (например, struct{ Data
+	// map[string]string; Expire map[string]time.Time; ZSets
+	// map[string]map[string]int64 }) — не сериализуйте *Store напрямую, у
+	// него есть мьютекс и неэкспортированные поля. Сериализуйте
+	// (encoding/gob: gob.NewEncoder(w).Encode(snapshot) — time.Time уже
+	// умеет кодироваться сама) во временный файл РЯДОМ с path
+	// (os.CreateTemp(filepath.Dir(path), "*.tmp") — самый простой способ),
+	// закройте его, затем os.Rename(tmp, path). Ошибка на любом шаге до
+	// Rename — удалите временный файл (os.Remove) и верните ошибку, не
+	// оставляя мусор на диске.
+	panic("TODO: реализуйте SaveSnapshot")
+}
+
+// LoadSnapshot загружает снапшот из path в store, заменяя его текущее
+// содержимое. Файла нет (сервер запускается первый раз, ещё ни разу не
+// сохранялись) — это НЕ ошибка: верните nil, ничего не меняя в store.
+func LoadSnapshot(store *Store, path string) error {
+	// TODO: os.Open(path); errors.Is(err, os.ErrNotExist) — верните nil.
+	// Любая другая ошибка открытия — верните её как есть. Раскодируйте
+	// (gob.NewDecoder(f).Decode(&snapshot)) в тот же тип, что использует
+	// SaveSnapshot. Под store.mu ЗАМЕНИТЕ store.data/store.expire/
+	// store.zsets раскодированными картами (не мержите со старым
+	// содержимым — LoadSnapshot вызывается один раз при старте на пустом
+	// Store).
+	panic("TODO: реализуйте LoadSnapshot")
+}
+
+// dispatchSave — команда SAVE: без аргументов сохраняет в файл по умолчанию
+// ("dump.rdb", как настоящий Redis), с одним аргументом — по указанному
+// пути. Настоящий Redis дополнительно умеет BGSAVE (сохраняет в форкнутом
+// дочернем процессе, не блокируя клиентов, пока пишется большой снапшот) —
+// здесь его нет: SaveSnapshot синхронная и держит store.mu на всё время
+// сохранения, как самый обычный (не BGSAVE) SAVE настоящего Redis.
+func dispatchSave(store *Store, args []string) Reply {
+	// TODO: len(args) > 1 — Err(...). path := "dump.rdb"; если один
+	// аргумент есть — path = args[0]. Вызовите SaveSnapshot(store, path);
+	// ошибка — верните Err("ERR " + err.Error()); иначе SimpleString("OK").
+	panic("TODO: реализуйте SAVE")
+}

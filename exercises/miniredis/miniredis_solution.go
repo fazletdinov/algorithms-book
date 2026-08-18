@@ -3,11 +3,26 @@
 package miniredis
 
 import (
+	"encoding/gob"
+	"errors"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/fazletdinov/algorithms-book/exercises/ratelimiter"
 )
+
+// snapshotData — то, что реально идёт на диск. НЕ Store целиком: у Store
+// есть мьютекс (незачем и нельзя сериализовать) и неэкспортированные поля
+// (gob их не увидит без ручного (Un)GobEncode); отдельный тип с
+// экспортируемыми полями держит формат снапшота стабильным независимо от
+// того, как устроен Store внутри.
+type snapshotData struct {
+	Data   map[string]string
+	Expire map[string]time.Time
+	ZSets  map[string]map[string]int64
+}
 
 func dispatchSet(store *Store, args []string) Reply {
 	if len(args) != 2 {
@@ -210,4 +225,93 @@ func RateLimitReply(bucket *ratelimiter.TokenBucket, nowMs int64) Reply {
 		return nil
 	}
 	return Err("ERR rate limit exceeded, try again later")
+}
+
+func SaveSnapshot(store *Store, path string) error {
+	store.mu.Lock()
+	snap := snapshotData{
+		Data:   make(map[string]string, len(store.data)),
+		Expire: make(map[string]time.Time, len(store.expire)),
+		ZSets:  make(map[string]map[string]int64, len(store.zsets)),
+	}
+	for k, v := range store.data {
+		snap.Data[k] = v
+	}
+	for k, v := range store.expire {
+		snap.Expire[k] = v
+	}
+	for k, zset := range store.zsets {
+		copyZset := make(map[string]int64, len(zset))
+		for member, score := range zset {
+			copyZset[member] = score
+		}
+		snap.ZSets[k] = copyZset
+	}
+	store.mu.Unlock()
+
+	tmp, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	if err := gob.NewEncoder(tmp).Encode(snap); err != nil {
+		tmp.Close()
+		os.Remove(tmpPath)
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		os.Remove(tmpPath)
+		return err
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		os.Remove(tmpPath)
+		return err
+	}
+	return nil
+}
+
+func LoadSnapshot(store *Store, path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	defer f.Close()
+
+	var snap snapshotData
+	if err := gob.NewDecoder(f).Decode(&snap); err != nil {
+		return err
+	}
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	store.data = snap.Data
+	store.expire = snap.Expire
+	store.zsets = snap.ZSets
+	if store.data == nil {
+		store.data = make(map[string]string)
+	}
+	if store.expire == nil {
+		store.expire = make(map[string]time.Time)
+	}
+	if store.zsets == nil {
+		store.zsets = make(map[string]map[string]int64)
+	}
+	return nil
+}
+
+func dispatchSave(store *Store, args []string) Reply {
+	if len(args) > 1 {
+		return Err("ERR wrong number of arguments for 'save' command")
+	}
+	path := "dump.rdb"
+	if len(args) == 1 {
+		path = args[0]
+	}
+	if err := SaveSnapshot(store, path); err != nil {
+		return Err("ERR " + err.Error())
+	}
+	return SimpleString("OK")
 }
