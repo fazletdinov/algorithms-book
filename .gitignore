@@ -17,3 +17,7 @@ exercises/.algo-runner
 # Снапшот мини-Redis: артефакт локального прогона капстоуна (команда SAVE и
 # автосохранение сервера пишут его в рабочий каталог, как настоящий redis-server).
 dump.rdb
+
+# node_modules — только для локального прогона jsdom-смоуков (в CI ставится
+# на лету через npm install --no-save).
+node_modules/
