@@ -6,9 +6,18 @@
 //  - нормализация: кириллические двойники латиницы (О в O(1)), пробелы-разряды
 //    в числах («1 048 576»), русские слова-ответы.
 // Требует jsdom (в CI ставится npm install --no-save jsdom).
-const { JSDOM } = require("jsdom");
+// Если его нет — мягкий пропуск (exit 0), как в остальных смоуках: локальное
+// отсутствие jsdom не должно валить прогон проверок.
 const fs = require("fs");
 const path = require("path");
+
+let JSDOM;
+try {
+  ({ JSDOM } = require("jsdom"));
+} catch (e) {
+  console.log("⏭  challenge-engine-check: jsdom не установлен — пропускаю (npm i jsdom).");
+  process.exit(0);
+}
 
 const src = fs.readFileSync(
   path.join(__dirname, "..", "assets", "challenge.js"),

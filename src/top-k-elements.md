@@ -387,14 +387,29 @@ if h.Len() &gt; ______ {
 <div class="algo-challenge__q">Весь массив уже в памяти, ответ нужен один раз, k ≈ n/2. Чем искать k наибольших?</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
+
+**🟢 Разогрев** — куча фиксированного размера:
 
 - [Kth Largest Element](https://leetcode.com/problems/kth-largest-element-in-an-array/) (LeetCode 215) — куча или QuickSelect
-- [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) (LeetCode 347) — bucket sort
 - [Sort Characters By Frequency](https://leetcode.com/problems/sort-characters-by-frequency/) (LeetCode 451)
+
+**🔵 Основа** — планка главы:
+
+- [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) (LeetCode 347) — bucket sort
 - [Top K Frequent Words](https://leetcode.com/problems/top-k-frequent-words/) (LeetCode 692) — составной компаратор
 - [Reorganize String](https://leetcode.com/problems/reorganize-string/) (LeetCode 767)
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) (LeetCode 373) — сложная
+
+> 🧭 **Не пошла задача из основы?** Сначала проверь **направление кучи**: для «k наибольших»
+> держат **min-heap** размера k и выбрасывают корень. Интуиция уверенно подсказывает
+> обратное — и это самая частая ошибка главы. Второе место: 692 требует компаратор из двух
+> полей (частота убывает, при равенстве слово растёт лексикографически) — «стабильная
+> сортировка вывезет» здесь не работает.
 
 **Тренажёр** — пакет `topk`:
 

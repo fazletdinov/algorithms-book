@@ -579,15 +579,32 @@ best = max(best, cur)</pre>
 <div class="algo-challenge__q">Расставь по порядку шаги построения ДП-решения:</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
 
-- [Maximum Subarray](https://leetcode.com/problems/maximum-subarray/) (LeetCode 53) — Kadane
+**🟢 Разогрев** — одномерное ДП, состояние — один индекс:
+
 - [Min Cost Climbing Stairs](https://leetcode.com/problems/min-cost-climbing-stairs/) (LeetCode 746)
+- [Maximum Subarray](https://leetcode.com/problems/maximum-subarray/) (LeetCode 53) — Kadane
+
+**🔵 Основа** — планка главы:
+
 - [House Robber II](https://leetcode.com/problems/house-robber-ii/) (LeetCode 213) — дома по кругу
 - [Partition Equal Subset Sum](https://leetcode.com/problems/partition-equal-subset-sum/) (LeetCode 416) — 0/1 рюкзак
 - [Coin Change II](https://leetcode.com/problems/coin-change-ii/) (LeetCode 518) — число комбинаций
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [Longest Palindromic Substring](https://leetcode.com/problems/longest-palindromic-substring/) (LeetCode 5)
 - [Decode Ways](https://leetcode.com/problems/decode-ways/) (LeetCode 91) — сложная
+
+> 🧭 **Не пошла задача из основы?** Скажи вслух, **что означает `dp[i]`**, целым
+> предложением. Не формулируется — состояние неполно, и переход не выпишется никогда
+> (см. [«Состояние должно быть полным резюме»](#состояние-должно-быть-полным-резюме)).
+> Дальше три типовые поломки этой ступени: в 213 круг ломают двумя прогонами линейной задачи
+> (без первого дома и без последнего), в 416 проход по вместимости идёт **в обратную**
+> сторону, иначе предмет возьмётся дважды, а в 518 цикл по монетам обязан быть **снаружи** —
+> внутри он посчитает перестановки вместо комбинаций.
 
 **Тренажёр** — пакет `dp`:
 

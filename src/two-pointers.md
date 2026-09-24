@@ -482,14 +482,28 @@ if sum &lt; target {
 <div class="algo-challenge__q">Расставь по порядку шаги алгоритма 3Sum:</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
+
+**🟢 Разогрев** — встречные указатели в чистом виде:
 
 - [Valid Palindrome](https://leetcode.com/problems/valid-palindrome/) (LeetCode 125)
 - [Two Sum II](https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/) (LeetCode 167)
-- [3Sum](https://leetcode.com/problems/3sum/) (LeetCode 15) — сортировка + встречные указатели
-- [Container With Most Water](https://leetcode.com/problems/container-with-most-water/) (LeetCode 11)
+
+**🔵 Основа** — планка главы:
+
 - [Move Zeroes](https://leetcode.com/problems/move-zeroes/) (LeetCode 283) — медленный/быстрый
+- [Container With Most Water](https://leetcode.com/problems/container-with-most-water/) (LeetCode 11)
+- [3Sum](https://leetcode.com/problems/3sum/) (LeetCode 15) — сортировка + встречные указатели
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) (LeetCode 42) — сложная
+
+> 🧭 **Не пошла задача из основы?** 11 и 42 — не про перебор пар, а про то, **что ты
+> отбрасываешь**, двигая указатель. Сформулируй словами, почему сдвиг меньшей стенки не
+> может потерять ответ: если это предложение не строится, код будет угадыванием. В 15
+> отдельная ловушка — пропуск дублей, иначе тройки повторятся.
 
 **Тренажёр** — пакет `twopointers`:
 

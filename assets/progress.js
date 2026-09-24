@@ -10,94 +10,115 @@
   // глава, которой тут нет. Иначе «100%» в трекере переставало бы значить
   // «прочитал всю книгу» — а именно это с ним однажды и случилось.
   // Порядок и разбивка по группам повторяют оглавление книги.
+  //
+  // Поле lvl — МАРШРУТ, а не оценка важности главы:
+  //   core — ядро: 21 глава, скелет курса, читается подряд. Только оно идёт в процент;
+  //   ext  — расширение: широко полезно, но после ядра;
+  //   ref  — справочник: открыть, когда встретишь в жизни или захочешь полноты
+  //          (AVL/RB-деревья, потоки, теория чисел — их не пишут руками на работе);
+  //   tool — не глава, а инструмент (квиз, шпаргалка): нигде не считается.
+  // Смысл в том, что 60 глав в оглавлении выглядят одинаково обязательными, и от
+  // этого курс бросают. Ядра — двадцать одна глава, и это видно.
   var GROUPS = [
     { g: "Ориентиры", items: [
-      { t: "Руководство по выбору шаблона", h: "pattern-selection-guide.html" },
-      { t: "Шпаргалка", h: "cheatsheet.html" },
-      { t: "Тренажёр распознавания (квиз)", h: "quiz.html" }
+      { t: "Руководство по выбору шаблона", h: "pattern-selection-guide.html", lvl: "tool" },
+      { t: "Шпаргалка", h: "cheatsheet.html", lvl: "tool" },
+      { t: "Тренажёр распознавания (квиз)", h: "quiz.html", lvl: "tool" }
     ] },
     { g: "Группа 1: Фундамент", items: [
-      { t: "Big-O и амортизированный анализ", h: "big-o.html" },
-      { t: "Рекурсия и мастер-теорема", h: "recursion.html" },
-      { t: "Инварианты и индукция", h: "invariants.html" },
-      { t: "Хеш-таблица: устройство", h: "hash-table-structure.html" },
-      { t: "Связный список: устройство", h: "linked-list-structure.html" },
-      { t: "Дек: устройство", h: "deque-structure.html" },
-      { t: "Сортировки и порядковые статистики", h: "sorting.html" }
+      { t: "Big-O и амортизированный анализ", h: "big-o.html", lvl: "core" },
+      { t: "Рекурсия и мастер-теорема", h: "recursion.html", lvl: "core" },
+      { t: "Инварианты и индукция", h: "invariants.html", lvl: "core" },
+      { t: "Хеш-таблица: устройство", h: "hash-table-structure.html", lvl: "core" },
+      { t: "Связный список: устройство", h: "linked-list-structure.html", lvl: "core" },
+      { t: "Дек: устройство", h: "deque-structure.html", lvl: "ext" },
+      { t: "Сортировки и порядковые статистики", h: "sorting.html", lvl: "core" }
     ] },
     { g: "Группа 2: Базовые паттерны", items: [
-      { t: "Sliding Window", h: "sliding-window.html" },
-      { t: "Two Pointers", h: "two-pointers.html" },
-      { t: "Fast & Slow Pointers", h: "fast-slow-pointers.html" },
-      { t: "Reverse Linked List", h: "reverse-linked-list.html" },
-      { t: "Merge Intervals", h: "merge-intervals.html" },
-      { t: "Cyclic Sort", h: "cyclic-sort.html" },
-      { t: "Modified Binary Search", h: "modified-binary-search.html" },
-      { t: "Bit Manipulation", h: "bit-manipulation.html" }
+      { t: "Sliding Window", h: "sliding-window.html", lvl: "core" },
+      { t: "Two Pointers", h: "two-pointers.html", lvl: "core" },
+      { t: "Fast & Slow Pointers", h: "fast-slow-pointers.html", lvl: "core" },
+      { t: "Reverse Linked List", h: "reverse-linked-list.html", lvl: "ext" },
+      { t: "Merge Intervals", h: "merge-intervals.html", lvl: "core" },
+      { t: "Cyclic Sort", h: "cyclic-sort.html", lvl: "ext" },
+      { t: "Modified Binary Search", h: "modified-binary-search.html", lvl: "core" },
+      { t: "Bit Manipulation", h: "bit-manipulation.html", lvl: "ext" }
     ] },
     { g: "Группа 3: Деревья и кучи", items: [
-      { t: "BST: устройство", h: "bst-structure.html" },
-      { t: "AVL-дерево: балансировка", h: "avl-tree-structure.html" },
-      { t: "Красно-чёрное дерево", h: "red-black-tree-structure.html" },
-      { t: "Tree BFS", h: "tree-bfs.html" },
-      { t: "Tree DFS", h: "tree-dfs.html" },
-      { t: "Куча: устройство", h: "heap-structure.html" },
-      { t: "Two Heaps", h: "two-heaps.html" },
-      { t: "Top-K Elements", h: "top-k-elements.html" },
-      { t: "K-way Merge", h: "k-way-merge.html" }
+      { t: "BST: устройство", h: "bst-structure.html", lvl: "core" },
+      { t: "AVL-дерево: балансировка", h: "avl-tree-structure.html", lvl: "ref" },
+      { t: "Красно-чёрное дерево", h: "red-black-tree-structure.html", lvl: "ref" },
+      { t: "Tree BFS", h: "tree-bfs.html", lvl: "core" },
+      { t: "Tree DFS", h: "tree-dfs.html", lvl: "core" },
+      { t: "Куча: устройство", h: "heap-structure.html", lvl: "core" },
+      { t: "Two Heaps", h: "two-heaps.html", lvl: "ext" },
+      { t: "Top-K Elements", h: "top-k-elements.html", lvl: "core" },
+      { t: "K-way Merge", h: "k-way-merge.html", lvl: "ext" }
     ] },
     { g: "Группа 4: Комбинаторика и графы", items: [
-      { t: "Subsets", h: "subsets.html" },
-      { t: "Backtracking", h: "backtracking.html" },
-      { t: "Graphs (обход)", h: "graphs.html" },
-      { t: "Union-Find (DSU): устройство", h: "union-find-structure.html" },
-      { t: "Topological Sort", h: "topological-sort.html" },
-      { t: "Сетки и кратчайшие пути", h: "grids-and-shortest-paths.html" },
-      { t: "Графы: продвинутые", h: "advanced-graph-algorithms.html" },
-      { t: "Графы: связность (SCC, мосты)", h: "graph-connectivity.html" },
-      { t: "Потоки в сетях", h: "max-flow.html" }
+      { t: "Subsets", h: "subsets.html", lvl: "ext" },
+      { t: "Backtracking", h: "backtracking.html", lvl: "core" },
+      { t: "Graphs (обход)", h: "graphs.html", lvl: "core" },
+      { t: "Union-Find (DSU): устройство", h: "union-find-structure.html", lvl: "ext" },
+      { t: "Topological Sort", h: "topological-sort.html", lvl: "core" },
+      { t: "Сетки и кратчайшие пути", h: "grids-and-shortest-paths.html", lvl: "ext" },
+      { t: "Графы: продвинутые", h: "advanced-graph-algorithms.html", lvl: "ref" },
+      { t: "Графы: связность (SCC, мосты)", h: "graph-connectivity.html", lvl: "ref" },
+      { t: "Потоки в сетях", h: "max-flow.html", lvl: "ref" }
     ] },
     { g: "Группа 5: Оптимизация и границы", items: [
-      { t: "Greedy", h: "greedy.html" },
-      { t: "Dynamic Programming", h: "dynamic-programming.html" },
-      { t: "Классы сложности: P и NP", h: "complexity-classes.html" }
+      { t: "Greedy", h: "greedy.html", lvl: "core" },
+      { t: "Dynamic Programming", h: "dynamic-programming.html", lvl: "core" },
+      { t: "Классы сложности: P и NP", h: "complexity-classes.html", lvl: "ref" }
     ] },
     { g: "Группа 6: Строки и продвинутые структуры", items: [
-      { t: "Строковые алгоритмы", h: "string-algorithms.html" },
-      { t: "Trie: устройство", h: "trie-structure.html" },
-      { t: "Trie: разбор задач", h: "trie.html" },
-      { t: "Дерево отрезков: устройство", h: "segment-tree-structure.html" },
-      { t: "Дерево отрезков: задачи", h: "segment-tree.html" },
-      { t: "Дерево Фенвика: устройство", h: "fenwick-tree-structure.html" },
-      { t: "Дерево Фенвика: задачи", h: "fenwick-tree.html" },
-      { t: "Sparse Table: устройство", h: "sparse-table-structure.html" },
-      { t: "B-дерево: устройство", h: "btree-structure.html" },
-      { t: "Вероятностные структуры", h: "probabilistic-structures.html" }
+      { t: "Строковые алгоритмы", h: "string-algorithms.html", lvl: "ext" },
+      { t: "Trie: устройство", h: "trie-structure.html", lvl: "ext" },
+      { t: "Trie: разбор задач", h: "trie.html", lvl: "ext" },
+      { t: "Дерево отрезков: устройство", h: "segment-tree-structure.html", lvl: "ref" },
+      { t: "Дерево отрезков: задачи", h: "segment-tree.html", lvl: "ref" },
+      { t: "Дерево Фенвика: устройство", h: "fenwick-tree-structure.html", lvl: "ref" },
+      { t: "Дерево Фенвика: задачи", h: "fenwick-tree.html", lvl: "ref" },
+      { t: "Sparse Table: устройство", h: "sparse-table-structure.html", lvl: "ref" },
+      { t: "B-дерево: устройство", h: "btree-structure.html", lvl: "ref" },
+      { t: "Вероятностные структуры", h: "probabilistic-structures.html", lvl: "ref" }
     ] },
     { g: "Группа 7: Дискретная математика", items: [
-      { t: "Комбинаторика счёта", h: "combinatorics.html" },
-      { t: "Дискретная вероятность", h: "probability.html" },
-      { t: "Теория чисел", h: "number-theory.html" },
-      { t: "Криптография: модульная арифметика", h: "cryptography.html" }
+      { t: "Комбинаторика счёта", h: "combinatorics.html", lvl: "ref" },
+      { t: "Дискретная вероятность", h: "probability.html", lvl: "ref" },
+      { t: "Теория чисел", h: "number-theory.html", lvl: "ref" },
+      { t: "Криптография: модульная арифметика", h: "cryptography.html", lvl: "ref" }
     ] },
     { g: "Группа 8: Синтез", items: [
-      { t: "Комбинации паттернов", h: "pattern-combinations.html" },
-      { t: "Карта: структуры в реальных системах", h: "real-world-map.html" },
-      { t: "Капстоун: мини-Redis", h: "miniredis.html" },
-      { t: "Ревью чужого кода", h: "code-review.html" }
+      { t: "Комбинации паттернов", h: "pattern-combinations.html", lvl: "ext" },
+      { t: "Карта: структуры в реальных системах", h: "real-world-map.html", lvl: "ext" },
+      { t: "Postgres: EXPLAIN как pprof", h: "postgres-plans.html", lvl: "ext" },
+      { t: "Капстоун: мини-Redis", h: "miniredis.html", lvl: "ext" },
+      { t: "Ревью чужого кода", h: "code-review.html", lvl: "ext" }
     ] },
     { g: "Дополнительные материалы", items: [
-      { t: "Go-рантайм: планировщик, GC", h: "go-runtime.html" },
-      { t: "Структуры в экосистеме Go", h: "go-stdlib-structures.html" },
-      { t: "Криптография: библиотеки Go", h: "go-crypto-libraries.html" },
-      { t: "Приложение: память, GC, профилирование", h: "appendix-go-memory.html" },
-      { t: "Заключение", h: "conclusion.html" }
+      { t: "Go-рантайм: планировщик, GC", h: "go-runtime.html", lvl: "ext" },
+      { t: "Структуры в экосистеме Go", h: "go-stdlib-structures.html", lvl: "ext" },
+      { t: "Криптография: библиотеки Go", h: "go-crypto-libraries.html", lvl: "ref" },
+      { t: "Приложение: память, GC, профилирование", h: "appendix-go-memory.html", lvl: "ext" },
+      { t: "Заключение", h: "conclusion.html", lvl: "ext" }
     ] }
   ];
+
+  // Подписи уровней — используются и в трекере, и в плашке на самой странице главы.
+  var LEVELS = {
+    core: { badge: "Ядро", hint: "Скелет курса: эти главы читаются подряд." },
+    ext: { badge: "Расширение", hint: "Не на основном пути. Стоит прочесть, но после ядра — ничего в ядре на этой главе не держится." },
+    ref: { badge: "Справочник", hint: "Не на пути: открой, когда встретишь в работе или захочешь полноты. Пропустить сейчас — нормально." },
+    tool: { badge: "Инструмент", hint: "Не глава, а инструмент: сюда возвращаются, а не «проходят»." }
+  };
 
   // Плоский список — для процента и для остального кода: состояние в localStorage
   // ключуется по href главы, поэтому перегруппировка не сбрасывает отметки.
   var CHAPTERS = GROUPS.reduce(function (acc, grp) { return acc.concat(grp.items); }, []);
+  function ofLevel(lvl) {
+    return CHAPTERS.filter(function (c) { return c.lvl === lvl; });
+  }
 
   var KEY = "algoProgress";
 
@@ -117,20 +138,33 @@
     var label = document.createElement("div"); label.className = "algo-prog__label";
     el.appendChild(label); el.appendChild(barWrap);
 
+    // Вторая строка — расширение и справочник отдельным счётом. Намеренно НЕ в
+    // проценте: смешать их с ядром значит снова получить «пройдено 12 из 60» и
+    // ощущение, что конца не видно.
+    var aside = document.createElement("div"); aside.className = "algo-prog__aside";
+    el.appendChild(aside);
+
     var list = document.createElement("div"); list.className = "algo-prog__list"; el.appendChild(list);
 
+    var CORE = ofLevel("core"), EXT = ofLevel("ext"), REF = ofLevel("ref");
     var boxes = [];
     var groupCounters = [];
+    function countDone(items) {
+      return items.reduce(function (a, c) { return a + (state[c.h] ? 1 : 0); }, 0);
+    }
     function refresh() {
-      var done = CHAPTERS.reduce(function (a, c) { return a + (state[c.h] ? 1 : 0); }, 0);
-      var pct = Math.round(done / CHAPTERS.length * 100);
+      var done = countDone(CORE);
+      var pct = Math.round(done / CORE.length * 100);
       bar.style.width = pct + "%";
-      label.textContent = "Пройдено: " + done + " / " + CHAPTERS.length + " (" + pct + "%)";
+      label.textContent = "Ядро пройдено: " + done + " / " + CORE.length + " (" + pct + "%)";
       barWrap.setAttribute("aria-valuenow", String(pct));
-      barWrap.setAttribute("aria-valuetext", done + " из " + CHAPTERS.length + " разделов (" + pct + "%)");
+      barWrap.setAttribute("aria-valuetext", done + " из " + CORE.length + " глав ядра (" + pct + "%)");
+      aside.textContent =
+        "Расширение: " + countDone(EXT) + " / " + EXT.length +
+        " · Справочник: " + countDone(REF) + " / " + REF.length +
+        " — идут сверх ядра и в процент не входят";
       groupCounters.forEach(function (gc) {
-        var d = gc.items.reduce(function (a, c) { return a + (state[c.h] ? 1 : 0); }, 0);
-        gc.el.textContent = d + " / " + gc.items.length;
+        gc.el.textContent = countDone(gc.items) + " / " + gc.items.length;
       });
     }
 
@@ -148,6 +182,15 @@
         cb.onchange = function () { state[ch.h] = cb.checked; save(state); row.classList.toggle("algo-prog__item--done", cb.checked); refresh(); };
         var a = document.createElement("a"); a.href = ch.h; a.textContent = ch.t; a.className = "algo-prog__link";
         row.appendChild(cb); row.appendChild(a);
+        // Ядро не помечаем: метка на четырёх пятых списка — это шум. Значок
+        // стоит там, где он что-то сообщает: «эту можно отложить».
+        if (ch.lvl !== "core") {
+          var tag = document.createElement("span");
+          tag.className = "algo-lvl algo-lvl--" + ch.lvl;
+          tag.textContent = LEVELS[ch.lvl].badge;
+          tag.title = LEVELS[ch.lvl].hint;
+          row.appendChild(tag);
+        }
         if (cb.checked) row.classList.add("algo-prog__item--done");
         list.appendChild(row); boxes.push(cb);
       });
@@ -244,7 +287,33 @@
   // заводим: оглавление и так живёт здесь.
   window.ALGO_CHAPTERS = CHAPTERS;
 
+  // Плашка уровня на самой странице главы. Ставится ИЗ ЭТОГО ЖЕ реестра, а не
+  // руками в сорока файлах: разметка в двух местах гарантированно разъедется,
+  // и тогда трекер будет считать одно, а глава утверждать другое.
+  // Ядро и инструменты не помечаем — молчание и означает «ты на пути».
+  function markPage() {
+    var file = (location.pathname.split("/").pop() || "index.html").split("#")[0];
+    var ch = null;
+    for (var i = 0; i < CHAPTERS.length; i++) {
+      if (CHAPTERS[i].h === file) { ch = CHAPTERS[i]; break; }
+    }
+    if (!ch || ch.lvl === "core" || ch.lvl === "tool") return;
+    var main = document.querySelector("main");
+    if (!main || main.querySelector(".algo-lvlnote")) return;
+    var h1 = main.querySelector("h1");
+    if (!h1) return;
+    var note = document.createElement("div");
+    note.className = "algo-lvlnote algo-lvlnote--" + ch.lvl;
+    var badge = document.createElement("b");
+    badge.className = "algo-lvl algo-lvl--" + ch.lvl;
+    badge.textContent = LEVELS[ch.lvl].badge;
+    note.appendChild(badge);
+    note.appendChild(document.createTextNode(" " + LEVELS[ch.lvl].hint));
+    h1.parentNode.insertBefore(note, h1.nextSibling);
+  }
+
   function init() {
+    markPage();
     Array.prototype.forEach.call(document.querySelectorAll(".algo-progress:not(.algo-progress--ready)"), function (el) {
       el.classList.add("algo-progress--ready"); build(el);
     });

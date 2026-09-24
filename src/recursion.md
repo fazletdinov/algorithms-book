@@ -367,13 +367,28 @@ func fib(n int) int {
 <div class="algo-challenge__q">Расставь по порядку части рекурсивной функции:</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре (пакет `recursion`) и на LeetCode:
+**Прорешать целиком** (тренажёр — пакет `recursion`) — лестница из трёх ступеней, снизу
+вверх. Закрыл **основу** — глава сдана, добивка не обязательна.
 
-- [Fibonacci Number](https://leetcode.com/problems/fibonacci-number/) (LeetCode 509) — наивно → мемоизация
-- [Pow(x, n)](https://leetcode.com/problems/powx-n/) (LeetCode 50) — рекурсия «дели степень пополам»
-- [Sum of Digits in Base K](https://leetcode.com/problems/sum-of-digits-in-base-k/) (LeetCode 1837) — `T(n)=T(n/k)+O(1)`
+**🟢 Разогрев** — база и шаг, размер входа уменьшается очевидно:
+
 - [Reverse String](https://leetcode.com/problems/reverse-string/) (LeetCode 344) — рекурсия с двух концов
+- [Fibonacci Number](https://leetcode.com/problems/fibonacci-number/) (LeetCode 509) — наивно → мемоизация
+
+**🔵 Основа** — планка главы:
+
 - [Climbing Stairs](https://leetcode.com/problems/climbing-stairs/) (LeetCode 70) — та же рекуррента, что у Фибоначчи
+- [Sum of Digits in Base K](https://leetcode.com/problems/sum-of-digits-in-base-k/) (LeetCode 1837) — `T(n)=T(n/k)+O(1)`
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
+- [Pow(x, n)](https://leetcode.com/problems/powx-n/) (LeetCode 50) — рекурсия «дели степень пополам»
+
+> 🧭 **Не пошла задача из основы?** Проверь **три места, и ровно эти три**: база (на чём
+> рекурсия останавливается), переход (как ответ склеивается из ответа для меньшего входа) и
+> то, что вход убывает **строго**. Зависла или переполнила стек — виновато третье. Отвечает
+> неверно — первое или второе. Отдельно про 50: `n` бывает отрицательным, а `-n` при
+> `n = math.MinInt32` переполняется — классический край, на котором задача и валится.
 
 ### 💻 Реши прямо здесь — пакет `recursion`
 

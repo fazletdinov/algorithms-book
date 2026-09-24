@@ -482,14 +482,29 @@ grid[r][c] = ______
 <div class="algo-challenge__q">Граф — цепочка из 10⁵ вершин. Каким DFS его обходить?</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
+
+**🟢 Разогрев** — обход со множеством посещённых:
 
 - [Number of Islands](https://leetcode.com/problems/number-of-islands/) (LeetCode 200) — DFS/BFS на сетке
-- [Number of Connected Components](https://leetcode.com/problems/number-of-connected-components-in-an-undirected-graph/) (LeetCode 323) — Union-Find
 - [Clone Graph](https://leetcode.com/problems/clone-graph/) (LeetCode 133)
+
+**🔵 Основа** — планка главы:
+
+- [Number of Connected Components](https://leetcode.com/problems/number-of-connected-components-in-an-undirected-graph/) (LeetCode 323) — Union-Find
 - [Course Schedule](https://leetcode.com/problems/course-schedule/) (LeetCode 207) — обнаружение цикла
 - [Course Schedule II](https://leetcode.com/problems/course-schedule-ii/) (LeetCode 210) — порядок
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [Word Ladder](https://leetcode.com/problems/word-ladder/) (LeetCode 127) — BFS по неявному графу
+
+> 🧭 **Не пошла задача из основы?** Первым делом проверь, **когда** помечается вершина: в BFS
+> — при добавлении в очередь, а не при извлечении, иначе одна вершина попадёт в очередь
+> многократно и оценка `O(V+E)` развалится. В 127 сложность не в алгоритме, а в том, что
+> графа **нет**: вершины — слова, соседи вычисляются подстановкой буквы. Строить весь граф
+> заранее — верный способ упереться в память; соседей порождают на лету.
 
 **Тренажёр** — пакет `graphs`:
 

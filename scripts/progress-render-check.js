@@ -51,6 +51,22 @@ setTimeout(function () {
   // сколько глав и групп объявлено в самом файле — сверяем с тем, что построилось
   const declaredChapters = [...js.matchAll(/h:\s*"([\w-]+)\.html"/g)].map((m) => m[1]);
   const declaredGroups = [...js.matchAll(/\{\s*g:\s*"/g)].length;
+  // уровни маршрута: процент считается ТОЛЬКО по ядру, см. progress.js
+  const declaredLevels = [...js.matchAll(/h:\s*"([\w-]+)\.html",\s*lvl:\s*"(\w+)"/g)].map((m) => ({
+    h: m[1],
+    lvl: m[2],
+  }));
+  if (declaredLevels.length !== declaredChapters.length) {
+    errors.push(
+      `у ${declaredChapters.length - declaredLevels.length} глав в GROUPS нет поля lvl — ` +
+        `такая глава выпадет из счёта по ядру`
+    );
+  }
+  const core = declaredLevels.filter((d) => d.lvl === "core");
+  const nonCore = declaredLevels.filter((d) => d.lvl !== "core");
+  if (!core.length) {
+    errors.push("в GROUPS не осталось ни одной главы ядра — процент будет делиться на ноль");
+  }
 
   if (items.length !== declaredChapters.length) {
     errors.push(`отрисовано ${items.length} глав, в GROUPS объявлено ${declaredChapters.length}`);
@@ -61,8 +77,16 @@ setTimeout(function () {
   if (!groups.every((g) => /\d+\s*\/\s*\d+/.test(g.textContent))) {
     errors.push("не у каждого заголовка группы есть счётчик вида «0 / 7»");
   }
-  if (!label || !/0\s*\/\s*\d+\s*\(0%\)/.test(label.textContent)) {
-    errors.push(`стартовая подпись неожиданная: ${label ? label.textContent : "нет .algo-prog__label"}`);
+  if (!label || !new RegExp(`0\\s*/\\s*${core.length}\\s*\\(0%\\)`).test(label.textContent)) {
+    errors.push(
+      `стартовая подпись неожиданная: «${label ? label.textContent : "нет .algo-prog__label"}», ` +
+        `ожидалось «0 / ${core.length} (0%)» — процент считается по ядру`
+    );
+  }
+  // метка уровня стоит у всех глав вне ядра и ни у одной главы ядра
+  const badges = [...el.querySelectorAll(".algo-prog__item .algo-lvl")];
+  if (badges.length !== nonCore.length) {
+    errors.push(`меток уровня отрисовано ${badges.length}, глав вне ядра ${nonCore.length}`);
   }
   const links = [...el.querySelectorAll(".algo-prog__link")];
   if (links.some((a) => !/^[\w-]+\.html$/.test(a.getAttribute("href")))) {
@@ -72,20 +96,40 @@ setTimeout(function () {
     errors.push("в GROUPS есть дубли глав — процент будет считаться неверно");
   }
 
-  // --- отметка главы: процент, счётчик группы и localStorage ---
-  const firstBox = items[0].querySelector("input");
-  const firstGroupCounter = groups[0].querySelector(".algo-prog__groupcount").textContent;
-  firstBox.checked = true;
-  firstBox.dispatchEvent(new dom.window.Event("change"));
+  const counters = () => groups.map((g) => g.querySelector(".algo-prog__groupcount").textContent);
+  const mark = (i) => {
+    const cb = items[i].querySelector("input");
+    cb.checked = true;
+    cb.dispatchEvent(new dom.window.Event("change"));
+  };
 
-  const oneOf = `1 / ${declaredChapters.length}`;
-  if (!label.textContent.includes(oneOf)) {
-    errors.push(`после отметки одной главы подпись = «${label.textContent}», ожидалось «${oneOf}»`);
+  // --- глава ВНЕ ядра не двигает процент: ради этого всё и затевалось ---
+  const idxNonCore = declaredLevels.findIndex((d) => d.lvl !== "core");
+  const idxCore = declaredLevels.findIndex((d) => d.lvl === "core");
+  const asideBefore = el.querySelector(".algo-prog__aside").textContent;
+  mark(idxNonCore);
+  if (!new RegExp(`0\\s*/\\s*${core.length}`).test(label.textContent)) {
+    errors.push(
+      `отметка главы вне ядра сдвинула процент: «${label.textContent}» — ` +
+        `в процент должно идти только ядро`
+    );
   }
-  if (groups[0].querySelector(".algo-prog__groupcount").textContent === firstGroupCounter) {
+  if (el.querySelector(".algo-prog__aside").textContent === asideBefore) {
+    errors.push("отметка главы вне ядра не изменила строку «Расширение / Справочник»");
+  }
+
+  // --- отметка главы ЯДРА: процент, счётчик группы и localStorage ---
+  const countersBefore = counters();
+  mark(idxCore);
+
+  const oneOf = `1 / ${core.length}`;
+  if (!label.textContent.includes(oneOf)) {
+    errors.push(`после отметки главы ядра подпись = «${label.textContent}», ожидалось «${oneOf}»`);
+  }
+  if (counters().every((c, i) => c === countersBefore[i])) {
     errors.push("счётчик группы не изменился после отметки главы из этой группы");
   }
-  if (!items[0].classList.contains("algo-prog__item--done")) {
+  if (!items[idxCore].classList.contains("algo-prog__item--done")) {
     errors.push("отмеченная глава не получила класс algo-prog__item--done");
   }
   if (!/^[1-9]/.test(bar.style.width)) {
@@ -93,8 +137,8 @@ setTimeout(function () {
   }
 
   const stored = JSON.parse(localStorage.getItem("algoProgress") || "{}");
-  const firstHref = links[0].getAttribute("href");
-  if (stored[firstHref] !== true) {
+  const coreHref = links[idxCore].getAttribute("href");
+  if (stored[coreHref] !== true) {
     errors.push(`состояние в localStorage ключуется не по href: ${JSON.stringify(stored)}`);
   }
 
@@ -104,7 +148,7 @@ setTimeout(function () {
     errors.push("нет кнопки «Сбросить прогресс»");
   } else {
     reset.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
-    if (!/0\s*\/\s*\d+\s*\(0%\)/.test(label.textContent)) {
+    if (!new RegExp(`0\\s*/\\s*${core.length}\\s*\\(0%\\)`).test(label.textContent)) {
       errors.push(`после сброса подпись = «${label.textContent}», ожидалось 0%`);
     }
     if (items.some((i) => i.querySelector("input").checked)) {
@@ -118,7 +162,8 @@ setTimeout(function () {
     process.exit(1);
   }
   console.log(
-    `✅ progress-render-check: трекер строит ${items.length} глав в ${groups.length} группах, ` +
-      `отметка обновляет процент/счётчик группы/localStorage, сброс работает`
+    `✅ progress-render-check: трекер строит ${items.length} глав в ${groups.length} группах ` +
+      `(ядро ${core.length}, вне ядра ${nonCore.length}), процент считается только по ядру, ` +
+      `отметка обновляет счётчик группы/localStorage, сброс работает`
   );
 }, 200);

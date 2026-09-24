@@ -570,14 +570,29 @@ func minSubArrayLen(target int, nums []int) int {
 <div class="algo-challenge__q">Расставь по порядку шаги переменного окна (одна итерация по <code>right</code>):</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Это не список «решить
+всё», а маршрут с точкой остановки: закрыл **основу** — глава сдана, добивка не обязательна.
+
+**🟢 Разогрев** — шаблон в чистом виде, проверить, что каркас лёг:
 
 - [Maximum Average Subarray I](https://leetcode.com/problems/maximum-average-subarray-i/) (LeetCode 643) — фикс. окно
-- [Contains Duplicate II](https://leetcode.com/problems/contains-duplicate-ii/) (LeetCode 219)
+- [Contains Duplicate II](https://leetcode.com/problems/contains-duplicate-ii/) (LeetCode 219) — окно как множество
+
+**🔵 Основа** — планка главы: три задачи подряд без подглядывания в шаблон:
+
 - [Longest Repeating Character Replacement](https://leetcode.com/problems/longest-repeating-character-replacement/) (LeetCode 424)
 - [Permutation in String](https://leetcode.com/problems/permutation-in-string/) (LeetCode 567)
 - [Max Consecutive Ones III](https://leetcode.com/problems/max-consecutive-ones-iii/) (LeetCode 1004)
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [Minimum Window Substring](https://leetcode.com/problems/minimum-window-substring/) (LeetCode 76) — сложная
+
+> 🧭 **Не пошла задача из основы?** В девяти случаях из десяти перепутана **семья окна**:
+> 424 и 1004 — «самое длинное при ограничении» (сжимаем, *пока невалидно*), а 76 и
+> `SmallestSubarrayWithSum` — «самое короткое при пороге» (сжимаем, *пока валидно*).
+> Вернись к [предусловию применимости](#предусловие-применимости--главное) и определи
+> семью **до** того, как писать цикл.
 
 **Тренажёр** — пакет `slidingwindow`:
 

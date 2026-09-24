@@ -423,13 +423,28 @@ func detectCycle(head *ListNode) *ListNode {
 <div class="algo-challenge__q">Расставь по порядку шаги поиска входа в цикл (Cycle II):</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
+
+**🟢 Разогрев** — два указателя с разной скоростью, без доказательств:
 
 - [Linked List Cycle](https://leetcode.com/problems/linked-list-cycle/) (LeetCode 141) — есть ли цикл
-- [Remove Nth Node From End](https://leetcode.com/problems/remove-nth-node-from-end-of-list/) (LeetCode 19)
-- [Find the Duplicate Number](https://leetcode.com/problems/find-the-duplicate-number/) (LeetCode 287) — Floyd на массиве
+- [Remove Nth Node From End](https://leetcode.com/problems/remove-nth-node-from-end-of-list/) (LeetCode 19) — разрыв в `n` шагов
+
+**🔵 Основа** — планка главы:
+
 - [Reorder List](https://leetcode.com/problems/reorder-list/) (LeetCode 143) — середина + разворот + сшивка
 - [Linked List Cycle II](https://leetcode.com/problems/linked-list-cycle-ii/) (LeetCode 142) — вход в цикл
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
+- [Find the Duplicate Number](https://leetcode.com/problems/find-the-duplicate-number/) (LeetCode 287) — Floyd на массиве
+
+> 🧭 **Не пошла задача из основы?** 142 решается не перебором, а **арифметикой расстояний**:
+> выведи на бумаге, почему указатель из головы и указатель из точки встречи сходятся ровно
+> во входе в цикл. А 287 сначала не выглядит задачей про списки вовсе — увидеть её можно,
+> только если прочитать массив как функцию `i → nums[i]`: тогда «дубликат» становится
+> входом в цикл, и это ровно 142.
 
 **Тренажёр** — пакет `fastslow`:
 

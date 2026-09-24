@@ -422,14 +422,28 @@ if iv[0] &lt;= last[1] {        // перекрытие/касание
 <div class="algo-challenge__q">Расставь по порядку шаги слияния интервалов:</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
+
+**🟢 Разогрев** — сортировка по началу и один проход:
 
 - [Merge Intervals](https://leetcode.com/problems/merge-intervals/) (LeetCode 56) — слияние перекрытий
 - [Insert Interval](https://leetcode.com/problems/insert-interval/) (LeetCode 57)
+
+**🔵 Основа** — планка главы:
+
 - [Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) (LeetCode 435) — жадность по концу
 - [Minimum Arrows to Burst Balloons](https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/) (LeetCode 452)
 - [Remove Covered Intervals](https://leetcode.com/problems/remove-covered-intervals/) (LeetCode 1288)
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [Employee Free Time](https://leetcode.com/problems/employee-free-time/) (LeetCode 759) — сложная
+
+> 🧭 **Не пошла задача из основы?** Вопрос всегда один: **по чему сортировать**. По началу —
+> когда интервалы надо *слить* (56, 57, 759). По концу — когда надо выбрать как можно больше
+> непересекающихся (435, 452): именно ранний конец оставляет максимум места следующим.
+> Перепутал ключ сортировки — решение будет почти верным и стабильно ошибаться на краях.
 
 **Тренажёр** — пакет `intervals`:
 

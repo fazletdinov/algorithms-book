@@ -396,14 +396,30 @@ if tank &lt; 0 {
 <div class="algo-challenge__q">Расставь по порядку шаги построения жадного решения:</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
+
+**🟢 Разогрев** — жадный выбор очевиден и доказывается в одну строку:
 
 - [Assign Cookies](https://leetcode.com/problems/assign-cookies/) (LeetCode 455) — жадность по указателям
 - [Lemonade Change](https://leetcode.com/problems/lemonade-change/) (LeetCode 860)
+
+**🔵 Основа** — планка главы:
+
+- [Partition Labels](https://leetcode.com/problems/partition-labels/) (LeetCode 763)
 - [Gas Station](https://leetcode.com/problems/gas-station/) (LeetCode 134)
 - [Task Scheduler](https://leetcode.com/problems/task-scheduler/) (LeetCode 621)
-- [Partition Labels](https://leetcode.com/problems/partition-labels/) (LeetCode 763)
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [Candy](https://leetcode.com/problems/candy/) (LeetCode 135) — сложная, два прохода
+
+> 🧭 **Не пошла задача из основы?** Не начинай с кода. Сформулируй жадное правило одной
+> фразой и попробуй **сломать его контрпримером** — как ломается жадность на монетах
+> `{1, 3, 4}` в [главе про ДП](dynamic-programming.md). Построился контрпример — задача не
+> жадная. Не строится — попробуй доказать обменом: покажи, что оптимальное решение можно
+> переделать под твой выбор, не ухудшив. Отдельно про 135: одним проходом её решить нельзя
+> в принципе — условие смотрит в обе стороны, поэтому и проходов два.
 
 **Тренажёр** — пакет `greedy`:
 

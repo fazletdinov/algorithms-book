@@ -526,16 +526,32 @@ return merge(left, right)</pre>
 <div class="algo-challenge__q">Расставь по порядку шаги сортировки слиянием:</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
 
-- [Sort Colors](https://leetcode.com/problems/sort-colors/) (LeetCode 75) — голландский флаг, partition на 3 зоны
+**🟢 Разогрев** — слияние и разбиение руками:
+
 - [Merge Sorted Array](https://leetcode.com/problems/merge-sorted-array/) (LeetCode 88) — слияние с конца
-- [Kth Largest Element](https://leetcode.com/problems/kth-largest-element-in-an-array/) (LeetCode 215) — QuickSelect
+- [Sort Colors](https://leetcode.com/problems/sort-colors/) (LeetCode 75) — голландский флаг, partition на 3 зоны
+
+**🔵 Основа** — планка главы:
+
 - [Sort an Array](https://leetcode.com/problems/sort-an-array/) (LeetCode 912) — напиши merge sort сам
+- [Kth Largest Element](https://leetcode.com/problems/kth-largest-element-in-an-array/) (LeetCode 215) — QuickSelect
 - [Largest Number](https://leetcode.com/problems/largest-number/) (LeetCode 179) — нестандартный компаратор
 - [Top K Frequent](https://leetcode.com/problems/top-k-frequent-elements/) (LeetCode 347) — bucket sort по частоте
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [Count of Smaller Numbers After Self](https://leetcode.com/problems/count-of-smaller-numbers-after-self/) (LeetCode 315) — merge sort + подсчёт инверсий
 - [Maximum Gap](https://leetcode.com/problems/maximum-gap/) (LeetCode 164) — bucket/radix за O(n)
+
+> 🧭 **Не пошла задача из основы?** В 179 всё решает **транзитивность компаратора**:
+> сравнивать надо конкатенации (`a+b` против `b+a`), а не сами числа — иначе порядок
+> противоречив и сортировка выдаёт мусор. В 215 QuickSelect отличается от быстрой сортировки
+> одной деталью: рекурсия идёт **только в ту половину**, где лежит ответ, отсюда `O(n)` в
+> среднем вместо `O(n log n)`. А 347 — напоминание, что сортировка вообще не всегда нужна:
+> частоты ограничены длиной массива, значит раскладываются по корзинам за линию.
 
 **Тренажёр** — пакет `sorting`:
 

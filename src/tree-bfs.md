@@ -375,14 +375,29 @@ func rightSideView(root *TreeNode) []int {
 <div class="algo-challenge__q">Узлы стали снимать не с начала очереди, а с конца (queue[len(queue)-1]). Что получится?</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
+
+**🟢 Разогрев** — обход по уровням в чистом виде:
 
 - [Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/) (LeetCode 104)
 - [Average of Levels](https://leetcode.com/problems/average-of-levels-in-binary-tree/) (LeetCode 637)
+
+**🔵 Основа** — планка главы:
+
 - [Find Largest Value in Each Tree Row](https://leetcode.com/problems/find-largest-value-in-each-tree-row/) (LeetCode 515)
 - [Cousins in Binary Tree](https://leetcode.com/problems/cousins-in-binary-tree/) (LeetCode 993)
 - [Maximum Width of Binary Tree](https://leetcode.com/problems/maximum-width-of-binary-tree/) (LeetCode 662)
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [Serialize and Deserialize Binary Tree](https://leetcode.com/problems/serialize-and-deserialize-binary-tree/) (LeetCode 297) — сложная
+
+> 🧭 **Не пошла задача из основы?** Проверь, **фиксируешь ли ты размер уровня** до цикла
+> (`n := len(queue)`): без этого уровни слипаются, и 515/993 отвечают почти правильно — а
+> это худший вид ошибки. В 662 добавляется второй приём: узлам дают индексы как в куче
+> (`2i`, `2i+1`), и ширина — разность индексов краёв уровня; считать по длине очереди нельзя,
+> пропуски в неё не попадают.
 
 **Тренажёр** — пакет `treebfs`:
 

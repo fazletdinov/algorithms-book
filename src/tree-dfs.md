@@ -429,14 +429,30 @@ func diameterOfTree(root *TreeNode) int {
 <div class="algo-challenge__q">Binary Tree Maximum Path Sum: чем инициализировать глобальный максимум?</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
+
+**🟢 Разогрев** — рекурсия «сделай в поддеревьях и склей»:
 
 - [Same Tree](https://leetcode.com/problems/same-tree/) (LeetCode 100)
 - [Invert Binary Tree](https://leetcode.com/problems/invert-binary-tree/) (LeetCode 226)
+
+**🔵 Основа** — планка главы:
+
 - [Validate BST](https://leetcode.com/problems/validate-binary-search-tree/) (LeetCode 98) — диапазон (lo, hi)
 - [Lowest Common Ancestor](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/) (LeetCode 236)
 - [Path Sum II](https://leetcode.com/problems/path-sum-ii/) (LeetCode 113) — DFS + backtracking
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/) (LeetCode 124) — сложная
+
+> 🧭 **Не пошла задача из основы?** 98 и 124 ломаются об одно и то же: рекурсия должна
+> возвращать **не ответ задачи, а то, что нужно родителю**. В 98 наверх идёт не «дерево
+> валидно», а допустимый диапазон для поддерева; в 124 — лучший путь, который *спускается
+> вниз* (ответ при этом копится в отдельной переменной). Сформулируй контракт функции одним
+> предложением до того, как писать тело: это и есть гипотеза индукции из
+> [главы про инварианты](invariants.md).
 
 **Тренажёр** — пакет `treedfs`:
 

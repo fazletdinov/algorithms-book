@@ -418,14 +418,30 @@ if ______ {
 <div class="algo-challenge__q">Расставь по порядку шаги алгоритма Кана:</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
+
+**🟢 Разогрев** — алгоритм Кана как есть:
 
 - [Course Schedule](https://leetcode.com/problems/course-schedule/) (LeetCode 207) — есть ли цикл
 - [Course Schedule II](https://leetcode.com/problems/course-schedule-ii/) (LeetCode 210) — сам порядок
+
+**🔵 Основа** — планка главы:
+
 - [Minimum Height Trees](https://leetcode.com/problems/minimum-height-trees/) (LeetCode 310) — ощипывание листьев
 - [Parallel Courses](https://leetcode.com/problems/parallel-courses/) (LeetCode 1136) — слои Кана
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [Course Schedule IV](https://leetcode.com/problems/course-schedule-iv/) (LeetCode 1462) — транзитивное замыкание
 - [Sequence Reconstruction](https://leetcode.com/problems/sequence-reconstruction/) (LeetCode 444) — единственность
+
+> 🧭 **Не пошла задача из основы?** Держись за один факт: Кан — это про **степени входа**.
+> Очередь опустела, а вершины остались — значит у них есть неразрешимая зависимость, то есть
+> цикл; отдельной проверки на цикл писать не нужно. В 1136 нужны не сами вершины, а **слои**:
+> фиксируй размер очереди перед проходом, как в [Tree BFS](tree-bfs.md), — каждый проход и
+> есть один семестр. В 310 ощипывают листья с обоих концов, пока не останется 1–2 вершины,
+> и это не топосорт, а его родственник: важно заметить, что ответов бывает ровно два.
 
 **Тренажёр** — пакет `toposort`:
 

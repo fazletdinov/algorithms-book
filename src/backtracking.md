@@ -437,13 +437,29 @@ path = ______              // откатить</pre>
 <div class="algo-challenge__q">Перестановки массива с повторами <code>[1,1,2]</code> — как не выдать дубликаты?</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
+
+**🟢 Разогрев** — каркас «выбрал → рекурсия → откатил»:
 
 - [Subsets](https://leetcode.com/problems/subsets/) (LeetCode 78)
 - [Combinations](https://leetcode.com/problems/combinations/) (LeetCode 77)
-- [Word Search](https://leetcode.com/problems/word-search/) (LeetCode 79) — backtracking на сетке
+
+**🔵 Основа** — планка главы:
+
 - [Palindrome Partitioning](https://leetcode.com/problems/palindrome-partitioning/) (LeetCode 131)
+- [Word Search](https://leetcode.com/problems/word-search/) (LeetCode 79) — backtracking на сетке
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [N-Queens](https://leetcode.com/problems/n-queens/) (LeetCode 51) — сложная
+
+> 🧭 **Не пошла задача из основы?** Симптом почти всегда один: ответы дублируются или
+> «протекают» между ветками — значит состояние не откатывается. Правило железное: **что
+> добавил перед рекурсивным вызовом, то сними сразу после него** — включая пометку клетки
+> в 79 (её обязательно возвращать в исходное, иначе один путь закроет дорогу другому).
+> Второй симптом — срез в ответе меняется задним числом: срезы делят общий массив, в ответ
+> кладут **копию** (`append([]int(nil), path...)`).
 
 **Тренажёр** — пакет `backtracking`:
 

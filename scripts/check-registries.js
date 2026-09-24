@@ -56,6 +56,31 @@ for (const ch of trackerChapters) {
   }
 }
 
+// ---------- 1b. уровни маршрута (lvl) у каждой главы ----------
+// Процент в трекере считается ТОЛЬКО по ядру, а плашку «Расширение/Справочник»
+// на странице главы ставит тот же реестр. Глава без lvl выпадает из обоих
+// механизмов молча: в счёт ядра не попадёт, плашку не получит.
+const LEVELS = new Set(["core", "ext", "ref", "tool"]);
+const levelled = [...progressJs.matchAll(/h:\s*"([\w-]+)\.html",\s*lvl:\s*"(\w+)"/g)];
+const levelOf = new Map(levelled.map((m) => [m[1], m[2]]));
+for (const ch of trackerChapters) {
+  if (!levelOf.has(ch)) {
+    errors.push(
+      `трекер прогресса: у главы «${ch}» нет поля lvl — она не попадёт ни в счёт ядра, ` +
+        `ни в плашку уровня на странице`
+    );
+  } else if (!LEVELS.has(levelOf.get(ch))) {
+    errors.push(
+      `трекер прогресса: у главы «${ch}» неизвестный lvl="${levelOf.get(ch)}" ` +
+        `(допустимы: ${[...LEVELS].join(", ")})`
+    );
+  }
+}
+const coreCount = [...levelOf.values()].filter((v) => v === "core").length;
+if (!coreCount) {
+  errors.push("трекер прогресса: ни одной главы с lvl=\"core\" — процент будет делиться на ноль");
+}
+
 // ---------- 2. таблица пакетов в exercises/README.md <-> каталоги ----------
 const packages = fs
   .readdirSync(exDir, { withFileTypes: true })
@@ -156,6 +181,7 @@ if (errors.length) {
   process.exit(1);
 }
 console.log(
-  `✅ check-registries: трекер (${trackerChapters.size} глав), таблица пакетов (${packages.length}), ` +
+  `✅ check-registries: трекер (${trackerChapters.size} глав: ядро ${coreCount}, ` +
+    `остальные ${trackerChapters.size - coreCount}), таблица пакетов (${packages.length}), ` +
     `traceTargets (${allowed.size} пакетов) и счётчик в CLAUDE.md согласованы`
 );

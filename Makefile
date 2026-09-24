@@ -66,6 +66,7 @@ check:
 	node scripts/check-challenges.js
 	node scripts/check-registries.js
 	node scripts/check-explain.js
+	node scripts/check-ladder.js
 
 ## help: список целей
 help:

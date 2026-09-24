@@ -197,6 +197,51 @@
 }
 
 
+/* Вторая строка трекера: расширение и справочник, вне процента по ядру. */
+.algo-prog__aside {
+  margin-top: 0.45em;
+  font-size: 0.85em;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Метка уровня главы: «Расширение» / «Справочник» (ядро не метим — см. progress.js).
+   Цвета берём от темы mdBook, чтобы метка читалась и в светлой, и в тёмной. */
+.algo-lvl {
+  margin-left: auto;
+  padding: 0.1em 0.5em;
+  border: 1px solid var(--quote-border, #cccccc66);
+  border-radius: 10px;
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+.algo-lvl--ref {
+  border-style: dashed;
+}
+
+/* Плашка под заголовком главы, которую ставит markPage(). */
+.algo-lvlnote {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  margin: -0.4em 0 1.6em;
+  padding: 0.6em 0.9em;
+  border-left: 3px solid var(--quote-border, #cccccc66);
+  border-radius: 0 6px 6px 0;
+  background: var(--quote-bg, #00000008);
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+.algo-lvlnote .algo-lvl {
+  margin-left: 0;
+}
+
 /* Ряд действий трекера: экспорт/импорт/сброс. */
 .algo-prog__bar-actions {
   display: flex;

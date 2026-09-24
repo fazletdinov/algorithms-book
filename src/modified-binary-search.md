@@ -533,14 +533,29 @@ func searchRange(nums []int, target int) [2]int {
 <div class="algo-challenge__q">Расставь по порядку шаги бинпоиска в полуинтервале <code>[lo, hi)</code>:</div>
 </div>
 
-**Прорешать целиком** — постановки в нашем тренажёре и на LeetCode (там же проверка):
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
+
+**🟢 Разогрев** — поиск границы по монотонному предикату:
 
 - [Search Insert Position](https://leetcode.com/problems/search-insert-position/) (LeetCode 35) — lower_bound
 - [First Bad Version](https://leetcode.com/problems/first-bad-version/) (LeetCode 278) — поиск по предикату
-- [Find Peak Element](https://leetcode.com/problems/find-peak-element/) (LeetCode 162) — бинпоиск по склону
+
+**🔵 Основа** — планка главы:
+
 - [Find Minimum in Rotated Sorted Array](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/) (LeetCode 153)
+- [Find Peak Element](https://leetcode.com/problems/find-peak-element/) (LeetCode 162) — бинпоиск по склону
 - [Koko Eating Bananas](https://leetcode.com/problems/koko-eating-bananas/) (LeetCode 875) — бинпоиск по ответу
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
 - [Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/) (LeetCode 4) — сложная
+
+> 🧭 **Не пошла задача из основы?** Почти наверняка дело не в задаче, а в границах. Не
+> подбирай `±1` наугад: запиши инвариант («ответ лежит в `[lo, hi)`») и **выведи** из него и
+> условие цикла, и обе ветки — так учит [глава про инварианты](invariants.md). Отдельно про
+> 875: здесь бинарный поиск идёт **не по массиву, а по ответу**; сначала назови предикат
+> («успеет ли при скорости k») и проверь, что он монотонен.
 
 **Тренажёр** — пакет `binarysearch`:
 
