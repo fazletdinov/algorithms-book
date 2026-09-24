@@ -203,7 +203,8 @@
     // решённые задачи, промахи, рекорд квиза и код, написанный в виджетах),
     // а не только этот трекер.
     var PREFIXES = ["algoProgress", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:", "algoPkgSolved", "algoSRS",
-      "algoExplain", "algoExplainDone", "algoQuizMissed", "algoMixedMissed", "algoMixedSeen"];
+      "algoExplain", "algoExplainDone", "algoQuizMissed", "algoMixedMissed", "algoMixedSeen",
+      "algoMockLog", "algoMockCxMissed"];
     function isOurs(key) {
       return PREFIXES.some(function (p) { return key === p || key.indexOf(p) === 0; });
     }
@@ -244,10 +245,7 @@
           var current = localStorage.getItem(k);
           if (current && k !== "algoQuizBest" && k.indexOf("algoRunnerCode:") !== 0) {
             try {
-              var merged = JSON.parse(current);
-              var add = JSON.parse(incoming);
-              Object.keys(add).forEach(function (id) { merged[id] = add[id]; });
-              incoming = JSON.stringify(merged);
+              incoming = JSON.stringify(mergeStored(JSON.parse(current), JSON.parse(incoming)));
             } catch (e) { /* не JSON — берём как есть */ }
           }
           try { localStorage.setItem(k, incoming); } catch (e) { /* приватный режим */ }
@@ -281,6 +279,27 @@
     el.appendChild(actions);
 
     refresh();
+  }
+
+  // mergeStored сливает сохранённое здесь с импортированным. Карты-объекты —
+  // объединением ключей (пришедшее побеждает). Массивы — объединением записей
+  // без дублей: история собеседований (algoMockLog) — список, и слияние «по
+  // ключам» перезаписало бы его по индексу — [a,b,c] + [x,y] дало бы [x,y,c],
+  // и два собеседования пропали бы молча.
+  function mergeStored(current, add) {
+    if (Array.isArray(current) && Array.isArray(add)) {
+      var seen = {};
+      var out = [];
+      current.concat(add).forEach(function (item) {
+        var id = JSON.stringify(item);
+        if (seen[id]) return;
+        seen[id] = true;
+        out.push(item);
+      });
+      return out.sort(function (a, b) { return ((a && a.ts) || 0) - ((b && b.ts) || 0); });
+    }
+    Object.keys(add).forEach(function (id) { current[id] = add[id]; });
+    return current;
   }
 
   // Список глав нужен и движку повторений (srs.js) — чтобы показывать название

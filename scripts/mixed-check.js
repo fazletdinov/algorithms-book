@@ -181,6 +181,9 @@ async function main() {
     }
   }
 
+  // --- режим собеседования ---
+  await mockInterview(bank);
+
   // --- диагностика слабых мест ---
   const dom3 = await boot("review.html", ["progress.js", "review.js"], {
     algoQuizMissed: JSON.stringify({
@@ -209,6 +212,158 @@ async function main() {
   finish();
 }
 
+// mockInterview проходит собеседование от начала до итога. Проверяется то, ради
+// чего режим существует: до итога не видно ни подсказок (среди них эталонная
+// сложность), ни главы; редактор появляется только после плана; гоняются только
+// тесты этой функции и с чистой заготовки; сложность спрашивается ДО эталона.
+// Зелёный прогон эмулируется тем же событием, что шлёт runner.js — сервера в
+// смоуке нет.
+async function mockInterview(bank) {
+  const dom = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "mixed.js"], {});
+  const doc = dom.window.document;
+  const ls = dom.window.localStorage;
+  const w = doc.querySelector(".algo-mixed");
+  const modeBox = w && w.querySelector(".algo-mixed__mode-box");
+  if (!modeBox) {
+    errors.push("нет переключателя режима собеседования");
+    return;
+  }
+  modeBox.checked = true;
+  modeBox.dispatchEvent(new dom.window.Event("change"));
+  const next = [...w.querySelectorAll("button")].find((b) => /Дать задачу/.test(b.textContent));
+
+  // берём задачу с эталонной сложностью — у 145 из 159 она есть, так что
+  // обычно хватает первой выдачи; ветку «эталона нет» проверяет отдельная строка ниже
+  let p = null;
+  for (let i = 0; i < 60 && !p; i++) {
+    click(dom, next);
+    const card = w.querySelector(".algo-mixed__card");
+    const hit = card && bank.find((q) => card.textContent.includes(q.s.slice(0, 40)));
+    if (!hit) continue;
+    if (!hit.t || !hit.t.length) {
+      errors.push(`режим собеседования выдал ${hit.p}.${hit.f} — у неё нет своих тестов`);
+      return;
+    }
+    if (/^Ожидаемая сложность/m.test(hit.h || "")) p = hit;
+  }
+  if (!p) {
+    errors.push("за 60 выдач не попалась задача с эталонной сложностью");
+    return;
+  }
+  if (!w.querySelector(".algo-mixed__clock")) errors.push("в режиме собеседования нет таймера");
+
+  const title = (() => {
+    const hit = (dom.window.ALGO_CHAPTERS || []).find((c) => c.h === p.c + ".html");
+    return hit ? hit.t : p.c;
+  })();
+  const right = [...w.querySelectorAll(".algo-mixed__q .algo-challenge__opt")].find((b) => b.textContent === title);
+  if (!right) {
+    errors.push("в режиме собеседования среди вариантов нет верного");
+    return;
+  }
+  click(dom, right);
+
+  if (w.querySelector(".algo-runner")) errors.push("собеседование: редактор показан ДО плана");
+  if (w.querySelector(".algo-mixed__link")) errors.push("собеседование: ссылка на главу видна до итога");
+  if (p.h && w.textContent.includes(p.h.slice(0, 30))) {
+    errors.push("собеседование: подсказки (с эталонной сложностью) видны до итога");
+  }
+
+  const ta = w.querySelector(".algo-mixed__plan-text");
+  const go = w.querySelector(".algo-mixed__to-code");
+  if (!ta || !go) {
+    errors.push("собеседование: нет поля плана или кнопки «К коду»");
+    return;
+  }
+  // Гейт проверяем нажатием, а не видом кнопки: сразу, с пустым полем, и с
+  // коротким планом — редактор не должен появиться ни разу.
+  click(dom, go);
+  if (w.querySelector(".algo-runner")) errors.push("собеседование: «К коду» с пустым планом открыло редактор");
+  ta.value = "окно и мапа";
+  ta.dispatchEvent(new dom.window.Event("input"));
+  if (!go.disabled) errors.push("собеседование: короткий план пускает к коду");
+  click(dom, go);
+  if (w.querySelector(".algo-runner")) errors.push("собеседование: короткий план открыл редактор");
+  ta.value = "Иду окном по массиву: правая граница расширяет, левая догоняет при нарушении. " +
+    "Держу частоты в массиве, инвариант — окно валидно после сжатия. Край — пустой вход.";
+  ta.dispatchEvent(new dom.window.Event("input"));
+  if (go.disabled) errors.push("собеседование: полноценный план не открыл кнопку «К коду»");
+  click(dom, go);
+
+  const runner = w.querySelector('.algo-runner[data-pkg="' + p.p + '"]');
+  if (!runner) {
+    errors.push("собеседование: после плана не появился редактор с пакетом задачи");
+    return;
+  }
+  if (runner.getAttribute("data-tests") !== JSON.stringify(p.t)) {
+    errors.push(`собеседование: редактор гоняет не те тесты: ${runner.getAttribute("data-tests")} вместо ${JSON.stringify(p.t)}`);
+  }
+  if (runner.getAttribute("data-fresh") !== "true") {
+    errors.push("собеседование: редактор не с чистой заготовки — подсунет решение пакета из его главы");
+  }
+  if (w.querySelector(".algo-mixed__cx-input")) errors.push("собеседование: вопрос о сложности ДО зелёных тестов");
+
+  // красный прогон не должен двигать сессию дальше
+  runner.dispatchEvent(new dom.window.CustomEvent("algo-runner:result", {
+    bubbles: true, detail: { pkg: p.p, ok: false, filtered: true, passed: 0, failed: 1 },
+  }));
+  if (w.querySelector(".algo-mixed__cx-input")) errors.push("собеседование: красные тесты открыли вопрос о сложности");
+
+  runner.dispatchEvent(new dom.window.CustomEvent("algo-runner:result", {
+    bubbles: true, detail: { pkg: p.p, ok: true, filtered: true, passed: 1, failed: 0 },
+  }));
+  const cx = w.querySelector(".algo-mixed__cx-input");
+  if (!cx) {
+    errors.push("собеседование: после зелёных тестов нет вопроса о сложности");
+    return;
+  }
+  if (w.querySelector(".algo-mixed__cx-ref")) errors.push("собеседование: эталон сложности виден ДО своего ответа");
+  cx.value = "O(n) по времени, O(1) по памяти";
+  cx.dispatchEvent(new dom.window.Event("input"));
+  click(dom, w.querySelector(".algo-mixed__cx-check"));
+  if (!w.querySelector(".algo-mixed__cx-ref")) errors.push("собеседование: после ответа не показан эталон");
+  if (w.querySelector(".algo-mixed__summary")) errors.push("собеседование: итог подведён до самооценки");
+  click(dom, w.querySelector(".algo-mixed__cx-no"));
+
+  const sum = w.querySelector(".algo-mixed__summary");
+  if (!sum) {
+    errors.push("собеседование: нет итога");
+    return;
+  }
+  const link = sum.querySelector(".algo-mixed__link");
+  if (!link || link.getAttribute("href") !== p.c + ".html") errors.push("собеседование: после итога не открылась глава");
+  if (p.h && !sum.textContent.includes(p.h.slice(0, 30))) errors.push("собеседование: после итога не показаны подсказки");
+
+  const id = p.p + "." + p.f;
+  const log = JSON.parse(ls.getItem("algoMockLog") || "[]");
+  const rec = log[log.length - 1] || {};
+  if (log.length !== 1 || rec.k !== id || !rec.pattern || !rec.green || rec.cx !== "miss" || !(rec.plan >= 80)) {
+    errors.push("собеседование: в истории не то: " + JSON.stringify(log));
+  }
+  const cxMissed = JSON.parse(ls.getItem("algoMockCxMissed") || "{}");
+  if (!cxMissed[id]) errors.push("собеседование: промах по сложности не записан для повторений");
+
+  // Задачи без своих тестов режим выдавать не должен. Случайной выдачей это не
+  // проверить (таких 4 из 163), поэтому детерминированно: все задачи СО своими
+  // тестами помечаем показанными — выдача предпочитает непоказанные, и при
+  // ошибке фильтра неизбежно вытащит задачу без тестов.
+  const untested = bank.filter((q) => !q.t || !q.t.length);
+  if (!untested.length) return; // нечего проверять — все задачи с тестами
+  const seen = {};
+  bank.filter((q) => q.t && q.t.length).forEach((q) => { seen[q.p + "." + q.f] = 1; });
+  const dom2 = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "mixed.js"], {
+    algoMixedSeen: JSON.stringify(seen),
+  });
+  const w2 = dom2.window.document.querySelector(".algo-mixed");
+  const box2 = w2.querySelector(".algo-mixed__mode-box");
+  box2.checked = true;
+  box2.dispatchEvent(new dom2.window.Event("change"));
+  click(dom2, [...w2.querySelectorAll("button")].find((b) => /Дать задачу/.test(b.textContent)));
+  const card2 = w2.querySelector(".algo-mixed__card");
+  const bad = card2 && untested.find((q) => card2.textContent.includes(q.s.slice(0, 40)));
+  if (bad) errors.push(`режим собеседования выдал ${bad.p}.${bad.f} — у неё нет своих тестов`);
+}
+
 function finish() {
   if (errors.length) {
     console.error(`❌ mixed-check: ${errors.length} проблем(ы):`);
@@ -218,7 +373,8 @@ function finish() {
   console.log(
     "✅ mixed-check: условие показывается без темы и подсказок, 4 варианта из реальных глав, " +
       "промах записывается и приоритетно возвращается, верный ответ раскрывает главу и редактор, " +
-      "слабые места считаются по квизу и смешанной вместе"
+      "слабые места считаются по квизу и смешанной вместе; собеседование прячет подсказки и главу до итога, " +
+      "пускает к коду только после плана, гоняет тесты одной функции с чистой заготовки, спрашивает сложность до эталона"
   );
 }
 

@@ -191,6 +191,43 @@ type runRequest struct {
 	Pkg  string `json:"pkg"`
 	Code string `json:"code"`
 	Race bool   `json:"race"` // запускать go test с детектором гонок (-race)
+	// Tests — если не пусто, гоняются ТОЛЬКО эти тесты (go test -run). Нужно
+	// мок-интервью: задача там — одна функция пакета, а panic("TODO") в любой
+	// другой роняет весь тестовый бинарник, и до теста нужной функции дело
+	// может просто не дойти.
+	Tests []string `json:"tests,omitempty"`
+}
+
+// testNameRe — имя тестовой функции Go. Список уходит в аргумент -run как
+// регулярное выражение, поэтому пропускаем только идентификаторы: никаких
+// метасимволов, которые превратили бы фильтр в «запусти всё» или сломали его.
+var testNameRe = regexp.MustCompile(`^Test[A-Za-z0-9_]*$`)
+
+// maxTestFilter — потолок длины списка: у самой «тестовой» функции тренажёра
+// их единицы, так что больше — это не запрос тренажёра.
+const maxTestFilter = 32
+
+// testArgs собирает аргументы `go test`. Вынесено из runGoTest, чтобы
+// проверить фильтр тестом, не поднимая сервер и не компилируя модуль.
+func testArgs(pkg string, race bool, tests []string) ([]string, error) {
+	args := []string{"test", "-json", "-count=1"}
+	if race {
+		args = append(args, "-race")
+	}
+	if len(tests) > 0 {
+		if len(tests) > maxTestFilter {
+			return nil, fmt.Errorf("слишком много тестов в фильтре: %d (максимум %d)", len(tests), maxTestFilter)
+		}
+		for _, t := range tests {
+			if !testNameRe.MatchString(t) {
+				return nil, fmt.Errorf("недопустимое имя теста: %q", t)
+			}
+		}
+		// ^(...)$ — точное совпадение имени: без якорей TestFoo зацепил бы и
+		// TestFooBar соседней функции.
+		args = append(args, "-run", "^("+strings.Join(tests, "|")+")$")
+	}
+	return append(args, "./"+pkg+"/"), nil
 }
 
 // handleRun копирует модуль во временный каталог, подменяет заготовку кодом
@@ -203,6 +240,13 @@ func handleRun(w http.ResponseWriter, r *http.Request) {
 	}
 	if _, ok := validPkg(req.Pkg); !ok {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "неизвестный пакет"})
+		return
+	}
+	// Фильтр проверяем ДО копирования модуля: битый запрос не должен стоить
+	// копии каталога и компиляции.
+	args, err := testArgs(req.Pkg, req.Race, req.Tests)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -227,7 +271,8 @@ func handleRun(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = os.Remove(filepath.Join(tmp, req.Pkg, req.Pkg+"_solution.go"))
 
-	res := runGoTest(tmp, req.Pkg, req.Race)
+	res := runGoTest(tmp, args, req.Race)
+	res.Filtered = len(req.Tests) > 0
 	writeJSON(w, http.StatusOK, res)
 }
 
@@ -242,6 +287,10 @@ type testResult struct {
 	Tests    []testEvent `json:"tests"`    // по тесту
 	Output   string      `json:"output"`   // сырой вывод (ошибка сборки / отчёт о гонке)
 	Duration string      `json:"duration"` //
+	// Filtered — гонялись не все тесты пакета, а только запрошенные. Тогда
+	// OK значит «эта функция готова», а не «пакет решён», и клиент не должен
+	// записывать пакет в решённые.
+	Filtered bool `json:"filtered,omitempty"`
 }
 
 type testEvent struct {
@@ -250,15 +299,12 @@ type testEvent struct {
 	Output string `json:"output"`
 }
 
-func runGoTest(dir, pkg string, race bool) testResult {
+func runGoTest(dir string, args []string, race bool) testResult {
 	// -race ощутимо медленнее и требует CGO, поэтому даём больше времени.
 	timeout := 30 * time.Second
-	args := []string{"test", "-json", "-count=1"}
 	if race {
-		args = append(args, "-race")
 		timeout = 60 * time.Second
 	}
-	args = append(args, "./"+pkg+"/")
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()

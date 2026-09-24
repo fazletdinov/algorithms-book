@@ -101,6 +101,34 @@ async function main() {
   if (!/append/.test(text)) errors.push("в очереди показана не та карточка (ожидался промах)");
 }
 
+// --- 1b. промахи смешанной тренировки и собеседования: шаблон и сложность ---
+// Два разных вида карточек по одной и той же задаче: узнать приём (mix:) и
+// оценить стоимость своего кода (cx:) — разные умения, и оба встают на сегодня.
+{
+  const now = Date.now();
+  const dom = await newDom({
+    algoMixedMissed: JSON.stringify({ "topk.KthLargest": { n: 1, chapter: "top-k-elements", pkg: "topk", fn: "KthLargest" } }),
+    algoMockCxMissed: JSON.stringify({ "dp.CoinChange": { n: 1, chapter: "dynamic-programming", pkg: "dp", fn: "CoinChange" } }),
+  });
+  const c = cards(dom);
+  for (const id of ["mix:topk.KthLargest", "cx:dp.CoinChange"]) {
+    if (!c[id]) errors.push(`не заведена карточка ${id}: ${JSON.stringify(Object.keys(c))}`);
+    else if (c[id].due - now > DAY * 0.1) errors.push(`карточка ${id} заведена не на сегодня`);
+  }
+  const text = dom.window.document.querySelector(".algo-today").textContent;
+  if (!/К повторению сегодня: 2/.test(text)) errors.push(`в очереди не две карточки: «${text.slice(0, 80)}»`);
+
+  // Виджет показывает одну текущую карточку, а не список, — поэтому вид карточки
+  // cx: проверяем там, где она единственная.
+  const solo = await newDom({
+    algoMockCxMissed: JSON.stringify({ "dp.CoinChange": { n: 1, chapter: "dynamic-programming", pkg: "dp", fn: "CoinChange" } }),
+  });
+  const soloText = solo.window.document.querySelector(".algo-today").textContent;
+  if (!/Собеседование: сложность/.test(soloText) || !/dp\.CoinChange/.test(soloText)) {
+    errors.push(`карточка промаха по сложности отрисована без своего вида или без задачи: «${soloText.slice(0, 120)}»`);
+  }
+}
+
 // --- 2. «Помню»: 1 → 3 → геометрический рост ---
 {
   const now = Date.now();

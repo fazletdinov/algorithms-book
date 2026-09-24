@@ -16,7 +16,9 @@
  *   pkg:<пакет>  — как только тесты пакета позеленели в виджете «Реши прямо здесь»;
  *   task:<id>    — как только задача в тексте не далась (промах из challenge.js);
  *   quiz:<вопрос> — промах в квизе распознавания шаблонов (quiz.js);
- *   mix:<pkg>.<fn> — в смешанной тренировке шаблон выбран неверно (mixed.js).
+ *   mix:<pkg>.<fn> — в смешанной тренировке шаблон выбран неверно (mixed.js);
+ *   cx:<pkg>.<fn>  — в режиме собеседования сложность своего решения оценена
+ *                  неверно (mixed.js): шаблон мог быть узнан, а цена кода — нет.
  *
  * Расписание — SM-2 в упрощённом виде: у карточки есть интервал (дни) и «лёгкость»
  * ease. «Помню» умножает интервал на ease, «с трудом» растит его чуть-чуть,
@@ -38,6 +40,7 @@
   var EXPLAINED = "algoExplainDone";
   var QUIZ_MISSED = "algoQuizMissed";
   var MIXED_MISSED = "algoMixedMissed";
+  var CX_MISSED = "algoMockCxMissed";
 
   var DAY = 24 * 60 * 60 * 1000;
   var EASE_START = 2.5;
@@ -129,6 +132,16 @@
       changed = true;
     });
 
+    // Промах по сложности тоже встаёт СЕГОДНЯ: оценить цену своего кода — навык,
+    // который на собеседовании проверяют сразу после зелёных тестов.
+    var cxMissed = loadMap(CX_MISSED);
+    Object.keys(cxMissed).forEach(function (k) {
+      var id = "cx:" + k;
+      if (cards[id]) return;
+      cards[id] = newCard(now, cxMissed[k]);
+      changed = true;
+    });
+
     var missed = loadMap(MISSED);
     var solved = loadMap(SOLVED);
     Object.keys(missed).forEach(function (taskId) {
@@ -197,6 +210,14 @@
         title: (meta.pkg || "") + "." + (meta.fn || "") + " — шаблон был выбран неверно",
         href: "mixed.html",
         what: "Здесь ты не узнал приём по условию. Открой смешанную тренировку — задача выпадет снова, такие показываются чаще.",
+      };
+    }
+    if (kindOf(id) === "cx") {
+      return {
+        kind: "Собеседование: сложность",
+        title: (meta.pkg || "") + "." + (meta.fn || "") + " — сложность своего решения оценена неверно",
+        href: "mixed.html",
+        what: "Не открывая решение, выведи время и память: сколько раз выполняется каждый цикл, что растёт вместе с входом. Потом сверься с условием задачи.",
       };
     }
     if (kindOf(id) === "expl") {

@@ -112,6 +112,17 @@
     }
   }
 
+  // announce сообщает о прогоне событием на самом виджете. Так мок-интервью
+  // (mixed.js) узнаёт, что тесты позеленели, не лазая во внутренности редактора
+  // и не завязываясь на его разметку.
+  function announce(root, pkg, res) {
+    if (typeof CustomEvent !== "function") return;
+    root.dispatchEvent(new CustomEvent("algo-runner:result", {
+      bubbles: true,
+      detail: { pkg: pkg, ok: !!res.ok, filtered: !!res.filtered, passed: res.passed || 0, failed: res.failed || 0 },
+    }));
+  }
+
   // ---- рендер одного виджета ----
 
   function initWidget(root) {
@@ -119,6 +130,14 @@
     if (!pkg) return;
     var race = root.getAttribute("data-race") === "true";
     var flagship = root.getAttribute("data-flagship") === "true";
+    // data-tests — JSON-массив имён тестов: гонять только их, а не весь пакет
+    // (мок-интервью: задача — одна функция, а panic("TODO") в соседней иначе
+    // роняет весь тестовый бинарник раньше, чем дойдёт до нужного теста).
+    var onlyTests = [];
+    var testsAttr = root.getAttribute("data-tests");
+    if (testsAttr) {
+      try { onlyTests = JSON.parse(testsAttr) || []; } catch (e) { console.warn("algo-runner: битый data-tests", e); }
+    }
     // data-trace-calls — JSON-массив [{"func":"Имя","call":"Имя(...)"}, ...]:
     // одна функция пакета — один элемент. Читатель выбирает функцию сам,
     // потому что в файле пакета их обычно несколько.
@@ -134,6 +153,11 @@
     head.appendChild(el("span", "algo-runner__pkg", "пакет " + pkg));
     if (flagship) head.appendChild(el("span", "algo-runner__flagship", "⚔️ боевой мини-проект"));
     if (race) head.appendChild(el("span", "algo-runner__race", "🏁 -race"));
+    if (onlyTests.length) {
+      var only = el("span", "algo-runner__only", "только тесты: " + onlyTests.join(", "));
+      only.title = "Гоняются только тесты этой функции, а не всего пакета";
+      head.appendChild(only);
+    }
     var status = el("span", "algo-runner__status", "");
     head.appendChild(status);
     root.appendChild(head);
@@ -169,7 +193,11 @@
 
     var editor = null;
     var stubCode = "";
-    var lsKey = "algoRunnerCode:" + pkg;
+    // data-fresh — начать с чистой заготовки и хранить код отдельно от обычного
+    // решения пакета. Иначе мок-интервью по уже решённому пакету открылось бы
+    // с готовым ответом, а черновик интервью затёр бы настоящее решение.
+    var fresh = root.getAttribute("data-fresh") === "true";
+    var lsKey = (fresh ? "algoRunnerCode:mock:" : "algoRunnerCode:") + pkg;
 
     function setStatus(text, cls) {
       status.textContent = text;
@@ -210,12 +238,18 @@
       api("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pkg: pkg, code: editor.getValue(), race: race }),
+        body: JSON.stringify(onlyTests.length
+          ? { pkg: pkg, code: editor.getValue(), race: race, tests: onlyTests }
+          : { pkg: pkg, code: editor.getValue(), race: race }),
       })
         .then(function (res) {
           renderResult(out, res);
           setStatus(res.ok ? "✓ всё зелёное · " + res.duration : (res.race ? "🏁 гонка данных · " : "✗ есть падения · ") + res.duration, res.ok ? "ok" : "err");
-          if (res.ok) markPkgSolved(pkg);
+          // Решённым пакет считается, только если зелёными были ВСЕ его тесты:
+          // зелёная одна функция из восьми — не повод заводить карточку
+          // «перерешай пакет» в движке повторений. Признак берём у сервера.
+          if (res.ok && !res.filtered) markPkgSolved(pkg);
+          announce(root, pkg, res);
         })
         .catch(function (err) { serverDownView(out, err); setStatus("ошибка связи", "err"); })
         .then(function () { runBtn.disabled = false; });

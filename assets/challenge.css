@@ -442,3 +442,96 @@
 .algo-mixed__empty {
   opacity: 0.8;
 }
+
+/* ---- режим собеседования (mixed.js) ---- */
+
+.algo-mixed__mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+.algo-mixed__mockstat {
+  margin: -0.4em 0 0.9em;
+  font-size: 0.85em;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+.algo-mixed__timer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 0.7em;
+}
+
+.algo-mixed__clock {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* перебор лимита — не блокирует, но видно сразу */
+.algo-mixed__clock.is-over { color: #c0392b; }
+
+.algo-mixed__steps {
+  font-size: 0.82em;
+  opacity: 0.65;
+}
+
+.algo-mixed__plan,
+.algo-mixed__cx,
+.algo-mixed__summary {
+  margin-top: 0.8em;
+  padding-top: 0.6em;
+  border-top: 1px solid var(--quote-border, #cccccc44);
+}
+
+.algo-mixed__plan-text,
+.algo-mixed__cx-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.5em 0.6em;
+  border: 1px solid var(--quote-border, #cccccc88);
+  border-radius: 6px;
+  background: var(--bg, transparent);
+  color: inherit;
+  font: inherit;
+}
+
+.algo-mixed__planbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0.4em;
+}
+
+.algo-mixed__counter {
+  font-size: 0.85em;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+.algo-mixed__cx-check,
+.algo-mixed__giveup {
+  margin-top: 0.5em;
+}
+
+.algo-mixed__cx-ref {
+  margin: 0.6em 0 0.3em;
+  font-weight: 600;
+}
+
+.algo-mixed__summary-table td {
+  padding: 0.15em 1em 0.15em 0;
+  vertical-align: top;
+}
+
+.algo-mixed__summary-table td:first-child {
+  opacity: 0.7;
+  white-space: nowrap;
+}

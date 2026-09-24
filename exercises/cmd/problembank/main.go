@@ -49,8 +49,9 @@ type problem struct {
 	Pkg     string
 	Fn      string
 	Chapter string
-	Text    string // условие: то, что видно ДО выбора шаблона
-	Hint    string // подсказки: показываются ПОСЛЕ выбора
+	Text    string   // условие: то, что видно ДО выбора шаблона
+	Hint    string   // подсказки: показываются ПОСЛЕ выбора
+	Tests   []string // тесты именно этой функции — мок-интервью гоняет только их
 }
 
 func main() {
@@ -140,6 +141,11 @@ func collect(root string) ([]problem, int, error) {
 				" без неё смешанная тренировка не знает темы задачи", stub)
 		}
 
+		testsOf, err := assignTests(filepath.Join(root, pkg), exportedFuncs(file))
+		if err != nil {
+			return nil, 0, err
+		}
+
 		for _, decl := range file.Decls {
 			fn, ok := decl.(*ast.FuncDecl)
 			if !ok || fn.Recv != nil || fn.Doc == nil || !ast.IsExported(fn.Name.Name) {
@@ -159,6 +165,7 @@ func collect(root string) ([]problem, int, error) {
 				Chapter: chapter,
 				Text:    text,
 				Hint:    hint,
+				Tests:   testsOf[fn.Name.Name],
 			})
 		}
 	}
@@ -183,6 +190,74 @@ func hasTODO(fn *ast.FuncDecl, src []byte, fset *token.FileSet) bool {
 		return false
 	}
 	return bytes.Contains(src[start:end], []byte(`panic("TODO`))
+}
+
+// exportedFuncs — имена ВСЕХ экспортированных функций верхнего уровня заготовки,
+// не только задач банка: тест делится между функциями по самому длинному имени,
+// и конкурентом может оказаться функция, которую в банк не взяли.
+func exportedFuncs(file *ast.File) []string {
+	var names []string
+	for _, decl := range file.Decls {
+		if fn, ok := decl.(*ast.FuncDecl); ok && fn.Recv == nil && ast.IsExported(fn.Name.Name) {
+			names = append(names, fn.Name.Name)
+		}
+	}
+	return names
+}
+
+// assignTests раздаёт тесты пакета функциям по соглашению об именах:
+// TestF, TestFRandom, TestF_Edge принадлежат F. Спорный тест уходит функции с
+// САМЫМ ДЛИННЫМ совпавшим именем: TestSubsetsWithDup начинается и на «Subsets»,
+// но принадлежит SubsetsWithDup — иначе мок-интервью по Subsets гоняло бы чужой
+// тест, а Subsets без SubsetsWithDup его не пройдёт никогда.
+// Тесты, которые не совпали ни с одной функцией, не достаются никому.
+func assignTests(dir string, funcs []string) (map[string][]string, error) {
+	files, err := filepath.Glob(filepath.Join(dir, "*_test.go"))
+	if err != nil {
+		return nil, err
+	}
+	out := map[string][]string{}
+	for _, f := range files {
+		file, err := parser.ParseFile(token.NewFileSet(), f, nil, parser.SkipObjectResolution)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", f, err)
+		}
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv != nil || !strings.HasPrefix(fn.Name.Name, "Test") || fn.Name.Name == "TestMain" {
+				continue
+			}
+			if owner := ownerOf(fn.Name.Name, funcs); owner != "" {
+				out[owner] = append(out[owner], fn.Name.Name)
+			}
+		}
+	}
+	for k := range out {
+		sort.Strings(out[k])
+	}
+	return out, nil
+}
+
+// ownerOf — функция, которой принадлежит тест: имя после «Test» совпадает с ней
+// целиком или продолжается с заглавной буквы, цифры или «_» (TestFoo не
+// принадлежит Fo — «o» строчная, это другое слово).
+func ownerOf(test string, funcs []string) string {
+	rest := strings.TrimPrefix(test, "Test")
+	best := ""
+	for _, f := range funcs {
+		if !strings.HasPrefix(rest, f) || len(f) <= len(best) {
+			continue
+		}
+		if tail := rest[len(f):]; tail == "" || !isLowerStart(tail) {
+			best = f
+		}
+	}
+	return best
+}
+
+func isLowerStart(s string) bool {
+	c := s[0]
+	return c >= 'a' && c <= 'z'
 }
 
 // hintPrefix — абзацы, которые в смешанной тренировке нельзя показывать сразу:
@@ -236,13 +311,21 @@ func render(ps []problem) []byte {
  * Поля: p — пакет тренажёра, f — функция, c — глава-тема (правильный ответ на
  * вопрос «каким шаблоном это решается»), s — условие задачи, h — подсказки из
  * док-комментария, которые называют приём и потому показываются только ПОСЛЕ
- * ответа («Подсказка: используйте A*…», «Ожидаемая сложность: O(log n)»).
+ * ответа («Подсказка: используйте A*…», «Ожидаемая сложность: O(log n)»),
+ * t — тесты именно этой функции (мок-интервью гоняет только их: panic("TODO")
+ * в соседней функции иначе роняет весь тестовый бинарник). Пустой t значит
+ * «своих тестов у функции нет» — такую задачу мок-интервью не выдаёт.
  */
 window.ALGO_PROBLEMS = [
 `)
 	for _, p := range ps {
-		fmt.Fprintf(&b, "  { p: %s, f: %s, c: %s, s: %s, h: %s },\n",
-			jsString(p.Pkg), jsString(p.Fn), jsString(p.Chapter), jsString(p.Text), jsString(p.Hint))
+		tests := make([]string, len(p.Tests))
+		for i, t := range p.Tests {
+			tests[i] = jsString(t)
+		}
+		fmt.Fprintf(&b, "  { p: %s, f: %s, c: %s, s: %s, h: %s, t: [%s] },\n",
+			jsString(p.Pkg), jsString(p.Fn), jsString(p.Chapter), jsString(p.Text), jsString(p.Hint),
+			strings.Join(tests, ", "))
 	}
 	b.WriteString("];\n")
 	return b.Bytes()

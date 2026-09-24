@@ -106,6 +106,29 @@ for (const { file, re, lvl } of statedCounts) {
   }
 }
 
+// ---------- 1d. числа банка задач на странице смешанной тренировки ----------
+// Банк генерируется (cmd/problembank), а страница называет его размер руками:
+// сколько всего задач и сколько из них годится для собеседования (со своими
+// тестами). Новый пакет тренажёра — и оба числа тихо устаревают.
+{
+  const sandbox = {};
+  new Function("window", read(path.join(root, "assets", "problems.js")))(sandbox);
+  const bank = sandbox.ALGO_PROBLEMS || [];
+  const withTests = bank.filter((p) => p.t && p.t.length).length;
+  const mixedMd = read(path.join(srcDir, "mixed.md"));
+  const total = mixedMd.match(/(\d+) условия собраны/);
+  const mock = mixedMd.match(/собственные тесты, — (\d+) из (\d+)/);
+  if (!total || Number(total[1]) !== bank.length) {
+    errors.push(`src/mixed.md: в банке ${bank.length} задач, а на странице — ${total ? total[1] : "(не нашёл «N условия собраны»)"}`);
+  }
+  if (!mock || Number(mock[1]) !== withTests || Number(mock[2]) !== bank.length) {
+    errors.push(
+      `src/mixed.md: для собеседования годится ${withTests} из ${bank.length}, а на странице — ` +
+        (mock ? `${mock[1]} из ${mock[2]}` : "(не нашёл «— N из M»)")
+    );
+  }
+}
+
 // ---------- 2. таблица пакетов в exercises/README.md <-> каталоги ----------
 const packages = fs
   .readdirSync(exDir, { withFileTypes: true })

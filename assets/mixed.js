@@ -12,6 +12,22 @@
  * Задачи идут вперемешку (interleaving): именно смешивание, а не блоки, учит
  * выбирать приём, а не применять заранее названный.
  *
+ * Режим собеседования (переключатель над задачей) добавляет то, чего смешанная
+ * тренировка не тренирует: время, объяснение ДО кода и оценку своего решения.
+ *   1) таймер на MOCK_LIMIT_MIN минут — не останавливает, но фиксирует перебор;
+ *   2) после выбора шаблона — план словами (не короче PLAN_MIN символов); редактор
+ *      появляется только после него. Это единственный жёсткий гейт режима, и он
+ *      намеренный: на собеседовании код без проговорённого плана — красный флаг;
+ *   3) редактор гоняет ТОЛЬКО тесты этой функции (поле t банка → data-tests) и
+ *      открывается с чистой заготовки (data-fresh), а не с твоего решения пакета;
+ *   4) после зелёных тестов — сложность своими словами, и только потом эталон из
+ *      док-комментария; совпало ли — отмечаешь сам (эталоны записаны свободным
+ *      текстом, «O(rows·cols)» против «O(R·C)» машинно не сравнить честно);
+ *   5) итог сессии уходит в историю (algoMockLog), промах по сложности —
+ *      карточкой cx:<pkg>.<fn> в движок повторений (srs.js).
+ * Подсказки и ссылка на главу в этом режиме скрыты до итога: среди подсказок
+ * бывает «Ожидаемая сложность: …», то есть ответ на шаг 4.
+ *
  * Данные — window.ALGO_PROBLEMS (assets/problems.js, генерируется из
  * док-комментариев заготовок командой `go run ./cmd/problembank`).
  * Промах по выбору шаблона уходит карточкой в движок повторений (srs.js).
@@ -21,7 +37,12 @@
 
   var MISSED = "algoMixedMissed"; // {"<pkg>.<fn>": {n, chapter, fn, pkg}} — источник карточек для srs.js
   var SEEN = "algoMixedSeen"; // {"<pkg>.<fn>": ts} — чтобы не выдавать одно и то же подряд
+  var MOCK_LOG = "algoMockLog"; // [{k, ts, secs, limit, pattern, plan, green, cx}] — история собеседований
+  var CX_MISSED = "algoMockCxMissed"; // {"<pkg>.<fn>": {n, chapter, fn, pkg}} — источник карточек cx: для srs.js
   var OPTIONS = 4;
+  var MOCK_LIMIT_MIN = 35;
+  var PLAN_MIN = 80;
+  var LOG_MAX = 100;
 
   function loadMap(key) {
     try {
@@ -30,9 +51,24 @@
       return {};
     }
   }
+  function loadList(key) {
+    try {
+      var v = JSON.parse(localStorage.getItem(key) || "[]");
+      return Array.isArray(v) ? v : [];
+    } catch (e) {
+      return [];
+    }
+  }
   function save(key, obj) {
     try {
       localStorage.setItem(key, JSON.stringify(obj));
+    } catch (e) {
+      /* приватный режим */
+    }
+  }
+  function drop(key) {
+    try {
+      localStorage.removeItem(key);
     } catch (e) {
       /* приватный режим */
     }
@@ -61,6 +97,12 @@
       a[j] = t;
     }
     return a;
+  }
+
+  function mmss(secs) {
+    var m = Math.floor(secs / 60);
+    var s = Math.floor(secs % 60);
+    return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
   }
 
   // pick выбирает задачу: сначала те, где шаблон угадан неверно (их надо
@@ -98,6 +140,17 @@
     return shuffle(Object.keys(others)).slice(0, OPTIONS - 1);
   }
 
+  // expectedComplexity достаёт эталон из подсказок: абзац «Ожидаемая сложность: …».
+  // У части задач его нет — тогда сверять не с чем, и режим так и говорит.
+  function expectedComplexity(p) {
+    var lines = String(p.h || "").split("\n");
+    for (var i = 0; i < lines.length; i++) {
+      var m = lines[i].match(/^Ожидаемая сложность:?\s*(.+)$/);
+      if (m) return m[1].replace(/\.\s*$/, "");
+    }
+    return "";
+  }
+
   function build(root) {
     var problems = window.ALGO_PROBLEMS || [];
     root.innerHTML = "";
@@ -107,16 +160,36 @@
         "Банк задач не загрузился (assets/problems.js). Собери книгу заново: mdbook build."));
       return;
     }
+    // В собеседовании гоняются только тесты самой функции; задачу без своих
+    // тестов проверить нечем, поэтому её режим не выдаёт.
+    var mockable = problems.filter(function (p) {
+      return p.t && p.t.length;
+    });
 
     var lastKey = null;
+    var mock = false;
+    var session = null; // текущее собеседование: {p, start, timer, pattern, plan, green, cx}
 
     var head = el("div", "algo-mixed__head");
     var nextBtn = el("button", "algo-quiz__btn algo-mixed__next", "Дать задачу");
     nextBtn.type = "button";
     head.appendChild(nextBtn);
+
+    var modeLabel = el("label", "algo-mixed__mode");
+    var modeBox = document.createElement("input");
+    modeBox.type = "checkbox";
+    modeBox.className = "algo-mixed__mode-box";
+    modeLabel.appendChild(modeBox);
+    modeLabel.appendChild(el("span", null, " 🎙 Режим собеседования"));
+    head.appendChild(modeLabel);
+
     var stat = el("span", "algo-mixed__stat", "");
     head.appendChild(stat);
     root.appendChild(head);
+
+    var mockStat = el("div", "algo-mixed__mockstat", "");
+    mockStat.hidden = true;
+    root.appendChild(mockStat);
 
     var body = el("div", "algo-mixed__body");
     root.appendChild(body);
@@ -127,10 +200,44 @@
       var seen = Object.keys(loadMap(SEEN)).length;
       stat.textContent = "в банке " + problems.length + " задач · показано " + seen +
         (missed ? " · шаблон не угадан у " + missed : "");
+
+      var log = loadList(MOCK_LOG);
+      if (!log.length) {
+        mockStat.textContent = "Собеседований ещё не было. Лимит — " + MOCK_LIMIT_MIN +
+          " минут на задачу: условие → шаблон → план словами → код → сложность.";
+        return;
+      }
+      var inTime = 0, green = 0, cxOk = 0, cxAll = 0;
+      log.forEach(function (r) {
+        if (r.green && r.secs <= r.limit * 60) inTime++;
+        if (r.green) green++;
+        if (r.cx === "ok" || r.cx === "miss") cxAll++;
+        if (r.cx === "ok") cxOk++;
+      });
+      mockStat.textContent = "Собеседований: " + log.length +
+        " · тесты зелёные: " + green +
+        " · решено в срок: " + inTime +
+        " · сложность оценена верно: " + cxOk + " из " + cxAll;
     }
 
+    function stopSession() {
+      if (session && session.timer) clearInterval(session.timer);
+      session = null;
+    }
+
+    modeBox.onchange = function () {
+      mock = modeBox.checked;
+      stopSession();
+      body.innerHTML = "";
+      mockStat.hidden = !mock;
+      nextBtn.textContent = "Дать задачу";
+      lastKey = null;
+      refreshStat();
+    };
+
     nextBtn.onclick = function () {
-      var p = pick(problems, lastKey);
+      stopSession();
+      var p = pick(mock ? mockable : problems, lastKey);
       lastKey = key(p);
       render(p);
       nextBtn.textContent = "Следующая задача";
@@ -139,6 +246,8 @@
 
     function render(p) {
       body.innerHTML = "";
+
+      if (mock) startSession(p);
 
       var card = el("div", "algo-mixed__card");
       card.appendChild(el("div", "algo-mixed__label", "Условие"));
@@ -166,7 +275,8 @@
           });
           if (!ok) b.classList.add("algo-challenge__opt--no");
           record(p, ok);
-          reveal(p, ok);
+          if (mock) mockPlan(p, ok);
+          else reveal(p, ok);
           refreshStat();
         };
         b.__chapter = chapter;
@@ -194,16 +304,11 @@
       save(MISSED, missed);
     }
 
-    // reveal показывает всё, что до ответа было спрятано: тему, подсказки из
-    // условия и редактор с настоящими тестами пакета.
-    function reveal(p, ok) {
-      var res = el("div", "algo-mixed__result");
-      res.appendChild(el("div", "algo-mixed__verdict " + (ok ? "is-ok" : "is-no"),
-        ok ? "✓ Да, это " + chapterTitle(p.c) : "✗ Нет. Это " + chapterTitle(p.c)));
-
+    // hintsBlock — всё, что было скрыто в условии, и ссылка на главу.
+    function hintsBlock(p, into) {
       var link = el("a", "algo-mixed__link", "открыть главу с теорией");
       link.href = p.c + ".html";
-      res.appendChild(link);
+      into.appendChild(link);
 
       if (p.h) {
         var hints = el("div", "algo-mixed__hints");
@@ -211,8 +316,17 @@
         p.h.split("\n").forEach(function (h) {
           hints.appendChild(el("p", "algo-mixed__text", h));
         });
-        res.appendChild(hints);
+        into.appendChild(hints);
       }
+    }
+
+    // reveal показывает всё, что до ответа было спрятано: тему, подсказки из
+    // условия и редактор с настоящими тестами пакета.
+    function reveal(p, ok) {
+      var res = el("div", "algo-mixed__result");
+      res.appendChild(el("div", "algo-mixed__verdict " + (ok ? "is-ok" : "is-no"),
+        ok ? "✓ Да, это " + chapterTitle(p.c) : "✗ Нет. Это " + chapterTitle(p.c)));
+      hintsBlock(p, res);
 
       res.appendChild(el("p", "algo-mixed__solve",
         "Теперь реши её: ниже — заготовка пакета «" + p.p + "» и его настоящие тесты. " +
@@ -226,6 +340,219 @@
       // runner.js инициализируется по DOMContentLoaded — виджет, созданный
       // динамически, он сам не подхватит, поэтому просит инициализацию явно.
       if (typeof window.ALGO_RUNNER_INIT === "function") window.ALGO_RUNNER_INIT();
+    }
+
+    // ---------------- режим собеседования ----------------
+
+    function elapsed() {
+      return session ? (Date.now() - session.start) / 1000 : 0;
+    }
+
+    function startSession(p) {
+      // Черновик прошлого собеседования по этому пакету — не подсказка, а мусор:
+      // каждая сессия начинается с чистой заготовки.
+      drop("algoRunnerCode:mock:" + p.p);
+
+      var bar = el("div", "algo-mixed__timer");
+      var clock = el("span", "algo-mixed__clock", "⏱ 00:00 / " + mmss(MOCK_LIMIT_MIN * 60));
+      bar.appendChild(clock);
+      bar.appendChild(el("span", "algo-mixed__steps",
+        "условие → шаблон → план словами → код → сложность"));
+      body.appendChild(bar);
+
+      session = { p: p, start: Date.now(), clock: clock, pattern: null, plan: 0, green: null, cx: null, done: false };
+      session.timer = setInterval(tick, 1000);
+    }
+
+    function tick() {
+      if (!session) return;
+      var s = elapsed();
+      session.clock.textContent = "⏱ " + mmss(s) + " / " + mmss(MOCK_LIMIT_MIN * 60);
+      session.clock.classList.toggle("is-over", s > MOCK_LIMIT_MIN * 60);
+    }
+
+    // mockPlan — шаг после шаблона: план словами. Тему называем (продолжать с
+    // неверным приёмом — потерянная сессия), но ни подсказок, ни главы.
+    function mockPlan(p, ok) {
+      if (!session) return;
+      session.pattern = ok;
+
+      var res = el("div", "algo-mixed__result algo-mixed__mock");
+      res.appendChild(el("div", "algo-mixed__verdict " + (ok ? "is-ok" : "is-no"),
+        ok ? "✓ Шаблон угадан: " + chapterTitle(p.c) : "✗ Шаблон не угадан. Это " + chapterTitle(p.c)));
+
+      var planBox = el("div", "algo-mixed__plan");
+      planBox.appendChild(el("div", "algo-mixed__label", "План — как сказал бы вслух интервьюеру"));
+      planBox.appendChild(el("p", "algo-mixed__text",
+        "Идея, какая структура данных и почему, что держишь инвариантом, какие крайние случаи. " +
+        "Код появится после плана."));
+      var ta = document.createElement("textarea");
+      ta.className = "algo-mixed__plan-text";
+      ta.rows = 5;
+      planBox.appendChild(ta);
+      var planBar = el("div", "algo-mixed__planbar");
+      var counter = el("span", "algo-mixed__counter", "0 / " + PLAN_MIN);
+      var go = el("button", "algo-quiz__btn algo-mixed__to-code", "К коду →");
+      go.type = "button";
+      go.disabled = true;
+      planBar.appendChild(counter);
+      planBar.appendChild(go);
+      planBox.appendChild(planBar);
+      res.appendChild(planBox);
+      body.appendChild(res);
+
+      ta.addEventListener("input", function () {
+        var n = ta.value.trim().length;
+        counter.textContent = n + " / " + PLAN_MIN;
+        go.disabled = n < PLAN_MIN;
+      });
+      go.onclick = function () {
+        // Длину проверяем здесь, а не только через disabled: флаг кнопки — это
+        // подсказка интерфейсу, а гейт должен держаться сам по себе.
+        if (!session || ta.value.trim().length < PLAN_MIN) return;
+        session.plan = ta.value.trim().length;
+        ta.readOnly = true;
+        go.hidden = true;
+        counter.textContent = "план записан за " + mmss(elapsed());
+        mockEditor(p, res);
+      };
+    }
+
+    function mockEditor(p, res) {
+      res.appendChild(el("p", "algo-mixed__solve",
+        "Реши " + p.f + " в пакете «" + p.p + "». Гоняются только её тесты (" + p.t.join(", ") +
+        "); если функция опирается на другие функции пакета — допиши и их."));
+
+      var runner = document.createElement("div");
+      runner.className = "algo-runner";
+      runner.setAttribute("data-pkg", p.p);
+      runner.setAttribute("data-tests", JSON.stringify(p.t));
+      runner.setAttribute("data-fresh", "true");
+      res.appendChild(runner);
+
+      var giveUp = el("button", "algo-quiz__btn algo-mixed__giveup", "Завершить без решения");
+      giveUp.type = "button";
+      res.appendChild(giveUp);
+      giveUp.onclick = function () {
+        if (!session || session.done) return;
+        session.green = null;
+        giveUp.hidden = true;
+        finish(p, res);
+      };
+
+      runner.addEventListener("algo-runner:result", function (e) {
+        var d = e.detail || {};
+        if (!session || session.done || session.green != null || !d.ok) return;
+        session.green = elapsed();
+        giveUp.hidden = true;
+        mockComplexity(p, res);
+      });
+
+      if (typeof window.ALGO_RUNNER_INIT === "function") window.ALGO_RUNNER_INIT();
+    }
+
+    // mockComplexity — после зелёных тестов: сначала своя оценка, потом эталон.
+    function mockComplexity(p, res) {
+      var box = el("div", "algo-mixed__cx");
+      box.appendChild(el("div", "algo-mixed__label",
+        "✓ Тесты зелёные за " + mmss(session.green) + ". Какая сложность у ТВОЕГО решения — по времени и по памяти?"));
+      var input = document.createElement("input");
+      input.type = "text";
+      input.className = "algo-mixed__cx-input";
+      input.placeholder = "например: O(n) по времени, O(1) по памяти";
+      box.appendChild(input);
+      var check = el("button", "algo-quiz__btn algo-mixed__cx-check", "Сверить с эталоном");
+      check.type = "button";
+      check.disabled = true;
+      box.appendChild(check);
+      res.appendChild(box);
+
+      input.addEventListener("input", function () {
+        check.disabled = input.value.trim().length < 3;
+      });
+      check.onclick = function () {
+        if (check.disabled || !session) return;
+        input.readOnly = true;
+        check.hidden = true;
+        session.cxAnswer = input.value.trim();
+        var ref = expectedComplexity(p);
+        if (!ref) {
+          box.appendChild(el("p", "algo-mixed__text",
+            "Эталонной оценки у этой задачи в условии нет — сверься с главой после итога."));
+          session.cx = "none";
+          finish(p, res);
+          return;
+        }
+        box.appendChild(el("p", "algo-mixed__cx-ref", "Эталон: " + ref));
+        box.appendChild(el("p", "algo-mixed__text",
+          "Совпадает по сути — не по записи? «O(R·C)» и «O(rows · cols)» — одно и то же."));
+        var yes = el("button", "algo-challenge__opt algo-mixed__cx-yes", "✓ Совпало");
+        var no = el("button", "algo-challenge__opt algo-mixed__cx-no", "✗ Не совпало");
+        yes.type = no.type = "button";
+        box.appendChild(yes);
+        box.appendChild(no);
+        function grade(ok) {
+          if (!session || session.done) return;
+          yes.disabled = no.disabled = true;
+          (ok ? yes : no).classList.add(ok ? "algo-challenge__opt--ok" : "algo-challenge__opt--no");
+          session.cx = ok ? "ok" : "miss";
+          finish(p, res);
+        }
+        yes.onclick = function () { grade(true); };
+        no.onclick = function () { grade(false); };
+      };
+    }
+
+    // finish — итог сессии: сводка, история, промах по сложности в повторения,
+    // и только теперь — подсказки и глава.
+    function finish(p, res) {
+      if (!session || session.done) return;
+      session.done = true;
+      clearInterval(session.timer);
+      var secs = Math.round(elapsed());
+      var limit = MOCK_LIMIT_MIN * 60;
+
+      var sum = el("div", "algo-mixed__summary");
+      sum.appendChild(el("div", "algo-mixed__label", "Итог собеседования"));
+      var rows = [
+        ["Время", mmss(secs) + " из " + mmss(limit) + (secs <= limit ? " — в срок" : " — перебор")],
+        ["Шаблон", session.pattern ? "угадан" : "не угадан"],
+        ["План словами", session.plan + " символов"],
+        ["Тесты", session.green != null ? "зелёные за " + mmss(session.green) : "не доведены"],
+        ["Сложность", session.cx === "ok" ? "оценена верно" : session.cx === "miss" ? "оценена неверно" :
+          session.cx === "none" ? "эталона нет" : "не оценивалась"],
+      ];
+      var table = el("table", "algo-mixed__summary-table");
+      rows.forEach(function (r) {
+        var tr = document.createElement("tr");
+        tr.appendChild(el("td", null, r[0]));
+        tr.appendChild(el("td", null, r[1]));
+        table.appendChild(tr);
+      });
+      sum.appendChild(table);
+      hintsBlock(p, sum);
+      res.appendChild(sum);
+
+      var log = loadList(MOCK_LOG);
+      log.push({
+        k: key(p), ts: Date.now(), secs: secs, limit: MOCK_LIMIT_MIN,
+        pattern: !!session.pattern, plan: session.plan,
+        green: session.green != null, cx: session.cx,
+      });
+      save(MOCK_LOG, log.slice(-LOG_MAX));
+
+      // Промах по сложности — отдельный вид карточки: шаблон ты мог узнать
+      // верно, а стоимость своего кода — нет. Верная оценка снимает промах.
+      var cxMissed = loadMap(CX_MISSED);
+      if (session.cx === "miss") {
+        var rec = cxMissed[key(p)] || { n: 0 };
+        cxMissed[key(p)] = { n: rec.n + 1, chapter: p.c, pkg: p.p, fn: p.f };
+        save(CX_MISSED, cxMissed);
+      } else if (session.cx === "ok" && cxMissed[key(p)]) {
+        delete cxMissed[key(p)];
+        save(CX_MISSED, cxMissed);
+      }
+      refreshStat();
     }
   }
 

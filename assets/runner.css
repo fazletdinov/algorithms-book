@@ -33,6 +33,17 @@
   background: #fdecec;
   color: #b91c1c;
 }
+
+/* Мок-интервью гоняет только тесты одной функции — это надо видеть, иначе
+   «всё зелёное» читается как «пакет решён». */
+.algo-runner__only {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #eef2ff;
+  color: #3730a3;
+}
 .algo-runner__flagship {
   font-weight: 700;
   font-size: 11px;
