@@ -44,10 +44,19 @@ docker-runner:
 ## pg-lab: поднять Postgres-лабораторию к главе «Postgres: EXPLAIN как pprof»
 pg-lab:
 	cd pglab && docker compose up -d
-	@echo "  Жду, пока нальются данные (2 млн строк; в первый раз дольше — качается образ)…"
-	@until docker exec algo-pglab psql -U algo -d algolab -tAc \
-	  'SELECT count(*) FROM orders' 2>/dev/null | grep -qx 2000000; do sleep 2; done
-	@echo "▶ База готова: make pg-psql  (или psql postgres://algo:algo@localhost:55432/algolab)"
+	@echo "  Жду засева: 2 млн строк, индексы, VACUUM ANALYZE…"
+	@# Ждём маркер lab_ready (последний оператор init.sql) и ходим по TCP: на время
+	@# засева образ поднимает временный сервер только на unix-сокете, так что TCP
+	@# ответит лишь финальный сервер — тот, что уже не будет перезапущен.
+	@for i in $$(seq 1 120); do \
+	  if docker exec -e PGPASSWORD=algo algo-pglab psql -h 127.0.0.1 -U algo -d algolab \
+	       -tAc 'SELECT 1 FROM lab_ready' 2>/dev/null | grep -qx 1; then \
+	    echo "▶ База готова: make pg-psql  (или psql postgres://algo:algo@localhost:55432/algolab)"; \
+	    exit 0; \
+	  fi; \
+	  sleep 2; \
+	done; \
+	echo "✗ База не поднялась за 4 минуты — смотри: docker logs algo-pglab"; exit 1
 
 ## pg-psql: psql внутри контейнера лаборатории
 pg-psql:

@@ -52,8 +52,8 @@ FROM (
     FROM generate_series(1, 200000) AS i
 ) AS g;
 
--- orders: 2 000 000 строк — по 10 на пользователя в среднем.
--- user_id намеренно НЕ равномерен: часть пользователей заказывает много чаще.
+-- orders: 2 000 000 строк — по 10 на пользователя в среднем, user_id распределён
+-- равномерно. Перекос в лаборатории живёт в users.status, а не здесь.
 CREATE TABLE orders (
     id         integer PRIMARY KEY,
     user_id    integer     NOT NULL,
@@ -88,3 +88,9 @@ CREATE INDEX orders_created_at_idx ON orders (created_at);
 --              шага не воспроизводится.
 VACUUM ANALYZE users;
 VACUUM ANALYZE orders;
+
+-- Маркер готовности — строго ПОСЛЕДНИЙ оператор засева. `make pg-lab` ждёт именно его,
+-- а не «в orders 2 млн строк»: строки появляются раньше индексов и VACUUM, и по
+-- такому признаку база объявлялась готовой на пару секунд раньше — первый же EXPLAIN
+-- показывал бы план без Index Only Scan.
+CREATE TABLE lab_ready AS SELECT now() AS ready_at;

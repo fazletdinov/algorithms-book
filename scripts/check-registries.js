@@ -81,6 +81,31 @@ if (!coreCount) {
   errors.push("трекер прогресса: ни одной главы с lvl=\"core\" — процент будет делиться на ноль");
 }
 
+// ---------- 1c. числа уровней в тексте <-> реестр ----------
+// README, шпаргалка и CLAUDE.md называют, сколько глав в ядре, расширении и
+// справочнике. Добавил главу — число в тексте тихо протухло (так и случилось:
+// «расширение — 21 глава» пережило появление двадцать второй).
+const countOf = (lvl) => [...levelOf.values()].filter((v) => v === lvl).length;
+const statedCounts = [
+  { file: "src/README.md", re: /\|\s*\*\*Ядро\*\*\s*\|\s*(\d+)\s+глав/, lvl: "core" },
+  { file: "src/README.md", re: /\|\s*\*\*Расширение\*\*\s*\|\s*(\d+)\s+глав/, lvl: "ext" },
+  { file: "src/README.md", re: /\|\s*\*\*Справочник\*\*\s*\|\s*(\d+)\s+глав/, lvl: "ref" },
+  { file: "src/cheatsheet.md", re: /по ядру — (\d+) глав/, lvl: "core" },
+  { file: "CLAUDE.md", re: /`core` \(ядро, (\d+)/, lvl: "core" },
+  { file: "CLAUDE.md", re: /`ext` \(расширение, (\d+)/, lvl: "ext" },
+  { file: "CLAUDE.md", re: /`ref` \(справочник, (\d+)/, lvl: "ref" },
+];
+for (const { file, re, lvl } of statedCounts) {
+  const m = read(path.join(root, file)).match(re);
+  if (!m) {
+    errors.push(`${file}: не нашёл упоминания числа глав уровня «${lvl}» (шаблон ${re})`);
+  } else if (Number(m[1]) !== countOf(lvl)) {
+    errors.push(
+      `${file}: сказано, что глав уровня «${lvl}» — ${m[1]}, а в реестре трекера их ${countOf(lvl)}`
+    );
+  }
+}
+
 // ---------- 2. таблица пакетов в exercises/README.md <-> каталоги ----------
 const packages = fs
   .readdirSync(exDir, { withFileTypes: true })

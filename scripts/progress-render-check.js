@@ -104,7 +104,10 @@ setTimeout(function () {
   };
 
   // --- глава ВНЕ ядра не двигает процент: ради этого всё и затевалось ---
-  const idxNonCore = declaredLevels.findIndex((d) => d.lvl !== "core");
+  // Именно ext/ref, а не «любая не из ядра»: первая такая в списке — инструмент
+  // (tool), а инструменты не входят и в строку «Расширение / Справочник», так
+  // что проверка ниже на нём провалилась бы при верном трекере.
+  const idxNonCore = declaredLevels.findIndex((d) => d.lvl === "ext" || d.lvl === "ref");
   const idxCore = declaredLevels.findIndex((d) => d.lvl === "core");
   const asideBefore = el.querySelector(".algo-prog__aside").textContent;
   mark(idxNonCore);
