@@ -1,0 +1,46 @@
+# Лаборатория к главе «Postgres: EXPLAIN как pprof».
+#
+#   make pg-lab       — поднять базу и налить данные (первый запуск ~30 секунд)
+#   make pg-psql      — psql внутри контейнера
+#   make pg-lab-down  — погасить и стереть данные
+#
+# Порт наружу — 55432, чтобы не конфликтовать с локальным Postgres на 5432.
+# Данные живут в volume: между запусками база сохраняется, init.sql повторно
+# не выполняется (так устроен официальный образ — скрипт идёт только на пустом
+# каталоге данных).
+services:
+  db:
+    # Версия пришпилена намеренно: планировщик меняется от релиза к релизу,
+    # и планы в главе сняты именно с 16-й. Возьмёшь latest — цифры поедут.
+    image: postgres:16-alpine
+    container_name: algo-pglab
+    environment:
+      POSTGRES_USER: algo
+      POSTGRES_PASSWORD: algo
+      POSTGRES_DB: algolab
+      # Фиксированные параметры планировщика: без них цифры в главе
+      # разъезжались бы с твоими из-за разных дефолтов сборки.
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - max_parallel_workers_per_gather=0 # параллельные планы отключены: глава про алгоритмы, а не про воркеры
+      - -c
+      - jit=off # JIT добавляет строки в EXPLAIN и шум во время
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U algo -d algolab"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  pgdata:

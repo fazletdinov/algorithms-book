@@ -7,8 +7,9 @@
 #   make runner  — только helper-сервер для «реши в книге»
 #   make build   — сборка книги в ./book
 #   make check   — то же, что проверяет CI (gofmt, эталоны, книга, ссылки)
+#   make pg-lab  — Postgres-лаборатория к главе «Postgres: EXPLAIN как pprof»
 
-.PHONY: serve book runner docker-runner build check help
+.PHONY: serve book runner docker-runner build check help pg-lab pg-psql pg-lab-down
 .DEFAULT_GOAL := help
 
 ## serve: книга + runner вместе (Ctrl+C гасит оба)
@@ -39,6 +40,22 @@ build:
 docker-runner:
 	docker run --rm -p 127.0.0.1:8080:8080 -v "$(CURDIR):/w" -w /w/exercises \
 	  golang:1.24 go run ./cmd/runner -listen-all
+
+## pg-lab: поднять Postgres-лабораторию к главе «Postgres: EXPLAIN как pprof»
+pg-lab:
+	cd pglab && docker compose up -d
+	@echo "  Жду, пока нальются данные (2 млн строк; в первый раз дольше — качается образ)…"
+	@until docker exec algo-pglab psql -U algo -d algolab -tAc \
+	  'SELECT count(*) FROM orders' 2>/dev/null | grep -qx 2000000; do sleep 2; done
+	@echo "▶ База готова: make pg-psql  (или psql postgres://algo:algo@localhost:55432/algolab)"
+
+## pg-psql: psql внутри контейнера лаборатории
+pg-psql:
+	docker exec -it algo-pglab psql -U algo -d algolab
+
+## pg-lab-down: погасить лабораторию и стереть её данные
+pg-lab-down:
+	cd pglab && docker compose down -v
 
 ## check: локально прогнать то, что проверяет CI
 check:
