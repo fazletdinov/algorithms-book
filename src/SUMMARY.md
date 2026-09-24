@@ -89,6 +89,7 @@
 - [🐘 Postgres: EXPLAIN как pprof](postgres-plans.md)
 - [🗄️ Капстоун: мини-Redis на настоящем RESP-протоколе](miniredis.md)
 - [🔍 Ревью чужого кода: чинить, а не писать с нуля](code-review.md)
+- [🧵 Параллельные алгоритмы: когда горутины помогают](parallel-algorithms.md)
 
 ## Дополнительные материалы
 
