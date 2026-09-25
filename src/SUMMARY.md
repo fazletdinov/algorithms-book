@@ -87,6 +87,7 @@
 - [🧬 Комбинации паттернов: задачи на связки](pattern-combinations.md)
 - [🌍 Карта: структуры данных в реальных системах](real-world-map.md)
 - [🐘 Postgres: EXPLAIN как pprof](postgres-plans.md)
+- [🔀 Консистентное хеширование: шардирование без перетасовки](consistent-hashing.md)
 - [🗄️ Капстоун: мини-Redis на настоящем RESP-протоколе](miniredis.md)
 - [🔍 Ревью чужого кода: чинить, а не писать с нуля](code-review.md)
 - [🧵 Параллельные алгоритмы: когда горутины помогают](parallel-algorithms.md)

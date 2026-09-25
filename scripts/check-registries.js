@@ -116,10 +116,10 @@ for (const { file, re, lvl } of statedCounts) {
   const bank = sandbox.ALGO_PROBLEMS || [];
   const withTests = bank.filter((p) => p.t && p.t.length).length;
   const mixedMd = read(path.join(srcDir, "mixed.md"));
-  const total = mixedMd.match(/(\d+) условия собраны/);
+  const total = mixedMd.match(/(\d+) услови[йяе] собраны/); // «163 условия», «165 условий»
   const mock = mixedMd.match(/собственные тесты, — (\d+) из (\d+)/);
   if (!total || Number(total[1]) !== bank.length) {
-    errors.push(`src/mixed.md: в банке ${bank.length} задач, а на странице — ${total ? total[1] : "(не нашёл «N условия собраны»)"}`);
+    errors.push(`src/mixed.md: в банке ${bank.length} задач, а на странице — ${total ? total[1] : "(не нашёл «N условий собраны»)"}`);
   }
   if (!mock || Number(mock[1]) !== withTests || Number(mock[2]) !== bank.length) {
     errors.push(

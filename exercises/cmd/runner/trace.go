@@ -213,6 +213,9 @@ var traceTargets = map[string][]string{
 		"NewSegmentTree",
 		"NewMinSegmentTree",
 	},
+	"consistenthash": {
+		"JumpHash", // цепочка «прыжков» по номерам корзин — её и надо видеть по шагам
+	},
 	"npcomplete": {
 		"VerifySubsetSum",
 		"VertexCoverGreedy2Approx",
