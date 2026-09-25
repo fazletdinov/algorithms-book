@@ -960,7 +960,9 @@
       "func (m *Mutex) Unlock() {",
       "    new := atomic.AddInt32(&m.state, -mutexLocked) // снять бит 0",
       "    // new != 0 → есть ожидающие, будим одного",
-      "}"
+      "}",
+      "// unlockSlow: CAS old → (old − 1<<shift) | mutexWoken; Semrelease",
+      "// lockSlow (разбуженная): CAS → | mutexLocked, &^ mutexWoken"
     ],
     "tls-handshake": [
       "// TLS 1.3 — установка защищённого канала (1 round-trip)",
@@ -983,15 +985,17 @@
       "//       id_token(JWT) сообщает, КТО пользователь (OIDC)"
     ],
     "context-tree": [
-      "ctx, cancel := context.WithTimeout(parent, 3*time.Second)",
-      "defer cancel()                    // всегда освобождаем ресурсы",
-      "go dbQuery(ctx, ...)              // дочерний контекст",
-      "go httpCall(ctx, ...)             // дочерний контекст",
-      "// таймаут/cancel закрывает ctx.Done() и течёт вниз по детям:",
+      "ctx, cancel := context.WithTimeout(parent, 3*time.Second) // req",
+      "defer cancel()",
+      "dbCtx, c1 := context.WithTimeout(ctx, time.Second) // ребёнок req",
+      "httpCtx, c2 := context.WithCancel(ctx)             // ребёнок req",
+      "defer c1(); defer c2()",
+      "go dbQuery(dbCtx, ...); go httpCall(httpCtx, ...)",
+      "// таймаут req закрывает его Done() и течёт вниз по детям:",
       "//   for child := range c.children { child.cancel(...) }",
-      "select {",
-      "case <-ctx.Done():                // отменили → сворачиваемся",
-      "    return ctx.Err()              // Canceled / DeadlineExceeded",
+      "select {                          // внутри dbQuery:",
+      "case <-dbCtx.Done():              // отменили → сворачиваемся",
+      "    return dbCtx.Err()            // DeadlineExceeded — от родителя",
       "}"
     ],
     "sync-pool": [
@@ -1004,7 +1008,7 @@
       "buf := pool.Get().(*bytes.Buffer)",
       "//   пул пуст → New() аллоцирует новый объект",
       "buf.Reset(); use(buf); pool.Put(buf) // не забыть вернуть",
-      "// при GC пул очищается — это кэш, не хранилище"
+      "// GC: пул → victim, прежний victim выбрасывается (живёт ~2 GC)"
     ],
     "nfa-match": [
       "// RE2 (Thompson NFA): держим МНОЖЕСТВО активных состояний сразу",
@@ -1086,7 +1090,7 @@
       "// conn.Read() выглядит блокирующим, но под капотом:",
       "n, err := conn.Read(buf)          // fd в НЕблокирующем режиме",
       "// если данных нет (EAGAIN):",
-      "//   runtime кладёт fd в epoll и паркует горутину (gopark),",
+      "//   runtime паркует горутину (netpollblock → gopark),",
       "//   поток M освобождается и выполняет ДРУГИЕ горутины",
       "// планировщик периодически зовёт netpoll(0):",
       "//   epoll сообщает готовый fd → goready будит горутину",
@@ -1920,7 +1924,9 @@
       "        }",
       "        del(n.children[i], k)            // спускаемся",
       "    }",
-      "}"
+      "}",
+      "// Delete(k): del(root, k), затем:",
+      "// if len(root.keys) == 0 && !root.leaf() { root = root.children[0] }"
     ],
     "segtree-query": [
       "func (t *Seg) Query(node, lo, hi, ql, qr int) int {",
@@ -2935,13 +2941,22 @@
       lineOf.push(2);
       infoOf.push("G" + (i + 1) + " читает visited[3] — пока false (никто ещё не записал)");
     }
+    // Сама запись visited[3] = true — отдельное событие (строка 4 листинга): гонка — это
+    // чтение одной горутины параллельно с записью другой. Раньше записи на таймлайне не
+    // было вовсе, а правило «write + write» ссылалось на несуществующие события.
+    var lastWrite = 0;
     for (i = 0; i < n; i++) {
       var dup = i > 0;
+      E.push({ lane: i, t: t++, kind: "write", label: "visited[3] = true", racy: true });
+      lineOf.push(3); lastWrite = E.length - 1;
+      infoOf.push(dup
+        ? "G" + (i + 1) + " тоже пишет visited[3] = true — без замка; прочитанное им false уже устарело"
+        : "G1 пишет visited[3] = true — но G2" + (n > 2 ? "…G" + n : "") + " уже прочитали false");
       E.push({ lane: i, t: t++, kind: "append", label: dup ? "next ← 3 ✗" : "next ← 3" });
       lineOf.push(4);
       infoOf.push(dup
-        ? "G" + (i + 1) + " добавляет 3 ещё раз — ДУБЛИКАТ: читал false до записи"
-        : "G1 помечает visited[3]=true и добавляет 3 в next");
+        ? "G" + (i + 1) + " добавляет 3 ещё раз — ДУБЛИКАТ: читал false до чужой записи"
+        : "G1 добавляет 3 в next");
     }
     var steps = [];
     for (var k = 0; k < E.length; k++) {
@@ -2949,14 +2964,14 @@
         si: k, line: lineOf[k],
         vars: { g: "G" + (E[k].lane + 1), act: E[k].label },
         info: infoOf[k],
-        tl: { events: E, now: k, race: [0, n - 1] }
+        tl: { events: E, now: k, race: [0, lastWrite] }
       });
     }
     steps.push({
       si: E.length, line: 6, done: true,
       vars: { g: "—", act: "гонка" },
       info: "3 добавлен " + n + " раз вместо одного: все горутины прочитали false до записи. Фикс — mutex или atomic CAS.",
-      tl: { events: E, now: E.length - 1, race: [0, n - 1] }
+      tl: { events: E, now: E.length - 1, race: [0, lastWrite] }
     });
     return { steps: steps };
   }
@@ -3286,6 +3301,7 @@
       tr.nodes.forEach(function (n) {
         var box = mkEl("div", "algo-tp__btnode" + (n.cls ? " algo-tp__btnode--" + n.cls : ""));
         n.keys.forEach(function (k) { box.appendChild(mkEl("div", "algo-tp__btkey", k)); });
+        if (!n.keys.length) box.appendChild(mkEl("div", "algo-tp__btkey", "∅")); // опустевший узел — рамкой с ∅, а не точкой
         box.style.position = "absolute"; box.style.left = (cx(n.x) - n.keys.length * 13) + "px"; box.style.top = (cy(n.depth) - RH) + "px";
         host.appendChild(box);
       });
@@ -3384,15 +3400,22 @@
         else { var m2 = {}; m2[n.children[i].id] = "fix"; m2[n.children[i + 1].id] = "fix"; push({ line: 6, node: n.keys.join(","), action: "слияние", fix: true, marks: m2, info: "оба ребёнка бедны → сливаем их с ключом " + k + " и удаляем " + k + " в слитом узле" }); merge(n, i); del(n.children[i], k); }
       } else {
         if (leaf(n)) { push({ line: 3, node: n.keys.join(","), action: "нет ключа", done: false, info: k + " в дереве нет — удалять нечего" }); return; }
-        var atLast = (i === n.keys.length), mc = {}; mc[n.id] = "current"; mc[n.children[i].id] = "found";
-        push({ line: 11, node: n.children[i].keys.join(","), action: "спуск", marks: mc, info: "спускаемся к ребёнку [" + n.children[i].keys.join(",") + "], где может быть " + k });
-        if (n.children[i].keys.length < BT_T) { fill(n, i); if (atLast && i > n.keys.length) i = i - 1; }
+        // Сначала чиним, потом спускаемся (так и в коде, и в главе): раньше шаг «спуск»
+        // стоял ДО fill, и подсветка шла по строкам 12 → 10.
+        var atLast = (i === n.keys.length);
+        if (n.children[i].keys.length < BT_T) {
+          var mp0 = {}; mp0[n.id] = "current"; mp0[n.children[i].id] = "fix";
+          push({ line: 8, node: n.children[i].keys.join(","), action: "ребёнок беден", marks: mp0, info: "путь к " + k + " идёт через [" + n.children[i].keys.join(",") + "], а в нём " + n.children[i].keys.length + " ключ (= t−1): войти — и удаление оставит его ниже минимума. Сначала чиним" });
+          fill(n, i); if (atLast && i > n.keys.length) i = i - 1;
+        }
+        var mc = {}; mc[n.id] = "current"; mc[n.children[i].id] = "found";
+        push({ line: 11, node: n.children[i].keys.join(","), action: "спуск", marks: mc, info: "теперь спускаемся в [" + n.children[i].keys.join(",") + "], где может быть " + k });
         del(n.children[i], k);
       }
     }
     push({ line: 0, node: (rootRef.root.keys.join(",") || "∅"), action: "старт", info: "Удаляем " + key + ": по пути следим, чтобы у узла было ≥ t ключей (иначе заимствуем у соседа или сливаем)" });
     del(rootRef.root, key);
-    if (rootRef.root.keys.length === 0 && !leaf(rootRef.root)) { rootRef.root = rootRef.root.children[0]; push({ line: 3, node: rootRef.root.keys.join(","), action: "корень сжался", info: "корень опустел → его единственный ребёнок становится новым корнем (высота дерева −1)" }); }
+    if (rootRef.root.keys.length === 0 && !leaf(rootRef.root)) { rootRef.root = rootRef.root.children[0]; push({ line: 15, shrink: true, node: rootRef.root.keys.join(","), action: "корень сжался", info: "корень опустел → его единственный ребёнок становится новым корнем (высота дерева −1)" }); }
     push({ line: 13, node: (rootRef.root.keys.join(",") || "∅"), action: "готово", done: true, info: key + " удалён; инварианты сохранены: все листья на одной глубине, у каждого узла ≥ t−1 ключей" });
     return { steps: steps };
   }
@@ -6174,16 +6197,21 @@
   function bMutexBits() {
     var LOCKED = 1, WSHIFT = 3, state = 0, steps = [];
     function bitsOf(st) { var a = []; for (var i = 0; i < 8; i++) { a.push(String((st >> i) & 1)); } return a; }
-    function snap(changed, line, info, done) { return { values: bitsOf(state), lo: (changed == null ? -1 : changed), changed: (changed == null ? -1 : changed), line: line, done: done, vars: { locked: (state & LOCKED) ? 1 : 0, starving: (state & 4) ? 1 : 0, waiters: state >> WSHIFT }, info: info }; }
+    function snap(changed, line, info, done) { return { values: bitsOf(state), lo: (changed == null ? -1 : changed), changed: (changed == null ? -1 : changed), line: line, done: done, vars: { locked: (state & LOCKED) ? 1 : 0, woken: (state & 2) ? 1 : 0, waiters: state >> WSHIFT }, info: info }; }
     steps.push(snap(null, 0, "state = 0 — мьютекс свободен, все биты нули"));
     state |= LOCKED;
     steps.push(snap(0, 9, "G1.Lock(): CAS 0→locked удался → бит 0 (locked) = 1. Быстрый путь, без блокировки."));
     state += (1 << WSHIFT);
     steps.push(snap(WSHIFT, 12, "G2.Lock(): лок занят → атомарно +1 к счётчику ожидающих (бит 3). Флаги не тронуты."));
+    // Пробуждение — два CAS, а не быстрый путь (сверено с internal/sync/mutex.go, Go 1.26):
+    // unlockSlow снимает одного ожидающего и ставит woken, разбуженная в lockSlow ставит
+    // locked и снимает woken. Раньше «CAS 0 → locked» при state = 8 — он бы не сработал.
     state &= ~LOCKED;
-    steps.push(snap(0, 15, "G1.Unlock(): AddInt32 снимает бит 0 (locked=0); state≠0 (есть ожидающие) → будим одного."));
-    state += LOCKED; state -= (1 << WSHIFT);
-    steps.push(snap(0, 9, "G2 проснулась: захватывает лок (locked=1), счётчик ожидающих −1 (бит 3 гаснет)."));
+    steps.push(snap(0, 15, "G1.Unlock(): AddInt32(−1) снимает бит 0 → state = " + state + " (locked=0, ждёт 1). Не ноль — значит, есть ожидающие → unlockSlow."));
+    state -= (1 << WSHIFT); state |= 2;
+    steps.push(snap(1, 18, "unlockSlow: CAS " + (state - 2 + (1 << WSHIFT)) + " → " + state + ": счётчик ожидающих −1 и бит 1 (woken) = 1 — «одного уже будят, другие Unlock не будите». Semrelease будит G2."));
+    var was = state; state |= LOCKED; state &= ~2;
+    steps.push(snap(0, 19, "G2 проснулась в lockSlow: CAS " + was + " → " + state + " — ставит locked и снимает woken. Лок у G2."));
     steps.push(snap(null, 0, "Итог: 3 флага + счётчик — в ОДНОМ int32, всё через атомарные CAS/Add. Ни одной аллокации.", true));
     return steps;
   }
@@ -6218,7 +6246,7 @@
       { dir: "s2c", text: "Redirect обратно: authorization code (+ state)" },
       { dir: "c2s", text: "Back-channel: обмен code + PKCE code_verifier на токены" },
       { dir: "s2c", text: "access_token + id_token (JWT, OIDC) + refresh_token" },
-      { dir: "c2s", text: "Запрос к API с access_token (Authorization: Bearer)" },
+      { dir: "note", text: "Приложение → 📦 API (resource server, НЕ Auth-сервер): Authorization: Bearer access_token — API проверяет подпись и audience токена" },
       { dir: "note", text: "id_token (JWT) сообщает, КТО пользователь — это уже OIDC" }
     ];
     var steps = [];
@@ -6235,23 +6263,26 @@
       { label: "Background", depth: 0, parent: -1 },
       { label: "srv (WithCancel)", depth: 1, parent: 0 },
       { label: "req (WithTimeout)", depth: 2, parent: 1 },
-      { label: "db-запрос", depth: 3, parent: 2 },
-      { label: "http-вызов", depth: 3, parent: 2 },
+      { label: "dbCtx (WithTimeout)", depth: 3, parent: 2 },
+      { label: "httpCtx (WithCancel)", depth: 3, parent: 2 },
       { label: "req2", depth: 2, parent: 1 }
     ];
     var state = {}, steps = [];
     function cnt() { var c = 0; for (var k in state) { if (state[k] === "cancelled") c++; } return c; }
     function snap(line, info, done) { return { state: Object.assign({}, state), line: line, done: done, vars: { cancelled: cnt(), alive: nodes.length - cnt() }, info: info }; }
-    steps.push(snap(0, "Дерево контекстов запроса: Background → srv → req → {db, http}, плюс сосед req2. Все живы."));
+    // Дети — настоящие дочерние контексты (WithTimeout/WithCancel от ctx). Раньше в коде
+    // горутинам передавался тот же ctx, а подпись называла их «детьми»: передача ctx
+    // ребёнка не создаёт, и шаг «cancel перебирает c.children» к ним не относился.
+    steps.push(snap(0, "Дерево контекстов: Background → srv → req → {dbCtx, httpCtx}, плюс сосед req2. Дети dbCtx и httpCtx созданы от req через WithTimeout/WithCancel — поэтому они в req.children. Все живы."));
     state[2] = "firing";
-    steps.push(snap(4, "У req истёк таймаут (WithTimeout) → ctx.Done() закрывается, req отменяется"));
+    steps.push(snap(6, "У req истёк таймаут → его Done() закрывается, req отменяется"));
     state[2] = "cancelled";
-    steps.push(snap(5, "Отмена течёт ВНИЗ: cancel() перебирает c.children и валит каждого ребёнка"));
+    steps.push(snap(7, "Отмена течёт ВНИЗ: req.cancel() перебирает c.children и отменяет каждого ребёнка с той же ошибкой"));
     state[3] = "cancelled";
-    steps.push(snap(7, "db-запрос ловит <-ctx.Done() и прерывается (ctx.Err() = DeadlineExceeded)"));
+    steps.push(snap(9, "dbQuery ловит <-dbCtx.Done() и прерывается: dbCtx.Err() = DeadlineExceeded — ошибка родителя, свой секундный таймаут ещё не истёк"));
     state[4] = "cancelled";
-    steps.push(snap(7, "http-вызов тоже отменён — вся работа под req свёрнута, ресурсы освобождены"));
-    steps.push(snap(8, "Сосед req2 и родитель srv НЕ затронуты: отмена идёт ТОЛЬКО вниз по поддереву", true));
+    steps.push(snap(9, "httpCtx тоже отменён — вся работа под req свёрнута, ресурсы освобождены"));
+    steps.push(snap(7, "Сосед req2 и родитель srv НЕ затронуты: отмена идёт ТОЛЬКО вниз по поддереву", true));
     return { nodes: nodes, steps: steps };
   }
 
@@ -6259,18 +6290,24 @@
   // на GC. Ячейки = припасённые объекты. Get берёт из пула (reuse) или создаёт новый (New);
   // Put возвращает объект; GC очищает пул (это КЭШ, не хранилище). ops: "put,get,gc,…".
   function bSyncPool(ops) {
-    var MAX = 7, pool = [], reused = 0, allocs = 0, nextCode = 97, steps = [];
-    function vals() { var a = []; for (var i = 0; i < MAX; i++) { a.push(i < pool.length ? pool[i] : "·"); } return a; }
-    function snap(extra) { var o = { values: vals(), lo: -1, vars: { inpool: pool.length, reused: reused, allocs: allocs } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    // Victim-кэш (Go ≥ 1.13, sync/pool.go: poolCleanup): GC не выбрасывает пул, а переносит
+    // его в victim и выбрасывает прежний victim; Get заглядывает туда до New. Раньше один
+    // GC «мгновенно опустошал пул» — вразрез с прозой главы рядом («живут ~пару циклов»).
+    var pool = [], victim = [], reused = 0, allocs = 0, nextCode = 97, steps = [];
+    function snap(extra) { var o = { pool: pool.slice(), victim: victim.slice(), hot: false, vars: { inpool: pool.length, invictim: victim.length, reused: reused, allocs: allocs } }; for (var k in extra) { o[k] = extra[k]; } return o; }
     steps.push(snap({ line: 0, info: "Пул пуст. Get берёт объект из пула (reuse) или создаёт новый (New); Put возвращает объект в пул." }));
     ops.forEach(function (op) {
       if (op === "put") {
-        if (pool.length < MAX) { var lbl = String.fromCharCode(nextCode++); pool.push(lbl); steps.push(snap({ lo: pool.length - 1, hot: true, line: 4, info: "Put: воркер вернул объект «" + lbl + "» в пул — теперь его можно переиспользовать" })); }
+        var lbl = String.fromCharCode(nextCode++); pool.push(lbl);
+        steps.push(snap({ touched: "p" + (pool.length - 1), hot: true, line: 4, info: "Put: воркер вернул объект «" + lbl + "» в пул — теперь его можно переиспользовать" }));
       } else if (op === "get") {
-        if (pool.length > 0) { var l2 = pool.pop(); reused++; steps.push(snap({ lo: pool.length, line: 6, info: "Get: пул не пуст → переиспользуем «" + l2 + "» (аллокация СЭКОНОМЛЕНА). Всего reuse: " + reused })); }
-        else { allocs++; steps.push(snap({ hot: true, line: 7, info: "Get: пул пуст → New() создаёт НОВЫЙ объект (аллокация + работа для GC). Всего alloc: " + allocs })); }
+        if (pool.length > 0) { var l2 = pool.pop(); reused++; steps.push(snap({ took: l2, line: 6, info: "Get: пул не пуст → переиспользуем «" + l2 + "» (аллокация СЭКОНОМЛЕНА). Всего reuse: " + reused })); }
+        else if (victim.length > 0) { var l3 = victim.pop(); reused++; steps.push(snap({ took: l3, line: 6, info: "Get: пул пуст, но в victim есть «" + l3 + "» — его и берём (он пережил один GC). Аллокации нет. Всего reuse: " + reused })); }
+        else { allocs++; steps.push(snap({ hot: true, line: 7, info: "Get: пусты и пул, и victim → New() создаёт НОВЫЙ объект (аллокация + работа для GC). Всего alloc: " + allocs })); }
       } else if (op === "gc") {
-        pool = []; steps.push(snap({ line: 9, info: "Сборщик мусора очистил пул — припасённые объекты освобождены (пул это КЭШ, полагаться на его содержимое нельзя)" }));
+        var dropped = victim.slice();
+        victim = pool; pool = [];
+        steps.push(snap({ line: 9, info: "GC: пул переезжает в victim" + (dropped.length ? ", а прежний victim выброшен: «" + dropped.join("», «") + "» пережил один GC, второй его добил" : " — после одного GC объекты ещё достижимы через Get") + ". Полагаться на содержимое пула нельзя: это кэш" }));
       }
     });
     steps.push(snap({ done: true, line: 8, info: "Итог: переиспользовано " + reused + ", новых аллокаций " + allocs + ". Пул срезал " + reused + " аллокаций — меньше давление на GC." }));
@@ -6282,7 +6319,7 @@
   // ограничен числом состояний → линейное время, без катастрофического бэктрекинга (ReDoS).
   // Демо-регэксп: a(b|c)*c. Ячейки = вход; варс = активное множество состояний.
   function bNfaMatch(input) {
-    var chars = String(input || "abcc").split("").slice(0, 12);
+    var chars = String(input || "abcc").split(""); // укорачивает parse — явно, с пометкой в заголовке
     function label(s) { return s === 0 ? "q0" : (s === 1 ? "q1" : "q2✓"); }
     function trans(s, ch) { if (s === 0) return ch === "a" ? [1] : []; if (s === 1) return ch === "b" ? [1] : (ch === "c" ? [1, 2] : []); return []; }
     function setStr(a) { return a.length ? "{" + a.map(label).join(", ") + "}" : "{}"; }
@@ -6419,10 +6456,12 @@
   function bNetpoll() {
     function step(state, changed, line, info, done) { return { state: state, changed: changed, line: line, info: info, done: done, vars: { g: state[0], m: state[1] } }; }
     return [
-      step(["выполняет conn.Read()", "занят: выполняет G", "—"], [0, 1], 1,
-        "G вызывает conn.Read(). Поток M занят этой горутиной. fd — в неблокирующем режиме."),
-      step(["🅿️ паркуется: данных ещё нет (EAGAIN)", "освобождается", "регистрирует fd, начинает следить"], [0, 1, 2], 4,
-        "Данных нет → runtime кладёт fd в epoll и ПАРКУЕТ горутину (gopark). Поток M больше ею не занят."),
+      // fd регистрируется в epoll ОДИН раз при создании соединения (FD.Init → runtime_pollOpen →
+      // netpollopen, EPOLLET) — сверено с исходниками Go 1.26; на EAGAIN только парковка.
+      step(["выполняет conn.Read()", "занят: выполняет G", "fd уже зарегистрирован (при создании соединения, edge-triggered)"], [0, 1], 1,
+        "G вызывает conn.Read(). Поток M занят этой горутиной. fd — в неблокирующем режиме и уже давно в epoll: регистрация была один раз, при создании соединения."),
+      step(["🅿️ паркуется: данных ещё нет (EAGAIN)", "освобождается", "следит за fd (регистрировать заново не нужно)"], [0, 1], 4,
+        "Данных нет (EAGAIN) → netpollblock записывает G ждущей чтения в дескриптор fd и ПАРКУЕТ её (gopark). Поток M больше ею не занят."),
       step(["спит — НЕ занимает поток", "выполняет ДРУГУЮ горутину G2", "следит за fd"], [1], 4,
         "Поток M не простаивает: берёт из очереди другую готовую горутину. Тысячи парков — единицы потоков."),
       step(["спит", "выполняет G2", "✅ fd ГОТОВ: пришли данные"], [2], 6,
@@ -6603,11 +6642,14 @@
       var full = len === cap;
       steps.push(snap({ line: 1, resized: false, copied: 0, x: x, info: "append(" + x + "): сначала проверяем len == cap? " + len + " == " + cap + " → " + (full ? "ДА, места нет — нужен рост" : "нет, место есть") }));
       if (full) {
-        var oldCap = cap; cap = cap * 2;
-        steps.push(snap({ line: 2, resized: false, copied: 0, x: x, info: "bigger := make(..., 2·cap): выделяем новый массив ёмкости " + cap + " (вдвое больше прежней " + oldCap + ")" }));
+        // Два массива на экране: рост — это НЕ расширение на месте, а новый массив +
+        // копия. Раньше оба были слиты в одну строку, и copy выглядел перекраской.
+        var oldCap = cap, newCap = cap * 2;
+        steps.push(snap({ line: 2, resized: false, copied: 0, x: x, old: { cap: oldCap, len: len, st: "src" }, neu: { cap: newCap, len: 0, st: "new" }, info: "bigger := make(..., 2·cap): выделяем НОВЫЙ массив ёмкости " + newCap + " (вдвое больше прежней " + oldCap + "); пока он пуст, s по-прежнему смотрит в старый" }));
         total += len;
-        steps.push(snap({ line: 3, resized: true, copied: len, x: x, info: "copy(bigger, s): КОПИРУЕМ все " + len + " элементов в новый массив — дорогой шаг O(len)" }));
-        steps.push(snap({ line: 4, resized: false, copied: 0, x: x, info: "s = bigger: переключаемся на новый массив. Старый освободит GC." }));
+        steps.push(snap({ line: 3, resized: true, copied: len, x: x, old: { cap: oldCap, len: len, st: "copying" }, neu: { cap: newCap, len: len, st: "copied" }, info: "copy(bigger, s): КОПИРУЕМ все " + len + " элементов из старого массива в новый — дорогой шаг O(len)" }));
+        cap = newCap;
+        steps.push(snap({ line: 4, resized: false, copied: 0, x: x, old: { cap: oldCap, len: len, st: "gc" }, neu: { cap: newCap, len: len, st: "main" }, info: "s = bigger: срез смотрит в новый массив. Старый больше никто не держит — его освободит GC." }));
       }
       len++;
       steps.push(snap({ line: 6, resized: false, copied: 0, x: x, info: "return append(s, " + x + "): кладём на свободное место, длина " + len + " / ёмкость " + cap + " — O(1)" }));
@@ -6621,20 +6663,31 @@
   function dynArrayViz(panel, ctx) {
     var wrap = document.createElement("div");
     wrap.style.cssText = "display:flex;flex-direction:column;gap:7px;padding:10px 4px;min-height:54px;";
-    var row = document.createElement("div");
-    row.style.cssText = "display:flex;gap:3px;flex-wrap:wrap;";
+    var rows = document.createElement("div"); rows.style.cssText = "display:flex;flex-direction:column;gap:6px;";
     var foot = document.createElement("div");
     foot.style.cssText = "font-size:12px;opacity:.85;";
-    wrap.appendChild(row); wrap.appendChild(foot); panel.appendChild(wrap);
-    return function (s) {
-      row.innerHTML = "";
-      for (var i = 0; i < s.cap; i++) {
-        var filled = i < s.len;
-        var cell = document.createElement("div");
-        var bg = filled ? (s.resized ? "#f59e0b" : "#3b82f6") : "transparent";
-        cell.style.cssText = "width:26px;height:26px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:" + (filled ? "#fff" : "var(--fg)") + ";background:" + bg + ";border:1px " + (filled ? "solid transparent" : "dashed #64748b") + ";";
+    wrap.appendChild(rows); wrap.appendChild(foot); panel.appendChild(wrap);
+    function drawRow(label, cap, len, color, dim, note) {
+      var line = document.createElement("div"); line.style.cssText = "display:flex;align-items:center;gap:8px;flex-wrap:wrap;" + (dim ? "opacity:.45;" : "");
+      var lab = document.createElement("div"); lab.style.cssText = "min-width:9.5em;font-size:12px;opacity:.8;"; lab.textContent = label; line.appendChild(lab);
+      var row = document.createElement("div"); row.style.cssText = "display:flex;gap:3px;flex-wrap:wrap;";
+      for (var i = 0; i < cap; i++) {
+        var filled = i < len, cell = document.createElement("div");
+        cell.style.cssText = "width:26px;height:26px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:" + (filled ? "#fff" : "var(--fg)") + ";background:" + (filled ? color : "transparent") + ";border:1px " + (filled ? "solid transparent" : "dashed #64748b") + ";";
         cell.textContent = filled ? String(i + 1) : "";
         row.appendChild(cell);
+      }
+      line.appendChild(row);
+      if (note) { var nt = document.createElement("div"); nt.style.cssText = "font-size:12px;font-weight:700;"; nt.textContent = note; line.appendChild(nt); }
+      rows.appendChild(line);
+    }
+    return function (s) {
+      rows.innerHTML = "";
+      if (s.old) {
+        drawRow("s — старый, cap " + s.old.cap, s.old.cap, s.old.len, s.old.st === "copying" ? "#f59e0b" : "#3b82f6", s.old.st === "gc", s.old.st === "gc" ? "→ GC" : (s.old.st === "copying" ? "↓ copy " + s.old.len : ""));
+        drawRow("bigger — новый, cap " + s.neu.cap, s.neu.cap, s.neu.len, s.neu.st === "copied" ? "#f59e0b" : "#3b82f6", false, s.neu.st === "main" ? "← s" : "");
+      } else {
+        drawRow("s, cap " + s.cap, s.cap, s.len, "#3b82f6", false, "");
       }
       foot.textContent = "длина " + s.len + " / ёмкость " + s.cap + (s.copied ? "  ·  скопировано " + s.copied + " (дорогой шаг)" : "");
     };
@@ -8123,7 +8176,7 @@
       varOrder: ["g", "act"],
       varDesc: { "g": "Горутина", "act": "Действие" },
       lineNotes: { 2: "Обе горутины читают visited[v] — и обе видят false", 3: "Пишут true без синхронизации", 4: "Добавляют v в next — на гонке дважды" },
-      rules: [{ head: "read + read", body: "оба видят false", cls: "eq" }, { head: "write + write", body: "второй уже поздно", cls: "gt" }, { head: "append ×2", body: "дубликат", cls: "lt" }],
+      rules: [{ head: "read ‖ write", body: "чтение не видит чужую запись — оба видят false", cls: "eq" }, { head: "write ‖ write", body: "оба пишут true без замка: -race укажет на эти строки", cls: "gt" }, { head: "append × n", body: "дубликат в next", cls: "lt" }],
       parse: function (root) { var n = parseInt(root.getAttribute("data-goroutines"), 10); if (!(n >= 2)) n = 2; if (n > 4) n = 4; root.setAttribute("data-goroutines", n); return bRaceTimeline(n); },
       inputs: [{ attr: "data-goroutines", label: "горутин (2–4)", sm: true }],
       values: function () { return []; },
@@ -9613,8 +9666,8 @@
       valuesLabel: "Биты state (0..7 слева направо; бит 0 = locked)", codeKey: "mutex-bits", fillRange: false,
       ptr1: { name: "бит", cap: "(изменённый бит)" },
       complexity: { time: "O(1) атомарно", space: "1 слово", good: "★ Флаги + счётчик в одном int32" },
-      varOrder: ["locked", "starving", "waiters"],
-      varDesc: { locked: "Бит 0: захвачен ли мьютекс", starving: "Бит 2: режим против голодания", waiters: "Биты 3+: сколько горутин ждут" },
+      varOrder: ["locked", "woken", "waiters"],
+      varDesc: { locked: "Бит 0: захвачен ли мьютекс", woken: "Бит 1: одну горутину уже будят", waiters: "Биты 3+: сколько горутин ждут" },
       lineNotes: { 0: "Одно 32-битное слово хранит всё состояние", 2: "Бит 0 — захвачен", 3: "Бит 1 — кто-то разбужен", 4: "Бит 2 — режим голодания", 5: "Биты 3+ — счётчик ожидающих", 9: "Быстрый путь: один CAS 0→locked", 12: "Занято → атомарно +1 к счётчику ожидающих", 15: "Unlock снимает бит locked атомарным Add" },
       rules: [{ head: "1 слово", body: "3 флага + счётчик вместе", cls: "eq" }, { head: "CAS/Add", body: "меняем биты атомарно, без лока", cls: "lt" }, { head: "зачем", body: "компактно и без аллокаций", cls: "gt" }],
       parse: function () { return { steps: bMutexBits() }; },
@@ -9627,7 +9680,7 @@
       sumValues: function (s) { return [{ text: s.vars.locked, cls: s.vars.locked ? "gt" : "" }, { text: s.vars.waiters, cls: "lt" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Одно слово — всё состояние", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: s.changed >= 0 }; },
       stepCard: function (s) { return { a: "locked=" + s.vars.locked, b: "ждут=" + s.vars.waiters, c: "starving=" + s.vars.starving, cls: "eq" }; },
-      varsOf: function (s) { return { locked: s.vars.locked, starving: s.vars.starving, waiters: s.vars.waiters }; }
+      varsOf: function (s) { return { locked: s.vars.locked, woken: s.vars.woken, waiters: s.vars.waiters }; }
     },
 
     "tls-handshake": {
@@ -9660,7 +9713,7 @@
       varOrder: ["code", "token"],
       varDesc: { code: "Получен authorization code", token: "Получены access/id токены" },
       lineNotes: { 0: "Цель: дать приложению доступ, не показывая ему пароль пользователя", 1: "Приложение уводит пользователя на Auth-сервер (client_id, scope, PKCE)", 2: "Пользователь логинится и подтверждает согласие — на Auth-сервере", 3: "Auth-сервер возвращает одноразовый authorization code", 4: "Приложение по back-channel меняет code + code_verifier на токены", 5: "Выдаются access_token, id_token (JWT) и refresh_token", 6: "К API ходят с access_token в заголовке Authorization: Bearer", 7: "id_token (JWT) удостоверяет личность — это OpenID Connect" },
-      rules: [{ head: "PKCE", body: "code_verifier не даёт перехватить code", cls: "eq" }, { head: "пароль", body: "видит только Auth-сервер, не приложение", cls: "lt" }, { head: "OIDC", body: "id_token (JWT) = «кто пользователь»", cls: "gt" }],
+      rules: [{ head: "PKCE", body: "перехваченный code бесполезен без code_verifier", cls: "eq" }, { head: "пароль", body: "видит только Auth-сервер, не приложение", cls: "lt" }, { head: "OIDC", body: "id_token (JWT) = «кто пользователь»", cls: "gt" }],
       parse: function () { var r = bOAuthFlow(); return { msgs: r.msgs, parties: r.parties, steps: r.steps }; },
       inputs: [],
       values: function () { return []; },
@@ -9681,7 +9734,7 @@
       complexity: { time: "O(поддерева) на отмену", space: "O(узлов)", good: "★ Отмена всей ветки за раз" },
       varOrder: ["alive", "cancelled"],
       varDesc: { alive: "Живых контекстов", cancelled: "Отменённых контекстов" },
-      lineNotes: { 0: "WithTimeout создаёт дочерний ctx с дедлайном", 1: "defer cancel() освобождает ресурсы даже при раннем выходе", 2: "Подзадачи получают ЭТОТ ctx — становятся его детьми", 3: "…и тоже дети того же ctx", 4: "Таймаут/cancel закрывает ctx.Done()", 5: "cancel перебирает c.children и валит каждого — вниз по дереву", 7: "Подзадача слушает <-ctx.Done() и сворачивается", 8: "ctx.Err(): Canceled или DeadlineExceeded" },
+      lineNotes: { 0: "WithTimeout создаёт req — ребёнка parent с дедлайном", 1: "defer cancel() освобождает ресурсы даже при раннем выходе", 2: "Ребёнок req: СВОЙ WithTimeout от ctx попадает в req.children", 3: "…и второй ребёнок — WithCancel от ctx", 5: "Горутинам — детские контексты (передать тот же ctx ребёнка НЕ создаёт)", 6: "Таймаут req закрывает его Done()", 7: "cancel перебирает c.children и отменяет каждого — вниз по дереву", 9: "Подзадача слушает <-dbCtx.Done() и сворачивается", 10: "Err() ребёнка — ошибка родителя: DeadlineExceeded" },
       rules: [{ head: "отмена", body: "течёт ВНИЗ по поддереву", cls: "lt" }, { head: "родитель/соседи", body: "не затронуты", cls: "gt" }, { head: "defer cancel", body: "обязателен — иначе утечка", cls: "eq" }],
       parse: function () { var r = bContextTree(); return { nodes: r.nodes, steps: r.steps }; },
       inputs: [],
@@ -9699,24 +9752,34 @@
     "sync-pool": {
       badge: "sync.Pool",
       desc: "Пул переиспользуемых временных объектов (буферов) — чтобы не аллоцировать их заново на каждый запрос и не грузить GC. Get берёт из пула или создаёт новый (New), Put возвращает. Пул — это КЭШ: GC его очищает, полагаться на содержимое нельзя.",
-      valuesLabel: "Объекты в пуле (· — свободный слот)", codeKey: "sync-pool", fillRange: false,
-      ptr1: { name: "слот", cap: "(затронутый)" },
+      valuesLabel: "", codeKey: "sync-pool", fillRange: false,
       complexity: { time: "O(1) Get/Put", space: "O(припасено)", good: "★ Меньше аллокаций и работы GC" },
-      varOrder: ["inpool", "reused", "allocs"],
-      varDesc: { inpool: "Объектов сейчас в пуле", reused: "Переиспользовано (аллокаций избежали)", allocs: "Новых аллокаций (пул был пуст)" },
+      varOrder: ["inpool", "invictim", "reused", "allocs"],
+      varDesc: { inpool: "Объектов в пуле", invictim: "В victim (переживут ещё один GC)", reused: "Переиспользовано (аллокаций избежали)", allocs: "Новых аллокаций (пусто везде)" },
       lineNotes: { 0: "New — фабрика: как создать объект, если пул пуст", 1: "Например, новый буфер", 3: "Put кладёт объект обратно для переиспользования", 4: "Возвращаем буфер в пул", 5: "Get достаёт из пула или зовёт New", 6: "Пул не пуст → переиспользуем (без аллокации)", 7: "Пул пуст → New() аллоцирует новый", 8: "Использовали и вернули (Reset + Put)", 9: "GC очищает пул — это кэш, не хранилище" },
-      rules: [{ head: "Get из пула", body: "→ аллокации нет", cls: "gt" }, { head: "Get пуст", body: "→ New() аллоцирует", cls: "lt" }, { head: "GC", body: "чистит пул — не для хранения", cls: "eq" }],
-      parse: function (root) { var raw = root.getAttribute("data-ops") || "put,put,get,put,get,gc,get,get"; var ops = raw.split(",").map(function (s) { return s.trim(); }); return { ops: ops, steps: bSyncPool(ops) }; },
+      rules: [{ head: "Get из пула", body: "→ аллокации нет", cls: "gt" }, { head: "Get пуст", body: "→ New() аллоцирует", cls: "lt" }, { head: "GC", body: "пул → victim, старый victim — в мусор: это кэш, не хранилище", cls: "eq" }],
+      parse: function (root) { var raw = root.getAttribute("data-ops") || "put,put,get,put,gc,get,gc,get"; var ops = raw.split(",").map(function (s) { return s.trim(); }); return { ops: ops, steps: bSyncPool(ops) }; },
       inputs: [{ attr: "data-ops", label: "Операции (put/get/gc)" }],
-      values: function (ctx) { return bSyncPool(ctx.ops)[0].values; },
+      values: function () { return []; },
       title: function () { return "sync.Pool: переиспользование объектов"; },
-      cellState: function (s, j) { var o = {}; if (s.values[j] !== "·") o.found = true; else o.dim = true; if (j === s.lo && s.lo >= 0) o.mid = true; return o; },
-      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      customViz: function (panel) {
+        var host = mkEl("div", "algo-tp__lsm");
+        function row(lab) { var r = mkEl("div", "algo-tp__lsmrow"); r.appendChild(mkEl("div", "algo-tp__lsmlabel", lab)); var c = mkEl("div", "algo-tp__lsmcells"); r.appendChild(c); host.appendChild(r); return c; }
+        var pr = row("пул (local)"), vr = row("victim — переживёт ещё один GC");
+        panel.appendChild(host);
+        function fill(el, arr, taken, lastHot) {
+          el.innerHTML = "";
+          if (!arr.length) el.appendChild(mkEl("span", "algo-tp__lsmempty", "пусто"));
+          arr.forEach(function (x, k) { el.appendChild(mkEl("span", "algo-tp__lsmcell" + (lastHot && k === arr.length - 1 ? " algo-tp__lsmcell--cur" : ""), x)); });
+        }
+        return function (s) { fill(pr, s.pool, s.took, !!s.touched); fill(vr, s.victim); };
+      },
       sumCells: ["переиспользовано", "новых аллокаций"],
       sumValues: function (s) { return [{ text: s.vars.reused, cls: "gt" }, { text: s.vars.allocs, cls: "lt" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "reuse " + s.vars.reused + " · alloc " + s.vars.allocs, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
       stepCard: function (s) { return { a: "в пуле " + s.vars.inpool, b: "reuse " + s.vars.reused, c: "alloc " + s.vars.allocs, cls: "gt" }; },
-      varsOf: function (s) { return { inpool: s.vars.inpool, reused: s.vars.reused, allocs: s.vars.allocs }; }
+      varsOf: function (s) { return { inpool: s.vars.inpool, invictim: s.vars.invictim, reused: s.vars.reused, allocs: s.vars.allocs }; }
     },
 
     "nfa-match": {
@@ -9729,10 +9792,12 @@
       varDesc: { active: "Активное множество состояний NFA", size: "Его размер (ограничен числом состояний)", matched: "Финальное состояние активно?" },
       lineNotes: { 0: "RE2 симулирует ВСЕ пути сразу — множеством состояний", 1: "Старт: активно начальное состояние", 2: "Читаем вход по одному символу", 4: "Из КАЖДОГО активного состояния…", 5: "…берём все переходы по текущему символу", 6: "…и добавляем в новое множество", 9: "Размер множества ≤ числа состояний — отсюда линейность", 11: "Совпало, если финальное состояние активно" },
       rules: [{ head: "множество", body: "все пути сразу, |active| ≤ #состояний", cls: "lt" }, { head: "без возврата", body: "→ линейное время", cls: "gt" }, { head: "vs backtracking", body: "у PCRE бывает экспонента (ReDoS)", cls: "eq" }],
-      parse: function (root) { var inp = (root.getAttribute("data-input") || "abcc"); return { input: inp, steps: bNfaMatch(inp) }; },
+      // Длинный ввод укорачиваем ЯВНО: раньше обрезка до 12 символов была молчаливой, и
+      // «abbbbbbbbbbcb» (не подходит) получал вердикт «подходит» по своему префиксу.
+      parse: function (root) { var full = (root.getAttribute("data-input") || "abcc"), MAXN = 24, inp = full.slice(0, MAXN); return { input: inp, cut: full.length > MAXN ? full.length : 0, steps: bNfaMatch(inp) }; },
       inputs: [{ attr: "data-input", label: "Строка" }],
       values: function (ctx) { return bNfaMatch(ctx.input)[0].values; },
-      title: function (ctx) { return "RE2 / NFA: a(b|c)*c на «" + ctx.input + "»"; },
+      title: function (ctx) { return "RE2 / NFA: a(b|c)*c на «" + ctx.input + "»" + (ctx.cut ? " (первые 24 из " + ctx.cut + " символов — вердикт про них)" : ""); },
       cellState: function (s, j) { if (s.done) return s.found ? { found: true } : { dim: true }; var o = {}; if (j === s.lo && s.lo >= 0) o.mid = true; else if (s.lo >= 0 && j < s.lo) o.dim = true; return o; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
       sumCells: ["активных состояний", "подходит?"],
@@ -11650,7 +11715,7 @@
       varOrder: ["подзадача", "размер", "режим", "горутин запущено"],
       varDesc: { "подзадача": "Текущий подотрезок [lo,hi)", "размер": "Его длина", "режим": "fan-out (горутины) / cutoff (последовательно) / merge (join)", "горутин запущено": "Сколько горутин породил fan-out" },
       lineNotes: { 1: "Порог: подзадача меньше cutoff — не плодим горутину", 2: "Мелкий кусок сортируем последовательно (горутина дороже работы)", 6: "Fan-out: две половины независимы — каждой своя горутина", 8: "wg.Wait(): барьер — ждём, пока обе половины отсортированы", 9: "Join: сливаем две отсортированные половины в одну" },
-      rules: [{ head: "size ≥ cutoff", body: "→ fan-out: 2 горутины", cls: "lt" }, { head: "size < cutoff", body: "→ последовательно (без горутины)", cls: "gt" }, { head: "обе готовы", body: "→ merge (join)", cls: "eq" }],
+      rules: [{ head: "size ≥ cutoff", body: "→ делим: 2 новые горутины (фиолетовые)", cls: "gt" }, { head: "size < cutoff", body: "→ сортирует сам, дальше не делит (синий лист; новых горутин не порождает)", cls: "lt" }, { head: "обе готовы", body: "→ merge (join)", cls: "eq" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var cutoff = parseInt(root.getAttribute("data-cutoff") || "3", 10); if (isNaN(cutoff) || cutoff < 2) cutoff = 2; var res = bFanoutSort(arr, cutoff); return { nodes: res.nodes, maxDepth: res.maxDepth, steps: res.steps }; },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-cutoff", label: "cutoff", sm: true }],
       values: function () { return []; },

@@ -1445,3 +1445,6 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--zero { background: var(--tp-ok); border-color: var(--tp-ok); border-radius: 3px; }
 .algo-tp__legdot--ones { background: color-mix(in srgb, var(--tp-lo) 24%, transparent); border-color: color-mix(in srgb, var(--tp-lo) 40%, transparent); border-radius: 3px; }
 .algo-tp__legdot--two { background: var(--tp-hi); border-color: var(--tp-hi); border-radius: 3px; }
+/* B-дерево: сливаемые/чинимые узлы и узел, из которого удаляем ключ */
+.algo-tp__btnode--fix { border-color: var(--tp-warn); outline: 3px solid var(--tp-warn); outline-offset: 2px; }
+.algo-tp__btnode--removed { border-color: var(--tp-hi); background: color-mix(in srgb, var(--tp-hi) 16%, transparent); outline: 3px dashed var(--tp-hi); outline-offset: 2px; }
