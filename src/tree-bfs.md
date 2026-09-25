@@ -314,7 +314,7 @@ func rightSideView(root *TreeNode) []int {
 Прогоните обход по уровням: очередь набирает всех детей уровня, и последний снятый с
 уровня узел — это и есть видимый справа:
 
-<div class="algo-viz" data-viz="tree-bfs" data-tree="1,2,3,null,5,null,4"></div>
+<div class="algo-viz" data-viz="tree-right-view" data-tree="1,2,3,null,5,null,4"></div>
 
 **Шаг 4. Трассировка** на `[1, 2,3, null,5, null,4]` (в скобках помечен узел, попадающий в ответ как последний на уровне):
 

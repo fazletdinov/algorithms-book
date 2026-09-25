@@ -37,11 +37,31 @@
       .filter(function (x) { return x.length > 0; })
       .map(function (x) { return num(x, "элемент массива"); });
   }
+  // Дерево «по уровням» в формате LeetCode: у null детей нет, следующие значения идут детям
+  // следующих НЕпустых узлов. Раскладываем в разреженный массив кучи (дети i — 2i+1 и 2i+2),
+  // с которым работают отрисовки. Раньше строка читалась сразу как массив кучи, и на
+  // «1,null,2,3» узел 3 терялся под null, а виджет всё равно писал «обход завершён».
+  // Для полных деревьев (все данные глав) оба формата совпадают.
   function parseTree(s) {
-    return (s || "").split(",").map(function (x) {
+    var vals = (s || "").split(",").map(function (x) {
       x = x.trim();
       return x === "" || x === "null" ? null : num(x, "узел дерева");
     });
+    var out = [];
+    if (!vals.length || vals[0] == null) return out;
+    out[0] = vals[0];
+    var q = [0], k = 1;
+    while (q.length && k < vals.length) {
+      var p = q.shift();
+      for (var side = 1; side <= 2 && k < vals.length; side++, k++) {
+        if (vals[k] == null) continue;
+        var ci = 2 * p + side;
+        if (ci > 4095) throw new Error("дерево слишком глубокое для отрисовки (индекс " + ci + ")");
+        out[ci] = vals[k]; q.push(ci);
+      }
+    }
+    for (var i = 0; i < out.length; i++) if (out[i] === undefined) out[i] = null;
+    return out;
   }
   function parseEdges(s) {
     return (s || "").split(",").map(function (x) { return x.trim(); })
@@ -1632,6 +1652,39 @@
       "    }",
       "    dfs(node, prefix)",
       "    return out",
+      "}"
+    ],
+    "list-reverse-between": [
+      "func reverseBetween(head *ListNode, m, n int) *ListNode {",
+      "    dummy := &ListNode{Next: head}",
+      "    prev := dummy",
+      "    for i := 0; i < m-1; i++ { prev = prev.Next } // узел перед участком",
+      "    curr := prev.Next          // первый узел участка (станет последним)",
+      "    for i := 0; i < n-m; i++ {",
+      "        next := curr.Next      // 1. сохранить вынимаемый узел",
+      "        curr.Next = next.Next  // 2. вырезать его",
+      "        next.Next = prev.Next  // 3. вставить в начало участка",
+      "        prev.Next = next       // 4. подцепить к узлу перед участком",
+      "    }",
+      "    return dummy.Next",
+      "}"
+    ],
+    "tree-right-view": [
+      "func rightSideView(root *TreeNode) []int {",
+      "    res := []int{}",
+      "    queue := []*TreeNode{root}",
+      "    for len(queue) > 0 {",
+      "        levelSize := len(queue)       // снимок размера уровня!",
+      "        for i := 0; i < levelSize; i++ {",
+      "            node := queue[0]; queue = queue[1:]",
+      "            if i == levelSize-1 {     // последний на уровне",
+      "                res = append(res, node.Val)",
+      "            }",
+      "            if node.Left != nil { queue = append(queue, node.Left) }",
+      "            if node.Right != nil { queue = append(queue, node.Right) }",
+      "        }",
+      "    }",
+      "    return res",
       "}"
     ],
     "lower-bound": [
@@ -4983,7 +5036,7 @@
     for (var k = 0; k < query.length; k++) {
       var ch2 = query[k];
       push({ line: 2, i: k, char: ch2, node: nodes[cur2].ch, info: "i = " + k + ": " + k + " < len(word) — берём символ '" + ch2 + "'" });
-      push({ line: 3, i: k, char: ch2, node: nodes[cur2].ch, info: "c = '" + ch2 + "'" });
+      push({ line: 3, i: k, char: ch2, node: nodes[cur2].ch, info: "c = word[i] − 'a' = '" + ch2 + "' − 'a' = " + (ch2.charCodeAt(0) - 97) + " — номер ребёнка в массиве children" });
       var childId = nodes[cur2].children[ch2], has = childId != null;
       push({ line: 4, i: k, char: ch2, node: nodes[cur2].ch, info: has ? "у узла «" + nodes[cur2].ch + "» есть потомок '" + ch2 + "'" : "у узла «" + nodes[cur2].ch + "» НЕТ потомка '" + ch2 + "' — корня нет" });
       if (!has) {
@@ -7366,6 +7419,97 @@
   // Обход дерева (BFS уровнями или DFS preorder). Возвращает ctx с present/order/steps.
   // Обход дерева — построчный (debugger) проход. BFS — с очередью, DFS — с рекурсивным
   // стеком вызовов (обе структуры показаны панелью). treeViz красит узлы (upto/nodeIdx).
+  // Разворот участка [m, n] вставкой в голову (head-insertion) — как reverseBetween главы:
+  // prev и curr стоят на месте, узел за curr вынимается и вставляется в начало участка.
+  // Раньше здесь стоял общий разворот всего списка — другая механика.
+  function bListReverseBetween(list, m, n) {
+    var N = list.length; m = Math.max(1, Math.min(N, m | 0)); n = Math.max(m, Math.min(N, n | 0));
+    var nx = [], steps = []; // узлы 0 = dummy, 1..N = элементы
+    for (var i = 0; i <= N; i++) nx.push(i < N ? i + 1 : -1);
+    var prev = 0, curr = -1, next = -1, it = 0;
+    function lbl(k) { return k === 0 ? "dummy" : (k < 0 ? "nil" : String(list[k - 1])); }
+    function push(o) { steps.push({ nx: nx.slice(), prev: prev, curr: curr, next: next, line: o.line, cut: !!o.cut, vars: { prev: lbl(prev), curr: curr < 0 ? "—" : lbl(curr), next: next < 0 ? "—" : lbl(next), i: o.i == null ? "—" : o.i }, info: o.info, done: o.done, found: o.found, hot: !!o.hot }); }
+    push({ line: 1, info: "dummy → голова: у участка всегда есть «предыдущий» узел, даже при m = 1" });
+    for (var k = 0; k < m - 1; k++) { prev = nx[prev]; push({ line: 3, i: k, info: "prev = prev.Next → " + lbl(prev) }); }
+    curr = nx[prev];
+    push({ line: 4, info: "prev = " + lbl(prev) + " (перед участком), curr = " + lbl(curr) + " — первый узел участка [" + m + ", " + n + "]; оба больше не сдвинутся" });
+    for (it = 0; it < n - m; it++) {
+      next = nx[curr];
+      push({ line: 6, i: it, info: "итерация " + (it + 1) + ": next = curr.Next = " + lbl(next) + " — его вынем" });
+      nx[curr] = nx[next];
+      push({ line: 7, i: it, cut: true, info: "curr.Next = next.Next → " + lbl(curr) + " теперь смотрит на " + lbl(nx[curr]) + "; " + lbl(next) + " вынут из списка" });
+      nx[next] = nx[prev];
+      push({ line: 8, i: it, cut: true, info: "next.Next = prev.Next → " + lbl(next) + " смотрит на " + lbl(nx[next]) + " — текущее начало участка" });
+      nx[prev] = next;
+      push({ line: 9, i: it, hot: true, info: "prev.Next = next → " + lbl(next) + " встал в начало участка" });
+    }
+    next = -1;
+    var chain = [], at = nx[0]; while (at > 0) { chain.push(lbl(at)); at = nx[at]; }
+    push({ line: 11, done: true, found: true, info: "return dummy.Next: " + chain.join("→") + ". curr = " + lbl(curr) + " всё время стоял на месте и въехал в хвост участка; " + (n - m) + " вставок, ни одной аллокации" });
+    return { list: list, steps: steps };
+  }
+  function listRevBetweenViz(panel, ctx) {
+    var row = mkEl("div", "algo-tp__ll algo-tp__llrev"), labs = mkEl("div", "algo-tp__ll algo-tp__llrev algo-tp__llrevlab"), aside = mkEl("div", "algo-tp__ll algo-tp__llrev");
+    panel.appendChild(row); panel.appendChild(labs); panel.appendChild(aside);
+    function lbl(k) { return k === 0 ? "dummy" : String(ctx.list[k - 1]); }
+    return function (s) {
+      row.innerHTML = ""; labs.innerHTML = ""; aside.innerHTML = "";
+      function names(k) { var a = []; if (k === s.prev) a.push("prev"); if (k === s.curr) a.push("curr"); if (k === s.next && s.next > 0) a.push("next"); return a.join(" · "); }
+      var at = 0, seen = {}, onChain = {};
+      while (at >= 0 && !seen[at]) {
+        seen[at] = true; onChain[at] = true;
+        var cls = "algo-tp__llnode" + (at === 0 ? " algo-tp__llnode--dummy" : "") + (at === s.curr ? " algo-tp__llnode--cur" : (at === s.prev && at !== 0 ? " algo-tp__llnode--found" : "")) + (at === s.next && s.next > 0 ? " algo-tp__llnode--next" : "");
+        row.appendChild(mkEl("span", cls, lbl(at))); labs.appendChild(mkEl("span", cls + " algo-tp__llrevghost", names(at)));
+        at = s.nx[at];
+        row.appendChild(mkEl("span", "algo-tp__llarrow", "→")); labs.appendChild(mkEl("span", "algo-tp__llarrow", ""));
+      }
+      row.appendChild(mkEl("span", "algo-tp__llnil", "nil"));
+      // вынутый узел (шаги 2–3): его нет на пути от dummy — показываем отдельно, со своей ссылкой
+      if (s.next > 0 && !onChain[s.next]) {
+        aside.appendChild(mkEl("span", "algo-tp__llnil", "вынут:"));
+        aside.appendChild(mkEl("span", "algo-tp__llnode algo-tp__llnode--next", lbl(s.next)));
+        aside.appendChild(mkEl("span", "algo-tp__llarrow", "→"));
+        aside.appendChild(mkEl("span", "algo-tp__llnil", s.nx[s.next] > 0 ? lbl(s.nx[s.next]) : "nil"));
+      }
+    };
+  }
+  // Вид справа: BFS по уровням со снимком levelSize; в ответ идёт последний снятый с
+  // уровня узел. Раньше в этом разделе стоял плоский BFS — без уровней, i и res.
+  function bTreeRightView(arr) {
+    var has = function (i) { return i < arr.length && arr[i] != null; };
+    var present = []; for (var i = 0; i < arr.length; i++) if (arr[i] != null) present.push(i);
+    var steps = [], res = [], resIdx = [], level = -1, queue = has(0) ? [0] : [];
+    function push(o) { steps.push({ cur: o.cur == null ? -1 : o.cur, queue: queue.map(function (k) { return arr[k]; }), qIdx: queue.slice(), resIdx: resIdx.slice(), levelIdx: o.levelIdx || [], line: o.line, vars: { level: level < 0 ? "—" : level, levelSize: o.ls == null ? "—" : o.ls, i: o.i == null ? "—" : o.i, node: o.cur == null || o.cur < 0 ? "—" : arr[o.cur], res: "[" + res.join(", ") + "]" }, info: o.info, done: o.done, found: o.found, hot: !!o.hot }); }
+    push({ line: 2, info: "queue := [корень]" + (has(0) ? " = [" + arr[0] + "]" : " — дерево пустое") });
+    while (queue.length) {
+      level++;
+      var ls = queue.length, lvl = queue.slice();
+      push({ line: 4, ls: ls, levelIdx: lvl, info: "уровень " + level + ": levelSize = len(queue) = " + ls + " — снимок: узлы, что сейчас в очереди, и есть уровень; их дети уйдут в хвост и в этот проход не попадут" });
+      for (var k = 0; k < ls; k++) {
+        var node = queue.shift();
+        push({ line: 6, cur: node, ls: ls, i: k, levelIdx: lvl, info: "i = " + k + ": снимаем " + arr[node] });
+        if (k === ls - 1) { res.push(arr[node]); resIdx.push(node); push({ line: 8, cur: node, ls: ls, i: k, levelIdx: lvl, hot: true, info: "i == levelSize−1 → " + arr[node] + " последний на уровне " + level + " — его и видно справа: res = [" + res.join(", ") + "]" }); }
+        var kids = [];
+        if (has(2 * node + 1)) { queue.push(2 * node + 1); kids.push(arr[2 * node + 1]); }
+        if (has(2 * node + 2)) { queue.push(2 * node + 2); kids.push(arr[2 * node + 2]); }
+        if (kids.length) push({ line: 10, cur: node, ls: ls, i: k, levelIdx: lvl, info: "дети " + arr[node] + " → в хвост: " + kids.join(", ") });
+      }
+    }
+    push({ line: 14, done: true, found: true, info: "очередь пуста — ответ [" + res.join(", ") + "]: по одному узлу с каждого уровня, самый правый" });
+    return { arr: arr, present: present, steps: steps };
+  }
+  function rightViewViz(panel, ctx) {
+    var fig = binaryFigure(ctx.arr, ctx.present, false);
+    panel.appendChild(fig.el);
+    return function (s) {
+      ctx.present.forEach(function (i) {
+        var el = fig.byIdx[i], inRes = s.resIdx.indexOf(i) >= 0, inLvl = s.levelIdx.indexOf(i) >= 0;
+        el.classList.toggle("algo-tp__tnode--current", i === s.cur);
+        el.classList.toggle("algo-tp__tnode--found", inRes && i !== s.cur);
+        el.classList.toggle("algo-tp__tnode--path", inLvl && !inRes && i !== s.cur);
+      });
+    };
+  }
   // lowerBound в конвенции [lo, hi): hi может указывать ЗА массив (индекс n) — поэтому в
   // ряду есть лишняя клетка-«конец». Раньше под листингом lowerBound главы стоял виджет
   // другой конвенции (left <= right, res, mid±1), и трассировки расходились.
@@ -8612,6 +8756,53 @@
       customViz: intervalBarsViz
     },
 
+    "list-reverse-between": {
+      badge: "In-place Reversal · участок", desc: "Разворот участка [m, n]: prev (перед участком) и curr (его первый узел) стоят на месте, а узел за curr вынимается и вставляется в начало участка — четыре присваивания на итерацию, n − m итераций.",
+      valuesLabel: "", codeKey: "list-reverse-between", fillRange: false,
+      complexity: { time: "O(n)", space: "O(1)", good: "★ Разворот части списка без аллокаций" },
+      varOrder: ["prev", "curr", "next", "i"],
+      varDesc: { prev: "Узел перед участком (не двигается)", curr: "Первый узел участка (въедет в хвост)", next: "Вынимаемый узел", i: "Итерация" },
+      lineNotes: { 1: "Фиктивная голова снимает спецслучай m = 1", 3: "Доходим до узла перед участком", 4: "curr — первый узел участка", 6: "1. Запоминаем вынимаемый узел", 7: "2. Вырезаем его: curr перешагивает через next", 8: "3. next указывает на текущее начало участка", 9: "4. next — новое начало участка", 11: "Голова списка — за dummy" },
+      rules: [{ head: "prev, curr", body: "стоят на месте весь цикл", cls: "lt" }, { head: "next", body: "вынуть → вставить в начало участка", cls: "eq" }, { head: "n − m итераций", body: "O(n) времени, O(1) памяти", cls: "gt" }],
+      parse: function (root) { var list = nums(root.getAttribute("data-list")); var m = parseInt(root.getAttribute("data-m"), 10), n = parseInt(root.getAttribute("data-n"), 10); return bListReverseBetween(list, isNaN(m) ? 2 : m, isNaN(n) ? 4 : n); },
+      inputs: [{ attr: "data-list", label: "Список" }, { attr: "data-m", label: "m", sm: true }, { attr: "data-n", label: "n", sm: true }],
+      values: function () { return []; },
+      title: function (ctx) { return "Разворот участка: reverseBetween"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Итерация", "next (вынимаем)"],
+      sumValues: function (s) { return [{ text: s.vars.i }, { text: s.vars.next, cls: s.cut ? "gt" : "" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Участок развёрнут", text: s.info }; return { kind: "info", hot: s.hot, icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "prev " + s.vars.prev, b: "curr " + s.vars.curr, c: "next " + s.vars.next, cls: "eq" }; },
+      varsOf: function (s) { return { prev: s.vars.prev, curr: s.vars.curr, next: s.vars.next, i: s.vars.i }; },
+      customViz: listRevBetweenViz
+    },
+
+    "tree-right-view": {
+      badge: "Tree BFS · по уровням", desc: "Вид справа: BFS по уровням со снимком levelSize = len(queue); последний снятый с уровня узел — самый правый, он и идёт в ответ.",
+      valuesLabel: "", codeKey: "tree-right-view", fillRange: false,
+      complexity: { time: "O(n)", space: "O(w)", good: "★ Ответ «по уровням»: вид справа/слева, среднее, зигзаг" },
+      varOrder: ["level", "levelSize", "i", "node", "res"],
+      varDesc: { level: "Номер уровня", levelSize: "Снимок размера уровня", i: "Номер узла внутри уровня", node: "Снятый узел", res: "Ответ" },
+      lineNotes: { 2: "Очередь — корень", 4: "Снимок: сколько узлов в текущем уровне", 6: "Снимаем узел из начала", 7: "Последний на уровне?", 8: "Да — он виден справа", 10: "Дети — в хвост (это уже следующий уровень)", 14: "Ответ собран" },
+      rules: [{ head: "levelSize = len(queue)", body: "снимок отделяет уровень от детей", cls: "lt" }, { head: "i == levelSize−1", body: "→ виден справа", cls: "eq" }, { head: "дети в хвост", body: "дождутся своего уровня", cls: "gt" }],
+      parse: function (root) { return bTreeRightView(parseTree(root.getAttribute("data-tree"))); },
+      inputs: [{ attr: "data-tree", label: "Дерево по уровням, как в LeetCode (null — нет узла)" }],
+      values: function () { return []; },
+      title: function () { return "Вид справа: BFS по уровням"; },
+      legend: [{ cls: "tcur", label: "снимаем сейчас" }, { cls: "lvl", label: "текущий уровень" }, { cls: "tvis", label: "в ответе (виден справа)" }],
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Уровень · levelSize", "res"],
+      sumValues: function (s) { return [{ text: s.vars.level + " · " + s.vars.levelSize }, { text: s.vars.res, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Вид справа: " + s.vars.res, text: s.info }; return { kind: "info", hot: s.hot, icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "уровень " + s.vars.level, b: "i = " + s.vars.i, c: s.vars.res, cls: "eq" }; },
+      varsOf: function (s) { return { level: s.vars.level, levelSize: s.vars.levelSize, i: s.vars.i, node: s.vars.node, res: s.vars.res }; },
+      mapViz: function (panel) {
+        var p = structPanel(panel, "queue — очередь BFS (слева — начало)");
+        return function (s) { p.grid.innerHTML = ""; if (!s.queue.length) p.grid.appendChild(structCell("", "∅", "algo-tp__mapcell--off")); s.queue.forEach(function (v, k) { p.grid.appendChild(structCell(k === 0 ? "front" : "", String(v), "algo-tp__mapcell--on")); }); p.foot.textContent = "в очереди: " + s.queue.length; };
+      },
+      customViz: rightViewViz
+    },
+
     "lower-bound": {
       badge: "Binary Search · [lo, hi)", desc: "Поиск границы: наименьший индекс, где nums[i] ≥ target. Полуинтервал [lo, hi), цикл lo < hi, hi = mid (без −1) — mid остаётся кандидатом; ответ может быть len(nums).",
       valuesLabel: "", codeKey: "lower-bound", fillRange: true,
@@ -8666,7 +8857,7 @@
       varDesc: { "узел": "Узел, для которого считаем путь через него", "через узел": "height(left) + height(right)", "диаметр": "Лучший диаметр пока" },
       lineNotes: { 11: "through = height(left) + height(right) — заново обходим оба поддерева", 14: "Возвращаем максимум: через узел или целиком в поддереве" },
       rules: [{ head: "height(node)", body: "обходит ВСЁ поддерево", cls: "gt" }, { head: "для каждого узла", body: "заново → O(n²)", cls: "lt" }, { head: "через узел", body: "= left + right", cls: "eq" }],
-      parse: function (root) { var arr = (root.getAttribute("data-tree") || "").split(",").map(function (x) { x = x.trim(); return x === "null" || x === "" ? null : Number(x); }); var r = bDiameterNaive(arr); return { arr: arr, present: r.present, steps: r.steps }; },
+      parse: function (root) { var arr = parseTree(root.getAttribute("data-tree")); var r = bDiameterNaive(arr); return { arr: arr, present: r.present, steps: r.steps }; },
       inputs: [{ attr: "data-tree", label: "Дерево (level-order, null)" }],
       values: function () { return []; },
       title: function () { return "Диаметр дерева — наивно O(n²)"; },
@@ -10645,7 +10836,7 @@
       lineNotes: { 2: "Очередь стартует с корня", 3: "order — порядок обхода (накапливаем)", 4: "Пока очередь не пуста — продолжаем", 5: "Берём узел из начала очереди (FIFO)", 6: "Удаляем его из очереди", 7: "Добавляем его значение в порядок обхода", 8: "Левого ребёнка — в конец очереди", 9: "Правого ребёнка — в конец очереди", 11: "Очередь пуста — обход по уровням завершён" },
       rules: [{ head: "Извлекаем из начала", body: "queue[0] (FIFO)", cls: "lt" }, { head: "Детей — в конец", body: "сначала left, потом right", cls: "gt" }, { head: "Уровень за уровнем", body: "ближние раньше дальних", cls: "eq" }],
       parse: function (root) { return bTree(parseTree(root.getAttribute("data-tree")), "bfs"); },
-      inputs: [{ attr: "data-tree", label: "Дерево: уровни, null=пусто" }],
+      inputs: [{ attr: "data-tree", label: "Дерево по уровням, как в LeetCode (null — нет узла)" }],
       values: function (ctx) { return ctx.present.map(function (i) { return ctx.arr[i]; }); },
       title: function () { return "Обход дерева в ширину (BFS)"; },
       pointers: function (s) { return { lo: s.cur, hi: -1 }; },
@@ -10679,7 +10870,7 @@
       lineNotes: { 1: "Базовый случай: пустой узел → return", 2: "Preorder: записываем узел ДО спуска к потомкам", 3: "Рекурсивно обходим левое поддерево", 4: "Затем правое поддерево", 5: "Возврат из всех вызовов = обход завершён" },
       rules: [{ head: "Посетить корень", body: "записать node.Val", cls: "eq" }, { head: "Затем левое", body: "dfs(node.Left)", cls: "lt" }, { head: "Затем правое", body: "dfs(node.Right)", cls: "gt" }],
       parse: function (root) { return bTree(parseTree(root.getAttribute("data-tree")), "dfs"); },
-      inputs: [{ attr: "data-tree", label: "Дерево: уровни, null=пусто" }],
+      inputs: [{ attr: "data-tree", label: "Дерево по уровням, как в LeetCode (null — нет узла)" }],
       values: function (ctx) { return ctx.order.map(function (i) { return ctx.arr[i]; }); },
       title: function () { return "Обход дерева в глубину (preorder)"; },
       pointers: function (s) { return { lo: s.cur, hi: -1 }; },
@@ -10983,6 +11174,20 @@
       status: function (s, idx, total, ctx) { if (s.found) return { kind: "ok", icon: "✓", head: "Корень найден: «" + ctx.query.slice(0, (typeof s.vars.i === "number" ? s.vars.i : 0) + 1) + "»", text: s.info }; if (s.done) return { kind: "end", icon: idx + 1, head: "Корня нет — слово без изменений", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.found) return { a: "корень найден", b: "node.isEnd", c: "✓", cls: "eq" }; if (s.done) return { a: "корня нет", b: "слово как есть", c: "—", cls: "gt" }; return { a: "символ '" + s.vars.char + "'", b: "узел «" + s.vars.node + "»", c: "↓", cls: "lt" }; },
       varsOf: function (s) { return { "i": s.vars.i, "char": s.vars.char, "node": s.vars.node, "isEnd": s.vars.isEnd }; },
+      // Лента символов слова: i, прочитанное и непрочитанный хвост. Суть задачи —
+      // «до конца слова идти не пришлось», а хвост (tle у cattle) раньше был только в тексте.
+      mapViz: function (panel, ctx) {
+        var q = ctx.query, p = structPanel(panel, "word = «" + q + "» — читаем по символу");
+        var cells = q.split("").map(function (ch, k) { var c = structCell("[" + k + "]", ch, "algo-tp__mapcell--on"); p.grid.appendChild(c); return c; });
+        return function (s) {
+          var i = typeof s.vars.i === "number" ? s.vars.i : -1;
+          cells.forEach(function (c, k) {
+            var res = s.found && k <= i, tail = s.done && k > i;
+            c.className = "algo-tp__mapcell " + (res ? "algo-tp__mapcell--on algo-tp__mapcell--add" : tail ? "algo-tp__mapcell--off" : k === i ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : k < i ? "algo-tp__mapcell--on" : "algo-tp__mapcell--off");
+          });
+          p.foot.textContent = s.found ? "ответ word[:" + (i + 1) + "] = «" + q.slice(0, i + 1) + "»; хвост «" + q.slice(i + 1) + "» не читали" : (s.done ? "корня нет — слово остаётся целиком" : (i >= 0 ? "i = " + i : ""));
+        };
+      },
       customViz: trieViz
     },
 

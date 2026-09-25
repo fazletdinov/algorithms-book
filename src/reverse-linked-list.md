@@ -282,11 +282,10 @@ func reverseBetween(head *ListNode, m, n int) *ListNode {
 }
 ```
 
-Прогоните разворот указателей: на каждом шаге `next` запоминается, `curr.Next`
-разворачивается назад, а тройка `prev`/`curr`/`next` сдвигается вправо (для участка
-`[m, n]` — та же механика на отрезке):
+Прогоните `reverseBetween` на участке `[2, 4]`: `prev` и `curr` стоят на месте, а узел за
+`curr` вынимается (шаг 2 — он на миг выпадает из списка) и встаёт в начало участка:
 
-<div class="algo-viz" data-viz="list-reverse" data-list="1,2,3,4,5"></div>
+<div class="algo-viz" data-viz="list-reverse-between" data-list="1,2,3,4,5" data-m="2" data-n="4"></div>
 
 **Шаг 4. Трассировка** на `1→2→3→4→5`, `m = 2`, `n = 4` (после установки `prev` на узел
 `1` и `curr` на узел `2`; делается `n − m = 2` итерации):
