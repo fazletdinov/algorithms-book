@@ -3239,40 +3239,47 @@
       host.innerHTML = "";
       var tl = s.tl; if (!tl) return;
       var evs = tl.events, now = tl.now;
-      var COLW = 92, ROWH = 56, PADL = 104, PADT = 28, BOXW = 78;
+      // Время идёт сверху вниз, горутины — колонки. Горизонтальный таймлайн (10 моментов
+      // по 92px) ужимался в панель вдвое, и подписи событий выходили ~5px.
+      var COLW = 124, ROWH = 38, PADL = 30, PADT = 26, BOXW = 114, BOXH = 28;
       var ncol = 0, nlane = 0;
       evs.forEach(function (e) { if (e.t + 1 > ncol) ncol = e.t + 1; if (e.lane + 1 > nlane) nlane = e.lane + 1; });
       if (nlane < 1) nlane = 1;
-      var W = PADL + ncol * COLW + 16, H = PADT + nlane * ROWH + 24;
+      var W = PADL + nlane * COLW + 8, H = PADT + ncol * ROWH + 8;
       var svg = document.createElementNS(SVGNS, "svg");
       svg.setAttribute("viewBox", "0 0 " + W + " " + H);
-      svg.setAttribute("width", "100%"); svg.setAttribute("style", "max-width:" + W + "px");
+      svg.setAttribute("width", "100%"); svg.setAttribute("style", "max-width:" + W + "px; display:block; margin:0 auto");
       function el(tag, attrs) {
         var n = document.createElementNS(SVGNS, tag);
         for (var a in attrs) n.setAttribute(a, attrs[a]);
         return n;
       }
-      // окно гонки
+      // окно гонки — полоса поперёк всех горутин
       if (tl.race && now >= tl.race[0]) {
-        var rx = PADL + tl.race[0] * COLW - 14;
-        var rw = (Math.min(now, tl.race[1]) - tl.race[0]) * COLW + BOXW + 28;
-        svg.appendChild(el("rect", { x: rx, y: PADT - 12, width: Math.max(rw, BOXW + 28), height: nlane * ROWH + 4, rx: 8, fill: "rgba(220,40,40,0.10)", stroke: "#d33", "stroke-dasharray": "4 3" }));
+        var ry = PADT + tl.race[0] * ROWH - 3;
+        var rh = (Math.min(now, tl.race[1]) - tl.race[0] + 1) * ROWH + 6;
+        svg.appendChild(el("rect", { x: PADL - 4, y: ry, width: nlane * COLW + 8, height: rh, rx: 8, fill: "rgba(220,40,40,0.10)", stroke: "#d33", "stroke-dasharray": "4 3" }));
       }
-      // дорожки (G1..Gn)
+      // дорожки (G1..Gn) — вертикальные
       for (var li = 0; li < nlane; li++) {
-        var ly = PADT + li * ROWH + ROWH / 2;
-        svg.appendChild(el("line", { x1: PADL - 10, y1: ly, x2: W - 8, y2: ly, stroke: "#ccc", "stroke-width": 1 }));
-        var lbl = el("text", { x: 8, y: ly + 4, fill: "#666", "font-size": 12, "font-weight": 600 });
-        lbl.textContent = "горутина G" + (li + 1); svg.appendChild(lbl);
+        var lx = PADL + li * COLW + COLW / 2;
+        svg.appendChild(el("line", { x1: lx, y1: PADT - 4, x2: lx, y2: H - 4, stroke: "#8a93a6", "stroke-width": 1, opacity: 0.5 }));
+        var lbl = el("text", { x: lx, y: 16, "text-anchor": "middle", fill: "var(--fg, #c9d1d9)", "font-size": 13, "font-weight": 700 });
+        lbl.textContent = "G" + (li + 1); svg.appendChild(lbl);
+      }
+      // ось времени
+      for (var t = 0; t < ncol; t++) {
+        var tt = el("text", { x: 4, y: PADT + t * ROWH + ROWH / 2 + 4, fill: "var(--fg, #c9d1d9)", opacity: t <= now ? 0.75 : 0.3, "font-size": 11 });
+        tt.textContent = "t" + t; svg.appendChild(tt);
       }
       // события
       evs.forEach(function (e) {
         if (e.t > now) return;
-        var x = PADL + e.t * COLW, y = PADT + e.lane * ROWH + ROWH / 2;
+        var x = PADL + e.lane * COLW + (COLW - BOXW) / 2, y = PADT + e.t * ROWH + (ROWH - BOXH) / 2;
         var stroke = e.racy ? "#d33" : STROKE[e.kind];
         var sw = (e.t === now) ? 3 : (e.racy ? 2 : 1);
-        svg.appendChild(el("rect", { x: x, y: y - 15, width: BOXW, height: 30, rx: 6, fill: FILL[e.kind], stroke: stroke, "stroke-width": sw }));
-        var tx = el("text", { x: x + BOXW / 2, y: y + 4, "text-anchor": "middle", "font-size": 11, fill: "#222" });
+        svg.appendChild(el("rect", { x: x, y: y, width: BOXW, height: BOXH, rx: 6, fill: FILL[e.kind], stroke: stroke, "stroke-width": sw }));
+        var tx = el("text", { x: x + BOXW / 2, y: y + BOXH / 2 + 4, "text-anchor": "middle", "font-size": 12, fill: "#222" });
         tx.textContent = e.label; svg.appendChild(tx);
       });
       host.appendChild(svg);
@@ -4300,14 +4307,16 @@
   function bGraphBfs(labels, edges, start) {
     var n = labels.length, adj = labels.map(function () { return []; });
     edges.forEach(function (e) { adj[e[0]].push(e[1]); adj[e[1]].push(e[0]); });
-    var visited = new Array(n).fill(false), queue = [start], order = [], steps = [];
+    var visited = new Array(n).fill(false), queue = [start], order = [], steps = [], dist = new Array(n).fill(-1), curNb = -1;
     function qLabels() { return queue.length ? "[" + queue.map(function (x) { return labels[x]; }).join(", ") + "]" : "[]"; }
     function ordLabels() { return order.length ? order.map(function (x) { return labels[x]; }).join(" → ") : "—"; }
-    function push(line, cur, info) { steps.push({ current: cur, visited: visited.slice(), queue: queue.slice(), line: line, vars: { "узел": (cur < 0 ? "—" : labels[cur]), "очередь": qLabels(), "порядок": ordLabels(), "посещено": visited.filter(Boolean).length + "/" + n, "вОчереди": queue.length }, info: info }); }
+    // dist — номер «волны» (расстояние в рёбрах от старта): в коде его нет, но именно он
+    // объясняет порядок BFS; nb — проверяемый сосед (подсвечен вместе с ребром)
+    function push(line, cur, info) { steps.push({ current: cur, visited: visited.slice(), queue: queue.slice(), order: order.slice(), dist: dist.slice(), nb: curNb, line: line, vars: { "узел": (cur < 0 ? "—" : labels[cur]), "очередь": qLabels(), "порядок": ordLabels(), "посещено": visited.filter(Boolean).length + "/" + n, "вОчереди": queue.length }, info: info }); }
     push(1, -1, "visited := make([]bool) — все вершины пока не посещены");
     push(2, start, "queue := [" + labels[start] + "] — кладём стартовую вершину в очередь");
-    visited[start] = true;
-    push(3, start, "visited[" + labels[start] + "] = true — помечаем старт сразу");
+    visited[start] = true; dist[start] = 0;
+    push(3, start, "visited[" + labels[start] + "] = true — помечаем старт сразу (d = 0)");
     push(4, start, "order — список порядка обхода (пока пуст)");
     while (queue.length) {
       push(5, -1, "len(queue) = " + queue.length + " > 0 — да, продолжаем");
@@ -4318,15 +4327,17 @@
       order.push(node);
       push(8, node, "order = append(order, " + labels[node] + ") → " + ordLabels());
       adj[node].forEach(function (nb) {
+        curNb = nb;
         push(9, node, "перебираем соседей " + labels[node] + ": сосед " + labels[nb]);
         var unseen = !visited[nb];
-        push(10, node, "visited[" + labels[nb] + "] = " + (!unseen) + (unseen ? " → не посещён, добавим" : " → уже посещён, пропускаем"));
+        push(10, node, "visited[" + labels[nb] + "] = " + (!unseen) + (unseen ? " → не посещён, добавим" : " → уже открыт (d = " + dist[nb] + "), пропускаем: второй раз в очередь не попадёт"));
         if (unseen) {
-          visited[nb] = true;
-          push(11, node, "visited[" + labels[nb] + "] = true — помечаем соседа " + labels[nb]);
+          visited[nb] = true; dist[nb] = dist[node] + 1;
+          push(11, node, "visited[" + labels[nb] + "] = true — помечаем соседа " + labels[nb] + " сразу, при добавлении; d = " + dist[node] + " + 1 = " + dist[nb]);
           queue.push(nb);
-          push(12, node, "queue = append(queue, " + labels[nb] + ") → " + qLabels());
+          push(12, node, "queue = append(queue, " + labels[nb] + ") → " + qLabels() + " — встаёт за всеми вершинами волны " + dist[node]);
         }
+        curNb = -1;
       });
     }
     push(5, -1, "len(queue) = 0 — очередь пуста, цикл завершён");
@@ -4358,14 +4369,25 @@
       labels.forEach(function (lab, i) {
         var c = document.createElementNS(SVGNS, "circle"); c.setAttribute("cx", pos[i].x); c.setAttribute("cy", pos[i].y); c.setAttribute("r", 16); c.setAttribute("class", "algo-viz__gnode"); svg.appendChild(c); circles.push(c);
         var t = document.createElementNS(SVGNS, "text"); t.setAttribute("x", pos[i].x); t.setAttribute("y", pos[i].y + 4); t.setAttribute("text-anchor", "middle"); t.setAttribute("class", "algo-viz__gtext"); t.textContent = lab; svg.appendChild(t);
-        if (directed) { var bt = document.createElementNS(SVGNS, "text"); bt.setAttribute("x", pos[i].x + 20); bt.setAttribute("y", pos[i].y - 14); bt.setAttribute("text-anchor", "middle"); bt.setAttribute("class", "algo-viz__gbadge"); svg.appendChild(bt); badges.push(bt); }
+        var bt = document.createElementNS(SVGNS, "text"); bt.setAttribute("x", pos[i].x + 20); bt.setAttribute("y", pos[i].y - 14); bt.setAttribute("text-anchor", "middle"); bt.setAttribute("class", "algo-viz__gbadge"); svg.appendChild(bt); badges.push(bt);
       });
       panel.appendChild(svg);
       return function (s) {
+        // BFS по графу (есть s.order): «извлечена» и «в очереди» — разные состояния
+        var bfs = !directed && s.order && s.dist;
         circles.forEach(function (c, j) {
-          c.classList.toggle("algo-viz__gnode--visited", directed ? s.removed[j] : s.visited[j]);
+          c.classList.toggle("algo-viz__gnode--visited", directed ? s.removed[j] : (bfs ? s.order.indexOf(j) >= 0 : s.visited[j]));
           c.classList.toggle("algo-viz__gnode--current", j === (directed ? s.cur : s.current));
+          if (!directed) {
+            c.classList.toggle("algo-viz__gnode--ready", !!bfs && s.visited[j] && s.order.indexOf(j) < 0 && j !== s.current);
+            c.classList.toggle("algo-viz__gnode--nb", !!bfs && j === s.nb);
+            for (var ci = 0; ci < 4; ci++) c.classList.toggle("algo-viz__gnode--c" + ci, !!s.comp && s.comp[j] > 0 && (s.comp[j] - 1) % 4 === ci && j !== s.current);
+          }
         });
+        if (bfs) {
+          badges.forEach(function (b, j) { b.textContent = s.dist[j] >= 0 ? "d=" + s.dist[j] : ""; });
+          edgeEls.forEach(function (ln, k) { var e = edges[k]; ln.classList.toggle("algo-viz__gedge--cur", s.nb >= 0 && ((e[0] === s.current && e[1] === s.nb) || (e[1] === s.current && e[0] === s.nb))); });
+        }
         if (directed) {
           badges.forEach(function (b, j) { b.textContent = s.removed[j] ? "" : ("in:" + s.deg[j]); });
           // Кан: снятые рёбра гаснут, текущее ребро и сосед подсвечены, вершины в очереди — «готовы»
@@ -4600,17 +4622,18 @@
   function bNumProvinces(labels, edges) {
     var n = labels.length, adj = labels.map(function () { return []; });
     edges.forEach(function (e) { adj[e[0]].push(e[1]); adj[e[1]].push(e[0]); });
-    var visited = new Array(n).fill(false), count = 0, steps = [];
+    var visited = new Array(n).fill(false), count = 0, steps = [], comp = new Array(n).fill(0);
     function vv(v, c) { return { "вершина": (v < 0 ? "—" : labels[v]), "провинций": c, "посещено": visited.filter(Boolean).length + "/" + n }; }
-    function push(line, cur, c, info, done) { var s = { current: cur, visited: visited.slice(), line: line, vars: vv(cur, c), info: info }; if (done) { s.done = true; s.found = true; } steps.push(s); }
+    // comp — номер провинции у вершины: каждая компонента своим цветом (раньше все синие)
+    function push(line, cur, c, info, done) { var s = { current: cur, visited: visited.slice(), comp: comp.slice(), line: line, vars: vv(cur, c), info: info }; if (done) { s.done = true; s.found = true; } steps.push(s); }
     push(2, -1, 0, "visited := make([]bool, n) — все вершины не посещены");
     for (var i = 0; i < n; i++) {
       push(13, -1, count, "i = " + i + ": вершина " + labels[i] + " — посещена?");
       if (!visited[i]) {
         count++;
-        steps.push({ current: i, visited: visited.slice(), improved: true, line: 15, vars: vv(i, count), info: "вершина " + labels[i] + " не посещена → НОВАЯ провинция #" + count + ", запускаем DFS" });
+        steps.push({ current: i, visited: visited.slice(), comp: comp.slice(), improved: true, line: 15, vars: vv(i, count), info: "вершина " + labels[i] + " не посещена → НОВАЯ провинция #" + count + ", запускаем DFS" });
         (function dfs(v) {
-          visited[v] = true;
+          visited[v] = true; comp[v] = count;
           push(5, v, count, "visited[" + labels[v] + "] = true — вошли в DFS компоненты #" + count);
           adj[v].forEach(function (u) {
             push(7, v, count, "сосед " + labels[u] + ": ребро есть и " + (visited[u] ? "уже посещён — пропуск" : "не посещён → спускаемся"));
@@ -9387,7 +9410,7 @@
       inputs: [{ attr: "data-nodes", label: "Города" }, { attr: "data-edges", label: "Связи a-b" }],
       values: function (ctx) { return ctx.labels; },
       title: function () { return "Число провинций (DFS по компонентам)"; },
-      legend: [{ cls: "current", label: "текущая" }, { cls: "visited", label: "в компоненте" }, { cls: "idle", label: "не обработана" }],
+      legend: [{ cls: "current", label: "текущая" }, { cls: "visited", label: "в компоненте (свой цвет у каждой провинции)" }, { cls: "idle", label: "не обработана" }],
       pointers: function (s) { return { lo: s.current, hi: -1 }; },
       sumCells: ["Вершина", "Провинций"],
       sumValues: function (s) { return [{ text: s.vars["вершина"] }, { text: s.vars["провинций"], cls: "eq" }]; },
@@ -11537,7 +11560,7 @@
       inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b" }, { attr: "data-start", label: "старт", sm: true }],
       values: function (ctx) { return ctx.labels; },
       title: function () { return "Обход графа в ширину (BFS)"; },
-      legend: [{ cls: "current", label: "текущая" }, { cls: "visited", label: "посещена" }, { cls: "idle", label: "не обработана" }],
+      legend: [{ cls: "current", label: "извлекли (node)" }, { cls: "visited", label: "уже в order" }, { cls: "ready", label: "в очереди (visited уже true)" }, { cls: "idle", label: "не открыта" }],
       pointers: function (s) { return { lo: s.current, hi: -1 }; },
       sumCells: ["Извлекли", "Очередь", "Посещено · в очереди"],
       sumValues: function (s) { return [{ text: s.vars["узел"] }, { text: s.vars["очередь"], cls: "eq" }, { text: s.vars["посещено"] + " · " + s.vars["вОчереди"], cls: "gt" }]; },

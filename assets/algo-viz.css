@@ -1482,3 +1482,9 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--ready { background: color-mix(in srgb, #2e9b57 35%, transparent); border: 2px solid #2e9b57; }
 .algo-tp__legdot--goneln { background: transparent; border: 2px dashed #888; border-radius: 3px; }
 .algo-viz__gnode--nb { stroke: #e0a500; stroke-width: 3.5; stroke-dasharray: 4 3; }
+/* Провинции: у каждой компоненты свой цвет */
+.algo-viz__gnode--c0 { fill: #3b82f6; stroke: #3b82f6; }
+.algo-viz__gnode--c1 { fill: #16a34a; stroke: #16a34a; }
+.algo-viz__gnode--c2 { fill: #a855f7; stroke: #a855f7; }
+.algo-viz__gnode--c3 { fill: #db2777; stroke: #db2777; }
+.algo-viz__gnode--c0 + .algo-viz__gtext, .algo-viz__gnode--c1 + .algo-viz__gtext, .algo-viz__gnode--c2 + .algo-viz__gtext, .algo-viz__gnode--c3 + .algo-viz__gtext { fill: #fff; }
