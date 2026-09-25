@@ -360,7 +360,7 @@
 .algo-viz__gnode--scut { fill: color-mix(in srgb, var(--tp-lo) 55%, transparent); stroke: var(--tp-lo); }
 .algo-viz__gnode--source { fill: #2e9b57; stroke: #2e9b57; }
 .algo-viz__gnode--sink { fill: #d9534f; stroke: #d9534f; }
-.algo-viz__gnode--path { outline: 3px solid #e0a500; }
+.algo-viz__gnode--path { stroke: #e0a500; stroke-width: 3.5; } /* outline на SVG-круге рисовал квадрат по габариту */
 .algo-viz__gnode--source + .algo-viz__gtext,
 .algo-viz__gnode--sink + .algo-viz__gtext,
 .algo-viz__gnode--scut + .algo-viz__gtext { fill: #fff; }
@@ -1477,3 +1477,8 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__tfignode.algo-tp__tnode--wild { border: 2px dashed var(--tp-lo); }
 .algo-tp__mapcell--next { border-style: dashed; opacity: 0.85; }
 .algo-tp__mapcell--sep { border: none; background: transparent; color: var(--tp-warn); min-width: 0; padding: 0 2px; }
+/* Кан: вершина в очереди (in:0) — готова, но ещё не в порядке; снятое ребро */
+.algo-viz__gnode--ready { fill: color-mix(in srgb, #2e9b57 35%, transparent); stroke: #2e9b57; stroke-width: 3; }
+.algo-tp__legdot--ready { background: color-mix(in srgb, #2e9b57 35%, transparent); border: 2px solid #2e9b57; }
+.algo-tp__legdot--goneln { background: transparent; border: 2px dashed #888; border-radius: 3px; }
+.algo-viz__gnode--nb { stroke: #e0a500; stroke-width: 3.5; stroke-dasharray: 4 3; }

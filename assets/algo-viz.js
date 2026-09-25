@@ -4347,8 +4347,9 @@
         var mpath = document.createElementNS(SVGNS, "path"); mpath.setAttribute("d", "M0,0 L10,5 L0,10 z"); mpath.setAttribute("fill", "#888");
         marker.appendChild(mpath); defs.appendChild(marker); svg.appendChild(defs);
       }
+      var edgeEls = [];
       edges.forEach(function (e) {
-        var a = pos[e[0]], b = pos[e[1]], ln = document.createElementNS(SVGNS, "line");
+        var a = pos[e[0]], b = pos[e[1]], ln = document.createElementNS(SVGNS, "line"); edgeEls.push(ln);
         if (directed) { var dx = b.x - a.x, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / len, uy = dy / len; ln.setAttribute("x1", a.x + ux * 17); ln.setAttribute("y1", a.y + uy * 17); ln.setAttribute("x2", b.x - ux * 20); ln.setAttribute("y2", b.y - uy * 20); ln.setAttribute("marker-end", "url(#algoarrow)"); }
         else { ln.setAttribute("x1", a.x); ln.setAttribute("y1", a.y); ln.setAttribute("x2", b.x); ln.setAttribute("y2", b.y); }
         ln.setAttribute("class", "algo-viz__gedge"); svg.appendChild(ln);
@@ -4365,7 +4366,19 @@
           c.classList.toggle("algo-viz__gnode--visited", directed ? s.removed[j] : s.visited[j]);
           c.classList.toggle("algo-viz__gnode--current", j === (directed ? s.cur : s.current));
         });
-        if (directed) badges.forEach(function (b, j) { b.textContent = s.removed[j] ? "" : ("in:" + s.deg[j]); });
+        if (directed) {
+          badges.forEach(function (b, j) { b.textContent = s.removed[j] ? "" : ("in:" + s.deg[j]); });
+          // Кан: снятые рёбра гаснут, текущее ребро и сосед подсвечены, вершины в очереди — «готовы»
+          var q = s.queue || [], gone = s.gone || [];
+          circles.forEach(function (c, j) {
+            c.classList.toggle("algo-viz__gnode--ready", q.indexOf(j) >= 0 && !s.removed[j]);
+            c.classList.toggle("algo-viz__gnode--nb", j === s.nb);
+          });
+          edgeEls.forEach(function (ln, k) {
+            ln.classList.toggle("algo-viz__gedge--skip", gone.indexOf(k) >= 0 && k !== s.ce);
+            ln.classList.toggle("algo-viz__gedge--cur", k === s.ce);
+          });
+        }
       };
     };
   }
@@ -4876,10 +4889,11 @@
   function bTopoKahn(labels, edges) {
     var n = labels.length, adj = labels.map(function () { return []; }), indeg = new Array(n).fill(0);
     edges.forEach(function (e) { adj[e[0]].push(e[1]); indeg[e[1]]++; });
-    var deg = indeg.slice(), removed = new Array(n).fill(false), order = [], queue = [], steps = [];
+    var deg = indeg.slice(), removed = new Array(n).fill(false), order = [], queue = [], steps = [], gone = [], ce = -1, nb = -1;
+    function eIdx(a, b) { for (var q = 0; q < edges.length; q++) if (edges[q][0] === a && edges[q][1] === b && gone.indexOf(q) < 0) return q; return -1; }
     function qLabels() { return queue.length ? "[" + queue.map(function (x) { return labels[x]; }).join(", ") + "]" : "[]"; }
     function ordLabels() { return order.length ? order.map(function (x) { return labels[x]; }).join(" → ") : "—"; }
-    function push(line, cur, info) { steps.push({ removed: removed.slice(), deg: deg.slice(), queue: queue.slice(), cur: cur, line: line, vars: { "узел": (cur < 0 ? "—" : labels[cur]), "входящая 0": qLabels(), "порядок": ordLabels(), "снято": order.length + "/" + n, "вОчереди": queue.length }, info: info }); }
+    function push(line, cur, info) { steps.push({ removed: removed.slice(), deg: deg.slice(), queue: queue.slice(), gone: gone.slice(), ce: ce, nb: nb, cur: cur, line: line, vars: { "узел": (cur < 0 ? "—" : labels[cur]), "входящая 0": qLabels(), "порядок": ordLabels(), "снято": order.length + "/" + n, "вОчереди": queue.length }, info: info }); }
     push(1, -1, "indeg — входящие степени всех вершин посчитаны");
     for (var v0 = 0; v0 < n; v0++) if (deg[v0] === 0) queue.push(v0);
     push(2, -1, "queue := вершины с входящей степенью 0 → " + qLabels());
@@ -4893,12 +4907,14 @@
       order.push(u);
       push(6, u, "order = append(order, " + labels[u] + ") → " + ordLabels());
       adj[u].forEach(function (w) {
+        ce = eIdx(u, w); nb = w;
         push(7, u, "ребро " + labels[u] + " → " + labels[w] + ": сосед " + labels[w]);
-        deg[w]--;
-        push(8, u, "indeg[" + labels[w] + "]-- → " + deg[w] + " (убрали ребро от " + labels[u] + ")");
+        deg[w]--; if (ce >= 0) gone.push(ce);
+        push(8, u, "indeg[" + labels[w] + "]-- → " + deg[w] + ": ребро " + labels[u] + " → " + labels[w] + " снято (пунктир) — зависимость выполнена");
         var zero = deg[w] === 0;
-        if (zero) { queue.push(w); push(9, u, "indeg[" + labels[w] + "] == 0 → queue = append(queue, " + labels[w] + ") → " + qLabels()); }
-        else push(9, u, "indeg[" + labels[w] + "] = " + deg[w] + " ≠ 0 — пока не готова");
+        if (zero) { queue.push(w); push(9, u, "indeg[" + labels[w] + "] == 0 → все зависимости " + labels[w] + " сняты, в очередь → " + qLabels()); }
+        else push(9, u, "indeg[" + labels[w] + "] = " + deg[w] + " ≠ 0 — у " + labels[w] + " ещё есть невыполненные зависимости");
+        ce = -1; nb = -1;
       });
     }
     push(4, -1, "len(queue) = 0 — очередь пуста, цикл завершён");
@@ -11588,7 +11604,7 @@
       inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b (ориент.)" }],
       values: function (ctx) { return ctx.labels; },
       title: function () { return "Топологическая сортировка (Кан)"; },
-      legend: [{ cls: "current", label: "убираем сейчас" }, { cls: "visited", label: "уже в порядке" }, { cls: "idle", label: "ждёт (indegree>0)" }],
+      legend: [{ cls: "current", label: "убираем сейчас" }, { cls: "visited", label: "уже в порядке" }, { cls: "ready", label: "в очереди (in:0, готова)" }, { cls: "idle", label: "ждёт (in>0)" }, { cls: "goneln", label: "ребро снято" }],
       pointers: function (s) { return { lo: s.cur, hi: -1 }; },
       sumCells: ["Убрали", "Степень 0", "Снято · в очереди"],
       sumValues: function (s) { return [{ text: s.vars["узел"] }, { text: s.vars["входящая 0"], cls: "eq" }, { text: s.vars["снято"] + " · " + s.vars["вОчереди"], cls: "gt" }]; },
