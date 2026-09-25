@@ -1490,3 +1490,7 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-viz__gnode--c0 + .algo-viz__gtext, .algo-viz__gnode--c1 + .algo-viz__gtext, .algo-viz__gnode--c2 + .algo-viz__gtext, .algo-viz__gnode--c3 + .algo-viz__gtext { fill: #fff; }
 /* Отсечённые кандидаты (combination sum): сам кандидат и все правее */
 .algo-tp__ccell--cut { border: 2px dashed #ef4444; color: #ef4444; text-decoration: line-through; opacity: 0.75; }
+/* Список со ссылками: только что изменённая стрелка, вырезанный узел, отработавший dummy */
+.algo-tp__llarrow--hot { color: #e0a500 !important; font-weight: 900; transform: scale(1.35); }
+.algo-tp__llnode--cut { border: 2px dashed #ef4444 !important; color: #ef4444; text-decoration: line-through; }
+.algo-tp__llnode--gone { opacity: 0.35; }

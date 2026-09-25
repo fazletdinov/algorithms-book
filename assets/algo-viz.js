@@ -7471,24 +7471,36 @@
       wrap.appendChild(mkEl("div", "algo-tp__llnil", "nil"));
     };
   }
+  // Вставка и удаление на модели ссылок: узлы 0 = dummy, 1..n — список, n+1 — новый узел;
+  // nx[k] — куда смотрит Next узла k. Раньше список рисовался массивом: новый узел сразу
+  // стоял на месте, шаги «node.Next = prev.Next» и «prev.Next = node» выглядели одинаково,
+  // а вырезанный узел просто исчезал. Рисует llPtrViz.
   function bLLInsert(list, val, pos) {
-    var steps = [];
-    function seqOf(a, marks) { return a.map(function (v, i) { return { val: v, cls: (marks && marks[i]) || "" }; }); }
-    function push(o) { steps.push({ si: steps.length, line: o.line, seq: o.seq, vars: { node: (o.node || "—"), action: (o.action || "—") }, info: o.info, done: o.done, created: o.created }); }
-    var arr = list.slice(), p = Math.max(0, Math.min(pos, arr.length));
-    push({ line: 1, seq: seqOf(arr, {}), node: "dummy", action: "старт", info: "dummy → голова; вставляем " + val + " в позицию " + p });
-    push({ line: 2, seq: seqOf(arr, {}), node: "dummy", action: "prev=dummy", info: "prev = dummy" });
+    var n = list.length, labels = ["dummy"].concat(list.map(String)).concat([String(val)]), nw = n + 1;
+    var nx = [], steps = [], prev = -1, shown = {};
+    for (var k = 0; k <= n; k++) nx[k] = k < n ? k + 1 : -1;
+    nx[nw] = -1;
+    function push(o) { steps.push({ line: o.line, nx: nx.slice(), prev: prev, node: o.node == null ? -1 : o.node, hot: o.hot == null ? -1 : o.hot, aside: Object.keys(shown).map(Number).filter(function (q) { return shown[q]; }), note: o.note, vars: { node: o.nodeLbl || "—", action: o.action || "—" }, info: o.info, done: o.done, created: o.created }); }
+    var p = Math.max(0, Math.min(pos, n));
+    push({ line: 1, nodeLbl: "dummy", action: "старт", info: "dummy → голова: у вставки в начало теперь тоже есть «предыдущий» узел, спецслучая нет" });
+    prev = 0;
+    push({ line: 2, nodeLbl: "dummy", action: "prev=dummy", info: "prev = dummy" });
     for (var i = 0; i < p; i++) {
-      var m = {}; m[i] = "cur";
-      push({ line: 3, seq: seqOf(arr, m), node: String(arr[i]), action: "проверка", info: "i=" + i + " < " + p + " — идём к узлу перед позицией" });
-      push({ line: 4, seq: seqOf(arr, m), node: String(arr[i]), action: "prev=prev.Next", info: "prev = " + arr[i] });
+      push({ line: 3, nodeLbl: labels[prev], action: "проверка", info: "i = " + i + " < pos = " + p + " — ещё не дошли до узла перед позицией" });
+      prev = nx[prev];
+      push({ line: 4, nodeLbl: labels[prev], action: "prev=prev.Next", info: "prev = prev.Next → " + labels[prev] });
     }
-    var ins = arr.slice(0, p).concat([val]).concat(arr.slice(p)), mc = {}; mc[p] = "created";
-    push({ line: 6, seq: seqOf(ins, mc), node: String(val), action: "создаём", created: true, info: "node := &ListNode{Val: " + val + "} — создаём узел" });
-    push({ line: 7, seq: seqOf(ins, mc), node: String(val), action: "node.Next=prev.Next", info: "новый узел " + val + " указывает на остаток списка" });
-    push({ line: 8, seq: seqOf(ins, mc), node: String(val), action: "prev.Next=node", info: "предыдущий узел указывает на новый " + val });
-    push({ line: 9, seq: seqOf(ins, {}), action: "return", done: true, info: "готово: " + ins.join("→") });
-    return { steps: steps };
+    push({ line: 3, nodeLbl: labels[prev], action: "проверка", info: "i = " + p + " — prev стоит на узле перед позицией " + p + " (" + labels[prev] + ")" });
+    shown[nw] = true;
+    push({ line: 6, node: nw, nodeLbl: String(val), action: "создаём", created: true, info: "node := &ListNode{Val: " + val + "} — узел висит отдельно, его Next = nil, в список он ещё не входит" });
+    nx[nw] = nx[prev];
+    push({ line: 7, node: nw, hot: nw, nodeLbl: String(val), action: "node.Next=prev.Next", note: "Сначала новый → остаток: иначе ссылка на остаток потеряется", info: "node.Next = prev.Next → " + (nx[nw] > 0 ? labels[nx[nw]] : "nil") + ". Список ещё не изменился — но новый узел уже держит остаток. Порядок важен: если сначала перецепить prev, ссылка на " + (nx[nw] > 0 ? labels[nx[nw]] : "хвост") + " будет потеряна" });
+    nx[prev] = nw; shown[nw] = false;
+    push({ line: 8, node: nw, hot: prev, nodeLbl: String(val), action: "prev.Next=node", info: "prev.Next = node — стрелка из " + labels[prev] + " теперь смотрит на " + val + ": узел в списке" });
+    var chain = [], at = nx[0]; while (at > 0) { chain.push(labels[at]); at = nx[at]; }
+    prev = -1;
+    push({ line: 9, action: "return", done: true, info: "return dummy.Next → " + chain.join("→") + " (dummy был только опорой)" });
+    return { steps: steps, labels: labels };
   }
   function bLLSearch(list, target) {
     var steps = [];
@@ -7505,27 +7517,60 @@
     return { steps: steps };
   }
   function bLLDelete(list, target) {
-    var steps = [], arr = list.slice();
-    function seqOf(a, marks) { return a.map(function (v, i) { return { val: v, cls: (marks && marks[i]) || "" }; }); }
-    function push(o) { steps.push({ si: steps.length, line: o.line, seq: o.seq, vars: { node: (o.node || "—"), target: String(target) }, info: o.info, done: o.done, removed: o.removed }); }
-    push({ line: 1, seq: seqOf(arr, {}), node: "dummy", info: "dummy → голова" });
-    push({ line: 2, seq: seqOf(arr, {}), node: "dummy", info: "prev = dummy" });
-    for (var i = 0; i < arr.length; i++) {
-      var mc = {}; mc[i] = "cur";
-      push({ line: 3, seq: seqOf(arr, mc), node: String(arr[i]), info: "prev.Next = " + arr[i] + " ≠ nil — продолжаем" });
-      push({ line: 4, seq: seqOf(arr, mc), node: String(arr[i]), info: arr[i] === target ? arr[i] + " == " + target + " — это он" : arr[i] + " ≠ " + target + " — идём дальше" });
-      if (arr[i] === target) {
-        var mr = {}; mr[i] = "removed";
-        push({ line: 5, seq: seqOf(arr, mr), node: String(arr[i]), removed: true, info: "prev.Next = prev.Next.Next — вырезаем узел " + arr[i] });
-        var after = arr.slice(0, i).concat(arr.slice(i + 1));
-        push({ line: 6, seq: seqOf(after, {}), node: String(arr[i]), info: "break — узел вырезан" });
-        push({ line: 10, seq: seqOf(after, {}), done: true, info: "return — список: " + (after.length ? after.join("→") : "∅") });
-        return { steps: steps };
+    var n = list.length, labels = ["dummy"].concat(list.map(String)), nx = [], steps = [], prev = -1, cut = -1;
+    for (var k = 0; k <= n; k++) nx[k] = k < n ? k + 1 : -1;
+    function push(o) { steps.push({ line: o.line, nx: nx.slice(), prev: prev, node: o.node == null ? -1 : o.node, hot: o.hot == null ? -1 : o.hot, aside: cut >= 0 ? [cut] : [], cut: cut, vars: { node: o.nodeLbl || "—", target: String(target) }, info: o.info, done: o.done, removed: o.removed }); }
+    push({ line: 1, nodeLbl: "dummy", info: "dummy → голова: удаление головы — такой же случай, как любого другого узла" });
+    prev = 0;
+    push({ line: 2, nodeLbl: "dummy", info: "prev = dummy — смотрим всегда на prev.Next, чтобы было кого перецепить" });
+    while (nx[prev] > 0) {
+      var c = nx[prev];
+      push({ line: 3, node: c, nodeLbl: labels[c], info: "prev.Next = " + labels[c] + " ≠ nil — продолжаем" });
+      var hit = list[c - 1] === target;
+      push({ line: 4, node: c, nodeLbl: labels[c], info: hit ? "prev.Next.Val = " + labels[c] + " == " + target + " — это он; prev стоит перед ним" : labels[c] + " ≠ " + target + " — идём дальше" });
+      if (hit) {
+        nx[prev] = nx[c]; cut = c;
+        push({ line: 5, node: c, hot: prev, nodeLbl: labels[c], removed: true, info: "prev.Next = prev.Next.Next — стрелка из " + labels[prev] + " перепрыгнула " + labels[c] + " и смотрит на " + (nx[prev] > 0 ? labels[nx[prev]] : "nil") + ". Сам " + labels[c] + " ещё указывает дальше, но на него никто не ссылается — заберёт сборщик мусора" });
+        push({ line: 6, node: c, nodeLbl: labels[c], info: "break — узел обойдён" });
+        var chain = [], at = nx[0]; while (at > 0) { chain.push(labels[at]); at = nx[at]; }
+        prev = -1;
+        push({ line: 10, done: true, info: "return dummy.Next → " + (chain.length ? chain.join("→") : "∅") });
+        return { steps: steps, labels: labels };
       }
-      push({ line: 8, seq: seqOf(arr, mc), node: String(arr[i]), info: "prev = prev.Next" });
+      prev = c;
+      push({ line: 8, nodeLbl: labels[c], info: "prev = prev.Next → " + labels[c] });
     }
-    push({ line: 10, seq: seqOf(arr, {}), done: true, info: "return — " + target + " не найден, список без изменений" });
-    return { steps: steps };
+    push({ line: 3, info: "prev.Next = nil — список кончился" });
+    prev = -1;
+    push({ line: 10, done: true, info: "return — " + target + " не найден, список без изменений" });
+    return { steps: steps, labels: labels };
+  }
+  // Список со ссылками: цепочка от dummy по nx, под узлами — имена указателей; узлы вне
+  // цепочки (новый до вставки, вырезанный после) — отдельной строкой со своей ссылкой.
+  function llPtrViz(panel, ctx) {
+    var row = mkEl("div", "algo-tp__ll algo-tp__llrev"), labs = mkEl("div", "algo-tp__ll algo-tp__llrev algo-tp__llrevlab"), aside = mkEl("div", "algo-tp__ll algo-tp__llrev");
+    panel.appendChild(row); panel.appendChild(labs); panel.appendChild(aside);
+    var L = ctx.labels;
+    return function (s) {
+      row.innerHTML = ""; labs.innerHTML = ""; aside.innerHTML = "";
+      function names(k) { var a = []; if (k === s.prev) a.push("prev"); if (k === s.node && k !== s.prev) a.push(s.cut === k ? "вырезан" : s.created || s.line === 7 || s.line === 8 ? "node" : "prev.Next"); return a.join(" · "); }
+      function cls(k) { return "algo-tp__llnode" + (k === 0 ? " algo-tp__llnode--dummy" + (s.done ? " algo-tp__llnode--gone" : "") : "") + (k === s.node ? (s.cut === k ? " algo-tp__llnode--cut" : " algo-tp__llnode--cur") : k === s.prev && k !== 0 ? " algo-tp__llnode--found" : ""); }
+      var at = 0, seen = {};
+      while (at >= 0 && !seen[at]) {
+        seen[at] = true;
+        row.appendChild(mkEl("span", cls(at), L[at])); labs.appendChild(mkEl("span", cls(at) + " algo-tp__llrevghost", names(at)));
+        row.appendChild(mkEl("span", "algo-tp__llarrow" + (at === s.hot ? " algo-tp__llarrow--hot" : ""), "→")); labs.appendChild(mkEl("span", "algo-tp__llarrow", ""));
+        at = s.nx[at];
+      }
+      row.appendChild(mkEl("span", "algo-tp__llnil", "nil"));
+      (s.aside || []).forEach(function (k) {
+        if (seen[k]) return;
+        aside.appendChild(mkEl("span", "algo-tp__llnil", s.cut === k ? "вне списка:" : "новый:"));
+        aside.appendChild(mkEl("span", cls(k), L[k]));
+        aside.appendChild(mkEl("span", "algo-tp__llarrow" + (k === s.hot ? " algo-tp__llarrow--hot" : ""), "→"));
+        aside.appendChild(mkEl("span", "algo-tp__llnil", s.nx[k] > 0 ? L[s.nx[k]] : "nil"));
+      });
+    };
   }
   // ===== LRU-кэш: хеш-таблица + двусвязный список (комбинация паттернов) =======
   // Прогоняет последовательность put/get; каждый шаг несёт снимок списка
@@ -11165,7 +11210,7 @@
       varDesc: { "node": "Узел перед позицией / новый", "action": "Что делаем на шаге" },
       lineNotes: { 1: "Фиктивная голова (dummy) — чтобы вставка в начало не была спецслучаем", 2: "prev стартует с dummy", 3: "Идём до узла перед нужной позицией", 4: "Сдвигаем prev вперёд", 6: "Создаём новый узел", 7: "Новый узел указывает на остаток (сначала сохрани то, что перезапишешь)", 8: "Предыдущий узел указывает на новый — узел вставлен", 9: "Возвращаем голову (dummy.Next)" },
       rules: [{ head: "Дошли до позиции", body: "→ создаём узел", cls: "lt" }, { head: "node.Next = prev.Next", body: "новый → остаток", cls: "eq" }, { head: "prev.Next = node", body: "предыдущий → новый", cls: "gt" }],
-      parse: function (root) { var list = nums(root.getAttribute("data-list")); var val = parseInt(root.getAttribute("data-val"), 10); var pos = parseInt(root.getAttribute("data-pos") || "0", 10); var r = bLLInsert(list, val, pos); return { list: list, val: val, pos: pos, steps: r.steps }; },
+      parse: function (root) { var list = nums(root.getAttribute("data-list")); var val = parseInt(root.getAttribute("data-val"), 10); var pos = parseInt(root.getAttribute("data-pos") || "0", 10); var r = bLLInsert(list, val, pos); return { list: list, val: val, pos: pos, labels: r.labels, steps: r.steps }; },
       inputs: [{ attr: "data-list", label: "Список" }, { attr: "data-val", label: "значение" }, { attr: "data-pos", label: "позиция" }],
       values: function () { return []; },
       title: function (ctx) { return "Список: вставка " + ctx.val + " в позицию " + ctx.pos; },
@@ -11175,7 +11220,7 @@
       status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Узел " + ctx.val + " вставлен", text: s.info }; if (s.created) return { kind: "info", icon: idx + 1, head: "Узел создан", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: "", c: "✓", cls: "eq" }; if (s.created) return { a: "узел «" + s.vars.node + "»", b: "создан", c: "+", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: s.vars.action, c: "·", cls: "lt" }; },
       varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
-      customViz: llViz
+      customViz: llPtrViz
     },
 
     "ll-search": {
@@ -11207,7 +11252,7 @@
       varDesc: { "node": "Проверяемый узел (prev.Next)", "target": "Удаляемое значение" },
       lineNotes: { 1: "Фиктивная голова — чтобы удаление головы не было спецслучаем", 2: "prev стартует с dummy", 3: "Пока есть следующий узел", 4: "Это удаляемое значение?", 5: "Да — перецепляем prev.Next через узел (узел выпадает из цепочки)", 6: "Выходим из цикла", 8: "Нет — сдвигаем prev вперёд", 10: "Возвращаем голову (dummy.Next)" },
       rules: [{ head: "prev.Next.Val == target", body: "→ вырезаем", cls: "gt" }, { head: "prev.Next.Val ≠ target", body: "→ prev = prev.Next", cls: "lt" }, { head: "prev.Next = prev.Next.Next", body: "узел выпал", cls: "eq" }],
-      parse: function (root) { var list = nums(root.getAttribute("data-list")); var target = parseInt(root.getAttribute("data-target"), 10); var r = bLLDelete(list, target); return { list: list, target: target, steps: r.steps }; },
+      parse: function (root) { var list = nums(root.getAttribute("data-list")); var target = parseInt(root.getAttribute("data-target"), 10); var r = bLLDelete(list, target); return { list: list, target: target, labels: r.labels, steps: r.steps }; },
       inputs: [{ attr: "data-list", label: "Список" }, { attr: "data-target", label: "удаляем" }],
       values: function () { return []; },
       title: function (ctx) { return "Список: удаление " + ctx.target; },
@@ -11217,7 +11262,7 @@
       status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Удаление " + ctx.target + " завершено", text: s.info }; if (s.removed) return { kind: "info", icon: idx + 1, head: "Узел вырезан", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: "", c: "✓", cls: "eq" }; if (s.removed) return { a: "узел «" + s.vars.node + "»", b: "вырезан", c: "–", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: "vs " + s.vars.target, c: "↓", cls: "lt" }; },
       varsOf: function (s) { return { "node": s.vars.node, "target": s.vars.target }; },
-      customViz: llViz
+      customViz: llPtrViz
     },
 
     "lru": {
