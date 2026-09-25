@@ -374,7 +374,7 @@ func findAllKMP(text, pat string) []int {
 Прогоните KMP на `s = "aaaa"`, `p = "aa"`: при несовпадении указатель в образце прыгает
 по префикс-функции, а в тексте не откатывается назад:
 
-<div class="algo-viz" data-viz="kmp" data-text="aaaa" data-pattern="aa"></div>
+<div class="algo-viz" data-viz="kmp-all" data-text="aaaa" data-pattern="aa"></div>
 
 **Шаг 4. Трассировка** на `s = "aaaa"`, `p = "aa"`. Префикс-функция `lps = [0, 1]`:
 

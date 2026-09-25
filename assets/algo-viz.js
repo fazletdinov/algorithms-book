@@ -1628,6 +1628,46 @@
       "    return out",
       "}"
     ],
+    "diameter-dfs": [
+      "func diameterOfTree(root *TreeNode) int {",
+      "    best := 0",
+      "    var height func(*TreeNode) int",
+      "    height = func(node *TreeNode) int {",
+      "        if node == nil {",
+      "            return 0",
+      "        }",
+      "        l := height(node.Left)",
+      "        r := height(node.Right)",
+      "        if l+r > best { // путь через node",
+      "            best = l + r",
+      "        }",
+      "        return 1 + max(l, r) // высота наверх",
+      "    }",
+      "    height(root)",
+      "    return best",
+      "}"
+    ],
+    "kmp-all": [
+      "func findAllKMP(text, pat string) []int {",
+      "    var res []int",
+      "    lps := buildLPS(pat)",
+      "    i, j := 0, 0",
+      "    for i < len(text) {",
+      "        if text[i] == pat[j] {",
+      "            i++; j++",
+      "            if j == len(pat) {",
+      "                res = append(res, i-j) // вхождение",
+      "                j = lps[j-1] // откат для перекрытий",
+      "            }",
+      "        } else if j > 0 {",
+      "            j = lps[j-1] // сдвиг образца",
+      "        } else {",
+      "            i++",
+      "        }",
+      "    }",
+      "    return res",
+      "}"
+    ],
     "kmp": [
       "func kmpSearch(text, pat string) int {",
       "    lps := buildLPS(pat)",
@@ -4771,15 +4811,15 @@
   // Двоичное дерево из массива «по уровням» (дети i — 2i+1 и 2i+2): абсцисса — номер
   // узла при симметричном обходе, как у BST. Так единственный ребёнок видно левый он
   // или правый; раньше дерево рисовалось рядами без рёбер и без места под nil.
-  function binaryFigure(arr, present) {
+  function binaryFigure(arr, present, withSub) {
     var has = {}, rank = {}, r = 0;
     present.forEach(function (i) { has[i] = true; });
     (function ino(i) { if (!has[i]) return; ino(2 * i + 1); rank[i] = r++; ino(2 * i + 2); })(0);
     var order = present.slice(), pos = {};
     order.forEach(function (i, k) { pos[i] = k; });
-    var fig = treeFigure(order.map(function (i) { return { parent: i === 0 ? -1 : pos[Math.floor((i - 1) / 2)], x: rank[i], label: String(arr[i]) }; }), { cw: 48, ch: 58 });
-    var byIdx = {}; order.forEach(function (i, k) { byIdx[i] = fig.nodes[k]; });
-    return { el: fig.el, byIdx: byIdx };
+    var fig = treeFigure(order.map(function (i) { return { parent: i === 0 ? -1 : pos[Math.floor((i - 1) / 2)], x: rank[i], label: String(arr[i]), sub: withSub ? "" : null }; }), { cw: 48, ch: withSub ? 70 : 58 });
+    var byIdx = {}, subOf = {}, edgeOf = {}; order.forEach(function (i, k) { byIdx[i] = fig.nodes[k]; subOf[i] = fig.subs[k]; edgeOf[i] = fig.edges[k]; });
+    return { el: fig.el, byIdx: byIdx, subOf: subOf, edgeOf: edgeOf };
   }
   function trieViz(panel, ctx) {
     var nodes = ctx.nodes, path = ctx.path;
@@ -5093,31 +5133,44 @@
 
   // ===== KMP (поиск подстроки) ===============================================
   // KMP — построчный (debugger) проход; образец под текстом рисует kmpViz, lps — панель.
-  function bKMP(text, pat) {
+  function bKMP(text, pat, all) {
+    // all — findAllKMP: найдя вхождение, не выходим, а откатываем j = lps[m−1] и ищем
+    // дальше (перекрытия). Номера строк у двух листингов разные — берём из таблицы L.
+    // match ставится ТОЛЬКО на шаге сравнения: раньше пустое match на прочих строках
+    // красило текущую клетку образца красной, даже когда символы совпадали.
+    var L = all ? { lps: 2, init: 3, loop: 4, cmp: 5, inc: 6, hit: 8, back: 9, shift: 12, adv: 14, end: 17 }
+                : { lps: 1, init: 2, loop: 3, cmp: 4, inc: 5, hit: 6, shift: 8, adv: 10, end: 13 };
     var lps = new Array(pat.length).fill(0);
     (function () { var len = 0, i = 1; while (i < pat.length) { if (pat[i] === pat[len]) { len++; lps[i] = len; i++; } else if (len > 0) { len = lps[len - 1]; } else { lps[i] = 0; i++; } } })();
-    var steps = [], i = 0, j = 0;
-    function push(o) { steps.push({ i: i, j: j, shift: i - j, match: o.match, lps: lps.slice(), lpsActive: (o.lpsActive == null ? -1 : o.lpsActive), line: o.line, vars: { i: i, j: j, shift: i - j, compare: (o.cmp || "—") }, info: o.info, done: o.done, found: o.found }); }
-    push({ line: 1, info: "lps := buildLPS(pat) — префикс-функция: [" + lps.join(",") + "]" });
-    push({ line: 2, info: "i = 0, j = 0 — указатели в текст и в образец" });
+    var steps = [], i = 0, j = 0, res = [], cmps = 0;
+    function push(o) { steps.push({ i: i, j: j, shift: i - j, match: (o.match == null ? null : o.match), justMatched: !!o.justMatched, res: res.slice(), cmps: cmps, lps: lps.slice(), lpsActive: (o.lpsActive == null ? -1 : o.lpsActive), line: o.line, vars: { i: i, j: j, shift: i - j, compare: (o.cmp || "—"), res: "[" + res.join(",") + "]" }, info: o.info, done: o.done, found: o.found, hit: !!o.hit }); }
+    push({ line: L.lps, info: "lps := buildLPS(pat) — префикс-функция: [" + lps.join(",") + "]" });
+    push({ line: L.init, info: "i = 0, j = 0 — указатели в текст и в образец" });
     var guard = 0, lim = (text.length + pat.length) * 4 + 20;
-    while (i < text.length && guard++ < lim) {
-      push({ line: 3, info: "i = " + i + " < " + text.length + " — продолжаем" });
-      var match = text[i] === pat[j];
-      push({ line: 4, match: match, cmp: "'" + text[i] + "' vs '" + pat[j] + "'", info: "text[" + i + "]='" + text[i] + "' " + (match ? "==" : "≠") + " pat[" + j + "]='" + pat[j] + "'" });
+    while (i < text.length && pat.length && guard++ < lim) {
+      push({ line: L.loop, info: "i = " + i + " < " + text.length + " — продолжаем" });
+      var match = text[i] === pat[j]; cmps++;
+      push({ line: L.cmp, match: match, cmp: "'" + text[i] + "' vs '" + pat[j] + "'", info: "text[" + i + "]='" + text[i] + "' " + (match ? "==" : "≠") + " pat[" + j + "]='" + pat[j] + "' (сравнение №" + cmps + ")" });
       if (match) {
         i++; j++;
-        push({ line: 5, match: true, cmp: "совпало", info: "i++, j++ → i=" + i + ", j=" + j });
-        if (j === pat.length) { push({ line: 6, found: true, done: true, info: "j == len(pat) → образец найден на позиции " + (i - j) }); return steps; }
+        push({ line: L.inc, justMatched: true, cmp: "совпало", info: "i++, j++ → i=" + i + ", j=" + j });
+        if (j === pat.length) {
+          if (!all) { push({ line: L.hit, found: true, done: true, info: "j == len(pat) → образец найден на позиции " + (i - j) }); return steps; }
+          res.push(i - j);
+          push({ line: L.hit, hit: true, info: "j == len(pat) → вхождение на позиции " + (i - j) + ", res = [" + res.join(",") + "]" });
+          var oj = j; j = lps[j - 1];
+          push({ line: L.back, lpsActive: oj - 1, cmp: "откат", info: "j = lps[" + (oj - 1) + "] = " + j + " — откат для перекрытий: хвост вхождения становится началом следующего, i НЕ трогаем" });
+        }
       } else if (j > 0) {
         var oldj = j; j = lps[j - 1];
-        push({ line: 8, lpsActive: oldj - 1, cmp: "сдвиг", info: "j>0 → j = lps[" + (oldj - 1) + "] = " + j + " (сдвиг по префикс-функции, i НЕ откатываем)" });
+        push({ line: L.shift, lpsActive: oldj - 1, cmp: "сдвиг", info: "j>0 → j = lps[" + (oldj - 1) + "] = " + j + " (сдвиг по префикс-функции, i НЕ откатываем)" });
       } else {
         i++;
-        push({ line: 10, info: "j==0 → i++ = " + i + " (сравниваем заново со следующего символа)" });
+        push({ line: L.adv, info: "j==0 → i++ = " + i + " (сравниваем заново со следующего символа)" });
       }
     }
-    push({ line: 13, done: true, info: "i дошёл до конца текста — образец не найден (return -1)" });
+    if (all) push({ line: L.end, done: true, found: res.length > 0, info: "i дошёл до конца текста: res = [" + res.join(",") + "] — " + res.length + " вхождени" + (res.length === 1 ? "е" : (res.length >= 2 && res.length <= 4 ? "я" : "й")) + " за " + cmps + " " + (cmps % 10 === 1 && cmps % 100 !== 11 ? "сравнение" : (cmps % 10 >= 2 && cmps % 10 <= 4 && (cmps % 100 < 12 || cmps % 100 > 14)) ? "сравнения" : "сравнений") + " символов" });
+    else push({ line: L.end, done: true, info: "i дошёл до конца текста — образец не найден (return -1)" });
     return steps;
   }
   // Построение префикс-функции (lps) для KMP: два указателя по образцу.
@@ -5164,10 +5217,27 @@
     wrap.appendChild(trow); wrap.appendChild(prow);
     panel.appendChild(wrap);
     return function (s) {
-      tcells.forEach(function (c, k) { c.classList.toggle("algo-tp__kcell--active", k === s.i && !s.done); c.classList.toggle("algo-tp__kcell--found", !!s.found && k >= s.shift && k < s.shift + pat.length); });
+      // Цвет — только по факту: красный/зелёный на ШАГЕ сравнения; после i++, j++ зелёным
+      // горит только что совпавшая пара; уже совпавший префикс pat[0..j) подсвечен мягко
+      // (это и есть «что KMP помнит» при сдвиге).
+      var hits = s.res || [];
+      tcells.forEach(function (c, k) {
+        var inHit = hits.some(function (h) { return k >= h && k < h + pat.length; });
+        c.classList.toggle("algo-tp__kcell--active", k === s.i && !s.done && s.match != null);
+        c.classList.toggle("algo-tp__kcell--found", (!!s.found && !s.res.length && k >= s.shift && k < s.shift + pat.length) || inHit);
+        c.classList.toggle("algo-tp__kcell--match", s.justMatched && k === s.i - 1);
+      });
       prow.innerHTML = "";
       for (var p = 0; p < s.shift; p++) { var g = document.createElement("div"); g.className = "algo-tp__kcell algo-tp__kcell--ghost"; g.innerHTML = "&nbsp;"; prow.appendChild(g); }
-      for (var q = 0; q < pat.length; q++) { var pc = document.createElement("div"); pc.className = "algo-tp__kcell"; if (q === s.j && !s.done) pc.classList.add(s.match ? "algo-tp__kcell--match" : "algo-tp__kcell--mismatch"); if (s.found) pc.classList.add("algo-tp__kcell--found"); pc.textContent = pat[q]; prow.appendChild(pc); }
+      for (var q = 0; q < pat.length; q++) {
+        var pc = document.createElement("div"); pc.className = "algo-tp__kcell";
+        if (s.found && !(s.res && s.res.length)) pc.classList.add("algo-tp__kcell--found");
+        else if (s.match != null && q === s.j) pc.classList.add(s.match ? "algo-tp__kcell--match" : "algo-tp__kcell--mismatch");
+        else if (s.justMatched && q === s.j - 1) pc.classList.add("algo-tp__kcell--match");
+        else if (q < s.j && !s.done) pc.classList.add("algo-tp__kcell--pre");
+        else if (q === s.j && !s.done) pc.classList.add("algo-tp__kcell--active");
+        pc.textContent = pat[q]; prow.appendChild(pc);
+      }
     };
   }
 
@@ -7000,27 +7070,63 @@
   // Разворот списка: три указателя prev / curr / next (как индексы).
   // Разворот списка — построчный (debugger) проход тремя указателями prev/curr/next.
   function bListReverse(list) {
+    // links[i] — НАСТОЯЩИЙ curr.Next узла i на этом шаге (индекс или −1 = nil). Раньше
+    // карточка «curr.Next →» показывала prev, а не curr.Next: разворот ссылки
+    // «случался» на строке prev = curr, а 1 будто указывал сам на себя.
     var n = list.length, steps = [], prev = -1, curr = -1;
-    function vv(c, nx) { return { prev: prev < 0 ? "nil" : list[prev], curr: (c >= 0 && c < n) ? list[c] : "nil", next: (nx >= 0 && nx < n) ? list[nx] : "nil" }; }
-    function push(o) { var c = (o.curr == null ? curr : o.curr), nx = (o.next == null ? -1 : o.next); steps.push({ prev: prev, curr: c, next: nx, line: o.line, vars: vv(c, nx), info: o.info, done: o.done, found: o.found }); }
-    if (!n) return [{ prev: -1, curr: -1, next: -1, done: true, line: 9, vars: { prev: "nil", curr: "nil", next: "nil" }, info: "Пустой список" }];
+    var links = list.map(function (_, i) { return i + 1 < n ? i + 1 : -1; });
+    function lbl(i) { return i >= 0 && i < n ? list[i] : "nil"; }
+    function vv(c, nx) { return { prev: lbl(prev), curr: lbl(c), next: lbl(nx) }; }
+    function push(o) {
+      var c = (o.curr == null ? curr : o.curr), nx = (o.next == null ? -1 : o.next);
+      steps.push({ prev: prev, curr: c, next: nx, links: links.slice(), cn: c >= 0 ? lbl(links[c]) : "—", flip: !!o.flip, line: o.line, vars: vv(c, nx), info: o.info, done: o.done, found: o.found });
+    }
+    if (!n) return [{ prev: -1, curr: -1, next: -1, links: [], cn: "—", done: true, line: 9, vars: { prev: "nil", curr: "nil", next: "nil" }, info: "Пустой список" }];
     push({ line: 1, curr: -1, info: "prev = nil — развёрнутой части пока нет" });
     curr = 0;
     push({ line: 2, curr: 0, info: "curr = head = " + list[0] });
     var guard = 0;
     while (curr >= 0 && curr < n && guard++ < n + 2) {
       push({ line: 3, curr: curr, info: "curr = " + list[curr] + " ≠ nil — продолжаем" });
-      var nxt = (curr + 1 < n) ? curr + 1 : -1;
-      push({ line: 4, curr: curr, next: nxt, info: "next = curr.Next = " + (nxt < 0 ? "nil" : list[nxt]) + " — сохранили остаток" });
-      push({ line: 5, curr: curr, next: nxt, info: "curr.Next = prev → " + list[curr] + " теперь указывает на " + (prev < 0 ? "nil" : list[prev]) });
+      var nxt = links[curr];
+      push({ line: 4, curr: curr, next: nxt, info: "next = curr.Next = " + lbl(nxt) + " — сохранили остаток: следующей строкой ссылку на него потеряем" });
+      var was = links[curr];
+      links[curr] = prev;
+      push({ line: 5, curr: curr, next: nxt, flip: true, info: "curr.Next = prev: " + list[curr] + ".Next было " + lbl(was) + " → стало " + lbl(prev) + ". Связь с остатком разорвана — до " + lbl(nxt) + " теперь добраться можно только через next" });
       prev = curr;
       push({ line: 6, curr: curr, next: nxt, info: "prev = curr = " + list[curr] + " (развёрнутая часть выросла)" });
       curr = nxt;
-      push({ line: 7, curr: curr, next: -1, info: "curr = next = " + (curr < 0 ? "nil" : list[curr]) });
+      push({ line: 7, curr: curr, next: -1, info: "curr = next = " + lbl(curr) });
     }
     push({ line: 3, curr: -1, info: "curr = nil — список кончился, выходим" });
-    push({ line: 9, curr: -1, done: true, found: true, info: "return prev — новая голова: " + (prev >= 0 ? list[prev] : "nil") });
+    var chain = [], at = prev, g2 = 0; while (at >= 0 && g2++ <= n) { chain.push(list[at]); at = links[at]; }
+    push({ line: 9, curr: -1, done: true, found: true, info: "return prev — новая голова: " + lbl(prev) + ". Список теперь " + chain.join(" → ") + " → nil" });
     return steps;
+  }
+  // Список узлами со стрелками по НАСТОЯЩИМ ссылкам шага: развёрнутая часть смотрит
+  // влево, остаток — вправо, между ними на шаге curr.Next = prev связь разорвана.
+  function listRevViz(panel, ctx) {
+    var list = ctx.list, n = list.length;
+    var row = mkEl("div", "algo-tp__ll algo-tp__llrev"), labs = mkEl("div", "algo-tp__ll algo-tp__llrev algo-tp__llrevlab");
+    panel.appendChild(row); panel.appendChild(labs);
+    return function (s) {
+      row.innerHTML = ""; labs.innerHTML = "";
+      var L = s.links || [], reversedHead = n > 1 && L[0] === -1; // исходно у головы Next = второй узел
+      function cell(txt, cls, lab) { row.appendChild(mkEl("span", cls, txt)); labs.appendChild(mkEl("span", cls + " algo-tp__llrevghost", lab || "")); }
+      cell(reversedHead ? "nil ←" : "", "algo-tp__llnil");
+      for (var i = 0; i < n; i++) {
+        var cls = "algo-tp__llnode" + (i === s.curr ? " algo-tp__llnode--cur" : (s.prev >= 0 && i <= s.prev ? " algo-tp__llnode--found" : "")) + (i === s.next && s.next >= 0 ? " algo-tp__llnode--next" : "");
+        var names = [];
+        if (i === s.prev) names.push("prev"); if (i === s.curr) names.push("curr"); if (i === s.next && s.next >= 0) names.push("next");
+        if (s.done && i === s.prev) names = ["голова"];
+        cell(String(list[i]), cls, names.join(" · "));
+        if (i < n - 1) {
+          var fw = L[i] === i + 1, bw = L[i + 1] === i;
+          cell(fw ? "→" : (bw ? "←" : "✕"), "algo-tp__llarrow" + (!fw && !bw ? " algo-tp__llarrow--cut" : "") + (s.flip && i + 1 === s.curr ? " algo-tp__llarrow--hot" : ""));
+        }
+      }
+      cell(L[n - 1] === -1 && (n > 1 || s.prev < 0) ? "→ nil" : "", "algo-tp__llnil");
+    };
   }
 
   // ===== Связный список: CRUD (вставка / поиск / удаление) ===================
@@ -7170,6 +7276,51 @@
   // Обход дерева (BFS уровнями или DFS preorder). Возвращает ctx с present/order/steps.
   // Обход дерева — построчный (debugger) проход. BFS — с очередью, DFS — с рекурсивным
   // стеком вызовов (обе структуры показаны панелью). treeViz красит узлы (upto/nodeIdx).
+  // Диаметр одним DFS (post-order): высоты возвращаются снизу вверх, и в каждом узле,
+  // когда на руках l и r, путь через него = l + r. Раньше в главе на этом месте стояла
+  // копия прямого обхода — без высот, без l + r и без best, хотя решение идёт СНИЗУ.
+  function bDiameterDFS(arr) {
+    var has = function (i) { return i < arr.length && arr[i] != null; };
+    var present = []; for (var i = 0; i < arr.length; i++) if (arr[i] != null) present.push(i);
+    var h = {}, ready = {}, best = 0, bestAt = -1, steps = [];
+    function push(o) { steps.push({ cur: (o.cur == null ? -1 : o.cur), h: Object.assign({}, h), ready: Object.assign({}, ready), best: best, bestAt: bestAt, improved: !!o.improved, path: o.path || null, line: o.line, vars: { node: o.cur == null || o.cur < 0 ? "—" : arr[o.cur], l: (o.l == null ? "—" : o.l), r: (o.r == null ? "—" : o.r), best: best }, info: o.info, done2: !!o.fin, doneFlag: !!o.fin }); }
+    push({ line: 1, info: "best = 0 — самый длинный путь (в рёбрах), найденный пока" });
+    function height(i) {
+      push({ line: 7, cur: i, info: "вход в узел " + arr[i] + ": сначала высоты детей — ответ узла зависит от них (post-order)" });
+      var li = 2 * i + 1, ri = 2 * i + 2, l = 0, r = 0;
+      if (has(li)) { l = height(li); push({ line: 7, cur: i, l: l, info: "l = height(" + arr[li] + ") вернул " + l }); }
+      else push({ line: 7, cur: i, l: 0, info: "левого ребёнка нет → l = height(nil) = 0" });
+      if (has(ri)) { r = height(ri); push({ line: 8, cur: i, l: l, r: r, info: "r = height(" + arr[ri] + ") вернул " + r }); }
+      else push({ line: 8, cur: i, l: l, r: 0, info: "правого ребёнка нет → r = height(nil) = 0" });
+      if (l + r > best) { best = l + r; bestAt = i; push({ line: 10, cur: i, l: l, r: r, improved: true, info: "путь через " + arr[i] + " = l + r = " + l + " + " + r + " = " + (l + r) + " > прежнего best → best = " + best }); }
+      else push({ line: 9, cur: i, l: l, r: r, info: "путь через " + arr[i] + " = " + l + " + " + r + " = " + (l + r) + " ≤ best = " + best + " — не лучше" });
+      h[i] = 1 + Math.max(l, r); ready[i] = true;
+      push({ line: 12, cur: i, l: l, r: r, info: "return 1 + max(" + l + ", " + r + ") = " + h[i] + " — высота " + arr[i] + " уходит к родителю" });
+      return h[i];
+    }
+    if (has(0)) height(0);
+    // сам путь: от bestAt вниз по самой высокой ветке слева и справа
+    function down(i) { var out = []; while (has(i)) { out.push(i); var a = 2 * i + 1, b = 2 * i + 2; i = (h[a] || 0) >= (h[b] || 0) ? a : b; } return out; }
+    var path = bestAt >= 0 ? down(2 * bestAt + 1).reverse().concat([bestAt]).concat(down(2 * bestAt + 2)) : [];
+    push({ line: 15, path: path, fin: true, info: "return best = " + best + " — путь " + path.map(function (k) { return arr[k]; }).join("→") + ": каждый узел посещён ровно раз, O(n). Максимум защёлкнулся на узле " + (bestAt >= 0 ? arr[bestAt] : "—") });
+    steps.forEach(function (s) { s.done = s.doneFlag; });
+    return { arr: arr, present: present, steps: steps };
+  }
+  function diameterViz(panel, ctx) {
+    var fig = binaryFigure(ctx.arr, ctx.present, true);
+    panel.appendChild(fig.el);
+    return function (s) {
+      ctx.present.forEach(function (i) {
+        var el = fig.byIdx[i], onPath = !!s.path && s.path.indexOf(i) >= 0;
+        el.classList.toggle("algo-tp__tnode--current", i === s.cur);
+        el.classList.toggle("algo-tp__tnode--visited", !!s.ready[i] && i !== s.cur && !s.path); // на финале зелёный — только сам путь
+        el.classList.toggle("algo-tp__tnode--found", onPath);
+        el.classList.toggle("algo-tp__tnode--best", i === s.bestAt && !s.path);
+        if (fig.subOf[i]) fig.subOf[i].textContent = s.h[i] != null ? "h=" + s.h[i] : "";
+        if (fig.edgeOf[i]) fig.edgeOf[i].classList.toggle("algo-tp__bstedge--on", onPath && s.path.indexOf(Math.floor((i - 1) / 2)) >= 0);
+      });
+    };
+  }
   function bTree(arr, mode) {
     var present = [];
     for (var i = 0; i < arr.length; i++) if (arr[i] != null) present.push(i);
@@ -7654,7 +7805,7 @@
     function push(o) { steps.push({ lower: lower.slice(), upper: upper.slice(), line: o.line, vars: { num: o.num, loSize: lower.length, hiSize: upper.length, median: median(), "перенесено": reb }, info: o.info, done: o.done, found: o.found }); }
     stream.forEach(function (x) {
       var toLo = lower.length === 0 || x <= lower[lower.length - 1];
-      push({ line: 1, num: x, info: "Добавляем " + x + ": " + (lower.length === 0 ? "max-heap пуст" : x + " ≤ top(lo)=" + loTop()) + " → " + (toLo ? "в МЕНЬШУЮ половину" : "в БОЛЬШУЮ половину") });
+      push({ line: 1, num: x, info: "Добавляем " + x + ": " + (lower.length === 0 ? "max-heap пуст" : x + (toLo ? " ≤ " : " > ") + "top(lo)=" + loTop()) + " → " + (toLo ? "в МЕНЬШУЮ половину" : "в БОЛЬШУЮ половину") });
       if (toLo) { ins(lower, x); push({ line: 2, num: x, info: x + " → max-heap (меньшая половина), top = " + loTop() }); }
       else { ins(upper, x); push({ line: 4, num: x, info: x + " → min-heap (большая половина), top = " + upper[0] }); }
       var loBig = lower.length > upper.length + 1;
@@ -8200,12 +8351,16 @@
         wrap.appendChild(size);
         parent.appendChild(wrap);
         return function (s) {
+          // Ключ жив, пока он ЕСТЬ в map, а не пока счётчик > 0: в Go freq[x]-- до нуля
+          // оставляет ключ, len(freq) не меняется — ключ исчезает только на delete.
+          // Раньше панель гасила его уже на «--» и писала «окно валидно» при distinct = 3.
           var freq = s.freq || {}, live = 0;
           alphabet.forEach(function (ch) {
-            var has = freq[ch] > 0, c = cells[ch];
+            var has = Object.prototype.hasOwnProperty.call(freq, ch), zero = has && freq[ch] === 0, c = cells[ch];
             if (has) live++;
             c.cnt.textContent = has ? freq[ch] : "·";
-            c.col.className = "algo-tp__mapcell" + (has ? " algo-tp__mapcell--on" : " algo-tp__mapcell--off") + (s.touched === ch ? " algo-tp__mapcell--hot algo-tp__mapcell--" + (s.action || "add") : "");
+            c.col.title = zero ? "ключ ещё в map со значением 0 — len(freq) не изменился, нужен delete" : "";
+            c.col.className = "algo-tp__mapcell" + (has ? " algo-tp__mapcell--on" : " algo-tp__mapcell--off") + (zero ? " algo-tp__mapcell--zero" : "") + (s.touched === ch ? " algo-tp__mapcell--hot algo-tp__mapcell--" + (s.action || "add") : "");
           });
           var over = live > ctx.k;
           size.innerHTML = "";
@@ -8319,6 +8474,28 @@
       stepCard: function (s) { return { a: "(" + s.vars.i + "," + s.vars.j + ")", b: "res=" + s.vars["интервалов"], c: s.improved ? "слили" : "·", cls: s.improved ? "lt" : "" }; },
       varsOf: function (s) { return { i: s.vars.i, j: s.vars.j, "интервалов": s.vars["интервалов"], "проходов": s.vars["проходов"] }; },
       customViz: intervalBarsViz
+    },
+
+    "diameter-dfs": {
+      badge: "Tree DFS · post-order", desc: "Диаметр одним обходом: высота считается снизу вверх, и в каждом узле, когда высоты детей l и r уже известны, путь через него = l + r. Максимум копим сбоку, наверх отдаём высоту 1 + max(l, r).",
+      valuesLabel: "", codeKey: "diameter-dfs", fillRange: false,
+      complexity: { time: "O(n)", space: "O(h)", good: "★ Ответ узла = функция от ответов детей" },
+      varOrder: ["node", "l", "r", "best"],
+      varDesc: { node: "Текущий узел", l: "Высота левого поддерева", r: "Высота правого поддерева", best: "Лучший путь (рёбер) пока" },
+      lineNotes: { 1: "Лучший путь пока — 0 рёбер", 4: "Пустое поддерево — высота 0", 7: "Высота левого поддерева (рекурсия вниз)", 8: "Высота правого поддерева", 9: "Путь через node = l + r длиннее best?", 10: "Да — обновляем best", 12: "Отдаём наверх свою высоту 1 + max(l, r)", 15: "best — диаметр дерева" },
+      rules: [{ head: "дети готовы", body: "→ путь через узел = l + r", cls: "eq" }, { head: "l + r > best", body: "→ best = l + r", cls: "gt" }, { head: "наверх", body: "→ высота 1 + max(l, r)", cls: "lt" }],
+      parse: function (root) { return bDiameterDFS(parseTree(root.getAttribute("data-tree"))); },
+      inputs: [{ attr: "data-tree", label: "Дерево по уровням (null — нет узла)" }],
+      values: function () { return []; },
+      title: function () { return "Диаметр дерева: один DFS"; },
+      legend: [{ cls: "tcur", label: "текущий узел" }, { cls: "tvis", label: "высота посчитана (h=…)" }, { cls: "best", label: "здесь best" }],
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Путь через узел l + r", "best"],
+      sumValues: function (s) { var l = s.vars.l, r = s.vars.r; return [{ text: (typeof l === "number" && typeof r === "number") ? l + " + " + r + " = " + (l + r) : "—" }, { text: s.best, cls: s.improved ? "eq" : "" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Диаметр = " + s.best, text: s.info }; if (s.improved) return { kind: "info", hot: true, icon: "★", head: "Новый best = " + s.best, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "узел " + s.vars.node, b: "l=" + s.vars.l + ", r=" + s.vars.r, c: "best " + s.best, cls: s.improved ? "eq" : "lt" }; },
+      varsOf: function (s) { return { node: s.vars.node, l: s.vars.l, r: s.vars.r, best: s.best }; },
+      customViz: diameterViz
     },
 
     "diameter-naive": {
@@ -10065,7 +10242,8 @@
       cellState: function (s, j) { if (s.done) return { found: true }; return { found: s.prev >= 0 && j <= s.prev, lo: j === s.curr, mid: j === s.next && s.next >= 0 }; },
       pointers: function (s) { return { lo: s.curr, hi: s.prev }; },
       sumCells: ["curr.Next →", "next (сохранён)"],
-      sumValues: function (s) { return [{ text: (s.prev < 0 ? "nil" : s.vars.prev), cls: "eq" }, { text: s.vars.next }]; },
+      sumValues: function (s) { return [{ text: s.cn, cls: s.flip ? "eq" : "" }, { text: s.vars.next }]; },
+      customViz: listRevViz,
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Список развёрнут", text: "новая голова — " + s.vars.prev }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: "новая голова " + s.vars.prev, c: "развёрнут", cls: "eq" }; return { a: "curr = " + s.vars.curr, b: "curr.Next → " + (s.prev < 0 ? "nil" : s.vars.prev), c: "сдвиг →", cls: "lt" }; },
       varsOf: function (s) { return { prev: s.vars.prev, curr: s.vars.curr, next: s.vars.next }; }
@@ -10715,6 +10893,39 @@
       status: function (s, idx, total) { if (s.found) return { kind: "ok", icon: "✓", head: "Образец найден на позиции " + s.shift, text: s.info }; if (s.done) return { kind: "end", icon: idx + 1, head: "Образец не найден", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.found) return { a: "найдено", b: "позиция " + s.shift, c: "✓", cls: "eq" }; if (s.done) return { a: "не найдено", b: "конец текста", c: "−1", cls: "gt" }; return { a: "i=" + s.i + ", j=" + s.j, b: s.vars.compare, c: s.match ? "совпало" : "сдвиг", cls: s.match ? "eq" : "gt" }; },
       varsOf: function (s) { return { "i": s.vars.i, "j": s.vars.j, "shift": s.vars.shift, "compare": s.vars.compare }; },
+      // Панель префикс-функции lps[]: на сдвиге (строка 8) подсвечивается lps[j−1].
+      mapViz: function (panel, ctx) {
+        var pat = ctx.pattern;
+        var p = structPanel(panel, "lps — префикс-функция образца «" + pat + "»");
+        var cells = [];
+        for (var k = 0; k < pat.length; k++) { var c = structCell(pat[k] + " [" + k + "]", "0", "algo-tp__mapcell--on"); cells.push(c); p.grid.appendChild(c); }
+        return function (s) {
+          var lps = s.lps || [];
+          cells.forEach(function (col, k) { col.lastChild.textContent = (lps[k] == null ? 0 : lps[k]); col.className = "algo-tp__mapcell algo-tp__mapcell--on" + (k === s.lpsActive ? " algo-tp__mapcell--hot algo-tp__mapcell--dec" : ""); });
+          p.foot.textContent = "lps[k] = длина наибольшего префикса-суффикса pat[0..k]";
+        };
+      },
+      customViz: kmpViz
+    },
+
+    "kmp-all": {
+      badge: "String Matching", desc: "KMP, все вхождения: найдя совпадение, не выходим, а откатываем j = lps[m−1] — хвост вхождения становится началом следующего (перекрытия), i назад не идёт.",
+      valuesLabel: "", codeKey: "kmp-all", fillRange: false,
+      complexity: { time: "O(n+m)", space: "O(m)", good: "★ Поиск подстроки" },
+      varOrder: ["i", "j", "shift", "compare", "res"],
+      varDesc: { "i": "Указатель в тексте (не откатывается)", "j": "Указатель в образце", "shift": "Позиция образца под текстом (i−j)", "compare": "Сравниваемые символы", "res": "Найденные позиции" },
+      lineNotes: { 2: "lps — префикс-функция образца", 3: "i — в текст, j — в образец", 4: "Пока не дошли до конца текста", 5: "Сравниваем text[i] и pat[j]", 6: "Совпали — двигаем оба указателя", 7: "j дошёл до конца образца?", 8: "Да — записываем вхождение i−j", 9: "Откат j = lps[m−1]: хвост вхождения — начало следующего", 12: "Несовпадение: сдвиг образца по префикс-функции", 14: "Несовпадение при j=0 — двигаем только i", 17: "Конец текста — возвращаем все вхождения" },
+      rules: [{ head: "Совпали", body: "→ i++, j++", cls: "eq" }, { head: "j == m", body: "→ записать i−j, j = lps[m−1]", cls: "eq" }, { head: "Несовпадение", body: "→ j = lps[j−1] (j>0) или i++", cls: "gt" }],
+      parse: function (root) { var text = root.getAttribute("data-text") || ""; var pattern = root.getAttribute("data-pattern") || ""; return { text: text, pattern: pattern, steps: bKMP(text, pattern, true) }; },
+      inputs: [{ attr: "data-text", label: "Текст" }, { attr: "data-pattern", label: "Образец" }],
+      values: function () { return []; },
+      title: function (ctx) { return "KMP: все вхождения «" + ctx.pattern + "»"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Вхождения res", "Сравнений символов"],
+      sumValues: function (s) { return [{ text: s.vars.res, cls: "eq" }, { text: s.cmps }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: s.res.length ? "ok" : "end", icon: s.res.length ? "✓" : "∅", head: s.res.length ? "Все вхождения: [" + s.res.join(",") + "]" : "Вхождений нет", text: s.info }; if (s.hit) return { kind: "info", hot: true, icon: "✓", head: "Вхождение на позиции " + s.res[s.res.length - 1], text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.found) return { a: "найдено", b: "позиция " + s.shift, c: "✓", cls: "eq" }; if (s.done) return { a: "не найдено", b: "конец текста", c: "−1", cls: "gt" }; return { a: "i=" + s.i + ", j=" + s.j, b: s.vars.compare, c: s.match ? "совпало" : "сдвиг", cls: s.match ? "eq" : "gt" }; },
+      varsOf: function (s) { return { "i": s.vars.i, "j": s.vars.j, "shift": s.vars.shift, "compare": s.vars.compare, "res": s.vars.res }; },
       // Панель префикс-функции lps[]: на сдвиге (строка 8) подсвечивается lps[j−1].
       mapViz: function (panel, ctx) {
         var pat = ctx.pattern;

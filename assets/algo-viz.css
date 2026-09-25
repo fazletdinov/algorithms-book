@@ -1425,3 +1425,19 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__tnode--sib { outline: 2px dashed var(--tp-border); outline-offset: 2px; }
 .algo-tp__tnode--untouched { opacity: 0.5; }
 .algo-tp__tfignode.algo-tp__tnode--skip { opacity: 0.3; text-decoration: line-through; }
+/* ключ со счётчиком 0, ещё не удалённый delete: len(freq) его по-прежнему считает */
+.algo-tp__mapcell--zero { border-style: dashed; border-color: var(--tp-warn); }
+.algo-tp__mapcell--zero .algo-tp__mapcnt { color: var(--tp-warn); }
+/* разворот списка: подписи prev/curr/next под узлами, разорванная связь */
+.algo-tp__llrev { flex-wrap: nowrap; justify-content: center; }
+.algo-tp__llrevlab { margin-top: -0.3em; min-height: 1.3em; }
+.algo-tp__llrevghost { visibility: visible; background: transparent !important; border-color: transparent !important; color: var(--tp-lo) !important; font-size: 0.7em; font-weight: 700; transform: none !important; outline: none !important; box-shadow: none !important; }
+.algo-tp__llrevlab .algo-tp__llarrow, .algo-tp__llrevlab .algo-tp__llnil { color: transparent !important; }
+.algo-tp__llnode--next { outline: 2px dashed var(--tp-warn); outline-offset: 2px; }
+.algo-tp__llarrow--cut { color: var(--tp-bad); opacity: 1; }
+.algo-tp__llarrow--hot { color: var(--tp-ok); opacity: 1; transform: scale(1.4); display: inline-block; }
+/* KMP: уже совпавший префикс образца pat[0..j) — то, что алгоритм «помнит» при сдвиге */
+.algo-tp__kcell--pre { background: color-mix(in srgb, var(--tp-ok) 22%, transparent); border-color: color-mix(in srgb, var(--tp-ok) 55%, transparent); }
+/* диаметр: узел, где защёлкнулся best */
+.algo-tp__tnode--best { outline: 3px solid var(--tp-warn); outline-offset: 2px; }
+.algo-tp__legdot--best { background: transparent; border: 2px solid var(--tp-warn); }
