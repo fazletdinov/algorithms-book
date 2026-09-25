@@ -3352,14 +3352,14 @@
   // Дерево отрезков: запрос суммы на [ql, qr].
   function bSegQuery(arr, ql, qr) {
     var nodes = [];
-    (function build(lo, hi, depth) {
-      var id = nodes.length; nodes.push({ lo: lo, hi: hi, sum: 0, left: -1, right: -1, depth: depth });
+    (function build(lo, hi, depth, hid) {
+      var id = nodes.length; nodes.push({ hid: hid, lo: lo, hi: hi, sum: 0, left: -1, right: -1, depth: depth });
       if (lo === hi) { nodes[id].sum = arr[lo]; return id; }
       var mid = (lo + hi) >> 1;
-      var L = build(lo, mid, depth + 1), Rr = build(mid + 1, hi, depth + 1);
+      var L = build(lo, mid, depth + 1, 2 * hid), Rr = build(mid + 1, hi, depth + 1, 2 * hid + 1);
       nodes[id].left = L; nodes[id].right = Rr; nodes[id].sum = nodes[L].sum + nodes[Rr].sum;
       return id;
-    })(0, arr.length - 1, 0);
+    })(0, arr.length - 1, 0, 1);
     var nodeStep = new Array(nodes.length).fill(-1), nodeState = new Array(nodes.length).fill("");
     var steps = [], total = 0;
     // Построчный (debugger) проход рекурсии запроса. segViz красит узлы по nodeState/nodeStep,
@@ -3379,31 +3379,29 @@
       push({ line: 9, cur: id, node: L, nodeSum: nd.sum, info: "Query(правый ребёнок " + lbl(nodes[nd.right]) + ")" });
       q(nd.right);
     })(0);
-    push({ line: 5, cur: -1, done: true, found: true, node: "[" + ql + "," + qr + "]", info: "Сумма на [" + ql + "," + qr + "] = " + total });
+    var took = nodes.filter(function (n, i) { return nodeState[i] === "take"; });
+    var visited = nodeStep.filter(function (x) { return x >= 0; }).length;
+    var leavesTouched = nodes.filter(function (n, i) { return n.lo === n.hi && nodeStep[i] >= 0; }).length;
+    push({ line: 5, cur: -1, done: true, found: true, node: "[" + ql + "," + qr + "]", info: "Сумма на [" + ql + "," + qr + "] = " + total + " = " + took.map(function (n) { return n.sum + " [" + n.lo + "," + n.hi + "]"; }).join(" + ") + " — " + took.length + " готовых узла; посещено " + visited + " из " + nodes.length + " узлов" + (leavesTouched ? ", листьев: " + leavesTouched : ", ни одного листа") });
     steps.forEach(function (s, i) { s._i = i; });
     return { nodes: nodes, nodeStep: nodeStep, nodeState: nodeState, steps: steps };
   }
   function segViz(panel, ctx) {
-    var nodes = ctx.nodes, nodeStep = ctx.nodeStep, nodeState = ctx.nodeState;
-    var maxDepth = nodes.reduce(function (m, n) { return Math.max(m, n.depth); }, 0);
-    var tree = document.createElement("div"); tree.className = "algo-tp__tree";
-    var byId = {};
-    for (var d = 0; d <= maxDepth; d++) {
-      var row = document.createElement("div"); row.className = "algo-tp__trow";
-      nodes.map(function (n, idx) { return { n: n, idx: idx }; }).filter(function (o) { return o.n.depth === d; }).sort(function (a, b) { return a.n.lo - b.n.lo; }).forEach(function (o) {
-        var c = document.createElement("div"); c.className = "algo-tp__tnode algo-tp__tnode--seg"; c.textContent = o.n.sum; c.title = "[" + o.n.lo + "," + o.n.hi + "]"; row.appendChild(c); byId[o.idx] = c;
-      });
-      tree.appendChild(row);
-    }
-    panel.appendChild(tree);
+    var nodes = ctx.nodes, nodeStep = ctx.nodeStep, nodeState = ctx.nodeState, ql = ctx.ql, qr = ctx.qr;
+    var fig = segFigure(nodes);
+    panel.appendChild(fig.el);
+    // листья внутри запроса — подпись подсвечена: видно, что 12 + 20 закрывают ровно [ql,qr]
+    nodes.forEach(function (n, id) { if (n.lo === n.hi && fig.subs[id]) fig.subs[id].classList.toggle("algo-tp__tfigsub--in", n.lo >= ql && n.lo <= qr); });
     return function (s) {
       var i = s._i;
       nodes.forEach(function (_, id) {
-        var c = byId[id], shown = nodeStep[id] >= 0 && nodeStep[id] <= i;
+        var c = fig.nodes[id], shown = nodeStep[id] >= 0 && nodeStep[id] <= i;
         c.classList.toggle("algo-tp__tnode--take", shown && nodeState[id] === "take");
         c.classList.toggle("algo-tp__tnode--split", shown && nodeState[id] === "split");
         c.classList.toggle("algo-tp__tnode--skip", shown && nodeState[id] === "skip");
         c.classList.toggle("algo-tp__tnode--current", id === s.cur);
+        // до конца так и не посещён — приглушён иначе, чем «пропущен» (тот рекурсия видела)
+        c.classList.toggle("algo-tp__tnode--untouched", !!s.done && nodeStep[id] < 0);
       });
     };
   }
@@ -3413,84 +3411,100 @@
   // обновления суммы МЕНЯЮТСЯ по шагам, поэтому segTreeViz перерисовывает дерево по
   // снимку s.tree на каждом шаге (узлы по уровням, сортировка по lo, как у segViz).
   function segTreeViz(panel) {
-    var host = mkEl("div", "algo-tp__tree"); panel.appendChild(host);
+    var host = mkEl("div"); panel.appendChild(host);
     return function (s) {
       host.innerHTML = "";
       var nodes = s.tree || [];
       if (!nodes.length) { host.appendChild(mkEl("div", "algo-tp__llnil", "∅")); return; }
-      var maxD = 0; nodes.forEach(function (n) { maxD = Math.max(maxD, n.depth); });
-      for (var d = 0; d <= maxD; d++) {
-        var row = mkEl("div", "algo-tp__trow");
-        nodes.filter(function (n) { return n.depth === d; }).sort(function (a, b) { return a.lo - b.lo; }).forEach(function (n) {
-          var c = mkEl("div", "algo-tp__tnode algo-tp__tnode--seg" + (n.cls ? " algo-tp__tnode--" + n.cls : ""), (n.sum == null ? "·" : n.sum));
-          c.title = "[" + n.lo + "," + n.hi + "]";
-          row.appendChild(c);
-        });
-        host.appendChild(row);
-      }
+      host.appendChild(segFigure(nodes).el);
     };
   }
+  // hid — номер узла «как в куче» (корень 1, дети 2i и 2i+1), как в коде главы
+  // (tree[node], build(2·node, …)). Раньше в тексте шагов шли индексы прямого обхода
+  // 0..6: «build(2·node)» при node = 0 давал «node = 1», а упражнение главы про tree[4]
+  // с виджетом не сходилось.
   function bSegNodes(arr) {
     var nodes = [];
-    (function build(lo, hi, depth) {
-      var id = nodes.length; nodes.push({ id: id, lo: lo, hi: hi, sum: null, left: -1, right: -1, depth: depth });
+    (function build(lo, hi, depth, hid) {
+      var id = nodes.length; nodes.push({ id: id, hid: hid, lo: lo, hi: hi, sum: null, left: -1, right: -1, depth: depth });
       if (lo === hi) return id;
       var mid = (lo + hi) >> 1;
-      nodes[id].left = build(lo, mid, depth + 1); nodes[id].right = build(mid + 1, hi, depth + 1);
+      nodes[id].left = build(lo, mid, depth + 1, 2 * hid); nodes[id].right = build(mid + 1, hi, depth + 1, 2 * hid + 1);
       return id;
-    })(0, arr.length - 1, 0);
+    })(0, arr.length - 1, 0, 1);
     return nodes;
+  }
+  // Общая отрисовка дерева отрезков поверх treeFigure: узел над серединой своего
+  // отрезка, рёбра к детям, подпись «#номер [lo,hi]». Родителя ищем по вложенности
+  // отрезков — снимкам не нужно таскать ссылки на детей.
+  function segFigure(snap, opt) {
+    opt = opt || {};
+    var idx = snap.map(function (n, i) { return i; });
+    var fig = treeFigure(snap.map(function (n, i) {
+      var par = -1;
+      idx.forEach(function (j) { var p = snap[j]; if (p.depth === n.depth - 1 && p.lo <= n.lo && n.hi <= p.hi) par = j; });
+      return { parent: par, x: (n.lo + n.hi) / 2, label: opt.label ? opt.label(n) : (n.sum == null ? "·" : String(n.sum)),
+        sub: (n.hid ? "#" + n.hid + " " : "") + "[" + n.lo + (n.lo === n.hi ? "" : "," + n.hi) + "]",
+        cls: "algo-tp__tnode--seg" + (n.cls ? " algo-tp__tnode--" + n.cls : "") };
+    }), { cw: opt.cw || 58, ch: 74 });
+    return fig;
   }
   // Построчная (debugger) трассировка РЕКУРСИИ build: шаг на каждую строку
   // каждого вызова, со спуском в левого/правого ребёнка и глубиной стека.
   // depth показывает рост/свёртку рекурсии; текущий узел подсвечен в дереве.
   function bSegBuild(arr) {
     var nodes = bSegNodes(arr), steps = [], depth = 0;
-    function snap(marks) { return nodes.map(function (n) { return { lo: n.lo, hi: n.hi, sum: n.sum, depth: n.depth, cls: (marks && marks[n.id]) || "" }; }); }
+    function snap(marks) { return nodes.map(function (n) { return { hid: n.hid, lo: n.lo, hi: n.hi, sum: n.sum, depth: n.depth, cls: (marks && marks[n.id]) || "" }; }); }
     function push(o) { steps.push({ si: steps.length, line: o.line, tree: snap(o.marks || {}), depth: depth, vars: { node: (o.node || "—"), "отрезок": (o.seg || "—"), "глубина": depth, action: (o.action || "—") }, info: o.info, done: o.done }); }
     (function build(id) {
-      var nd = nodes[id], L = "[" + nd.lo + "," + nd.hi + "]", cur = {}; cur[id] = "found";
+      var nd = nodes[id], h = nd.hid, L = "[" + nd.lo + "," + nd.hi + "]", cur = {}; cur[id] = "found";
       depth++;
-      push({ line: 0, marks: cur, node: "узел " + id, seg: L, action: "вход", info: "→ build(node=" + id + ", " + L + ") — глубина стека " + depth + ": строим поддерево на отрезке " + L });
+      push({ line: 0, marks: cur, node: "tree[" + h + "]", seg: L, action: "вход", info: "→ build(node=" + h + ", " + L + ") — глубина стека " + depth + ": строим поддерево на отрезке " + L });
       if (nd.lo === nd.hi) {
         nd.sum = arr[nd.lo]; var ml = {}; ml[id] = "created";
-        push({ line: 1, marks: ml, node: "узел " + id, seg: L, action: "лист", info: "if lo == hi — да (" + nd.lo + "==" + nd.hi + "): ЛИСТ. tree[" + id + "] = arr[" + nd.lo + "] = " + nd.sum + ", return (кадр снимается со стека)" });
+        push({ line: 1, marks: ml, node: "tree[" + h + "]", seg: L, action: "лист", info: "if lo == hi — да (" + nd.lo + "==" + nd.hi + "): ЛИСТ. tree[" + h + "] = arr[" + nd.lo + "] = " + nd.sum + ", return (кадр снимается со стека)" });
         depth--; return;
       }
-      push({ line: 1, marks: cur, node: "узел " + id, seg: L, action: "не лист", info: "if lo == hi — нет (" + nd.lo + "≠" + nd.hi + "): внутренний узел, делим отрезок пополам" });
+      push({ line: 1, marks: cur, node: "tree[" + h + "]", seg: L, action: "не лист", info: "if lo == hi — нет (" + nd.lo + "≠" + nd.hi + "): внутренний узел, делим отрезок пополам" });
       var mid = Math.floor((nd.lo + nd.hi) / 2);
-      push({ line: 2, marks: cur, node: "узел " + id, seg: L, action: "mid", info: "mid = (" + nd.lo + " + " + nd.hi + ") / 2 = " + mid });
+      push({ line: 2, marks: cur, node: "tree[" + h + "]", seg: L, action: "mid", info: "mid = (" + nd.lo + " + " + nd.hi + ") / 2 = " + mid });
       var mlft = {}; mlft[id] = "found"; mlft[nd.left] = "found";
-      push({ line: 3, marks: mlft, node: "узел " + id, seg: L, action: "влево", info: "build(2·node, " + nd.lo + ", " + mid + ") — РЕКУРСИЯ в ЛЕВОГО ребёнка [" + nd.lo + "," + mid + "]" });
+      push({ line: 3, marks: mlft, node: "tree[" + h + "]", seg: L, action: "влево", info: "build(2·" + h + " = " + (2 * h) + ", " + nd.lo + ", " + mid + ") — РЕКУРСИЯ в ЛЕВОГО ребёнка [" + nd.lo + "," + mid + "]" });
       build(nd.left);
       var mrgt = {}; mrgt[id] = "found"; mrgt[nd.right] = "found";
-      push({ line: 4, marks: mrgt, node: "узел " + id, seg: L, action: "вправо", info: "build(2·node+1, " + (mid + 1) + ", " + nd.hi + ") — РЕКУРСИЯ в ПРАВОГО ребёнка [" + (mid + 1) + "," + nd.hi + "]" });
+      push({ line: 4, marks: mrgt, node: "tree[" + h + "]", seg: L, action: "вправо", info: "build(2·" + h + "+1 = " + (2 * h + 1) + ", " + (mid + 1) + ", " + nd.hi + ") — РЕКУРСИЯ в ПРАВОГО ребёнка [" + (mid + 1) + "," + nd.hi + "]" });
       build(nd.right);
       nd.sum = nodes[nd.left].sum + nodes[nd.right].sum;
       var mc = {}; mc[id] = "created"; mc[nd.left] = "found"; mc[nd.right] = "found";
-      push({ line: 5, marks: mc, node: "узел " + id, seg: L, action: "сумма", info: "tree[" + id + "] = tree[лев] + tree[прав] = " + nodes[nd.left].sum + " + " + nodes[nd.right].sum + " = " + nd.sum + " — узел собран из детей, возврат вверх" });
+      push({ line: 5, marks: mc, node: "tree[" + h + "]", seg: L, action: "сумма", info: "tree[" + h + "] = tree[" + (2 * h) + "] + tree[" + (2 * h + 1) + "] = " + nodes[nd.left].sum + " + " + nodes[nd.right].sum + " = " + nd.sum + " — узел собран из детей, возврат вверх" });
       depth--;
     })(0);
     push({ line: 5, node: "корень", seg: "[0," + (arr.length - 1) + "]", action: "готово", done: true, info: "Рекурсия свернулась: дерево построено, корень = сумма всего массива = " + nodes[0].sum });
     return { steps: steps };
   }
   function bSegUpdate(arr, idx, val) {
-    var nodes = bSegNodes(arr), steps = [];
+    // Путь от корня к листу подсвечен постоянно («path»), до последнего кадра: глава
+    // обещает «меняются только узлы на пути», а раньше финальный кадр был без меток,
+    // и сосед, из которого сумма только ЧИТАЕТСЯ, горел тем же зелёным, что и путь.
+    var nodes = bSegNodes(arr), steps = [], path = {};
     (function fill(id) { var nd = nodes[id]; if (nd.lo === nd.hi) { nd.sum = arr[nd.lo]; return; } fill(nd.left); fill(nd.right); nd.sum = nodes[nd.left].sum + nodes[nd.right].sum; })(0);
-    function snap(marks) { return nodes.map(function (n) { return { lo: n.lo, hi: n.hi, sum: n.sum, depth: n.depth, cls: (marks && marks[n.id]) || "" }; }); }
+    function snap(marks) { return nodes.map(function (n) { return { hid: n.hid, lo: n.lo, hi: n.hi, sum: n.sum, depth: n.depth, cls: (marks && marks[n.id]) || (path[n.id] ? "path" : "") }; }); }
     function push(o) { steps.push({ si: steps.length, line: o.line, tree: snap(o.marks || {}), vars: { node: (o.node || "—"), action: (o.action || "—") }, info: o.info, done: o.done }); }
-    push({ line: 0, tree: snap({}), node: "[" + idx + "]", action: "старт", info: "обновляем индекс " + idx + " на " + val + " (меняется лист и суммы по пути к корню)" });
+    push({ line: 0, node: "[" + idx + "]", action: "старт", info: "обновляем индекс " + idx + " на " + val + " (меняется лист и суммы по пути к корню)" });
+    var changed = 0;
     (function upd(id) {
-      var nd = nodes[id], L = "[" + nd.lo + "," + nd.hi + "]", m = {}; m[id] = "current";
-      if (nd.lo === nd.hi) { nd.sum = val; var ml = {}; ml[id] = "created"; push({ line: 1, marks: ml, node: L, action: "лист", info: L + " — лист: tree = " + val }); return; }
+      var nd = nodes[id], L = "tree[" + nd.hid + "] [" + nd.lo + "," + nd.hi + "]", m = {}; m[id] = "current";
+      path[id] = true;
+      if (nd.lo === nd.hi) { var was = nd.sum; nd.sum = val; changed++; var ml = {}; ml[id] = "created"; push({ line: 1, marks: ml, node: L, action: "лист", info: L + " — лист: " + was + " → " + val + ". Предки на пути теперь устарели — пересчитаем их на обратном ходе" }); return; }
       var mid = (nd.lo + nd.hi) >> 1;
       if (idx <= mid) { push({ line: 4, marks: m, node: L, action: "влево", info: idx + " ≤ " + mid + " — спускаемся в левого ребёнка" }); upd(nd.left); }
       else { push({ line: 6, marks: m, node: L, action: "вправо", info: idx + " > " + mid + " — спускаемся в правого ребёнка" }); upd(nd.right); }
-      nd.sum = nodes[nd.left].sum + nodes[nd.right].sum;
-      var mu = {}; mu[id] = "created"; mu[nd.left] = "found"; mu[nd.right] = "found";
-      push({ line: 8, marks: mu, node: L, action: "пересчёт", info: L + " = " + nodes[nd.left].sum + " + " + nodes[nd.right].sum + " = " + nd.sum });
+      var old = nd.sum, onPath = idx <= mid ? nd.left : nd.right, sib = idx <= mid ? nd.right : nd.left;
+      nd.sum = nodes[nd.left].sum + nodes[nd.right].sum; changed++;
+      var mu = {}; mu[id] = "created"; mu[sib] = "sib";
+      push({ line: 8, marks: mu, node: L, action: "пересчёт", info: L + " = " + nodes[nd.left].sum + " + " + nodes[nd.right].sum + " = " + nd.sum + " (было " + old + "); соседа tree[" + nodes[sib].hid + "] только читаем — он не менялся" });
     })(0);
-    push({ line: 8, tree: snap({}), node: "[0," + (arr.length - 1) + "]", action: "готово", done: true, info: "индекс " + idx + " обновлён; суммы по пути пересчитаны, корень = " + nodes[0].sum });
+    push({ line: 8, node: "[0," + (arr.length - 1) + "]", action: "готово", done: true, info: "индекс " + idx + " обновлён: изменилось " + changed + " узла из " + nodes.length + " — ровно путь от листа к корню, это высота дерева O(log n). Корень = " + nodes[0].sum });
     return { steps: steps };
   }
   // Lazy propagation: UpdateRange(ql,qr,+d), затем Query(sl,sr). Три случая спуска
@@ -3578,22 +3592,14 @@
   // customViz lazy propagation: перерисовка дерева по снимку s.tree (как segTreeViz),
   // плюс оранжевый бейдж «+d» на узле с ненулевой lazy-меткой.
   function lazySegViz(panel) {
-    var host = mkEl("div", "algo-tp__tree"); panel.appendChild(host);
+    var host = mkEl("div"); panel.appendChild(host);
     return function (s) {
       host.innerHTML = "";
       var nodes = s.tree || [];
       if (!nodes.length) return;
-      var maxD = 0; nodes.forEach(function (n) { maxD = Math.max(maxD, n.depth); });
-      for (var d = 0; d <= maxD; d++) {
-        var row = mkEl("div", "algo-tp__trow");
-        nodes.filter(function (n) { return n.depth === d; }).sort(function (a, b) { return a.lo - b.lo; }).forEach(function (n) {
-          var c = mkEl("div", "algo-tp__tnode algo-tp__tnode--seg algo-tp__tnode--lazyhost" + (n.cls ? " algo-tp__tnode--" + n.cls : ""), String(n.sum));
-          c.title = "[" + n.lo + "," + n.hi + "]";
-          if (n.lazy) c.appendChild(mkEl("span", "algo-tp__lazytag", "+" + n.lazy));
-          row.appendChild(c);
-        });
-        host.appendChild(row);
-      }
+      var fig = segFigure(nodes, { label: function (n) { return String(n.sum); } });
+      nodes.forEach(function (n, i) { fig.nodes[i].classList.add("algo-tp__tnode--lazyhost"); if (n.lazy) fig.nodes[i].appendChild(mkEl("span", "algo-tp__lazytag", "+" + n.lazy)); });
+      host.appendChild(fig.el);
     };
   }
   // MST (алгоритм Краскала): рёбра add/skip + Union-Find.
@@ -4156,17 +4162,23 @@
     var wrap = mkEl("div", "algo-tp__map");
     wrap.appendChild(mkEl("div", "algo-tp__maphdr", "reach[i][j] — матрица достижимости (Флойд–Уоршелл)"));
     var grid = mkEl("div", "algo-viz__grid"); grid.style.gridTemplateColumns = "repeat(" + (n + 1) + ", 2.2em)";
-    grid.appendChild(mkEl("div", "algo-tp__gcell algo-tp__gcell--wall", ""));
-    for (var c = 0; c < n; c++) grid.appendChild(mkEl("div", "algo-tp__gcell algo-tp__gcell--wall", labels[c]));
+    // Классы algo-viz__gcell — стилизованные (прежние algo-tp__gcell* не имели ни одного
+    // правила CSS: матрица рисовалась без подсветки текущей ячейки и заполненных).
+    grid.appendChild(mkEl("div", "algo-viz__gcell algo-viz__gcell--head", ""));
+    for (var c = 0; c < n; c++) grid.appendChild(mkEl("div", "algo-viz__gcell algo-viz__gcell--head", labels[c]));
     var cells = [];
-    for (var r = 0; r < n; r++) { cells.push([]); grid.appendChild(mkEl("div", "algo-tp__gcell algo-tp__gcell--wall", labels[r])); for (var c2 = 0; c2 < n; c2++) { var cd = mkEl("div", "algo-tp__gcell", ""); grid.appendChild(cd); cells[r].push(cd); } }
-    wrap.appendChild(grid); panel.appendChild(wrap);
+    for (var r = 0; r < n; r++) { cells.push([]); grid.appendChild(mkEl("div", "algo-viz__gcell algo-viz__gcell--head", labels[r])); for (var c2 = 0; c2 < n; c2++) { var cd = mkEl("div", "algo-viz__gcell", ""); grid.appendChild(cd); cells[r].push(cd); } }
+    wrap.appendChild(grid);
+    wrap.appendChild(mkEl("div", "algo-tp__mapsize", "янтарная — текущая reach[i][j] · в рамке — reach[i][k] и reach[k][j], из которых она выводится · синяя — 1 (достижима)"));
+    panel.appendChild(wrap);
     return function (s) {
-      var R = s.reach || [];
+      var R = s.reach || [], k = s.ck;
       for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
         var on = R[r] && R[r][c], cur = (s.ci === r && s.cj === c);
+        // «через k»: две клетки-источника reach[i][k] и reach[k][j] для текущей reach[i][j]
+        var src = k != null && s.cj != null && ((r === s.ci && c === k) || (r === k && c === s.cj)) && !cur;
         cells[r][c].textContent = on ? "1" : "·";
-        cells[r][c].className = "algo-tp__gcell" + (on ? " algo-tp__gcell--visited" : "") + (cur ? " algo-tp__gcell--current" : "");
+        cells[r][c].className = "algo-viz__gcell" + (cur ? " algo-viz__gcell--current" : (src ? " algo-viz__gcell--nbok" : (on ? " algo-viz__gcell--visited" : "")));
       }
     };
   }
@@ -4238,11 +4250,8 @@
   }
   function naiveTreeViz(panel, ctx) {
     var arr = ctx.arr, present = ctx.present;
-    function depth(i) { return Math.floor(Math.log(i + 1) / Math.LN2); }
-    var maxD = 0; present.forEach(function (i) { maxD = Math.max(maxD, depth(i)); });
-    var tree = document.createElement("div"); tree.className = "algo-tp__tree"; var byIdx = {};
-    for (var d = 0; d <= maxD; d++) { var row = document.createElement("div"); row.className = "algo-tp__trow"; present.filter(function (i) { return depth(i) === d; }).forEach(function (i) { var c = document.createElement("div"); c.className = "algo-tp__tnode"; c.textContent = arr[i]; row.appendChild(c); byIdx[i] = c; }); tree.appendChild(row); }
-    panel.appendChild(tree);
+    var fig = binaryFigure(arr, present), byIdx = fig.byIdx;
+    panel.appendChild(fig.el);
     return function (s) {
       var measure = s.measure || [];
       present.forEach(function (i) { byIdx[i].classList.toggle("algo-tp__tnode--visited", measure.indexOf(i) >= 0); byIdx[i].classList.toggle("algo-tp__tnode--current", i === s.cur); });
@@ -4705,6 +4714,8 @@
       ch.forEach(function (c) { place(c, d + 1); });
       x[i] = (x[ch[0]] + x[ch[ch.length - 1]]) / 2;
     })(root, 0);
+    // явная абсцисса (дерево отрезков: узел — над серединой своего отрезка)
+    if (nodes.every(function (n) { return typeof n.x === "number"; })) { slot = 0; nodes.forEach(function (n, i) { x[i] = n.x; slot = Math.max(slot, n.x + 1); }); }
     var maxD = 0; depth.forEach(function (d) { if (d > maxD) maxD = d; });
     var W = Math.max(1, slot) * CW, H = (maxD + 1) * CH;
     function px(i) { return x[i] * CW + CW / 2; }
@@ -4716,15 +4727,21 @@
     nodes.forEach(function (n, i) {
       if (i === root || x[i] == null) return;
       var ln = document.createElementNS(SVGNS, "line");
-      ln.setAttribute("x1", px(n.parent)); ln.setAttribute("y1", py(n.parent)); ln.setAttribute("x2", px(i)); ln.setAttribute("y2", py(i));
+      // ребро начинается под подписью родителя (иначе линия перечёркивала «#4 [0,1]»)
+      // от нижнего края родителя (под его подписью, если есть) к верхнему краю ребёнка:
+      // заливка узлов полупрозрачная, и линия «центр — центр» перечёркивала их текст
+      ln.setAttribute("x1", px(n.parent)); ln.setAttribute("y1", py(n.parent) + (nodes[n.parent].sub != null ? 27 : 16)); ln.setAttribute("x2", px(i)); ln.setAttribute("y2", py(i) - 16);
       ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); edges[i] = ln;
     });
     box.appendChild(svg);
+    var subs = [];
     var els = nodes.map(function (n, i) {
       var b = mkEl("div", "algo-tp__tnode algo-tp__tfignode" + (n.cls ? " " + n.cls : ""), n.label);
-      b.style.left = px(i) + "px"; b.style.top = py(i) + "px"; box.appendChild(b); return b;
+      b.style.left = px(i) + "px"; b.style.top = py(i) + "px"; box.appendChild(b);
+      if (n.sub != null) { var sb = mkEl("div", "algo-tp__tfigsub", n.sub); sb.style.left = px(i) + "px"; sb.style.top = (py(i) + 17) + "px"; box.appendChild(sb); subs[i] = sb; }
+      return b;
     });
-    return { el: box, nodes: els, edges: edges };
+    return { el: box, nodes: els, edges: edges, subs: subs };
   }
   // Дерево маршрутов ServeMux: текущий путь спуска, тупиковые ветки после отката.
   function routeViz(panel, ctx) {
@@ -4744,24 +4761,37 @@
       });
     };
   }
+  // Бор на treeFigure: родитель восстанавливается по словарям детей (генераторы его
+  // не хранят). Корень подписан «корень» — раньше он был то «корень», то «•».
+  function trieFigure(nodes) {
+    var par = nodes.map(function () { return -1; });
+    nodes.forEach(function (n, i) { for (var k in (n.children || {})) par[n.children[k]] = i; });
+    return treeFigure(nodes.map(function (n, i) { return { parent: par[i], label: n.depth === 0 ? "корень" : n.ch }; }), { cw: 52, ch: 58 });
+  }
+  // Двоичное дерево из массива «по уровням» (дети i — 2i+1 и 2i+2): абсцисса — номер
+  // узла при симметричном обходе, как у BST. Так единственный ребёнок видно левый он
+  // или правый; раньше дерево рисовалось рядами без рёбер и без места под nil.
+  function binaryFigure(arr, present) {
+    var has = {}, rank = {}, r = 0;
+    present.forEach(function (i) { has[i] = true; });
+    (function ino(i) { if (!has[i]) return; ino(2 * i + 1); rank[i] = r++; ino(2 * i + 2); })(0);
+    var order = present.slice(), pos = {};
+    order.forEach(function (i, k) { pos[i] = k; });
+    var fig = treeFigure(order.map(function (i) { return { parent: i === 0 ? -1 : pos[Math.floor((i - 1) / 2)], x: rank[i], label: String(arr[i]) }; }), { cw: 48, ch: 58 });
+    var byIdx = {}; order.forEach(function (i, k) { byIdx[i] = fig.nodes[k]; });
+    return { el: fig.el, byIdx: byIdx };
+  }
   function trieViz(panel, ctx) {
     var nodes = ctx.nodes, path = ctx.path;
-    var maxDepth = nodes.reduce(function (m, n) { return Math.max(m, n.depth); }, 0);
-    var tree = document.createElement("div"); tree.className = "algo-tp__tree";
-    var byId = {};
-    for (var d = 0; d <= maxDepth; d++) {
-      var row = document.createElement("div"); row.className = "algo-tp__trow";
-      nodes.map(function (n, idx) { return { n: n, idx: idx }; }).filter(function (o) { return o.n.depth === d; }).forEach(function (o) {
-        var c = document.createElement("div"); c.className = "algo-tp__tnode" + (o.n.end ? " algo-tp__tnode--end" : ""); c.textContent = o.n.ch; row.appendChild(c); byId[o.idx] = c;
-      });
-      tree.appendChild(row);
-    }
-    panel.appendChild(tree);
+    var fig = trieFigure(nodes), byId = fig.nodes;
+    nodes.forEach(function (n, i) { if (n.end) byId[i].classList.add("algo-tp__tnode--end"); });
+    panel.appendChild(fig.el);
     return function (s) {
       nodes.forEach(function (_, id) {
         var posInPath = path.indexOf(id), visited = posInPath >= 0 && posInPath <= s.upto;
         byId[id].classList.toggle("algo-tp__tnode--visited", visited);
         byId[id].classList.toggle("algo-tp__tnode--current", id === path[s.upto]);
+        if (fig.edges[id]) fig.edges[id].classList.toggle("algo-tp__bstedge--on", visited);
       });
     };
   }
@@ -4800,25 +4830,18 @@
   // красит отменённые (--removed) и «срабатывающий» таймаут (--current). Показывает,
   // что отмена течёт ВНИЗ по поддереву, не задевая родителя и соседей.
   function ctxTreeViz(panel, ctx) {
+    // Рёбра обязательны: отмена идёт по ним вниз, к потомкам, и не трогает соседа req2.
+    // Раньше узлы стояли рядами без рёбер, а подписи вылезали из кружков.
     var nodes = ctx.nodes;
-    var maxDepth = nodes.reduce(function (m, n) { return Math.max(m, n.depth); }, 0);
-    var tree = document.createElement("div"); tree.className = "algo-tp__tree";
-    var byId = {};
-    for (var d = 0; d <= maxDepth; d++) {
-      var row = document.createElement("div"); row.className = "algo-tp__trow";
-      nodes.forEach(function (n, idx) {
-        if (n.depth !== d) return;
-        var c = document.createElement("div"); c.className = "algo-tp__tnode algo-tp__tnode--seg";
-        c.textContent = n.label; row.appendChild(c); byId[idx] = c;
-      });
-      tree.appendChild(row);
-    }
-    panel.appendChild(tree);
+    var fig = treeFigure(nodes.map(function (n) { return { parent: n.parent, label: n.label }; }), { cw: 150, ch: 62 });
+    var byId = fig.nodes;
+    panel.appendChild(fig.el);
     return function (s) {
       nodes.forEach(function (n, id) {
         var st = s.state[id];
         byId[id].classList.toggle("algo-tp__tnode--removed", st === "cancelled");
         byId[id].classList.toggle("algo-tp__tnode--current", st === "firing");
+        if (fig.edges[id]) fig.edges[id].classList.toggle("algo-tp__bstedge--dead", st === "cancelled");
       });
     };
   }
@@ -4927,27 +4950,20 @@
   }
   function trieInsertViz(panel, ctx) {
     var nodes = ctx.nodes, path = ctx.path;
-    var maxDepth = nodes.reduce(function (m, n) { return Math.max(m, n.depth); }, 0);
-    var tree = document.createElement("div"); tree.className = "algo-tp__tree";
-    var byId = {};
-    for (var d = 0; d <= maxDepth; d++) {
-      var row = document.createElement("div"); row.className = "algo-tp__trow";
-      nodes.map(function (n, idx) { return { n: n, idx: idx }; }).filter(function (o) { return o.n.depth === d; }).forEach(function (o) {
-        var c = document.createElement("div"); c.className = "algo-tp__tnode"; c.textContent = o.n.ch; row.appendChild(c); byId[o.idx] = c;
-      });
-      tree.appendChild(row);
-    }
-    panel.appendChild(tree);
+    var fig = trieFigure(nodes), byId = fig.nodes;
+    panel.appendChild(fig.el);
     return function (s) {
       nodes.forEach(function (n, id) {
         var el = byId[id];
         var visible = n.createdAt < 0 || n.createdAt <= s.si;
         el.classList.toggle("algo-tp__tnode--ghost", !visible);
+        if (fig.edges[id]) fig.edges[id].style.opacity = visible ? "" : "0.15";
         var posInPath = path.indexOf(id), visited = posInPath >= 0 && posInPath <= s.upto;
         el.classList.toggle("algo-tp__tnode--visited", visited && visible);
         el.classList.toggle("algo-tp__tnode--current", id === path[s.upto]);
         el.classList.toggle("algo-tp__tnode--created", n.createdAt >= 0 && n.createdAt === s.si);
         el.classList.toggle("algo-tp__tnode--end", n.end && (id !== ctx.endId || s.si >= ctx.endAt));
+        if (fig.edges[id]) fig.edges[id].classList.toggle("algo-tp__bstedge--on", visited && visible);
       });
     };
   }
@@ -5004,17 +5020,8 @@
   }
   function trieDeleteViz(panel, ctx) {
     var nodes = ctx.nodes, path = ctx.path;
-    var maxDepth = nodes.reduce(function (m, n) { return Math.max(m, n.depth); }, 0);
-    var tree = document.createElement("div"); tree.className = "algo-tp__tree";
-    var byId = {};
-    for (var d = 0; d <= maxDepth; d++) {
-      var row = document.createElement("div"); row.className = "algo-tp__trow";
-      nodes.map(function (n, idx) { return { n: n, idx: idx }; }).filter(function (o) { return o.n.depth === d; }).forEach(function (o) {
-        var c = document.createElement("div"); c.className = "algo-tp__tnode"; c.textContent = o.n.ch; row.appendChild(c); byId[o.idx] = c;
-      });
-      tree.appendChild(row);
-    }
-    panel.appendChild(tree);
+    var fig = trieFigure(nodes), byId = fig.nodes;
+    panel.appendChild(fig.el);
     return function (s) {
       nodes.forEach(function (n, id) {
         var el = byId[id];
@@ -5027,6 +5034,7 @@
         el.classList.toggle("algo-tp__tnode--visited", visited && !gone && !flash && id !== s.cur);
         var showEnd = n.endUnsetAt >= 0 ? (s.si < n.endUnsetAt) : n.end;
         el.classList.toggle("algo-tp__tnode--end", showEnd && !gone && !flash);
+        if (fig.edges[id]) { fig.edges[id].style.opacity = gone ? "0.12" : ""; fig.edges[id].classList.toggle("algo-tp__bstedge--on", visited && !gone); }
       });
     };
   }
@@ -5068,24 +5076,17 @@
   }
   function trieWordsViz(panel, ctx) {
     var nodes = ctx.nodes;
-    var maxDepth = nodes.reduce(function (m, n) { return Math.max(m, n.depth); }, 0);
-    var tree = document.createElement("div"); tree.className = "algo-tp__tree";
-    var byId = {};
-    for (var d = 0; d <= maxDepth; d++) {
-      var row = document.createElement("div"); row.className = "algo-tp__trow";
-      nodes.map(function (n, idx) { return { n: n, idx: idx }; }).filter(function (o) { return o.n.depth === d; }).forEach(function (o) {
-        var c = document.createElement("div"); c.className = "algo-tp__tnode"; c.textContent = o.n.ch; row.appendChild(c); byId[o.idx] = c;
-      });
-      tree.appendChild(row);
-    }
-    panel.appendChild(tree);
+    var fig = trieFigure(nodes), byId = fig.nodes;
+    panel.appendChild(fig.el);
     return function (s) {
       nodes.forEach(function (n, id) {
         var el = byId[id];
-        el.classList.toggle("algo-tp__tnode--visited", n.visitedAt >= 0 && n.visitedAt <= s.si && id !== s.cur);
+        var vis = n.visitedAt >= 0 && n.visitedAt <= s.si;
+        el.classList.toggle("algo-tp__tnode--visited", vis && id !== s.cur);
         el.classList.toggle("algo-tp__tnode--current", id === s.cur);
         el.classList.toggle("algo-tp__tnode--created", !!s.collected && id === s.cur);
         el.classList.toggle("algo-tp__tnode--end", n.end);
+        if (fig.edges[id]) fig.edges[id].classList.toggle("algo-tp__bstedge--on", vis);
       });
     };
   }
@@ -5310,6 +5311,17 @@
     steps.push(snap({ line: 0, vars: { p: "—", m: "—", primes: 0 }, info: "Решето: каждое невычеркнутое число — простое; вычёркиваем его кратные" }));
     var cnt = 0;
     for (var p = 2; p <= n; p++) {
+      // Ключевой момент решета: первый простой p с p·p > n. Кратных для вычёркивания у него
+      // и у всех следующих нет — любое составное ≤ n имеет делитель ≤ √n и уже вычеркнуто.
+      // Дальше цикл лишь собирает оставшихся в список: сворачиваем это в один шаг, а не
+      // в полсотни одинаковых кликов (раньше 50 из 84 шагов были этой рутиной).
+      if (p * p > n && st[idxOf[p]] !== 2) {
+        steps.push(snap({ lo: idxOf[p], line: 8, key: true, vars: { p: p, m: "—", primes: cnt }, info: "p = " + p + ": " + p + "·" + p + " = " + (p * p) + " > " + n + " — вычёркивать нечего. Любое составное ≤ " + n + " имеет делитель ≤ √" + n + " ≈ " + Math.floor(Math.sqrt(n)) + " и уже вычеркнуто → все оставшиеся невычеркнутые — простые" }));
+        var rest = [];
+        for (var q = p; q <= n; q++) if (st[idxOf[q]] !== 2) { st[idxOf[q]] = 1; cnt++; rest.push(q); }
+        steps.push(snap({ line: 7, vars: { p: p + "…" + n, m: "—", primes: cnt }, info: "Цикл по p доходит до " + n + ", но только добавляет в список: " + rest.join(", ") + " → простые" }));
+        break;
+      }
       steps.push(snap({ lo: idxOf[p], line: 3, vars: { p: p, m: "—", primes: cnt }, info: "p = " + p + ": смотрим, вычеркнуто ли" }));
       if (st[idxOf[p]] === 2) {
         steps.push(snap({ lo: idxOf[p], line: 4, vars: { p: p, m: "—", primes: cnt }, info: p + " уже вычеркнуто → составное, пропускаем" }));
@@ -6134,12 +6146,12 @@
   // (cancel перебирает c.children), не задевая родителя и соседей. Рисуется ctxTreeViz.
   function bContextTree() {
     var nodes = [
-      { label: "Background", depth: 0 },
-      { label: "srv (WithCancel)", depth: 1 },
-      { label: "req (WithTimeout)", depth: 2 },
-      { label: "db-запрос", depth: 3 },
-      { label: "http-вызов", depth: 3 },
-      { label: "req2", depth: 2 }
+      { label: "Background", depth: 0, parent: -1 },
+      { label: "srv (WithCancel)", depth: 1, parent: 0 },
+      { label: "req (WithTimeout)", depth: 2, parent: 1 },
+      { label: "db-запрос", depth: 3, parent: 2 },
+      { label: "http-вызов", depth: 3, parent: 2 },
+      { label: "req2", depth: 2, parent: 1 }
     ];
     var state = {}, steps = [];
     function cnt() { var c = 0; for (var k in state) { if (state[k] === "cancelled") c++; } return c; }
@@ -7214,19 +7226,8 @@
   // Общая отрисовка дерева для дашборда (customViz): узлы по уровням.
   function treeViz(panel, ctx) {
     var arr = ctx.arr, present = ctx.present, order = ctx.order;
-    function depth(i) { return Math.floor(Math.log(i + 1) / Math.LN2); }
-    var maxD = 0; present.forEach(function (i) { maxD = Math.max(maxD, depth(i)); });
-    var tree = document.createElement("div"); tree.className = "algo-tp__tree";
-    var byIdx = {};
-    for (var d = 0; d <= maxD; d++) {
-      var row = document.createElement("div"); row.className = "algo-tp__trow";
-      present.filter(function (i) { return depth(i) === d; }).forEach(function (i) {
-        var c = document.createElement("div"); c.className = "algo-tp__tnode"; c.textContent = arr[i];
-        row.appendChild(c); byIdx[i] = c;
-      });
-      tree.appendChild(row);
-    }
-    panel.appendChild(tree);
+    var fig = binaryFigure(arr, present), byIdx = fig.byIdx;
+    panel.appendChild(fig.el);
     return function (s) {
       present.forEach(function (i) {
         var pos = order.indexOf(i), visited = pos >= 0 && pos <= s.upto;
@@ -7465,6 +7466,14 @@
           if (w2.right.color === RB_BLACK && w2.left.color === RB_BLACK) { w2.color = RB_RED; x = x.parent; var n2 = {}; n2[x.id] = "fix"; push({ line: 12, node: x.val, action: "брат чёрный", fix: true, marks: n2, info: "брат чёрный, оба его ребёнка чёрные → красим брата красным, дефицит поднимается к " + x.val }); }
           else { if (w2.left.color === RB_BLACK) { w2.right.color = RB_BLACK; w2.color = RB_RED; rotL(w2); w2 = x.parent.left; } w2.color = x.parent.color; x.parent.color = RB_BLACK; w2.left.color = RB_BLACK; rotR(x.parent); var n3 = {}; n3[T.root.id] = "fix"; push({ line: 12, node: x.parent.val, action: "поворот", fix: true, marks: n3, info: "у брата есть красный ребёнок → перекраска + поворот: «двойной чёрный» устранён" }); x = T.root; }
         }
+      }
+      // Цикл не идёт (или останавливается), когда x КРАСНЫЙ: такой x сам забирает
+      // недостающую черноту. Раньше это перекрашивание происходило молча — узел
+      // просто оказывался чёрным на финальном кадре, а статус обещал «чиним».
+      if (x !== NIL && x.color === RB_RED) {
+        x.color = RB_BLACK;
+        var mx = {}; mx[x.id] = "fix";
+        push({ line: 12, node: x.val, action: "x красный", fix: true, marks: mx, info: "на месте ушедшего чёрного — красный " + x.val + ": красим его в чёрный, он забирает недостающую черноту — «двойной чёрный» погашен без поворотов" });
       }
       x.color = RB_BLACK;
     }
@@ -8868,22 +8877,38 @@
     "sieve": {
       badge: "Sieve of Eratosthenes",
       desc: "Решето Эратосфена: каждое невычеркнутое число — простое; его кратные вычёркиваются как составные.",
-      valuesLabel: "Числа 2..n", codeKey: "sieve", fillRange: false,
-      ptr1: { name: "p", cap: "(текущее простое)" }, ptr2: { name: "m", cap: "(кратное p·k)" },
+      valuesLabel: "", codeKey: "sieve", fillRange: false,
       complexity: { time: "O(n log log n)", space: "O(n)", good: "★ Всех простых до n" },
       varOrder: ["p", "m", "primes"],
       varDesc: { p: "Текущий кандидат", m: "Вычёркиваемое кратное", primes: "Найдено простых" },
       lineNotes: { 0: "Решето простых в [2, n]", 3: "Перебираем кандидатов p от 2 до n", 4: "p уже вычеркнуто (составное)?", 7: "p не вычеркнуто → простое, добавляем", 8: "Вычёркиваем кратные p, начиная с p·p", 12: "Остались только простые числа" },
-      rules: [{ head: "не вычеркнуто", body: "→ p простое", cls: "gt" }, { head: "кратные p", body: "→ составные (с p·p)", cls: "lt" }, { head: "почему с p·p", body: "меньшие кратные уже вычеркнуты", cls: "eq" }],
+      rules: [{ head: "не вычеркнуто", body: "→ p простое", cls: "gt" }, { head: "кратные p", body: "→ составные (с p·p)", cls: "lt" }, { head: "p·p > n", body: "→ вычёркивать нечего, остальные простые", cls: "eq" }],
       parse: function (root) { var n = parseInt(root.getAttribute("data-n"), 10); if (isNaN(n)) n = 30; return { n: n, steps: bSieve(n) }; },
       inputs: [{ attr: "data-n", label: "n" }],
-      values: function (ctx) { return bSieve(ctx.n)[0].values; },
+      values: function () { return []; },
       title: function (ctx) { return "Решето Эратосфена до " + Math.max(2, Math.min(40, ctx.n | 0)); },
-      cellState: function (s, j) { var st = {}; if (s.st[j] === 1) st.found = true; else if (s.st[j] === 2) st.dim = true; if (j === s.lo && s.lo >= 0) st.lo = true; if (j === s.hi && s.hi >= 0) st.hi = true; return st; },
-      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: (s.hi == null ? -1 : s.hi) }; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      legend: [{ cls: "tcur", label: "p — кандидат" }, { cls: "hi", label: "m — вычёркиваемое кратное" }, { cls: "tvis", label: "простое" }, { cls: "dead", label: "составное (вычеркнуто)" }],
+      // Классическое решето — таблица по 10 в ряд: число стоит в своей клетке, без
+      // строки «индекс 0..28» над значениями 2..30 (индекс = значение − 2 путал).
+      customViz: function (panel) {
+        var g = mkEl("div", "algo-tp__sieve"), cells = {};
+        panel.appendChild(g);
+        return function (s) {
+          if (!g.childNodes.length) {
+            var n = s.values[s.values.length - 1];
+            for (var v = 1; v <= n; v++) { var c = mkEl("div", "algo-tp__sievecell" + (v === 1 ? " algo-tp__sievecell--one" : ""), v); g.appendChild(c); cells[v] = c; }
+          }
+          s.values.forEach(function (v, j) {
+            var c = cells[v], st = s.st[j];
+            c.className = "algo-tp__sievecell" + (st === 1 ? " algo-tp__sievecell--prime" : (st === 2 ? " algo-tp__sievecell--comp" : "")) +
+              (j === s.lo ? " algo-tp__sievecell--p" : "") + (j === s.hi ? " algo-tp__sievecell--m" : "");
+          });
+        };
+      },
       sumCells: ["p", "Найдено простых"],
       sumValues: function (s) { return [{ text: s.vars.p }, { text: s.vars.primes, cls: "gt" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Решето построено", text: s.vars.primes + " простых чисел" }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Решето построено", text: s.info }; if (s.key) return { kind: "info", hot: true, icon: "√", head: "p·p > n — дальше вычёркивать нечего", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "p=" + s.vars.p, b: "m=" + s.vars.m, c: "простых " + s.vars.primes, cls: "gt" }; },
       varsOf: function (s) { return { p: s.vars.p, m: s.vars.m, primes: s.vars.primes }; }
     },
@@ -9087,7 +9112,7 @@
       lineNotes: { 0: "Вставляем значение", 2: "Новый узел красный — не портит чёрную высоту", 4: "Родитель тоже красный → нарушение", 6: "Дядя красный → перекраска, поднимаемся к деду", 9: "Дядя чёрный, ломаный случай → малый поворот", 10: "Прямой случай → поворот деда + перекраска", 13: "Корень всегда чёрный" },
       rules: [{ head: "дядя красный", body: "→ перекраска", cls: "lt" }, { head: "дядя чёрный", body: "→ поворот", cls: "gt" }, { head: "инвариант", body: "чёрная высота равна везде", cls: "eq" }],
       parse: function (root) { var keys = (root.getAttribute("data-keys") || "10,20,30,15,25,5").split(",").map(function (x) { return parseInt(x.trim(), 10); }); var val = parseInt(root.getAttribute("data-insert"), 10); if (isNaN(val)) val = 1; return { keys: keys, val: val, steps: bRbInsert(keys, val).steps }; },
-      inputs: [],
+      inputs: [{ attr: "data-keys", label: "Ключи дерева (порядок вставки)" }, { attr: "data-insert", label: "вставить", sm: true }],
       values: function () { return []; },
       title: function (ctx) { return "Красно-чёрное дерево · вставка " + ctx.val; },
       pointers: function () { return { lo: -1, hi: -1 }; },
@@ -9109,7 +9134,7 @@
       lineNotes: { 1: "Находим удаляемый узел", 2: "Нет такого — выходим", 4: "Два ребёнка → берём преемника", 5: "Преемник = минимум правого поддерева", 6: "Копируем значение преемника", 8: "У физически удаляемого ≤1 ребёнка", 10: "Пересаживаем: на место узла — его ребёнок x", 11: "Ушёл чёрный? Тогда есть «двойной чёрный»", 12: "Чиним вверх: перекраски и повороты" },
       rules: [{ head: "ушёл красный", body: "→ чинить не надо", cls: "lt" }, { head: "ушёл чёрный", body: "→ «двойной чёрный», fixup", cls: "gt" }, { head: "брат и его дети", body: "→ 4 случая ремонта", cls: "eq" }],
       parse: function (root) { var keys = (root.getAttribute("data-keys") || "10,20,30,15,25,5,1,40,35,50").split(",").map(function (x) { return parseInt(x.trim(), 10); }); var val = parseInt(root.getAttribute("data-delete"), 10); if (isNaN(val)) val = 1; return { keys: keys, val: val, steps: bRbDelete(keys, val).steps }; },
-      inputs: [],
+      inputs: [{ attr: "data-keys", label: "Ключи дерева (порядок вставки)" }, { attr: "data-delete", label: "удалить", sm: true }],
       values: function () { return []; },
       title: function (ctx) { return "Красно-чёрное дерево · удаление " + ctx.val; },
       pointers: function () { return { lo: -1, hi: -1 }; },

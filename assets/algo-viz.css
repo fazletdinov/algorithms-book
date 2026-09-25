@@ -101,6 +101,9 @@
   transition: background-color 0.15s;
 }
 
+/* заголовок строки/столбца матрицы — не «стена», а подпись */
+.algo-viz__gcell--head { border-color: transparent; opacity: 0.7; font-size: 0.85em; }
+
 .algo-viz__gcell--wall {
   background: color-mix(in srgb, var(--fg, #333) 26%, transparent);
   border-color: color-mix(in srgb, var(--fg, #333) 30%, transparent);
@@ -1256,6 +1259,8 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__rbnode--black { background: #24292f !important; border-color: #57606a !important; color: #fff !important; }
 .algo-tp__rbnode--created { outline: 3px solid var(--tp-ok); outline-offset: 2px; }
 .algo-tp__rbnode--fix { outline: 3px solid var(--tp-warn); outline-offset: 2px; }
+/* удаляемый узел: цвет (от него зависит ремонт) сохраняем, помечаем пунктиром и зачёркиванием */
+.algo-tp__rbnode--removed { outline: 3px dashed var(--tp-warn); outline-offset: 2px; opacity: 0.6; text-decoration: line-through; }
 
 /* Count-Min Sketch (cmsViz) — 2D-сетка счётчиков d×w */
 .algo-tp__cms { display: grid; gap: 3px; justify-content: start; margin: 0.5em 0; font-variant-numeric: tabular-nums; }
@@ -1404,3 +1409,19 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--tcur { background: var(--tp-lo); border-color: var(--tp-lo); }
 .algo-tp__legdot--tvis { background: var(--tp-ok); border-color: var(--tp-ok); }
 .algo-tp__legdot--dead { background: color-mix(in srgb, var(--fg) 25%, transparent); border-style: dashed; }
+/* решето Эратосфена: таблица по 10 в ряд */
+.algo-tp__sieve { display: grid; grid-template-columns: repeat(10, minmax(2.1em, 1fr)); gap: 4px; max-width: 30em; margin: 0.4em auto; }
+.algo-tp__sievecell { display: flex; align-items: center; justify-content: center; height: 2.2em; border-radius: 7px; font-weight: 700; font-variant-numeric: tabular-nums; border: 2px solid var(--tp-border); background: color-mix(in srgb, var(--fg) 8%, transparent); transition: background-color .15s, opacity .15s; }
+.algo-tp__sievecell--one { opacity: 0.25; }
+.algo-tp__sievecell--prime { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+.algo-tp__sievecell--comp { opacity: 0.35; text-decoration: line-through; }
+.algo-tp__sievecell--p { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; opacity: 1; text-decoration: none; }
+.algo-tp__sievecell--m { outline: 3px solid var(--tp-hi); outline-offset: 1px; opacity: 1; }
+.algo-tp__legdot--hi { background: transparent; border: 2px solid var(--tp-hi); }
+/* дерево отрезков на treeFigure: подпись «#номер [lo,hi]», путь обновления, сосед */
+.algo-tp__tfigsub { position: absolute; translate: -50% 0; font-size: 0.66em; opacity: 0.6; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.algo-tp__tfigsub--in { opacity: 1; color: var(--tp-warn); font-weight: 800; }
+.algo-tp__tnode--path { box-shadow: 0 0 0 3px color-mix(in srgb, var(--tp-lo) 55%, transparent); }
+.algo-tp__tnode--sib { outline: 2px dashed var(--tp-border); outline-offset: 2px; }
+.algo-tp__tnode--untouched { opacity: 0.5; }
+.algo-tp__tfignode.algo-tp__tnode--skip { opacity: 0.3; text-decoration: line-through; }
