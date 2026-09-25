@@ -2980,7 +2980,10 @@
   function bHashResize(keys, m) {
     var oldB = hashBuild(keys, m), n = keys.length, newM = m * 2, steps = [];
     function snapOf(buckets, curB, marks) { return buckets.map(function (chain, i) { return chain.map(function (k, j) { return { key: k, cls: (marks && marks[i] != null && marks[i][j]) || "" }; }); }); }
-    function push(o) { steps.push({ si: steps.length, line: o.line, buckets: o.snap, curBucket: (o.curBucket == null ? -1 : o.curBucket), vars: { key: (o.key == null ? "—" : String(o.key)), load: o.load }, info: o.info, done: o.done, fix: o.fix }); }
+    // old/moved — старая таблица остаётся на экране (панель под новой): иначе «цепочка при m
+    // расходится по разным бакетам при 2m» не видно — старый массив просто исчезал
+    var moved = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, buckets: o.snap, old: oldB, oldM: m, moved: moved.slice(), curKey: o.key == null ? null : o.key, curBucket: (o.curBucket == null ? -1 : o.curBucket), vars: { key: (o.key == null ? "—" : String(o.key)), load: o.load }, info: o.info, done: o.done, fix: o.fix }); }
     var loadOld = (n / m).toFixed(2);
     push({ line: 2, snap: snapOf(oldB, -1, {}), load: loadOld, info: "В таблице " + n + " ключей на " + m + " бакетов: load factor = " + n + "/" + m + " = " + loadOld + " > 0.75 → цепочки длинны, пора расти" });
     push({ line: 3, snap: snapOf(oldB, -1, {}), load: loadOld, info: "Создаём массив вдвое больше — " + newM + " бакетов — и перехешируем в него КАЖДЫЙ ключ по новому модулю % " + newM });
@@ -2989,7 +2992,7 @@
     for (var ob = 0; ob < oldB.length; ob++) {
       for (var c = 0; c < oldB[ob].length; c++) {
         var k = oldB[ob][c], ni = ((k % newM) + newM) % newM;
-        newB[ni].push(k);
+        newB[ni].push(k); moved.push(k);
         var mk = {}; mk[ni] = {}; mk[ni][newB[ni].length - 1] = "created";
         push({ line: 10, snap: snapOf(newB, ni, mk), curBucket: ni, key: k, load: loadOld, info: k + " был в бакете " + ob + " (% " + m + "); теперь " + k + " % " + newM + " = " + ni + " → бакет " + ni });
       }
@@ -6796,7 +6799,7 @@
     for (var d = n; d >= 1; d--) { pegs[0].push(d); } // дно = n, верх = 1
     function vv(k, from, to, via) { return { "n": k, "перенос": names[from] + " → " + names[to], "запасной": names[via], "глубина": depth, "ход": moveNo }; }
     function snap(line, k, from, to, via, extra) {
-      var base = { pegs: [pegs[0].slice(), pegs[1].slice(), pegs[2].slice()], n: n, line: line, depth: depth, stack: stack.slice(), disk: -1, to: -1, vars: vv(k, from, to, via) };
+      var base = { pegs: [pegs[0].slice(), pegs[1].slice(), pegs[2].slice()], n: n, line: line, depth: depth, stack: stack.slice(), disk: -1, to: -1, cf: { k: k, from: from, dst: to, via: via }, vars: vv(k, from, to, via) };
       if (extra) { for (var key in extra) base[key] = extra[key]; }
       return base;
     }
@@ -6816,6 +6819,9 @@
       steps.push(snap(5, k, from, to, via, { disk: disk, to: to, info: "move(" + names[from] + ", " + names[to] + ") — ход " + moveNo + ": самый большой диск " + disk + " этого вызова переезжает " + names[from] + " → " + names[to] }));
       steps.push(snap(6, k, from, to, via, { info: "hanoi(" + (k - 1) + ", " + names[via] + "→" + names[to] + ") — РЕКУРСИЯ: переносим те же " + (k - 1) + " дисков с запасного " + names[via] + " на цель " + names[to] }));
       call(k - 1, via, to, from);
+      // возврат кадра n > 0 — отдельным шагом: раньше такие кадры снимались молча,
+      // и стек сворачивался пачкой
+      steps.push(snap(7, k, from, to, via, { info: sig + " закончен: " + (k === 1 ? "диск 1 стоит" : "диски 1.." + k + " стоят") + " на " + names[to] + " → кадр снимается" + (stack.length > 1 ? ", возврат в " + stack[stack.length - 2] : ", стек пуст") }));
       depth--; stack.pop();
     }
     call(n, 0, 2, 1);
@@ -6835,7 +6841,7 @@
     var wrap = document.createElement("div");
     wrap.style.cssText = "display:flex;justify-content:space-around;align-items:flex-end;gap:14px;padding:12px 6px;min-height:" + (n * 16 + 30) + "px;";
     panel.appendChild(wrap);
-    var hosts = [];
+    var hosts = [], roles = [];
     for (var p = 0; p < 3; p++) {
       var col = document.createElement("div");
       col.style.cssText = "display:flex;flex-direction:column;align-items:center;flex:1;";
@@ -6844,8 +6850,10 @@
       var label = document.createElement("div");
       label.style.cssText = "margin-top:5px;font-weight:700;";
       label.textContent = names[p];
-      col.appendChild(disks); col.appendChild(label); wrap.appendChild(col);
-      hosts.push(disks);
+      var role = document.createElement("div");
+      role.style.cssText = "font-size:11px;min-height:1.3em;color:#e0a500;font-weight:700;";
+      col.appendChild(disks); col.appendChild(label); col.appendChild(role); wrap.appendChild(col);
+      hosts.push(disks); roles.push(role);
     }
     return function (s) {
       // стек вызовов: верхний (текущий) кадр — янтарный
@@ -6859,13 +6867,17 @@
         c.textContent = sig;
         stackChips.appendChild(c);
       });
-      var pegs = s.pegs || [[], [], []];
+      var pegs = s.pegs || [[], [], []], cf = !s.done && s.cf && s.cf.k > 0 ? s.cf : null;
+      // роли стержней в ТЕКУЩЕМ вызове: они меняются от кадра к кадру
+      for (var r = 0; r < 3; r++) roles[r].textContent = !cf ? "" : r === cf.from ? "from" : r === cf.dst ? "to" : "via";
       for (var p = 0; p < 3; p++) {
         hosts[p].innerHTML = "";
         pegs[p].forEach(function (size) {
           var d = document.createElement("div");
           var moved = s.disk === size && s.to === p;
-          d.style.cssText = "height:13px;margin:1px 0;border-radius:3px;width:" + (18 + size * 16) + "px;background:" + (moved ? "#f59e0b" : "#3b82f6") + ";color:#fff;font-size:10px;line-height:13px;text-align:center;font-weight:600;";
+          // hanoi(k, …) всегда отвечает за k самых маленьких дисков — это его подзадача
+          var mine = cf && size <= cf.k;
+          d.style.cssText = "height:13px;margin:1px 0;border-radius:3px;width:" + (18 + size * 16) + "px;background:" + (moved ? "#f59e0b" : "#3b82f6") + ";color:#fff;font-size:10px;line-height:13px;text-align:center;font-weight:600;" + (mine ? "outline:2px dashed #e0a500;outline-offset:1px;" : "opacity:.55;");
           d.textContent = size;
           hosts[p].appendChild(d);
         });
@@ -6878,9 +6890,11 @@
   // длину/ёмкость на каждом шаге; customViz рисует занятые + свободные слоты.
   function bDynArray(n) {
     n = Math.max(1, Math.min(12, n | 0));
-    var len = 0, cap = 1, total = 0, steps = [];
+    // hist — цена каждого завершённого append (1 запись + копия при росте): без неё
+    // амортизация была только словами в итоговой строке
+    var len = 0, cap = 1, total = 0, steps = [], hist = [], curCopy = 0;
     function snap(extra) {
-      var base = { len: len, cap: cap, total: total };
+      var base = { len: len, cap: cap, total: total, hist: hist.slice() };
       for (var k in extra) { base[k] = extra[k]; }
       return base;
     }
@@ -6893,12 +6907,12 @@
         // копия. Раньше оба были слиты в одну строку, и copy выглядел перекраской.
         var oldCap = cap, newCap = cap * 2;
         steps.push(snap({ line: 2, resized: false, copied: 0, x: x, old: { cap: oldCap, len: len, st: "src" }, neu: { cap: newCap, len: 0, st: "new" }, info: "bigger := make(..., 2·cap): выделяем НОВЫЙ массив ёмкости " + newCap + " (вдвое больше прежней " + oldCap + "); пока он пуст, s по-прежнему смотрит в старый" }));
-        total += len;
+        total += len; curCopy = len;
         steps.push(snap({ line: 3, resized: true, copied: len, x: x, old: { cap: oldCap, len: len, st: "copying" }, neu: { cap: newCap, len: len, st: "copied" }, info: "copy(bigger, s): КОПИРУЕМ все " + len + " элементов из старого массива в новый — дорогой шаг O(len)" }));
         cap = newCap;
         steps.push(snap({ line: 4, resized: false, copied: 0, x: x, old: { cap: oldCap, len: len, st: "gc" }, neu: { cap: newCap, len: len, st: "main" }, info: "s = bigger: срез смотрит в новый массив. Старый больше никто не держит — его освободит GC." }));
       }
-      len++;
+      len++; hist.push(1 + curCopy); curCopy = 0;
       steps.push(snap({ line: 6, resized: false, copied: 0, x: x, info: "return append(s, " + x + "): кладём на свободное место, длина " + len + " / ёмкость " + cap + " — O(1)" }));
     }
     steps.push(snap({ done: true, line: 6, resized: false, copied: 0, x: "—", info: "Всего " + total + " копий на " + n + " добавлений (< 2·" + n + ") → амортизированно O(1) на append" }));
@@ -10857,7 +10871,7 @@
       complexity: { time: "O(2ⁿ)", space: "O(n)", good: "★ Канон рекурсии; глубина стека n + 1 = O(n)" },
       varOrder: ["n", "перенос", "запасной", "глубина", "ход"],
       varDesc: { "n": "Сколько дисков переносит текущий вызов", "перенос": "Откуда → куда (этот вызов)", "запасной": "Вспомогательный стержень", "глубина": "Глубина стека вызовов", "ход": "Номер сделанного хода" },
-      lineNotes: { 0: "Вход в вызов hanoi(n, from, to, via): перенести n дисков from → to", 1: "База рекурсии: n == 0 — переносить нечего", 2: "return — снимаем кадр со стека, возвращаемся в вызывающий", 4: "Рекурсия 1: (n−1) дисков уводим на запасной стержень", 5: "Двигаем самый большой диск этого вызова на целевой", 6: "Рекурсия 2: (n−1) дисков переносим поверх большого" },
+      lineNotes: { 0: "Вход в вызов hanoi(n, from, to, via): перенести n дисков from → to", 1: "База рекурсии: n == 0 — переносить нечего", 2: "return — снимаем кадр со стека, возвращаемся в вызывающий", 4: "Рекурсия 1: (n−1) дисков уводим на запасной стержень", 5: "Двигаем самый большой диск этого вызова на целевой", 6: "Рекурсия 2: (n−1) дисков переносим поверх большого", 7: "Вызов закончен — кадр снимается со стека" },
       rules: [{ head: "T(n)", body: "= 2·T(n−1) + 1", cls: "lt" }, { head: "Ходов", body: "ровно 2ⁿ − 1", cls: "gt" }, { head: "Глубина стека", body: "= n + 1 (с кадром базы n == 0) → O(n)", cls: "eq" }],
       parse: function (root) { var n = parseInt(root.getAttribute("data-n"), 10); if (isNaN(n)) n = 3; return { n: n, steps: bHanoi(n) }; },
       inputs: [{ attr: "data-n", label: "Дисков" }],
@@ -10891,6 +10905,28 @@
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Амортизированно O(1)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: s.resized }; },
       stepCard: function (s) { return { a: "len " + s.len + "/" + s.cap, b: s.resized ? "рост!" : "append", c: s.resized ? "копий " + s.copied : "O(1)", cls: s.resized ? "lt" : "gt" }; },
       varsOf: function (s) { return { "добавили": s.x, "длина": s.len, "ёмкость": s.cap, "копий": s.total }; },
+      mapViz: function (panel, ctx) {
+        var n = Math.max(1, Math.min(12, ctx.n | 0 || 9));
+        var p = structPanel(panel, "цена каждого append: 1 запись + копия всех элементов при росте");
+        p.grid.style.alignItems = "flex-end";
+        var bars = [];
+        for (var k = 0; k < n; k++) {
+          var col = mkEl("div", "algo-tp__dabar");
+          var v = mkEl("div", "algo-tp__dabarv", ""), b = mkEl("div", "algo-tp__dabarb"), l = mkEl("div", "algo-tp__dabarl", "#" + (k + 1));
+          col.appendChild(v); col.appendChild(b); col.appendChild(l); p.grid.appendChild(col); bars.push({ v: v, b: b });
+        }
+        return function (s) {
+          var h = s.hist || [], sum = 0;
+          bars.forEach(function (o, k) {
+            var c = h[k];
+            o.v.textContent = c == null ? "" : c;
+            o.b.style.height = c == null ? "0px" : (4 + c * 9) + "px";
+            o.b.className = "algo-tp__dabarb" + (c > 1 ? " algo-tp__dabarb--grow" : "") + (k === h.length - 1 && c != null ? " algo-tp__dabarb--last" : "");
+          });
+          h.forEach(function (c) { sum += c; });
+          p.foot.textContent = h.length ? "итого " + sum + " операций на " + h.length + " append → в среднем " + (sum / h.length).toFixed(2) + " (не больше 3: дорогие append редки и удваивают запас)" : "";
+        };
+      },
       customViz: dynArrayViz
     },
 
@@ -12224,6 +12260,24 @@
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Перехешировано, load factor " + s.vars.load, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "ключ " + s.vars.key, b: "load " + s.vars.load, c: s.done ? "✓" : "↻", cls: s.done ? "eq" : "lt" }; },
       varsOf: function (s) { return { "key": s.vars.key, "load": s.vars.load }; },
+      mapViz: function (panel) {
+        var p = structPanel(panel, "старый массив — ключи уезжают из него по одному");
+        p.grid.style.flexDirection = "column"; p.grid.style.alignItems = "stretch";
+        return function (s) {
+          p.grid.innerHTML = "";
+          (s.old || []).forEach(function (chain, b) {
+            var row = mkEl("div", "algo-tp__hrrow");
+            row.appendChild(mkEl("span", "algo-tp__hrlab", "[" + b + "] % " + s.oldM));
+            if (!chain.length) row.appendChild(mkEl("span", "algo-tp__hrkey algo-tp__hrkey--empty", "∅"));
+            chain.forEach(function (k) {
+              var gone = s.moved.indexOf(k) >= 0 && k !== s.curKey;
+              row.appendChild(mkEl("span", "algo-tp__hrkey" + (k === s.curKey ? " algo-tp__hrkey--cur" : gone ? " algo-tp__hrkey--gone" : ""), String(k)));
+            });
+            p.grid.appendChild(row);
+          });
+          p.foot.textContent = s.done ? "старый массив пуст и уходит сборщику мусора" : s.curKey != null ? "переносим " + s.curKey + ": его новый бакет — " + s.curKey + " % " + (s.oldM * 2) : "ключи ещё на месте";
+        };
+      },
       customViz: hashViz
     },
 

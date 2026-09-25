@@ -1497,3 +1497,17 @@ body.algo-tp-fslock { overflow: hidden; }
 /* Построение кучи: узлы, чьё поддерево уже куча (зелёная рамка без заливки) */
 .algo-tp__tnode--heapok, .algo-tp__heapcell.algo-tp__tnode--heapok { border-color: var(--tp-ok) !important; box-shadow: inset 0 0 0 1px var(--tp-ok); }
 .algo-tp__heapcell.algo-tp__tnode--path { box-shadow: 0 0 0 3px color-mix(in srgb, var(--tp-lo) 55%, transparent); }
+/* Динамический массив: столбики цены append */
+.algo-tp__dabar { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 1.9em; }
+.algo-tp__dabarv { font-size: 0.75em; font-weight: 700; min-height: 1.2em; }
+.algo-tp__dabarb { width: 1.2em; background: var(--tp-lo); border-radius: 3px 3px 0 0; transition: height 0.2s; }
+.algo-tp__dabarb--grow { background: #e0a500; }
+.algo-tp__dabarb--last { outline: 2px solid var(--fg, #c9d1d9); outline-offset: 1px; }
+.algo-tp__dabarl { font-size: 0.68em; opacity: 0.6; margin-top: 2px; }
+/* Перехеширование: старая таблица рядом с новой */
+.algo-tp__hrrow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.algo-tp__hrlab { font-size: 0.75em; opacity: 0.65; min-width: 4.2em; font-variant-numeric: tabular-nums; }
+.algo-tp__hrkey { padding: 1px 8px; border-radius: 6px; border: 1px solid var(--tp-border); font-weight: 700; font-variant-numeric: tabular-nums; }
+.algo-tp__hrkey--cur { background: #e0a500; border-color: #e0a500; color: #1a1a1a; }
+.algo-tp__hrkey--gone { opacity: 0.3; text-decoration: line-through; }
+.algo-tp__hrkey--empty { border-style: dashed; opacity: 0.5; }
