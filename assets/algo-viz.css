@@ -1470,3 +1470,5 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__cycarc { position: absolute; top: 0; height: 0.9em; min-width: 10px; border: 2px dashed var(--tp-warn); border-top: none; border-radius: 0 0 10px 10px; }
 .algo-tp__cycarc::before { content: "▲"; position: absolute; left: -0.42em; top: -0.8em; font-size: 0.75em; color: var(--tp-warn); line-height: 1; }
 .algo-tp__cyclab { position: absolute; top: 1.7em; left: 50%; translate: -50% 0; white-space: nowrap; font-size: 0.72em; color: var(--tp-warn); }
+/* Выбывший из окна элемент на шаге сдвига: «− arr[i−k]» должно быть видно на массиве */
+.algo-tp__big.algo-tp__big--out { border: 2px dashed #ef4444; opacity: 0.6; text-decoration: line-through; text-decoration-color: #ef4444; }

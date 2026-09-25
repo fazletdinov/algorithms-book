@@ -2275,12 +2275,12 @@
     }
     steps.push({ lo: 0, hi: k - 1, line: 2, vars: vv(k, sum, "—"), info: "i = " + k + ": " + k + " < " + k + " — нет, первое окно собрано (windowSum = " + sum + ")" });
     maxSum = sum;
-    steps.push({ lo: 0, hi: k - 1, line: 5, vars: vv(k - 1, sum, maxSum), info: "maxSum = windowSum = " + maxSum + " — стартовый максимум" });
+    steps.push({ lo: 0, hi: k - 1, line: 5, vars: vv("—", sum, maxSum), info: "maxSum = windowSum = " + maxSum + " — стартовый максимум (i первого цикла уже вне области видимости)" });
     for (var r = k; r < n; r++) {
       var lo = r - k + 1;
       steps.push({ lo: lo - 1, hi: r - 1, line: 6, vars: vv(r, sum, maxSum), info: "i = " + r + ": " + r + " < " + n + " — да, двигаем окно вправо" });
       sum += arr[r] - arr[r - k];
-      steps.push({ lo: lo, hi: r, line: 7, vars: vv(r, sum, maxSum), info: "windowSum += arr[" + r + "] − arr[" + (r - k) + "] = +" + arr[r] + " − " + arr[r - k] + " → " + sum + " (за O(1), без пересчёта)" });
+      steps.push({ lo: lo, hi: r, gone: r - k, added: r, line: 7, vars: vv(r, sum, maxSum), info: "windowSum += arr[" + r + "] − arr[" + (r - k) + "] = +" + arr[r] + " (вошёл, рамка) − " + arr[r - k] + " (выбыл, зачёркнут) → " + sum + " за O(1), без пересчёта" });
       var improved = sum > maxSum;
       steps.push({ lo: lo, hi: r, line: 8, vars: vv(r, sum, maxSum), info: "windowSum " + sum + (improved ? " > " : " ≤ ") + "maxSum " + maxSum + (improved ? " — да" : " — нет, максимум прежний") });
       if (improved) {
@@ -2288,8 +2288,9 @@
         steps.push({ lo: lo, hi: r, improved: true, line: 9, vars: vv(r, sum, maxSum), info: "maxSum = windowSum = " + maxSum + " — новый максимум!" });
       }
     }
-    steps.push({ lo: bestLo, hi: bestLo + k - 1, line: 6, vars: vv(n, sum, maxSum), info: "i = " + n + ": " + n + " < " + n + " — нет, окна кончились" });
-    steps.push({ lo: bestLo, hi: bestLo + k - 1, done: true, line: 12, vars: vv(n, sum, maxSum), info: "return maxSum = " + maxSum + " — лучшее окно [" + bestLo + ".." + (bestLo + k - 1) + "]" });
+    steps.push({ lo: n - k, hi: n - 1, line: 6, vars: vv(n, sum, maxSum), info: "i = " + n + ": " + n + " < " + n + " — нет, окна кончились" });
+    // на финале указателей нет (цикл кончился) — зелёным лучшее окно, а не «left/right»
+    steps.push({ lo: bestLo, hi: bestLo + k - 1, done: true, line: 12, vars: vv("—", sum, maxSum), info: "return maxSum = " + maxSum + " — лучшее окно [" + bestLo + ".." + (bestLo + k - 1) + "] (зелёным)" });
     return steps;
   }
   // Два указателя — построчный (debugger) проход по сходящимся lo/hi.
@@ -2307,15 +2308,17 @@
         steps.push({ lo: lo, hi: hi, found: true, done: true, line: 5, vars: vv(sum), info: "return " + lo + ", " + hi + " — пара (" + arr[lo] + ", " + arr[hi] + ") даёт " + target });
         return steps;
       }
-      steps.push({ lo: lo, hi: hi, line: 4, vars: vv(sum), info: "sum " + sum + " ≠ target " + target + " — нет" });
+      steps.push({ lo: lo, hi: hi, line: 4, note: "sum ≠ target — не пара; решаем, какой указатель сдвинуть", vars: vv(sum), info: "sum " + sum + " ≠ target " + target + " — нет" });
       if (sum < target) {
-        steps.push({ lo: lo, hi: hi, line: 6, vars: vv(sum), info: "sum " + sum + " < target " + target + " — да, сумма мала" });
-        lo++;
-        steps.push({ lo: lo, hi: hi, line: 7, vars: vv(), info: "lo++ → lo = " + lo + " (берём элемент побольше слева)" });
+        steps.push({ lo: lo, hi: hi, line: 6, note: "Да: сумма мала → сдвинем lo вправо", vars: vv(sum), info: "sum " + sum + " < target " + target + " — да, сумма мала" });
+        var goneL = lo; lo++;
+        // отброшенный элемент гаснет: с arr[hi] — самым большим из оставшихся — он даёт
+        // слишком мало, а с остальными ещё меньше
+        steps.push({ lo: lo, hi: hi, line: 7, vars: vv(), info: "lo++ → lo = " + lo + ". arr[" + goneL + "] = " + arr[goneL] + " отброшен: даже с самым большим из оставшихся (" + arr[hi] + ") сумма мала" });
       } else {
-        steps.push({ lo: lo, hi: hi, line: 6, vars: vv(sum), info: "sum " + sum + " < target " + target + " — нет (сумма велика) → else" });
-        hi--;
-        steps.push({ lo: lo, hi: hi, line: 9, vars: vv(), info: "hi-- → hi = " + hi + " (берём элемент поменьше справа)" });
+        steps.push({ lo: lo, hi: hi, line: 6, note: "Нет: сумма велика → идём в else, сдвинем hi влево", vars: vv(sum), info: "sum " + sum + " < target " + target + " — нет (сумма велика) → else" });
+        var goneH = hi; hi--;
+        steps.push({ lo: lo, hi: hi, line: 9, vars: vv(), info: "hi-- → hi = " + hi + ". arr[" + goneH + "] = " + arr[goneH] + " отброшен: даже с самым маленьким из оставшихся (" + arr[lo] + ") сумма велика" });
       }
     }
     steps.push({ lo: lo, hi: hi, line: 2, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — нет, указатели сошлись" });
@@ -2479,9 +2482,12 @@
         steps.push({ lo: left, hi: right, line: 8, vars: vv(right), info: "left++ → left = " + left + " (сжали окно слева; назад left не вернётся)" });
       }
     }
-    var found = best !== n + 1;
-    steps.push({ lo: found ? bestLo : 0, hi: found ? bestHi : -1, line: 11, vars: { left: left, right: n, sum: sum, best: bv() }, info: found ? "best = " + best + " ≠ ∞ — ответ найден" : "best всё ещё ∞ → вернём 0" });
-    steps.push({ lo: found ? bestLo : 0, hi: found ? bestHi : -1, done: true, line: found ? 12 : 11, vars: { left: left, right: n - 1, sum: sum, best: bv() }, info: found ? "return best = " + best + " — минимальный подмассив [" + bestLo + ".." + bestHi + "] (сумма ≥ " + target + ")" : "return 0 — подмассива с суммой ≥ " + target + " нет" });
+    var found = best !== n + 1, bestSum = 0;
+    for (var q = bestLo; found && q <= bestHi; q++) bestSum += arr[q];
+    // После цикла right вне области видимости, а указатели больше не двигаются: на
+    // массиве — лучшее окно (зелёным), в карточках — его сумма, а не текущего остатка.
+    steps.push({ lo: found ? bestLo : 0, hi: found ? bestHi : -1, final: true, bestSum: bestSum, line: 11, note: found ? "best ≠ ∞ — условие ложно, return 0 пропускаем" : null, vars: { left: left, right: "—", sum: sum, best: bv() }, info: found ? "best = " + best + " ≠ ∞ — ответ найден" : "best всё ещё ∞ → вернём 0" });
+    steps.push({ lo: found ? bestLo : 0, hi: found ? bestHi : -1, final: true, bestSum: bestSum, done: true, line: found ? 12 : 11, vars: { left: left, right: "—", sum: sum, best: bv() }, info: found ? "return best = " + best + " — минимальный подмассив [" + bestLo + ".." + bestHi + "] (сумма ≥ " + target + ")" : "return 0 — подмассива с суммой ≥ " + target + " нет" });
     return steps;
   }
   // Разбор cyclic-sort: «первое пропущенное положительное». Раскладываем число v на индекс
@@ -8713,6 +8719,8 @@
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Поиск пары с суммой " + ctx.target; },
       param: function (ctx) { return { label: "Target (цель)", value: ctx.target, ok: true }; },
+      // Всё вне [lo, hi] гаснет: это и есть инвариант «если пара есть, она внутри окна».
+      cellState: function (s, j) { if (s.found) return { found: j === s.lo || j === s.hi, dim: j !== s.lo && j !== s.hi }; return { lo: j === s.lo, hi: j === s.hi, dim: j < s.lo || j > s.hi }; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
       sumCells: ["Текущая сумма", "Сравнение"],
       sumValues: function (s, ctx) {
@@ -8746,7 +8754,7 @@
       ptr1: { name: "low", cap: "(граница нулей)" }, ptr2: { name: "high", cap: "(граница двоек)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Разбиение на 3 класса за проход" },
       varOrder: ["low", "mid", "high", "v"],
-      varDesc: { low: "Конец зоны нулей (первая НЕ-ноль)", mid: "Сканер непросмотренного (рамка)", high: "Перед зоной двоек (последний непросмотренный)", v: "Текущий элемент nums[mid]" },
+      varDesc: { low: "Конец зоны нулей (первая НЕ-ноль)", mid: "Сканер непросмотренного (рамка)", high: "Перед зоной двоек (последний непросмотренный)", v: "Что классифицировал switch (до обмена)" },
       lineNotes: { 1: "Зоны: [0..low) нули, [low..mid) единицы, (high..] двойки, [mid..high] — неизвестно", 2: "Пока между mid и high есть непросмотренное", 3: "Классифицируем текущий элемент nums[mid]", 4: "Ноль — ему место в левой зоне", 5: "Обмен с границей нулей: ноль встал к своим", 6: "Зона нулей выросла на 1", 7: "mid++ безопасен: с low мог прийти только уже просмотренный 0 или 1", 8: "Единица — уже в своей зоне [low..mid)", 9: "Просто расширяем зону единиц", 10: "Двойка — ей место в правой зоне", 11: "Обмен с границей двоек: двойка встала к своим", 12: "«Aha»: high−−, но mid СТОИТ — с high приехал непросмотренный элемент", 15: "mid > high — всё классифицировано за один проход" },
       rules: [{ head: "nums[mid] = 0", body: "swap(low, mid), low++ и mid++", cls: "eq" }, { head: "nums[mid] = 1", body: "уже на месте → mid++", cls: "lt" }, { head: "nums[mid] = 2", body: "swap(mid, high), high−−, mid СТОИТ", cls: "gt" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")).map(function (x) { return Math.max(0, Math.min(2, x)); }); if (!arr.length) arr = [2, 0, 2, 1, 1, 0]; return { arr: arr, steps: bDutchFlag(arr) }; },
@@ -8755,7 +8763,9 @@
       title: function (ctx) { return "Dutch National Flag: [" + ctx.arr.join(", ") + "]"; },
       cellState: function (s, j) { var st = {}; if (j < s.low) st.found = true; else if (j < s.mid) st.span = true; if (j > s.high) st.hi = true; if (j === s.mid && !s.done) st.mid = true; return st; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
-      sumCells: ["Зоны 0 | 1 | ? | 2", "nums[mid]"],
+      // v — значение, которое классифицировал switch; после обмена в клетке mid уже другое
+      // (подписано «nums[mid]», карточка показывала 2 рядом с клеткой, где лежит 0)
+      sumCells: ["Зоны 0 | 1 | ? | 2", "switch увидел"],
       sumValues: function (s, ctx) { var n = ctx.arr.length; return [{ text: s.low + " | " + (s.mid - s.low) + " | " + Math.max(0, s.high - s.mid + 1) + " | " + (n - 1 - s.high), cls: "eq" }, { text: String(s.vars.v), cls: s.vars.v === 0 ? "eq" : (s.vars.v === 2 ? "gt" : "lt") }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Разложено за один проход", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: "[" + s.values.join(",") + "]", c: "O(n)", cls: "eq" }; return { a: "mid=" + s.mid + " v=" + s.vars.v, b: s.hot ? "swap с high, mid стоит" : (s.line === 5 ? "swap с low" : "mid++"), c: "low=" + s.low + " high=" + s.high, cls: s.hot ? "gt" : "eq" }; },
@@ -8777,7 +8787,8 @@
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Максимум окна размера " + ctx.k; },
       param: function (ctx) { return { label: "Размер окна k", value: ctx.k }; },
-      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      cellState: function (s, j) { if (s.done) return { found: j >= s.lo && j <= s.hi, dim: j < s.lo || j > s.hi }; return { lo: j === s.lo, hi: j === s.hi, span: j > s.lo && j < s.hi, mid: j === s.added, out: j === s.gone }; },
+      pointers: function (s) { return s.done ? { lo: -1, hi: -1 } : { lo: s.lo, hi: s.hi }; },
       sumCells: ["Сумма окна", "Максимум"],
       sumValues: function (s) { return [{ text: s.vars.windowSum }, { text: s.vars.maxSum, cls: (s.vars.windowSum === s.vars.maxSum ? "eq" : "") }]; },
       status: function (s, idx, total) {
@@ -8983,10 +8994,11 @@
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Мин. подмассив с суммой ≥ " + ctx.target + " — окно O(n)"; },
       param: function (ctx) { return { label: "target (цель суммы)", value: ctx.target, ok: true }; },
-      cellState: function (s, j, lo, hi) { if (s.done && lo >= 0 && hi >= lo) return { found: j >= lo && j <= hi }; return { lo: j === lo && lo >= 0, hi: j === hi && hi >= 0, span: lo >= 0 && hi >= lo && j > lo && j < hi }; },
-      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      cellState: function (s, j, lo, hi) { if (s.final && s.hi >= s.lo) return { found: j >= s.lo && j <= s.hi }; return { lo: j === lo && lo >= 0, hi: j === hi && hi >= 0, span: lo >= 0 && hi >= lo && j > lo && j < hi }; },
+      pointers: function (s) { return s.final ? { lo: -1, hi: -1 } : { lo: s.lo, hi: s.hi }; },
       sumCells: ["Сумма окна", "Сравнение с target", "Лучшая длина"],
       sumValues: function (s, ctx) {
+        if (s.final && s.hi >= s.lo) return [{ text: s.bestSum + " (лучшее окно)", cls: "ok" }, { text: s.bestSum + " ≥ " + ctx.target, cls: "eq" }, { text: s.vars.best, cls: "warn" }];
         var sum = s.vars.sum, best = s.vars.best, ok = sum >= ctx.target;
         return [{ text: sum, cls: ok ? "ok" : "lo" }, { text: sum + (ok ? " ≥ " : " < ") + ctx.target, cls: ok ? "eq" : "lt" }, { text: best, cls: "warn" }];
       },
@@ -10750,7 +10762,7 @@
       complexity: { time: "O(n) амортизированно", space: "O(k)", good: "★ Максимум/минимум скользящего окна" },
       varOrder: ["i", "v", "front", "resv"],
       varDesc: { i: "Текущий индекс (правый край окна)", v: "Новый элемент nums[i]", front: "Голова дека — максимум текущего окна", resv: "Ответы по окнам" },
-      lineNotes: { 1: "Ответ: максимум каждого окна длины k", 2: "Дек индексов: значения убывают от головы к хвосту", 3: "Один проход; окно — [i−k+1 .. i]", 4: "Голова дека уехала за левый край окна?", 5: "Снимаем спереди: индекс i−k больше не в окне", 7: "Хвост меньше нового? Он уже никогда не будет максимумом", 8: "Снимаем сзади — «зачем хранить 3, если пришёл 5»", 10: "Новый индекс — в хвост: перед ним только большие", 11: "Первое полное окно собирается при i = k−1", 12: "Максимум окна — всегда голова дека, за O(1)", 15: "Каждый индекс вошёл и вышел ≤ 1 раза → O(n)" },
+      lineNotes: { 1: "Ответ: максимум каждого окна длины k", 2: "Дек индексов: значения убывают от головы к хвосту", 3: "Один проход; окно — [i−k+1 .. i]", 4: "Голова дека уехала за левый край окна?", 5: "Снимаем спереди: индекс i−k больше не в окне", 7: "Хвост меньше нового? Он уже никогда не будет максимумом", 8: "Снимаем сзади: меньший перед большим уже никогда не станет максимумом", 10: "Новый индекс — в хвост: перед ним только большие", 11: "Первое полное окно собирается при i = k−1", 12: "Максимум окна — всегда голова дека, за O(1)", 15: "Каждый индекс вошёл и вышел ≤ 1 раза → O(n)" },
       rules: [{ head: "спереди", body: "выбывает индекс, вышедший из окна", cls: "lt" }, { head: "сзади", body: "nums[хвост] < v → долой: максимумом не станет", cls: "gt" }, { head: "почему O(n)", body: "каждый индекс входит в дек и выходит ≤ 1 раза", cls: "eq" }],
       parse: function (root) {
         var arr = nums(root.getAttribute("data-array")); if (!arr.length) arr = [1, 3, -1, -3, 5, 3, 6, 7];
@@ -10763,8 +10775,10 @@
       param: function (ctx) { return { label: "k (ширина окна)", value: ctx.k, ok: true }; },
       cellState: function (s, j) { var st = {}; if (s.lo >= 0) { var inWin = j >= s.lo && j <= s.hi; if (!inWin) st.dim = true; else if (s.dq.length && j === s.dq[0]) st.found = true; else if (s.dq.indexOf(j) >= 0) st.mid = true; else if (j > s.lo && j < s.hi) st.span = true; if (j === s.lo) st.lo = true; if (j === s.hi) st.hi = true; } return st; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
-      sumCells: ["Голова дека (максимум окна)", "res (по окнам)"],
-      sumValues: function (s) { return [{ text: s.vars.front, cls: "eq" }, { text: s.vars.resv, cls: s.ans ? "eq" : "" }]; },
+      // «максимум окна» голова дека только после того, как nums[i] обработан: пока хвост
+      // чистится, в окне уже лежит новый элемент, а в голове может быть меньшее
+      sumCells: ["Голова дека", "res (по окнам)"],
+      sumValues: function (s) { return [{ text: s.vars.front + (s.line === 12 ? " = максимум окна" : ""), cls: s.line === 12 ? "eq" : "" }, { text: s.vars.resv, cls: s.ans ? "eq" : "" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "res = " + s.vars.resv, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: "res = " + s.vars.resv, c: "O(n)", cls: "eq" }; return { a: "i=" + s.vars.i + " v=" + s.vars.v, b: s.popped >= 0 ? "pop сзади " + s.popped : (s.poppedFront >= 0 ? "pop спереди " + s.poppedFront : (s.ans ? "ответ" : "push " + s.vars.i)), c: "дек: " + s.dq.length, cls: s.popped >= 0 ? "gt" : (s.ans ? "eq" : "lt") }; },
       varsOf: function (s) { return { i: s.vars.i, v: s.vars.v, front: s.vars.front, resv: s.vars.resv }; },
@@ -12941,6 +12955,7 @@
           c.classList.toggle("algo-tp__big--mid", !!st2.mid);
           c.classList.toggle("algo-tp__big--dim", !!st2.dim);
           c.classList.toggle("algo-tp__big--found", !!st2.found);
+          c.classList.toggle("algo-tp__big--out", !!st2.out);
         });
         ptrSlots.forEach(function (c, j) {
           c.innerHTML = "";
