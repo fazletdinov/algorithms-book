@@ -67,6 +67,7 @@
 - [🔤 Строковые алгоритмы: поиск подстроки](string-algorithms.md)
 - [🌿 Trie: устройство и построение](trie-structure.md)
 - [🌿 Trie: разбор задач](trie.md)
+- [🧶 Ахо — Корасик: много шаблонов за один проход](aho-corasick.md)
 - [🌴 Дерево отрезков: устройство и операции](segment-tree-structure.md)
 - [🌴 Дерево отрезков: разбор задач](segment-tree.md)
 - [📏 Дерево Фенвика (BIT): устройство и операции](fenwick-tree-structure.md)

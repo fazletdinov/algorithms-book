@@ -121,6 +121,15 @@ for (const { file, re, lvl } of statedCounts) {
   if (!total || Number(total[1]) !== bank.length) {
     errors.push(`src/mixed.md: в банке ${bank.length} задач, а на странице — ${total ? total[1] : "(не нашёл «N условий собраны»)"}`);
   }
+  // То же число названо в CLAUDE.md, в описании режима собеседования; однажды оно
+  // уже пережило добавление пакета незамеченным.
+  const claudeMock = read(path.join(root, "CLAUDE.md")).match(/непустым `t` \((\d+) из (\d+)\)/);
+  if (!claudeMock || Number(claudeMock[1]) !== withTests || Number(claudeMock[2]) !== bank.length) {
+    errors.push(
+      `CLAUDE.md: для собеседования годится ${withTests} из ${bank.length}, а в описании режима — ` +
+        (claudeMock ? `${claudeMock[1]} из ${claudeMock[2]}` : "(не нашёл «непустым `t` (N из M)»)")
+    );
+  }
   if (!mock || Number(mock[1]) !== withTests || Number(mock[2]) !== bank.length) {
     errors.push(
       `src/mixed.md: для собеседования годится ${withTests} из ${bank.length}, а на странице — ` +

@@ -75,6 +75,7 @@
       { t: "Строковые алгоритмы", h: "string-algorithms.html", lvl: "ext" },
       { t: "Trie: устройство", h: "trie-structure.html", lvl: "ext" },
       { t: "Trie: разбор задач", h: "trie.html", lvl: "ext" },
+      { t: "Ахо — Корасик", h: "aho-corasick.html", lvl: "ext" },
       { t: "Дерево отрезков: устройство", h: "segment-tree-structure.html", lvl: "ref" },
       { t: "Дерево отрезков: задачи", h: "segment-tree.html", lvl: "ref" },
       { t: "Дерево Фенвика: устройство", h: "fenwick-tree-structure.html", lvl: "ref" },
