@@ -2528,8 +2528,11 @@
   }
   // Разбор DP: House Robber со свёрткой до двух переменных. dp[i]=max(пропустить prev1,
   // взять prev2+x). lo=i — текущий дом; --hot, когда выгоднее ВЗЯТЬ.
+  // dp — полная таблица только для наглядности: в коде живут два последних значения
+  // (prev2, prev1), и панель показывает, что остальное уже выброшено. На финале —
+  // восстановленный набор домов, а не последний дом.
   function bHouseRobber(arr) {
-    var n = arr.length, steps = [], prev2 = 0, prev1 = 0;
+    var n = arr.length, steps = [], prev2 = 0, prev1 = 0, dp = [];
     function vv(i, x, cur) { return { i: (i == null ? "—" : i), x: (x == null ? "—" : x), prev2: prev2, prev1: prev1, cur: (cur == null ? "—" : cur) }; }
     if (!n) return [{ lo: -1, hi: -1, done: true, line: 6, vars: vv(), info: "Пустой массив → 0" }];
     steps.push({ lo: -1, hi: -1, line: 1, vars: vv(), info: "prev2 = prev1 = 0 — пустое окно (dp[-2], dp[-1])" });
@@ -2538,10 +2541,15 @@
       steps.push({ lo: i, hi: -1, line: 2, vars: vv(i, x), info: "дом i = " + i + ", деньги x = " + x });
       var take = prev2 + x, skip = prev1, cur = Math.max(skip, take), takeWins = take > skip;
       steps.push({ lo: i, hi: -1, improved: takeWins, line: 3, vars: vv(i, x, cur), info: "cur = max(пропустить " + skip + ", взять " + prev2 + "+" + x + "=" + take + ") = " + cur + (takeWins ? " — выгоднее ВЗЯТЬ дом" : " — выгоднее ПРОПУСТИТЬ") });
+      dp.push(cur); steps[steps.length - 1].dp = dp.slice();
       prev2 = prev1; prev1 = cur;
-      steps.push({ lo: i, hi: -1, line: 4, vars: vv(i, x, cur), info: "сдвигаем окно: prev2 = " + prev2 + ", prev1 = " + prev1 });
+      steps.push({ lo: i, hi: -1, dp: dp.slice(), line: 4, vars: vv(i, x, cur), info: "сдвигаем окно: prev2 = " + prev2 + ", prev1 = " + prev1 + (i >= 2 ? " — dp[" + (i - 2) + "] = " + dp[i - 2] + " больше не нужен и забыт" : "") });
     }
-    steps.push({ lo: n - 1, hi: -1, done: true, found: true, line: 6, vars: { i: "—", x: "—", prev2: prev2, prev1: prev1, cur: "—" }, info: "return prev1 = " + prev1 + " — максимум денег без двух соседних домов" });
+    // восстановление ответа по таблице: дом i взят, если dp[i] > dp[i−1]
+    var pick = [], k = n - 1;
+    while (k >= 0) { var before = k > 0 ? dp[k - 1] : 0; if (dp[k] !== before) { pick.unshift(k); k -= 2; } else k -= 1; }
+    steps.push({ lo: -1, hi: -1, dp: dp.slice(), pick: pick, done: true, found: true, line: 6, vars: { i: "—", x: "—", prev2: prev2, prev1: prev1, cur: "—" }, info: "return prev1 = " + prev1 + " — максимум без двух соседних домов: дома " + pick.join(", ") + " (" + pick.map(function (q) { return arr[q]; }).join(" + ") + " = " + prev1 + ")" });
+    for (var q = 0; q < steps.length; q++) if (!steps[q].dp) steps[q].dp = q ? steps[q - 1].dp : [];
     return steps;
   }
   // Разбор bit-manipulation: два числа-одиночки двойным XOR. Проход 1 — xorAll = a^b;
@@ -9535,6 +9543,20 @@
       values: function (ctx) { return ctx.arr; },
       title: function () { return "House Robber — ДП O(n), память O(1)"; },
       pointers: function (s) { return { lo: s.lo, hi: -1 }; },
+      cellState: function (s, j) { if (s.done) return { found: (s.pick || []).indexOf(j) >= 0, dim: (s.pick || []).indexOf(j) < 0 }; return { lo: j === s.lo }; },
+      mapViz: function (panel, ctx) {
+        var n = ctx.arr.length, p = structPanel(panel, "dp[i] — лучший итог по домам 0..i (в коде хранятся только prev2 и prev1)");
+        var cells = []; for (var k = 0; k < n; k++) { var c = structCell("dp[" + k + "]", "·", "algo-tp__mapcell--off"); p.grid.appendChild(c); cells.push(c); }
+        return function (s) {
+          var dp = s.dp || [], L = dp.length;
+          cells.forEach(function (c, k) {
+            c.lastChild.textContent = k < L ? dp[k] : "·";
+            var live = !s.done && k >= L - 2 && k < L; // окно двух переменных
+            c.className = "algo-tp__mapcell " + (k >= L ? "algo-tp__mapcell--off" : s.done ? ((s.pick || []).indexOf(k) >= 0 ? "algo-tp__mapcell--on algo-tp__mapcell--add" : "algo-tp__mapcell--on") : live ? "algo-tp__mapcell--on algo-tp__mapcell--dec" : "algo-tp__mapcell--off");
+          });
+          p.foot.textContent = s.done ? "ответ = dp[" + (n - 1) + "] = " + dp[n - 1] + "; зелёные — дома, из которых он собран" : L >= 2 ? "в памяти: prev2 = dp[" + (L - 2) + "], prev1 = dp[" + (L - 1) + "]; левее — уже забыто" : L === 1 ? "в памяти: prev1 = dp[0] (prev2 = 0 — «до первого дома»)" : "пока ничего не посчитано";
+        };
+      },
       sumCells: ["prev2 = dp[i−2]", "prev1 = dp[i−1]", "cur = dp[i]"],
       sumValues: function (s) { return [{ text: s.vars.prev2 }, { text: s.vars.prev1 }, { text: s.vars.cur, cls: "eq" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Максимум = " + s.vars.prev1, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
@@ -12828,7 +12850,9 @@
       vizHost.appendChild(grid);
       // Что означает каждый указатель — одной строкой под сеткой, а не подписью под
       // клеткой: подписи соседних указателей налезали друг на друга.
-      var ptrs = [cfg.ptr1 && { p: cfg.ptr1, cls: "lo" }, cfg.ptr2 && { p: cfg.ptr2, cls: "hi" }].filter(Boolean);
+      // указатель-заглушка (name "" или "—") в легенду не попадает: давал пустую плашку
+      function realPtr(q) { return q && q.name && q.name !== "—"; }
+      var ptrs = [realPtr(cfg.ptr1) && { p: cfg.ptr1, cls: "lo" }, realPtr(cfg.ptr2) && { p: cfg.ptr2, cls: "hi" }].filter(Boolean);
       if (ptrs.length) {
         var ptrLeg = mkEl("div", "algo-tp__ptrlegend");
         ptrs.forEach(function (o) {
