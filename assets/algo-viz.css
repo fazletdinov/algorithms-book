@@ -1448,3 +1448,7 @@ body.algo-tp-fslock { overflow: hidden; }
 /* B-дерево: сливаемые/чинимые узлы и узел, из которого удаляем ключ */
 .algo-tp__btnode--fix { border-color: var(--tp-warn); outline: 3px solid var(--tp-warn); outline-offset: 2px; }
 .algo-tp__btnode--removed { border-color: var(--tp-hi); background: color-mix(in srgb, var(--tp-hi) 16%, transparent); outline: 3px dashed var(--tp-hi); outline-offset: 2px; }
+/* куча: индексы у узлов дерева и под ячейками массива */
+.algo-tp__heapidx { font-size: 0.66em; opacity: 0.55; font-variant-numeric: tabular-nums; text-align: center; }
+.algo-tp__heapcellwrap { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.algo-tp__centered { position: absolute; translate: -50% -50%; }

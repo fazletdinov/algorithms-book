@@ -1634,6 +1634,21 @@
       "    return out",
       "}"
     ],
+    "lower-bound": [
+      "// наименьший индекс, где nums[i] >= target (может быть len(nums))",
+      "func lowerBound(nums []int, target int) int {",
+      "    lo, hi := 0, len(nums)",
+      "    for lo < hi {                 // полуинтервал [lo, hi)",
+      "        mid := lo + (hi-lo)/2",
+      "        if nums[mid] < target {",
+      "            lo = mid + 1          // граница строго правее",
+      "        } else {",
+      "            hi = mid              // mid — кандидат, сужаем",
+      "        }",
+      "    }",
+      "    return lo",
+      "}"
+    ],
     "diameter-dfs": [
       "func diameterOfTree(root *TreeNode) int {",
       "    best := 0",
@@ -2560,7 +2575,7 @@
       }
     }
     steps.push({ lo: lo, hi: hi, mid: -1, line: 2, vars: vv(-1), info: "left(" + lo + ") ≤ right(" + hi + ") — нет, диапазон пуст" });
-    if (res >= 0) steps.push({ lo: res, hi: res, mid: res, found: true, done: true, line: 13, vars: { left: lo, right: hi, mid: res, "arr[mid]": arr[res], res: res }, info: "return res = " + res + " — первое вхождение " + target + " на индексе " + res });
+    if (res >= 0) steps.push({ lo: lo, hi: hi, mid: res, ans: res, found: true, done: true, line: 13, vars: { left: lo, right: hi, mid: "—", "arr[mid]": "—", res: res }, info: "return res = " + res + " — первое вхождение " + target + " на индексе " + res });
     else steps.push({ lo: 0, hi: -1, mid: -1, done: true, line: 13, vars: vv(-1), info: "return res = −1 — target " + target + " в массиве нет" });
     return steps;
   }
@@ -3864,7 +3879,10 @@
         if (idx != null) edgeIdxs.push(idx);
       }
       var pathLabel = path.map(function (id) { return labels[id]; }).join("→");
-      push({ line: 5, path: pathLabel, bottleneck: b, pathEdges: edgeIdxs, hot: true, info: "BFS нашёл путь " + pathLabel + ", узкое место = " + b });
+      // обратное ребро в пути — ровно тот «передумать», ради которого остаточная сеть; называем
+      var backs = [];
+      for (var bi = 0; bi + 1 < path.length; bi++) if (origPair[path[bi] + "," + path[bi + 1]] == null) backs.push(labels[path[bi]] + "→" + labels[path[bi + 1]]);
+      push({ line: 5, path: pathLabel, bottleneck: b, pathEdges: edgeIdxs, hot: true, info: "BFS нашёл путь " + pathLabel + ", узкое место = " + b + (backs.length ? ". " + backs.join(", ") + " — ОБРАТНОЕ ребро: такого ребра в сети нет, это остаток уже пущенного потока, и проталкивание по нему отменяет его часть" : "") });
       for (var pj = 0; pj + 1 < path.length; pj++) {
         var au = path[pj], av = path[pj + 1];
         cap[au][av] -= b; cap[av][au] += b;
@@ -4356,7 +4374,7 @@
   // Наив greedy: динамика достижимости O(n²). Из каждой достижимой клетки помечаем весь
   // диапазон прыжка — диапазоны жирно перекрываются (та самая повторная работа). reach[] зелёным.
   function bJumpGameDp(arr) {
-    var n = arr.length, steps = [], reach = new Array(n).fill(false);
+    var n = arr.length, steps = [], reach = new Array(n).fill(false), marks = 0, dups = 0;
     function snap() { return reach.slice(); }
     function vv(i, step) { return { i: (i == null ? "—" : i), "nums[i]": (i != null && i < n ? arr[i] : "—"), step: (step == null ? "—" : step), reachable: (i != null && i < n ? (reach[i] ? "да" : "нет") : "—") }; }
     if (!n) return [{ lo: -1, hi: -1, done: true, line: 12, reach: [], vars: vv(), info: "Пустой массив" }];
@@ -4366,8 +4384,10 @@
       steps.push({ lo: i, hi: -1, reach: snap(), line: 4, vars: vv(i), info: "i = " + i });
       if (!reach[i]) { steps.push({ lo: i, hi: -1, reach: snap(), line: 5, vars: vv(i), info: "reachable[" + i + "] = false → сюда не допрыгнуть, continue" }); continue; }
       for (var step = 1; step <= arr[i] && i + step < n; step++) {
-        reach[i + step] = true;
-        steps.push({ lo: i, hi: i + step, improved: true, reach: snap(), line: 9, vars: vv(i, step), info: "reachable[" + (i + step) + "] = true — из " + i + " допрыгиваем (+" + step + ")" });
+        // повторная пометка — сама суть O(n²): клетку, уже помеченную раньше, помечаем снова
+        var was = reach[i + step];
+        reach[i + step] = true; marks++; if (was) dups++;
+        steps.push({ lo: i, hi: i + step, improved: !was, dup: was, marks: marks, dups: dups, reach: snap(), line: 9, vars: vv(i, step), info: "reachable[" + (i + step) + "] = true — из " + i + " допрыгиваем (+" + step + ")" + (was ? " — УЖЕ была true: повторная работа (" + dups + "-я)" : "") });
       }
     }
     var ok = reach[n - 1];
@@ -7346,6 +7366,25 @@
   // Обход дерева (BFS уровнями или DFS preorder). Возвращает ctx с present/order/steps.
   // Обход дерева — построчный (debugger) проход. BFS — с очередью, DFS — с рекурсивным
   // стеком вызовов (обе структуры показаны панелью). treeViz красит узлы (upto/nodeIdx).
+  // lowerBound в конвенции [lo, hi): hi может указывать ЗА массив (индекс n) — поэтому в
+  // ряду есть лишняя клетка-«конец». Раньше под листингом lowerBound главы стоял виджет
+  // другой конвенции (left <= right, res, mid±1), и трассировки расходились.
+  function bLowerBound(arr, x) {
+    var n = arr.length, lo = 0, hi = n, steps = [];
+    function vv(mid) { return { lo: lo, hi: hi, mid: mid == null ? "—" : mid, "nums[mid]": mid == null ? "—" : arr[mid] }; }
+    steps.push({ lo: lo, hi: hi, mid: -1, line: 2, vars: vv(), info: "lo = 0, hi = len(nums) = " + n + " — полуинтервал [0, " + n + "): hi указывает ЗА массив" });
+    var guard = 0;
+    while (lo < hi && guard++ < 64) {
+      steps.push({ lo: lo, hi: hi, mid: -1, line: 3, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — ещё есть кандидаты" });
+      var mid = lo + ((hi - lo) >> 1);
+      steps.push({ lo: lo, hi: hi, mid: mid, line: 4, vars: vv(mid), info: "mid = " + lo + " + (" + hi + "−" + lo + ")/2 = " + mid + ", nums[mid] = " + arr[mid] });
+      if (arr[mid] < x) { lo = mid + 1; steps.push({ lo: lo, hi: hi, mid: mid, line: 6, vars: vv(mid), info: arr[mid] + " < " + x + " → граница строго правее: lo = mid + 1 = " + lo }); }
+      else { hi = mid; steps.push({ lo: lo, hi: hi, mid: mid, line: 8, vars: vv(mid), info: arr[mid] + " < " + x + " ложно → mid — кандидат: hi = mid = " + hi + " (без −1: mid остаётся в [lo, hi])" }); }
+    }
+    steps.push({ lo: lo, hi: hi, mid: -1, line: 3, vars: vv(), info: "lo == hi = " + lo + " → выход" });
+    steps.push({ lo: lo, hi: hi, mid: -1, found: true, done: true, line: 11, vars: vv(), info: "return lo = " + lo + (lo === n ? " — все элементы меньше " + x + " (граница за концом массива)" : " — первый индекс, где nums[i] ≥ " + x + (arr[lo] === x ? " (" + x + " найден: first = " + lo + ")" : " (" + x + " в массиве нет — сюда бы его вставили)")) });
+    return steps;
+  }
   // Диаметр одним DFS (post-order): высоты возвращаются снизу вверх, и в каждом узле,
   // когда на руках l и r, путь через него = l + r. Раньше в главе на этом месте стояла
   // копия прямого обхода — без высот, без l + r и без best, хотя решение идёт СНИЗУ.
@@ -7511,26 +7550,33 @@
       });
       host.appendChild(svg);
       tr.nodes.forEach(function (n) {
-        var b = mkEl("div", "algo-tp__tnode" + (n.cls ? " algo-tp__tnode--" + n.cls : ""), n.val);
-        b.style.position = "absolute"; b.style.left = (cx(n.rank) - R) + "px"; b.style.top = (cy(n.depth) - R) + "px";
+        // центр узла — ровно в точке раскладки (узел 2.5em, а не 2R = 30px: рёбра уходили на 5px)
+        var b = mkEl("div", "algo-tp__tnode algo-tp__centered" + (n.cls ? " algo-tp__tnode--" + n.cls : ""), n.val);
+        b.style.left = cx(n.rank) + "px"; b.style.top = cy(n.depth) + "px";
         host.appendChild(b);
       });
     };
   }
   function bBSTSearch(vals, target) {
-    var b = bstBuild(vals), root = b.root, steps = [];
-    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, vars: { node: (o.node == null ? "—" : String(o.node)), target: String(target) }, info: o.info, done: o.done, found: o.found }); }
+    // Путь от корня остаётся подсвеченным, а поддерево, в которое не пошли, гаснет
+    // целиком: глава обещает «на каждом узле отбрасывается целое поддерево» — раньше
+    // горел только текущий узел, и O(h) = один путь не было видно.
+    var b = bstBuild(vals), root = b.root, steps = [], path = [], skip = {};
+    function sub(n) { if (!n) return; skip[n.id] = true; sub(n.left); sub(n.right); }
+    function marks(extra) { var m = {}; for (var k in skip) m[k] = "skip"; path.forEach(function (id) { m[id] = "visited"; }); for (var e in extra) m[e] = extra[e]; return m; }
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: bstSnap(root, marks(o.marks || {})), vars: { node: (o.node == null ? "—" : String(o.node)), target: String(target), seen: path.length }, info: o.info, done: o.done, found: o.found }); }
     var node = root;
-    push({ line: 1, tree: bstSnap(root, {}), node: (root ? root.val : null), info: "node := корень" });
+    push({ line: 1, node: (root ? root.val : null), info: "node := корень" });
     while (node) {
       var m = {}; m[node.id] = "current";
-      push({ line: 2, tree: bstSnap(root, m), node: node.val, info: "node = " + node.val + " ≠ nil" });
-      push({ line: 3, tree: bstSnap(root, m), node: node.val, info: target + " vs " + node.val });
-      if (target === node.val) { var mf = {}; mf[node.id] = "found"; push({ line: 4, tree: bstSnap(root, mf), node: node.val, done: true, found: true, info: target + " == " + node.val + " — найдено ✓" }); return { steps: steps }; }
-      if (target < node.val) { push({ line: 6, tree: bstSnap(root, m), node: node.val, info: target + " < " + node.val + " — идём влево" }); node = node.left; }
-      else { push({ line: 8, tree: bstSnap(root, m), node: node.val, info: target + " > " + node.val + " — идём вправо" }); node = node.right; }
+      push({ line: 2, marks: m, node: node.val, info: "node = " + node.val + " ≠ nil" });
+      push({ line: 3, marks: m, node: node.val, info: target + " vs " + node.val });
+      if (target === node.val) { path.push(node.id); var mf = {}; mf[node.id] = "found"; push({ line: 4, marks: mf, node: node.val, done: true, found: true, info: target + " == " + node.val + " — найдено ✓ за " + path.length + " сравнени" + (path.length === 1 ? "е" : (path.length < 5 ? "я" : "й")) + ": один путь от корня, O(h)" }); return { steps: steps }; }
+      path.push(node.id);
+      if (target < node.val) { sub(node.right); push({ line: 6, marks: m, node: node.val, info: target + " < " + node.val + " — идём влево; всё правое поддерево " + node.val + " отброшено разом" }); node = node.left; }
+      else { sub(node.left); push({ line: 8, marks: m, node: node.val, info: target + " > " + node.val + " — идём вправо; всё левое поддерево " + node.val + " отброшено разом" }); node = node.right; }
     }
-    push({ line: 11, tree: bstSnap(root, {}), node: null, done: true, info: "node == nil — " + target + " в дереве нет" });
+    push({ line: 11, node: null, done: true, info: "node == nil — " + target + " в дереве нет (проверено " + path.length + " узл" + (path.length === 1 ? "а" : "ов") + " — один путь)" });
     return { steps: steps };
   }
   function bBSTInsert(vals, val) {
@@ -7765,10 +7811,12 @@
           });
         }
         treeBox.appendChild(svg);
-        for (var j = 0; j < h.length; j++) { var p2 = xy(j); var nb = mkEl("div", "algo-tp__tnode" + (marks[j] ? " algo-tp__tnode--" + marks[j] : ""), h[j]); nb.style.position = "absolute"; nb.style.left = (p2[0] - R) + "px"; nb.style.top = (p2[1] - R) + "px"; treeBox.appendChild(nb); }
+        // индекс рядом с узлом и под ячейкой массива: вся механика кучи — арифметика
+        // индексов (родитель (i−1)/2, дети 2i+1 и 2i+2), а на экране их не было
+        for (var j = 0; j < h.length; j++) { var p2 = xy(j); var ix = mkEl("div", "algo-tp__heapidx", j); ix.style.position = "absolute"; ix.style.left = (p2[0] + R + 1) + "px"; ix.style.top = (p2[1] - R - 4) + "px"; treeBox.appendChild(ix); var nb = mkEl("div", "algo-tp__tnode algo-tp__centered" + (marks[j] ? " algo-tp__tnode--" + marks[j] : ""), h[j]); nb.style.left = p2[0] + "px"; nb.style.top = p2[1] + "px"; treeBox.appendChild(nb); }
       } else { treeBox.appendChild(mkEl("div", "algo-tp__llnil", "∅ (пустая куча)")); }
       arrBox.appendChild(mkEl("div", "algo-tp__heaparrlab", "массив:"));
-      h.forEach(function (v, k) { arrBox.appendChild(mkEl("div", "algo-tp__heapcell" + (marks[k] ? " algo-tp__tnode--" + marks[k] : ""), v)); });
+      h.forEach(function (v, k) { var cw = mkEl("div", "algo-tp__heapcellwrap"); cw.appendChild(mkEl("div", "algo-tp__heapcell" + (marks[k] ? " algo-tp__tnode--" + marks[k] : ""), v)); cw.appendChild(mkEl("div", "algo-tp__heapidx", k)); arrBox.appendChild(cw); });
     };
   }
   function bHeapPush(initial, val) {
@@ -7781,7 +7829,7 @@
     while (i > 0) {
       var parent = (i - 1) >> 1;
       var mc = {}; mc[i] = "current"; mc[parent] = "found";
-      push({ line: 4, marks: mc, i: i, action: "родитель", info: "родитель i — индекс " + parent + " (значение " + h[parent] + ")" });
+      push({ line: 4, marks: mc, i: i, action: "родитель", info: "родитель = (i − 1) / 2 = (" + i + " − 1) / 2 = " + parent + " (значение " + h[parent] + ")" });
       push({ line: 5, marks: mc, i: i, action: "сравнение", info: h[parent] + " ≤ " + h[i] + "? " + (h[parent] <= h[i] ? "да — куча восстановлена" : "нет — нужен swap вверх") });
       if (h[parent] <= h[i]) { push({ line: 6, marks: mc, i: i, action: "стоп", info: "порядок восстановлен — выходим" }); break; }
       var t = h[i]; h[i] = h[parent]; h[parent] = t;
@@ -8564,6 +8612,29 @@
       customViz: intervalBarsViz
     },
 
+    "lower-bound": {
+      badge: "Binary Search · [lo, hi)", desc: "Поиск границы: наименьший индекс, где nums[i] ≥ target. Полуинтервал [lo, hi), цикл lo < hi, hi = mid (без −1) — mid остаётся кандидатом; ответ может быть len(nums).",
+      valuesLabel: "", codeKey: "lower-bound", fillRange: true,
+      ptr1: { name: "lo", cap: "левый край [lo, hi)" }, ptr2: { name: "hi", cap: "правый край, не входит (может быть «за концом»)" },
+      complexity: { time: "O(log n)", space: "O(1)", good: "★ Первое/последнее вхождение, место вставки" },
+      varOrder: ["lo", "hi", "mid", "nums[mid]"],
+      varDesc: { lo: "Левая граница (входит)", hi: "Правая граница (НЕ входит)", mid: "Середина", "nums[mid]": "Значение в середине" },
+      lineNotes: { 2: "hi = len(nums): полуинтервал, hi за массивом", 3: "Пока интервал не пуст", 4: "Середина без переполнения", 5: "Значение меньше target?", 6: "Да — граница правее mid", 8: "Нет — mid кандидат, hi = mid (не mid−1)", 11: "lo == hi — это и есть граница" },
+      rules: [{ head: "nums[mid] < target", body: "→ lo = mid + 1", cls: "lt" }, { head: "иначе", body: "→ hi = mid (без −1)", cls: "gt" }, { head: "lo == hi", body: "→ ответ lo (может быть len)", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var t = parseInt(root.getAttribute("data-target"), 10); return { arr: arr, target: t, steps: bLowerBound(arr, t) }; },
+      inputs: [{ attr: "data-array", label: "Отсортированный массив" }, { attr: "data-target", label: "target", sm: true }],
+      // лишняя клетка «конец»: hi = len(nums) указывает туда
+      values: function (ctx) { return ctx.arr.concat(["end"]); },
+      title: function (ctx) { return "lowerBound(" + ctx.target + ") — [lo, hi)"; },
+      cellState: function (s, j) { var st = {}; if (s.found && j === s.lo) st.found = true; else { if (j === s.lo) st.lo = true; if (j === s.hi) st.hi = true; if (j > s.lo && j < s.hi) st.span = true; if (j === s.mid && s.mid >= 0) st.mid = true; if (j < s.lo || j > s.hi) st.dim = true; } return st; },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["[lo, hi)", "nums[mid] vs target"],
+      sumValues: function (s, ctx) { return [{ text: "[" + s.lo + ", " + s.hi + ")" }, { text: s.mid >= 0 ? s.vars["nums[mid]"] + (s.vars["nums[mid]"] < ctx.target ? " < " : " ≥ ") + ctx.target : "—", cls: s.mid >= 0 ? (s.vars["nums[mid]"] < ctx.target ? "lt" : "gt") : "" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Граница = " + s.lo, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "[" + s.lo + ", " + s.hi + ")", b: "mid " + s.vars.mid, c: "", cls: "lt" }; },
+      varsOf: function (s) { return { lo: s.vars.lo, hi: s.vars.hi, mid: s.vars.mid, "nums[mid]": s.vars["nums[mid]"] }; }
+    },
+
     "diameter-dfs": {
       badge: "Tree DFS · post-order", desc: "Диаметр одним обходом: высота считается снизу вверх, и в каждом узле, когда высоты детей l и r уже известны, путь через него = l + r. Максимум копим сбоку, наверх отдаём высоту 1 + max(l, r).",
       valuesLabel: "", codeKey: "diameter-dfs", fillRange: false,
@@ -8645,10 +8716,11 @@
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return ctx.arr; },
       title: function () { return "Jump Game — наивная динамика O(n²)"; },
-      cellState: function (s, j) { var r = s.reach && s.reach[j]; return { found: !!r && j !== s.lo, lo: j === s.lo && s.lo >= 0, hi: j === s.hi && s.hi >= 0 }; },
+      // повторно помеченная клетка — янтарной рамкой mid: видно, что работа выброшена
+      cellState: function (s, j) { var r = s.reach && s.reach[j]; return { found: !!r && j !== s.lo && !(s.dup && j === s.hi), lo: j === s.lo && s.lo >= 0, hi: j === s.hi && s.hi >= 0 && !s.dup, mid: !!s.dup && j === s.hi }; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
-      sumCells: ["Клетка i", "nums[i] (прыжок)", "reachable[i]"],
-      sumValues: function (s) { return [{ text: s.vars.i }, { text: s.vars["nums[i]"] }, { text: s.vars.reachable, cls: s.vars.reachable === "да" ? "eq" : "" }]; },
+      sumCells: ["Клетка i", "nums[i] (прыжок)", "Пометок · из них повторных"],
+      sumValues: function (s) { return [{ text: s.vars.i }, { text: s.vars["nums[i]"] }, { text: (s.marks || 0) + " · " + (s.dups || 0), cls: s.dup ? "gt" : "" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: s.found ? "Конец достижим" : "Не допрыгнуть", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "i=" + s.vars.i, b: "reach=" + s.vars.reachable, c: s.improved ? "метим" : "·", cls: s.improved ? "lt" : "" }; },
       varsOf: function (s) { return { i: s.vars.i, "nums[i]": s.vars["nums[i]"], step: s.vars.step, reachable: s.vars.reachable }; }
@@ -9031,11 +9103,11 @@
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Первое вхождение " + ctx.target; },
       param: function (ctx) { return { label: "Target (цель)", value: ctx.target, ok: true }; },
-      cellState: function (s, j, lo, hi) { var found = !!s.found; if (found) return { found: j === s.mid, dim: j !== s.mid }; var inR = lo >= 0 && hi >= 0 && j >= lo && j <= hi; return { dim: !inR, mid: j === s.mid, lo: j === lo && j !== s.mid, hi: j === hi && j !== s.mid, span: inR && j !== s.mid && j !== lo && j !== hi }; },
+      cellState: function (s, j, lo, hi) { var found = !!s.found; if (found) return { found: j === (s.ans != null ? s.ans : s.mid), dim: j !== (s.ans != null ? s.ans : s.mid) }; var inR = lo >= 0 && hi >= 0 && j >= lo && j <= hi; return { dim: !inR, mid: j === s.mid, lo: j === lo && j !== s.mid, hi: j === hi && j !== s.mid, span: inR && j !== s.mid && j !== lo && j !== hi }; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
       sumCells: ["arr[mid] vs target", "res (ответ)"],
       sumValues: function (s, ctx) { if (typeof s.vars.mid !== "number") return [{ text: "—" }, { text: String(s.vars.res), cls: (s.vars.res >= 0 ? "eq" : "") }]; var am = s.vars["arr[mid]"]; var rel = am === ctx.target ? "=" : (am < ctx.target ? "<" : ">"), cls = am === ctx.target ? "eq" : (am < ctx.target ? "lt" : "gt"); return [{ text: "arr[" + s.mid + "]=" + am + " " + rel + " " + ctx.target, cls: cls }, { text: String(s.vars.res), cls: (s.vars.res >= 0 ? "eq" : "") }]; },
-      status: function (s, idx, total) { if (s.found) return { kind: "ok", icon: "✓", head: "Первое вхождение — индекс " + s.mid, text: "идём левее, чтобы раньше точно не было" }; if (s.done) return { kind: "end", icon: idx + 1, head: "Не найдено", text: "res = −1" }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      status: function (s, idx, total) { if (s.found) return { kind: "ok", icon: "✓", head: "Первое вхождение — индекс " + s.ans, text: "left > right — левее вхождений нет: запомненный res = " + s.ans + " и есть ответ" }; if (s.done) return { kind: "end", icon: idx + 1, head: "Не найдено", text: "res = −1" }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s, i, ctx) { if (s.found) return { a: "res = " + s.mid, b: "первое вхождение", c: "найдено!", cls: "eq" }; if (s.done) return { a: "не найдено", b: "res = −1", c: "нет", cls: "gt" }; var am = s.vars["arr[mid]"], eq = am === ctx.target; return { a: "mid=" + s.mid + " arr[mid]=" + am, b: eq ? "= target → res=" + s.mid : (am < ctx.target ? "< target" : "> target"), c: eq ? "влево (ищем раньше)" : (am < ctx.target ? "вправо" : "влево"), cls: eq ? "eq" : (am < ctx.target ? "lt" : "gt") }; },
       varsOf: function (s) { return { left: s.vars.left, right: s.vars.right, mid: s.vars.mid, "arr[mid]": s.vars["arr[mid]"], res: s.vars.res }; }
     },
