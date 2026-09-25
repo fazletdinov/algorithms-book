@@ -4261,22 +4261,29 @@
   // Backtracking: все подмножества (выбрать → рекурсия → откат).
   // Подмножества (backtracking) — построчный (debugger) проход; current/results рисует subsetsViz.
   // step.action (record/choose/back) использует viz; vars — английские (action/cur/count).
+  // stack — активные кадры bt(start) с их текущим i: без него возврат из рекурсии и
+  // продолжение цикла в кадре выше выглядели как скачки.
   function bSubsets(set) {
-    var n = set.length, steps = [], result = [], current = [];
+    var n = set.length, steps = [], result = [], current = [], stack = [];
     function vv(action) { return { action: action, cur: "[" + current.join(",") + "]", count: result.length }; }
-    function snap(extra) { var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }) }; for (var k in extra) s[k] = extra[k]; steps.push(s); }
+    function snap(extra) { var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }), stack: stack.map(function (f) { return { start: f.start, i: f.i }; }) }; for (var k in extra) s[k] = extra[k]; steps.push(s); }
     (function bt(start) {
+      var fr = { start: start, i: null }; stack.push(fr);
       result.push(current.slice());
       snap({ action: "record", line: 5, vars: vv("записать [" + current.join(",") + "]"), info: "res = append(res, cur) → записали подмножество [" + current.join(", ") + "]" });
       for (var i = start; i < n; i++) {
+        fr.i = i;
         snap({ action: "loop", pick: i, line: 6, vars: vv("i = " + i), info: "i = " + i + ": рассматриваем элемент " + set[i] });
         current.push(set[i]);
         snap({ action: "choose", pick: i, line: 7, vars: vv("выбрать " + set[i]), info: "cur = append(cur, " + set[i] + ") → берём " + set[i] });
         snap({ action: "recurse", pick: i, line: 8, vars: vv("bt(" + (i + 1) + ")"), info: "bt(" + (i + 1) + ") — спускаемся в рекурсию" });
         bt(i + 1);
         current.pop();
-        snap({ action: "back", pick: i, line: 9, vars: vv("откат " + set[i]), info: "cur = cur[:len−1] → откат, убираем " + set[i] });
+        snap({ action: "back", pick: i, line: 9, vars: vv("откат " + set[i]), info: "вернулись в кадр bt(" + start + "), cur = cur[:len−1] → откат, убираем " + set[i] });
       }
+      fr.i = n;
+      snap({ action: "return", line: 10, vars: vv("return"), info: "bt(" + start + "): i = " + n + " — элементов правее нет, цикл кончился → возврат" + (stack.length > 1 ? " в кадр bt(" + stack[stack.length - 2].start + ")" : " из самого первого вызова") });
+      stack.pop();
     })(0);
     snap({ done: true, found: true, line: 13, vars: vv("готово"), info: "Готово: собрано " + result.length + " подмножеств" });
     return steps;
@@ -4293,6 +4300,8 @@
       setEls.forEach(function (c, j) {
         c.classList.toggle("algo-tp__ccell--top", s.action === "choose" && s.pick === j);
         c.classList.toggle("algo-tp__ccell--cur", s.action === "back" && s.pick === j);
+        // отсечение: candidates[i] > remain — и всё правее тоже (массив отсортирован)
+        c.classList.toggle("algo-tp__ccell--cut", s.action === "prune" && j >= s.pick);
       });
       curCells.innerHTML = "";
       if (!s.current.length) { var e = document.createElement("span"); e.className = "algo-tp__cempty"; e.textContent = "∅"; curCells.appendChild(e); }
@@ -11511,7 +11520,7 @@
       complexity: { time: "O(n·2ⁿ)", space: "O(n)", good: "★ Перебор всех вариантов" },
       varOrder: ["action", "cur", "count"],
       varDesc: { "action": "Текущий шаг", "cur": "Текущее частичное решение", "count": "Сколько подмножеств найдено" },
-      lineNotes: { 5: "Записываем текущее частичное подмножество в ответ", 6: "Перебираем элементы начиная со start (без повторов)", 7: "Выбираем элемент i — добавляем в текущее", 8: "Рекурсивно перебираем оставшиеся элементы", 9: "Откат: убираем элемент, чтобы попробовать другие ветки", 13: "Все подмножества (2ⁿ) собраны" },
+      lineNotes: { 10: "Цикл кончился — кадр возвращается к вызвавшему", 5: "Записываем текущее частичное подмножество в ответ", 6: "Перебираем элементы начиная со start (без повторов)", 7: "Выбираем элемент i — добавляем в текущее", 8: "Рекурсивно перебираем оставшиеся элементы", 9: "Откат: убираем элемент, чтобы попробовать другие ветки", 13: "Все подмножества (2ⁿ) собраны" },
       rules: [{ head: "Выбрать элемент", body: "append → рекурсия", cls: "lt" }, { head: "Записать", body: "current → результат", cls: "eq" }, { head: "Откат", body: "pop, пробуем дальше", cls: "gt" }],
       parse: function (root) { var set = nums(root.getAttribute("data-set")); return { set: set, steps: bSubsets(set) }; },
       inputs: [{ attr: "data-set", label: "Множество" }],
@@ -11523,6 +11532,16 @@
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: s.vars.count + " подмножеств", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.count + " шт.", c: "backtrack", cls: "eq" }; var cls = s.action === "choose" ? "lt" : (s.action === "back" ? "gt" : "eq"); return { a: s.vars.action, b: s.vars.cur, c: s.action === "record" ? "записать" : (s.action === "choose" ? "выбор" : (s.action === "back" ? "откат" : "→")), cls: cls }; },
       varsOf: function (s) { return { "action": s.vars.action, "cur": s.vars.cur, "count": s.vars.count }; },
+      mapViz: function (panel) {
+        var p = structPanel(panel, "стек вызовов: слева дно, справа — текущий кадр");
+        return function (st) {
+          p.grid.innerHTML = "";
+          var fr = st.stack || [];
+          if (!fr.length) p.grid.appendChild(structCell("", "∅", "algo-tp__mapcell--off"));
+          fr.forEach(function (f, k) { var top = k === fr.length - 1; p.grid.appendChild(structCell("bt(" + f.start + ")", f.i == null ? "—" : "i=" + f.i, top ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : "algo-tp__mapcell--on")); });
+          p.foot.textContent = fr.length ? "глубина " + fr.length + "; start — откуда кадр перебирает элементы" : "рекурсия закончилась";
+        };
+      },
       customViz: subsetsViz
     },
 

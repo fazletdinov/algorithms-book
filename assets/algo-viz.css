@@ -1488,3 +1488,5 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-viz__gnode--c2 { fill: #a855f7; stroke: #a855f7; }
 .algo-viz__gnode--c3 { fill: #db2777; stroke: #db2777; }
 .algo-viz__gnode--c0 + .algo-viz__gtext, .algo-viz__gnode--c1 + .algo-viz__gtext, .algo-viz__gnode--c2 + .algo-viz__gtext, .algo-viz__gnode--c3 + .algo-viz__gtext { fill: #fff; }
+/* Отсечённые кандидаты (combination sum): сам кандидат и все правее */
+.algo-tp__ccell--cut { border: 2px dashed #ef4444; color: #ef4444; text-decoration: line-through; opacity: 0.75; }
