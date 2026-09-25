@@ -5437,31 +5437,34 @@
 
   // Insertion Sort — полная сортировка построчно. found = отсортированный префикс
   // (растёт слева), hi = новый элемент i, lo = сканер j, mid = «дырка» при сдвиге.
+  // «Дыра» (hole) — клетка, чьё значение уже скопировано и логически свободно: после
+  // key := a[i] это i, после каждого сдвига a[j+1] = a[j] — j. В памяти там лежит старое
+  // значение (отсюда «5 5» после сдвига), поэтому клетку гасим, а key рисуем отдельно.
   function bInsertionSort(arr) {
     var a = arr.slice(), n = a.length, steps = [], cmp = 0, mov = 0;
     function vv(i, key, j) { return { i: (i === undefined ? "—" : i), key: (key === undefined ? "—" : key), j: (j === undefined ? "—" : j), "сравн": cmp, "сдвиг": mov }; }
-    if (n === 0) { return [{ values: [], lo: -1, hi: -1, mid: -1, sorted: 0, done: true, line: 10, vars: vv(), info: "Пустой массив — сортировать нечего" }]; }
-    steps.push({ values: a.slice(), lo: -1, hi: -1, mid: -1, sorted: 1, line: 0, vars: vv(), info: "Префикс из одного элемента уже «отсортирован». Расширяем его вправо." });
+    if (n === 0) { return [{ values: [], lo: -1, hi: -1, mid: -1, hole: -1, sorted: 0, done: true, line: 10, vars: vv(), info: "Пустой массив — сортировать нечего" }]; }
+    steps.push({ values: a.slice(), lo: -1, hi: -1, mid: -1, hole: -1, sorted: 1, line: 0, vars: vv(), info: "Префикс из одного элемента уже «отсортирован». Расширяем его вправо." });
     for (var i = 1; i < n; i++) {
-      steps.push({ values: a.slice(), lo: -1, hi: i, mid: -1, sorted: i, line: 1, vars: vv(i), info: "i = " + i + ": берём следующий элемент за отсортированным префиксом" });
+      steps.push({ values: a.slice(), lo: -1, hi: i, mid: -1, hole: -1, sorted: i, line: 1, vars: vv(i), info: "i = " + i + ": берём следующий элемент за отсортированным префиксом" });
       var key = a[i];
-      steps.push({ values: a.slice(), lo: -1, hi: i, mid: i, sorted: i, line: 2, vars: vv(i, key), info: "key = a[" + i + "] = " + key + " — запоминаем значение, ячейка освобождается" });
-      var j = i - 1;
-      steps.push({ values: a.slice(), lo: j, hi: i, mid: -1, sorted: i, line: 3, vars: vv(i, key, j), info: "j = " + j + " — пойдём влево по префиксу, ища место для key" });
+      steps.push({ values: a.slice(), lo: -1, hi: i, mid: -1, hole: i, key: key, sorted: i, line: 2, vars: vv(i, key), info: "key = a[" + i + "] = " + key + " — вынули значение, клетка a[" + i + "] теперь свободна (погашена)" });
+      var j = i - 1, hole = i;
+      steps.push({ values: a.slice(), lo: j, hi: i, mid: -1, hole: hole, key: key, sorted: i, line: 3, vars: vv(i, key, j), info: "j = " + j + " — пойдём влево по префиксу, ища место для key" });
       while (j >= 0 && a[j] > key) {
         cmp++;
-        steps.push({ values: a.slice(), lo: j, hi: i, mid: j, sorted: i, line: 4, vars: vv(i, key, j), info: "сравнение №" + cmp + ": a[" + j + "] = " + a[j] + " > key = " + key + " — этот элемент должен уехать вправо" });
-        a[j + 1] = a[j]; mov++;
-        steps.push({ values: a.slice(), lo: j, hi: i, mid: j + 1, sorted: i, line: 5, vars: vv(i, key, j), info: "сдвиг №" + mov + ": a[" + (j + 1) + "] ← a[" + j + "] (" + a[j] + " уехал вправо)" });
+        steps.push({ values: a.slice(), lo: j, hi: i, mid: -1, hole: hole, key: key, sorted: i, line: 4, vars: vv(i, key, j), info: "сравнение №" + cmp + ": a[" + j + "] = " + a[j] + " > key = " + key + " — этот элемент должен уехать вправо" });
+        a[j + 1] = a[j]; mov++; hole = j;
+        steps.push({ values: a.slice(), lo: j, hi: i, mid: j + 1, hole: hole, key: key, sorted: i, line: 5, vars: vv(i, key, j), info: "сдвиг №" + mov + ": a[" + (j + 1) + "] ← a[" + j + "] (" + a[j] + " уехал вправо); свободна теперь a[" + j + "] — старое " + a[j] + " там лишь копия" });
         j--;
-        steps.push({ values: a.slice(), lo: j, hi: i, mid: -1, sorted: i, line: 6, vars: vv(i, key, j), info: "j-- → j = " + j });
+        steps.push({ values: a.slice(), lo: j, hi: i, mid: -1, hole: hole, key: key, sorted: i, line: 6, vars: vv(i, key, j), info: "j-- → j = " + j });
       }
       if (j >= 0) { cmp++; }
-      steps.push({ values: a.slice(), lo: j, hi: i, mid: j + 1, sorted: i, line: 4, vars: vv(i, key, j), info: (j < 0 ? "j < 0 — дошли до начала префикса" : "сравнение №" + cmp + ": a[" + j + "] = " + a[j] + " ≤ key = " + key + " — место найдено") });
+      steps.push({ values: a.slice(), lo: j, hi: i, mid: -1, hole: hole, key: key, sorted: i, line: 4, vars: vv(i, key, j), info: (j < 0 ? "j < 0 — дошли до начала префикса, key встанет в a[0]" : "сравнение №" + cmp + ": a[" + j + "] = " + a[j] + " ≤ key = " + key + " — место найдено: свободная клетка a[" + (j + 1) + "]") });
       a[j + 1] = key;
-      steps.push({ values: a.slice(), lo: -1, hi: -1, mid: j + 1, sorted: i + 1, line: 8, vars: vv(i, key, j + 1), info: "a[" + (j + 1) + "] = key (" + key + ") — вставили; отсортированный префикс вырос до " + (i + 1) });
+      steps.push({ values: a.slice(), lo: -1, hi: -1, mid: j + 1, hole: -1, key: key, placed: j + 1, sorted: i + 1, line: 8, vars: vv(i, key, j + 1), info: "a[" + (j + 1) + "] = key (" + key + ") — вставили в свободную клетку; отсортированный префикс вырос до " + (i + 1) });
     }
-    steps.push({ values: a.slice(), lo: -1, hi: -1, mid: -1, sorted: n, done: true, line: 10, vars: vv(), info: "Готово: " + cmp + " сравнений, " + mov + " сдвигов. Худший случай O(n²), почти отсортированный — O(n)." });
+    steps.push({ values: a.slice(), lo: -1, hi: -1, mid: -1, hole: -1, sorted: n, done: true, line: 10, vars: vv(), info: "Готово: " + cmp + " сравнений, " + mov + " сдвигов. Худший случай O(n²), почти отсортированный — O(n)." });
     return steps;
   }
 
@@ -5472,7 +5475,7 @@
     var a = arr.slice(), n = a.length, steps = [], emitted = new Array(n).fill(false), order = [], cmp = 0;
     var i = 0, j = mid;
     function snap(extra) {
-      var base = { values: a.slice(), emit: emitted.slice(), mid: mid };
+      var base = { values: a.slice(), emit: emitted.slice(), out: order.slice(), mid: mid };
       for (var key in extra) { base[key] = extra[key]; }
       return base;
     }
@@ -6115,22 +6118,23 @@
     var a = arr.slice().map(function (x) { return x | 0; }).filter(function (x) { return x >= 0; });
     var k = a.length ? Math.max.apply(null, a) : 0;
     k = Math.min(k, 15);
-    var count = new Array(k + 1).fill(0), steps = [], outLen = 0;
-    function snap(extra) { var o = { values: count.slice(), lo: -1, hi: -1, sorted: 0 }; for (var key in extra) { o[key] = extra[key]; } return o; }
-    steps.push(snap({ line: 1, vars: { v: "—", out: 0 }, info: "count[0.." + k + "] = 0 — гистограмма пуста" }));
+    var dropped = a.filter(function (x) { return x > k; });
+    a = a.filter(function (x) { return x <= k; });
+    var count = new Array(k + 1).fill(0), steps = [], outLen = 0, out = [];
+    function snap(extra) { var o = { values: count.slice(), lo: -1, hi: -1, sorted: 0, input: a, ri: -1, out: out.slice() }; for (var key in extra) { o[key] = extra[key]; } return o; }
+    steps.push(snap({ line: 1, vars: { v: "—", out: 0 }, info: "count[0.." + k + "] = 0 — гистограмма пуста" + (dropped.length ? ". Значения больше 15 не показываем (гистограмма не влезет): " + dropped.join(", ") : "") }));
     for (var i = 0; i < a.length; i++) {
       var v = a[i];
-      if (v > k) continue;
       count[v]++;
-      steps.push(snap({ lo: v, line: 3, vars: { v: v, out: 0 }, info: "читаем " + v + " → count[" + v + "]++ = " + count[v] }));
+      steps.push(snap({ lo: v, ri: i, line: 3, vars: { v: v, out: 0 }, info: "читаем a[" + i + "] = " + v + " → count[" + v + "]++ = " + count[v] }));
     }
     for (var val = 0; val <= k; val++) {
       while (count[val] > 0) {
-        count[val]--; outLen++;
-        steps.push(snap({ lo: val, line: 8, vars: { v: val, out: outLen }, info: "выдаём " + val + " (позиция " + outLen + " в результате), count[" + val + "]-- = " + count[val] }));
+        count[val]--; outLen++; out.push(val);
+        steps.push(snap({ lo: val, ri: a.length, line: 8, vars: { v: val, out: outLen }, info: "выдаём " + val + " (позиция " + outLen + " в результате), count[" + val + "]-- = " + count[val] }));
       }
     }
-    steps.push(snap({ done: true, line: 12, vars: { v: "—", out: outLen }, info: "Готово: " + outLen + " элементов выданы по возрастанию за O(n + k)" }));
+    steps.push(snap({ done: true, ri: a.length, line: 12, vars: { v: "—", out: outLen }, info: "Готово: out = [" + out.join(", ") + "] — " + outLen + " элементов по возрастанию за O(n + k), ни одного сравнения. Гистограмма снова пуста: всё выдано" }));
     return steps;
   }
 
@@ -6146,7 +6150,11 @@
         var largest = root, l = 2 * root + 1, r = 2 * root + 2;
         if (l < size && a[l] > a[largest]) largest = l;
         if (r < size && a[r] > a[largest]) largest = r;
-        if (largest === root) break;
+        if (largest === root) {
+          // шаг «детей не больше — стоп» тоже показываем: иначе просеивание обрывалось молча
+          if (l < size) { var big = (r < size && a[r] > a[l]) ? r : l; steps.push(snap({ lo: root, hi: big, sorted: sortedCnt, line: line, vars: vv(), info: tag + ": a[" + root + "]=" + a[root] + " ≥ большего ребёнка a[" + big + "]=" + a[big] + " → узел на месте, просеивание закончено" })); }
+          break;
+        }
         var t = a[root]; a[root] = a[largest]; a[largest] = t; swaps++;
         steps.push(snap({ lo: root, hi: largest, mid: largest, sorted: sortedCnt, line: line, vars: vv(), info: tag + ": a[" + root + "]=" + a[largest] + " < ребёнок a[" + largest + "]=" + a[root] + " → обмен (просеивание вниз)" }));
         root = largest;
@@ -9562,9 +9570,9 @@
 
     "insertion-sort": {
       badge: "Insertion Sort",
-      desc: "Сортировка вставками: отсортированный префикс растёт слева, каждый новый элемент «всплывает» на своё место.",
+      desc: "Сортировка вставками: отсортированный префикс растёт слева. key вынимается, большие элементы сдвигаются вправо, и key встаёт в освободившуюся клетку (погашена).",
       valuesLabel: "Массив", codeKey: "insertion-sort", fillRange: false,
-      ptr1: { name: "j", cap: "(идём влево)" }, ptr2: { name: "i", cap: "(новый элемент)" },
+      ptr1: { name: "j", cap: "(идём влево)" }, ptr2: { name: "i", cap: "(граница: отсюда вынули key)" },
       complexity: { time: "O(n²)", space: "O(1)", good: "★ Почти отсортированных, малых n" },
       varOrder: ["i", "key", "j"],
       varDesc: { i: "Граница: первый неотсортированный", key: "Вставляемое значение a[i]", j: "Сканер влево по префиксу" },
@@ -9574,8 +9582,18 @@
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return ctx.arr; },
       title: function () { return "Сортировка вставками"; },
-      cellState: function (s, j) { if (s.done) return { found: true }; var st = {}; if (j < s.sorted) st.found = true; if (j === s.lo && s.lo >= 0) st.lo = true; if (j === s.hi && s.hi >= 0) st.hi = true; if (j === s.mid && s.mid >= 0) st.mid = true; return st; },
+      cellState: function (s, j) { if (s.done) return { found: true }; var st = {}; if (j === s.hole) { st.dim = true; } else if (j < s.sorted) st.found = true; if (j === s.lo && s.lo >= 0) st.lo = true; if (j === s.hi && s.hi >= 0 && j !== s.hole) st.hi = true; if (j === s.mid && s.mid >= 0) st.mid = true; return st; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: (s.hi == null ? -1 : s.hi) }; },
+      mapViz: function (panel) {
+        var p = structPanel(panel, "key — вынутое значение (ждёт своего места)");
+        var c = structCell("key", "—", "algo-tp__mapcell--off"); p.grid.appendChild(c);
+        return function (s) {
+          var has = s.key != null && s.placed == null;
+          c.lastChild.textContent = s.key != null ? s.key : "—";
+          c.className = "algo-tp__mapcell " + (has ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : s.placed != null ? "algo-tp__mapcell--on algo-tp__mapcell--add" : "algo-tp__mapcell--off");
+          p.foot.textContent = has ? "свободная клетка — a[" + s.hole + "] (погашена): туда и встанет key, если слева нет большего" : s.placed != null ? "вставлен в a[" + s.placed + "]" : "";
+        };
+      },
       sumCells: ["сравнений", "сдвигов"],
       sumValues: function (s) { return [{ text: s.vars["сравн"] }, { text: s.vars["сдвиг"], cls: "lt" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Отсортировано вставками", text: "префикс дорос до всего массива" }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
@@ -9585,7 +9603,7 @@
 
     "merge-sort": {
       badge: "Merge Sort",
-      desc: "Слияние двух отсортированных половин: сравниваем головы, меньшую «выдаём» в результат — клетки зеленеют в порядке выдачи.",
+      desc: "Слияние двух отсортированных половин: сравниваем головы, меньшую переносим в out. Выданная клетка входа гаснет, а out растёт слева направо — и уже отсортирован.",
       valuesLabel: "Массив (левая | правая половины)", codeKey: "merge-sort", fillRange: false,
       ptr1: { name: "i", cap: "(голова левой)" }, ptr2: { name: "j", cap: "(голова правой)" },
       complexity: { time: "O(n)", space: "O(n)", good: "★ Шаг слияния в O(n log n) сортировке" },
@@ -9605,11 +9623,25 @@
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-mid", label: "Граница" }],
       values: function (ctx) { return ctx.arr; },
       title: function () { return "Слияние двух отсортированных половин"; },
-      cellState: function (s, j) { if (s.done) return { found: true }; var st = {}; if (s.emit && s.emit[j]) st.found = true; if (j === s.lo && s.lo >= 0) st.lo = true; if (j === s.hi && s.hi >= 0) st.hi = true; if (j === s.mid && s.mid >= 0 && !st.found && !st.lo && !st.hi) st.mid = true; return st; },
+      cellState: function (s, j) { var st = {}; if (s.emit && s.emit[j]) st.dim = true; if (j === s.lo && s.lo >= 0) st.lo = true; if (j === s.hi && s.hi >= 0) st.hi = true; if (j === s.mid && s.mid >= 0 && !st.dim && !st.lo && !st.hi) st.mid = true; return st; },
+      // Результат слияния отдельной строкой: без неё финальный кадр («2 5 8 1 3 6 7», весь
+      // зелёный) читался как отсортированный массив, хотя это вход.
+      mapViz: function (panel, ctx) {
+        var n = ctx.arr.length, p = structPanel(panel, "out — результат слияния");
+        var cells = []; for (var k = 0; k < n; k++) { var c = structCell("[" + k + "]", "·", "algo-tp__mapcell--off"); p.grid.appendChild(c); cells.push(c); }
+        return function (s) {
+          var out = s.out || [];
+          cells.forEach(function (c, k) {
+            c.lastChild.textContent = k < out.length ? out[k] : "·";
+            c.className = "algo-tp__mapcell " + (k >= out.length ? "algo-tp__mapcell--off" : (s.done ? "algo-tp__mapcell--on algo-tp__mapcell--add" : k === out.length - 1 && /выдано/.test(s.info || "") ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--add" : "algo-tp__mapcell--on"));
+          });
+          p.foot.textContent = s.done ? "out отсортирован: [" + out.join(", ") + "]" : "выдано " + out.length + " из " + n;
+        };
+      },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: (s.hi == null ? -1 : s.hi) }; },
       sumCells: ["сравнений", "выдано"],
       sumValues: function (s) { return [{ text: s.vars["сравн"] }, { text: s.vars["выдано"], cls: "gt" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Половины слиты за O(n)", text: "каждый элемент пройден один раз" }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Половины слиты за O(n)", text: "каждый элемент пройден один раз: out = [" + s.out.join(", ") + "]" }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "i=" + s.vars.i, b: "j=" + s.vars.j, c: "выдача " + s.vars.k, cls: "eq" }; },
       varsOf: function (s) { return { i: s.vars.i, j: s.vars.j, k: s.vars.k }; }
     },
@@ -10033,6 +10065,25 @@
       title: function () { return "Counting Sort — сортировка подсчётом"; },
       cellState: function (s, j) { var o = {}; if (s.values[j] > 0) o.found = true; if (j === s.lo && s.lo >= 0) o.lo = true; return o; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      // Вход и результат: без них видна только гистограмма, и финальный кадр — шесть нулей
+      // под «Отсортировано».
+      mapViz: function (panel, ctx) {
+        var s0 = ctx.steps[0], inp = s0.input;
+        var pin = structPanel(panel, "a — вход (фаза 1 читает его один раз)");
+        var cin = inp.map(function (v, k) { var c = structCell("[" + k + "]", v, "algo-tp__mapcell--on"); pin.grid.appendChild(c); return c; });
+        var pout = structPanel(panel, "out — результат (фаза 2)");
+        var cout = inp.map(function (v, k) { var c = structCell("[" + k + "]", "·", "algo-tp__mapcell--off"); pout.grid.appendChild(c); return c; });
+        return function (s) {
+          cin.forEach(function (c, k) { c.className = "algo-tp__mapcell " + (k === s.ri ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : k < s.ri ? "algo-tp__mapcell--off" : "algo-tp__mapcell--on"); });
+          pin.foot.textContent = s.ri < 0 ? "ещё не читали" : s.ri >= inp.length ? "прочитан целиком" : "читаем a[" + s.ri + "]";
+          var out = s.out || [];
+          cout.forEach(function (c, k) {
+            c.lastChild.textContent = k < out.length ? out[k] : "·";
+            c.className = "algo-tp__mapcell " + (k >= out.length ? "algo-tp__mapcell--off" : s.done ? "algo-tp__mapcell--on algo-tp__mapcell--add" : k === out.length - 1 ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--add" : "algo-tp__mapcell--on");
+          });
+          pout.foot.textContent = out.length ? "выдано " + out.length + " из " + inp.length : "пока пусто";
+        };
+      },
       sumCells: ["значение v", "выдано"],
       sumValues: function (s) { return [{ text: s.vars.v }, { text: s.vars.out, cls: "gt" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Отсортировано", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
@@ -10042,8 +10093,8 @@
 
     "heap-sort": {
       badge: "Heap Sort",
-      desc: "Пирамидальная сортировка: строим max-heap просеиванием, затем n−1 раз меняем корень (максимум) с концом кучи и чиним кучу. Отсортированный суффикс (затемнён) растёт справа. O(n log n), память O(1).",
-      valuesLabel: "Массив (отсортированный суффикс затемнён)", codeKey: "heap-sort", fillRange: false,
+      desc: "Пирамидальная сортировка: строим max-heap просеиванием, затем n−1 раз меняем корень (максимум) с концом кучи и чиним кучу. Отсортированный суффикс (зелёный) растёт справа. O(n log n), память O(1).",
+      valuesLabel: "Массив (отсортированный суффикс — зелёный)", codeKey: "heap-sort", fillRange: false,
       ptr1: { name: "root", cap: "(просеиваемый узел)" }, ptr2: { name: "child", cap: "(больший ребёнок; на обмене с корнем — end, конец кучи)" },
       complexity: { time: "O(n log n)", space: "O(1)", good: "★ Гарантия n log n, на месте" },
       varOrder: ["n", "обменов"],
@@ -10055,6 +10106,27 @@
       values: function (ctx) { return ctx.arr; },
       title: function () { return "Heap Sort — пирамидальная сортировка"; },
       cellState: function (s, j) { var start = s.values.length - (s.sorted || 0); if (j >= start) return { found: true }; var o = {}; if (j === s.mid && s.mid >= 0) o.mid = true; if (j === s.lo && s.lo >= 0) o.lo = true; if (j === s.hi && s.hi >= 0) o.hi = true; return o; },
+      // Тот же массив деревом: на плоском ряду просеивание (i → 2i+1, 2i+2) не читается.
+      mapViz: function (panel, ctx) {
+        var n = ctx.arr.length, idx = []; for (var q = 0; q < n; q++) idx.push(q);
+        if (!n) return null;
+        var hdr = mkEl("div", "algo-tp__maphdr", "тот же массив как куча: дети a[i] — a[2i+1] и a[2i+2]; пунктир — узел уже вне кучи"); hdr.style.marginTop = "0.9em";
+        panel.appendChild(hdr);
+        var fig = binaryFigure(ctx.arr, idx, true), wrap = mkEl("div", "algo-tp__scrollx");
+        wrap.appendChild(fig.el); panel.appendChild(wrap);
+        return function (s) {
+          var end = n - (s.sorted || 0);
+          idx.forEach(function (i) {
+            var el = fig.byIdx[i], out = i >= end;
+            el.textContent = s.values[i];
+            if (fig.subOf[i]) fig.subOf[i].textContent = "[" + i + "]";
+            el.classList.toggle("algo-tp__tnode--found", out || !!s.done);
+            el.classList.toggle("algo-tp__tnode--current", !out && i === s.lo);
+            el.classList.toggle("algo-tp__tnode--path", !out && i === s.hi && i !== s.lo);
+            if (fig.edgeOf[i]) fig.edgeOf[i].classList.toggle("algo-tp__bstedge--dead", out && !s.done);
+          });
+        };
+      },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: (s.hi == null ? -1 : s.hi) }; },
       sumCells: ["n", "обменов"],
       sumValues: function (s) { return [{ text: s.vars.n }, { text: s.vars["обменов"], cls: "lt" }]; },
