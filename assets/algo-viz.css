@@ -1104,8 +1104,8 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__ivbar { fill: color-mix(in srgb, var(--fg, #888) 22%, transparent); transition: fill 0.15s; }
 .algo-tp__ivbar--cur { fill: #e0a500; }
 .algo-tp__ivbar--merged { fill: var(--tp-ok, #22c55e); }
-.algo-tp__ivcap { fill: var(--fg, #ccc); font-size: 11px; opacity: 0.55; font-weight: 700; }
-.algo-tp__ivlbl { fill: var(--fg, #ccc); font-size: 9px; opacity: 0.7; }
+.algo-tp__ivcap { fill: var(--fg, #ccc); font-size: 12px; opacity: 0.6; font-weight: 700; }
+.algo-tp__ivlbl { fill: var(--fg, #ccc); font-size: 12px; opacity: 0.85; font-weight: 600; }
 .algo-tp__ivlbl--m { fill: #fff; opacity: 0.95; }
 
 /* дерево в дашборде (tree-bfs / tree-dfs, customViz) */

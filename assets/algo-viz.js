@@ -7301,9 +7301,13 @@
     function cl(p) { return [p[0], p[1]]; }
     function fmt(p) { return "[" + p[0] + "," + p[1] + "]"; }
     var merged = [], steps = [];
-    function push(o) { steps.push({ cur: (o.cur == null ? -1 : o.cur), merged: merged.map(cl), line: o.line, vars: { i: (o.i == null ? "—" : o.i), interval: (o.interval || "—"), last: (o.last || "—"), result: merged.length }, info: o.info, done: o.done, found: o.found }); }
+    function push(o) { steps.push({ cur: (o.cur == null ? -1 : o.cur), unsorted: !!o.unsorted, note: o.note, merged: merged.map(cl), line: o.line, vars: { i: (o.i == null ? "—" : o.i), interval: (o.interval || "—"), last: (o.last || "—"), result: merged.length }, info: o.info, done: o.done, found: o.found }); }
     if (!ivs.length) return [{ cur: -1, merged: [], done: true, line: 12, vars: { i: "—", interval: "—", last: "—", result: 0 }, info: "Нет интервалов" }];
-    push({ line: 1, info: "Сортируем по началу: " + ivs.map(fmt).join(", ") });
+    // Кадр до сортировки: иначе шаг sort.Slice ничего видимо не делал (вход главы уже был
+    // отсортирован, а строка «Исходные» всегда рисовалась в отсортированном порядке).
+    var already = raw.every(function (p, k) { return k === 0 || raw[k - 1][0] <= p[0]; });
+    push({ line: 1, unsorted: true, note: "Перед сортировкой: вход как пришёл", info: "Вход как пришёл: " + raw.map(fmt).join(", ") + (already ? " — уже по началу, сортировка ничего не поменяет" : " — перекрывающиеся интервалы не обязательно соседи, за один проход их не слить") });
+    push({ line: 1, info: "Сортируем по началу: " + ivs.map(fmt).join(", ") + " — теперь всё, что может слиться с последним в result, идёт сразу за ним" });
     merged.push(cl(ivs[0]));
     push({ line: 2, cur: 0, i: 0, interval: fmt(ivs[0]), last: fmt(merged[0]), info: "result := [" + fmt(ivs[0]) + "] — первый интервал" });
     for (var k = 1; k < ivs.length; k++) {
@@ -9601,7 +9605,10 @@
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Бинарный поиск " + ctx.target; },
       param: function (ctx) { return { label: "Target (цель)", value: ctx.target, ok: true }; },
-      cellState: function (s, j, lo, hi) { var found = !!s.found; if (found) return { found: j === s.mid, dim: j !== s.mid }; var inR = lo >= 0 && hi >= 0 && j >= lo && j <= hi; return { dim: !inR, mid: j === s.mid, lo: j === lo && j !== s.mid, hi: j === hi && j !== s.mid, span: inR && j !== s.mid && j !== lo && j !== hi }; },
+      cellState: function (s, j, lo, hi) { var found = !!s.found; if (found) return { found: j === s.mid, dim: j !== s.mid }; var inR = lo >= 0 && hi >= 0 && j >= lo && j <= hi;
+        // запомненный кандидат res вне диапазона — не «отброшенный»: он и есть ответ, если левее не найдётся
+        var cand = s.vars && typeof s.vars.res === "number" && s.vars.res >= 0 && j === s.vars.res && !inR;
+        return { dim: !inR && !cand, found: cand, mid: j === s.mid, lo: j === lo && j !== s.mid, hi: j === hi && j !== s.mid, span: inR && j !== s.mid && j !== lo && j !== hi }; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
       sumCells: ["arr[mid]", "Сравнение"],
       sumValues: function (s, ctx) { if (typeof s.vars.mid !== "number") return [{ text: "—" }, { text: s.done ? "не найдено" : "—" }]; var am = s.vars["arr[mid]"]; var rel = s.found ? "=" : (am < ctx.target ? "<" : ">"), cls = s.found ? "eq" : (am < ctx.target ? "lt" : "gt"); return [{ text: "arr[" + s.mid + "] = " + am }, { text: am + " " + rel + " " + ctx.target, cls: cls }]; },
@@ -9625,7 +9632,10 @@
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Первое вхождение " + ctx.target; },
       param: function (ctx) { return { label: "Target (цель)", value: ctx.target, ok: true }; },
-      cellState: function (s, j, lo, hi) { var found = !!s.found; if (found) return { found: j === (s.ans != null ? s.ans : s.mid), dim: j !== (s.ans != null ? s.ans : s.mid) }; var inR = lo >= 0 && hi >= 0 && j >= lo && j <= hi; return { dim: !inR, mid: j === s.mid, lo: j === lo && j !== s.mid, hi: j === hi && j !== s.mid, span: inR && j !== s.mid && j !== lo && j !== hi }; },
+      cellState: function (s, j, lo, hi) { var found = !!s.found; if (found) return { found: j === (s.ans != null ? s.ans : s.mid), dim: j !== (s.ans != null ? s.ans : s.mid) }; var inR = lo >= 0 && hi >= 0 && j >= lo && j <= hi;
+        // запомненный кандидат res вне диапазона — не «отброшенный»: он и есть ответ, если левее не найдётся
+        var cand = s.vars && typeof s.vars.res === "number" && s.vars.res >= 0 && j === s.vars.res && !inR;
+        return { dim: !inR && !cand, found: cand, mid: j === s.mid, lo: j === lo && j !== s.mid, hi: j === hi && j !== s.mid, span: inR && j !== s.mid && j !== lo && j !== hi }; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
       sumCells: ["arr[mid] vs target", "res (ответ)"],
       sumValues: function (s, ctx) { if (typeof s.vars.mid !== "number") return [{ text: "—" }, { text: String(s.vars.res), cls: (s.vars.res >= 0 ? "eq" : "") }]; var am = s.vars["arr[mid]"]; var rel = am === ctx.target ? "=" : (am < ctx.target ? "<" : ">"), cls = am === ctx.target ? "eq" : (am < ctx.target ? "lt" : "gt"); return [{ text: "arr[" + s.mid + "]=" + am + " " + rel + " " + ctx.target, cls: cls }, { text: String(s.vars.res), cls: (s.vars.res >= 0 ? "eq" : "") }]; },
@@ -10942,7 +10952,12 @@
       varDesc: { i: "Индекс текущего интервала", "interval": "Текущий интервал cur", "last": "Последний в result", "result": "Интервалов в ответе" },
       lineNotes: { 1: "Сортируем интервалы по началу — перекрытия становятся соседями", 2: "result начинается с первого интервала", 3: "Идём по остальным интервалам", 4: "cur — текущий интервал", 5: "last — последний добавленный в result", 6: "Начало cur ≤ конца last → пересекаются?", 7: "Перекрытие: расширяем последний интервал до max концов", 9: "Разрыв: добавляем интервал в результат как новый", 12: "Возвращаем список непересекающихся интервалов" },
       rules: [{ head: "start ≤ конец последнего", body: "→ перекрытие, расширяем", cls: "lt" }, { head: "start > конец последнего", body: "→ разрыв, новый интервал", cls: "gt" }, { head: "Результат", body: "непересекающиеся интервалы", cls: "eq" }],
-      parse: function (root) { var raw = (root.getAttribute("data-intervals") || "").split(",").map(function (s) { return s.trim().split("-").map(Number); }).filter(function (p) { return p.length === 2; }); return { ivs: raw.slice().sort(function (a, b) { return a[0] - b[0]; }), steps: bMergeIntervals(raw) }; },
+      parse: function (root) {
+        var raw = (root.getAttribute("data-intervals") || "").split(",").map(function (s) { return s.trim().split("-").map(Number); }).filter(function (p) { return p.length === 2; });
+        // та же устойчивая сортировка, что в генераторе; origPos[k] — строка k-го отсортированного во входе
+        var order = raw.map(function (_, i) { return i; }).sort(function (a, b) { return raw[a][0] - raw[b][0] || a - b; });
+        return { ivs: order.map(function (i) { return raw[i]; }), origPos: order, steps: bMergeIntervals(raw) };
+      },
       inputs: [{ attr: "data-intervals", label: "Интервалы a-b,c-d" }],
       values: function (ctx) { return ctx.ivs.map(function (p) { return p[0] + "–" + p[1]; }); },
       title: function () { return "Слияние интервалов"; },
@@ -10950,39 +10965,49 @@
       sumCells: ["Текущий интервал", "Интервалов в ответе"],
       sumValues: function (s) { return [{ text: s.vars.interval }, { text: s.vars.result, cls: "eq" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Слито в " + s.vars.result + " интервал(ов)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.result + " интервал(ов)", c: "O(n log n)", cls: "eq" }; if (s.cur < 0) return { a: "сортировка", b: "по началу", c: "старт", cls: "lt" }; var merge = s.line === 7; return { a: "интервал " + s.vars.interval, b: merge ? "⊆ последний " + s.vars.last : "разрыв → новый", c: merge ? "слить" : "добавить", cls: merge ? "lt" : "gt" }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.result + " интервал(ов)", c: "O(n log n)", cls: "eq" }; if (s.unsorted) return { a: "вход", b: "как пришёл", c: "до сортировки", cls: "gt" }; if (s.cur < 0) return { a: "сортировка", b: "по началу", c: "старт", cls: "lt" }; var merge = s.line === 7; return { a: "интервал " + s.vars.interval, b: merge ? "⊆ последний " + s.vars.last : "разрыв → новый", c: merge ? "слить" : "добавить", cls: merge ? "lt" : "gt" }; },
       varsOf: function (s) { return { i: s.vars.i, "interval": s.vars.interval, "last": s.vars.last, "result": s.vars.result }; },
       customViz: function (panel, ctx) {
         var ivs = ctx.ivs;
         var minX = Math.min.apply(null, ivs.map(function (p) { return p[0]; }));
         var maxX = Math.max.apply(null, ivs.map(function (p) { return p[1]; }));
-        var W = 480, padL = 16, padR = 16, span = (maxX - minX) || 1, rowH = 24, H = 20 + ivs.length * rowH + 46;
+        var W = 480, padL = 16, padR = 16, span = (maxX - minX) || 1, rowH = 30, H = 20 + ivs.length * rowH + 50;
         function X(v) { return padL + (v - minX) / span * (W - padL - padR); }
         var svg = document.createElementNS(SVGNS, "svg");
         svg.setAttribute("viewBox", "0 0 " + W + " " + H);
         svg.setAttribute("class", "algo-tp__ivsvg");
         var capIn = document.createElementNS(SVGNS, "text"); capIn.setAttribute("x", 2); capIn.setAttribute("y", 10); capIn.setAttribute("class", "algo-tp__ivcap"); capIn.textContent = "Исходные"; svg.appendChild(capIn);
+        var inputLbls = [];
         var inputRects = ivs.map(function (iv, idx) {
           var r = document.createElementNS(SVGNS, "rect");
           r.setAttribute("x", X(iv[0])); r.setAttribute("y", 16 + idx * rowH);
-          r.setAttribute("width", Math.max(3, X(iv[1]) - X(iv[0]))); r.setAttribute("height", 14);
+          r.setAttribute("width", Math.max(3, X(iv[1]) - X(iv[0]))); r.setAttribute("height", 21);
           r.setAttribute("rx", 4); r.setAttribute("class", "algo-tp__ivbar"); svg.appendChild(r);
-          var t = document.createElementNS(SVGNS, "text"); t.setAttribute("x", X(iv[0])); t.setAttribute("y", 16 + idx * rowH + 11); t.setAttribute("class", "algo-tp__ivlbl"); t.textContent = "[" + iv[0] + "," + iv[1] + "]"; svg.appendChild(t);
+          var t = document.createElementNS(SVGNS, "text"); t.setAttribute("x", X(iv[0]) + 3); t.setAttribute("y", 16 + idx * rowH + 15); t.setAttribute("class", "algo-tp__ivlbl"); t.textContent = "[" + iv[0] + "," + iv[1] + "]"; svg.appendChild(t);
+          inputLbls.push(t);
           return r;
         });
+        function placeRows(unsorted) {
+          inputRects.forEach(function (r, idx) {
+            var row = unsorted && ctx.origPos ? ctx.origPos[idx] : idx;
+            r.setAttribute("y", 16 + row * rowH); inputLbls[idx].setAttribute("y", 16 + row * rowH + 15);
+          });
+          capIn.textContent = unsorted ? "Вход (как пришёл)" : "Отсортированы по началу";
+        }
         var capOut = document.createElementNS(SVGNS, "text"); capOut.setAttribute("x", 2); capOut.setAttribute("y", 16 + ivs.length * rowH + 14); capOut.setAttribute("class", "algo-tp__ivcap"); capOut.textContent = "Результат"; svg.appendChild(capOut);
         var mg = document.createElementNS(SVGNS, "g"); svg.appendChild(mg);
         panel.appendChild(svg);
         var mergedY = 16 + ivs.length * rowH + 20;
         return function (s) {
+          placeRows(s.unsorted);
           inputRects.forEach(function (r, idx) { r.classList.toggle("algo-tp__ivbar--cur", idx === s.cur); });
           while (mg.firstChild) mg.removeChild(mg.firstChild);
           (s.merged || []).forEach(function (m) {
             var r = document.createElementNS(SVGNS, "rect");
             r.setAttribute("x", X(m[0])); r.setAttribute("y", mergedY);
-            r.setAttribute("width", Math.max(3, X(m[1]) - X(m[0]))); r.setAttribute("height", 16);
+            r.setAttribute("width", Math.max(3, X(m[1]) - X(m[0]))); r.setAttribute("height", 22);
             r.setAttribute("rx", 4); r.setAttribute("class", "algo-tp__ivbar algo-tp__ivbar--merged"); mg.appendChild(r);
-            var t = document.createElementNS(SVGNS, "text"); t.setAttribute("x", X(m[0]) + 3); t.setAttribute("y", mergedY + 12); t.setAttribute("class", "algo-tp__ivlbl algo-tp__ivlbl--m"); t.textContent = "[" + m[0] + "," + m[1] + "]"; mg.appendChild(t);
+            var t = document.createElementNS(SVGNS, "text"); t.setAttribute("x", X(m[0]) + 3); t.setAttribute("y", mergedY + 16); t.setAttribute("class", "algo-tp__ivlbl algo-tp__ivlbl--m"); t.textContent = "[" + m[0] + "," + m[1] + "]"; mg.appendChild(t);
           });
         };
       }
