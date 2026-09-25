@@ -145,9 +145,10 @@
     ],
     "dp-coins": [
       "func coinChange(coins []int, amount int) int {",
-      "    dp := make([]int, amount+1) // dp[0]=0, остальное ∞",
+      "    const INF = 1 << 30          // «∞» без переполнения dp[a-c]+1",
+      "    dp := make([]int, amount+1)  // dp[0] = 0",
       "    for a := 1; a <= amount; a++ {",
-      "        best := math.MaxInt",
+      "        best := INF",
       "        for _, c := range coins {",
       "            if c <= a && dp[a-c]+1 < best {",
       "                best = dp[a-c] + 1",
@@ -155,6 +156,7 @@
       "        }",
       "        dp[a] = best",
       "    }",
+      "    if dp[amount] >= INF { return -1 }",
       "    return dp[amount]",
       "}"
     ],
@@ -1706,10 +1708,11 @@
     ],
     "fenwick-prefix": [
       "func (f *Fenwick) PrefixSum(i int) int {",
+      "    i++               // в 1-индексацию",
       "    sum := 0",
       "    for i > 0 {",
       "        sum += f.tree[i]  // зона ответственности узла i",
-      "        i -= i & (-i)     // переход к родителю",
+      "        i -= i & (-i)     // спуск: сбросили младший бит",
       "    }",
       "    return sum",
       "}"
@@ -1778,9 +1781,9 @@
     "hash-put": [
       "func (h *HashMap) Put(key, val int) {",
       "    i := hash(key) % len(h.buckets)   // в какой бакет",
-      "    for _, e := range h.buckets[i] {  // уже есть такой ключ?",
-      "        if e.key == key {",
-      "            e.val = val               // обновляем на месте",
+      "    for j := range h.buckets[i] {   // уже есть такой ключ?",
+      "        if h.buckets[i][j].key == key {",
+      "            h.buckets[i][j].val = val // по индексу: range даёт копию",
       "            return",
       "        }",
       "    }",
@@ -2336,7 +2339,7 @@
       steps.push({ lo: i, hi: (inRange ? correct : -1), line: 6, values: snap(), vars: vv(i, v, inRange ? correct : null), info: !inRange ? "v = " + v + " вне [1," + n + "] → на место не ставим" : (misplaced ? "v = " + v + " в диапазоне и nums[" + i + "] ≠ nums[" + correct + "] — меняем местами" : "v = " + v + " уже на своём месте (индекс " + correct + ")") });
       if (misplaced) {
         var tmp = a[i]; a[i] = a[correct]; a[correct] = tmp;
-        steps.push({ lo: i, hi: correct, line: 7, values: snap(), vars: vv(i, a[i], correct), info: "swap nums[" + i + "] ↔ nums[" + correct + "] → [" + a.join(", ") + "], i не растёт" });
+        steps.push({ lo: i, hi: correct, line: 7, values: snap(), vars: vv(i, v, correct), info: "swap nums[" + i + "] ↔ nums[" + correct + "] → [" + a.join(", ") + "]: " + v + " на своём месте; на позиции " + i + " теперь " + a[i] + " — разберём его на следующей итерации, i не растёт" });
       } else {
         i++;
         steps.push({ lo: i, hi: -1, line: 9, values: snap(), vars: vv(i), info: "i++ → i = " + i + " (на месте или вне диапазона)" });
@@ -2385,7 +2388,7 @@
     steps.push({ lo: -1, hi: -1, line: 6, vars: vv(null, null, { diff: diff, a: 0, b: 0 }), info: "a = b = 0 — второй проход делит числа по биту diff" });
     for (var j = 0; j < n; j++) {
       var x = arr[j], inA = (x & diff) !== 0;
-      steps.push({ lo: j, hi: -1, line: 7, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "x = " + x + " (" + bin(x) + "), x & diff " + (inA ? "≠ 0 → группа a (бит установлен)" : "= 0 → группа b (бит сброшен)") });
+      steps.push({ lo: j, hi: -1, line: 8, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "x = " + x + " (" + bin(x) + "), x & diff " + (inA ? "≠ 0 → группа a (бит установлен)" : "= 0 → группа b (бит сброшен)") });
       if (inA) { a ^= x; steps.push({ lo: j, hi: -1, line: 9, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "a ^= " + x + " → a = " + a }); }
       else { b ^= x; steps.push({ lo: j, hi: -1, line: 11, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "b ^= " + x + " → b = " + b }); }
     }
@@ -2560,19 +2563,23 @@
   function bFenwick(arr, target) {
     var steps = [], i = target + 1, sum = 0; // 1-индексация внутри
     function push(o) { steps.push({ lo: (o.lo == null ? -1 : o.lo), hi: (o.hi == null ? -1 : o.hi), line: o.line, vars: { i: (o.i == null ? "—" : o.i), range: (o.range || "—"), sum: sum }, info: o.info, done: o.done, found: o.found }); }
-    push({ line: 1, info: "sum = 0; i = " + (target + 1) + " (внутри BIT 1-индексация для PrefixSum(0.." + target + "))" });
+    // Листинг — как в главе, с i++ (раньше его не было, а трасса стартовала с i = 6:
+    // показанный код при буквальном выполнении дал бы другую сумму). Запрос идёт ВНИЗ
+    // (i −= i&−i) — «подъём» здесь противоречил мнемонике главы «Add — вверх, запрос — вниз».
+    push({ line: 1, i: i, info: "i = " + target + " + 1 = " + i + " — в 1-индексацию BIT" });
+    push({ line: 2, i: i, info: "sum = 0" });
     var guard = 0;
     while (i > 0 && guard++ < 64) {
-      push({ line: 2, i: i, info: "i = " + i + " > 0 — продолжаем подъём по BIT" });
+      push({ line: 3, i: i, info: "i = " + i + " > 0 — продолжаем спуск по BIT" });
       var low = i & (-i), lo0 = i - low, hi0 = i - 1, partial = 0;
       for (var k = lo0; k <= hi0; k++) partial += arr[k];
       sum += partial;
-      push({ line: 3, lo: lo0, hi: hi0, i: i, range: "[" + lo0 + ".." + hi0 + "]", info: "sum += tree[" + i + "] = сумма arr[" + lo0 + ".." + hi0 + "] = " + partial + " → итог " + sum });
+      push({ line: 4, lo: lo0, hi: hi0, i: i, range: "[" + lo0 + ".." + hi0 + "]", info: "sum += tree[" + i + "] = сумма arr[" + lo0 + ".." + hi0 + "] = " + partial + " → итог " + sum });
       var oldi = i; i -= low;
-      push({ line: 4, lo: lo0, hi: hi0, i: i, range: "[" + lo0 + ".." + hi0 + "]", info: "i −= i&(−i) = " + oldi + " − " + low + " = " + i + " (переход к родителю)" });
+      push({ line: 5, lo: lo0, hi: hi0, i: i, range: "[" + lo0 + ".." + hi0 + "]", info: "i −= i&(−i) = " + oldi + " − " + low + " = " + i + " (спуск: сбросили младший единичный бит)" });
     }
-    push({ line: 2, i: 0, info: "i = 0 — цикл завершён" });
-    push({ line: 6, lo: 0, hi: target, done: true, found: true, range: "[0.." + target + "]", info: "return sum = " + sum + " — PrefixSum(0.." + target + ")" });
+    push({ line: 3, i: 0, info: "i = 0 — цикл завершён" });
+    push({ line: 7, lo: 0, hi: target, done: true, found: true, range: "[0.." + target + "]", info: "return sum = " + sum + " — PrefixSum(0.." + target + ")" });
     return steps;
   }
   // Fenwick (BIT): точечное добавление delta — подъём i += i&(-i).
@@ -2764,7 +2771,7 @@
     var chain = buckets[i], found = -1;
     for (var j = 0; j < chain.length; j++) {
       var mk = {}; mk[i] = {}; mk[i][j] = "current";
-      push({ line: 2, snap: snap(i, mk), curBucket: i, i: i, info: "сравниваем с записью " + chain[j] + " в цепочке" });
+      push({ line: 3, snap: snap(i, mk), curBucket: i, i: i, info: "j = " + j + ": сравниваем ключ " + key + " с записью " + chain[j] + " в цепочке" });
       if (chain[j] === key) { found = j; var mf = {}; mf[i] = {}; mf[i][j] = "found"; push({ line: 4, snap: snap(i, mf), curBucket: i, i: i, done: true, info: "ключ " + key + " уже есть — обновили бы значение на месте" }); return { steps: steps }; }
     }
     chain.push(key);
@@ -5575,13 +5582,13 @@
   var GROWTH_CURVES = [
     { id: "log", label: "log n", line: 1, f: function (n) { return Math.log2(n); }, at20: "4.3", info: "log n почти не растёт: миллион элементов — всего 20 шагов бинарного поиска" },
     { id: "n", label: "n", line: 2, f: function (n) { return n; }, at20: "20", info: "n — честный один проход: вдвое больше данных, вдвое больше работы" },
-    { id: "nlogn", label: "n log n", line: 3, f: function (n) { return n * Math.log2(n); }, at20: "86", info: "n log n — чуть круче линии: цена хорошей сортировки" },
-    { id: "n2", label: "n²", line: 4, f: function (n) { return n * n; }, at20: "400", info: "n² вылетает за график почти сразу: на n=64 это уже 4096 операций" },
+    { id: "nlogn", label: "n log n", line: 3, f: function (n) { return n * Math.log2(n); }, at20: "86", info: "n log n — выше линии в log n раз (при n = 48 — почти в 6), но в этом масштабе ещё в графике: цена хорошей сортировки" },
+    { id: "n2", label: "n²", line: 4, f: function (n) { return n * n; }, at20: "400", info: "n² вылетает за график уже при n ≈ 18: на n = 48 это 2304 операции" },
     { id: "exp", label: "2ⁿ", line: 5, f: function (n) { return Math.pow(2, n); }, at20: "1 048 576", info: "2ⁿ пробивает потолок уже при n≈8 — та самая «стена» перебора" }
   ];
   function bGrowthCurves() {
     var steps = [];
-    steps.push({ show: [], marker: false, line: 0, vars: { curve: "—", at20: "—" }, info: "Оси: по горизонтали размер входа n (1..64), по вертикали — число операций (до 320)" });
+    steps.push({ show: [], marker: false, line: 0, vars: { curve: "—", at20: "—" }, info: "Оси: по горизонтали размер входа n (1..48), по вертикали — число операций (до 320)" });
     GROWTH_CURVES.forEach(function (c, i) {
       steps.push({ show: GROWTH_CURVES.slice(0, i + 1).map(function (x) { return x.id; }), marker: false, cur: c.id, line: c.line, vars: { curve: "O(" + c.label + ")", at20: c.at20 }, info: c.info });
     });
@@ -5589,7 +5596,7 @@
     return steps;
   }
   function growthViz(panel, ctx) {
-    var W = 340, H = 230, L = 34, B = 200, R = 326, T = 14, NMAX = 64, YMAX = 320;
+    var W = 340, H = 230, L = 34, B = 200, R = 326, T = 14, NMAX = 48, YMAX = 320; // 48·log₂48 ≈ 268 < 320: n log n остаётся в графике, пробивают только n² и 2ⁿ
     var svg = document.createElementNS(SVGNS, "svg");
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("class", "algo-tp__growthsvg");
@@ -5601,7 +5608,7 @@
       svg.innerHTML = "";
       mk("line", { x1: L, y1: B, x2: R, y2: B, "class": "algo-tp__growthaxis" });
       mk("line", { x1: L, y1: B, x2: L, y2: T, "class": "algo-tp__growthaxis" });
-      mk("text", { x: R, y: B + 12, "text-anchor": "end", "class": "algo-tp__growthlabel" }, "n → 64");
+      mk("text", { x: R, y: B + 12, "text-anchor": "end", "class": "algo-tp__growthlabel" }, "n → 48");
       mk("text", { x: L - 4, y: T + 4, "text-anchor": "end", "class": "algo-tp__growthlabel" }, "320");
       GROWTH_CURVES.forEach(function (c) {
         if ((s.show || []).indexOf(c.id) < 0) return;
@@ -7013,22 +7020,22 @@
     var filled = 1, checks = 0;
     var disp = function (v) { return v === INF ? "∞" : v; };
     function push(o) { steps.push({ values: dp.map(disp), primary: (o.primary == null ? -1 : o.primary), secondary: o.secondary, line: o.line, vars: { a: (o.a == null ? "—" : o.a), c: (o.c == null ? "—" : o.c), "dp[a−c]": (o.dac == null ? "—" : o.dac), best: (o.best == null ? "—" : o.best), "dp[a]": (o.dpa == null ? "—" : o.dpa), "заполнено": filled + "/" + (amount + 1), "проверок": checks }, info: o.info, done: o.done, found: o.found }); }
-    push({ line: 1, primary: 0, a: 0, best: 0, dpa: 0, info: "dp := [0, ∞, ∞, …] — dp[0]=0 (на сумму 0 нужно 0 монет)" });
+    push({ line: 2, primary: 0, a: 0, best: 0, dpa: 0, info: "dp := [0, ∞, ∞, …] — dp[0]=0 (на сумму 0 нужно 0 монет)" });
     for (var a = 1; a <= amount; a++) {
-      push({ line: 2, primary: a, a: a, dpa: disp(dp[a]), info: "a = " + a + ": ищем минимум монет на сумму " + a });
+      push({ line: 3, primary: a, a: a, dpa: disp(dp[a]), info: "a = " + a + ": ищем минимум монет на сумму " + a });
       var best = INF, src = -1;
-      push({ line: 3, primary: a, a: a, best: "∞", dpa: disp(dp[a]), info: "best := ∞ — пока размена нет" });
+      push({ line: 4, primary: a, a: a, best: "∞", dpa: disp(dp[a]), info: "best := ∞ — пока размена нет" });
       for (var ci = 0; ci < coins.length; ci++) {
         var c = coins[ci];
-        push({ line: 4, primary: a, a: a, c: c, best: disp(best), dpa: disp(dp[a]), info: "монета c = " + c });
+        push({ line: 5, primary: a, a: a, c: c, best: disp(best), dpa: disp(dp[a]), info: "монета c = " + c });
         var fits = c <= a, cand = (fits && dp[a - c] !== INF) ? dp[a - c] + 1 : INF, take = fits && cand < best; checks++;
-        push({ line: 5, primary: a, secondary: fits ? a - c : undefined, a: a, c: c, dac: fits ? disp(dp[a - c]) : "—", best: disp(best), dpa: disp(dp[a]), info: !fits ? ("монета " + c + " > " + a + " — не помещается") : ("dp[" + (a - c) + "]+1 = " + disp(cand) + (take ? " < " : " ≥ ") + "best " + disp(best) + (take ? " — лучше!" : " — не лучше")) });
-        if (take) { best = cand; src = a - c; push({ line: 6, primary: a, secondary: a - c, a: a, c: c, dac: disp(dp[a - c]), best: disp(best), dpa: disp(dp[a]), info: "best = dp[" + (a - c) + "]+1 = " + best }); }
+        push({ line: 6, primary: a, secondary: fits ? a - c : undefined, a: a, c: c, dac: fits ? disp(dp[a - c]) : "—", best: disp(best), dpa: disp(dp[a]), info: !fits ? ("монета " + c + " > " + a + " — не помещается") : ("dp[" + (a - c) + "]+1 = " + disp(cand) + (take ? " < " : " ≥ ") + "best " + disp(best) + (take ? " — лучше!" : " — не лучше")) });
+        if (take) { best = cand; src = a - c; push({ line: 7, primary: a, secondary: a - c, a: a, c: c, dac: disp(dp[a - c]), best: disp(best), dpa: disp(dp[a]), info: "best = dp[" + (a - c) + "]+1 = " + best }); }
       }
       dp[a] = best; filled++;
-      push({ line: 9, primary: a, secondary: src >= 0 ? src : undefined, a: a, best: disp(best), dpa: disp(dp[a]), info: "dp[" + a + "] = best = " + disp(dp[a]) + (dp[a] === INF ? " — сумму " + a + " набрать нельзя" : " монет") });
+      push({ line: 10, primary: a, secondary: src >= 0 ? src : undefined, a: a, best: disp(best), dpa: disp(dp[a]), info: "dp[" + a + "] = best = " + disp(dp[a]) + (dp[a] === INF ? " — сумму " + a + " набрать нельзя" : " монет") });
     }
-    push({ line: 11, primary: amount, done: true, found: dp[amount] !== INF, a: amount, best: disp(dp[amount]), dpa: disp(dp[amount]), info: dp[amount] === INF ? "return -1 — сумму набрать нельзя" : ("return dp[" + amount + "] = " + dp[amount] + " — минимум монет") });
+    push({ line: dp[amount] === INF ? 12 : 13, primary: amount, done: true, found: dp[amount] !== INF, a: amount, best: disp(dp[amount]), dpa: disp(dp[amount]), info: dp[amount] === INF ? "return -1 — сумму набрать нельзя" : ("return dp[" + amount + "] = " + dp[amount] + " — минимум монет") });
     return steps;
   }
   // XOR-накопление: единственное число среди пар.
@@ -7475,27 +7482,32 @@
   }
   function bBSTInsert(vals, val) {
     var b = bstBuild(vals), root = b.root, steps = [];
-    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, vars: { node: (o.node == null ? "—" : String(o.node)), action: (o.action || "—") }, info: o.info, done: o.done, created: o.created }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, note: o.note, vars: { node: (o.node == null ? "—" : String(o.node)), parent: (o.parent == null ? "—" : String(o.parent)), action: (o.action || "—") }, info: o.info, done: o.done, created: o.created }); }
     if (!root) { root = b.mk(val); var m0 = {}; m0[root.id] = "created"; push({ line: 1, tree: bstSnap(root, m0), node: val, action: "корень", created: true, done: true, info: "дерево было пустым — " + val + " становится корнем" }); return { steps: steps }; }
+    // parent — половина алгоритма: цикл кончается на node == nil, и подцепить лист
+    // можно только к запомненному родителю. Раньше parent не показывался, node = 6 стоял
+    // там, где в коде node == nil, а лист висел в дереве ещё до строки parent.Left = leaf.
     var node = root, parent = root;
-    push({ line: 2, tree: bstSnap(root, {}), node: root.val, action: "старт", info: "ищем место (лист) для " + val });
+    push({ line: 2, tree: bstSnap(root, {}), node: root.val, parent: root.val, action: "старт", info: "ищем место (лист) для " + val });
     while (node) {
       parent = node;
       var m = {}; m[node.id] = "current";
-      push({ line: 5, tree: bstSnap(root, m), node: node.val, action: "сравнение", info: val + " vs " + node.val });
-      if (val < node.val) { push({ line: 6, tree: bstSnap(root, m), node: node.val, action: "влево", info: val + " < " + node.val + " — влево" }); node = node.left; }
-      else { push({ line: 8, tree: bstSnap(root, m), node: node.val, action: "вправо", info: val + " ≥ " + node.val + " — вправо" }); node = node.right; }
+      push({ line: 5, tree: bstSnap(root, m), node: node.val, parent: parent.val, action: "сравнение", info: "parent = " + node.val + "; " + val + " vs " + node.val });
+      if (val < node.val) { push({ line: 6, tree: bstSnap(root, m), node: (node.left ? node.left.val : "nil"), parent: parent.val, action: "влево", info: val + " < " + node.val + " — node = node.Left" + (node.left ? " = " + node.left.val : " = nil") }); node = node.left; }
+      else { push({ line: 8, tree: bstSnap(root, m), node: (node.right ? node.right.val : "nil"), parent: parent.val, action: "вправо", info: val + " ≥ " + node.val + " — node = node.Right" + (node.right ? " = " + node.right.val : " = nil") }); node = node.right; }
     }
+    var mp = {}; mp[parent.id] = "current";
+    push({ line: 3, tree: bstSnap(root, mp), node: "nil", parent: parent.val, action: "место найдено", note: "node == nil → цикл окончен: место под parent", info: "node == nil — место найдено: лист встанет под parent = " + parent.val });
     var leaf = b.mk(val), left = val < parent.val;
+    push({ line: 11, tree: bstSnap(root, mp), node: "nil", parent: parent.val, action: "создаём", info: "leaf := &Node{" + val + "} — создан, но пока ни к чему не подцеплен" });
     if (left) parent.left = leaf; else parent.right = leaf;
     var mc = {}; mc[leaf.id] = "created";
-    push({ line: 11, tree: bstSnap(root, mc), node: val, action: "создаём", created: true, info: "место найдено — создаём лист " + val });
-    push({ line: (left ? 13 : 15), tree: bstSnap(root, mc), node: val, action: "подцепляем", done: true, info: val + " подцеплен " + (left ? "слева" : "справа") + " от " + parent.val });
+    push({ line: (left ? 13 : 15), tree: bstSnap(root, mc), node: "nil", parent: parent.val, action: "подцепляем", created: true, done: true, info: "parent." + (left ? "Left" : "Right") + " = leaf: " + val + " подцеплен " + (left ? "слева" : "справа") + " от " + parent.val });
     return { steps: steps };
   }
   function bBSTDelete(vals, target) {
     var b = bstBuild(vals), root = b.root, steps = [];
-    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, vars: { node: (o.node == null ? "—" : String(o.node)), action: (o.action || "—") }, info: o.info, done: o.done, removed: o.removed }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, note: o.note, vars: { node: (o.node == null ? "—" : String(o.node)), succ: (o.succ == null ? "—" : String(o.succ)), action: (o.action || "—") }, info: o.info, done: o.done, removed: o.removed }); }
     var node = root, parent = null;
     push({ line: 1, tree: bstSnap(root, {}), node: (root ? root.val : null), action: "старт", info: "ищем узел " + target });
     while (node && node.val !== target) {
@@ -7507,16 +7519,17 @@
     }
     if (!node) { push({ line: 6, tree: bstSnap(root, {}), node: null, done: true, info: target + " в дереве нет" }); return { steps: steps }; }
     var mfound = {}; mfound[node.id] = "current";
-    push({ line: 6, tree: bstSnap(root, mfound), node: node.val, action: "нашли", info: "нашли узел " + node.val });
+    push({ line: 2, tree: bstSnap(root, mfound), node: node.val, action: "нашли", note: "node.Val == val → цикл окончен: нашли", info: "node.Val == " + target + " — нашли, выходим из цикла поиска" });
     if (node.left && node.right) {
       push({ line: 7, tree: bstSnap(root, mfound), node: node.val, action: "два ребёнка", info: "у " + node.val + " два ребёнка — ищем преемника (min правого поддерева)" });
       var succ = node.right, sp = node;
       var ms = {}; ms[node.id] = "current"; ms[succ.id] = "found";
-      push({ line: 8, tree: bstSnap(root, ms), node: succ.val, action: "преемник", info: "преемник = правый ребёнок " + succ.val + ", дальше влево до упора" });
-      while (succ.left) { sp = succ; succ = succ.left; var ml = {}; ml[node.id] = "current"; ml[succ.id] = "found"; push({ line: 9, tree: bstSnap(root, ml), node: succ.val, action: "влево", info: "идём влево к минимуму: " + succ.val }); }
+      push({ line: 8, tree: bstSnap(root, ms), node: node.val, succ: succ.val, action: "преемник", info: "succ = node.Right = " + succ.val + ", дальше влево до упора" });
+      while (succ.left) { sp = succ; succ = succ.left; var ml = {}; ml[node.id] = "current"; ml[succ.id] = "found"; push({ line: 9, tree: bstSnap(root, ml), node: node.val, succ: succ.val, action: "влево", info: "идём влево к минимуму: succ = " + succ.val }); }
+      var oldVal = node.val;
       node.val = succ.val;
-      var mco = {}; mco[node.id] = "created";
-      push({ line: 10, tree: bstSnap(root, mco), node: node.val, action: "копируем", info: "копируем значение преемника " + succ.val + " в удаляемый узел (теперь его дубликат-преемник надо убрать)" });
+      var mco = {}; mco[node.id] = "created"; mco[succ.id] = "found";
+      push({ line: 10, tree: bstSnap(root, mco), node: oldVal + " → " + node.val, succ: succ.val, action: "копируем", info: "node.Val = succ.Val: в узле было " + oldVal + ", стало " + succ.val + ". Теперь в дереве два " + succ.val + " — лишний (сам преемник, зелёный) и уберём" });
       node = succ; parent = sp;
     }
     var child = node.left || node.right || null;
@@ -7525,7 +7538,7 @@
     if (!parent) root = child;
     else if (parent.left === node) parent.left = child;
     else parent.right = child;
-    push({ line: (!parent ? 16 : (parent && parent.left === child ? 17 : 18)), tree: bstSnap(root, {}), node: (root ? root.val : "—"), action: "готово", done: true, info: "узел удалён" });
+    push({ line: (!parent ? 16 : (parent && parent.left === child ? 17 : 18)), tree: bstSnap(root, {}), node: "—", action: "готово", done: true, info: target + " удалён из дерева" });
     return { steps: steps };
   }
 
@@ -7813,6 +7826,10 @@
     function loTop() { return lower.length ? lower[lower.length - 1] : "—"; }
     function median() {
       if (!lower.length && !upper.length) return "—";
+      // Пока размеры куч расходятся больше чем на 1, вершины — не медиана: раньше тут
+      // показывалось «5» для {5,15,1,3} (медиана 4). Это как раз момент, ради которого
+      // нужна балансировка, — так и пишем.
+      if (Math.abs(lower.length - upper.length) > 1) return "— (кучи " + lower.length + "/" + upper.length + ", нужен перенос)";
       return lower.length === upper.length ? (lower[lower.length - 1] + upper[0]) / 2 : (lower.length > upper.length ? lower[lower.length - 1] : upper[0]);
     }
     function push(o) { steps.push({ lower: lower.slice(), upper: upper.slice(), line: o.line, vars: { num: o.num, loSize: lower.length, hiSize: upper.length, median: median(), "перенесено": reb }, info: o.info, done: o.done, found: o.found }); }
@@ -8224,7 +8241,10 @@
     "dutch-flag": {
       badge: "Dutch National Flag",
       desc: "Сортировка 0/1/2 за один проход: mid сканирует непросмотренное, low — граница нулей, high — граница двоек. Ноль улетает влево (оба указателя вперёд), двойка — вправо (mid стоит: приехал непросмотренный).",
-      valuesLabel: "Массив (зелёное — нули, светлое — единицы, оранжевое — двойки, рамка — mid)", codeKey: "dutch-flag", fillRange: false,
+      valuesLabel: "Массив", codeKey: "dutch-flag", fillRange: false,
+      // легенда — у основной сетки и в её настоящих цветах (раньше подпись над мини-строкой
+      // обещала «оранжевые двойки», а двойки были фиолетовыми)
+      legend: [{ cls: "zero", label: "нули [0, low)" }, { cls: "ones", label: "единицы [low, mid)" }, { cls: "two", label: "двойки (high, n)" }, { cls: "curedge", label: "mid — разбираем" }],
       ptr1: { name: "low", cap: "(граница нулей)" }, ptr2: { name: "high", cap: "(граница двоек)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Разбиение на 3 класса за проход" },
       varOrder: ["low", "mid", "high", "v"],
@@ -8781,7 +8801,7 @@
       complexity: { time: "O(n)", space: "O(1)", good: "★ Поиск одиночек среди пар" },
       varOrder: ["i", "x", "xorAll", "diff", "a", "b"],
       varDesc: { i: "Текущий индекс", x: "nums[i]", xorAll: "XOR всех (после прохода 1 = a^b)", diff: "Младший бит различия a и b", a: "XOR группы с битом 1", b: "XOR группы с битом 0" },
-      lineNotes: { 1: "xorAll = 0 — первый проход", 3: "xorAll ^= x: пары сокращаются, остаётся a ^ b", 5: "diff = xorAll & (−xorAll) — младший бит, где a и b различаются", 6: "a = b = 0 — второй проход делит по diff", 7: "Бит diff в x установлен?", 9: "Бит установлен → копим в a", 11: "Бит сброшен → копим в b", 14: "Возвращаем [a, b]" },
+      lineNotes: { 1: "xorAll = 0 — первый проход", 3: "xorAll ^= x: пары сокращаются, остаётся a ^ b", 5: "diff = xorAll & (−xorAll) — младший бит, где a и b различаются", 6: "a = b = 0 — второй проход делит по diff", 7: "Берём следующий x", 8: "Бит diff в x установлен?", 9: "Бит установлен → копим в a", 11: "Бит сброшен → копим в b", 14: "Возвращаем [a, b]" },
       rules: [{ head: "x & diff ≠ 0", body: "→ группа a", cls: "gt" }, { head: "x & diff = 0", body: "→ группа b", cls: "lt" }, { head: "пары в группе", body: "→ XOR обнуляет", cls: "eq" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bTwoSingle(arr) }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
@@ -10376,8 +10396,8 @@
       badge: "BST", desc: "Вставка в дерево поиска: спускаемся по сравнениям до пустого места и подцепляем лист.",
       valuesLabel: "", codeKey: "bst-insert", fillRange: false,
       complexity: { time: "O(h)", space: "O(1)", good: "★ Вставки с сохранением порядка" },
-      varOrder: ["node", "action"],
-      varDesc: { "node": "Текущий узел", "action": "Что делаем на шаге" },
+      varOrder: ["node", "parent", "action"],
+      varDesc: { "node": "Куда идём (nil — место найдено)", "parent": "Последний пройденный узел — к нему подцепим лист", "action": "Что делаем на шаге" },
       lineNotes: { 1: "Пустое дерево — новый узел становится корнем", 2: "Идём от корня, помня родителя", 5: "Сравниваем вставляемое значение с узлом", 6: "Меньше — в левое поддерево", 8: "Больше-равно — в правое поддерево", 11: "Дошли до пустого места — создаём лист", 13: "Подцепляем слева", 15: "Подцепляем справа" },
       rules: [{ head: "val < node.Val", body: "→ влево", cls: "lt" }, { head: "val ≥ node.Val", body: "→ вправо", cls: "gt" }, { head: "Пустое место", body: "→ новый лист", cls: "eq" }],
       parse: function (root) { var vals = nums(root.getAttribute("data-tree")); var val = parseInt(root.getAttribute("data-val"), 10); var r = bBSTInsert(vals, val); return { vals: vals, val: val, steps: r.steps }; },
@@ -10389,7 +10409,7 @@
       sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: s.created ? "gt" : "lt" }]; },
       status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: ctx.val + " вставлен", text: s.info }; if (s.created) return { kind: "info", icon: idx + 1, head: "Лист создан", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.created) return { a: "лист «" + s.vars.node + "»", b: "создан", c: "+", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: s.vars.action, c: "·", cls: "lt" }; },
-      varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
+      varsOf: function (s) { return { "node": s.vars.node, "parent": s.vars.parent, "action": s.vars.action }; },
       customViz: bstViz
     },
 
@@ -10397,8 +10417,8 @@
       badge: "BST", desc: "Удаление из дерева поиска: лист, один ребёнок или два ребёнка (замена на преемника).",
       valuesLabel: "", codeKey: "bst-delete", fillRange: false,
       complexity: { time: "O(h)", space: "O(1)", good: "★ Удаления с сохранением порядка" },
-      varOrder: ["node", "action"],
-      varDesc: { "node": "Текущий / удаляемый узел", "action": "Что делаем на шаге" },
+      varOrder: ["node", "succ", "action"],
+      varDesc: { "node": "Текущий / удаляемый узел", "succ": "Преемник — минимум правого поддерева", "action": "Что делаем на шаге" },
       lineNotes: { 1: "Ищем узел, помня родителя", 2: "Пока не нашли значение", 4: "Влево или вправо по сравнению", 6: "Значения нет — выходим", 7: "Два ребёнка — особый случай", 8: "Преемник: минимум правого поддерева", 9: "Идём влево до упора", 10: "Копируем значение преемника в узел", 13: "У узла теперь ≤ 1 ребёнка — берём его", 16: "Отцепляем: узел заменяется ребёнком (или nil)", 17: "Перецепляем левую ссылку родителя", 18: "Перецепляем правую ссылку родителя" },
       rules: [{ head: "0–1 ребёнок", body: "→ заменяем ребёнком/nil", cls: "lt" }, { head: "2 ребёнка", body: "→ значение преемника", cls: "gt" }, { head: "Преемник", body: "min правого поддерева", cls: "eq" }],
       parse: function (root) { var vals = nums(root.getAttribute("data-tree")); var target = parseInt(root.getAttribute("data-delete"), 10); var r = bBSTDelete(vals, target); return { vals: vals, target: target, steps: r.steps }; },
@@ -10410,7 +10430,7 @@
       sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: s.removed ? "gt" : "eq" }]; },
       status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Удаление " + ctx.target + " завершено", text: s.info }; if (s.removed) return { kind: "info", icon: idx + 1, head: "Узел отцеплен", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.removed) return { a: "узел «" + s.vars.node + "»", b: "отцеплен", c: "–", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: s.vars.action, c: "·", cls: "lt" }; },
-      varsOf: function (s) { return { "node": s.vars.node, "action": s.vars.action }; },
+      varsOf: function (s) { return { "node": s.vars.node, "succ": s.vars.succ, "action": s.vars.action }; },
       customViz: bstViz
     },
 
@@ -10771,7 +10791,7 @@
       complexity: { time: "O(amount·k)", space: "O(amount)", good: "★ Перекрывающихся подзадач" },
       varOrder: ["a", "c", "dp[a−c]", "best", "dp[a]"],
       varDesc: { a: "Текущая сумма", c: "Текущая монета", "dp[a−c]": "Подзадача: сумма без монеты", best: "Лучший минимум", "dp[a]": "Ответ для суммы a" },
-      lineNotes: { 1: "dp[s] — минимум монет на сумму s; dp[0]=0, остальное ∞", 2: "Заполняем dp по возрастанию суммы a", 3: "Ищем лучший (минимальный) размен для суммы a", 4: "Перебираем каждую монету", 5: "Монета помещается и даёт размен короче текущего best?", 6: "Берём монету c: размен = dp[a−c] + 1, если он меньше", 9: "Записываем найденный минимум в dp[a]", 11: "dp[amount] — ответ (∞, если размен невозможен)" },
+      lineNotes: { 1: "INF = 1<<30, а не MaxInt: dp[a−c]+1 от MaxInt переполнился бы в минус и «победил»", 2: "dp[s] — минимум монет на сумму s; dp[0] = 0", 3: "Заполняем dp по возрастанию суммы a", 4: "Ищем лучший (минимальный) размен для суммы a", 5: "Перебираем каждую монету", 6: "Монета помещается и даёт размен короче текущего best?", 7: "Берём монету c: размен = dp[a−c] + 1", 10: "Записываем найденный минимум в dp[a]", 12: "dp[amount] так и остался ∞ → размен невозможен, −1", 13: "dp[amount] — ответ" },
       rules: [{ head: "Перебираем монеты", body: "для каждой суммы a", cls: "lt" }, { head: "dp[a−c]+1 < best", body: "→ обновляем best", cls: "eq" }, { head: "dp[a] = best", body: "минимум монет на a", cls: "gt" }],
       parse: function (root) { var coins = nums(root.getAttribute("data-coins")); var amount = parseInt(root.getAttribute("data-amount"), 10); return { coins: coins, amount: amount, steps: bDpCoins(coins, amount) }; },
       inputs: [{ attr: "data-coins", label: "Монеты" }, { attr: "data-amount", label: "сумма", sm: true }],
@@ -11007,7 +11027,7 @@
       complexity: { time: "O(log n)", space: "O(n)", good: "★ Префиксных сумм с обновлением" },
       varOrder: ["i", "range", "sum"],
       varDesc: { "i": "Номер узла BIT (1-индекс)", "range": "Покрываемый диапазон", "sum": "Накопленная префиксная сумма" },
-      lineNotes: { 1: "sum = 0; i — индекс в BIT (1-индексация)", 2: "Поднимаемся по BIT, пока i > 0", 3: "Прибавляем сумму зоны ответственности узла i", 4: "Переходим к родителю, сбрасывая младший единичный бит: i −= i & (−i)", 6: "Накоплена префиксная сумма на диапазоне [1..i]" },
+      lineNotes: { 1: "Переходим в 1-индексацию BIT: i++", 2: "sum = 0", 3: "Спускаемся по BIT, пока i > 0", 4: "Прибавляем сумму зоны ответственности узла i", 5: "Спуск: сбрасываем младший единичный бит, i −= i & (−i)", 7: "Накоплена префиксная сумма на диапазоне [0..target]" },
       rules: [{ head: "Зона узла i", body: "[i − lowbit + 1 .. i]", cls: "lt" }, { head: "Складываем", body: "sum += tree[i]", cls: "eq" }, { head: "i −= i&(−i)", body: "переход к родителю", cls: "gt" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var target = parseInt(root.getAttribute("data-index"), 10); return { arr: arr, target: target, steps: bFenwick(arr, target) }; },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-index", label: "индекс", sm: true }],
@@ -11176,7 +11196,7 @@
       complexity: { time: "O(1) сред.", space: "O(n)", good: "★ Доступ по ключу" },
       varOrder: ["i", "key"],
       varDesc: { "i": "Индекс бакета", "key": "Вставляемый ключ" },
-      lineNotes: { 1: "hash(key) % m — в какой бакет кладём", 2: "Сканируем цепочку: нет ли уже такого ключа", 3: "Ключ найден — обновляем значение на месте", 8: "Новый ключ — добавляем в конец цепочки (коллизия = непустая цепочка)" },
+      lineNotes: { 1: "hash(key) % m — в какой бакет кладём", 2: "Идём по цепочке по индексу j", 3: "Ключ совпал?", 4: "Обновляем по индексу: e из range — копия, правка через неё потерялась бы", 8: "Новый ключ — добавляем в конец цепочки (коллизия = непустая цепочка)" },
       rules: [{ head: "hash(key) % m", body: "→ номер бакета", cls: "lt" }, { head: "Ключ уже есть", body: "→ обновить", cls: "eq" }, { head: "Нет — в цепочку", body: "коллизия = длиннее 1", cls: "gt" }],
       parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var m = parseInt(root.getAttribute("data-buckets"), 10); var key = parseInt(root.getAttribute("data-key"), 10); var r = bHashPut(keys, m, key); return { keys: keys, m: m, key: key, steps: r.steps }; },
       inputs: [{ attr: "data-keys", label: "Ключи в таблице" }, { attr: "data-buckets", label: "бакетов", sm: true }, { attr: "data-key", label: "вставить", sm: true }],
@@ -11234,13 +11254,13 @@
     },
 
     "deque-ops": {
-      badge: "Deque", desc: "Двусторонняя очередь: вставка и удаление с обоих концов за O(1).",
+      badge: "Deque", desc: "Двусторонняя очередь: вставка и удаление с обоих концов. На срезе, как в коде ниже, PushFront копирует весь срез — O(n); кольцевой буфер (глава дальше) делает оба конца за O(1).",
       valuesLabel: "", codeKey: "deque-ops", fillRange: false,
-      complexity: { time: "O(1)", space: "O(n)", good: "★ Очередь/стек с двух концов" },
+      complexity: { time: "O(1) сзади · O(n) PushFront на срезе", space: "O(n)", good: "★ Очередь/стек с двух концов" },
       varOrder: ["op", "val"],
       varDesc: { "op": "Операция", "val": "Значение" },
-      lineNotes: { 0: "Операции над двусторонней очередью", 1: "PushBack — добавить в конец", 2: "PushFront — добавить в начало", 3: "PopBack — снять с конца", 4: "PopFront — снять с начала" },
-      rules: [{ head: "Push", body: "→ в начало или конец", cls: "gt" }, { head: "Pop", body: "→ с начала или конца", cls: "lt" }, { head: "Оба конца", body: "за O(1)", cls: "eq" }],
+      lineNotes: { 0: "Операции над двусторонней очередью", 1: "PushBack — добавить в конец, амортизированно O(1)", 2: "PushFront на срезе — копия всех n элементов, O(n); кольцевой буфер сдвигает head по модулю за O(1)", 3: "PopBack — снять с конца, O(1)", 4: "PopFront — перешагнуть первый, O(1)" },
+      rules: [{ head: "Push", body: "→ в начало или конец", cls: "gt" }, { head: "Pop", body: "→ с начала или конца", cls: "lt" }, { head: "Оба конца за O(1)", body: "только на кольцевом буфере", cls: "eq" }],
       parse: function (root) { var ops = (root.getAttribute("data-ops") || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean); var r = bDeque(ops); return { ops: ops, steps: r.steps }; },
       inputs: [{ attr: "data-ops", label: "Операции (b/f/B/F)" }],
       values: function () { return []; },
