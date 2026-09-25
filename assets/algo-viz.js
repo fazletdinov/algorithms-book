@@ -8393,32 +8393,41 @@
   }
   // Построение кучи из массива за O(n) (Флойд): siftDown от последнего ВНУТРЕННЕГО
   // узла (n/2−1) к корню. Листья (нижняя половина) — уже кучи по одному узлу.
+  // ok — узлы, чьё поддерево уже куча: сначала листья, потом после каждого siftDown(i)
+  // всё поддерево i. Видно, что Флойд идёт снизу вверх и каждое просеивание опирается на
+  // готовые кучи под собой, а короткие просеивания внизу — откуда суммарное O(n).
   function bHeapBuild(initial) {
-    var h = initial.slice(), n = h.length, steps = [];
-    function push(o) { steps.push({ si: steps.length, line: o.line, heap: h.slice(), marks: o.marks || {}, vars: { i: (o.i == null ? "—" : String(o.i)), action: (o.action || "—") }, info: o.info, done: o.done }); }
+    var h = initial.slice(), n = h.length, steps = [], ok = {}, sifts = 0, work = 0;
+    function marks(extra) { var m = {}; for (var k in ok) m[k] = "heapok"; for (var q in extra) m[q] = extra[q]; return m; }
+    function push(o) { steps.push({ si: steps.length, line: o.line, heap: h.slice(), marks: o.marks || marks({}), note: o.note, vars: { i: (o.i == null ? "—" : String(o.i)), action: (o.action || "—") }, info: o.info, done: o.done }); }
+    function subtree(r) { var st = [r], out = []; while (st.length) { var x = st.pop(); if (x >= n) continue; out.push(x); st.push(2 * x + 1, 2 * x + 2); } return out; }
     push({ line: 0, marks: {}, action: "старт", info: "Массив [" + h.join(", ") + "] — ещё не куча. Строим min-кучу на месте, за O(n)" });
     var firstInternal = Math.floor(n / 2) - 1;
     if (firstInternal < 0) { push({ line: 4, marks: {}, done: true, action: "готово", info: "0–1 элемент — уже куча" }); return { steps: steps }; }
-    var mleaf = {}; for (var L = firstInternal + 1; L < n; L++) mleaf[L] = "found";
-    push({ line: 5, marks: mleaf, action: "листья", info: "нижняя половина (индексы " + (firstInternal + 1) + ".." + (n - 1) + ") — листья: каждый уже куча из одного узла, их НЕ трогаем" });
+    for (var L = firstInternal + 1; L < n; L++) ok[L] = true;
+    push({ line: 5, action: "листья", info: "нижняя половина (индексы " + (firstInternal + 1) + ".." + (n - 1) + ") — листья: каждый уже куча из одного узла (зелёная рамка), их НЕ трогаем" });
     for (var start = firstInternal; start >= 0; start--) {
       var mp = {}; mp[start] = "current";
-      push({ line: 3, marks: mp, i: start, action: "внутренний узел", info: "берём внутренний узел " + h[start] + " (индекс " + start + ") и просеиваем вниз" });
-      var i = start;
+      push({ line: 2, marks: marks(mp), i: start, action: "for i = " + start, note: "Внешний цикл: i = " + start + " (от n/2−1 = " + firstInternal + " к 0)", info: "i = " + start + ": внутренний узел " + h[start] + ". Оба его поддерева уже кучи — осталось только опустить сам узел" });
+      push({ line: 3, marks: marks(mp), i: start, action: "siftDown", info: "siftDown(a, " + start + ")" });
+      var i = start, depth = 0; sifts++;
       while (true) {
         var l = 2 * i + 1, r = 2 * i + 2, small = i;
-        var mc = {}; mc[i] = "current"; if (l < n) mc[l] = "found"; if (r < n) mc[r] = "found";
-        push({ line: 10, marks: mc, i: i, action: "дети", info: "сравниваем " + h[i] + " с детьми" + (l < n ? " " + h[l] : "") + (r < n ? ", " + h[r] : "") });
+        var mc = {}; mc[i] = "current"; if (l < n) mc[l] = "path"; if (r < n) mc[r] = "path";
+        if (l >= n) { push({ line: 12, marks: marks(mc), i: i, action: "лист", info: h[i] + " дошёл до листа (индекс " + i + ": 2i+1 = " + l + " ≥ n) — детей нет, стоп" }); break; }
+        push({ line: 10, marks: marks(mc), i: i, action: "дети", info: "сравниваем " + h[i] + " с детьми" + (l < n ? " " + h[l] : "") + (r < n ? ", " + h[r] : "") });
         if (l < n && h[l] < h[small]) small = l;
         if (r < n && h[r] < h[small]) small = r;
-        if (small === i) { push({ line: 12, marks: mc, i: i, action: "стоп", info: h[i] + " не больше детей — на месте" }); break; }
-        var tmp = h[i]; h[i] = h[small]; h[small] = tmp;
-        var ms = {}; ms[i] = "found"; ms[small] = "current";
-        push({ line: 13, marks: ms, i: small, action: "swap↓", info: "меняем: " + h[i] + " вверх, " + h[small] + " вниз" });
+        if (small === i) { push({ line: 12, marks: marks(mc), i: i, action: "стоп", info: h[i] + " не больше детей — на месте" }); break; }
+        var tmp = h[i]; h[i] = h[small]; h[small] = tmp; depth++; work++;
+        var ms = {}; ms[i] = "path"; ms[small] = "current";
+        push({ line: 13, marks: marks(ms), i: small, action: "swap↓", info: "меняем: " + h[i] + " вверх, " + h[small] + " вниз" });
         i = small;
       }
+      subtree(start).forEach(function (x) { ok[x] = true; });
+      push({ line: 4, i: start, action: "поддерево " + start + " — куча", info: "поддерево с корнем в индексе " + start + " теперь куча (" + depth + " обмен" + (depth === 1 ? "" : depth >= 2 && depth <= 4 ? "а" : "ов") + ", высота поддерева ≤ " + Math.floor(Math.log(n / (start + 1)) / Math.LN2) + ")" });
     }
-    push({ line: 4, marks: {}, done: true, action: "готово", info: "куча построена: [" + h.join(", ") + "]. Всего " + (firstInternal + 1) + " просеиваний, но нижние — короткие: суммарно O(n)" });
+    push({ line: 4, marks: {}, done: true, action: "готово", info: "куча построена: [" + h.join(", ") + "]. " + sifts + " " + (sifts % 10 === 1 && sifts % 100 !== 11 ? "просеивание" : sifts % 10 >= 2 && sifts % 10 <= 4 && (sifts % 100 < 10 || sifts % 100 >= 20) ? "просеивания" : "просеиваний") + ", всего " + work + " " + (work % 10 === 1 && work % 100 !== 11 ? "обмен" : work % 10 >= 2 && work % 10 <= 4 && (work % 100 < 10 || work % 100 >= 20) ? "обмена" : "обменов") + " на " + n + " элементов: половина узлов — листья без работы, у следующей четверти путь ≤ 1, у восьмой части ≤ 2… — сумма ограничена ~n, отсюда O(n), а не O(n log n)" });
     return { steps: steps };
   }
 

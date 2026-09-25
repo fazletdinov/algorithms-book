@@ -1494,3 +1494,6 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__llarrow--hot { color: #e0a500 !important; font-weight: 900; transform: scale(1.35); }
 .algo-tp__llnode--cut { border: 2px dashed #ef4444 !important; color: #ef4444; text-decoration: line-through; }
 .algo-tp__llnode--gone { opacity: 0.35; }
+/* Построение кучи: узлы, чьё поддерево уже куча (зелёная рамка без заливки) */
+.algo-tp__tnode--heapok, .algo-tp__heapcell.algo-tp__tnode--heapok { border-color: var(--tp-ok) !important; box-shadow: inset 0 0 0 1px var(--tp-ok); }
+.algo-tp__heapcell.algo-tp__tnode--path { box-shadow: 0 0 0 3px color-mix(in srgb, var(--tp-lo) 55%, transparent); }
