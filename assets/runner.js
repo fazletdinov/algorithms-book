@@ -308,6 +308,19 @@
       "  ·  " + res.passed + " ok / " + res.failed + " fail  ·  " + res.duration);
     out.appendChild(verdict);
 
+    // panic("TODO") в незаписанной функции роняет ВЕСЬ тестовый бинарник: в списке
+    // оказывается один упавший тест, а остальные не запускались вовсе. Без пояснения
+    // «0 ok / 1 fail» читается как «остальные тесты прошли» или «тест один».
+    var todo = null;
+    (res.tests || []).some(function (t) { var m = !t.pass && t.output && /panic: (TODO[^\n\[]*)/.exec(t.output); if (m) todo = m[1].trim(); return !!m; });
+    if (!todo && res.output) { var m2 = /panic: (TODO[^\n\[]*)/.exec(res.output); if (m2) todo = m2[1].trim(); }
+    if (todo) {
+      out.appendChild(el("div", "algo-runner__hint",
+        "Упало на заглушке «" + todo + "» — эта функция ещё не написана. panic останавливает весь тестовый бинарник, " +
+        "поэтому тесты после него не запускались вовсе, и в списке их меньше, чем есть в пакете. " +
+        "Напиши эту функцию — прогон пойдёт дальше и покажет следующую."));
+    }
+
     if (res.race) {
       out.appendChild(el("div", "algo-runner__verdict is-err",
         "🏁 Обнаружена гонка данных (-race): к общему состоянию обращаются из нескольких горутин без синхронизации. Подробности — в выводе упавшего теста ниже (WARNING: DATA RACE)."));
