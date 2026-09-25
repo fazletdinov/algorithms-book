@@ -1472,6 +1472,22 @@
       "    return h.Values()",
       "}"
     ],
+    "top-k-freq": [
+      "func topKFreqHeap(nums []int, k int) []int {",
+      "    freq := make(map[int]int, len(nums))",
+      "    for _, num := range nums {",
+      "        freq[num]++",
+      "    }",
+      "    h := &freqHeap{} // min-куча по count",
+      "    for num, count := range freq {",
+      "        heap.Push(h, entry{num, count})",
+      "        if h.Len() > k {",
+      "            heap.Pop(h) // выкинуть наименее частого",
+      "        }",
+      "    }",
+      "    return values(h) // k самых частых",
+      "}"
+    ],
     "k-way-merge": [
       "func mergeKSorted(lists [][]int) []int {",
       "    h := &MinHeap{} // (значение, список, индекс)",
@@ -2765,7 +2781,7 @@
       function cy(y) { return y * CH + 22; }
       var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__bstsvg");
       for (var i = 0; i < n; i++) { if (parent[i] !== i) { var c1 = pos[i], c2 = pos[parent[i]]; var ln = document.createElementNS(SVGNS, "line"); ln.setAttribute("x1", cx(c1.x)); ln.setAttribute("y1", cy(c1.y)); ln.setAttribute("x2", cx(c2.x)); ln.setAttribute("y2", cy(c2.y)); ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); } }
-      host.appendChild(svg);
+      host.appendChild(trimLines(svg, 19));
       for (var j = 0; j < n; j++) { var p = pos[j]; var isRoot = parent[j] === j; var box = mkEl("div", "algo-tp__tnode" + (isRoot ? " algo-tp__tnode--root" : "") + (marks[j] ? " algo-tp__tnode--" + marks[j] : ""), j); box.style.position = "absolute"; box.style.left = (cx(p.x) - R) + "px"; box.style.top = (cy(p.y) - R) + "px"; host.appendChild(box); }
     };
   }
@@ -2803,9 +2819,10 @@
       push({ line: 1, marks: mr, a: ra, b: rb, action: "union", info: "Union(" + a + ", " + b + "): корни find(" + a + ")=" + ra + ", find(" + b + ")=" + rb });
       if (ra === rb) { var ms = {}; ms[ra] = "found"; push({ line: 3, marks: ms, a: ra, b: rb, action: "уже вместе", info: ra + " == " + rb + " — уже в одном множестве, пропуск" }); return; }
       if (size[ra] < size[rb]) { var t = ra; ra = rb; rb = t; }
+      var tie = size[ra] === size[rb], sA = size[ra], sB = size[rb];
       parent[rb] = ra; size[ra] += size[rb];
       var mu = {}; mu[ra] = "found"; mu[rb] = "current";
-      push({ line: 8, marks: mu, a: ra, b: rb, action: "подвешиваем", info: "меньшее дерево (" + rb + ") подвешиваем под большее (" + ra + "); size[" + ra + "] = " + size[ra] });
+      push({ line: 8, marks: mu, a: ra, b: rb, action: "подвешиваем", info: (tie ? "размеры равны (" + sA + " = " + sB + ") — подвешиваем " + rb + " под " + ra + " (при равенстве можно любой)" : "меньшее дерево (" + rb + ", размер " + sB + ") подвешиваем под большее (" + ra + ", размер " + sA + ")") + "; size[" + ra + "] = " + size[ra] });
     });
     push({ line: 10, done: true, info: "объединения завершены" });
     return { steps: steps };
@@ -3105,7 +3122,7 @@
     for (var k = 0; k < E.length; k++) {
       steps.push({ si: k, line: lineOf[k], vars: { g: "G" + (E[k].lane + 1), act: E[k].label }, info: infoOf[k], tl: { events: E, now: k, race: [0, n - 1] } });
     }
-    steps.push({ si: E.length, line: 3, done: true, vars: { g: "—", act: "потеря" }, info: "Итог cnt[7]=1 вместо " + n + ": " + (n - 1) + " инкрементов потеряны. А Go-map при конкурентной записи ещё и роняет программу — fatal error: concurrent map writes.", tl: { events: E, now: E.length - 1, race: [0, n - 1] } });
+    steps.push({ si: E.length, line: 3, done: true, vars: { g: "—", act: "потеря" }, info: "Итог cnt[7]=1 вместо " + n + ": " + (n - 1) + " " + ((n - 1) % 10 === 1 && (n - 1) % 100 !== 11 ? "инкремент потерян" : ((n - 1) % 10 >= 2 && (n - 1) % 10 <= 4 && ((n - 1) % 100 < 12 || (n - 1) % 100 > 14)) ? "инкремента потеряны" : "инкрементов потеряны") + ". А Go-map при конкурентной записи ещё и роняет программу — fatal error: concurrent map writes.", tl: { events: E, now: E.length - 1, race: [0, n - 1] } });
     return { steps: steps };
   }
 
@@ -3127,7 +3144,7 @@
     for (var k = 0; k < E.length; k++) {
       steps.push({ si: k, line: lineOf[k], vars: { g: (E[k].kind === "append" ? "merge" : "G" + (E[k].lane + 1)), act: E[k].label }, info: infoOf[k], tl: { events: E, now: k, race: null } });
     }
-    steps.push({ si: E.length, line: 7, done: true, vars: { g: "merge", act: "cnt[7]=" + n }, info: "Все " + n + " инкрементов на месте: cnt[7]=" + n + ". Ни гонки, ни потери, ни паники — синхронизация только в момент слияния.", tl: { events: E, now: E.length - 1, race: null } });
+    steps.push({ si: E.length, line: 7, done: true, vars: { g: "merge", act: "cnt[7]=" + n }, info: "Все " + n + " " + (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "инкремента" : "инкрементов") + " на месте: cnt[7]=" + n + ". Ни гонки, ни потери, ни паники — синхронизация только в момент слияния.", tl: { events: E, now: E.length - 1, race: null } });
     return { steps: steps };
   }
 
@@ -3365,7 +3382,7 @@
       function cy(d) { return d * CH + 24; }
       var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__bstsvg");
       tr.edges.forEach(function (e) { var ln = document.createElementNS(SVGNS, "line"); ln.setAttribute("x1", cx(e[0])); ln.setAttribute("y1", cy(e[1]) + RH); ln.setAttribute("x2", cx(e[2])); ln.setAttribute("y2", cy(e[3]) - RH); ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); });
-      host.appendChild(svg);
+      host.appendChild(trimLines(svg, 19));
       tr.nodes.forEach(function (n) {
         var box = mkEl("div", "algo-tp__btnode" + (n.cls ? " algo-tp__btnode--" + n.cls : ""));
         n.keys.forEach(function (k) { box.appendChild(mkEl("div", "algo-tp__btkey", k)); });
@@ -4812,7 +4829,7 @@
 
   // ===== Trie (префиксное дерево) ============================================
   function bTrie(words, query) {
-    var nodes = [{ ch: "•", depth: 0, end: false, children: {} }];
+    var nodes = [{ ch: "корень", depth: 0, end: false, children: {} }];
     words.forEach(function (w) {
       var cur = 0;
       for (var k = 0; k < w.length; k++) {
@@ -4832,7 +4849,7 @@
     for (var k = 0; k < query.length; k++) {
       var ch = query[k];
       push({ line: 2, char: ch, node: nodes[walkCur].ch, info: "i = " + k + ": символ запроса '" + ch + "'" });
-      push({ line: 3, char: ch, node: nodes[walkCur].ch, info: "c = '" + ch + "'" });
+      push({ line: 3, char: ch, node: nodes[walkCur].ch, info: "c = word[i] − 'a' = '" + ch + "' − 'a' = " + (ch.charCodeAt(0) - 97) + " — номер ребёнка в children" });
       var childId = nodes[walkCur].children[ch], has = childId != null;
       push({ line: 4, char: ch, node: nodes[walkCur].ch, info: has ? "у узла «" + nodes[walkCur].ch + "» есть потомок '" + ch + "'" : "у узла «" + nodes[walkCur].ch + "» НЕТ потомка '" + ch + "'" });
       if (!has) { push({ line: 5, done: true, char: ch, node: "нет", isWord: "нет", info: "return false — «" + query + "» отсутствует (нет символа '" + ch + "')" }); return { nodes: nodes, path: path, steps: steps }; }
@@ -4841,6 +4858,18 @@
     }
     push({ line: 9, done: true, found: nodes[walkCur].end, node: nodes[walkCur].ch, isWord: nodes[walkCur].end ? "да" : "нет (только префикс)", info: nodes[walkCur].end ? "node.isEnd == true → «" + query + "» найдено как слово ✓" : "node.isEnd == false → «" + query + "» есть только как префикс" });
     return { nodes: nodes, path: path, steps: steps };
+  }
+  // Рёбра деревьев рисуются «центр — центр», а заливка узлов полупрозрачная: линия
+  // перечёркивала цифру в узле. Укорачиваем каждую линию на радиус узла с обоих концов.
+  function trimLines(svg, r) {
+    Array.prototype.forEach.call(svg.querySelectorAll("line"), function (ln) {
+      var x1 = +ln.getAttribute("x1"), y1 = +ln.getAttribute("y1"), x2 = +ln.getAttribute("x2"), y2 = +ln.getAttribute("y2");
+      var dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
+      if (!(len > 2 * r)) return;
+      var ux = dx / len, uy = dy / len;
+      ln.setAttribute("x1", x1 + ux * r); ln.setAttribute("y1", y1 + uy * r); ln.setAttribute("x2", x2 - ux * r); ln.setAttribute("y2", y2 - uy * r);
+    });
+    return svg;
   }
   // Дерево с рёбрами для n-арных деревьев (бор, дерево маршрутов). Лист получает
   // следующий слот по горизонтали в порядке обхода, родитель встаёт над серединой
@@ -5016,7 +5045,7 @@
   // кратчайший корень-префикс (идём от начала слова), возвращаем word[:i+1]. Путь оборвался
   // (нет ребра) → корня нет, слово остаётся как есть. Рисуется тем же trieViz по path/upto.
   function bTrieShortestRoot(words, query) {
-    var nodes = [{ ch: "•", depth: 0, end: false, children: {} }];
+    var nodes = [{ ch: "корень", depth: 0, end: false, children: {} }];
     words.forEach(function (w) {
       var cur = 0;
       for (var k = 0; k < w.length; k++) {
@@ -5059,7 +5088,7 @@
   // Trie: вставка слова — растим дерево, показывая создание vs переиспользование узлов.
   function bTrieInsert(words, ins) {
     // Стартовое дерево из уже вставленных слов (createdAt = -1 — существуют изначально).
-    var nodes = [{ ch: "•", depth: 0, end: false, children: {}, createdAt: -1 }];
+    var nodes = [{ ch: "корень", depth: 0, end: false, children: {}, createdAt: -1 }];
     words.forEach(function (w) {
       var cur = 0;
       for (var k = 0; k < w.length; k++) {
@@ -5075,7 +5104,7 @@
     for (var k = 0; k < ins.length; k++) {
       var ch = ins[k];
       push({ line: 2, char: ch, node: nodes[walkCur].ch, action: "цикл", info: "i = " + k + ": символ '" + ch + "'" });
-      push({ line: 3, char: ch, node: nodes[walkCur].ch, action: "символ", info: "c = '" + ch + "'" });
+      push({ line: 3, char: ch, node: nodes[walkCur].ch, action: "символ", info: "c = word[i] − 'a' = '" + ch + "' − 'a' = " + (ch.charCodeAt(0) - 97) + " — номер ребёнка в children" });
       var childId = nodes[walkCur].children[ch], has = childId != null;
       push({ line: 4, char: ch, node: nodes[walkCur].ch, action: has ? "есть" : "нет", info: has ? "у «" + nodes[walkCur].ch + "» уже есть потомок '" + ch + "' — переиспользуем общий префикс" : "у «" + nodes[walkCur].ch + "» нет потомка '" + ch + "'" });
       if (!has) {
@@ -5113,7 +5142,7 @@
 
   // Trie: удаление слова — снимаем isEnd, затем обрезаем висячие узлы снизу вверх.
   function bTrieDelete(words, del) {
-    var nodes = [{ ch: "•", depth: 0, end: false, children: {}, removedAt: -1, endUnsetAt: -1 }];
+    var nodes = [{ ch: "корень", depth: 0, end: false, children: {}, removedAt: -1, endUnsetAt: -1 }];
     words.forEach(function (w) {
       var cur = 0;
       for (var k = 0; k < w.length; k++) {
@@ -5184,7 +5213,7 @@
 
   // Trie: все слова с префиксом — спускаемся к префиксу, затем DFS собирает слова (a→z).
   function bTrieWords(words, prefix) {
-    var nodes = [{ ch: "•", depth: 0, end: false, children: {}, visitedAt: -1 }];
+    var nodes = [{ ch: "корень", depth: 0, end: false, children: {}, visitedAt: -1 }];
     words.forEach(function (w) {
       var cur = 0;
       for (var k = 0; k < w.length; k++) {
@@ -6925,8 +6954,10 @@
     push(3, M.steal, "if g == nil — да. Идём в глобальную.");
     push(4, M.steal, "g = globrunqget() → nil. Глобальная очередь тоже пуста.");
     push(6, M.steal, "if g == nil — снова да. Остаётся отнять работу у соседа.");
-    steal = true; g = p0lrq.pop(); src = "кража у P0"; p1lrq = []; // украли половину (1 из 2): G3
-    push(7, M.steal, "g = runqsteal(p) → " + g + ". P1 КРАДЁТ половину очереди соседа P0 (забрал " + g + "). Так работа балансируется между процессорами — это work stealing.");
+    // runqgrab берёт n − n/2 горутин С ГОЛОВЫ очереди жертвы (самые давние) — сверено с
+    // runtime/proc.go; раньше виджет забирал хвост (G3).
+    steal = true; g = p0lrq.shift(); src = "кража у P0"; p1lrq = []; // украли половину (1 из 2) с головы: G2
+    push(7, M.steal, "g = runqsteal(p) → " + g + ". P1 КРАДЁТ половину очереди соседа P0 — с головы, самые давние (забрал " + g + "). Так работа балансируется между процессорами — это work stealing.");
     steal = false; p1run = g; blocked = "M ↯ " + g;
     push(9, M.sys, "execute(" + g + ") — " + g + " побежал и ушёл в блокирующий syscall. Поток M встаёт ВМЕСТЕ с " + g + ", но P отвязывается и передаётся свободному потоку (handoff) — P1 не простаивает, продолжает крутить цикл.");
 
@@ -7692,7 +7723,7 @@
         ln.setAttribute("x2", cx(e[2])); ln.setAttribute("y2", cy(e[3]));
         ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln);
       });
-      host.appendChild(svg);
+      host.appendChild(trimLines(svg, 19));
       tr.nodes.forEach(function (n) {
         // центр узла — ровно в точке раскладки (узел 2.5em, а не 2R = 30px: рёбра уходили на 5px)
         var b = mkEl("div", "algo-tp__tnode algo-tp__centered" + (n.cls ? " algo-tp__tnode--" + n.cls : ""), n.val);
@@ -7916,7 +7947,7 @@
       var svg = document.createElementNS(SVGNS, "svg");
       svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__bstsvg");
       tr.edges.forEach(function (e) { var ln = document.createElementNS(SVGNS, "line"); ln.setAttribute("x1", cx(e[0])); ln.setAttribute("y1", cy(e[1])); ln.setAttribute("x2", cx(e[2])); ln.setAttribute("y2", cy(e[3])); ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); });
-      host.appendChild(svg);
+      host.appendChild(trimLines(svg, 19));
       tr.nodes.forEach(function (n) {
         var cls = "algo-tp__tnode algo-tp__rbnode--" + n.color + (n.cls ? " algo-tp__rbnode--" + n.cls : "");
         var b = mkEl("div", cls, n.val);
@@ -7954,7 +7985,7 @@
             if (c < h.length) { var a = xy(i), b = xy(c); var ln = document.createElementNS(SVGNS, "line"); ln.setAttribute("x1", a[0]); ln.setAttribute("y1", a[1]); ln.setAttribute("x2", b[0]); ln.setAttribute("y2", b[1]); ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); }
           });
         }
-        treeBox.appendChild(svg);
+        treeBox.appendChild(trimLines(svg, 19));
         // индекс рядом с узлом и под ячейкой массива: вся механика кучи — арифметика
         // индексов (родитель (i−1)/2, дети 2i+1 и 2i+2), а на экране их не было
         for (var j = 0; j < h.length; j++) { var p2 = xy(j); var ix = mkEl("div", "algo-tp__heapidx", j); ix.style.position = "absolute"; ix.style.left = (p2[0] + R + 1) + "px"; ix.style.top = (p2[1] - R - 4) + "px"; treeBox.appendChild(ix); var nb = mkEl("div", "algo-tp__tnode algo-tp__centered" + (marks[j] ? " algo-tp__tnode--" + marks[j] : ""), h[j]); nb.style.left = p2[0] + "px"; nb.style.top = p2[1] + "px"; treeBox.appendChild(nb); }
@@ -8123,6 +8154,42 @@
     }
     push({ i: -1, line: 8, done: true, found: true, info: k + " наибольших: " + heap.join(", ") });
     return steps;
+  }
+  // Top-K самых ЧАСТЫХ: сначала частоты, потом min-куча пар (число, частота) по частоте.
+  // Раньше в этом разделе главы стоял виджет «k наибольших значений»: на [1,1,1,2,2,3],
+  // k = 2 он отвечал «2, 3», хотя глава (и LeetCode 347) — про частоты, ответ [1, 2].
+  function bTopKFreq(arr, k) {
+    var freq = {}, order = [], steps = [], heap = [], pops = 0;
+    function hs() { return heap.map(function (e) { return e.num + ":" + e.c; }); }
+    function fs() { return order.map(function (x) { return x + "→" + freq[x]; }); }
+    function push(o) { steps.push({ i: o.i == null ? -1 : o.i, heap: hs(), freq: fs(), line: o.line, vars: { num: o.num == null ? "—" : o.num, count: o.c == null ? "—" : o.c, heapSize: heap.length + "/" + k, popped: o.popped || "—" }, info: o.info, done: o.done, found: o.found, hot: !!o.hot }); }
+    for (var i = 0; i < arr.length; i++) {
+      if (freq[arr[i]] == null) { freq[arr[i]] = 0; order.push(arr[i]); }
+      freq[arr[i]]++;
+      push({ i: i, num: arr[i], c: freq[arr[i]], line: 3, info: "freq[" + arr[i] + "]++ → " + freq[arr[i]] });
+    }
+    push({ line: 5, info: "частоты посчитаны: " + fs().join(", ") + ". Теперь куча размера k по ЧАСТОТЕ (минимум сверху)" });
+    order.forEach(function (x) {
+      var c = freq[x], at = 0; while (at < heap.length && (heap[at].c < c)) at++;
+      heap.splice(at, 0, { num: x, c: c });
+      push({ num: x, c: c, line: 7, info: "heap.Push((" + x + ", c=" + c + ")) → [" + hs().join(", ") + "]" });
+      if (heap.length > k) { var out = heap.shift(); pops++; push({ num: x, c: c, popped: out.num + ":" + out.c, line: 9, hot: true, info: "размер " + (heap.length + 1) + " > k = " + k + " → выкинули наименее частого (" + out.num + ", c=" + out.c + "): он не в топе" }); }
+    });
+    push({ line: 12, done: true, found: true, info: k + " самых частых: " + heap.map(function (e) { return e.num; }).sort(function (a, b) { return a - b; }).join(", ") + " — порог отсечения c = " + (heap.length ? heap[0].c : "—") });
+    return steps;
+  }
+  function topKFreqViz(panel, ctx) {
+    var wrap = document.createElement("div"); wrap.className = "algo-tp__collection";
+    var aCells = vizRow(wrap, "Поток");
+    var aEls = ctx.arr.map(function (v) { var c = document.createElement("div"); c.className = "algo-tp__ccell"; c.textContent = v; aCells.appendChild(c); return c; });
+    var fCells = vizRow(wrap, "Частоты");
+    var hCells = vizRow(wrap, "Куча (число:частота)");
+    panel.appendChild(wrap);
+    return function (s) {
+      aEls.forEach(function (c, j) { c.classList.toggle("algo-tp__ccell--done", s.i >= 0 && j < s.i); c.classList.toggle("algo-tp__ccell--cur", j === s.i); });
+      fillCells(fCells, s.freq || [], {});
+      fillCells(hCells, s.heap || [], { topIdx: 0 });
+    };
   }
   function topKViz(panel, ctx) {
     var arr = ctx.arr;
@@ -10934,6 +11001,28 @@
       stepCard: function (s) { if (s.done) return { a: "топ-K", b: "[" + (s.heap || []).join(",") + "]", c: "готово", cls: "eq" }; var pop = s.line === 5; return { a: "+ " + s.vars.num, b: "куча [" + (s.heap || []).join(",") + "]", c: pop ? "pop " + s.vars.popped : "push", cls: pop ? "gt" : "lt" }; },
       varsOf: function (s) { return { "num": s.vars.num, "heapSize": s.vars.heapSize, "popped": s.vars.popped }; },
       customViz: topKViz
+    },
+
+    "top-k-freq": {
+      badge: "Top K Frequent", desc: "K самых частых элементов: частоты в map, затем min-куча размера k по частоте — вершина кучи и есть порог попадания в топ.",
+      valuesLabel: "Массив", codeKey: "top-k-freq", fillRange: false,
+      complexity: { time: "O(n log k)", space: "O(n)", good: "★ Топ-K по частоте (LeetCode 347)" },
+      varOrder: ["num", "count", "heapSize", "popped"],
+      varDesc: { num: "Число", count: "Его частота", heapSize: "Размер кучи / k", popped: "Выкинутый (число:частота)" },
+      lineNotes: { 3: "Считаем частоты", 5: "Куча по частоте: сверху наименее частый", 7: "Кладём пару (число, частота)", 8: "Куча переросла k?", 9: "Выкидываем наименее частого — он не в топе", 12: "В куче k самых частых" },
+      rules: [{ head: "freq[num]++", body: "сначала частоты", cls: "lt" }, { head: "размер > k", body: "→ Pop наименее частого", cls: "gt" }, { head: "итог", body: "в куче k самых частых", cls: "eq" }],
+      parse: function (root) { var arr = nums(root.getAttribute("data-array")); var k = parseInt(root.getAttribute("data-k"), 10); return { arr: arr, k: k, steps: bTopKFreq(arr, k) }; },
+      inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-k", label: "k", sm: true }],
+      values: function (ctx) { return ctx.arr; },
+      title: function (ctx) { return ctx.k + " самых частых"; },
+      param: function (ctx) { return { label: "K", value: ctx.k }; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Куча (число:частота)", "Размер", "Выкинут"],
+      sumValues: function (s) { return [{ text: "[" + (s.heap || []).join(", ") + "]", cls: "eq" }, { text: s.vars.heapSize }, { text: s.vars.popped, cls: "gt" }]; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: ctx.k + " самых частых", text: s.info }; return { kind: "info", hot: s.hot, icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: s.vars.num + " (c=" + s.vars.count + ")", b: "[" + (s.heap || []).join(", ") + "]", c: s.vars.popped, cls: "eq" }; },
+      varsOf: function (s) { return { num: s.vars.num, count: s.vars.count, heapSize: s.vars.heapSize, popped: s.vars.popped }; },
+      customViz: topKFreqViz
     },
 
     "k-way-merge": {
