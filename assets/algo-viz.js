@@ -1670,6 +1670,31 @@
       "    return out",
       "}"
     ],
+    "aho-corasick": [
+      "// фаза 1: ссылки неудачи, обход в ширину",
+      "for len(queue) > 0 {",
+      "    u := queue[0]; queue = queue[1:]",
+      "    for c, v := range nodes[u].next {",
+      "        f := nodes[u].fail",
+      "        for f != 0 && !has(f, c) {",
+      "            f = nodes[f].fail",
+      "        }",
+      "        nodes[v].fail = next(f, c) // или 0",
+      "        nodes[v].out = outOf(nodes[v].fail)",
+      "        queue = append(queue, v)",
+      "    }",
+      "}",
+      "// фаза 2: один проход по тексту",
+      "for i := 0; i < len(text); i++ {",
+      "    for cur != 0 && !has(cur, text[i]) {",
+      "        cur = nodes[cur].fail // i стоит",
+      "    }",
+      "    cur = next(cur, text[i]) // или 0",
+      "    for v := cur; v != -1; v = nodes[v].out {",
+      "        report(nodes[v].pats, i)",
+      "    }",
+      "}"
+    ],
     "list-reverse-between": [
       "func reverseBetween(head *ListNode, m, n int) *ListNode {",
       "    dummy := &ListNode{Next: head}",
@@ -4913,7 +4938,7 @@
       if (n.sub != null) { var sb = mkEl("div", "algo-tp__tfigsub", n.sub); sb.style.left = px(i) + "px"; sb.style.top = (py(i) + 17) + "px"; box.appendChild(sb); subs[i] = sb; }
       return b;
     });
-    return { el: box, nodes: els, edges: edges, subs: subs };
+    return { el: box, svg: svg, nodes: els, edges: edges, subs: subs, pos: nodes.map(function (n, i) { return { x: px(i), y: py(i) }; }) };
   }
   // Дерево маршрутов ServeMux: текущий путь спуска, тупиковые ветки после отката.
   function routeViz(panel, ctx) {
@@ -7450,6 +7475,113 @@
   // Обход дерева (BFS уровнями или DFS preorder). Возвращает ctx с present/order/steps.
   // Обход дерева — построчный (debugger) проход. BFS — с очередью, DFS — с рекурсивным
   // стеком вызовов (обе структуры показаны панелью). treeViz красит узлы (upto/nodeIdx).
+  // Ахо — Корасик на примере главы. Две фазы: ссылки неудачи строятся обходом в ширину
+  // (ссылка ребёнка — через уже готовую ссылку родителя), затем один проход по тексту:
+  // нет перехода — откат по fail (i не двигается), о находках сообщают свой узел и вся
+  // цепочка словарных ссылок («he» внутри «she»). Порядок детей — по алфавиту, чтобы
+  // шаги были детерминированными (в Go map перебирается случайно).
+  function bAhoCorasick(patterns, text) {
+    var nodes = [{ ch: "", par: -1, next: {}, fail: 0, out: -1, pats: [], path: "" }];
+    patterns.forEach(function (pat, pi) {
+      if (!pat) return;
+      var cur = 0;
+      for (var i = 0; i < pat.length; i++) {
+        var c = pat[i];
+        if (nodes[cur].next[c] == null) { nodes.push({ ch: c, par: cur, next: {}, fail: 0, out: -1, pats: [], path: nodes[cur].path + c }); nodes[cur].next[c] = nodes.length - 1; }
+        cur = nodes[cur].next[c];
+      }
+      nodes[cur].pats.push(pi);
+    });
+    function kids(u) { return Object.keys(nodes[u].next).sort().map(function (c) { return [c, nodes[u].next[c]]; }); }
+    function nm(v) { return v === 0 ? "корень" : "«" + nodes[v].path + "»"; }
+    var steps = [], known = {}, matches = [];
+    known[0] = true;
+    function push(o) { steps.push({ phase: o.phase, from: o.from == null ? -1 : o.from, cur: o.cur == null ? -1 : o.cur, via: o.via == null ? -1 : o.via, chain: o.chain || [], known: Object.assign({}, known), fails: nodes.map(function (n) { return n.fail; }), outs: nodes.map(function (n) { return n.out; }), i: o.i == null ? -1 : o.i, matches: matches.slice(), line: o.line, vars: { node: o.cur == null || o.cur < 0 ? "—" : nm(o.cur), fail: o.fail || "—", i: o.i == null ? "—" : o.i, found: matches.length ? matches.map(function (m) { return patterns[m.p] + "@" + m.at; }).join(", ") : "—" }, info: o.info, done: o.done, found: o.found, hot: !!o.hot }); }
+    push({ phase: 0, line: 0, info: "Trie шаблонов " + patterns.join(", ") + " готов. Теперь ссылки неудачи: обходом в ширину, от мелких узлов к глубоким" });
+    var queue = [];
+    kids(0).forEach(function (kv) { nodes[kv[1]].fail = 0; known[kv[1]] = true; queue.push(kv[1]); });
+    push({ phase: 0, line: 1, info: "у детей корня (" + kids(0).map(function (kv) { return kv[0]; }).join(", ") + ") ссылка — корень: у строки из одной буквы нет непустого собственного суффикса" });
+    while (queue.length) {
+      var u = queue.shift();
+      kids(u).forEach(function (kv) {
+        var c = kv[0], v = kv[1], f = nodes[u].fail, walk = [];
+        while (f !== 0 && nodes[f].next[c] == null) { walk.push(f); f = nodes[f].fail; }
+        var nx = nodes[f].next[c];
+        nodes[v].fail = (nx != null && nx !== v) ? nx : 0;
+        var fv = nodes[v].fail;
+        nodes[v].out = nodes[fv].pats.length ? fv : nodes[fv].out;
+        known[v] = true;
+        push({ phase: 0, cur: v, via: nodes[v].fail, line: 8, hot: nodes[v].fail !== 0, fail: nm(nodes[v].fail),
+          info: "fail(" + nm(v) + ") = " + nm(nodes[v].fail) + (nodes[v].fail !== 0 ? ": «" + nodes[nodes[v].fail].path + "» — самый длинный суффикс «" + nodes[v].path + "», с которого начинается шаблон" : ": ни один собственный суффикс «" + nodes[v].path + "» не начинает шаблон") + (walk.length ? " (по пути откатывались: " + walk.map(nm).join(" → ") + ")" : "") + (nodes[v].out >= 0 ? ". Словарная ссылка → " + nm(nodes[v].out) + ": там кончается шаблон «" + patterns[nodes[nodes[v].out].pats[0]] + "»" : "") });
+        queue.push(v);
+      });
+    }
+    var cur = 0;
+    push({ phase: 1, cur: 0, line: 13, info: "Ссылки готовы. Один проход по тексту «" + text + "»: cur = корень" });
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      while (cur !== 0 && nodes[cur].next[ch] == null) {
+        var from = cur; cur = nodes[cur].fail;
+        push({ phase: 1, from: from, cur: cur, via: -2, i: i, line: 16, fail: nm(cur), info: "text[" + i + "] = '" + ch + "': из " + nm(from) + " перехода нет → откат по ссылке неудачи в " + nm(cur) + ", i не двигается" });
+      }
+      cur = nodes[cur].next[ch] != null ? nodes[cur].next[ch] : 0;
+      push({ phase: 1, cur: cur, i: i, line: 18, info: "text[" + i + "] = '" + ch + "' → " + nm(cur) });
+      var chain = [];
+      for (var v2 = cur; v2 !== -1; v2 = nodes[v2].out) {
+        if (nodes[v2].pats.length) chain.push(v2);
+        if (v2 === 0) break;
+      }
+      if (chain.length) {
+        chain.forEach(function (w) { nodes[w].pats.forEach(function (pp) { matches.push({ p: pp, at: i - patterns[pp].length + 1 }); }); });
+        push({ phase: 1, cur: cur, chain: chain, i: i, line: 20, hot: true, info: "нашли: " + chain.map(function (w) { return nodes[w].pats.map(function (pp) { return "«" + patterns[pp] + "» с позиции " + (i - patterns[pp].length + 1); }).join(", ") + (w === cur ? " (свой узел)" : " (по словарной ссылке)"); }).join("; ") });
+      }
+    }
+    push({ phase: 1, cur: cur, line: 22, done: true, found: matches.length > 0, info: "Текст прочитан ОДИН раз: " + (matches.length ? matches.map(function (m) { return "«" + patterns[m.p] + "»@" + m.at; }).join(", ") : "вхождений нет") + ". Без словарной ссылки «he» внутри «she» потерялся бы" });
+    return { nodes: nodes, patterns: patterns, text: text, steps: steps };
+  }
+  function ahoViz(panel, ctx) {
+    var nodes = ctx.nodes;
+    var fig = treeFigure(nodes.map(function (n, i) { return { parent: n.par, label: i === 0 ? "корень" : n.ch, sub: i === 0 ? null : n.path, cls: n.pats.length ? "algo-tp__tnode--end" : "" }; }), { cw: 104, ch: 74 });
+    panel.appendChild(fig.el);
+    var NS = SVGNS, svg = fig.svg;
+    // наконечники стрелок для ссылок
+    var defs = document.createElementNS(NS, "defs");
+    [["acf", "#e0a500"], ["acd", "#16a34a"]].forEach(function (m) {
+      var mk = document.createElementNS(NS, "marker"); mk.setAttribute("id", m[0] + ctx.uid); mk.setAttribute("viewBox", "0 0 10 10"); mk.setAttribute("refX", "9"); mk.setAttribute("refY", "5"); mk.setAttribute("markerWidth", "6"); mk.setAttribute("markerHeight", "6"); mk.setAttribute("orient", "auto-start-reverse");
+      var pth = document.createElementNS(NS, "path"); pth.setAttribute("d", "M 0 0 L 10 5 L 0 10 z"); pth.setAttribute("fill", m[1]); mk.appendChild(pth); defs.appendChild(mk);
+    });
+    svg.appendChild(defs);
+    function curve(a, b, bend) {
+      var dx = b.x - a.x, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / len, uy = dy / len, r = 17;
+      var x1 = a.x + ux * r, y1 = a.y + uy * r, x2 = b.x - ux * r, y2 = b.y - uy * r;
+      var mx = (x1 + x2) / 2 - uy * bend, my = (y1 + y2) / 2 + ux * bend;
+      return "M " + x1 + " " + y1 + " Q " + mx + " " + my + " " + x2 + " " + y2;
+    }
+    var failPaths = nodes.map(function (n, i) { if (i === 0) return null; var p = document.createElementNS(NS, "path"); p.setAttribute("class", "algo-tp__acfail"); p.setAttribute("marker-end", "url(#acf" + ctx.uid + ")"); svg.appendChild(p); return p; });
+    var dictPaths = nodes.map(function (n, i) { if (i === 0) return null; var p = document.createElementNS(NS, "path"); p.setAttribute("class", "algo-tp__acdict"); p.setAttribute("marker-end", "url(#acd" + ctx.uid + ")"); svg.appendChild(p); return p; });
+    return function (s) {
+      nodes.forEach(function (n, i) {
+        var el = fig.nodes[i];
+        el.classList.toggle("algo-tp__tnode--current", i === s.cur);
+        el.classList.toggle("algo-tp__tnode--found", s.chain.indexOf(i) >= 0 && i !== s.cur);
+        el.classList.toggle("algo-tp__tnode--visited", s.phase === 0 && !!s.known[i] && i !== s.cur && i !== 0);
+        var fp = failPaths[i];
+        if (fp) {
+          var f = s.fails[i], show = !!s.known[i] && f !== 0; // ссылки в корень не рисуем: их большинство, и они загромождают
+          fp.setAttribute("d", show ? curve(fig.pos[i], fig.pos[f], 26) : "");
+          var hotF = (s.phase === 0 && i === s.cur) || (s.via === -2 && i === s.from);
+          fp.classList.toggle("algo-tp__acfail--hot", hotF);
+          fp.classList.toggle("algo-tp__acfail--dim", s.phase === 1 && !hotF);
+        }
+        var dp = dictPaths[i];
+        if (dp) {
+          var o = s.outs[i], showD = !!s.known[i] && o >= 0;
+          dp.setAttribute("d", showD ? curve(fig.pos[i], fig.pos[o], -30) : "");
+          dp.classList.toggle("algo-tp__acdict--hot", s.chain.length > 1 && s.chain[0] === i);
+        }
+      });
+    };
+  }
   // Разворот участка [m, n] вставкой в голову (head-insertion) — как reverseBetween главы:
   // prev и curr стоят на месте, узел за curr вынимается и вставляется в начало участка.
   // Раньше здесь стоял общий разворот всего списка — другая механика.
@@ -8823,6 +8955,39 @@
       customViz: intervalBarsViz
     },
 
+    "aho-corasick": {
+      badge: "Aho — Corasick", desc: "Trie + префикс-функция: у каждого узла ссылка неудачи на самый длинный собственный суффикс, который тоже путь в Trie. Нет перехода — откат по ней, текст назад не читаем. Словарные ссылки сообщают о шаблонах, вложенных в текущий.",
+      valuesLabel: "", codeKey: "aho-corasick", fillRange: false,
+      complexity: { time: "O(n + m + z)", space: "O(m·Σ)", good: "★ Много шаблонов за один проход" },
+      varOrder: ["node", "fail", "i", "found"],
+      varDesc: { node: "Текущий узел автомата", fail: "Куда ведёт ссылка неудачи", i: "Позиция в тексте", found: "Найдено: шаблон@начало" },
+      lineNotes: { 0: "Фаза 1: ссылки неудачи", 1: "Обход в ширину: мелкие узлы раньше глубоких", 8: "Ссылка ребёнка — через ссылку родителя", 13: "Фаза 2: один проход по тексту", 16: "Перехода нет — откат по ссылке неудачи", 18: "Шаг по переходу Trie", 20: "Сообщаем о своём шаблоне и всей словарной цепочке", 22: "Текст прочитан один раз" },
+      rules: [{ head: "есть переход", body: "→ шаг по Trie", cls: "lt" }, { head: "нет перехода", body: "→ откат по fail, i не двигается", cls: "gt" }, { head: "словарная ссылка", body: "→ находки, вложенные в текущую", cls: "eq" }],
+      parse: function (root) { var pats = (root.getAttribute("data-patterns") || "he,she,his,hers").split(",").map(function (x) { return x.trim(); }).filter(Boolean); var text = (root.getAttribute("data-text") || "ushers").trim(); var r = bAhoCorasick(pats, text); r.uid = Math.random().toString(36).slice(2, 8); return r; },
+      inputs: [{ attr: "data-patterns", label: "Шаблоны через запятую" }, { attr: "data-text", label: "Текст" }],
+      values: function () { return []; },
+      title: function (ctx) { return "Ахо — Корасик: " + ctx.patterns.join(", ") + " в «" + ctx.text + "»"; },
+      legend: [{ cls: "tcur", label: "текущий узел" }, { cls: "tend", label: "двойная рамка — конец шаблона" }, { cls: "failln", label: "ссылка неудачи (в корень не показаны)" }, { cls: "dictln", label: "словарная ссылка" }, { cls: "tvis", label: "фаза 1: ссылка посчитана; фаза 2: найден шаблон" }],
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Фаза", "Найдено"],
+      sumValues: function (s) { return [{ text: s.phase === 0 ? "строим ссылки" : "поиск, i = " + (s.i >= 0 ? s.i : "—") }, { text: s.vars.found, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", hot: s.hot, icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: s.vars.node, b: "i=" + s.vars.i, c: s.vars.found, cls: "eq" }; },
+      varsOf: function (s) { return { node: s.vars.node, fail: s.vars.fail, i: s.vars.i, found: s.vars.found }; },
+      mapViz: function (panel, ctx) {
+        var t = ctx.text, p = structPanel(panel, "text = «" + t + "» — читается один раз, слева направо");
+        var cells = t.split("").map(function (ch, k) { var c = structCell("[" + k + "]", ch, "algo-tp__mapcell--off"); p.grid.appendChild(c); return c; });
+        return function (s) {
+          cells.forEach(function (c, k) {
+            var inHit = s.matches.some(function (m) { return k >= m.at && k < m.at + ctx.patterns[m.p].length; });
+            c.className = "algo-tp__mapcell " + (s.phase === 0 ? "algo-tp__mapcell--off" : k === s.i ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : inHit ? "algo-tp__mapcell--on algo-tp__mapcell--add" : k < s.i ? "algo-tp__mapcell--on" : "algo-tp__mapcell--off");
+          });
+          p.foot.textContent = s.phase === 0 ? "сначала строим ссылки — текст ещё не читаем" : (s.i >= 0 ? "i = " + s.i : "");
+        };
+      },
+      customViz: ahoViz
+    },
+
     "list-reverse-between": {
       badge: "In-place Reversal · участок", desc: "Разворот участка [m, n]: prev (перед участком) и curr (его первый узел) стоят на месте, а узел за curr вынимается и вставляется в начало участка — четыре присваивания на итерацию, n − m итераций.",
       valuesLabel: "", codeKey: "list-reverse-between", fillRange: false,
@@ -9581,7 +9746,7 @@
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Кто", "Позиция", "Владелец"],
       sumValues: function (s) { return [{ text: s.vars.key }, { text: s.vars.pos }, { text: s.vars.server, cls: "eq" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", hot: !!s.hot, icon: idx + 1, head: s.hot ? "Ключ переехал" : "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: s.vars.key, b: s.vars.pos, c: String(s.vars.server), cls: "eq" }; },
       varsOf: function (s) { return { key: s.vars.key, pos: s.vars.pos, server: s.vars.server }; },
       customViz: hashRingViz

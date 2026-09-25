@@ -1454,3 +1454,13 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__centered { position: absolute; translate: -50% -50%; }
 .algo-tp__legdot--lvl { background: var(--tp-panel2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tp-lo) 55%, transparent); }
 .algo-tp__llnode--dummy { opacity: 0.55; font-style: italic; }
+/* Ахо — Корасик: ссылки неудачи (янтарный пунктир) и словарные (зелёный) */
+.algo-tp__acfail { fill: none; stroke: #e0a500; stroke-width: 1.6; stroke-dasharray: 5 4; opacity: 0.75; }
+.algo-tp__acfail--hot { stroke-width: 3; opacity: 1; }
+.algo-tp__acfail--dim { opacity: 0.35; }
+.algo-tp__acdict { fill: none; stroke: #16a34a; stroke-width: 2; stroke-dasharray: 2 3; opacity: 0.8; }
+.algo-tp__acdict--hot { stroke-width: 3.5; opacity: 1; }
+.algo-tp__legdot--failln { background: transparent; border: 2px dashed #e0a500; border-radius: 3px; }
+.algo-tp__legdot--dictln { background: transparent; border: 2px dotted #16a34a; border-radius: 3px; }
+.algo-tp__tfignode.algo-tp__tnode--end { border: 4px double color-mix(in srgb, var(--fg, #c9d1d9) 70%, transparent); }
+.algo-tp__legdot--tend { background: transparent; border: 4px double color-mix(in srgb, var(--fg, #c9d1d9) 70%, transparent); }
