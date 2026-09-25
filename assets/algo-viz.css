@@ -760,7 +760,7 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__lang { font-size: 0.72em; font-weight: 700; padding: 0.25em 0.7em; border-radius: 7px; background: var(--tp-panel2); border: 1px solid var(--tp-border); color: #5e9bff; }
 
 /* сетка индекс/значение/указатели */
-.algo-tp__grid { display: grid; align-items: center; row-gap: 0.5em; column-gap: 8px; }
+.algo-tp__grid { display: grid; align-items: center; row-gap: 0.5em; column-gap: var(--algo-cg, 8px); }
 .algo-tp__rowlab { font-size: 0.85em; opacity: 0.6; padding-right: 0.6em; white-space: nowrap; }
 .algo-tp__idx { text-align: center; font-size: 0.8em; opacity: 0.55; font-variant-numeric: tabular-nums; }
 .algo-tp__big {
@@ -1057,7 +1057,7 @@ body.algo-tp-fslock { overflow: hidden; }
   border-color: color-mix(in srgb, var(--tp-lo) 40%, transparent);
 }
 /* начало цикла (fast & slow) */
-.algo-tp__big--cycle { border-style: dashed; border-color: var(--tp-hi); }
+.algo-tp__big--cycle { border-style: dashed; border-color: var(--tp-warn); }
 /* нейтральный параметр-бокс (k, цикл) — в отличие от зелёного target */
 .algo-tp__param {
   display: inline-flex; align-items: center; justify-content: center; min-width: 3em; padding: 0.3em 0.7em;
@@ -1388,7 +1388,7 @@ body.algo-tp-fslock { overflow: hidden; }
 /* узкий виджет (телефон, колонка с сайдбаром): клетки мельче, чтобы типичный
    массив из 8–10 чисел помещался целиком, а не уезжал в прокрутку */
 @container algo-tp (max-width: 520px) {
-  .algo-tp__grid { font-size: 0.8em; column-gap: 4px; --algo-cell: 2.2em; }
+  .algo-tp__grid { font-size: 0.8em; --algo-cg: 4px; --algo-cell: 2.2em; }
   /* подписи «Индекс/Значение» съедали пятую часть ширины; строка индексов над
      клетками и так объясняет себя — на узком виджете колонку подписей схлопываем */
   .algo-tp__rowlab { font-size: 0; padding: 0; }
@@ -1464,3 +1464,9 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--dictln { background: transparent; border: 2px dotted #16a34a; border-radius: 3px; }
 .algo-tp__tfignode.algo-tp__tnode--end { border: 4px double color-mix(in srgb, var(--fg, #c9d1d9) 70%, transparent); }
 .algo-tp__legdot--tend { background: transparent; border: 4px double color-mix(in srgb, var(--fg, #c9d1d9) 70%, transparent); }
+/* Обратная ссылка цикла в списке: дуга от последнего узла к входу в цикл под рядом.
+   Центры колонок с учётом column-gap: (i + 0.5)·(W + g)/n − g/2. */
+.algo-tp__cyc { position: relative; height: 2.3em; }
+.algo-tp__cycarc { position: absolute; top: 0; height: 0.9em; min-width: 10px; border: 2px dashed var(--tp-warn); border-top: none; border-radius: 0 0 10px 10px; }
+.algo-tp__cycarc::before { content: "▲"; position: absolute; left: -0.42em; top: -0.8em; font-size: 0.75em; color: var(--tp-warn); line-height: 1; }
+.algo-tp__cyclab { position: absolute; top: 1.7em; left: 50%; translate: -50% 0; white-space: nowrap; font-size: 0.72em; color: var(--tp-warn); }

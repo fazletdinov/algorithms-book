@@ -193,6 +193,27 @@
       "    return false",
       "}"
     ],
+    "list-cycle-entry": [
+      "func detectCycle(head *ListNode) *ListNode {",
+      "    slow, fast := head, head",
+      "    for fast != nil && fast.Next != nil {",
+      "        slow = slow.Next      // на 1 шаг",
+      "        fast = fast.Next.Next // на 2 шага",
+      "        if slow == fast {     // встреча — цикл есть",
+      "            break",
+      "        }",
+      "    }",
+      "    if fast == nil || fast.Next == nil {",
+      "        return nil            // цикла нет",
+      "    }",
+      "    slow = head               // второй проход",
+      "    for slow != fast {        // оба по 1 шагу",
+      "        slow = slow.Next",
+      "        fast = fast.Next",
+      "    }",
+      "    return slow               // вход в цикл",
+      "}"
+    ],
     "sliding-window-var": [
       "func longestKDistinct(s string, k int) int {",
       "    freq := make(map[byte]int)",
@@ -2303,7 +2324,7 @@
   }
   // Заяц и черепаха: slow и fast как индексы в списке (vars хранит значения узлов).
   // Заяц и черепаха — построчный (debugger) проход. slow/fast как индексы; nil = -1.
-  function bListCycle(list, cyc) {
+  function bListCycle(list, cyc, entry) {
     var n = list.length;
     var hasCyc = !isNaN(cyc) && cyc >= 0 && cyc < n;
     function nextIdx(i) { return i < 0 ? -1 : (i === n - 1 ? (hasCyc ? cyc : -1) : i + 1); }
@@ -2315,14 +2336,39 @@
       var fnext = nextIdx(fast);
       var cond = fast >= 0 && fnext >= 0; // fast != nil && fast.Next != nil
       steps.push({ slow: slow, fast: fast, line: 2, vars: { slow: val(slow), fast: val(fast) }, info: cond ? "fast (" + val(fast) + ") и fast.Next есть — продолжаем" : "fast или fast.Next = nil — выходим из цикла" });
-      if (!cond) { steps.push({ slow: slow, fast: -1, done: true, line: 9, vars: { slow: val(slow), fast: "nil" }, info: "return false — цикла нет (fast дошёл до конца списка)" }); break; }
+      if (!cond) {
+        if (entry) {
+          steps.push({ slow: slow, fast: fast, line: 9, vars: { slow: val(slow), fast: val(fast) }, info: "fast или fast.Next = nil — значит, из цикла вышли не по break" });
+          steps.push({ slow: slow, fast: -1, done: true, line: 10, vars: { slow: val(slow), fast: "nil" }, info: "return nil — цикла нет (fast дошёл до конца списка)" });
+        } else steps.push({ slow: slow, fast: -1, done: true, line: 9, vars: { slow: val(slow), fast: "nil" }, info: "return false — цикла нет (fast дошёл до конца списка)" });
+        break;
+      }
       slow = nextIdx(slow);
       steps.push({ slow: slow, fast: fast, line: 3, vars: { slow: val(slow), fast: val(fast) }, info: "slow = slow.Next → " + val(slow) + " (+1 шаг)" });
       fast = nextIdx(fnext);
       steps.push({ slow: slow, fast: fast, line: 4, vars: { slow: val(slow), fast: val(fast) }, info: "fast = fast.Next.Next → " + val(fast) + " (+2 шага)" });
       var meet = slow >= 0 && slow === fast;
       steps.push({ slow: slow, fast: fast, line: 5, vars: { slow: val(slow), fast: val(fast) }, info: meet ? "slow == fast на " + val(slow) + " — указатели встретились!" : "slow (" + val(slow) + ") ≠ fast (" + val(fast) + ") — пока не встретились" });
-      if (meet) { steps.push({ slow: slow, fast: fast, meet: true, found: true, done: true, line: 6, vars: { slow: val(slow), fast: val(fast) }, info: "return true — в списке есть цикл!" }); break; }
+      if (meet && !entry) { steps.push({ slow: slow, fast: fast, meet: true, found: true, done: true, line: 6, vars: { slow: val(slow), fast: val(fast) }, info: "return true — в списке есть цикл!" }); break; }
+      if (meet) {
+        steps.push({ slow: slow, fast: fast, line: 6, vars: { slow: val(slow), fast: val(fast) }, info: "break — встреча в узле " + val(slow) + " (индекс " + slow + "): цикл есть, но это ещё не вход" });
+        steps.push({ slow: slow, fast: fast, line: 9, vars: { slow: val(slow), fast: val(fast) }, info: "fast не nil — вышли по break, значит цикл есть" });
+        // a — от головы до входа, b — от входа до встречи, L — длина цикла: a ≡ L − b (mod L)
+        var a = cyc, L = n - cyc, b = ((slow - cyc) % L + L) % L;
+        slow = 0;
+        steps.push({ slow: slow, fast: fast, phase2: true, line: 12, ptrNames: { lo: "slow", hi: "fast" }, vars: { slow: val(slow), fast: val(fast) }, info: "Фаза 2: slow — в голову, fast остаётся в точке встречи. a = " + a + " (голова → вход), b = " + b + " (вход → встреча), L = " + L + ": a ≡ L − b по модулю L, поэтому по одному шагу они сойдутся ровно на входе" });
+        var g2 = 0;
+        while (slow !== fast && g2++ < 2 * n + 4) {
+          steps.push({ slow: slow, fast: fast, phase2: true, line: 13, vars: { slow: val(slow), fast: val(fast) }, info: "slow (" + val(slow) + ") ≠ fast (" + val(fast) + ") — ещё не сошлись" });
+          slow = nextIdx(slow);
+          steps.push({ slow: slow, fast: fast, phase2: true, line: 14, vars: { slow: val(slow), fast: val(fast) }, info: "slow = slow.Next → " + val(slow) + " (+1)" });
+          fast = nextIdx(fast);
+          steps.push({ slow: slow, fast: fast, phase2: true, line: 15, vars: { slow: val(slow), fast: val(fast) }, info: "fast = fast.Next → " + val(fast) + " (+1, теперь тоже по одному)" });
+        }
+        steps.push({ slow: slow, fast: fast, phase2: true, line: 13, vars: { slow: val(slow), fast: val(fast) }, info: "slow == fast на " + val(slow) + " — сошлись" });
+        steps.push({ slow: slow, fast: fast, phase2: true, entryAt: slow, found: true, done: true, line: 17, vars: { slow: val(slow), fast: val(fast) }, info: "return slow — вход в цикл: узел " + val(slow) + " (индекс " + slow + "), без единого байта памяти под посещённые узлы" });
+        break;
+      }
     }
     return steps;
   }
@@ -8779,6 +8825,39 @@
       varsOf: function (s) { return { slow: s.vars.slow, fast: s.vars.fast }; }
     },
 
+    "list-cycle-entry": {
+      badge: "Fast & Slow",
+      desc: "Вход в цикл (алгоритм Флойда): фаза 1 — заяц и черепаха встречаются внутри кольца; фаза 2 — slow в голову, оба по одному шагу, и они сходятся ровно на входе.",
+      valuesLabel: "Связный список", codeKey: "list-cycle-entry", fillRange: false,
+      ptr1: { name: "slow", cap: "(черепаха)" }, ptr2: { name: "fast", cap: "(заяц)" },
+      complexity: { time: "O(n)", space: "O(1)", good: "★ Связных списков и циклов" },
+      varOrder: ["slow", "fast"],
+      varDesc: { slow: "Фаза 1: +1 шаг; фаза 2: из головы, +1", fast: "Фаза 1: +2 шага; фаза 2: из встречи, +1" },
+      lineNotes: { 1: "Оба указателя стартуют с головы списка", 2: "Условие цикла: пока fast и fast.Next не nil", 3: "slow делает один шаг (slow.Next)", 4: "fast делает два шага (fast.Next.Next)", 5: "Указатели совпали?", 6: "Встреча — цикл есть, выходим из фазы 1", 9: "Вышли по nil или по break?", 10: "fast достиг конца (nil) — цикла нет", 12: "Фаза 2: slow — в голову, fast — в точке встречи", 13: "Ещё не сошлись?", 14: "slow — на 1 шаг", 15: "fast — тоже на 1 шаг", 17: "Сошлись — это вход в цикл" },
+      rules: [{ head: "фаза 1", body: "slow +1, fast +2 до встречи", cls: "lt" }, { head: "фаза 2", body: "slow из головы, оба +1", cls: "gt" }, { head: "сошлись", body: "→ это вход в цикл", cls: "eq" }],
+      parse: function (root) { var list = nums(root.getAttribute("data-list")); var cyc = parseInt(root.getAttribute("data-cycle"), 10); return { list: list, cyc: cyc, steps: bListCycle(list, cyc, true) }; },
+      inputs: [{ attr: "data-list", label: "Список" }, { attr: "data-cycle", label: "цикл с индекса", sm: true }],
+      values: function (ctx) { return ctx.list; },
+      title: function () { return "Вход в цикл: алгоритм Флойда"; },
+      param: function (ctx) { var ok = !isNaN(ctx.cyc) && ctx.cyc >= 0 && ctx.cyc < ctx.list.length; return { label: "Цикл с узла", value: ok ? ctx.list[ctx.cyc] : "нет" }; },
+      note: function (ctx) { var ok = !isNaN(ctx.cyc) && ctx.cyc >= 0 && ctx.cyc < ctx.list.length; return ok ? "🔁 цикл: " + ctx.list[ctx.list.length - 1] + " → " + ctx.list[ctx.cyc] : "Список без цикла"; },
+      cycleIdx: function (ctx) { return ctx.cyc; },
+      pointers: function (s) { return { lo: s.slow, hi: s.fast }; },
+      sumCells: ["slow →", "fast →"],
+      sumValues: function (s) { return [{ text: s.vars.slow }, { text: s.vars.fast, cls: (s.entryAt != null ? "eq" : "") }]; },
+      status: function (s, idx, total) {
+        if (s.entryAt != null) return { kind: "ok", icon: "✓", head: "Вход в цикл найден", text: s.info };
+        if (s.done) return { kind: "end", icon: idx + 1, head: "Цикла нет", text: s.info };
+        return { kind: "info", hot: s.line === 6 || s.line === 12, icon: idx + 1, head: (s.phase2 ? "Фаза 2 · " : "Фаза 1 · ") + "шаг " + (idx + 1) + " из " + total, text: s.info };
+      },
+      stepCard: function (s) {
+        if (s.entryAt != null) return { a: "slow=" + s.vars.slow + ", fast=" + s.vars.fast, b: "slow == fast", c: "вход!", cls: "eq" };
+        if (s.done) return { a: "slow=" + s.vars.slow, b: "fast → nil", c: "нет цикла", cls: "gt" };
+        return { a: "slow=" + s.vars.slow + ", fast=" + s.vars.fast, b: s.phase2 ? "оба +1" : "slow +1, fast +2", c: s.phase2 ? "фаза 2" : "фаза 1", cls: "lt" };
+      },
+      varsOf: function (s) { return { slow: s.vars.slow, fast: s.vars.fast }; }
+    },
+
     "sliding-window-var": {
       badge: "Sliding Window",
       desc: "Самая длинная подстрока, где не более k различных символов (переменное окно).",
@@ -12584,6 +12663,17 @@
       bigCells = values.map(function (v, i) { var c = mkEl("div", "algo-tp__big", v); if (i === cyIdx) c.classList.add("algo-tp__big--cycle"); grid.appendChild(c); return c; });
       grid.appendChild(mkEl("div", "algo-tp__rowlab", ""));
       ptrSlots = values.map(function () { var c = mkEl("div", "algo-tp__ptrslot"); grid.appendChild(c); return c; });
+      // Обратная ссылка цикла дугой: без неё прыжок fast через Next последнего узла
+      // выглядел шагом назад по массиву.
+      if (cyIdx >= 0 && cyIdx < n) {
+        grid.appendChild(mkEl("div", "algo-tp__rowlab", ""));
+        var cyRow = mkEl("div", "algo-tp__cyc"); cyRow.style.gridColumn = "2 / span " + n;
+        var arc = mkEl("div", "algo-tp__cycarc"), G = "var(--algo-cg, 8px)";
+        arc.style.left = "calc(" + ((cyIdx + 0.5) / n) + " * (100% + " + G + ") - " + G + " / 2)";
+        arc.style.width = "calc(" + ((n - 1 - cyIdx) / n) + " * (100% + " + G + "))";
+        arc.appendChild(mkEl("span", "algo-tp__cyclab", "Next последнего узла → " + values[cyIdx]));
+        cyRow.appendChild(arc); grid.appendChild(cyRow);
+      }
       vizHost.appendChild(grid);
       // Что означает каждый указатель — одной строкой под сеткой, а не подписью под
       // клеткой: подписи соседних указателей налезали друг на друга.
