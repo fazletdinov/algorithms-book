@@ -4701,8 +4701,8 @@
       });
     }
     push(4, -1, "len(queue) = 0 — очередь пуста, цикл завершён");
-    if (order.length === n) steps.push({ removed: removed.slice(), deg: deg.slice(), cur: -1, done: true, found: true, line: 12, vars: { "узел": "—", "входящая 0": "[]", "порядок": ordLabels(), "снято": order.length + "/" + n, "вОчереди": 0 }, info: "return order — топологический порядок: " + ordLabels() });
-    else steps.push({ removed: removed.slice(), deg: deg.slice(), cur: -1, done: true, line: 12, vars: { "узел": "—", "входящая 0": "[]", "порядок": ordLabels(), "снято": order.length + "/" + n, "вОчереди": 0 }, info: "len(order) = " + order.length + " < " + n + " → в графе ЦИКЛ (топопорядок невозможен)" });
+    if (order.length === n) steps.push({ removed: removed.slice(), deg: deg.slice(), cur: -1, done: true, found: true, line: 12, note: "В порядок попали все вершины (" + n + " из " + n + ") — это топологический порядок", vars: { "узел": "—", "входящая 0": "[]", "порядок": ordLabels(), "снято": order.length + "/" + n, "вОчереди": 0 }, info: "return order — топологический порядок: " + ordLabels() });
+    else steps.push({ removed: removed.slice(), deg: deg.slice(), cur: -1, done: true, line: 12, note: "В порядок попали не все вершины → в графе цикл", vars: { "узел": "—", "входящая 0": "[]", "порядок": ordLabels(), "снято": order.length + "/" + n, "вОчереди": 0 }, info: "len(order) = " + order.length + " < " + n + " → в графе ЦИКЛ (топопорядок невозможен)" });
     return steps;
   }
   var topoViz = graphVizFactory(true);
@@ -5471,18 +5471,25 @@
   // rho — «самую длинную серию решек», а она ≈ log2 числа уникальных в этом бакете.
   function hllRho(w, bits) { for (var i = bits - 1; i >= 0; i--) { if ((w >>> i) & 1) return (bits - 1 - i) + 1; } return bits + 1; }
   function bHllAdd(elems) {
+    // Две оценки рядом. Сырая формула α·m²/Σ2^(−reg) на малых n врёт (на пустом скетче
+    // даёт 5, на восьми ID — 12): глава именно это и предупреждает. Реальные реализации
+    // (Redis) при E ≤ 2.5·m и пустых регистрах V переходят на linear counting m·ln(m/V) —
+    // её показываем второй, чтобы было видно, чем «делай так же» кончается на практике.
     var P = 3, M = 1 << P, reg = new Array(M).fill(0), steps = [];
-    function est() { var s = 0; for (var i = 0; i < M; i++) s += Math.pow(2, -reg[i]); return Math.round(0.673 * M * M / s); }
+    function raw() { var s = 0; for (var i = 0; i < M; i++) s += Math.pow(2, -reg[i]); return Math.round(0.673 * M * M / s); }
+    function lc() { var e = raw(), V = reg.filter(function (x) { return x === 0; }).length; return (e <= 2.5 * M && V > 0) ? Math.round(M * Math.log(M / V)) : e; }
     function snap(extra) { var o = { values: reg.slice(), st: reg.map(function (x) { return x > 0 ? 1 : 0; }), lo: -1, hi: -1 }; for (var k in extra) o[k] = extra[k]; return o; }
-    steps.push(snap({ line: 0, vars: { id: "—", bucket: "—", rho: "—", est: 0 }, info: "Пусто: " + M + " регистров, все 0. Сами ID не храним" }));
+    function vv(id, j, r) { return { id: id, bucket: j, rho: r, est: raw(), lc: lc() }; }
+    steps.push(snap({ line: 0, vars: vv("—", "—", "—"), info: "Пусто: " + M + " регистров, все 0. Сами ID не храним. Уже здесь сырая формула говорит «≈ " + raw() + "» — на малых n ей верить нельзя" }));
     for (var e = 0; e < elems.length; e++) {
       var id = elems[e], x = fnv32(id), j = x >>> (32 - P), w = x & ((1 << (32 - P)) - 1), r = hllRho(w, 32 - P);
-      steps.push(snap({ lo: j, line: 2, vars: { id: id, bucket: j, rho: "—", est: est() }, info: "«" + id + "»: старшие биты хеша → регистр " + j }));
-      steps.push(snap({ lo: j, line: 3, vars: { id: id, bucket: j, rho: r, est: est() }, info: "серия нулей в остатке: rho = " + r }));
+      steps.push(snap({ lo: j, line: 2, vars: vv(id, j, "—"), info: "«" + id + "»: старшие биты хеша → регистр " + j }));
+      steps.push(snap({ lo: j, line: 3, vars: vv(id, j, r), info: "серия нулей в остатке: rho = " + r }));
       var old = reg[j], grew = r > old; if (grew) reg[j] = r;
-      steps.push(snap({ lo: j, line: 5, vars: { id: id, bucket: j, rho: r, est: est() }, info: grew ? "rho " + r + " > " + old + " → регистр " + j + " растёт до " + r : "rho " + r + " ≤ " + old + " → регистр не меняем (храним максимум)" }));
+      // строка 6 (присваивание) — только если регистр реально вырос; иначе стоим на if
+      steps.push(snap({ lo: j, line: grew ? 5 : 4, vars: vv(id, j, r), info: grew ? "rho " + r + " > " + old + " → регистр " + j + " растёт до " + r : "rho " + r + " ≤ " + old + " → регистр не меняем (храним максимум)" }));
     }
-    steps.push(snap({ done: true, line: 7, vars: { id: "—", bucket: "—", rho: "—", est: est() }, info: "Оценка уникальных ≈ " + est() + " (на масштабе миллионов ошибка ~2%; здесь — только механика)" }));
+    steps.push(snap({ done: true, line: 7, vars: vv("—", "—", "—"), info: "Сырая формула: ≈ " + raw() + " при " + elems.length + " уникальных — на малых n промах в разы. С поправкой linear counting (как в Redis: m·ln(m/V), пустых регистров V = " + reg.filter(function (x) { return x === 0; }).length + ") — ≈ " + lc() + ". На миллионах поправка не нужна: ошибка сырой формулы ~2%" }));
     return steps;
   }
 
@@ -5519,8 +5526,10 @@
       base.push({ r: r, c: c, cls: "seen" });
       var marks = base.slice(); marks[marks.length - 1] = { r: r, c: c, cls: "cur" };
       steps.push(snap(marks, { line: 4, vars: { item: q, col: c, val: v, est: est === Infinity ? "∞" : est }, info: "строка " + r + ", столбец " + c + ": счётчик = " + v + (v > (est === Infinity ? 1e9 : est) ? " (завышен коллизией)" : "") }));
-      if (v < est) est = v;
-      steps.push(snap(base.slice(), { line: 5, vars: { item: q, col: c, val: v, est: est }, info: "берём минимум: est = " + est }));
+      // присваивание (строка 6) — только когда счётчик меньше текущего минимума
+      var lower = v < est, was = est;
+      if (lower) est = v;
+      steps.push(snap(base.slice(), { line: lower ? 5 : 4, vars: { item: q, col: c, val: v, est: est }, info: lower ? v + " < " + (was === Infinity ? "∞" : was) + " → новый минимум est = " + est : v + " ≥ " + est + " → минимум не меняется (этот счётчик завышен коллизией)" }));
     }
     // подсветить минимум
     var minCell = cells.reduce(function (a, b) { return b.v < a.v ? b : a; });
@@ -5995,7 +6004,7 @@
     steps.push(snap({ line: 4, vars: vv(), info: "Max-heap готова: наибольший элемент в корне a[0]" }));
     for (var end = n - 1; end > 0; end--) {
       var t = a[0]; a[0] = a[end]; a[end] = t; swaps++;
-      steps.push(snap({ lo: 0, hi: end, mid: end, sorted: n - end, line: 6, vars: vv(), info: "максимум a[0]=" + a[end] + " → в конец (позиция " + end + "); отсортированный суффикс вырос" }));
+      steps.push(snap({ lo: 0, hi: end, mid: end, sorted: n - end, line: 6, ptrNames: { hi: "end" }, vars: vv(), info: "максимум a[0]=" + a[end] + " → в конец (позиция " + end + "); отсортированный суффикс вырос" }));
       siftDown(0, end, 7, n - end, "extract");
     }
     steps.push(snap({ done: true, sorted: n, line: 9, vars: vv(), info: "Готово за O(n log n), " + swaps + " обменов, память O(1)" }));
@@ -7057,8 +7066,9 @@
       var overlap = iv[0] <= last[1];
       push({ line: 6, cur: k, i: k, interval: fmt(iv), last: fmt(last), info: "cur[0]=" + iv[0] + (overlap ? " ≤ " : " > ") + "last[1]=" + last[1] + (overlap ? " — пересекаются" : " — разрыв") });
       if (overlap) {
+        var oldEnd = last[1];
         last[1] = Math.max(last[1], iv[1]);
-        push({ line: 7, cur: k, i: k, interval: fmt(iv), last: fmt(last), info: "last[1] = max(" + last[1] + ") → расширяем последний до " + fmt(last) });
+        push({ line: 7, cur: k, i: k, interval: fmt(iv), last: fmt(last), info: "last[1] = max(" + oldEnd + ", " + iv[1] + ") = " + last[1] + (last[1] > oldEnd ? " → расширяем последний до " + fmt(last) : " → " + fmt(iv) + " целиком внутри, конец не меняется (присвой вслепую iv[1] — и потеряешь " + oldEnd + ")") });
       } else {
         merged.push([iv[0], iv[1]]);
         push({ line: 9, cur: k, i: k, interval: fmt(iv), last: fmt(merged[merged.length - 1]), info: "разрыв → добавляем " + fmt(iv) + " как новый интервал" });
@@ -7334,11 +7344,14 @@
     if (mode === "dfs") {
       var stack = [];
       function snapStack() { return stack.map(function (k) { return arr[k]; }); }
-      function push(o) { var ni = (o.nodeIdx == null ? -1 : o.nodeIdx); steps.push({ nodeIdx: ni, cur: (ni >= 0 ? posOf[ni] : -1), upto: upto, stack: snapStack(), line: o.line, vars: vv(ni), info: o.info, done: o.done, found: o.found }); }
+      // cur — позиция в ПРЯМОМ порядке (строка «Узлы (preorder)» идёт в нём же): раньше
+      // строка шла по уровням 1 2 3 4 5 6, и preorder выглядел как ответ BFS.
+      var ordPos = {}; order.forEach(function (k, j) { ordPos[k] = j; });
+      function push(o) { var ni = (o.nodeIdx == null ? -1 : o.nodeIdx); steps.push({ nodeIdx: ni, cur: (ni >= 0 ? ordPos[ni] : -1), upto: upto, stack: snapStack(), line: o.line, note: o.note, vars: vv(ni), info: o.info, done: o.done, found: o.found }); }
       (function dfs(k) {
-        if (k >= arr.length || arr[k] == null) { push({ line: 1, nodeIdx: -1, info: "node == nil → возврат из рекурсии (пустой потомок)" }); return; }
+        if (k >= arr.length || arr[k] == null) { push({ line: 1, nodeIdx: -1, note: "node == nil → return: пустой потомок", info: "node == nil → возврат из рекурсии (пустой потомок)" }); return; }
         stack.push(k);
-        push({ line: 1, nodeIdx: k, info: "node = " + arr[k] + " ≠ nil — заходим в вызов" });
+        push({ line: 1, nodeIdx: k, note: "node ≠ nil → идём дальше", info: "node = " + arr[k] + " ≠ nil — заходим в вызов" });
         seq.push(arr[k]); upto++;
         push({ line: 2, nodeIdx: k, info: "preorder: записываем " + arr[k] + " → " + seq.join(" → ") });
         push({ line: 3, nodeIdx: k, info: "dfs(node.Left) узла " + arr[k] });
@@ -8188,7 +8201,9 @@
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
       sumCells: ["Текущая сумма", "Сравнение"],
       sumValues: function (s, ctx) {
-        var sum = s.vars.sum; if (typeof sum !== "number") return [{ text: "—" }, { text: "lo ≥ hi" }];
+        // «lo ≥ hi» — только когда цикл действительно кончился; раньше это писалось на
+        // каждом шаге без посчитанной суммы, в том числе на «for lo < hi — да»
+        var sum = s.vars.sum; if (typeof sum !== "number") return [{ text: "—" }, { text: s.done && !s.found ? "lo ≥ hi" : (s.lo < s.hi ? "lo < hi ✓" : "—") }];
         var rel = s.found ? "=" : (sum < ctx.target ? "<" : ">"), cls = s.found ? "eq" : (sum < ctx.target ? "lt" : "gt");
         return [{ text: s.vars["arr[lo]"] + " + " + s.vars["arr[hi]"] + " = " + sum }, { text: sum + " " + rel + " " + ctx.target, cls: cls }];
       },
@@ -8893,6 +8908,9 @@
       inputs: [{ attr: "data-list", label: "Список" }],
       values: function (ctx) { return ctx.list; },
       title: function () { return "Середина списка (заяц и черепаха)"; },
+      // На финале зелёная только середина: общая схема «found — оба конца пары» красила и
+      // последний узел, будто ответов два. fast остаётся указателем, но без заливки.
+      cellState: function (s, j) { return { found: !!s.done && j === s.slow, lo: !s.done && j === s.slow, hi: j === s.fast && !(s.done && j === s.slow) }; },
       pointers: function (s) { return { lo: s.slow, hi: s.fast }; },
       sumCells: ["slow →", "fast →"],
       sumValues: function (s) { return [{ text: s.vars.slow, cls: s.done ? "eq" : "" }, { text: s.vars.fast }]; },
@@ -9218,8 +9236,8 @@
       valuesLabel: "Регистры (макс. длина серии нулей)", codeKey: "hll-add", fillRange: false,
       ptr1: { name: "рег", cap: "(текущий регистр)" },
       complexity: { time: "O(1)", space: "O(регистров)", good: "★ млрд уникальных в ~1.5 КБ" },
-      varOrder: ["id", "bucket", "rho", "est"],
-      varDesc: { id: "Добавляемый ID", bucket: "Номер регистра", rho: "Длина серии нулей+1", est: "Оценка уникальных" },
+      varOrder: ["id", "bucket", "rho", "est", "lc"],
+      varDesc: { id: "Добавляемый ID", bucket: "Номер регистра", rho: "Длина серии нулей+1", est: "Сырая оценка α·m²/Σ2^−reg", lc: "С поправкой linear counting (малые n)" },
       lineNotes: { 0: "Учитываем ID в оценке уникальных", 1: "Хешируем ID", 2: "Старшие p бит → номер регистра", 3: "rho = длина серии нулей в остатке + 1", 4: "Новый rho больше сохранённого?", 5: "Храним МАКСИМУМ rho для этого регистра", 7: "Оценка = по всем регистрам (гармоническое среднее)" },
       rules: [{ head: "регистр", body: "= макс. серия нулей", cls: "gt" }, { head: "почему макс", body: "длинная серия ⇒ много уникальных", cls: "eq" }, { head: "память", body: "ID не хранятся, только регистры", cls: "lt" }],
       parse: function (root) { var el = (root.getAttribute("data-elems") || "user_8143,user_2290,user_5561,user_9033,user_1204,user_7788,user_4415,user_6672").split(",").map(function (x) { return x.trim(); }); return { elems: el, steps: bHllAdd(el) }; },
@@ -9228,11 +9246,11 @@
       title: function (ctx) { return "HyperLogLog: " + ctx.elems.length + " уникальных ID"; },
       cellState: function (s, j) { var o = {}; if (s.st[j] === 1) o.found = true; if (j === s.lo && s.lo >= 0) o.lo = true; return o; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
-      sumCells: ["rho", "оценка ≈"],
-      sumValues: function (s) { return [{ text: s.vars.rho }, { text: s.vars.est, cls: "ok" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Оценка ≈ " + s.vars.est + " уникальных", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      sumCells: ["rho", "сырая оценка", "с поправкой (как в Redis)"],
+      sumValues: function (s) { return [{ text: s.vars.rho }, { text: s.vars.est, cls: "gt" }, { text: s.vars.lc, cls: "ok" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "≈ " + s.vars.lc + " уникальных (сырая формула: " + s.vars.est + ")", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: s.vars.id, b: "рег " + s.vars.bucket, c: "rho " + s.vars.rho, cls: "gt" }; },
-      varsOf: function (s) { return { id: s.vars.id, bucket: s.vars.bucket, rho: s.vars.rho, est: s.vars.est }; }
+      varsOf: function (s) { return { id: s.vars.id, bucket: s.vars.bucket, rho: s.vars.rho, est: s.vars.est, lc: s.vars.lc }; }
     },
 
     "cms-add": {
@@ -9458,7 +9476,7 @@
       badge: "Heap Sort",
       desc: "Пирамидальная сортировка: строим max-heap просеиванием, затем n−1 раз меняем корень (максимум) с концом кучи и чиним кучу. Отсортированный суффикс (затемнён) растёт справа. O(n log n), память O(1).",
       valuesLabel: "Массив (отсортированный суффикс затемнён)", codeKey: "heap-sort", fillRange: false,
-      ptr1: { name: "root", cap: "(просеиваемый узел)" }, ptr2: { name: "child", cap: "(больший ребёнок)" },
+      ptr1: { name: "root", cap: "(просеиваемый узел)" }, ptr2: { name: "child", cap: "(больший ребёнок; на обмене с корнем — end, конец кучи)" },
       complexity: { time: "O(n log n)", space: "O(1)", good: "★ Гарантия n log n, на месте" },
       varOrder: ["n", "обменов"],
       varDesc: { n: "Размер массива", "обменов": "Сделано обменов" },
@@ -9909,11 +9927,11 @@
       badge: "Tower of Hanoi",
       desc: "Ханойская башня — классическая рекурсия: перенести (n−1) дисков на запасной стержень, сдвинуть самый большой, перенести (n−1) поверх. T(n) = 2·T(n−1) + 1.",
       valuesLabel: "", codeKey: "hanoi", fillRange: false,
-      complexity: { time: "O(2ⁿ)", space: "O(n)", good: "★ Канон рекурсии; глубина стека = n" },
+      complexity: { time: "O(2ⁿ)", space: "O(n)", good: "★ Канон рекурсии; глубина стека n + 1 = O(n)" },
       varOrder: ["n", "перенос", "запасной", "глубина", "ход"],
       varDesc: { "n": "Сколько дисков переносит текущий вызов", "перенос": "Откуда → куда (этот вызов)", "запасной": "Вспомогательный стержень", "глубина": "Глубина стека вызовов", "ход": "Номер сделанного хода" },
       lineNotes: { 0: "Вход в вызов hanoi(n, from, to, via): перенести n дисков from → to", 1: "База рекурсии: n == 0 — переносить нечего", 2: "return — снимаем кадр со стека, возвращаемся в вызывающий", 4: "Рекурсия 1: (n−1) дисков уводим на запасной стержень", 5: "Двигаем самый большой диск этого вызова на целевой", 6: "Рекурсия 2: (n−1) дисков переносим поверх большого" },
-      rules: [{ head: "T(n)", body: "= 2·T(n−1) + 1", cls: "lt" }, { head: "Ходов", body: "ровно 2ⁿ − 1", cls: "gt" }, { head: "Глубина стека", body: "= n", cls: "eq" }],
+      rules: [{ head: "T(n)", body: "= 2·T(n−1) + 1", cls: "lt" }, { head: "Ходов", body: "ровно 2ⁿ − 1", cls: "gt" }, { head: "Глубина стека", body: "= n + 1 (с кадром базы n == 0) → O(n)", cls: "eq" }],
       parse: function (root) { var n = parseInt(root.getAttribute("data-n"), 10); if (isNaN(n)) n = 3; return { n: n, steps: bHanoi(n) }; },
       inputs: [{ attr: "data-n", label: "Дисков" }],
       values: function () { return []; },
@@ -10501,11 +10519,11 @@
       complexity: { time: "O(n)", space: "O(h)", good: "★ Путей и поддеревьев" },
       varOrder: ["node", "visited", "order"],
       varDesc: { "node": "Текущий узел", "visited": "Сколько узлов посещено", "order": "Порядок обхода (preorder)" },
-      lineNotes: { 1: "Дошли до пустого узла — возврат из рекурсии", 2: "Preorder: записываем узел ДО спуска к потомкам", 3: "Рекурсивно обходим левое поддерево", 4: "Затем правое поддерево", 5: "Возврат из всех вызовов = обход завершён" },
+      lineNotes: { 1: "Базовый случай: пустой узел → return", 2: "Preorder: записываем узел ДО спуска к потомкам", 3: "Рекурсивно обходим левое поддерево", 4: "Затем правое поддерево", 5: "Возврат из всех вызовов = обход завершён" },
       rules: [{ head: "Посетить корень", body: "записать node.Val", cls: "eq" }, { head: "Затем левое", body: "dfs(node.Left)", cls: "lt" }, { head: "Затем правое", body: "dfs(node.Right)", cls: "gt" }],
       parse: function (root) { return bTree(parseTree(root.getAttribute("data-tree")), "dfs"); },
       inputs: [{ attr: "data-tree", label: "Дерево: уровни, null=пусто" }],
-      values: function (ctx) { return ctx.present.map(function (i) { return ctx.arr[i]; }); },
+      values: function (ctx) { return ctx.order.map(function (i) { return ctx.arr[i]; }); },
       title: function () { return "Обход дерева в глубину (preorder)"; },
       pointers: function (s) { return { lo: s.cur, hi: -1 }; },
       sumCells: ["Текущий узел", "Посещено"],
@@ -10719,7 +10737,7 @@
       varOrder: ["node", "order"],
       varDesc: { "node": "Убираемая вершина", "order": "Топологический порядок" },
       lineNotes: { 1: "Считаем входящие степени всех вершин", 2: "В очередь — все вершины, в которые НЕ входит ни одного ребра", 3: "order — топологический порядок (накапливаем)", 4: "Пока очередь не пуста — продолжаем", 5: "Берём вершину из очереди (её зависимости уже сняты)", 6: "Добавляем вершину в порядок", 7: "Перебираем рёбра вершины (её соседей)", 8: "Убираем ребро: уменьшаем входящую степень соседа", 9: "Если входящая соседа стала 0 — он тоже готов, в очередь", 12: "В порядок попали не все вершины → в графе есть цикл" },
-      rules: [{ head: "Входящая степень 0", body: "→ можно убирать", cls: "lt" }, { head: "Убрали вершину", body: "уменьшаем степени соседей", cls: "eq" }, { head: "Нет степени 0", body: "→ в графе цикл", cls: "gt" }],
+      rules: [{ head: "Входящая степень 0", body: "→ можно убирать", cls: "lt" }, { head: "Убрали вершину", body: "уменьшаем степени соседей", cls: "eq" }, { head: "Очередь пуста, а сняты не все", body: "→ в графе цикл", cls: "gt" }],
       parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = (root.getAttribute("data-edges") || "").split(",").map(function (e) { return e.trim().split("-"); }).map(function (p) { return [labels.indexOf(p[0]), labels.indexOf(p[1])]; }).filter(function (p) { return p[0] >= 0 && p[1] >= 0; }); return { labels: labels, edges: edges, steps: bTopoKahn(labels, edges) }; },
       inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b (ориент.)" }],
       values: function (ctx) { return ctx.labels; },
@@ -12051,7 +12069,10 @@
 
     function noteOf(s, st) {
       if (!(typeof s.line === "number" && s.line >= 0 && codeLines[s.line])) return null;
-      return { ln: "▸ строка " + (s.line + 1), tx: (cfg.lineNotes && cfg.lineNotes[s.line]) || (st && st.text) || codeLines[s.line].trim() };
+      // s.note — подпись КОНКРЕТНОГО шага. Нужна там, где на одной строке условие с двумя
+      // исходами: статичная lineNotes описывала одну ветку («в графе есть цикл» на
+      // успешном финале, «дошли до пустого узла» на непустом узле).
+      return { ln: "▸ строка " + (s.line + 1), tx: s.note || (cfg.lineNotes && cfg.lineNotes[s.line]) || (st && st.text) || codeLines[s.line].trim() };
     }
     // Резерв высоты по ВСЕМ шагам: самый длинный статус, самая высокая подпись под
     // кодом и самая высокая визуализация (дерево прирастает уровнем, стек растёт).
@@ -12148,8 +12169,11 @@
           var atLo = j === lo && lo >= 0 && cfg.ptr1, atHi = j === hi && hi >= 0 && cfg.ptr2;
           if (!atLo && !atHi) return;
           c.appendChild(mkEl("div", "algo-tp__arrowup algo-tp__arrowup--" + (atLo ? "lo" : "hi"), "↑"));
-          if (atLo) c.appendChild(mkEl("div", "algo-tp__pill algo-tp__pill--lo", cfg.ptr1.name));
-          if (atHi) c.appendChild(mkEl("div", "algo-tp__pill algo-tp__pill--hi", cfg.ptr2.name));
+          // s.ptrNames — имя указателя на конкретном шаге (heap sort: на обмене корня с концом
+          // второй указатель — это end, а не «больший ребёнок»)
+          var pn = s.ptrNames || {};
+          if (atLo) c.appendChild(mkEl("div", "algo-tp__pill algo-tp__pill--lo", pn.lo || cfg.ptr1.name));
+          if (atHi) c.appendChild(mkEl("div", "algo-tp__pill algo-tp__pill--hi", pn.hi || cfg.ptr2.name));
         });
       }
       miniCells.forEach(function (c, j) {
