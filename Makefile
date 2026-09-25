@@ -51,7 +51,7 @@ pg-lab:
 	@for i in $$(seq 1 120); do \
 	  if docker exec -e PGPASSWORD=algo algo-pglab psql -h 127.0.0.1 -U algo -d algolab \
 	       -tAc 'SELECT 1 FROM lab_ready' 2>/dev/null | grep -qx 1; then \
-	    echo "▶ База готова: make pg-psql  (или psql postgres://algo:algo@localhost:55432/algolab)"; \
+	    echo "▶ База готова: make pg-psql  (или psql postgres://algo:algo@localhost:25432/algolab)"; \
 	    exit 0; \
 	  fi; \
 	  sleep 2; \
