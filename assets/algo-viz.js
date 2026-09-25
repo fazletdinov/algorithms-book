@@ -839,7 +839,7 @@
       "    }",
       "    for i := 0; i < s-1; i++ {",
       "        x = x * x % n               // возводим в квадрат",
-      "        if x == n-1 { return true } // нетривиальный корень",
+      "        if x == n-1 { return true } // −1: дальше честная 1",
       "    }",
       "    return false                    // a уличает: n составное",
       "}"
@@ -2047,7 +2047,7 @@
       "    open := pq{{cell: start, f: h(start)}} // мин-куча по f = g + h",
       "    g[start] = 0",
       "    for open.Len() > 0 {",
-      "        cur := open.PopMin()          // клетка с минимальной f",
+      "        cur := open.PopMin()   // мин f, при равных f — мин h",
       "        if cur == goal { return g[goal] }",
       "        closed[cur] = true",
       "        for _, nb := range neighbors(cur) {",
@@ -3671,8 +3671,8 @@
     function push(o) {
       steps.push({
         dist: distSnap(), settled: settled.slice(), pq: pq.map(function (x) { return { node: x.node, d: x.d }; }), cur: (o.cur == null ? -1 : o.cur), edge: (o.edge || null), line: o.line,
-        vars: { "u": o.u || "—", "dist[u]": (o.du == null ? "—" : o.du), "очередь": pqLabel(), "ребро": o.el || "—", "dist[v]": o.dv || "—", "извлечено": settled.filter(Boolean).length + "/" + n, "вОчереди": pq.length, "релакс": relax },
-        info: o.info, done: o.done, found: o.found
+        vars: { "u": o.u || "—", "u.d": (o.ud == null ? "—" : o.ud), "dist[u]": (o.du == null ? "—" : o.du), "очередь": pqLabel(), "ребро": o.el || "—", "dist[v]": o.dv || "—", "извлечено": settled.filter(Boolean).length + "/" + n, "вОчереди": pq.length, "релакс": relax },
+        info: o.info, done: o.done, found: o.found, stale: !!o.stale
       });
     }
     dist[start] = 0;
@@ -3684,13 +3684,17 @@
       push({ line: 3, info: "pq.Len() = " + pq.length + " > 0 — да, продолжаем" });
       var mi = 0; for (var i = 1; i < pq.length; i++) if (pq[i].d < pq[mi].d) mi = i;
       var top = pq.splice(mi, 1)[0], u = top.node;
-      push({ line: 4, cur: u, u: labels[u], du: disp(dist[u]), info: "u = PopMin() = " + labels[u] + " (оценка " + top.d + ") — ближайшая в очереди" });
-      if (top.d > dist[u]) {
-        push({ line: 5, u: labels[u], du: disp(dist[u]), info: "оценка " + top.d + " > dist[" + labels[u] + "] = " + disp(dist[u]) + " → устаревшая запись, continue" });
+      // Устаревшая запись — след ленивого удаления: dist[u] уже улучшали после того,
+      // как её положили. Помечаем явно (stale): раньше «устаревшей» подписывалась
+      // КАЖДАЯ проверка на строке 6, включая финализацию актуальной записи.
+      var isStale = top.d > dist[u];
+      push({ line: 4, cur: u, u: labels[u], ud: top.d, du: disp(dist[u]), info: "u = PopMin() = " + labels[u] + ":" + top.d + " — запись с минимальной оценкой" + (isStale ? " (dist[" + labels[u] + "] уже " + disp(dist[u]) + ")" : "") });
+      if (isStale) {
+        push({ line: 5, stale: true, u: labels[u], ud: top.d, du: disp(dist[u]), info: "оценка " + top.d + " > dist[" + labels[u] + "] = " + disp(dist[u]) + " → устаревшая запись (" + labels[u] + " уже финализирована короче), continue" });
         continue;
       }
       settled[u] = true;
-      push({ line: 5, cur: u, u: labels[u], du: disp(dist[u]), info: "оценка " + top.d + " ≤ dist[" + labels[u] + "] → запись актуальна, " + labels[u] + " финализирована" });
+      push({ line: 5, cur: u, u: labels[u], ud: top.d, du: disp(dist[u]), info: "оценка " + top.d + " = dist[" + labels[u] + "] → запись актуальна: " + labels[u] + " финализирована, короче до неё уже не будет" });
       adj[u].forEach(function (e) {
         var v = e.to, old = dist[v], nd = dist[u] + e.w, improved = nd < old, el = labels[u] + "→" + labels[v] + " (" + e.w + ")";
         push({ line: 6, cur: u, edge: [u, v], u: labels[u], du: disp(dist[u]), el: el, info: "ребро " + labels[u] + "→" + labels[v] + " (вес " + e.w + ")" });
@@ -4541,7 +4545,9 @@
     var open = {}, closed = {}, steps = [];
     function openKeys() { return Object.keys(open); }
     function toArr(obj) { return Object.keys(obj).map(function (k) { var p = k.split(","); return [+p[0], +p[1]]; }); }
-    function push(o) { steps.push({ cur: o.cur || null, nb: o.nb || null, g: snap(g), f: snap(f), open: toArr(open), closed: toArr(closed), path: o.path || null, line: o.line, vars: { "клетка": o.cell || "—", "g": (o.g == null ? "—" : o.g), "h": (o.h == null ? "—" : o.h), "f": (o.f == null ? "—" : o.f), "открытых": openKeys().length }, info: o.info, done: o.done, found: o.found }); }
+    // Переменные cur (g/h/f) и соседа (nb, f(nb) = t + h(nb)) разведены: раньше на шагах
+    // соседа координата была соседская, а g/h/f — текущей клетки.
+    function push(o) { steps.push({ cur: o.cur || null, nb: o.nb || null, nbOk: !!o.nbOk, g: snap(g), f: snap(f), open: toArr(open), closed: toArr(closed), path: o.path || null, line: o.line, vars: { "клетка": o.cell || "—", "g": (o.g == null ? "—" : o.g), "h": (o.h == null ? "—" : o.h), "f": (o.f == null ? "—" : o.f), "сосед": o.nbl || "—", "f(nb)": (o.fnb == null ? "—" : o.fnb), "открытых": openKeys().length }, info: o.info, done: o.done, found: o.found }); }
     function fin() { steps.forEach(function (s, k) { s._i = k; }); return { grid: grid, R: R, C: C, goal: goal, steps: steps }; }
     if (grid[0][0] === 1 || grid[R - 1][C - 1] === 1) { push({ line: 15, done: true, found: false, info: "Старт или цель — стена, пути нет (return -1)" }); return fin(); }
     open[key(0, 0)] = true; f[0][0] = h(0, 0);
@@ -4554,8 +4560,9 @@
       var best = null, bf = INF, bh = INF;
       openKeys().forEach(function (k) { var p = k.split(","), r = +p[0], c = +p[1]; if (f[r][c] < bf || (f[r][c] === bf && h(r, c) < bh)) { bf = f[r][c]; bh = h(r, c); best = [r, c]; } });
       var r = best[0], c = best[1];
+      var ties = openKeys().filter(function (k) { var p = k.split(","); return f[+p[0]][+p[1]] === bf; }).length;
       delete open[key(r, c)];
-      push({ cur: [r, c], cell: "(" + r + "," + c + ")", g: g[r][c], h: h(r, c), f: f[r][c], line: 4, info: "cur = PopMin() = (" + r + "," + c + ") — минимальная f = " + f[r][c] });
+      push({ cur: [r, c], cell: "(" + r + "," + c + ")", g: g[r][c], h: h(r, c), f: f[r][c], line: 4, info: "cur = PopMin() = (" + r + "," + c + ") — минимальная f = " + f[r][c] + (ties > 1 ? "; f = " + bf + " у " + ties + " клеток → берём меньшую h = " + bh + " (ближе к цели)" : "") });
       if (r === goal[0] && c === goal[1]) {
         var path = [], cr = r, cc = c;
         while (cr !== null && cc !== null) { path.unshift([cr, cc]); var pc = came[cr][cc]; if (!pc) break; cr = pc[0]; cc = pc[1]; }
@@ -4566,19 +4573,21 @@
       push({ cur: [r, c], cell: "(" + r + "," + c + ")", g: g[r][c], h: h(r, c), f: f[r][c], line: 5, info: "(" + r + "," + c + ") — не цель" });
       closed[key(r, c)] = true;
       push({ cur: [r, c], cell: "(" + r + "," + c + ")", g: g[r][c], h: h(r, c), f: f[r][c], line: 6, info: "closed[(" + r + "," + c + ")] = true — клетка раскрыта" });
+      var cl = "(" + r + "," + c + ")";
       for (var di = 0; di < dirs.length; di++) {
         var nr = r + dirs[di][0], nc = c + dirs[di][1], nlbl = "(" + nr + "," + nc + ")";
-        push({ cur: [r, c], nb: [nr, nc], cell: nlbl, g: g[r][c], h: h(r, c), f: f[r][c], line: 7, info: "сосед " + nlbl });
-        var blocked = nr < 0 || nr >= R || nc < 0 || nc >= C || grid[nr][nc] === 1 || closed[key(nr, nc)];
-        push({ cur: [r, c], nb: [nr, nc], cell: nlbl, g: g[r][c], h: h(r, c), f: f[r][c], line: 8, info: blocked ? nlbl + " — вне поля / стена / уже закрыта → continue" : nlbl + " проходима и открыта для улучшения" });
-        if (blocked) continue;
+        var out = nr < 0 || nr >= R || nc < 0 || nc >= C;
+        var why = out ? "вне поля" : (grid[nr][nc] === 1 ? "стена" : (closed[key(nr, nc)] ? "уже закрыта" : ""));
+        var base = { cur: [r, c], nb: out ? null : [nr, nc], cell: cl, g: g[r][c], h: h(r, c), f: f[r][c], nbl: nlbl };
+        // один кадр на соседа до проверки: «сосед X — проходим / стена → continue»
+        if (why) { push(Object.assign({}, base, { line: 8, info: "сосед " + nlbl + " — " + why + " → continue" })); continue; }
         var t = g[r][c] + 1, better = t < g[nr][nc];
-        push({ cur: [r, c], nb: [nr, nc], cell: nlbl, g: disp(t), h: h(nr, nc), f: disp(g[nr][nc] === INF ? INF : g[nr][nc] + h(nr, nc)), line: 9, info: "t = g[cur]+1 = " + t + (better ? " < " : " ≥ ") + "g[сосед] = " + disp(g[nr][nc]) + (better ? " — короче!" : " — не короче") });
+        push(Object.assign({}, base, { nbOk: true, line: 9, fnb: t + "+" + h(nr, nc) + " = " + (t + h(nr, nc)), info: "сосед " + nlbl + ": t = g[cur]+1 = " + t + (better ? " < " : " ≥ ") + "g[сосед] = " + disp(g[nr][nc]) + (better ? " — путь через cur короче!" : " — не короче, пропускаем") }));
         if (better) {
           came[nr][nc] = [r, c]; g[nr][nc] = t;
-          push({ cur: [r, c], nb: [nr, nc], cell: nlbl, g: t, h: h(nr, nc), f: disp(t + h(nr, nc)), line: 10, info: "g[" + nlbl + "] = " + t });
+          push(Object.assign({}, base, { nbOk: true, line: 10, fnb: t + "+" + h(nr, nc) + " = " + (t + h(nr, nc)), info: "g[" + nlbl + "] = " + t }));
           f[nr][nc] = t + h(nr, nc); open[key(nr, nc)] = true;
-          push({ cur: [r, c], nb: [nr, nc], cell: nlbl, g: t, h: h(nr, nc), f: f[nr][nc], line: 11, info: "open.Push с f = g+h = " + t + "+" + h(nr, nc) + " = " + f[nr][nc] });
+          push(Object.assign({}, base, { nbOk: true, line: 11, fnb: f[nr][nc], info: "open.Push(" + nlbl + ") с f = g + h = " + t + " + " + h(nr, nc) + " = " + f[nr][nc] }));
         }
       }
     }
@@ -4605,6 +4614,9 @@
         cd.classList.toggle("algo-viz__gcell--current", cur);
         cd.classList.toggle("algo-viz__gcell--visited", closed && !cur && !onPath);
         cd.classList.toggle("algo-viz__gcell--frontier", open && !cur && !onPath && !closed);
+        var isNb = !!s.nb && s.nb[0] === r && s.nb[1] === c;
+        cd.classList.toggle("algo-viz__gcell--nbok", isNb && s.nbOk);
+        cd.classList.toggle("algo-viz__gcell--nbbad", isNb && !s.nbOk);
       }
     };
   }
@@ -4677,6 +4689,60 @@
     }
     push({ line: 9, done: true, found: nodes[walkCur].end, node: nodes[walkCur].ch, isWord: nodes[walkCur].end ? "да" : "нет (только префикс)", info: nodes[walkCur].end ? "node.isEnd == true → «" + query + "» найдено как слово ✓" : "node.isEnd == false → «" + query + "» есть только как префикс" });
     return { nodes: nodes, path: path, steps: steps };
+  }
+  // Дерево с рёбрами для n-арных деревьев (бор, дерево маршрутов). Лист получает
+  // следующий слот по горизонтали в порядке обхода, родитель встаёт над серединой
+  // своих детей — ребёнок всегда под своим родителем. Раньше такие деревья рисовались
+  // рядами по глубине без рёбер: «me» оказывалось между двумя {id} под чужим родителем.
+  // nodes: [{ parent: индекс|-1, label }] → { el, nodes: [div], edges: {childIdx: line} }.
+  function treeFigure(nodes, opt) {
+    opt = opt || {};
+    var CW = opt.cw || 64, CH = opt.ch || 60, kids = {}, root = 0, x = [], depth = [], slot = 0;
+    nodes.forEach(function (n, i) { if (n.parent == null || n.parent < 0) root = i; else (kids[n.parent] = kids[n.parent] || []).push(i); });
+    (function place(i, d) {
+      depth[i] = d; var ch = kids[i] || [];
+      if (!ch.length) { x[i] = slot++; return; }
+      ch.forEach(function (c) { place(c, d + 1); });
+      x[i] = (x[ch[0]] + x[ch[ch.length - 1]]) / 2;
+    })(root, 0);
+    var maxD = 0; depth.forEach(function (d) { if (d > maxD) maxD = d; });
+    var W = Math.max(1, slot) * CW, H = (maxD + 1) * CH;
+    function px(i) { return x[i] * CW + CW / 2; }
+    function py(i) { return depth[i] * CH + CH / 2; }
+    var box = mkEl("div", "algo-tp__tfig"); box.style.width = W + "px"; box.style.height = H + "px";
+    var svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("class", "algo-tp__bstsvg");
+    var edges = {};
+    nodes.forEach(function (n, i) {
+      if (i === root || x[i] == null) return;
+      var ln = document.createElementNS(SVGNS, "line");
+      ln.setAttribute("x1", px(n.parent)); ln.setAttribute("y1", py(n.parent)); ln.setAttribute("x2", px(i)); ln.setAttribute("y2", py(i));
+      ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); edges[i] = ln;
+    });
+    box.appendChild(svg);
+    var els = nodes.map(function (n, i) {
+      var b = mkEl("div", "algo-tp__tnode algo-tp__tfignode" + (n.cls ? " " + n.cls : ""), n.label);
+      b.style.left = px(i) + "px"; b.style.top = py(i) + "px"; box.appendChild(b); return b;
+    });
+    return { el: box, nodes: els, edges: edges };
+  }
+  // Дерево маршрутов ServeMux: текущий путь спуска, тупиковые ветки после отката.
+  function routeViz(panel, ctx) {
+    var fig = treeFigure(ctx.nodes.map(function (n) {
+      return { parent: n.parent, label: n.ch + (n.end ? " ✓" : ""), cls: (n.wild ? "algo-tp__tnode--wild" : "") + (n.end ? " algo-tp__tnode--end" : "") };
+    }));
+    panel.appendChild(fig.el);
+    return function (s) {
+      fig.nodes.forEach(function (el, id) {
+        var onPath = s.stack.indexOf(id) >= 0, dead = s.failed.indexOf(id) >= 0;
+        el.classList.toggle("algo-tp__tnode--visited", onPath && id !== s.cur);
+        el.classList.toggle("algo-tp__tnode--current", id === s.cur && !s.found);
+        el.classList.toggle("algo-tp__tnode--found", id === s.cur && !!s.found);
+        el.classList.toggle("algo-tp__tnode--dead", dead && !onPath);
+        var ln = fig.edges[id];
+        if (ln) { ln.classList.toggle("algo-tp__bstedge--on", onPath); ln.classList.toggle("algo-tp__bstedge--dead", dead && !onPath); }
+      });
+    };
   }
   function trieViz(panel, ctx) {
     var nodes = ctx.nodes, path = ctx.path;
@@ -5110,25 +5176,34 @@
   // шаг: { values:[...], primary?, secondary?, info, done?, found? }
   // Циклическая сортировка — построчный (debugger) проход (значение v уходит на индекс v−1).
   function bCyclicSort(arr) {
-    var a = arr.slice(), n = a.length, steps = [], i = 0, guard = 0;
+    var a = arr.slice(), n = a.length, steps = [], i = 0, guard = 0, swaps = 0;
     function vv(ii, cor) { return { i: ii, "nums[i]": (ii >= 0 && ii < n ? a[ii] : "—"), correct: (cor === undefined ? "—" : cor) }; }
-    steps.push({ values: a.slice(), primary: -1, line: 1, vars: vv(0), info: "i = 0. Значение v должно стоять на индексе v−1." });
+    function st(o) { o.values = a.slice(); o.swaps = swaps; steps.push(o); }
+    st({ primary: -1, line: 1, vars: vv(0), info: "i = 0. Значение v должно стоять на индексе v−1." });
     while (i < n && guard++ < 4 * n + 5) {
-      steps.push({ values: a.slice(), primary: i, line: 2, vars: vv(i), info: "i = " + i + ": " + i + " < " + n + " — да, продолжаем" });
+      st({ primary: i, line: 2, vars: vv(i), info: "i = " + i + ": " + i + " < " + n + " — да, продолжаем" });
       var correct = a[i] - 1;
-      steps.push({ values: a.slice(), primary: i, secondary: correct, line: 3, vars: vv(i, correct), info: "correct = nums[" + i + "]−1 = " + a[i] + "−1 = " + correct + " (туда должно встать " + a[i] + ")" });
+      // Число вне 1..N: Go-код из главы упал бы на nums[correct]. Раньше виджет
+      // читал за границей массива, молча терял число и объявлял «отсортировано».
+      if (!(correct >= 0 && correct < n)) {
+        st({ primary: i, line: 3, error: true, done: true, vars: vv(i, correct), info: "nums[" + i + "] = " + a[i] + " → correct = " + correct + " вне [0, " + n + "): Go упадёт с panic: index out of range [" + correct + "] with length " + n + ". Циклическая сортировка — только для чисел 1..N; с произвольными числами работает First Missing Positive ниже (там guard)." });
+        return steps;
+      }
+      st({ primary: i, secondary: correct, line: 3, vars: vv(i, correct), info: "correct = nums[" + i + "]−1 = " + a[i] + "−1 = " + correct + " (туда должно встать " + a[i] + ")" });
       var mis = a[i] !== a[correct];
-      steps.push({ values: a.slice(), primary: i, secondary: correct, line: 4, vars: vv(i, correct), info: "nums[" + i + "]=" + a[i] + (mis ? " ≠ " : " == ") + "nums[" + correct + "]=" + a[correct] + (mis ? " — не на месте" : " — уже на месте") });
+      st({ primary: i, secondary: correct, line: 4, vars: vv(i, correct), info: "nums[" + i + "]=" + a[i] + (mis ? " ≠ " : " == ") + "nums[" + correct + "]=" + a[correct] + (mis ? " — не на месте" : " — уже на месте") });
       if (mis) {
-        var t = a[i]; a[i] = a[correct]; a[correct] = t;
-        steps.push({ values: a.slice(), primary: i, secondary: correct, line: 5, vars: vv(i, correct), info: "swap nums[" + i + "] ↔ nums[" + correct + "] → " + a[i] + " встал на место (i не растёт)" });
+        var t = a[i]; a[i] = a[correct]; a[correct] = t; swaps++;
+        // На своё место встаёт a[correct] (бывшее nums[i]); на позицию i приходит
+        // другое число — его проверим на следующем витке, поэтому i не растёт.
+        st({ primary: i, secondary: correct, line: 5, improved: true, vars: vv(i, correct), info: "swap nums[" + i + "] ↔ nums[" + correct + "]: " + a[correct] + " встало на своё место (индекс " + correct + ") и больше не сдвинется; на позицию " + i + " пришло " + a[i] + " — проверим его, i не растёт" });
       } else {
         i++;
-        steps.push({ values: a.slice(), primary: i < n ? i : -1, line: 7, vars: vv(i), info: "i++ → i = " + i + " (число было на месте)" });
+        st({ primary: i < n ? i : -1, line: 7, vars: vv(i), info: "i++ → i = " + i + " (число было на месте)" });
       }
     }
-    steps.push({ values: a.slice(), primary: -1, line: 2, vars: vv(n), info: "i = " + n + ": " + n + " < " + n + " — нет, цикл завершён" });
-    steps.push({ values: a.slice(), done: true, line: 9, vars: vv(n), info: "Готово — отсортировано за O(n): каждое v на индексе v−1" });
+    st({ primary: -1, line: 2, vars: vv(n), info: "i = " + n + ": " + n + " < " + n + " — нет, цикл завершён" });
+    st({ done: true, line: 9, vars: vv(n), info: "Готово за " + swaps + " " + (swaps % 10 === 1 && swaps % 100 !== 11 ? "обмен" : (swaps % 10 >= 2 && swaps % 10 <= 4 && (swaps % 100 < 12 || swaps % 100 > 14)) ? "обмена" : "обменов") + " — не больше n−1 = " + (n - 1) + ": каждый обмен ставит одно число на место навсегда. Итого O(n)." });
     return steps;
   }
 
@@ -5696,30 +5771,47 @@
   // указатель идёт по ней, последний ненулевой остаток = НОД. Попутно считаются
   // коэффициенты Безу x, y (a·x + b·y = НОД) — их и использует ModInverse.
   function bExtGcd(a, b) {
+    // Классическая таблица расширенного Евклида: у КАЖДОГО остатка r_i своя пара
+    // (s_i, t_i) с r_i = a·s_i + b·t_i. Раньше статус ставил рядом с новым остатком
+    // пару предыдущего («остаток 10 (Безу: x=1, y=0)», а 240·1 + 46·0 = 240) —
+    // инвариант, ради которого расширенная версия и нужна, ни разу не сходился.
+    // Итерация = два шага: остаток (строка 7), затем его коэффициенты (строки 8–9).
+    // Будущие остатки скрыты «?» — раньше вся цепочка вместе с НОД была видна с шага 1.
     a = Math.max(0, Math.min(9999, a | 0));
     b = Math.max(0, Math.min(9999, b | 0));
-    var oldR = a, r = b, oldS = 1, s = 0, oldT = 0, t = 1;
-    var chain = [a, b], rows = [], guard = 0;
-    while (r !== 0 && guard++ < 60) {
-      var q = Math.floor(oldR / r);
-      var nr = oldR - q * r, ns = oldS - q * s, nt = oldT - q * t;
-      rows.push({ oldR: oldR, r: r, q: q, x: oldS, y: oldT, rem: nr });
-      oldR = r; r = nr; oldS = s; s = ns; oldT = t; t = nt;
-      chain.push(nr);
+    var R = [a, b], S = [1, 0], T = [0, 1], Q = [null, null], guard = 0;
+    while (R[R.length - 1] !== 0 && guard++ < 60) {
+      var i = R.length - 1, q = Math.floor(R[i - 1] / R[i]);
+      Q.push(q); R.push(R[i - 1] - q * R[i]); S.push(S[i - 1] - q * S[i]); T.push(T[i - 1] - q * T[i]);
     }
-    var gcd = oldR, x = oldS, y = oldT, gcdIdx = chain.length - 2;
-    if (gcdIdx < 0) gcdIdx = 0;
-    var st = new Array(chain.length).fill(0), steps = [];
-    function snap(extra) { var o = { values: chain.slice(), st: st.slice(), lo: -1, hi: -1 }; for (var k in extra) { o[k] = extra[k]; } return o; }
-    steps.push(snap({ line: 0, vars: { q: "—", x: 1, y: 0, r: b }, info: "Евклид: цепочка остатков " + a + ", " + b + ", … до 0. Последний ненулевой — НОД." }));
-    for (var i = 0; i < rows.length; i++) {
-      var row = rows[i];
-      steps.push(snap({ lo: i + 1, hi: i, line: 6, vars: { q: row.q, x: row.x, y: row.y, r: row.r }, info: row.oldR + " = " + row.q + "·" + row.r + " + " + row.rem + "  →  остаток " + row.rem + " (Безу: x=" + row.x + ", y=" + row.y + ")" }));
-      if (i > 0) st[i - 1] = 2;
+    var n = R.length, g = n >= 2 ? R[n - 2] : a, gi = Math.max(0, n - 2), steps = [];
+    function sg(v) { return v < 0 ? "(" + v + ")" : String(v); }
+    function eq(k) { return R[k] + " = " + a + "·" + sg(S[k]) + " + " + b + "·" + sg(T[k]); }
+    function snap(known, coefKnown, extra) {
+      var o = { values: R.map(function (v, k) { return k < known ? v : "?"; }), st: R.map(function (v, k) { return k < known ? 0 : 4; }),
+        rows: [], lo: -1, hi: -1, a: a, b: b };
+      for (var k = 0; k < coefKnown; k++) o.rows.push({ k: k, r: R[k], s: S[k], t: T[k] });
+      for (var key in extra) o[key] = extra[key];
+      return o;
     }
-    for (var d = 0; d < gcdIdx; d++) st[d] = 2;
-    st[gcdIdx] = 1;
-    steps.push(snap({ done: true, lo: gcdIdx, line: 10, vars: { q: "—", x: x, y: y, r: 0 }, info: "НОД(" + a + ", " + b + ") = " + gcd + ";  " + a + "·(" + x + ") + " + b + "·(" + y + ") = " + gcd }));
+    steps.push(snap(2, 2, { line: 0, vars: { q: "—", oldR: a, r: b, s: 0, t: 1 }, hi: 0, lo: 1,
+      info: "Старт: r₀ = a = " + a + " = a·1 + b·0 и r₁ = b = " + b + " = a·0 + b·1 — для них пары (s, t) очевидны" }));
+    for (var k = 2; k < n; k++) {
+      var st1 = snap(k + 1, k, { line: 6, newIdx: k, hi: k - 1, lo: k, vars: { q: Q[k], oldR: R[k - 1], r: R[k], s: "?", t: "?" },
+        info: R[k - 2] + " = " + Q[k] + "·" + R[k - 1] + " + " + R[k] + " → новый остаток r" + k + " = " + R[k] + (R[k] === 0 ? " — ноль, цикл кончится" : "") });
+      for (var d = 0; d < k - 2; d++) st1.st[d] = 2;
+      steps.push(st1);
+      var st2 = snap(k + 1, k + 1, { line: 7, newIdx: k, newRow: k, hi: k - 1, lo: k, vars: { q: Q[k], oldR: R[k - 1], r: R[k], s: S[k], t: T[k] },
+        info: "Коэффициенты считаются той же формулой, что и остаток: s = " + sg(S[k - 2]) + " − " + Q[k] + "·" + sg(S[k - 1]) + " = " + S[k] + ", t = " + sg(T[k - 2]) + " − " + Q[k] + "·" + sg(T[k - 1]) + " = " + T[k] + ". Проверка: " + eq(k) });
+      for (d = 0; d < k - 2; d++) st2.st[d] = 2;
+      steps.push(st2);
+    }
+    var fin = snap(n, n, { done: true, line: 10, lo: Math.min(gi + 1, n - 1), hi: gi, newRow: gi, vars: { q: "—", oldR: g, r: 0, s: S[n - 1], t: T[n - 1] },
+      info: "НОД(" + a + ", " + b + ") = " + g + " — последний ненулевой остаток; его пара и есть ответ: " + a + "·" + sg(S[gi]) + " + " + b + "·" + sg(T[gi]) + " = " + g +
+        (g === 1 ? ". НОД = 1, значит " + S[gi] + " ≡ " + a + "⁻¹ (mod " + b + ") — обратный по модулю" : "") });
+    for (d = 0; d < gi; d++) fin.st[d] = 2;
+    fin.st[gi] = 1;
+    steps.push(fin);
     return steps;
   }
 
@@ -5752,13 +5844,19 @@
       st[j - 1] = 2;
       if (v === target) {
         st[j] = 1;
-        steps.push(snap({ done: true, pass: true, lo: j, line: 9, vars: { a: a, x: v, target: target }, info: "x² = n−1=" + target + " → нетривиальный корень: " + n + " может быть простым" }));
+        steps.push(snap({ done: true, pass: true, lo: j, line: 9, vars: { a: a, x: v, target: target }, info: "x² = n−1 = " + target + " (≡ −1): следующий квадрат даст 1 «честно», как у простого → свидетель " + a + " НЕ уличает: " + n + " может быть простым" }));
         return steps;
       }
-      steps.push(snap({ lo: j, line: 8, vars: { a: a, x: v, target: target }, info: "x = x² mod " + n + " = " + v + (v === 1 ? " (=1, но n−1 не встречалось!)" : "") }));
+      // Приход к 1 из x ≠ ±1 — и есть суть теста: нашли нетривиальный корень из единицы.
+      var prev = chain[j - 1], root1 = v === 1;
+      steps.push(snap({ lo: j, line: 8, improved: root1, vars: { a: a, x: v, target: target },
+        info: root1 ? prev + "² mod " + n + " = 1, а " + prev + " ≠ ±1 — нетривиальный корень из единицы. У простого n корни из 1 только ±1, значит " + n + " составное"
+                    : "x = " + prev + "² mod " + n + " = " + v }));
     }
     st[chain.length - 1] = 3;
-    steps.push(snap({ done: true, composite: true, lo: chain.length - 1, line: 11, vars: { a: a, x: chain[chain.length - 1], target: target }, info: "n−1=" + target + " так и не встретилось → свидетель " + a + " УЛИЧАЕТ: " + n + " составное" }));
+    steps.push(snap({ done: true, composite: true, lo: chain.length - 1, line: 11, vars: { a: a, x: chain[chain.length - 1], target: target }, info: (chain.indexOf(1) > 0
+        ? "Цепочка пришла к 1 через " + chain[chain.indexOf(1) - 1] + " ≠ ±1, минуя n−1 = " + target + " → свидетель " + a + " УЛИЧАЕТ: " + n + " составное (тест Ферма " + a + "^" + target + " ≡ 1 это число обманывает)"
+        : "Цепочка так и не дошла ни до n−1, ни до 1: " + a + "^" + target + " mod " + n + " ≠ 1 — не проходит даже тест Ферма → " + n + " составное") }));
     return steps;
   }
 
@@ -5888,45 +5986,59 @@
   // раньше wildcard = «самый конкретный побеждает». Рисуется тем же trieViz (узлы —
   // сегменты, path — спуск совпадения).
   function bRouteMatch(patterns, request) {
-    var nodes = [{ ch: "/", depth: 0, end: false, children: {} }];
+    var nodes = [{ ch: "/", depth: 0, end: false, children: {}, parent: -1 }];
     patterns.forEach(function (p) {
       var segs = p.split("/").filter(Boolean), cur = 0;
       segs.forEach(function (seg, k) {
         var key = seg[0] === "{" ? "{}" : seg; // все wildcard'ы под одним ключом
         if (nodes[cur].children[key] == null) {
-          nodes.push({ ch: seg, depth: k + 1, end: false, children: {}, wild: seg[0] === "{" });
+          nodes.push({ ch: seg, depth: k + 1, end: false, children: {}, wild: seg[0] === "{", parent: cur });
           nodes[cur].children[key] = nodes.length - 1;
         }
         cur = nodes[cur].children[key];
       });
       nodes[cur].end = true;
     });
-    var reqSegs = request.split("/").filter(Boolean);
-    var path = [0], cur = 0, upto = 0, caps = [], steps = [];
-    function push(o) { steps.push({ upto: upto, line: o.line, vars: { seg: o.seg || "—", node: nodes[cur].ch, caps: caps.length ? caps.join(", ") : "—" }, info: o.info, done: o.done, found: o.found }); }
+    // Рекурсия с откатом — строка в строку по листингу (и как routingNode.matchPath в
+    // net/http): литерал пробуется первым, но если его поддерево вернуло nil, матчер
+    // возвращается и пробует wildcard. Прежняя версия, найдя литерал, в wildcard уже
+    // не заходила и на /users/me отвечала ложным 404 вместо /users/{id}.
+    var reqSegs = request.split("/").filter(Boolean), steps = [], stack = [0], failed = {}, caps = [];
+    function push(o) {
+      steps.push({ cur: stack[stack.length - 1], stack: stack.slice(), failed: Object.keys(failed).map(Number), line: o.line,
+        vars: { seg: o.seg || "—", node: nodes[stack[stack.length - 1]].ch, caps: caps.length ? caps.join(", ") : "—" }, info: o.info, done: o.done, found: o.found, back: !!o.back });
+    }
     push({ line: 0, info: "Запрос " + request + " → спускаемся по сегментам от корня «/»" });
-    for (var i = 0; i < reqSegs.length; i++) {
-      var seg = reqSegs[i];
-      var litId = nodes[cur].children[seg], wildId = nodes[cur].children["{}"];
-      push({ line: 5, seg: seg, info: "Сегмент «" + seg + "»: есть ли точный литеральный потомок?" });
-      if (litId != null) {
-        cur = litId; upto++; path.push(cur);
-        push({ line: 6, seg: seg, info: "Литерал «" + seg + "» есть → спускаемся (точное совпадение важнее wildcard)" });
-      } else if (wildId != null) {
-        cur = wildId; upto++; path.push(cur);
-        caps.push(nodes[cur].ch.replace(/[{}]/g, "") + "=" + seg);
-        push({ line: 10, seg: seg, info: "Литерала нет → wildcard «" + nodes[cur].ch + "», захватываем «" + seg + "»" });
-      } else {
-        push({ line: 13, done: true, seg: seg, info: "Ни литерала «" + seg + "», ни wildcard — обработчика нет → 404" });
-        return { nodes: nodes, path: path, steps: steps };
+    function match(id, i) {
+      if (i === reqSegs.length) {
+        if (nodes[id].end) { push({ line: 2, found: true, done: true, info: "Сегменты кончились, у «" + nodes[id].ch + "» есть обработчик → совпало!" + (caps.length ? " Переменные: " + caps.join(", ") : "") }); return true; }
+        push({ line: 2, back: true, info: "Сегменты кончились, но у «" + nodes[id].ch + "» обработчика нет (это лишь префикс другого паттерна) → return nil" });
+        return false;
       }
+      var seg = reqSegs[i], lit = nodes[id].children[seg], wild = nodes[id].children["{}"];
+      push({ line: 5, seg: seg, info: "Сегмент «" + seg + "»: есть ли у «" + nodes[id].ch + "» литеральный потомок «" + seg + "»?" });
+      if (lit != null) {
+        stack.push(lit);
+        push({ line: 6, seg: seg, info: "Литерал «" + seg + "» есть → спускаемся в него первым (литерал конкретнее wildcard)" });
+        if (match(lit, i + 1)) return true;
+        stack.pop(); failed[lit] = true;
+        push({ line: 10, seg: seg, back: true, info: "Ветка «" + seg + "» вернула nil — тупик. Откат к «" + nodes[id].ch + "»" + (wild != null ? ": пробуем wildcard" : ", wildcard здесь нет") });
+      } else {
+        push({ line: 10, seg: seg, info: "Литерала «" + seg + "» нет" + (wild != null ? " → пробуем wildcard" : ", wildcard тоже нет") });
+      }
+      if (wild != null) {
+        stack.push(wild); caps.push(nodes[wild].ch.replace(/[{}]/g, "") + "=" + seg);
+        push({ line: 11, seg: seg, info: "wildcard «" + nodes[wild].ch + "» захватывает «" + seg + "» → спускаемся" });
+        if (match(wild, i + 1)) return true;
+        stack.pop(); caps.pop(); failed[wild] = true;
+        push({ line: 11, seg: seg, back: true, info: "И wildcard-ветка вернула nil → «" + nodes[id].ch + "» возвращает nil выше" });
+        return false;
+      }
+      push({ line: 13, seg: seg, back: true, info: "У «" + nodes[id].ch + "» вариантов больше нет → return nil" });
+      return false;
     }
-    if (nodes[cur].end) {
-      push({ line: 2, found: true, done: true, info: "Сегменты кончились и узел — конец паттерна → совпало!" + (caps.length ? " Переменные: " + caps.join(", ") : "") });
-    } else {
-      push({ line: 13, done: true, info: "Сегменты кончились, но здесь нет обработчика (только префикс) → 404" });
-    }
-    return { nodes: nodes, path: path, steps: steps };
+    if (!match(0, 0)) push({ line: 13, done: true, info: "Ни одна ветка не дошла до обработчика → 404" });
+    return { nodes: nodes, path: [], steps: steps };
   }
 
   // Swiss Tables (реализация map с Go 1.24). Ячейки = control-байты одной группы из 8
@@ -6134,19 +6246,26 @@
   // быстрый атомарный чек done; если 0 — под мьютексом ещё раз проверяем и выполняем f
   // РОВНО один раз. Остальные горутины ждут/выходят сразу. Ячейки = горутины, зовущие Do.
   function bSyncOnce() {
-    var g = ["G1", "G2", "G3"], state = ["call", "call", "call"], steps = [];
-    function ran() { return (state.indexOf("init") >= 0 || state.indexOf("ranok") >= 0) ? 1 : 0; }
-    function snap(extra) { var o = { values: g.slice(), state: state.slice(), lo: -1, vars: { done: state.indexOf("ranok") >= 0 ? "да" : "нет", ran: ran() } }; for (var k in extra) { o[k] = extra[k]; } return o; }
-    steps.push(snap({ line: 1, info: "Три горутины почти одновременно зовут once.Do(init). done == false." }));
+    // Два пути выхода, и виджет обязан их различать: G2/G3 уже прошли быстрый чек
+    // (done было false) и стоят на o.m.Lock() — их спасает ПОВТОРНАЯ проверка под
+    // локом (строка 9). Быстрый путь без лока — только у тех, кто пришёл после init
+    // (G4). Раньше шаг «G2, G3 выходят по быстрому пути» выдавал double-check за лишний.
+    var g = ["G1", "G2", "G3", "G4"], state = ["call", "call", "call", "later"], steps = [];
+    function snap(extra) { var o = { values: g.slice(), state: state.slice(), lo: -1, vars: { done: state.indexOf("ranok") >= 0 ? "да" : "нет", ran: state.indexOf("init") >= 0 || state.indexOf("ranok") >= 0 ? 1 : 0, "владелец лока": "—" } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 1, info: "G1, G2, G3 почти одновременно зовут once.Do(init): у всех быстрый чек видит done == false → все идут в doSlow. G4 придёт позже." }));
     state[0] = "init";
-    steps.push(snap({ lo: 0, hot: true, line: 10, vars: { done: "нет", ran: 1 }, info: "G1 первой: done==false → берёт лок и ВЫПОЛНЯЕТ init (единственный раз)." }));
+    steps.push(snap({ lo: 0, hot: true, line: 10, vars: { done: "нет", ran: 1, "владелец лока": "G1" }, info: "G1 первой взяла лок; повторная проверка под локом: done всё ещё false → выполняет init (единственный раз)." }));
     state[1] = "wait"; state[2] = "wait";
-    steps.push(snap({ lo: 1, line: 6, vars: { done: "нет", ran: 1 }, info: "G2 и G3 подошли, пока G1 в init → мьютекс занят, они ЖДУТ." }));
+    steps.push(snap({ lo: 1, line: 6, vars: { done: "нет", ran: 1, "владелец лока": "G1" }, info: "G2 и G3 уже прошли быстрый чек (тогда done был false) и стоят на o.m.Lock() — мьютекс у G1, они ЖДУТ." }));
     state[0] = "ranok";
-    steps.push(snap({ lo: 0, line: 9, vars: { done: "да", ran: 1 }, info: "G1 закончил init → done=true, отпускает лок." }));
-    state[1] = "skip"; state[2] = "skip";
-    steps.push(snap({ lo: 1, line: 1, vars: { done: "да", ran: 1 }, info: "G2, G3: done==true (быстрый атомарный чек) → выходят СРАЗУ, init не повторяют." }));
-    steps.push(snap({ done: true, line: 10, vars: { done: "да", ran: 1 }, info: "init выполнен РОВНО один раз; все три горутины получили один результат. Дальше Do() — один атомарный Load." }));
+    steps.push(snap({ lo: 0, line: 9, vars: { done: "да", ran: 1, "владелец лока": "G1" }, info: "G1 закончила init → defer ставит done = true, затем Unlock." }));
+    state[1] = "skip";
+    steps.push(snap({ lo: 1, hot: true, line: 8, vars: { done: "да", ran: 1, "владелец лока": "G2" }, info: "G2 получает лок. Повторная проверка под локом: done == true → f НЕ вызывается, Unlock. Без этой второй проверки G2 запустила бы init ещё раз." }));
+    state[2] = "skip";
+    steps.push(snap({ lo: 2, line: 8, vars: { done: "да", ran: 1, "владелец лока": "G3" }, info: "G3 — то же самое: лок → done == true → выход без init." }));
+    state[3] = "fast";
+    steps.push(snap({ lo: 3, line: 1, vars: { done: "да", ran: 1, "владелец лока": "—" }, info: "G4 пришла после init: быстрый атомарный чек сразу видит done == true → выходит, мьютекс даже не трогает. Это и есть быстрый путь." }));
+    steps.push(snap({ done: true, line: 1, vars: { done: "да", ran: 1, "владелец лока": "—" }, info: "init выполнен РОВНО один раз. Кто пришёл во время init — ждал на локе и вышел по повторной проверке; кто пришёл после — один атомарный Load." }));
     return steps;
   }
 
@@ -6156,13 +6275,14 @@
   function bDeferStack() {
     var labels = ["f.Close()", "mu.Unlock()", "conn.Close()"], pushLines = [2, 4, 6];
     var stack = [], steps = [];
-    function snap(extra) { var o = { values: stack.slice(), lo: -1, vars: { depth: stack.length, phase: "—" } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    var ran = [];
+    function snap(extra) { var o = { values: stack.slice(), ran: ran.slice(), lo: -1, vars: { depth: stack.length, phase: "—" } }; for (var k in extra) { o[k] = extra[k]; } return o; }
     steps.push(snap({ line: 0, vars: { depth: 0, phase: "вход" }, info: "Функция начала выполняться. Стек defer пуст." }));
     labels.forEach(function (l, i) { stack.push(l); steps.push(snap({ lo: stack.length - 1, hot: true, line: pushLines[i], vars: { depth: stack.length, phase: "defer" }, info: "defer " + l + " — кладётся на вершину стека defer (#" + (i + 1) + "). Аргументы вычисляются СЕЙЧАС." })); });
     steps.push(snap({ line: 8, vars: { depth: stack.length, phase: "return" }, info: "return → рантайм разворачивает стек defer сверху вниз (LIFO): последний отложенный — первым." }));
     for (var k = labels.length - 1; k >= 0; k--) {
-      steps.push(snap({ lo: stack.length - 1, hot: true, line: 9, vars: { depth: stack.length, phase: "exec" }, info: "Выполняется " + stack[stack.length - 1] + " (снимаем с вершины стека)." }));
-      stack.pop();
+      steps.push(snap({ lo: stack.length - 1, exec: true, hot: true, line: 9, vars: { depth: stack.length, phase: "exec" }, info: "Выполняется " + stack[stack.length - 1] + " (снимаем с вершины стека)." }));
+      ran.push(stack.pop());
     }
     steps.push(snap({ done: true, line: 9, vars: { depth: 0, phase: "готово" }, info: "Все defer выполнены в порядке #3 → #2 → #1 — ресурсы закрыты в ОБРАТНОМ порядке открытия. Это и есть LIFO." }));
     return steps;
@@ -8657,11 +8777,13 @@
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return ctx.arr; },
       title: function () { return "Циклическая сортировка на месте"; },
-      cellState: function (s, j) { if (s.done) return { found: true }; var p = (s.primary == null ? -1 : s.primary), q = (s.secondary == null ? -1 : s.secondary); return { lo: j === p, hi: j === q }; },
+      // зелёная клетка — число уже на своём индексе v−1 (инвариант главы: оттуда оно не уйдёт)
+      cellState: function (s, j) { if (s.done && !s.error) return { found: true }; var p = (s.primary == null ? -1 : s.primary), q = (s.secondary == null ? -1 : s.secondary); return { lo: j === p, hi: j === q, found: j !== p && j !== q && s.values[j] === j + 1 }; },
+      legend: [{ cls: "path", label: "число уже на своём месте (v на индексе v−1)" }],
       pointers: function (s) { return { lo: (s.primary == null ? -1 : s.primary), hi: (s.secondary == null ? -1 : s.secondary) }; },
-      sumCells: ["nums[i]", "Целевой индекс"],
-      sumValues: function (s) { return [{ text: s.vars["nums[i]"] }, { text: s.vars.correct, cls: (typeof s.vars.correct === "number" ? "" : "eq") }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Отсортировано за O(n)", text: "каждое число на индексе v−1" }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      sumCells: ["nums[i]", "Целевой индекс", "Обменов (≤ n−1)"],
+      sumValues: function (s) { return [{ text: s.vars["nums[i]"] }, { text: s.vars.correct, cls: (typeof s.vars.correct === "number" ? "" : "eq") }, { text: s.swaps, cls: "lt" }]; },
+      status: function (s, idx, total) { if (s.error) return { kind: "end", icon: "✗", head: "panic: index out of range", text: s.info }; if (s.done) return { kind: "ok", icon: "✓", head: "Отсортировано за O(n)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: "всё на местах", c: "O(n)", cls: "eq" }; var swap = s.line === 5; return { a: "i=" + (s.primary == null ? "-" : s.primary) + ", nums[i]=" + s.vars["nums[i]"], b: swap ? "→ индекс " + s.vars.correct : "уже на месте", c: swap ? "swap" : "i++", cls: swap ? "lt" : "eq" }; },
       varsOf: function (s) { return { i: s.vars.i, "nums[i]": s.vars["nums[i]"], correct: s.vars.correct }; }
     },
@@ -9046,37 +9168,54 @@
 
     "ext-gcd": {
       badge: "Extended Euclid",
-      desc: "Расширенный алгоритм Евклида: цепочка остатков a, b, a%b, … сходится к НОД (последний ненулевой). Попутно считаются коэффициенты Безу x, y с a·x + b·y = НОД — основа обратного по модулю.",
+      desc: "Расширенный алгоритм Евклида: цепочка остатков a, b, a%b, … сходится к НОД (последний ненулевой). У каждого остатка своя пара (s, t) с r = a·s + b·t, и считается она той же формулой, что и сам остаток. Пара у НОД — коэффициенты Безу, основа обратного по модулю.",
       valuesLabel: "Цепочка остатков (последний ненулевой = НОД)", codeKey: "ext-gcd", fillRange: false,
-      ptr1: { name: "r", cap: "(текущий остаток)" }, ptr2: { name: "oldR", cap: "(делимое)" },
+      ptr1: { name: "r", cap: "новый остаток" }, ptr2: { name: "oldR", cap: "предыдущий остаток" },
       complexity: { time: "O(log min(a,b))", space: "O(1)", good: "★ НОД + коэффициенты Безу" },
-      varOrder: ["q", "x", "y", "r"],
-      varDesc: { q: "Частное oldR / r", x: "Коэффициент Безу при a", y: "Коэффициент Безу при b", r: "Текущий остаток" },
-      lineNotes: { 0: "g = НОД(a,b) и x,y с a·x + b·y = g", 4: "Пока остаток r не стал нулём", 5: "Частное q = oldR / r", 6: "Сдвиг остатков: (oldR, r) = (r, oldR − q·r)", 7: "Те же сдвиги для коэффициентов при a…", 8: "…и при b", 10: "Возвращаем НОД и коэффициенты Безу" },
-      rules: [{ head: "остаток → 0", body: "предыдущий = НОД", cls: "gt" }, { head: "Безу", body: "a·x + b·y = НОД", cls: "eq" }, { head: "зачем", body: "x = a⁻¹ mod b (основа RSA)", cls: "lt" }],
+      varOrder: ["q", "oldR", "r", "s", "t"],
+      varDesc: { q: "Частное oldR / r", oldR: "Предыдущий остаток", r: "Текущий остаток", s: "Пара r: коэффициент при a («?» — ещё не пересчитан)", t: "Пара r: коэффициент при b" },
+      lineNotes: { 0: "g = НОД(a,b) и x,y с a·x + b·y = g", 4: "Пока остаток r не стал нулём", 5: "Частное q = oldR / r", 6: "Сдвиг остатков: (oldR, r) = (r, oldR − q·r)", 7: "Та же формула для коэффициентов: s = oldS − q·s, t = oldT − q·t", 8: "…и при b", 10: "НОД и его пара (oldS, oldT) — коэффициенты Безу" },
+      rules: [{ head: "остаток → 0", body: "предыдущий = НОД", cls: "gt" }, { head: "инвариант", body: "каждый r = a·s + b·t", cls: "eq" }, { head: "НОД = 1", body: "→ s = a⁻¹ mod b (основа RSA)", cls: "lt" }],
       parse: function (root) { var a = parseInt(root.getAttribute("data-a"), 10); var b = parseInt(root.getAttribute("data-b"), 10); if (isNaN(a)) a = 240; if (isNaN(b)) b = 46; return { a: a, b: b, steps: bExtGcd(a, b) }; },
       inputs: [{ attr: "data-a", label: "a" }, { attr: "data-b", label: "b" }],
-      values: function (ctx) { return bExtGcd(ctx.a, ctx.b)[0].values; },
+      values: function (ctx) { return ctx.steps[0].values; },
       title: function (ctx) { return "Расширенный Евклид: НОД(" + ctx.a + ", " + ctx.b + ")"; },
-      cellState: function (s, j) { if (s.st[j] === 1) return { found: true }; var o = {}; if (s.st[j] === 2) o.dim = true; if (j === s.lo && s.lo >= 0) o.lo = true; if (j === s.hi && s.hi >= 0) o.hi = true; return o; },
+      cellState: function (s, j) { if (s.st[j] === 1) return { found: true }; var o = {}; if (s.st[j] === 2 || s.st[j] === 4) o.dim = true; if (j === s.newIdx) o.mid = true; if (j === s.lo && s.lo >= 0) o.lo = true; if (j === s.hi && s.hi >= 0) o.hi = true; return o; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: (s.hi == null ? -1 : s.hi) }; },
-      sumCells: ["x (Безу)", "y (Безу)"],
-      sumValues: function (s) { return [{ text: s.vars.x, cls: "gt" }, { text: s.vars.y, cls: "lt" }]; },
+      sumCells: ["Проверка: a·s + b·t", "Итог"],
+      sumValues: function (s) {
+        // проверяем пару ТОЛЬКО ЧТО посчитанного остатка (на финале — пару НОД)
+        var last = s.newRow == null ? null : s.rows[s.newRow];
+        var chk = last ? s.a + "·" + (last.s < 0 ? "(" + last.s + ")" : last.s) + " + " + s.b + "·" + (last.t < 0 ? "(" + last.t + ")" : last.t) + " = " + (s.a * last.s + s.b * last.t) : "—";
+        return [{ text: last ? chk : (s.newIdx != null ? "пара для " + s.vars.r + " — следующим шагом" : chk), cls: "eq" }, { text: s.done ? "НОД = " + s.vars.oldR : "r = " + s.vars.r }];
+      },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "НОД найден", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { return { a: "q=" + s.vars.q, b: "r=" + s.vars.r, c: "x=" + s.vars.x + ", y=" + s.vars.y, cls: "eq" }; },
-      varsOf: function (s) { return { q: s.vars.q, x: s.vars.x, y: s.vars.y, r: s.vars.r }; }
+      stepCard: function (s) { return { a: "q=" + s.vars.q, b: "r=" + s.vars.r, c: "s=" + s.vars.s + ", t=" + s.vars.t, cls: "eq" }; },
+      varsOf: function (s) { return { q: s.vars.q, oldR: s.vars.oldR, r: s.vars.r, s: s.vars.s, t: s.vars.t }; },
+      // Таблица r = a·s + b·t: строка появляется, когда пара остатка посчитана.
+      mapViz: function (panel) {
+        var p = structPanel(panel, "r = a·s + b·t — пара (s, t) у каждого остатка");
+        return function (s) {
+          p.grid.innerHTML = "";
+          s.rows.forEach(function (w) {
+            var cls = "algo-tp__mapcell--on" + (w.k === s.newRow ? " algo-tp__mapcell--hot algo-tp__mapcell--add" : "");
+            p.grid.appendChild(structCell("r" + w.k + " = " + w.r, "(" + w.s + ", " + w.t + ")", cls));
+          });
+          p.foot.textContent = s.done ? "ответ — пара у НОД" : "строк: " + s.rows.length;
+        };
+      }
     },
 
     "miller-rabin": {
       badge: "Miller — Rabin",
-      desc: "Тест простоты для одного свидетеля a: цепочка x = a^d, (a^d)², … mod n. Встретили 1 или n−1 — a не уличает n. Не встретили n−1 — a уличает: n составное. Так ловятся числа Кармайкла, обманывающие тест Ферма.",
+      desc: "Тест простоты для одного свидетеля a: цепочка x = a^d, x², x⁴, … mod n. Если a^d = 1 или в цепочке встретилось n−1 (≡ −1), a не уличает n. Иначе уличает: либо цепочка пришла к 1 через x ≠ ±1 — нетривиальный корень из единицы, которого у простого n нет, — либо до 1 не дошла вовсе (не проходит даже Ферма). Так ловятся числа Кармайкла.",
       valuesLabel: "Цепочка возведений в квадрат x = a^d, (a^d)², … mod n", codeKey: "miller-rabin", fillRange: false,
       ptr1: { name: "x", cap: "(текущий член цепочки)" },
       complexity: { time: "O(k·log³n)", space: "O(1)", good: "★ Простота больших чисел (RSA)" },
       varOrder: ["a", "x", "target"],
       varDesc: { a: "Свидетель", x: "Текущий член цепочки", target: "Искомое значение n−1" },
-      lineNotes: { 1: "Раскладываем n−1 = d·2^s (d нечётно)", 3: "Старт цепочки: x = a^d mod n", 4: "x равен 1 или n−1?", 5: "Да → свидетель не уличает n", 7: "Возводим в квадрат до s−1 раз", 8: "x = x² mod n", 9: "Встретили n−1 → нетривиальный корень, n может быть простым", 11: "n−1 не встретилось → n составное" },
-      rules: [{ head: "1 или n−1", body: "→ a не уличает", cls: "gt" }, { head: "нет n−1", body: "→ n составное", cls: "lt" }, { head: "Кармайкл", body: "Ферма обманут, Миллер—Рабин нет", cls: "eq" }],
+      lineNotes: { 1: "Раскладываем n−1 = d·2^s (d нечётно)", 3: "Старт цепочки: x = a^d mod n", 4: "Первый член a^d равен 1 или n−1?", 5: "Да → дальше в цепочке одни единицы: a не уличает n", 7: "Возводим в квадрат s−1 раз", 8: "x = x² mod n", 9: "Встретили n−1 ≡ −1: его квадрат — «честная» единица, a не уличает n", 11: "n−1 не встретилось → n составное" },
+      rules: [{ head: "a^d = 1 или n−1", body: "→ a не уличает", cls: "gt" }, { head: "в цепочке n−1 (≡ −1)", body: "→ a не уличает", cls: "gt" }, { head: "1 через x ≠ ±1", body: "→ нетривиальный корень из 1: составное", cls: "lt" }],
       parse: function (root) { var n = parseInt(root.getAttribute("data-n"), 10); var a = parseInt(root.getAttribute("data-a"), 10); if (isNaN(n)) n = 561; if (isNaN(a)) a = 2; return { n: n, a: a, steps: bMillerRabin(n, a) }; },
       inputs: [{ attr: "data-n", label: "n" }, { attr: "data-a", label: "свидетель a" }],
       values: function (ctx) { return bMillerRabin(ctx.n, ctx.a)[0].values; },
@@ -9184,24 +9323,25 @@
 
     "route-match": {
       badge: "ServeMux routing",
-      desc: "Маршрутизатор http.ServeMux (Go 1.22+) — дерево по сегментам пути. Запрос спускается сегмент за сегментом: сперва точный литерал, если нет — wildcard {id} (с захватом значения), иначе 404. Литерал раньше wildcard = «самый конкретный побеждает».",
+      desc: "Маршрутизатор http.ServeMux (Go 1.22+) — дерево по сегментам пути. Запрос спускается сегмент за сегментом: сперва точный литерал; если его нет или его ветка упёрлась в тупик — откат и wildcard {id} (с захватом значения); ничего не дошло до обработчика — 404. Литерал раньше wildcard = «самый конкретный побеждает».",
       valuesLabel: "", codeKey: "route-match", fillRange: false,
       complexity: { time: "O(длина пути)", space: "O(паттернов)", good: "★ Матч по префиксам, а не перебор" },
       varOrder: ["seg", "node", "caps"],
       varDesc: { seg: "Текущий сегмент запроса", node: "Текущий узел дерева", caps: "Захваченные переменные" },
-      lineNotes: { 0: "Матч пути по дереву сегментов", 1: "Сегменты кончились — проверяем, лист ли это", 2: "Лист с обработчиком — маршрут найден", 4: "Берём следующий сегмент пути", 5: "Есть ли точный литеральный потомок?", 6: "Литерал есть — спускаемся (он важнее wildcard)", 10: "Литерала нет — пробуем wildcard {id}, запоминаем значение", 13: "Ни литерала, ни wildcard — 404" },
-      rules: [{ head: "литерал есть", body: "→ спускаемся (важнее wildcard)", cls: "lt" }, { head: "иначе wildcard", body: "→ захват {id}", cls: "eq" }, { head: "ничего", body: "→ 404", cls: "gt" }],
+      lineNotes: { 0: "Матч пути по дереву сегментов", 1: "Сегменты кончились — проверяем, есть ли у узла обработчик", 2: "Обработчик узла (nil, если узел — лишь префикс)", 4: "Берём следующий сегмент пути", 5: "Есть ли точный литеральный потомок?", 6: "Литерал есть — спускаемся в него первым", 10: "Литерала нет или его ветка вернула nil — есть ли wildcard?", 11: "Спускаемся в wildcard, запоминаем значение сегмента", 13: "Ни литерала, ни wildcard — nil (выше это откат или 404)" },
+      rules: [{ head: "литерал есть", body: "→ пробуем первым", cls: "lt" }, { head: "литерал — тупик или его нет", body: "→ откат и wildcard {id}", cls: "eq" }, { head: "ничего не дошло до обработчика", body: "→ 404", cls: "gt" }],
       parse: function (root) { var patterns = (root.getAttribute("data-patterns") || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); var request = (root.getAttribute("data-request") || "").trim(); var r = bRouteMatch(patterns, request); return { patterns: patterns, request: request, nodes: r.nodes, path: r.path, steps: r.steps }; },
+      legend: [{ cls: "tcur", label: "текущий узел" }, { cls: "tvis", label: "путь спуска" }, { cls: "dead", label: "тупик (откат)" }, { cls: "wild", label: "wildcard {…}" }],
       inputs: [{ attr: "data-patterns", label: "Паттерны (через запятую)" }, { attr: "data-request", label: "запрос" }],
       values: function () { return []; },
       title: function (ctx) { return "ServeMux: матч «" + ctx.request + "»"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["текущий узел", "захвачено"],
       sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.caps, cls: "eq" }]; },
-      status: function (s, idx, total, ctx) { if (s.found) return { kind: "ok", icon: "✓", head: "Маршрут найден", text: s.info }; if (s.done) return { kind: "end", icon: "∅", head: "404 — нет маршрута", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { if (s.found) return { a: "лист", b: "обработчик", c: "✓", cls: "eq" }; if (s.done) return { a: "нет ветки", b: "404", c: "✗", cls: "gt" }; return { a: "сегмент «" + s.vars.seg + "»", b: "узел «" + s.vars.node + "»", c: "↓", cls: "lt" }; },
+      stepCard: function (s) { if (s.found) return { a: "лист", b: "обработчик", c: "✓", cls: "eq" }; if (s.done) return { a: "нет ветки", b: "404", c: "✗", cls: "gt" }; return { a: "сегмент «" + s.vars.seg + "»", b: "узел «" + s.vars.node + "»", c: s.back ? "↑ откат" : "↓", cls: s.back ? "gt" : "lt" }; },
+      status: function (s, idx, total) { if (s.found) return { kind: "ok", icon: "✓", head: "Маршрут найден", text: s.info }; if (s.done) return { kind: "end", icon: "∅", head: "404 — нет маршрута", text: s.info }; if (s.back) return { kind: "info", hot: true, icon: "↑", head: "Откат", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       varsOf: function (s) { return { seg: s.vars.seg, node: s.vars.node, caps: s.vars.caps }; },
-      customViz: trieViz
+      customViz: routeViz
     },
 
     "swiss-lookup": {
@@ -9414,28 +9554,27 @@
       valuesLabel: "Горутины, зовущие once.Do(init)", codeKey: "sync-once", fillRange: false,
       ptr1: { name: "горутина", cap: "(действует)" },
       complexity: { time: "1 атомарный Load после init", space: "O(1)", good: "★ init ровно один раз, дёшево потом" },
-      varOrder: ["done", "ran"],
-      varDesc: { done: "Инициализация завершена?", ran: "Сколько раз реально запущен init" },
+      varOrder: ["done", "ran", "владелец лока"],
+      varDesc: { done: "Инициализация завершена?", ran: "Сколько раз реально запущен init", "владелец лока": "Кто держит o.m" },
       lineNotes: { 0: "Do можно звать из многих горутин", 1: "Быстрый путь: атомарно проверяем done", 5: "Медленный путь — под мьютексом", 6: "Только одна горутина войдёт под лок", 8: "Double-check: вдруг кто-то уже сделал init", 9: "Отметить done после f (defer)", 10: "Выполнить f ровно один раз" },
-      rules: [{ head: "первая", body: "выполняет init под локом", cls: "gt" }, { head: "остальные", body: "ждут, потом выходят сразу", cls: "lt" }, { head: "потом", body: "Do = один атомарный Load", cls: "eq" }],
+      rules: [{ head: "первая", body: "выполняет init под локом", cls: "gt" }, { head: "пришедшие во время init", body: "ждут лок → повторная проверка → выход", cls: "lt" }, { head: "пришедшие после", body: "быстрый путь: один атомарный Load", cls: "eq" }],
       parse: function () { return { steps: bSyncOnce() }; },
       inputs: [],
       values: function () { return bSyncOnce()[0].values; },
       title: function () { return "sync.Once: init ровно один раз"; },
-      cellState: function (s, j) { var st = s.state[j]; var o = {}; if (st === "ranok") o.found = true; else if (st === "init") o.mid = true; else if (st === "wait" || st === "skip") o.dim = true; if (j === s.lo && s.lo >= 0) o.lo = true; return o; },
+      cellState: function (s, j) { var st = s.state[j]; var o = {}; if (st === "ranok" || st === "skip" || st === "fast") o.found = true; else if (st === "init") o.mid = true; else if (st === "wait" || st === "later") o.dim = true; if (j === s.lo && s.lo >= 0) { o.lo = true; o.found = false; } return o; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
       sumCells: ["init выполнен?", "раз запущено"],
       sumValues: function (s) { return [{ text: s.vars.done, cls: s.vars.done === "да" ? "gt" : "" }, { text: s.vars.ran, cls: "eq" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "init выполнен ровно один раз", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
       stepCard: function (s) { return { a: "done:" + s.vars.done, b: "запусков init: " + s.vars.ran, c: "once", cls: "eq" }; },
-      varsOf: function (s) { return { done: s.vars.done, ran: s.vars.ran }; }
+      varsOf: function (s) { return { done: s.vars.done, ran: s.vars.ran, "владелец лока": s.vars["владелец лока"] }; }
     },
 
     "defer-stack": {
       badge: "defer (LIFO-стек)",
       desc: "defer откладывает вызов до выхода из функции. Рантайм держит отложенные вызовы СТЕКОМ на горутине: каждый defer — на вершину; на return/panic стек разворачивается сверху вниз — последний отложенный выполняется первым. Поэтому ресурсы закрываются в обратном порядке открытия.",
-      valuesLabel: "Стек defer (вершина — справа)", codeKey: "defer-stack", fillRange: false,
-      ptr1: { name: "вершина", cap: "(текущий defer)" },
+      valuesLabel: "", codeKey: "defer-stack", fillRange: false,
       complexity: { time: "O(1) на defer", space: "O(глубины)", good: "★ Гарантированная очистка (в т.ч. при panic)" },
       varOrder: ["depth", "phase"],
       varDesc: { depth: "Глубина стека defer", phase: "Что происходит" },
@@ -9443,10 +9582,30 @@
       rules: [{ head: "push", body: "каждый defer — на вершину", cls: "gt" }, { head: "return/panic", body: "разворот сверху вниз (LIFO)", cls: "lt" }, { head: "аргументы", body: "вычисляются в момент defer, не вызова", cls: "eq" }],
       parse: function () { return { steps: bDeferStack() }; },
       inputs: [],
-      values: function () { return bDeferStack()[0].values; },
+      values: function () { return []; },
       title: function () { return "defer: LIFO-стек отложенных вызовов"; },
-      cellState: function (s, j) { if (j === s.lo && s.lo >= 0) return { mid: true }; return { found: true }; },
-      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      // Стек растёт и пустеет — фиксированная сетка движка строилась по пустому стеку
+      // шага 1 и не рисовала ни одной клетки. Свой вид: столбик, вершина сверху.
+      customViz: function (panel) {
+        var host = mkEl("div", "algo-tp__deferviz");
+        var col = mkEl("div", "algo-tp__mstack"), ranRow = mkEl("div", "algo-tp__mdq");
+        host.appendChild(mkEl("div", "algo-tp__caphdr", "Стек defer горутины (вершина сверху)"));
+        host.appendChild(col);
+        host.appendChild(mkEl("div", "algo-tp__caphdr", "Уже выполнены — по порядку"));
+        host.appendChild(ranRow);
+        panel.appendChild(host);
+        return function (s) {
+          col.innerHTML = ""; ranRow.innerHTML = "";
+          if (!s.values.length) col.appendChild(mkEl("div", "algo-tp__mstackempty", "пусто"));
+          for (var k = s.values.length - 1; k >= 0; k--) {
+            var top = k === s.values.length - 1;
+            col.appendChild(mkEl("div", "algo-tp__mstackcell" + (top ? " algo-tp__mstackcell--top" : "") + (k === s.lo ? (s.exec ? " algo-tp__mstackcell--del" : " algo-tp__mstackcell--add") : ""), "#" + (k + 1) + " " + s.values[k]));
+          }
+          if (!s.ran.length) ranRow.appendChild(mkEl("div", "algo-tp__mstackempty", "пока ничего"));
+          s.ran.forEach(function (x, k) { ranRow.appendChild(mkEl("div", "algo-tp__mstackcell", (k + 1) + ". " + x)); });
+        };
+      },
       sumCells: ["глубина стека", "фаза"],
       sumValues: function (s) { return [{ text: s.vars.depth, cls: "gt" }, { text: s.vars.phase, cls: "eq" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Все defer выполнены (LIFO)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
@@ -11148,21 +11307,21 @@
       badge: "Dijkstra", desc: "Кратчайшие пути от источника при неотрицательных весах: жадно финализируем ближайшую вершину и релаксируем её рёбра.",
       valuesLabel: "", codeKey: "dijkstra", fillRange: false,
       complexity: { time: "O((V+E) log V)", space: "O(V)", good: "★ Кратчайшие пути, неотриц. веса" },
-      varOrder: ["u", "dist[u]", "edge", "dist[v]"],
-      varDesc: { "u": "Извлечённая (финализированная) вершина", "dist[u]": "Её окончательное расстояние", "edge": "Релаксируемое ребро u→v (вес)", "dist[v]": "Расстояние до соседа: было → стало" },
-      lineNotes: { 1: "dist[]: всё ∞, кроме источника (dist[src]=0)", 2: "Кладём источник в мин-кучу (приоритетную очередь)", 3: "Пока очередь не пуста — продолжаем", 4: "Извлекаем вершину с минимальной оценкой — её расстояние финально", 5: "Оценка больше уже известного dist — это устаревшая запись, пропускаем", 6: "Перебираем исходящие рёбра вершины u", 7: "Релаксация: новый путь dist[u]+w короче текущего dist[v]?", 8: "Короче → обновляем dist[v]", 9: "Кладём новую запись (v, новое расстояние) в очередь", 13: "Очередь пуста — все кратчайшие расстояния найдены" },
+      varOrder: ["u", "u.d", "dist[u]", "edge", "dist[v]"],
+      varDesc: { "u": "Вершина извлечённой записи", "u.d": "Оценка, с которой запись лежала в куче", "dist[u]": "Лучшее известное расстояние до u", "edge": "Релаксируемое ребро u→v (вес)", "dist[v]": "Расстояние до соседа: было → стало" },
+      lineNotes: { 1: "dist[]: всё ∞, кроме источника (dist[src]=0)", 2: "Кладём источник в мин-кучу (приоритетную очередь)", 3: "Пока очередь не пуста — продолжаем", 4: "Извлекаем запись с минимальной оценкой", 5: "Оценка записи больше dist[u]? Да — запись устарела (continue); нет — u финализирована", 6: "Перебираем исходящие рёбра вершины u", 7: "Релаксация: новый путь dist[u]+w короче текущего dist[v]?", 8: "Короче → обновляем dist[v]", 9: "Кладём новую запись (v, новое расстояние) в очередь", 13: "Очередь пуста — все кратчайшие расстояния найдены" },
       rules: [{ head: "Извлекаем минимум", body: "ближайшая вершина — финал", cls: "lt" }, { head: "dist[u]+w < dist[v]", body: "→ релаксируем dist[v]", cls: "eq" }, { head: "Оценка > dist[u]", body: "→ устаревшая запись, пропуск", cls: "gt" }],
       parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = (root.getAttribute("data-edges") || "").split(",").map(function (e) { return e.trim().split("-"); }).map(function (p) { return { u: labels.indexOf(p[0]), v: labels.indexOf(p[1]), w: Number(p[2]) }; }).filter(function (e) { return e.u >= 0 && e.v >= 0; }); var start = parseInt(root.getAttribute("data-start") || "0", 10); return { labels: labels, edges: edges, start: start, steps: bDijkstra(labels, edges, start).steps }; },
       inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b-вес (ориент.)" }, { attr: "data-start", label: "старт", sm: true }],
       values: function () { return []; },
       title: function () { return "Дейкстра: кратчайшие пути"; },
-      legend: [{ cls: "current", label: "извлечённая (финал)" }, { cls: "visited", label: "финализирована" }, { cls: "idle", label: "не достигнута" }, { cls: "curedge", label: "релаксируемое ребро" }],
+      legend: [{ cls: "current", label: "извлечена из очереди" }, { cls: "visited", label: "финализирована" }, { cls: "idle", label: "ещё в пути / не достигнута" }, { cls: "curedge", label: "релаксируемое ребро" }],
       pointers: function () { return { lo: -1, hi: -1 }; },
-      sumCells: ["Извлекли u (dist)", "Релаксация dist[v]", "Финализир. · релакс."],
-      sumValues: function (s) { return [{ text: s.vars.u === "—" ? "—" : s.vars.u + " (" + s.vars["dist[u]"] + ")" }, { text: s.vars["dist[v]"], cls: (s.line === 8 ? "eq" : "") }, { text: s.vars["извлечено"] + " · " + s.vars["релакс"], cls: "gt" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Кратчайшие пути найдены", text: s.info }; if (s.line === 5) return { kind: "end", icon: idx + 1, head: "Устаревшая запись", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { if (s.done) return { a: "готово", b: "все dist финальны", c: "Dijkstra", cls: "eq" }; if (s.line === 2) return { a: "старт", b: "dist[src] = 0", c: "→", cls: "lt" }; if (s.line === 5) return { a: "запись " + s.vars.u, b: "устарела", c: "пропуск", cls: "gt" }; if (s.line === 4) return { a: "извлекли " + s.vars.u, b: "dist = " + s.vars["dist[u]"], c: "финал", cls: "lt" }; var imp = s.line === 8; return { a: "ребро " + s.vars["ребро"], b: s.vars["dist[v]"], c: imp ? "релакс" : "без изм.", cls: imp ? "eq" : "gt" }; },
-      varsOf: function (s) { return { "u": s.vars.u, "dist[u]": s.vars["dist[u]"], "edge": s.vars["ребро"], "dist[v]": s.vars["dist[v]"] }; },
+      sumCells: ["Извлекли u:оценка (dist[u])", "Релаксация dist[v]", "Финализир. · релакс."],
+      sumValues: function (s) { return [{ text: s.vars.u === "—" ? "—" : s.vars.u + ":" + s.vars["u.d"] + " (" + s.vars["dist[u]"] + ")", cls: s.stale ? "badge-bad" : "" }, { text: s.vars["dist[v]"], cls: (s.line === 8 ? "eq" : "") }, { text: s.vars["извлечено"] + " · " + s.vars["релакс"] }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Кратчайшие пути найдены", text: s.info }; if (s.stale) return { kind: "end", icon: idx + 1, head: "Устаревшая запись — пропуск", text: s.info }; if (s.line === 5) return { kind: "info", hot: true, icon: idx + 1, head: "Финализирована вершина " + s.vars.u, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "все dist финальны", c: "Dijkstra", cls: "eq" }; if (s.line === 2) return { a: "старт", b: "dist[src] = 0", c: "→", cls: "lt" }; if (s.stale) return { a: "запись " + s.vars.u, b: "устарела", c: "пропуск", cls: "gt" }; if (s.line === 5) return { a: s.vars.u, b: "dist = " + s.vars["dist[u]"], c: "финал", cls: "eq" }; if (s.line === 4) return { a: "извлекли " + s.vars.u, b: "dist = " + s.vars["dist[u]"], c: "финал", cls: "lt" }; var imp = s.line === 8; return { a: "ребро " + s.vars["ребро"], b: s.vars["dist[v]"], c: imp ? "релакс" : "без изм.", cls: imp ? "eq" : "gt" }; },
+      varsOf: function (s) { return { "u": s.vars.u, "u.d": s.vars["u.d"], "dist[u]": s.vars["dist[u]"], "edge": s.vars["ребро"], "dist[v]": s.vars["dist[v]"] }; },
       // Две структуры: dist[] (финализированные — зелёные) и приоритетная очередь (min сверху).
       mapViz: function (panel, ctx) {
         var labels = ctx.labels, n = labels.length;
@@ -11180,7 +11339,8 @@
           pq.grid.innerHTML = "";
           var q = (s.pq || []).slice().sort(function (a, b) { return a.d - b.d; });
           if (!q.length) pq.grid.appendChild(structCell("", "∅", "algo-tp__mapcell--off"));
-          else q.forEach(function (x, k) { pq.grid.appendChild(structCell(k === 0 ? "min" : "", labels[x.node] + ":" + x.d, k === 0 ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : "algo-tp__mapcell--on")); });
+          // запись, чья оценка хуже уже известного dist, — устаревшая: её вынут и выбросят
+          else q.forEach(function (x, k) { var old = d[x.node] !== "∞" && x.d > Number(d[x.node]); pq.grid.appendChild(structCell(old ? "устар." : (k === 0 ? "min" : ""), labels[x.node] + ":" + x.d, old ? "algo-tp__mapcell--off" : (k === 0 ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : "algo-tp__mapcell--on"))); });
           pq.foot.textContent = "записей в очереди: " + q.length;
         };
       },
@@ -11316,29 +11476,32 @@
       badge: "A*", desc: "Поиск пути по сетке с эвристикой: из открытого списка берём клетку с минимальной f = g + h (h — манхэттенское расстояние до цели).",
       valuesLabel: "", codeKey: "astar", fillRange: false,
       complexity: { time: "O(E log V)", space: "O(V)", good: "★ Путь по сетке с хорошей эвристикой" },
-      varOrder: ["cell", "g", "h", "f", "openSize"],
-      varDesc: { "cell": "Текущая клетка (r,c)", "g": "Стоимость пути от старта", "h": "Эвристика — манхэттен до цели", "f": "Оценка f = g + h", "openSize": "Размер открытого списка" },
-      lineNotes: { 1: "Открытый список — мин-куча по f; старт с f = h(старт)", 2: "g[старт] = 0 — стоимость пути до старта", 3: "Пока открытый список не пуст — продолжаем", 4: "Извлекаем клетку с минимальной оценкой f", 5: "Это цель — путь найден, возвращаем g", 6: "Помечаем клетку закрытой (раскрытой)", 7: "Перебираем 4 соседей текущей клетки", 8: "Стена или уже закрытая клетка — пропускаем", 9: "Через текущую клетку путь до соседа короче?", 10: "Короче → обновляем g соседа", 11: "Кладём соседа в очередь с f = g + h", 15: "Открытый список пуст — пути нет" },
+      varOrder: ["cell", "g", "h", "f", "nb", "f(nb)", "openSize"],
+      varDesc: { "cell": "Текущая клетка cur (r,c)", "g": "g[cur] — стоимость пути от старта", "h": "h(cur) — манхэттен до цели", "f": "f(cur) = g + h", "nb": "Проверяемый сосед", "f(nb)": "t + h(nb) через cur", "openSize": "Размер открытого списка" },
+      lineNotes: { 1: "Открытый список — мин-куча по f; старт с f = h(старт)", 2: "g[старт] = 0 — стоимость пути до старта", 3: "Пока открытый список не пуст — продолжаем", 4: "Извлекаем клетку с минимальной f (при равных f — с меньшей h)", 5: "Это цель? Да — путь найден, возвращаем g; нет — раскрываем клетку", 6: "Помечаем клетку закрытой (раскрытой)", 7: "Перебираем 4 соседей текущей клетки", 8: "Стена или уже закрытая клетка — пропускаем", 9: "Через текущую клетку путь до соседа короче?", 10: "Короче → обновляем g соседа", 11: "Кладём соседа в очередь с f = g + h", 15: "Открытый список пуст — пути нет" },
       rules: [{ head: "Минимум f = g + h", body: "берём ближайшую по оценке", cls: "lt" }, { head: "Допустимая h", body: "→ путь оптимален", cls: "eq" }, { head: "h ≡ 0", body: "→ вырождается в Дейкстру", cls: "gt" }],
       parse: function (root) { var grid = (root.getAttribute("data-grid") || "").split(";").map(function (r) { return r.split(",").map(Number); }); var rr = bAStar(grid); return { grid: grid, R: rr.R, C: rr.C, goal: rr.goal, steps: rr.steps }; },
       inputs: [{ attr: "data-grid", label: "Сетка строки;через; запятую (0/1)" }],
       values: function () { return []; },
       title: function () { return "A*: поиск пути по сетке"; },
-      legend: [{ cls: "current", label: "текущая" }, { cls: "frontier", label: "открытый список" }, { cls: "visited", label: "закрытая" }, { cls: "path", label: "путь" }, { cls: "wall", label: "стена" }],
+      legend: [{ cls: "current", label: "текущая" }, { cls: "frontier", label: "открытый список" }, { cls: "visited", label: "закрытая" }, { cls: "path", label: "путь" }, { cls: "wall", label: "стена" }, { cls: "nbok", label: "проверяемый сосед" }],
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Клетка (f = g + h)", "Открытых"],
       sumValues: function (s) { return [{ text: s.vars["клетка"] === "—" ? "—" : s.vars["клетка"] + " · f=" + s.vars["f"] }, { text: s.vars["открытых"], cls: "eq" }]; },
       status: function (s, idx, total) { if (s.found) return { kind: "ok", icon: "✓", head: "Путь найден", text: s.info }; if (s.done) return { kind: "end", icon: "✗", head: "Пути нет", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.found) return { a: "цель достигнута", b: "длина " + s.vars["g"], c: "путь", cls: "eq" }; if (s.done) return { a: "тупик", b: "открытых 0", c: "−1", cls: "gt" }; if (s.line === 1) return { a: "старт", b: "f = h = " + s.vars["f"], c: "→", cls: "lt" }; if (s.nb) return { a: "сосед " + s.vars["клетка"], b: "f = " + s.vars["f"], c: "в очередь", cls: "eq" }; return { a: "извлекли " + s.vars["клетка"], b: "f = " + s.vars["f"], c: "раскрыть", cls: "lt" }; },
-      varsOf: function (s) { return { "cell": s.vars["клетка"], "g": s.vars["g"], "h": s.vars["h"], "f": s.vars["f"], "openSize": s.vars["открытых"] }; },
+      varsOf: function (s) { return { "cell": s.vars["клетка"], "g": s.vars["g"], "h": s.vars["h"], "f": s.vars["f"], "nb": s.vars["сосед"], "f(nb)": s.vars["f(nb)"], "openSize": s.vars["открытых"] }; },
       // Панель открытого списка (frontier) — сортирована по f, сверху минимум (его извлечём).
-      mapViz: function (panel) {
-        var p = structPanel(panel, "open — открытый список (frontier), сверху min f");
+      mapViz: function (panel, ctx) {
+        var p = structPanel(panel, "open — открытый список: сверху min f, при равных f — min h");
+        var goal = ctx.goal;
         return function (s) {
           p.grid.innerHTML = "";
-          var open = (s.open || []).map(function (c) { return { r: c[0], c: c[1], f: s.f[c[0]][c[1]] }; }).sort(function (a, b) { return a.f - b.f; });
+          // тот же ключ (f, h), что у PopMin: при сортировке только по f верх панели
+          // в 8 из 10 извлечений не совпадал с клеткой, которую берёт алгоритм
+          var open = (s.open || []).map(function (c) { return { r: c[0], c: c[1], f: s.f[c[0]][c[1]], h: Math.abs(c[0] - goal[0]) + Math.abs(c[1] - goal[1]) }; }).sort(function (a, b) { return a.f - b.f || a.h - b.h; });
           if (!open.length) p.grid.appendChild(structCell("", "∅", "algo-tp__mapcell--off"));
-          else open.forEach(function (o, k) { p.grid.appendChild(structCell("(" + o.r + "," + o.c + ")", "f=" + (isFinite(o.f) ? o.f : "∞"), k === 0 ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : "algo-tp__mapcell--on")); });
+          else open.forEach(function (o, k) { p.grid.appendChild(structCell("(" + o.r + "," + o.c + ") h=" + o.h, "f=" + (isFinite(o.f) ? o.f : "∞"), k === 0 ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : "algo-tp__mapcell--on")); });
           p.foot.textContent = "в открытом списке: " + open.length;
         };
       },

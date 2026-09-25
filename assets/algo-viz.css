@@ -124,6 +124,11 @@
   border-color: color-mix(in srgb, #a855f7 55%, transparent);
 }
 
+/* A*: проверяемый сосед — зелёная рамка (проходим), красная (стена / закрыта) */
+.algo-viz__gcell--nbok { outline: 3px solid var(--tp-ok, #16a34a); outline-offset: 1px; }
+.algo-viz__gcell--nbbad { outline: 3px dashed var(--tp-bad, #ef4444); outline-offset: 1px; }
+.algo-tp__legdot--nbok { background: transparent; border: 2px solid var(--tp-ok); border-radius: 3px; }
+
 .algo-viz__gcell--path {
   background: #2e9b57;
   border-color: #2e9b57;
@@ -1384,3 +1389,18 @@ body.algo-tp-fslock { overflow: hidden; }
   .algo-tp__rowlab { font-size: 0; padding: 0; }
   .algo-tp__panel { padding: 0.9em 0.7em; }
 }
+
+/* Дерево с рёбрами (treeFigure): узлы-«пилюли» по ширине текста, центр — в точке
+   раскладки. translate, а не transform: у текущего узла transform: scale() — иначе
+   одно перебивало бы другое. */
+.algo-tp__tfig { position: relative; margin: 0.4em auto; }
+.algo-tp__tfignode { position: absolute; translate: -50% -50%; width: auto; min-width: 2.3em; height: 2.2em; padding: 0 0.55em; border-radius: 999px; white-space: nowrap; font-size: 0.9em; }
+.algo-tp__tnode--wild { border-style: dashed; }
+.algo-tp__tnode--dead { opacity: 0.35; text-decoration: line-through; }
+.algo-tp__bstedge--on { stroke: var(--tp-ok); stroke-width: 3; opacity: 1; }
+.algo-tp__bstedge--dead { stroke-dasharray: 4 3; opacity: 0.3; }
+.algo-tp__legdot--wild { background: transparent; border: 2px dashed var(--tp-border); }
+/* легенда деревьев: цвета ровно как у .algo-tp__tnode--current/--visited/--dead */
+.algo-tp__legdot--tcur { background: var(--tp-lo); border-color: var(--tp-lo); }
+.algo-tp__legdot--tvis { background: var(--tp-ok); border-color: var(--tp-ok); }
+.algo-tp__legdot--dead { background: color-mix(in srgb, var(--fg) 25%, transparent); border-style: dashed; }
