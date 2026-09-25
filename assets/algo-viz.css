@@ -115,7 +115,7 @@
 .algo-viz__gcell--current {
   background: #e0a500;
   border-color: #e0a500;
-  color: #fff;
+  color: #1a1a1a; /* белый на янтаре — контраст 2.2:1 */
 }
 
 /* A*: открытый список (frontier) и восстановленный путь */
@@ -288,9 +288,11 @@
   pointer-events: none;
 }
 
-.algo-viz__gnode--visited + .algo-viz__gtext,
-.algo-viz__gnode--current + .algo-viz__gtext {
+.algo-viz__gnode--visited + .algo-viz__gtext {
   fill: #fff;
+}
+.algo-viz__gnode--current + .algo-viz__gtext {
+  fill: #1a1a1a; /* белый на янтаре — контраст 2.2:1 */
 }
 
 /* дерево: уровни и узлы */
@@ -581,7 +583,7 @@
   --bg: #0d1117;
   --tp-lo: #3b82f6;            /* синий — правая граница (right) */
   --tp-hi: #a855f7;            /* фиолетовый — левая граница (left) */
-  --tp-ok: #22c55e;            /* зелёный — «различных», корректность */
+  --tp-ok: #16a34a;            /* зелёный — корректность; #22c55e давал белому тексту 2.3:1 */
   --tp-warn: #f59e0b;          /* янтарный — максимум/лучшее */
   --tp-bad: #ef4444;           /* красный — нарушение условия */
   --tp-surface: #0a0e16;       /* внешний холст виджета */
@@ -590,7 +592,7 @@
   --tp-border: #283145;
   --tp-grad-lo: linear-gradient(135deg, #2563eb, #3b82f6);
   --tp-grad-hi: linear-gradient(135deg, #9333ea, #a855f7);
-  --tp-grad-ok: linear-gradient(135deg, #16a34a, #22c55e);
+  --tp-grad-ok: linear-gradient(135deg, #15803d, #16a34a);
   /* Переопределяем book-тему vars ВНУТРИ виджета: кастомные SVG-виз (графы, деревья,
      сетки, интервалы, trie, KMP) рисуются через .algo-viz__* и завязаны на эти переменные.
      Так они становятся тёмными разом, не трогая прозу/hero-карточки вне .algo-tp. */
@@ -605,11 +607,17 @@
   padding: 1.4em clamp(1em, 2.5vw, 1.7em);
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.4);
   /* «вырываемся» из узкой колонки mdBook и центрируемся: дашборду нужна ширина,
-     а проза вокруг остаётся узкой и читаемой */
-  width: min(1120px, 96vw);
+     а проза вокруг остаётся узкой и читаемой. Ширину считаем от .page-wrapper
+     (контейнер ниже), а НЕ от вьюпорта: при открытом сайдбаре 96vw вылезало за
+     правый край на ~75px. Без поддержки контейнеров cqw откатывается к svw. */
+  --algo-w: min(1120px, calc(100cqw - 2 * var(--page-padding, 15px) - 10px));
+  width: var(--algo-w);
   margin: 1.6em 0;
-  margin-left: calc(50% - min(560px, 48vw));
+  margin-left: calc(50% - var(--algo-w) / 2);
+  /* раскладка внутри подстраивается под ширину САМОГО виджета, а не окна */
+  container: algo-tp / inline-size;
 }
+.page-wrapper { container-type: inline-size; }
 .algo-tp, .algo-tp * { box-sizing: border-box; }
 
 /* кнопка полноэкранного режима */
@@ -629,7 +637,7 @@ body.algo-tp-fslock { overflow: hidden; }
 /* В полноэкранном режиме экономим вертикаль и используем ширину: */
 .algo-tp--fs .algo-tp__head { margin-bottom: 0.7em; }
 .algo-tp--fs .algo-tp__top { margin-bottom: 0.8em; }
-.algo-tp--fs .algo-tp__main { grid-template-columns: 1.35fr 1fr; margin-bottom: 0.8em; }
+.algo-tp--fs .algo-tp__main { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); margin-bottom: 0.8em; }
 /* Таймлайн — в одну прокручиваемую строку вместо многострочной «простыни». */
 .algo-tp--fs .algo-tp__timeline { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.4em; }
 .algo-tp--fs .algo-tp__step { flex: 0 0 auto; }
@@ -674,7 +682,12 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__mini--lo { background: var(--tp-grad-lo); border-color: transparent; color: #fff; box-shadow: 0 4px 14px color-mix(in srgb, var(--tp-lo) 45%, transparent); }
 .algo-tp__mini--hi { background: var(--tp-grad-hi); border-color: transparent; color: #fff; box-shadow: 0 4px 14px color-mix(in srgb, var(--tp-hi) 45%, transparent); }
 
-.algo-tp__edit { display: flex; gap: 8px; margin-top: 0.9em; flex-wrap: wrap; }
+.algo-tp__edit { display: flex; gap: 8px; margin-top: 0.9em; flex-wrap: wrap; align-items: flex-end; }
+/* поле ввода с видимой подписью: «1,5,3,8 | 4 | 9» без подписей было не расшифровать */
+.algo-tp__field { display: flex; flex-direction: column; gap: 3px; flex: 1 1 120px; min-width: 80px; }
+.algo-tp__field--sm { flex: 0 1 90px; }
+.algo-tp__fieldlab { font-size: 0.72em; opacity: 0.6; }
+.algo-tp__field .algo-tp__input { width: 100%; flex: none; } /* flex-basis поля в колонке растягивал его в высоту */
 .algo-tp__input {
   flex: 1 1 120px; min-width: 80px; border: 1px solid var(--tp-border); border-radius: 8px;
   padding: 0.4em 0.7em; background: var(--tp-panel2);
@@ -711,8 +724,20 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__status--ok .algo-tp__stathead { color: var(--tp-ok); }
 .algo-tp__stattext { opacity: 0.8; font-size: 0.92em; margin-top: 0.15em; }
 
-/* основная сетка */
-.algo-tp__main { display: grid; grid-template-columns: 1.25fr 1fr; gap: 1em; margin-bottom: 1.1em; align-items: stretch; }
+/* основная сетка. minmax(0, …), а не голые fr: иначе колонка не ужимается уже
+   самой длинной строки кода и панель кода уезжала за правый край виджета */
+.algo-tp__main { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 1em; margin-bottom: 1.1em; align-items: stretch; }
+.algo-tp__panel { min-width: 0; }
+/* широкая визуализация (массив, дерево, таблица) не режется краем, а прокручивается */
+.algo-tp__scrollx { max-width: 100%; overflow-x: auto; scrollbar-width: thin; }
+/* Скролл-контейнер обрезает и по вертикали, поэтому даём запас под увеличенный
+   текущий узел (scale), обводки и бейджи над узлами: padding внутри, такой же
+   отрицательный margin снаружи — раскладка вокруг не сдвигается. */
+.algo-tp__vizhost { padding: 1em 0.5em 0.6em; margin: -1em -0.5em -0.6em; }
+/* есть скрытое за краем — край затухает: без подсказки прокрутку никто не находит */
+.algo-tp__scrollx--r { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5em), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 2.5em), transparent); }
+.algo-tp__scrollx--l { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 2.5em), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 2.5em), transparent); }
+.algo-tp__scrollx--l.algo-tp__scrollx--r { -webkit-mask-image: linear-gradient(to right, transparent, #000 2.5em, #000 calc(100% - 2.5em), transparent); mask-image: linear-gradient(to right, transparent, #000 2.5em, #000 calc(100% - 2.5em), transparent); }
 /* Левая панель (виз) тянется на высоту кода; легенда правил прижата к низу,
    а свободное место распределяется выше — без «дыры» под мелкой сеткой. */
 .algo-tp__main > .algo-tp__panel:first-child { display: flex; flex-direction: column; }
@@ -720,7 +745,7 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__main > .algo-tp__panel:first-child .algo-tp__grid,
 .algo-tp__main > .algo-tp__panel:first-child .algo-viz__graph,
 .algo-tp__main > .algo-tp__panel:first-child .algo-tp__ivsvg { margin-top: 0.3em; margin-bottom: 0.6em; }
-@media (max-width: 760px) { .algo-tp__main { grid-template-columns: 1fr; } }
+@container algo-tp (max-width: 760px) { .algo-tp__main { grid-template-columns: minmax(0, 1fr); } }
 .algo-tp__panel { background: var(--tp-panel); border: 1px solid var(--tp-border); border-radius: 12px; padding: 1.1em; }
 .algo-tp__panelhdr { font-weight: 800; margin-bottom: 1em; display: flex; align-items: center; justify-content: space-between; gap: 0.6em; }
 .algo-tp__panelhdr--sm { font-size: 0.95em; margin: 1.2em 0 0.6em; }
@@ -742,7 +767,13 @@ body.algo-tp-fslock { overflow: hidden; }
 /* клетка внутри окна (между границами) — лёгкая фиолетовая заливка как в макете */
 .algo-tp__big--span { background: color-mix(in srgb, var(--tp-hi) 16%, var(--tp-panel2)); border-color: color-mix(in srgb, var(--tp-hi) 35%, transparent); }
 
-.algo-tp__ptrslot { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 1.2em; }
+/* Под клеткой — только стрелка и ИМЯ указателя: индекс уже написан строкой выше,
+   а «бит = 3» над клеткой 0 выдавал индекс за значение переменной. Место под две
+   плашки зарезервировано всегда — иначе совпадение указателей растягивало ряд и
+   кнопки навигации уезжали из-под курсора. Пояснения — строкой-легендой под сеткой. */
+.algo-tp__ptrslot { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 3.3em; }
+.algo-tp__ptrlegend { display: flex; flex-wrap: wrap; gap: 0.3em 1.2em; margin-top: 0.5em; font-size: 0.8em; opacity: 0.85; }
+.algo-tp__ptrlegend .algo-tp__pill { font-size: 0.95em; margin-right: 0.35em; }
 .algo-tp__arrowup { font-size: 1.2em; line-height: 1; font-weight: 800; }
 .algo-tp__arrowup--lo { color: var(--tp-lo); }
 .algo-tp__arrowup--hi { color: var(--tp-hi); }
@@ -774,7 +805,7 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__sumval--badge-ok { color: var(--tp-ok); background: color-mix(in srgb, var(--tp-ok) 16%, transparent); border: 1px solid color-mix(in srgb, var(--tp-ok) 45%, transparent); }
 .algo-tp__cmpval { font-size: 1.25em; font-weight: 800; font-variant-numeric: tabular-nums; }
 .algo-tp__cmpval--lt { color: var(--tp-lo); }
-.algo-tp__cmpval--gt { color: var(--tp-bad); }
+.algo-tp__cmpval--gt { color: var(--tp-warn); }
 .algo-tp__cmpval--eq { color: var(--tp-ok); }
 
 /* панель внутренней структуры данных (freq-map переменного окна) */
@@ -809,12 +840,10 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__mapsizecmp--ok { color: var(--tp-ok); }
 
 /* легенда правил */
-.algo-tp__rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1em; padding: 1em; border: 1px dashed var(--tp-border); border-radius: 10px; }
-@media (max-width: 620px) { .algo-tp__rules { grid-template-columns: 1fr; } }
+/* Заголовки правил НЕ красим: цветные, они читались как легенда клеток, хотя
+   цвета значили другое (аудит нашёл расхождение почти в каждом втором виджете). */
+.algo-tp__rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12em), 1fr)); gap: 1em; padding: 1em; border: 1px dashed var(--tp-border); border-radius: 10px; }
 .algo-tp__rulehead { font-weight: 700; font-size: 0.9em; margin-bottom: 0.3em; }
-.algo-tp__rule--lt .algo-tp__rulehead { color: var(--tp-lo); }
-.algo-tp__rule--gt .algo-tp__rulehead { color: var(--tp-hi); }
-.algo-tp__rule--eq .algo-tp__rulehead { color: var(--tp-ok); }
 .algo-tp__rulebody { font-size: 0.85em; opacity: 0.7; }
 
 /* код */
@@ -897,7 +926,7 @@ body.algo-tp-fslock { overflow: hidden; }
 
 /* футер */
 .algo-tp__foot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1em; }
-@media (max-width: 620px) { .algo-tp__foot { grid-template-columns: 1fr; } }
+@container algo-tp (max-width: 620px) { .algo-tp__foot { grid-template-columns: 1fr; } }
 .algo-tp__footcol { background: var(--tp-panel); border: 1px solid var(--tp-border); border-radius: 10px; padding: 0.9em; text-align: center; }
 .algo-tp__footlab { font-size: 0.85em; opacity: 0.6; margin-bottom: 0.3em; }
 .algo-tp__footval { font-size: 1.15em; font-weight: 800; }
@@ -909,7 +938,7 @@ body.algo-tp-fslock { overflow: hidden; }
   margin-top: 1.2em; padding: 1em 1.2em;
   background: var(--tp-panel); border: 1px solid var(--tp-border); border-radius: 14px;
 }
-@media (max-width: 720px) { .algo-tp__ctrl { grid-template-columns: 1fr; justify-items: center; gap: 0.8em; } }
+@container algo-tp (max-width: 720px) { .algo-tp__ctrl { grid-template-columns: 1fr; justify-items: center; gap: 0.8em; } }
 .algo-tp__ctrlbtns { display: flex; align-items: center; justify-content: center; gap: 8px; }
 /* кнопки управления — тёмные скруглённые «иконки» */
 .algo-tp .algo-viz__btn {
@@ -1030,10 +1059,14 @@ body.algo-tp-fslock { overflow: hidden; }
 }
 /* заметка над сеткой (например, описание цикла) */
 .algo-tp__note { font-size: 0.9em; opacity: 0.75; margin-bottom: 0.8em; }
-/* цвета значения в блоке «сумма/сравнение» */
+/* цвета значения в блоке «сумма/сравнение». «gt» — янтарный, а не красный:
+   конфиги ставят его и нейтральным счётчикам («заполнено ячеек», «переносов»),
+   и красный выдавал обычное число за ошибку. Красный остаётся только у badge-bad. */
 .algo-tp__sumval--lt { color: var(--tp-lo); }
-.algo-tp__sumval--gt { color: var(--tp-bad); }
+.algo-tp__sumval--gt { color: var(--tp-warn); }
 .algo-tp__sumval--eq { color: var(--tp-ok); }
+/* длинный текст в карточке итога: мельче и без разрыва слова посередине */
+.algo-tp__sumval--long { font-size: 1.05em; line-height: 1.3; overflow-wrap: normal; hyphens: auto; }
 /* статус «конец/не найдено» */
 .algo-tp__status--end { background: color-mix(in srgb, var(--fg, #888) 6%, transparent); border-color: var(--tp-border); }
 .algo-tp__status--end .algo-tp__staticon { color: var(--tp-bad); }
@@ -1092,9 +1125,9 @@ body.algo-tp-fslock { overflow: hidden; }
 }
 .algo-tp__ccell--top { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
 .algo-tp__ccell--out { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
-.algo-tp__ccell--cur { background: #e0a500; border-color: #e0a500; color: #fff; }
+.algo-tp__ccell--cur { background: #e0a500; border-color: #e0a500; color: #1a1a1a; }
 .algo-tp__ccell--done { opacity: 0.4; }
-@media (max-width: 620px) { .algo-tp__crow { flex-direction: column; align-items: flex-start; gap: 3px; } .algo-tp__clabel { text-align: left; flex-basis: auto; } }
+@container algo-tp (max-width: 620px) { .algo-tp__crow { flex-direction: column; align-items: flex-start; gap: 3px; } .algo-tp__clabel { text-align: left; flex-basis: auto; } }
 
 /* чипы найденных результатов (backtracking) */
 .algo-tp__chip2 { padding: 0.15em 0.55em; border: 1px solid var(--tp-border); border-radius: 5px; font-size: 0.85em; font-variant-numeric: tabular-nums; }
@@ -1322,3 +1355,32 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__growthtext--n2 { fill: #f2a33c; }
 .algo-tp__growthtext--exp { fill: #d64045; }
 .algo-tp__growthmark { stroke: var(--fg, #555); stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 0.7; }
+
+/* ===================================================================== */
+/* Состояния узлов на ячейках структур (хеш-цепочка, дек, sparse table,  */
+/* массив кучи). Эти ячейки получают модификаторы .algo-tp__tnode--*, но */
+/* их базовые правила объявлены НИЖЕ модификаторов и при равной          */
+/* специфичности перебивали фон — подсветка found/created/current молча  */
+/* не рисовалась. Здесь модификаторы повторены с повышенной              */
+/* специфичностью.                                                       */
+/* ===================================================================== */
+:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--visited { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--current { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
+:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--found { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--created { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; outline: 3px dashed color-mix(in srgb, var(--tp-lo) 55%, transparent); }
+:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--removed { background: color-mix(in srgb, var(--tp-warn) 30%, transparent); border-color: var(--tp-warn); text-decoration: line-through; outline: 3px dashed var(--tp-warn); }
+:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--take { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--split { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
+:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--skip { opacity: 0.35; }
+:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--ghost { opacity: 0.16; border-style: dashed; }
+
+/* (в конце файла: при равной специфичности должно перебивать базовые правила выше) */
+/* узкий виджет (телефон, колонка с сайдбаром): клетки мельче, чтобы типичный
+   массив из 8–10 чисел помещался целиком, а не уезжал в прокрутку */
+@container algo-tp (max-width: 520px) {
+  .algo-tp__grid { font-size: 0.8em; column-gap: 4px; --algo-cell: 2.2em; }
+  /* подписи «Индекс/Значение» съедали пятую часть ширины; строка индексов над
+     клетками и так объясняет себя — на узком виджете колонку подписей схлопываем */
+  .algo-tp__rowlab { font-size: 0; padding: 0; }
+  .algo-tp__panel { padding: 0.9em 0.7em; }
+}

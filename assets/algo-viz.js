@@ -11384,20 +11384,28 @@
     var miniCells = values.map(function (v) { var c = mkEl("div", "algo-tp__mini", v); miniRow.appendChild(c); return c; });
     cArr.appendChild(miniRow);
     var editRow = mkEl("div", "algo-tp__edit");
+    // Подпись у поля — видимая, а не только в title: «1,5,3,8 | 4 | 9» без подписей
+    // читатель расшифровать не мог.
     var inputs = cfg.inputs.map(function (f) {
-      var inp = mkEl("input", "algo-tp__input" + (f.sm ? " algo-tp__input--sm" : ""));
+      var field = mkEl("label", "algo-tp__field" + (f.sm ? " algo-tp__field--sm" : ""));
+      field.appendChild(mkEl("span", "algo-tp__fieldlab", f.label || f.attr));
+      var inp = mkEl("input", "algo-tp__input");
       inp.value = root.getAttribute(f.attr) || ""; inp.title = f.label || f.attr;
-      inp.setAttribute("aria-label", f.label || f.attr);
-      editRow.appendChild(inp); return { attr: f.attr, inp: inp };
+      field.appendChild(inp);
+      editRow.appendChild(field); return { attr: f.attr, inp: inp };
     });
-    var runBtn = mkEl("button", "algo-tp__run", "⟲ Запустить"); runBtn.type = "button";
-    runBtn.setAttribute("aria-label", "Запустить визуализацию заново с введёнными данными");
     function rerun() { inputs.forEach(function (o) { root.setAttribute(o.attr, o.inp.value.trim()); }); root.classList.remove("algo-viz--ready"); buildDashboard(root, cfg); }
-    runBtn.onclick = rerun;
     inputs.forEach(function (o) { o.inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); rerun(); } }); });
-    editRow.appendChild(runBtn);
-    cArr.appendChild(editRow);
-    top.appendChild(cArr);
+    // У фиксированного сценария (протокол, рантайм Go) вводить нечего: одинокая кнопка
+    // «Запустить» над пустой карточкой перезапускала тот же сценарий и путала.
+    if (inputs.length) {
+      var runBtn = mkEl("button", "algo-tp__run", "⟲ Запустить"); runBtn.type = "button";
+      runBtn.setAttribute("aria-label", "Запустить визуализацию заново с введёнными данными");
+      runBtn.onclick = rerun;
+      editRow.appendChild(runBtn);
+      cArr.appendChild(editRow);
+    }
+    if (inputs.length || values.length) top.appendChild(cArr);
 
     if (cfg.param) {
       var p = cfg.param(ctx);
@@ -11440,12 +11448,30 @@
       pViz.appendChild(leg);
     }
     var bigCells = [], ptrSlots = [], updateViz = null;
+    // Центральная визуализация живёт в прокручиваемой обёртке: на узком экране
+    // широкий массив/дерево/таблица прокручивается, а не срезается краем виджета.
+    var vizHost = mkEl("div", "algo-tp__scrollx algo-tp__vizhost");
+    pViz.appendChild(vizHost);
+    // Чтение scrollWidth форсирует раскладку; синхронно в show() это стоило
+    // лишний пересчёт страницы на каждый виджет при загрузке — откладываем на кадр.
+    var scrollPending = false;
+    function markScrollSoon() {
+      if (scrollPending) return; scrollPending = true;
+      (window.requestAnimationFrame || setTimeout)(function () { scrollPending = false; markScroll(); });
+    }
+    function markScroll() {
+      var more = vizHost.scrollWidth > vizHost.clientWidth + 2;
+      vizHost.classList.toggle("algo-tp__scrollx--r", more && vizHost.scrollLeft + vizHost.clientWidth < vizHost.scrollWidth - 2);
+      vizHost.classList.toggle("algo-tp__scrollx--l", more && vizHost.scrollLeft > 2);
+    }
+    vizHost.addEventListener("scroll", markScroll, { passive: true });
+    if (window.ResizeObserver) new ResizeObserver(markScrollSoon).observe(vizHost);
     if (cfg.customViz) {
       // алгоритм рисует свою центральную визуализацию (например, интервалы на прямой)
-      updateViz = cfg.customViz(pViz, ctx);
+      updateViz = cfg.customViz(vizHost, ctx);
     } else {
       var grid = mkEl("div", "algo-tp__grid");
-      grid.style.gridTemplateColumns = "auto repeat(" + n + ", minmax(2.6em, 1fr))";
+      grid.style.gridTemplateColumns = "auto repeat(" + n + ", minmax(var(--algo-cell, 2.6em), 1fr))";
       grid.appendChild(mkEl("div", "algo-tp__rowlab", "Индекс"));
       values.forEach(function (_, i) { grid.appendChild(mkEl("div", "algo-tp__idx", i)); });
       grid.appendChild(mkEl("div", "algo-tp__rowlab", "Значение"));
@@ -11453,7 +11479,20 @@
       bigCells = values.map(function (v, i) { var c = mkEl("div", "algo-tp__big", v); if (i === cyIdx) c.classList.add("algo-tp__big--cycle"); grid.appendChild(c); return c; });
       grid.appendChild(mkEl("div", "algo-tp__rowlab", ""));
       ptrSlots = values.map(function () { var c = mkEl("div", "algo-tp__ptrslot"); grid.appendChild(c); return c; });
-      pViz.appendChild(grid);
+      vizHost.appendChild(grid);
+      // Что означает каждый указатель — одной строкой под сеткой, а не подписью под
+      // клеткой: подписи соседних указателей налезали друг на друга.
+      var ptrs = [cfg.ptr1 && { p: cfg.ptr1, cls: "lo" }, cfg.ptr2 && { p: cfg.ptr2, cls: "hi" }].filter(Boolean);
+      if (ptrs.length) {
+        var ptrLeg = mkEl("div", "algo-tp__ptrlegend");
+        ptrs.forEach(function (o) {
+          var it = mkEl("span", "algo-tp__ptrlegitem");
+          it.appendChild(mkEl("span", "algo-tp__pill algo-tp__pill--" + o.cls, o.p.name));
+          it.appendChild(mkEl("span", null, (o.p.cap || "").replace(/^\((.*)\)$/, "$1")));
+          ptrLeg.appendChild(it);
+        });
+        pViz.appendChild(ptrLeg);
+      }
     }
 
     // Необязательная панель внутренней структуры данных (например, freq-map окна),
@@ -11611,6 +11650,81 @@
     }
     bFs.onclick = function () { setFs(!root.classList.contains("algo-tp--fs")); };
 
+    function noteOf(s, st) {
+      if (!(typeof s.line === "number" && s.line >= 0 && codeLines[s.line])) return null;
+      return { ln: "▸ строка " + (s.line + 1), tx: (cfg.lineNotes && cfg.lineNotes[s.line]) || (st && st.text) || codeLines[s.line].trim() };
+    }
+    // Резерв высоты по ВСЕМ шагам: самый длинный статус, самая высокая подпись под
+    // кодом и самая высокая визуализация (дерево прирастает уровнем, стек растёт).
+    // Без него переход с однострочного текста на двухстрочный или новый уровень
+    // дерева растягивали виджет, и кнопки навигации уезжали из-под курсора.
+    //
+    // Это прогон всех шагов с замером раскладки, и он не бесплатный: синхронно при
+    // загрузке он занимал ~0.4 с главного потока (DOMContentLoaded 10–25 мс →
+    // 320–460 мс), а синхронно при подходе к экрану давал рывок прокрутки 90–200 мс.
+    // Поэтому считаем порциями в простое, пока виджет далеко за экраном; если он
+    // успел показаться — дорабатываем одним куском (без промежуточной отрисовки
+    // читатель не увидит перебор шагов). Смена ширины (полный экран, поворот,
+    // сайдбар) запускает пересчёт.
+    var job = null, reservedW = -1, onScreen = false, armed = false;
+    function startJob() {
+      var w = root.getBoundingClientRect().width;
+      if (!w || Math.abs(w - reservedW) < 1) return false;
+      job = { w: w, phase: 0, k: 0, cur: idx, maxStat: 0, maxNote: 0, maxMain: 0,
+        keep: [statHead.textContent, statText.textContent, codeNoteLn.textContent, codeNoteTx.textContent] };
+      cStat.style.minHeight = ""; codeNote.style.minHeight = ""; main.style.minHeight = "";
+      return true;
+    }
+    function runJob(more) {
+      while (job && more()) {
+        var s = steps[job.k];
+        if (job.phase === 0) {
+          var st = cfg.status(s, job.k, steps.length, ctx);
+          statHead.textContent = st.head; statText.textContent = st.text;
+          job.maxStat = Math.max(job.maxStat, cStat.getBoundingClientRect().height);
+          var nt = noteOf(s, st);
+          if (nt) { codeNoteLn.textContent = nt.ln; codeNoteTx.textContent = nt.tx; job.maxNote = Math.max(job.maxNote, codeNote.getBoundingClientRect().height); }
+        } else {
+          show(job.k);
+          job.maxMain = Math.max(job.maxMain, main.getBoundingClientRect().height);
+        }
+        if (++job.k < steps.length) continue;
+        if (job.phase === 0) {
+          statHead.textContent = job.keep[0]; statText.textContent = job.keep[1]; codeNoteLn.textContent = job.keep[2]; codeNoteTx.textContent = job.keep[3];
+          if (job.maxStat) cStat.style.minHeight = Math.ceil(job.maxStat) + "px";
+          if (job.maxNote) codeNote.style.minHeight = Math.ceil(job.maxNote) + "px";
+          job.phase = 1; job.k = 0;
+        } else {
+          prevVars = null; show(job.cur);
+          if (job.maxMain) main.style.minHeight = Math.ceil(job.maxMain) + "px";
+          reservedW = job.w; job = null;
+        }
+      }
+    }
+    function finishNow() { if (job) runJob(function () { return true; }); }
+    var idle = window.requestIdleCallback || function (f) { return setTimeout(function () { var t = Date.now() + 8; f({ timeRemaining: function () { return t - Date.now(); } }); }, 1); };
+    function pump() {
+      if (!job) return;
+      if (onScreen) { finishNow(); return; }
+      idle(function (d) { if (onScreen) finishNow(); else runJob(function () { return d.timeRemaining() > 3; }); pump(); });
+    }
+    function reserve() { if (!job && startJob()) { if (onScreen) finishNow(); else pump(); } }
+    // пока шаги перебираются, читатель не должен листать этот же виджет
+    ["pointerdown", "keydown", "focusin"].forEach(function (t) { root.addEventListener(t, finishNow, true); });
+    function armReserve() {
+      if (!window.IntersectionObserver) { onScreen = true; armed = true; reserve(); return; }
+      new IntersectionObserver(function (es) {
+        onScreen = es[es.length - 1].isIntersecting;
+        if (onScreen) finishNow();
+      }).observe(root);
+      var near = new IntersectionObserver(function (es) {
+        if (!es[es.length - 1].isIntersecting) return;
+        near.disconnect(); armed = true; reserve();
+      }, { rootMargin: "1500px 0px" });
+      near.observe(root);
+    }
+    if (window.ResizeObserver) new ResizeObserver(function () { if (armed) { if (job && Math.abs(root.getBoundingClientRect().width - job.w) >= 1) { finishNow(); } reserve(); } }).observe(root);
+
     var prevVars = null, idx = 0;
     function show(i) {
       idx = Math.max(0, Math.min(steps.length - 1, i));
@@ -11632,17 +11746,28 @@
         });
         ptrSlots.forEach(function (c, j) {
           c.innerHTML = "";
-          if (j === lo && lo >= 0) { c.appendChild(mkEl("div", "algo-tp__arrowup algo-tp__arrowup--lo", "↑")); c.appendChild(mkEl("div", "algo-tp__pill algo-tp__pill--lo", cfg.ptr1.name + " = " + lo)); c.appendChild(mkEl("div", "algo-tp__ptrcap", cfg.ptr1.cap)); }
-          if (j === hi && hi >= 0) { c.appendChild(mkEl("div", "algo-tp__arrowup algo-tp__arrowup--hi", "↑")); c.appendChild(mkEl("div", "algo-tp__pill algo-tp__pill--hi", cfg.ptr2.name + " = " + hi)); c.appendChild(mkEl("div", "algo-tp__ptrcap", cfg.ptr2.cap)); }
+          var atLo = j === lo && lo >= 0 && cfg.ptr1, atHi = j === hi && hi >= 0 && cfg.ptr2;
+          if (!atLo && !atHi) return;
+          c.appendChild(mkEl("div", "algo-tp__arrowup algo-tp__arrowup--" + (atLo ? "lo" : "hi"), "↑"));
+          if (atLo) c.appendChild(mkEl("div", "algo-tp__pill algo-tp__pill--lo", cfg.ptr1.name));
+          if (atHi) c.appendChild(mkEl("div", "algo-tp__pill algo-tp__pill--hi", cfg.ptr2.name));
         });
       }
       miniCells.forEach(function (c, j) {
+        // мини-строка — ТЕКУЩИЙ массив: при записи на месте (сортировки, дедуп)
+        // она показывала исходные значения, а подсветку указателей — на живых
+        if (s.values && j < s.values.length) c.textContent = s.values[j];
         c.classList.toggle("algo-tp__mini--lo", j === lo);
         c.classList.toggle("algo-tp__mini--hi", j === hi);
       });
       if (updateMap) updateMap(s);
+      markScrollSoon();
       var sv = cfg.sumValues(s, ctx);
-      sumValEls.forEach(function (elv, k) { elv.textContent = sv[k].text; elv.className = "algo-tp__sumval" + (sv[k].cls ? " algo-tp__sumval--" + sv[k].cls : ""); });
+      sumValEls.forEach(function (elv, k) {
+        var tx = sv[k].text == null ? "" : String(sv[k].text);
+        elv.textContent = tx;
+        elv.className = "algo-tp__sumval" + (sv[k].cls ? " algo-tp__sumval--" + sv[k].cls : "") + (tx.length > 11 ? " algo-tp__sumval--long" : "");
+      });
 
       var st = cfg.status(s, idx, steps.length, ctx);
       cStat.classList.toggle("algo-tp__status--ok", st.kind === "ok");
@@ -11671,10 +11796,10 @@
 
       // Подпись под кодом: «▸ строка N» + что она делает. Объяснение — из
       // cfg.lineNotes (по индексу строки), иначе короткий текст статуса.
-      if (typeof s.line === "number" && s.line >= 0 && codeLines[s.line]) {
-        codeNoteLn.textContent = "▸ строка " + (s.line + 1);
-        var note = (cfg.lineNotes && cfg.lineNotes[s.line]) || (st && st.text) || codeLines[s.line].trim();
-        codeNoteTx.textContent = note;
+      var nt = noteOf(s, st);
+      if (nt) {
+        codeNoteLn.textContent = nt.ln;
+        codeNoteTx.textContent = nt.tx;
         codeNote.style.visibility = "";
       } else {
         codeNote.style.visibility = "hidden";
@@ -11735,6 +11860,7 @@
       else if (e.key === "Escape" && root.classList.contains("algo-tp--fs")) { setFs(false); e.preventDefault(); }
     });
     show(0);
+    armReserve();
   }
 
   // ===== Диспетчер ============================================================
