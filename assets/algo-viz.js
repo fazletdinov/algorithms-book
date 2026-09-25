@@ -1445,18 +1445,22 @@
       "}"
     ],
     "tree-bfs": [
-      "func bfs(root *TreeNode) []int {",
-      "    if root == nil { return nil }",
+      "func levelOrder(root *TreeNode) [][]int {",
       "    queue := []*TreeNode{root}",
-      "    var order []int",
+      "    result := [][]int{}",
       "    for len(queue) > 0 {",
-      "        node := queue[0]",
-      "        queue = queue[1:]",
-      "        order = append(order, node.Val)",
-      "        if node.Left != nil { queue = append(queue, node.Left) }",
-      "        if node.Right != nil { queue = append(queue, node.Right) }",
+      "        levelSize := len(queue) // снимок уровня!",
+      "        level := []int{}",
+      "        for i := 0; i < levelSize; i++ {",
+      "            node := queue[0]",
+      "            queue = queue[1:]",
+      "            level = append(level, node.Val)",
+      "            if node.Left != nil { queue = append(queue, node.Left) }",
+      "            if node.Right != nil { queue = append(queue, node.Right) }",
+      "        }",
+      "        result = append(result, level)",
       "    }",
-      "    return order",
+      "    return result",
       "}"
     ],
     "tree-dfs": [
@@ -7725,6 +7729,52 @@
     push({ line: 14, done: true, found: true, info: "очередь пуста — ответ [" + res.join(", ") + "]: по одному узлу с каждого уровня, самый правый" });
     return { arr: arr, present: present, steps: steps };
   }
+  // Обход по уровням как в шаблоне главы: снимок levelSize отделяет узлы текущего уровня
+  // от их детей, которые встают в хвост той же очереди. Раньше здесь стоял плоский BFS
+  // без levelSize — центральная мысль главы (граница d / d+1 в очереди) не была видна.
+  function bTreeLevelOrder(arr) {
+    var has = function (i) { return i < arr.length && arr[i] != null; };
+    var present = []; for (var i = 0; i < arr.length; i++) if (arr[i] != null) present.push(i);
+    var steps = [], result = [], level = [], lvl = [], rem = 0, ls = 0, depth = -1, doneIdx = [], queue = has(0) ? [0] : [];
+    function fmtRes() { return "[" + result.map(function (l) { return "[" + l.join(",") + "]"; }).join(", ") + "]"; }
+    function push(o) { steps.push({ cur: o.cur == null ? -1 : o.cur, qIdx: queue.slice(), rem: rem, levelIdx: lvl.slice(), doneIdx: doneIdx.slice(), line: o.line, vars: { depth: depth < 0 ? "—" : depth, levelSize: ls || "—", i: o.i == null ? "—" : o.i, level: depth < 0 ? "—" : "[" + level.join(",") + "]", result: fmtRes() }, info: o.info, done: o.done, found: o.found, hot: !!o.hot }); }
+    push({ line: 1, info: "queue := [корень]" + (has(0) ? " = [" + arr[0] + "]" : " — дерево пустое") });
+    while (queue.length) {
+      push({ line: 3, info: "len(queue) = " + queue.length + " > 0 — есть ещё уровень" });
+      depth++; ls = queue.length; rem = ls; lvl = queue.slice(); level = [];
+      push({ line: 4, hot: true, info: "уровень " + depth + ": levelSize = len(queue) = " + ls + ". Снимок: в очереди СЕЙЧАС ровно узлы уровня " + depth + " (" + lvl.map(function (k) { return arr[k]; }).join(", ") + "); их дети встанут в хвост, за границу, и в этот проход не попадут" });
+      for (var k = 0; k < ls; k++) {
+        var node = queue.shift(); rem--;
+        push({ line: 8, cur: node, i: k, info: "i = " + k + " из " + ls + ": снимаем " + arr[node] + " из начала очереди" });
+        level.push(arr[node]); doneIdx.push(node);
+        push({ line: 9, cur: node, i: k, info: "level = [" + level.join(",") + "]" });
+        var kids = [];
+        if (has(2 * node + 1)) { queue.push(2 * node + 1); kids.push(arr[2 * node + 1]); }
+        if (has(2 * node + 2)) { queue.push(2 * node + 2); kids.push(arr[2 * node + 2]); }
+        if (kids.length) push({ line: has(2 * node + 2) ? 11 : 10, cur: node, i: k, note: "Дети — в хвост, за границу уровня", info: "дети " + arr[node] + " → в хвост: " + kids.join(", ") + (rem ? " (за " + rem + " ещё не снятыми узлами уровня " + depth + ")" : " — это уже целиком уровень " + (depth + 1)) });
+      }
+      result.push(level.slice());
+      push({ line: 13, hot: true, info: "уровень " + depth + " закрыт: снято ровно levelSize = " + ls + " " + (ls % 10 === 1 && ls % 100 !== 11 ? "узел" : ls % 10 >= 2 && ls % 10 <= 4 && (ls % 100 < 10 || ls % 100 >= 20) ? "узла" : "узлов") + ". result = " + fmtRes() + "; в очереди остался только уровень " + (depth + 1) + (queue.length ? " (" + queue.map(function (q) { return arr[q]; }).join(", ") + ")" : " — пусто") });
+      lvl = []; ls = 0;
+    }
+    push({ line: 3, info: "len(queue) = 0 — уровней больше нет" });
+    push({ line: 15, done: true, found: true, info: "return " + fmtRes() + " — узлы, сгруппированные по уровням" });
+    return { arr: arr, present: present, steps: steps };
+  }
+  function levelOrderViz(panel, ctx) {
+    var fig = binaryFigure(ctx.arr, ctx.present, false);
+    panel.appendChild(fig.el);
+    return function (s) {
+      ctx.present.forEach(function (i) {
+        var el = fig.byIdx[i], inQ = s.qIdx.indexOf(i), inLvl = s.levelIdx.indexOf(i) >= 0, done = s.doneIdx.indexOf(i) >= 0;
+        el.classList.toggle("algo-tp__tnode--current", i === s.cur);
+        el.classList.toggle("algo-tp__tnode--found", done && i !== s.cur);
+        el.classList.toggle("algo-tp__tnode--path", inLvl && !done && i !== s.cur);
+        // уже в очереди, но за границей уровня — следующий уровень
+        el.classList.toggle("algo-tp__tnode--wild", inQ >= s.rem && !inLvl);
+      });
+    };
+  }
   function rightViewViz(panel, ctx) {
     var fig = binaryFigure(ctx.arr, ctx.present, false);
     panel.appendChild(fig.el);
@@ -11248,37 +11298,41 @@
     },
 
     "tree-bfs": {
-      badge: "Tree BFS",
-      desc: "Обход дерева в ширину: узлы по уровням через очередь (FIFO).",
-      valuesLabel: "Узлы (по уровням)", codeKey: "tree-bfs", fillRange: false,
-      ptr1: { name: "узел", cap: "(текущий)" }, ptr2: { name: "", cap: "" },
+      badge: "Tree BFS · по уровням", desc: "Обход по уровням: levelSize = len(queue) — снимок, в очереди ровно текущий уровень. Сняли его целиком — уровень закрыт; дети, вставшие в хвост, и есть следующий.",
+      valuesLabel: "", codeKey: "tree-bfs", fillRange: false,
       complexity: { time: "O(n)", space: "O(w)", good: "★ Обхода по уровням" },
-      varOrder: ["node", "visited", "order"],
-      varDesc: { "node": "Текущий узел", "visited": "Сколько узлов посещено", "order": "Порядок обхода" },
-      lineNotes: { 2: "Очередь стартует с корня", 3: "order — порядок обхода (накапливаем)", 4: "Пока очередь не пуста — продолжаем", 5: "Берём узел из начала очереди (FIFO)", 6: "Удаляем его из очереди", 7: "Добавляем его значение в порядок обхода", 8: "Левого ребёнка — в конец очереди", 9: "Правого ребёнка — в конец очереди", 11: "Очередь пуста — обход по уровням завершён" },
-      rules: [{ head: "Извлекаем из начала", body: "queue[0] (FIFO)", cls: "lt" }, { head: "Детей — в конец", body: "сначала left, потом right", cls: "gt" }, { head: "Уровень за уровнем", body: "ближние раньше дальних", cls: "eq" }],
-      parse: function (root) { return bTree(parseTree(root.getAttribute("data-tree")), "bfs"); },
+      varOrder: ["depth", "levelSize", "i", "level", "result"],
+      varDesc: { depth: "Номер уровня (для наглядности, в коде его нет)", levelSize: "Снимок размера уровня", i: "Номер узла внутри уровня", level: "Значения текущего уровня", result: "Готовые уровни" },
+      lineNotes: { 1: "Очередь стартует с корня", 3: "Пока очередь не пуста — есть ещё уровень", 4: "Снимок: сколько узлов в текущем уровне", 5: "Значения текущего уровня", 8: "Снимаем узел из начала (FIFO)", 9: "Его значение — в текущий уровень", 10: "Левого ребёнка — в хвост", 11: "Правого ребёнка — в хвост", 13: "Сняли ровно levelSize — уровень закрыт", 15: "Все уровни собраны" },
+      rules: [{ head: "levelSize = len(queue)", body: "снимок отделяет уровень от детей", cls: "lt" }, { head: "дети в хвост", body: "за границу — это уровень d+1", cls: "gt" }, { head: "сняли levelSize", body: "→ уровень закрыт", cls: "eq" }],
+      parse: function (root) { return bTreeLevelOrder(parseTree(root.getAttribute("data-tree"))); },
       inputs: [{ attr: "data-tree", label: "Дерево по уровням, как в LeetCode (null — нет узла)" }],
-      values: function (ctx) { return ctx.present.map(function (i) { return ctx.arr[i]; }); },
-      title: function () { return "Обход дерева в ширину (BFS)"; },
-      pointers: function (s) { return { lo: s.cur, hi: -1 }; },
-      sumCells: ["Текущий узел", "Посещено"],
-      sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.visited, cls: "eq" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Обход завершён", text: s.vars.order }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.visited, c: "BFS", cls: "eq" }; return { a: "узел " + s.vars.node, b: "в порядок обхода", c: "→", cls: "lt" }; },
-      varsOf: function (s) { return { "node": s.vars.node, "visited": s.vars.visited, "order": s.vars.order }; },
-      // Панель очереди BFS (значения узлов, FIFO).
-      mapViz: function (panel) {
-        var p = structPanel(panel, "queue — очередь BFS (FIFO: берём из начала)");
+      values: function () { return []; },
+      title: function () { return "Обход дерева по уровням (BFS)"; },
+      legend: [{ cls: "tcur", label: "снимаем сейчас" }, { cls: "lvl", label: "текущий уровень (в снимке levelSize)" }, { cls: "tnext", label: "в очереди за границей — следующий уровень" }, { cls: "tvis", label: "уже снят" }],
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Уровень · levelSize", "result"],
+      sumValues: function (s) { return [{ text: s.vars.depth + " · " + s.vars.levelSize }, { text: s.vars.result, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Обход по уровням завершён", text: s.info }; return { kind: "info", hot: s.hot, icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "уровень " + s.vars.depth, b: "i = " + s.vars.i, c: s.vars.level, cls: "eq" }; },
+      varsOf: function (s) { return { depth: s.vars.depth, levelSize: s.vars.levelSize, i: s.vars.i, level: s.vars.level, result: s.vars.result }; },
+      // Очередь с границей уровня: слева — ещё не снятые узлы текущего уровня, за чертой — дети.
+      mapViz: function (panel, ctx) {
+        var p = structPanel(panel, "queue — слева начало; черта — граница уровня");
         return function (s) {
           p.grid.innerHTML = "";
-          var q = s.queue || [];
+          var q = s.qIdx || [];
           if (!q.length) p.grid.appendChild(structCell("", "∅", "algo-tp__mapcell--off"));
-          else q.forEach(function (v, k) { p.grid.appendChild(structCell(k === 0 ? "front" : (k === q.length - 1 ? "back" : ""), v, k === 0 ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : "algo-tp__mapcell--on")); });
-          p.foot.textContent = "в очереди: " + q.length;
+          q.forEach(function (k, j) {
+            if (j === s.rem && s.levelIdx.length) p.grid.appendChild(structCell("", "┃", "algo-tp__mapcell--off algo-tp__mapcell--sep"));
+            var cur = j < s.rem && s.levelIdx.length;
+            p.grid.appendChild(structCell(j === 0 ? "front" : "", String(ctx.arr[k]), cur ? "algo-tp__mapcell--on algo-tp__mapcell--dec" : "algo-tp__mapcell--on algo-tp__mapcell--next"));
+          });
+          if (q.length && s.levelIdx.length && s.rem === q.length) p.grid.appendChild(structCell("", "┃", "algo-tp__mapcell--off algo-tp__mapcell--sep"));
+          p.foot.textContent = !s.levelIdx.length ? "в очереди: " + q.length + (q.length ? " — это целиком следующий уровень" : "") : "уровень " + s.vars.depth + ": осталось снять " + s.rem + " из " + s.vars.levelSize + "; за чертой — " + (q.length - s.rem) + " детей (уровень " + (s.vars.depth + 1) + ")";
         };
       },
-      customViz: treeViz
+      customViz: levelOrderViz
     },
 
     "tree-dfs": {

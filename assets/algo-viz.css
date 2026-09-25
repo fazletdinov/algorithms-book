@@ -1472,3 +1472,8 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__cyclab { position: absolute; top: 1.7em; left: 50%; translate: -50% 0; white-space: nowrap; font-size: 0.72em; color: var(--tp-warn); }
 /* Выбывший из окна элемент на шаге сдвига: «− arr[i−k]» должно быть видно на массиве */
 .algo-tp__big.algo-tp__big--out { border: 2px dashed #ef4444; opacity: 0.6; text-decoration: line-through; text-decoration-color: #ef4444; }
+/* BFS по уровням: следующий уровень в очереди и черта-граница */
+.algo-tp__legdot--tnext { background: transparent; border: 2px dashed var(--tp-lo); }
+.algo-tp__tfignode.algo-tp__tnode--wild { border: 2px dashed var(--tp-lo); }
+.algo-tp__mapcell--next { border-style: dashed; opacity: 0.85; }
+.algo-tp__mapcell--sep { border: none; background: transparent; color: var(--tp-warn); min-width: 0; padding: 0 2px; }
