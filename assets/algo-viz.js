@@ -1010,24 +1010,28 @@
       "// lockSlow (разбуженная): CAS → | mutexLocked, &^ mutexWoken"
     ],
     "tls-handshake": [
-      "// TLS 1.3 — установка защищённого канала (1 round-trip)",
-      "client → ClientHello{ciphers, keyShare}      // шифры + ECDHE-share",
-      "server → ServerHello{keyShare}               // сервер шлёт свой share",
-      "//        sharedSecret = ECDHE(shares)        // общий секрет у обеих сторон",
-      "server → {Certificate, CertVerify, Finished} // уже под шифром",
-      "//        client: проверить сертификат до CA  // подлинность сервера",
-      "client → {Finished}                          // рукопожатие завершено",
-      "//        данные ← AES-GCM(sharedSecret)      // трафик зашифрован"
+      "// TLS 1.3: один round-trip до данных",
+      "C → ClientHello{шифры, share A} // a — у C",
+      "S → ServerHello{share B}        // b — у S",
+      "// S = ECDH(a,B) = ECDH(b,A) → HKDF",
+      "S → {Certificate}          // под шифром",
+      "S → {CertificateVerify}    // подпись",
+      "// C: цепочка до CA + подпись ключом cert",
+      "S → {Finished}",
+      "C → {Finished}",
+      "// HKDF(S) → ключи данных, AES-GCM"
     ],
     "oauth-flow": [
       "// OAuth 2.0 Authorization Code + PKCE (OIDC)",
-      "app  → /authorize?client_id&scope&code_challenge&state // redirect",
-      "//       пользователь входит и даёт согласие на Auth-сервере",
-      "auth → redirect_uri?code=…&state=…                     // authorization code",
-      "app  → /token: code + code_verifier                    // back-channel",
-      "auth → access_token + id_token(JWT) + refresh_token",
-      "app  → API: Authorization: Bearer access_token",
-      "//       id_token(JWT) сообщает, КТО пользователь (OIDC)"
+      "app → браузер: 302 /authorize?…code_challenge",
+      "браузер → auth: GET /authorize (всё в URL)",
+      "//  логин и согласие: пароль видит только auth",
+      "auth → браузер: 302 redirect_uri?code=…",
+      "браузер → app: code (front-channel)",
+      "app → auth: POST /token code + code_verifier",
+      "auth → app: access + id (JWT) + refresh",
+      "app → API: Authorization: Bearer access",
+      "//  id_token (JWT) — кто пользователь (OIDC)"
     ],
     "context-tree": [
       "ctx, cancel := context.WithTimeout(parent, 3*time.Second) // req",
@@ -5334,32 +5338,46 @@
     };
   }
 
-  // handshakeViz — последовательность сообщений «Клиент ↔ Сервер» (для TLS-хендшейка).
-  // Две колонки-стороны, строки-сообщения появляются по шагам (s.reveal), последнее —
-  // подсвечено. Реюзабельно для любого протокола-диалога.
-  function handshakeViz(panel, ctx) {
-    var msgs = ctx.msgs;
-    var wrap = document.createElement("div"); wrap.className = "algo-tp__hs";
-    var hdr = document.createElement("div"); hdr.className = "algo-tp__hshdr";
-    var parties = ctx.parties || ["🧑‍💻 Клиент", "🖥️ Сервер"];
-    var pc = document.createElement("div"); pc.className = "algo-tp__hsparty"; pc.textContent = parties[0]; hdr.appendChild(pc);
-    var ps = document.createElement("div"); ps.className = "algo-tp__hsparty"; ps.textContent = parties[1]; hdr.appendChild(ps);
-    wrap.appendChild(hdr);
+  // seqViz — диаграмма последовательности на N участников (TLS, OAuth): колонки со
+  // «линиями жизни», сообщение — стрелка от колонки from до колонки to, заметка — плашка
+  // над своими колонками. Канал сообщения: front (через браузер, пунктир), back
+  // (сервер-сервер), enc (под шифром, 🔒). Сообщения появляются по шагам (s.reveal).
+  function seqViz(panel, ctx) {
+    var parties = ctx.parties, N = parties.length, msgs = ctx.msgs;
+    var wrap = mkEl("div", "algo-tp__seq"); wrap.style.gridTemplateColumns = "repeat(" + N + ", minmax(0, 1fr))";
+    // линии жизни участников — вертикали по центрам колонок (column-gap = 0, так проценты точны)
+    wrap.style.backgroundImage = parties.map(function (_, i) { var c = (100 * (2 * i + 1) / (2 * N)).toFixed(3); return "linear-gradient(to right, transparent calc(" + c + "% - 1px), var(--seq-life) calc(" + c + "% - 1px), var(--seq-life) calc(" + c + "% + 1px), transparent calc(" + c + "% + 1px))"; }).join(", ");
+    parties.forEach(function (p) { wrap.appendChild(mkEl("div", "algo-tp__seqparty", p)); });
     var rows = msgs.map(function (m) {
-      var r = document.createElement("div"); r.className = "algo-tp__hsrow algo-tp__hsrow--" + m.dir;
-      var a = document.createElement("div"); a.className = "algo-tp__hsarrow";
-      a.textContent = m.dir === "c2s" ? "──▶" : (m.dir === "s2c" ? "◀──" : "✔");
-      r.appendChild(a);
-      var t = document.createElement("div"); t.className = "algo-tp__hsmsg"; t.textContent = m.text;
-      r.appendChild(t);
+      var r;
+      if (m.note) {
+        var lo = Math.min.apply(null, m.note), hi = Math.max.apply(null, m.note);
+        r = mkEl("div", "algo-tp__seqnote", m.text);
+        r.style.gridColumn = (lo + 1) + " / " + (hi + 2);
+      } else {
+        var a = Math.min(m.from, m.to), b = Math.max(m.from, m.to), right = m.to > m.from;
+        r = mkEl("div", "algo-tp__seqmsg" + (m.ch ? " algo-tp__seqmsg--" + m.ch : "") + (m.enc ? " algo-tp__seqmsg--enc" : ""));
+        r.style.gridColumn = (a + 1) + " / " + (b + 2);
+        // стрелка — от центра колонки from до центра to: ширина = span − 1 колонок из span
+        r.style.setProperty("--seq-span", String(b - a + 1));
+        var head = mkEl("div", "algo-tp__seqtext");
+        if (m.tag) head.appendChild(mkEl("span", "algo-tp__seqtag", m.tag));
+        if (m.enc) head.appendChild(mkEl("span", "algo-tp__seqlock", "🔒"));
+        if (m.ch) head.appendChild(mkEl("span", "algo-tp__seqch", m.ch === "front" ? "front · через браузер" : "back · сервер-сервер"));
+        head.appendChild(mkEl("span", null, m.text));
+        r.appendChild(head);
+        var ar = mkEl("div", "algo-tp__seqarrow algo-tp__seqarrow--" + (right ? "r" : "l"));
+        r.appendChild(ar);
+        if (m.sub) r.appendChild(mkEl("div", "algo-tp__seqsub", m.sub));
+      }
       wrap.appendChild(r);
       return r;
     });
     panel.appendChild(wrap);
     return function (s) {
       rows.forEach(function (r, i) {
-        r.classList.toggle("algo-tp__hsrow--shown", i <= s.reveal);
-        r.classList.toggle("algo-tp__hsrow--current", i === s.reveal);
+        r.classList.toggle("algo-tp__seq--shown", i <= s.reveal);
+        r.classList.toggle("algo-tp__seq--current", i === s.reveal);
       });
     };
   }
@@ -6845,43 +6863,50 @@
   }
 
   // TLS 1.3 handshake — последовательность сообщений. Показывает, как за 1 round-trip
-  // согласуется общий секрет (ECDHE), подтверждается подлинность (сертификат) и
-  // включается шифрование (AES-GCM): asymmetric → symmetric. Рисуется handshakeViz.
+  // согласуется общий секрет (ECDHE), подтверждается подлинность (CertificateVerify) и
+  // включается шифрование (AES-GCM): asymmetric → symmetric. Рисуется seqViz.
   function bTLSHandshake() {
-    var msgs = [
-      { dir: "c2s", text: "ClientHello: список шифров + ключевой share (ECDHE)" },
-      { dir: "s2c", text: "ServerHello: свой ключевой share" },
-      { dir: "note", text: "Обе стороны вычислили ОДИН общий секрет (ECDHE), не передавая его" },
-      { dir: "s2c", text: "{Certificate, CertificateVerify, Finished} — уже зашифровано" },
-      { dir: "note", text: "Клиент проверил сертификат по цепочке до доверенного CA" },
-      { dir: "c2s", text: "{Finished} — рукопожатие завершено" },
-      { dir: "note", text: "Канал готов: прикладные данные идут под AES-GCM" }
+    // Подлинность сервера даёт не цепочка до CA сама по себе (сертификат публичен, MITM
+    // перешлёт настоящий), а CertificateVerify: подпись приватным ключом над рукопожатием,
+    // включая оба share. Флаги разведены: ключи рукопожатия ≠ ключи прикладных данных.
+    var C = 0, S = 1, msgs = [
+      { from: C, to: S, tag: "полёт 1", text: "ClientHello: шифры + key_share A", sub: "A = a·G, приватная a остаётся у клиента" },
+      { from: S, to: C, tag: "полёт 2", text: "ServerHello: key_share B", sub: "B = b·G, приватная b остаётся у сервера" },
+      { note: [C, S], text: "S = ECDH(a, B) = ECDH(b, A) — одинаковый у обеих сторон, по сети шли только A и B. HKDF(S) → ключи рукопожатия" },
+      { from: S, to: C, tag: "полёт 2", enc: true, text: "{Certificate}: цепочка сертификатов", sub: "открытый ключ сервера, подписанный CA" },
+      { from: S, to: C, tag: "полёт 2", enc: true, text: "{CertificateVerify}: подпись приватным ключом сервера", sub: "над ВСЕМ рукопожатием — включая A и B" },
+      { note: [C], text: "Клиент проверяет: (1) цепочка до доверенного CA — ключ принадлежит домену; (2) подпись CertificateVerify этим ключом — собеседник ВЛАДЕЕТ приватным ключом. MITM переслать сертификат может, подписать — нет" },
+      { from: S, to: C, tag: "полёт 2", enc: true, text: "{Finished}: MAC над рукопожатием" },
+      { from: C, to: S, enc: true, text: "{Finished}", sub: "с ним же клиент уже может слать данные" },
+      { note: [C, S], text: "HKDF(S) → ключи прикладного трафика: данные под AES-GCM. От ClientHello до первых данных — один round-trip" }
     ];
     var steps = [];
     for (var i = 0; i < msgs.length; i++) {
-      steps.push({ reveal: i, line: i + 1, done: i === msgs.length - 1, vars: { secret: i >= 2 ? "да" : "нет", auth: i >= 4 ? "да" : "нет", enc: i >= 3 ? "да" : "нет" }, info: msgs[i].text });
+      steps.push({ reveal: i, line: i + 1, done: i === msgs.length - 1, vars: { secret: i >= 2 ? "да" : "нет", hsenc: i >= 3 ? "да" : "нет", auth: i >= 5 ? "да" : "нет", appenc: i >= 8 ? "да" : "нет" }, info: msgs[i].text + (msgs[i].sub ? " — " + msgs[i].sub : "") });
     }
-    return { msgs: msgs, steps: steps };
+    return { msgs: msgs, parties: ["🧑‍💻 Клиент", "🖥️ Сервер"], steps: steps };
   }
 
-  // OAuth 2.0 Authorization Code + PKCE (OIDC) — как приложение получает токен, НЕ видя
-  // пароль пользователя (его видит только Auth-сервер). Переиспользует handshakeViz:
-  // колонки «Приложение ↔ Auth-сервер», действия пользователя — заметками.
+  // OAuth 2.0 Authorization Code + PKCE (OIDC). Четыре участника: без браузера не видно,
+  // ради чего весь flow — code едет через front-channel (URL, история), а токены идут
+  // сервер-сервер по back-channel; без API — что access_token предъявляют не Auth-серверу.
   function bOAuthFlow() {
-    var msgs = [
-      { dir: "c2s", text: "Redirect на Auth-сервер: client_id, scope, PKCE code_challenge, state" },
-      { dir: "note", text: "Пользователь входит и даёт согласие — пароль видит ТОЛЬКО Auth-сервер" },
-      { dir: "s2c", text: "Redirect обратно: authorization code (+ state)" },
-      { dir: "c2s", text: "Back-channel: обмен code + PKCE code_verifier на токены" },
-      { dir: "s2c", text: "access_token + id_token (JWT, OIDC) + refresh_token" },
-      { dir: "note", text: "Приложение → 📦 API (resource server, НЕ Auth-сервер): Authorization: Bearer access_token — API проверяет подпись и audience токена" },
-      { dir: "note", text: "id_token (JWT) сообщает, КТО пользователь — это уже OIDC" }
+    var A = 0, B = 1, AU = 2, API = 3, msgs = [
+      { from: A, to: B, ch: "front", text: "302 → /authorize?client_id, scope, code_challenge, state", sub: "code_challenge = SHA256(code_verifier); verifier приложение держит у себя" },
+      { from: B, to: AU, ch: "front", text: "GET /authorize… — всё это видно в URL" },
+      { note: [B, AU], text: "🔑 Пользователь вводит пароль и даёт согласие — пароль видит ТОЛЬКО Auth-сервер, приложение его не получает" },
+      { from: AU, to: B, ch: "front", text: "302 → redirect_uri?code=…&state=…", sub: "одноразовый authorization code" },
+      { from: B, to: A, ch: "front", text: "code доходит до приложения через браузер", sub: "по дороге его можно перехватить: URL, история, чужое приложение на мобильном" },
+      { from: A, to: AU, ch: "back", text: "POST /token: code + code_verifier", sub: "Auth-сервер сверяет SHA256(verifier) с challenge: перехваченный code без verifier бесполезен" },
+      { from: AU, to: A, ch: "back", text: "access_token + id_token (JWT) + refresh_token", sub: "сервер-сервер: в браузер токены не попадают" },
+      { from: A, to: API, ch: "back", text: "GET /me — Authorization: Bearer access_token", sub: "API (resource server) проверяет подпись и audience токена; Auth-сервер тут не участвует" },
+      { note: [A, B], text: "id_token (JWT) сообщает, КТО пользователь — это уже OpenID Connect поверх OAuth" }
     ];
     var steps = [];
     for (var i = 0; i < msgs.length; i++) {
-      steps.push({ reveal: i, line: i + 1, done: i === msgs.length - 1, vars: { code: i >= 2 ? "да" : "нет", token: i >= 4 ? "да" : "нет" }, info: msgs[i].text });
+      steps.push({ reveal: i, line: i + 1, done: i === msgs.length - 1, vars: { code: i >= 4 ? "у приложения" : i >= 3 ? "в браузере" : "нет", token: i >= 6 ? "да" : "нет", api: i >= 7 ? "да" : "нет" }, info: msgs[i].text + (msgs[i].sub ? " — " + msgs[i].sub : "") });
     }
-    return { msgs: msgs, parties: ["🧑‍💻 Приложение", "🔐 Auth-сервер"], steps: steps };
+    return { msgs: msgs, parties: ["🧑‍💻 Приложение (сервер)", "🌐 Браузер", "🔐 Auth-сервер", "📦 API"], steps: steps };
   }
 
   // context.Context — дерево отмены. Отмена/таймаут узла каскадом валит всё поддерево
@@ -11114,46 +11139,47 @@
 
     "tls-handshake": {
       badge: "TLS 1.3 handshake",
-      desc: "Установка защищённого канала за один round-trip: стороны согласуют общий ключ (ECDHE, не передавая его), сервер доказывает подлинность сертификатом, затем весь трафик шифруется AES-GCM. Асимметрикой согласуют ключ — данные шифруют симметрикой.",
+      desc: "Защищённый канал за один round-trip: стороны согласуют общий секрет ECDHE, не передавая его; сервер доказывает, что владеет ключом из сертификата, — подписью CertificateVerify над всем рукопожатием; из секрета выводятся ключи, и данные идут под AES-GCM. Асимметрикой согласуют и подписывают — данные шифруют симметрикой.",
       valuesLabel: "", codeKey: "tls-handshake", fillRange: false,
-      complexity: { time: "1-RTT", space: "—", good: "★ Ключ + подлинность + шифр за одно рукопожатие" },
-      varOrder: ["secret", "auth", "enc"],
-      varDesc: { secret: "Общий секрет (ECDHE) установлен", auth: "Сервер аутентифицирован сертификатом", enc: "Трафик зашифрован" },
-      lineNotes: { 0: "Цель: согласовать ключ + подтвердить подлинность + включить шифрование", 1: "Клиент шлёт поддерживаемые шифры и свой ECDHE-share", 2: "Сервер выбирает шифр и шлёт свой share", 3: "По двум share обе стороны считают ОДИН секрет — не передавая его по сети", 4: "Сервер шлёт сертификат и подпись — уже под шифром", 5: "Клиент проверяет цепочку сертификата до доверенного CA", 6: "Клиент подтверждает — рукопожатие завершено", 7: "Дальше прикладные данные идут под AES-GCM" },
-      rules: [{ head: "ECDHE", body: "общий ключ без передачи по сети", cls: "eq" }, { head: "сертификат", body: "подлинность сервера (защита от MITM)", cls: "lt" }, { head: "итог", body: "asymmetric → symmetric", cls: "gt" }],
-      parse: function () { var r = bTLSHandshake(); return { msgs: r.msgs, steps: r.steps }; },
+      complexity: { timeLabel: "Задержка", time: "1-RTT до данных", spaceLabel: "Что даёт", space: "ключ + подлинность + шифр", good: "★ Защита от MITM без общего пароля" },
+      varOrder: ["secret", "hsenc", "auth", "appenc"],
+      varDesc: { secret: "Общий секрет S (ECDHE) у обеих сторон", hsenc: "Рукопожатие под шифром (ключи из S)", auth: "Сервер доказал владение ключом (CertificateVerify)", appenc: "Прикладные данные под AES-GCM" },
+      lineNotes: { 0: "Цель: общий ключ + подлинность сервера + шифрование", 1: "Клиент шлёт шифры и публичную A; приватная a не покидает клиента", 2: "Сервер шлёт публичную B; приватная b остаётся у него", 3: "По своей приватной и чужой публичной обе стороны получают ОДИН S", 4: "Сертификат — открытый ключ сервера, подписанный CA", 5: "Подпись приватным ключом над рукопожатием — доказательство владения", 6: "Цепочка до CA + подпись ключом из сертификата → это действительно сервер", 7: "Сервер закрывает рукопожатие MAC-ом", 8: "Клиент закрывает своё", 9: "Из S — ключи трафика, данные под AES-GCM" },
+      rules: [{ head: "ECDHE", body: "общий секрет без передачи по сети", cls: "eq" }, { head: "CertificateVerify", body: "подпись ключом из сертификата → не MITM", cls: "lt" }, { head: "итог", body: "асимметрика согласует, симметрика шифрует", cls: "gt" }],
+      parse: function () { var r = bTLSHandshake(); return { msgs: r.msgs, parties: r.parties, steps: r.steps }; },
       inputs: [],
       values: function () { return []; },
       title: function () { return "TLS 1.3: установка защищённого канала"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
-      sumCells: ["секрет", "аутентификация", "шифрование"],
-      sumValues: function (s) { return [{ text: s.vars.secret, cls: s.vars.secret === "да" ? "gt" : "" }, { text: s.vars.auth, cls: s.vars.auth === "да" ? "lt" : "" }, { text: s.vars.enc, cls: s.vars.enc === "да" ? "eq" : "" }]; },
+      sumCells: ["секрет S", "подлинность", "данные AES-GCM"],
+      sumValues: function (s) { return [{ text: s.vars.secret, cls: s.vars.secret === "да" ? "ok" : "" }, { text: s.vars.auth, cls: s.vars.auth === "да" ? "ok" : "" }, { text: s.vars.appenc, cls: s.vars.appenc === "да" ? "ok" : "" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "🔒", head: "Защищённый канал установлен", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { return { a: "секрет:" + s.vars.secret, b: "auth:" + s.vars.auth, c: "шифр:" + s.vars.enc, cls: "eq" }; },
-      varsOf: function (s) { return { secret: s.vars.secret, auth: s.vars.auth, enc: s.vars.enc }; },
-      customViz: handshakeViz
+      stepCard: function (s) { return { a: "S:" + s.vars.secret, b: "auth:" + s.vars.auth, c: "данные:" + s.vars.appenc, cls: "eq" }; },
+      varsOf: function (s) { return { secret: s.vars.secret, hsenc: s.vars.hsenc, auth: s.vars.auth, appenc: s.vars.appenc }; },
+      customViz: seqViz
     },
 
     "oauth-flow": {
       badge: "OAuth 2.0 / OIDC",
-      desc: "Authorization Code flow с PKCE: приложение получает токен доступа, НЕ видя пароль пользователя (его вводят только на Auth-сервере). Код авторизации меняется на токены по back-channel; id_token (JWT) добавляет OpenID Connect — «кто это».",
+      desc: "Authorization Code flow с PKCE: приложение получает токен доступа, НЕ видя пароль пользователя (его вводят только на Auth-сервере). code едет через браузер (front-channel) и может быть перехвачен — поэтому он одноразовый и без code_verifier бесполезен; токены идут сервер-сервер (back-channel). С access_token ходят к API — отдельному resource server; id_token (JWT) добавляет OpenID Connect — «кто это».",
       valuesLabel: "", codeKey: "oauth-flow", fillRange: false,
-      complexity: { time: "redirect + back-channel", space: "—", good: "★ Доступ без передачи пароля приложению" },
-      varOrder: ["code", "token"],
-      varDesc: { code: "Получен authorization code", token: "Получены access/id токены" },
-      lineNotes: { 0: "Цель: дать приложению доступ, не показывая ему пароль пользователя", 1: "Приложение уводит пользователя на Auth-сервер (client_id, scope, PKCE)", 2: "Пользователь логинится и подтверждает согласие — на Auth-сервере", 3: "Auth-сервер возвращает одноразовый authorization code", 4: "Приложение по back-channel меняет code + code_verifier на токены", 5: "Выдаются access_token, id_token (JWT) и refresh_token", 6: "К API ходят с access_token в заголовке Authorization: Bearer", 7: "id_token (JWT) удостоверяет личность — это OpenID Connect" },
-      rules: [{ head: "PKCE", body: "перехваченный code бесполезен без code_verifier", cls: "eq" }, { head: "пароль", body: "видит только Auth-сервер, не приложение", cls: "lt" }, { head: "OIDC", body: "id_token (JWT) = «кто пользователь»", cls: "gt" }],
+      complexity: { timeLabel: "Каналы", time: "front (браузер) + back (сервер-сервер)", spaceLabel: "Пароль видит", space: "только Auth-сервер", good: "★ Доступ без передачи пароля приложению" },
+      varOrder: ["code", "token", "api"],
+      varDesc: { code: "Где authorization code", token: "Получены access/id токены", api: "Запрос к API с Bearer-токеном" },
+      lineNotes: { 0: "Цель: дать приложению доступ, не показывая ему пароль пользователя", 1: "Приложение уводит браузер на Auth-сервер; code_challenge — хеш секрета code_verifier", 2: "Всё это front-channel: параметры видны в URL", 3: "Пароль вводится на Auth-сервере — приложение его не видит", 4: "Auth-сервер отдаёт одноразовый code через redirect", 5: "code приходит через браузер — его можно перехватить", 6: "Back-channel: code + code_verifier; без verifier перехваченный code бесполезен", 7: "Токены идут сервер-сервер, мимо браузера", 8: "К API (resource server) — с Bearer access_token", 9: "id_token (JWT) удостоверяет личность — это OpenID Connect" },
+      rules: [{ head: "PKCE", body: "перехваченный code бесполезен без code_verifier", cls: "eq" }, { head: "front / back", body: "code — через браузер, токены — сервер-сервер", cls: "lt" }, { head: "OIDC", body: "id_token (JWT) = «кто пользователь»", cls: "gt" }],
       parse: function () { var r = bOAuthFlow(); return { msgs: r.msgs, parties: r.parties, steps: r.steps }; },
       inputs: [],
       values: function () { return []; },
       title: function () { return "OAuth 2.0 / OIDC: доступ без пароля приложению"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
-      sumCells: ["authorization code", "токены"],
-      sumValues: function (s) { return [{ text: s.vars.code, cls: s.vars.code === "да" ? "lt" : "" }, { text: s.vars.token, cls: s.vars.token === "да" ? "gt" : "" }]; },
+      sumCells: ["authorization code", "токены", "запрос к API"],
+      sumValues: function (s) { return [{ text: s.vars.code, cls: s.vars.code === "нет" ? "" : "eq" }, { text: s.vars.token, cls: s.vars.token === "да" ? "ok" : "" }, { text: s.vars.api, cls: s.vars.api === "да" ? "ok" : "" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "🔑", head: "Доступ выдан без пароля приложению", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { return { a: "code:" + s.vars.code, b: "token:" + s.vars.token, c: "PKCE", cls: "eq" }; },
-      varsOf: function (s) { return { code: s.vars.code, token: s.vars.token }; },
-      customViz: handshakeViz
+      stepCard: function (s) { return { a: "code:" + s.vars.code, b: "token:" + s.vars.token, c: "API:" + s.vars.api, cls: "eq" }; },
+      varsOf: function (s) { return { code: s.vars.code, token: s.vars.token, api: s.vars.api }; },
+      customViz: seqViz,
+      wide: true
     },
 
     "context-tree": {
@@ -13564,6 +13590,9 @@
 
     // --- Основная область ---
     var main = mkEl("div", "algo-tp__main");
+    // cfg.wide — визуализация на всю ширину, код под ней: диаграмме на 4 участника (OAuth)
+    // половины панели мало, текст сообщений рвался в столбик на 7 строк
+    if (cfg.wide) main.classList.add("algo-tp__main--wide");
     var pViz = mkEl("div", "algo-tp__panel");
     pViz.appendChild(mkEl("div", "algo-tp__panelhdr", "Визуализация алгоритма"));
     if (cfg.note) { var noteTxt = cfg.note(ctx); if (noteTxt) pViz.appendChild(mkEl("div", "algo-tp__note", noteTxt)); }
@@ -13738,8 +13767,9 @@
     // --- Футер ---
     var foot = mkEl("div", "algo-tp__foot");
     function footCol(lab, val, cls) { var c = mkEl("div", "algo-tp__footcol"); c.appendChild(mkEl("div", "algo-tp__footlab", lab)); c.appendChild(mkEl("div", "algo-tp__footval" + (cls ? " " + cls : ""), val)); return c; }
-    foot.appendChild(footCol("Сложность по времени", cfg.complexity.time, "algo-tp__footval--ok"));
-    foot.appendChild(footCol("Сложность по памяти", cfg.complexity.space, "algo-tp__footval--ok"));
+    // у протоколов (TLS, OAuth) «сложность по памяти» бессмысленна — плитки подписываются своим
+    foot.appendChild(footCol(cfg.complexity.timeLabel || "Сложность по времени", cfg.complexity.time, "algo-tp__footval--ok"));
+    foot.appendChild(footCol(cfg.complexity.spaceLabel || "Сложность по памяти", cfg.complexity.space, "algo-tp__footval--ok"));
     foot.appendChild(footCol("Подходит для", cfg.complexity.good));
     root.appendChild(foot);
 
