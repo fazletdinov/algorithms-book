@@ -1119,16 +1119,16 @@
       "}"
     ],
     "json-marshal": [
-      "// encoding/json через reflect — сериализует ЛЮБОЙ тип",
-      "t := reflect.TypeOf(v)",
+      "// упрощённый json.Marshal: только плоская структура",
+      "t, rv := reflect.TypeOf(v), reflect.ValueOf(v)",
       "for i := 0; i < t.NumField(); i++ {",
-      "    f := t.Field(i)",
-      "    tag := f.Tag.Get(\"json\")     // имя поля из тега json:",
+      "    f := t.Field(i) // имя, тип, тег поля",
+      "    name, opt, _ := strings.Cut(f.Tag.Get(\"json\"), \",\")",
       "    val := rv.Field(i)",
-      "    if omitempty && val.IsZero() {",
-      "        continue                 // пропустить пустое",
+      "    if opt == \"omitempty\" && val.IsZero() {",
+      "        continue // пустое — пропустить",
       "    }",
-      "    out[tag] = val               // добавить в JSON",
+      "    out[name] = val.Interface()",
       "}"
     ],
     "netpoll": [
@@ -1143,15 +1143,15 @@
       "return n"
     ],
     "chan-block": [
-      "ch := make(chan int)     // небуферизованный",
-      "// отправитель:",
-      "ch <- 42                 // блокируется, пока нет получателя",
-      "//   chansend: recvq пуст → кладём себя в sendq и gopark",
-      "// получатель:",
-      "v := <-ch                // chanrecv",
-      "//   нашёл ждущего в sendq → копируем 42 НАПРЯМУЮ,",
-      "//   goready(отправитель) — оба идут дальше",
-      "// (буферизованный блокирует, лишь когда буфер полон/пуст)"
+      "ch := make(chan int) // без буфера: dataqsiz = 0",
+      "// сценарий 1 — отправитель первым",
+      "ch <- 42   // G1: recvq пуст → в sendq, gopark",
+      "v := <-ch  // G2: в sendq G1 → берёт 42 с его стека",
+      "//            goready(G1) — оба идут дальше",
+      "// сценарий 2 — получатель первым",
+      "v := <-ch  // G2: sendq пуст → в recvq, gopark",
+      "ch <- 7    // G1: в recvq G2 → пишет 7 прямо в его v",
+      "//            goready(G2)"
     ],
     "hanoi": [
       "func hanoi(n, from, to, via int) {",
@@ -6919,26 +6919,29 @@
   // Put возвращает объект; GC очищает пул (это КЭШ, не хранилище). ops: "put,get,gc,…".
   function bSyncPool(ops) {
     // Victim-кэш (Go ≥ 1.13, sync/pool.go: poolCleanup): GC не выбрасывает пул, а переносит
-    // его в victim и выбрасывает прежний victim; Get заглядывает туда до New. Раньше один
-    // GC «мгновенно опустошал пул» — вразрез с прозой главы рядом («живут ~пару циклов»).
-    var pool = [], victim = [], reused = 0, allocs = 0, nextCode = 97, steps = [];
-    function snap(extra) { var o = { pool: pool.slice(), victim: victim.slice(), hot: false, vars: { inpool: pool.length, invictim: victim.length, reused: reused, allocs: allocs } }; for (var k in extra) { o[k] = extra[k]; } return o; }
-    steps.push(snap({ line: 0, info: "Пул пуст. Get берёт объект из пула (reuse) или создаёт новый (New); Put возвращает объект в пул." }));
+    // его в victim и выбрасывает прежний victim; Get заглядывает туда до New. Объекты
+    // циркулируют: новый появляется только из New (alloc), Put возвращает ровно тот, что
+    // взяли, — раньше «Put c» доставал объект из ниоткуда при alloc = 0.
+    var pool = [], victim = [], inuse = [], reused = 0, allocs = 0, nextCode = 97, steps = [];
+    function snap(extra) { var o = { pool: pool.slice(), victim: victim.slice(), inuse: inuse.slice(), hot: false, vars: { inpool: pool.length, invictim: victim.length, reused: reused, allocs: allocs } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 0, info: "Пул пуст. Get берёт объект из пула (reuse), из victim или создаёт новый через New (alloc); Put возвращает взятый объект обратно." }));
     ops.forEach(function (op) {
-      if (op === "put") {
-        var lbl = String.fromCharCode(nextCode++); pool.push(lbl);
-        steps.push(snap({ touched: "p" + (pool.length - 1), hot: true, line: 4, info: "Put: воркер вернул объект «" + lbl + "» в пул — теперь его можно переиспользовать" }));
-      } else if (op === "get") {
-        if (pool.length > 0) { var l2 = pool.pop(); reused++; steps.push(snap({ took: l2, line: 6, info: "Get: пул не пуст → переиспользуем «" + l2 + "» (аллокация СЭКОНОМЛЕНА). Всего reuse: " + reused })); }
-        else if (victim.length > 0) { var l3 = victim.pop(); reused++; steps.push(snap({ took: l3, line: 6, info: "Get: пул пуст, но в victim есть «" + l3 + "» — его и берём (он пережил один GC). Аллокации нет. Всего reuse: " + reused })); }
-        else { allocs++; steps.push(snap({ hot: true, line: 7, info: "Get: пусты и пул, и victim → New() создаёт НОВЫЙ объект (аллокация + работа для GC). Всего alloc: " + allocs })); }
+      if (op === "get") {
+        if (pool.length > 0) { var l2 = pool.pop(); inuse.push(l2); reused++; steps.push(snap({ cur: l2, line: 6, info: "Get: пул не пуст → берём «" + l2 + "» (аллокация СЭКОНОМЛЕНА). Всего reuse: " + reused })); }
+        else if (victim.length > 0) { var l3 = victim.pop(); inuse.push(l3); reused++; steps.push(snap({ cur: l3, line: 6, info: "Get: пул пуст, но в victim есть «" + l3 + "» — его и берём (он пережил один GC). Аллокации нет. Всего reuse: " + reused })); }
+        else { var nw = String.fromCharCode(nextCode++); inuse.push(nw); allocs++; steps.push(snap({ cur: nw, fresh: true, hot: true, line: 7, info: "Get: пусты и пул, и victim → New() создаёт НОВЫЙ объект «" + nw + "» (аллокация + работа для GC). Всего alloc: " + allocs })); }
+      } else if (op === "put") {
+        if (!inuse.length) { steps.push(snap({ hot: true, line: 4, info: "Put: возвращать нечего — ни один объект не взят через Get. В коде так не бывает: Put кладёт то, что вернул Get." })); return; }
+        var lbl = inuse.pop(); pool.push(lbl);
+        steps.push(snap({ cur: lbl, line: 8, info: "Put: воркер закончил с «" + lbl + "» (Reset) и вернул его в пул — следующий Get возьмёт его без аллокации" }));
       } else if (op === "gc") {
         var dropped = victim.slice();
         victim = pool; pool = [];
-        steps.push(snap({ line: 9, info: "GC: пул переезжает в victim" + (dropped.length ? ", а прежний victim выброшен: «" + dropped.join("», «") + "» пережил один GC, второй его добил" : " — после одного GC объекты ещё достижимы через Get") + ". Полагаться на содержимое пула нельзя: это кэш" }));
+        steps.push(snap({ gc: true, line: 9, info: "GC: пул переезжает в victim" + (dropped.length ? ", а прежний victim выброшен: «" + dropped.join("», «") + "» пережил один GC, второй его добил" : " — после одного GC объекты ещё достижимы через Get") + ". Полагаться на содержимое пула нельзя: это кэш" }));
       }
     });
-    steps.push(snap({ done: true, line: 8, info: "Итог: переиспользовано " + reused + ", новых аллокаций " + allocs + ". Пул срезал " + reused + " аллокаций — меньше давление на GC." }));
+    var gets = reused + allocs;
+    steps.push(snap({ done: true, line: 8, info: "Итог: " + gets + " Get — из них " + reused + " без аллокации (reuse) и " + allocs + " через New. Без пула было бы " + gets + " аллокаций." }));
     return steps;
   }
 
@@ -6952,16 +6955,17 @@
     function trans(s, ch) { if (s === 0) return ch === "a" ? [1] : []; if (s === 1) return ch === "b" ? [1] : (ch === "c" ? [1, 2] : []); return []; }
     function setStr(a) { return a.length ? "{" + a.map(label).join(", ") + "}" : "{}"; }
     var active = [0], steps = [];
-    function snap(extra) { var o = { values: chars.slice(), lo: -1, vars: { active: setStr(active), size: active.length, matched: active.indexOf(2) >= 0 ? "да" : "нет" } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    function snap(extra) { var o = { values: chars.slice(), lo: -1, act: active.slice(), used: [], vars: { active: setStr(active), size: active.length, matched: active.indexOf(2) >= 0 ? "да" : "нет" } }; for (var k in extra) { o[k] = extra[k]; } return o; }
     steps.push(snap({ line: 1, info: "Регэксп a(b|c)*c → NFA. Старт: активно " + setStr(active) + ". RE2 держит МНОЖЕСТВО состояний одновременно." }));
     for (var i = 0; i < chars.length; i++) {
-      var ch = chars[i], next = [];
-      active.forEach(function (s) { trans(s, ch).forEach(function (t) { if (next.indexOf(t) < 0) next.push(t); }); });
+      // used — переходы, взятые на этом символе: их и рисует автомат под строкой
+      var ch = chars[i], next = [], used = [], from = active.slice();
+      active.forEach(function (s) { trans(s, ch).forEach(function (t) { used.push([s, t]); if (next.indexOf(t) < 0) next.push(t); }); });
       next.sort(function (a, b) { return a - b; });
       active = next;
-      var info = "Читаем «" + ch + "» → активные " + setStr(active) + " (размер " + active.length + " ≤ 3 состояний). Без возврата.";
-      if (active.length === 0) { info = "Читаем «" + ch + "» → активных состояний нет: дальше совпадения быть не может."; }
-      steps.push(snap({ lo: i, line: 9, info: info }));
+      var info = "Читаем «" + ch + "»: из " + setStr(from) + " переходы " + (used.length ? used.map(function (u) { return label(u[0]).replace("✓", "") + "→" + label(u[1]).replace("✓", ""); }).join(", ") : "не найдены") + " → активные " + setStr(active) + " (размер " + active.length + " ≤ 3 состояний). Без возврата.";
+      if (active.length === 0) { info = "Читаем «" + ch + "»: из " + setStr(from) + " по «" + ch + "» перехода нет → активных состояний нет, совпадения уже не будет."; }
+      steps.push(snap({ lo: i, line: 9, used: used, ch: ch, info: info }));
       if (active.length === 0) break;
     }
     var m = active.indexOf(2) >= 0;
@@ -6992,16 +6996,26 @@
   // CAS проваливается → перечитать и повторить. Оба инкремента доходят, потерь нет.
   // Ячейки = значения счётчика во времени (5 → 6 → 7).
   function bCasLoop() {
-    var seq = [5, 6, 7], pos = 0, steps = [];
-    function snap(extra) { var o = { values: seq.slice(), lo: pos, vars: { value: seq[pos], gor: "—", result: "—" } }; for (var k in extra) { o[k] = extra[k]; } return o; }
-    steps.push(snap({ line: 0, info: "Счётчик = 5. G1 и G2 одновременно хотят сделать +1 — без мьютекса, через atomic." }));
-    pos = 1;
-    steps.push(snap({ lo: 1, hot: true, line: 3, vars: { value: 6, gor: "G1", result: "CAS(5→6) OK" }, info: "G1: прочитал 5, CompareAndSwap(5→6) удался — счётчик стал 6." }));
-    steps.push(snap({ lo: 1, hot: true, line: 5, vars: { value: 6, gor: "G2", result: "CAS(5→6) FAIL" }, info: "G2: прочитал 5 (устарело), CAS(5→6) ПРОВАЛ — значение уже 6. Кто-то опередил → повтор." }));
-    steps.push(snap({ lo: 1, line: 2, vars: { value: 6, gor: "G2", result: "read 6" }, info: "G2: перечитывает актуальное значение — 6." }));
-    pos = 2;
-    steps.push(snap({ lo: 2, hot: true, line: 3, vars: { value: 7, gor: "G2", result: "CAS(6→7) OK" }, info: "G2: CompareAndSwap(6→7) удался — счётчик стал 7." }));
-    steps.push(snap({ done: true, lo: 2, line: 3, vars: { value: 7, gor: "—", result: "7" }, info: "Оба +1 применились (5→6→7): ни одного потерянного обновления и ни одного лока." }));
+    // Гонка видна, только если обе горутины успели прочитать 5 ДО первого CAS — иначе
+    // это просто два инкремента подряд. Дорожки G1/G2 копят события (Load/CAS), у каждой
+    // своя локальная old: именно она у G2 и оказывается устаревшей.
+    var counter = 5, hist = [5], lanes = { G1: [], G2: [] }, old = { G1: "—", G2: "—" }, steps = [];
+    function snap(extra) { var o = { counter: counter, hist: hist.slice(), lanes: { G1: lanes.G1.slice(), G2: lanes.G2.slice() }, old: { G1: old.G1, G2: old.G2 }, act: null, vars: { counter: counter, "G1.old": old.G1, "G2.old": old.G2 } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    function ev(g, txt, cls) { lanes[g].push({ t: txt, c: cls }); }
+    steps.push(snap({ line: 0, info: "counter = 5. G1 и G2 одновременно делают +1 — без мьютекса. У каждой своя локальная old." }));
+    old.G1 = counter; ev("G1", "Load → 5", "read");
+    steps.push(snap({ act: "G1", line: 2, info: "G1: old := counter.Load() → 5." }));
+    old.G2 = counter; ev("G2", "Load → 5", "read");
+    steps.push(snap({ act: "G2", hot: true, line: 2, info: "G2 тоже успела прочитать: old = 5. Окно гонки: обе держат 5 и обе хотят записать 6. С обычным counter++ одно из обновлений потерялось бы." }));
+    counter = 6; hist.push(6); ev("G1", "CAS(5→6) ✓", "ok");
+    steps.push(snap({ act: "G1", hot: true, line: 4, info: "G1: CompareAndSwap(5, 6) — в памяти всё ещё 5, совпало → записано 6, break." }));
+    ev("G2", "CAS(5→6) ✗", "fail");
+    steps.push(snap({ act: "G2", hot: true, line: 3, note: "CAS вернул false: в памяти уже не old — цикл идёт на новый круг", info: "G2: CompareAndSwap(5, 6) — в памяти 6, а G2 ждёт 5 → false. Ничего не записано: старая 5 у G2 устарела, её +1 не затёр чужой." }));
+    old.G2 = counter; ev("G2", "Load → 6", "read");
+    steps.push(snap({ act: "G2", line: 2, info: "G2: новый круг, old := counter.Load() → 6." }));
+    counter = 7; hist.push(7); ev("G2", "CAS(6→7) ✓", "ok");
+    steps.push(snap({ act: "G2", hot: true, line: 4, info: "G2: CompareAndSwap(6, 7) — совпало → записано 7, break." }));
+    steps.push(snap({ done: true, line: -1, info: "counter = 7: оба +1 дошли (5 → 6 → 7). Цена — один лишний круг у G2, а не лок на каждом инкременте." }));
     return steps;
   }
 
@@ -7055,26 +7069,30 @@
   // reflect даёт имя, тег json: и значение; omitempty пропускает пустые. Одна функция
   // сериализует ЛЮБОЙ тип — ценой инспекции типа в рантайме (медленнее кодогенерации).
   function bJsonMarshal() {
+    // Два шага на поле: что reflect достал (тип, тег, значение) и что решено (в JSON или
+    // пропуск). Раньше шаг был один, и тег с omitempty не было видно, пока его не пропустят.
     var fields = [
-      { name: "Name", tag: "name", val: '"Ann"', empty: false, omitempty: false },
-      { name: "Age", tag: "age", val: "30", empty: false, omitempty: false },
-      { name: "Email", tag: "email", val: '""', empty: true, omitempty: true }
+      { name: "Name", type: "string", tag: 'json:"name"', key: "name", opt: "", val: '"Ann"', zero: false },
+      { name: "Age", type: "int", tag: 'json:"age"', key: "age", opt: "", val: "30", zero: false },
+      { name: "Email", type: "string", tag: 'json:"email,omitempty"', key: "email", opt: "omitempty", val: '""', zero: true }
     ];
-    var out = [], state = {}, steps = [];
+    var out = [], state = fields.map(function () { return "pending"; }), steps = [];
     function outStr() { return "{" + out.join(",") + "}"; }
-    function snap(extra) { var o = { values: fields.map(function (f) { return f.name; }), state: fields.map(function (f) { return state[f.name] || "pending"; }), lo: -1, vars: { tag: "—", value: "—", out: outStr() } }; for (var k in extra) { o[k] = extra[k]; } return o; }
-    steps.push(snap({ line: 1, info: "encoding/json через reflect обходит поля структуры. Тип: struct{Name, Age, Email}." }));
+    function snap(extra) { var o = { values: fields.map(function (f) { return f.name; }), fields: fields, state: state.slice(), cur: -1, lo: -1, vars: { name: "—", opt: "—", val: "—", out: outStr() } }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 1, info: "Тип v неизвестен функции при компиляции. reflect.TypeOf отдаёт описание типа User (3 поля), reflect.ValueOf — само значение User{Name: \"Ann\", Age: 30}." }));
     fields.forEach(function (f, i) {
-      if (f.omitempty && f.empty) {
-        state[f.name] = "skip";
-        steps.push(snap({ lo: i, line: 7, vars: { tag: f.tag + ",omitempty", value: f.val, out: outStr() }, info: "Поле " + f.name + " (тег «" + f.tag + ",omitempty»): значение пустое → ПРОПУСКАЕМ." }));
+      state[i] = "read";
+      steps.push(snap({ lo: i, cur: i, line: 4, vars: { name: f.key, opt: f.opt || "—", val: "—", out: outStr() }, info: "Поле " + i + ": " + f.name + " " + f.type + ", тег " + f.tag + " → strings.Cut даёт имя «" + f.key + "»" + (f.opt ? " и опцию «" + f.opt + "»" : ", опций нет") }));
+      if (f.opt === "omitempty" && f.zero) {
+        state[i] = "skip";
+        steps.push(snap({ lo: i, cur: i, line: 7, vars: { name: f.key, opt: f.opt, val: f.val, out: outStr() }, info: "rv.Field(" + i + ") = " + f.val + " — нулевое значение, а опция omitempty → continue, ключа «" + f.key + "» в JSON не будет" }));
       } else {
-        out.push('"' + f.tag + '":' + f.val);
-        state[f.name] = "emit";
-        steps.push(snap({ lo: i, hot: true, line: 9, vars: { tag: f.tag, value: f.val, out: outStr() }, info: "Поле " + f.name + " → тег «" + f.tag + "», значение " + f.val + " → добавляем в JSON." }));
+        out.push('"' + f.key + '":' + f.val);
+        state[i] = "emit";
+        steps.push(snap({ lo: i, cur: i, hot: true, line: 9, vars: { name: f.key, opt: f.opt || "—", val: f.val, out: outStr() }, info: "rv.Field(" + i + ") = " + f.val + (f.opt ? "" : ", опции omitempty нет") + " → кладём \"" + f.key + "\":" + f.val + ". Ключ — из тега, а не имя поля " + f.name }));
       }
     });
-    steps.push(snap({ done: true, line: 9, vars: { tag: "—", value: "—", out: outStr() }, info: "Готово: " + outStr() + ". reflect сериализует ЛЮБОЙ тип — ценой обхода полей в рантайме (медленнее кодогенерации)." }));
+    steps.push(snap({ done: true, line: -1, vars: { name: "—", opt: "—", val: "—", out: outStr() }, info: "Готово: " + outStr() + ". Одна функция обошла тип, которого не знала при компиляции, — ценой разбора типа в рантайме (медленнее кодогенерации)." }));
     return steps;
   }
 
@@ -7082,7 +7100,11 @@
   // Три ряда состояний: Горутина / Поток M / epoll. Горутина паркуется на I/O, поток
   // освобождается и крутит другие горутины, epoll будит её при готовности данных.
   function bNetpoll() {
-    function step(state, changed, line, info, done) { return { state: state, changed: changed, line: line, info: info, done: done, vars: { g: state[0], m: state[1] } }; }
+    // m — что крутят 4 потока (GOMAXPROCS = 4), g — где наша горутина G: run / park / ready.
+    // Без этой панели «тысячи G на единицах M» оставались фразой в статусе.
+    var M = [["G", "G17", "G42", "G9"], [null, "G17", "G42", "G9"], ["G2", "G17", "G42", "G9"], ["G2", "G17", "G42", "G9"], ["G2", "G17", "G42", "G9"], ["G", "G17", "G42", "G9"]];
+    var OURS = ["run", "park", "park", "park", "ready", "run"], k = 0;
+    function step(state, changed, line, info, done) { var o = { state: state, changed: changed, line: line, info: info, done: done, m: M[k], g: OURS[k], vars: { g: state[0], m: state[1] } }; k++; return o; }
     return [
       // fd регистрируется в epoll ОДИН раз при создании соединения (FD.Init → runtime_pollOpen →
       // netpollopen, EPOLLET) — сверено с исходниками Go 1.26; на EAGAIN только парковка.
@@ -7102,26 +7124,68 @@
   }
 
   // Блокировка канала — как send/recv паркуют горутины и передают значение напрямую.
-  // Небуферизованный канал: отправитель ждёт в sendq, пришедший получатель забирает
-  // значение ПРЯМО из его стека (rendezvous) и будит его. Рисуется netpollViz (3 ряда).
+  // Два сценария на небуферизованном канале: отправитель первым (ждёт в sendq, получатель
+  // забирает значение с его стека) и получатель первым (ждёт в recvq, отправитель пишет
+  // прямо в его переменную). Рисуется chanViz: hchan с очередями и стеки двух горутин.
   function bChanBlock() {
-    var rows = ["📤 Отправитель G1", "📦 Канал ch", "📥 Получатель G2"];
-    function step(state, changed, line, info, done) { return { state: state, changed: changed, line: line, info: info, done: done, vars: { g1: state[0], g2: state[2] } }; }
-    var steps = [
-      step(["ch <- 42 (хочет отправить)", "небуферизованный, recvq пуст", "ещё не читает"], [0, 1], 2,
-        "G1 делает ch <- 42. Канал без буфера, ждущих получателей нет — значит, отправить некому."),
-      step(["🅿️ паркуется в sendq", "sendq: [G1 ждёт со значением 42]", "…"], [0, 1], 3,
-        "chansend: recvq пуст → G1 кладёт себя (и значение 42) в очередь sendq и паркуется (gopark)."),
-      step(["спит", "sendq: [G1]", "v := <-ch (пришёл читать)"], [2], 5,
-        "Позже G2 делает <-ch. Проверяет: есть ли ждущий отправитель?"),
-      step(["спит", "нашёл G1 в sendq → ПРЯМАЯ передача 42 (минуя буфер)", "получает 42 напрямую"], [1, 2], 6,
-        "chanrecv нашёл G1 в sendq → копирует 42 ПРЯМО из стека G1 в переменную G2. Буфер не участвует."),
-      step(["🔔 разбужен (goready): отправка завершена", "sendq пуст", "получил 42, работает"], [0, 1, 2], 7,
-        "goready возвращает G1 в очередь планировщика. Оба идут дальше — это rendezvous («встреча»)."),
-      step(["работает дальше", "пуст", "работает дальше (v = 42)"], [], 8,
-        "Небуферизованный канал = синхронная встреча: значение копируется стек-в-стек, без буфера. Буферизованный блокирует лишь на полном (send) или пустом (recv) буфере.", true)
-    ];
-    return { rows: rows, steps: steps };
+    var steps = [], S = { g1: "run", g2: "idle", v1: "42", v2: "—", sendq: [], recvq: [], move: null, sc: 1 };
+    function push(line, info, extra) { var o = JSON.parse(JSON.stringify(S)); o.line = line; o.info = info; o.vars = { sendq: S.sendq.length ? S.sendq.map(function (q) { return q.g; }).join(",") : "∅", recvq: S.recvq.length ? S.recvq.map(function (q) { return q.g; }).join(",") : "∅" }; for (var k in extra) o[k] = extra[k]; steps.push(o); }
+    push(0, "Небуферизованный канал: буфера нет (dataqsiz = 0), очереди sendq и recvq пусты. Сценарий 1 — отправитель приходит первым.");
+    S.g1 = "send";
+    push(2, "G1 выполняет ch <- 42. Проверяет recvq — там пусто, получателя нет, а положить некуда: буфера нет.", { hot: true });
+    S.g1 = "park"; S.sendq = [{ g: "G1", elem: "42 (со стека G1)" }];
+    push(2, "chansend: G1 кладёт в sendq запись sudog{g: G1, elem: → 42 на её стеке} и паркуется (gopark). Поток M свободен.", { hot: true });
+    S.g2 = "recv";
+    push(3, "Позже G2 выполняет v := <-ch и заглядывает в sendq — там ждёт G1.", { hot: true });
+    S.move = { from: "g1", to: "g2", v: "42" }; S.v2 = "42"; S.sendq = [];
+    push(3, "chanrecv: копирует 42 ПРЯМО со стека G1 в переменную v на стеке G2 — буфер не участвует, копия одна.", { hot: true });
+    S.move = null; S.g1 = "ready"; S.g2 = "run";
+    push(4, "goready(G1): G1 снова в очереди планировщика, её отправка завершена. Это rendezvous — оба прошли точку встречи.", { hot: true });
+    S = { g1: "idle", g2: "recv", v1: "7", v2: "—", sendq: [], recvq: [], move: null, sc: 2 };
+    push(6, "Сценарий 2 — получатель первым. G2 выполняет v := <-ch: sendq пуст, отправителя нет.", { hot: true });
+    S.g2 = "park"; S.recvq = [{ g: "G2", elem: "→ v на стеке G2" }];
+    push(6, "chanrecv: G2 кладёт в recvq sudog{g: G2, elem: → адрес v} и паркуется. Одна из очередей по-прежнему пуста — инвариант.", { hot: true });
+    S.g1 = "send";
+    push(7, "G1 выполняет ch <- 7 и находит в recvq ждущую G2.", { hot: true });
+    S.move = { from: "g1", to: "g2", v: "7" }; S.v2 = "7"; S.recvq = [];
+    push(7, "chansend: пишет 7 прямо в v на стеке G2 (по адресу из sudog) — чужой стек, но G2 спит, и гонки нет.", { hot: true });
+    S.move = null; S.g2 = "ready"; S.g1 = "run";
+    push(8, "goready(G2): получатель проснётся уже со значением 7. Отправитель не ждал ни мгновения.", { done: true });
+    return { steps: steps };
+  }
+
+  // customViz канала: слева G1, в центре hchan (buf нет, sendq/recvq как списки sudog),
+  // справа G2; у каждой горутины — состояние и слот на стеке; копия значения — стрелкой.
+  function chanViz(panel) {
+    var host = mkEl("div", "algo-tp__chan"); panel.appendChild(host);
+    var ST = { idle: "не участвует", run: "работает", send: "ch <- …", recv: "<-ch", park: "🅿 спит (gopark)", ready: "🔔 goready → в очередь" };
+    function gbox(title, state, slotLab, slotVal, hot) {
+      var b = mkEl("div", "algo-tp__chang algo-tp__chang--" + state + (hot ? " algo-tp__chang--hot" : ""));
+      b.appendChild(mkEl("div", "algo-tp__changt", title));
+      b.appendChild(mkEl("div", "algo-tp__changs", ST[state]));
+      var slot = mkEl("div", "algo-tp__chanslot"); slot.appendChild(mkEl("span", "algo-tp__chanslotk", slotLab)); slot.appendChild(mkEl("span", "algo-tp__chanslotv" + (hot ? " algo-tp__chanslotv--hot" : ""), slotVal)); b.appendChild(slot);
+      return b;
+    }
+    function q(name, arr) {
+      var r = mkEl("div", "algo-tp__chanq"); r.appendChild(mkEl("span", "algo-tp__chanqk", name));
+      if (!arr.length) r.appendChild(mkEl("span", "algo-tp__chanqe", "∅"));
+      arr.forEach(function (x) { r.appendChild(mkEl("span", "algo-tp__chansudog", "sudog{" + x.g + ", elem: " + x.elem + "}")); });
+      return r;
+    }
+    return function (s) {
+      host.innerHTML = "";
+      host.appendChild(mkEl("div", "algo-tp__chansc", s.sc === 1 ? "Сценарий 1: отправитель первым" : "Сценарий 2: получатель первым"));
+      var row = mkEl("div", "algo-tp__chanrow");
+      row.appendChild(gbox("📤 G1", s.g1, "значение", s.v1, !!s.move && s.move.from === "g1"));
+      var hc = mkEl("div", "algo-tp__chanh");
+      hc.appendChild(mkEl("div", "algo-tp__changt", "hchan ch"));
+      hc.appendChild(mkEl("div", "algo-tp__chanbuf", "buf: нет (dataqsiz = 0)"));
+      hc.appendChild(q("sendq", s.sendq)); hc.appendChild(q("recvq", s.recvq));
+      if (s.move) hc.appendChild(mkEl("div", "algo-tp__chanmove", "G1 " + s.move.v + " ━━▶ v у G2  (мимо буфера)"));
+      row.appendChild(hc);
+      row.appendChild(gbox("📥 G2", s.g2, "v", s.v2, !!s.move && s.move.to === "g2"));
+      host.appendChild(row);
+    };
   }
 
   // QuickSelect — рекурсия только в ОДНУ половину к рангу target = k−1. partition
@@ -11121,27 +11185,27 @@
       complexity: { time: "O(1) Get/Put", space: "O(припасено)", good: "★ Меньше аллокаций и работы GC" },
       varOrder: ["inpool", "invictim", "reused", "allocs"],
       varDesc: { inpool: "Объектов в пуле", invictim: "В victim (переживут ещё один GC)", reused: "Переиспользовано (аллокаций избежали)", allocs: "Новых аллокаций (пусто везде)" },
-      lineNotes: { 0: "New — фабрика: как создать объект, если пул пуст", 1: "Например, новый буфер", 3: "Put кладёт объект обратно для переиспользования", 4: "Возвращаем буфер в пул", 5: "Get достаёт из пула или зовёт New", 6: "Пул не пуст → переиспользуем (без аллокации)", 7: "Пул пуст → New() аллоцирует новый", 8: "Использовали и вернули (Reset + Put)", 9: "GC очищает пул — это кэш, не хранилище" },
+      lineNotes: { 0: "New — фабрика: как создать объект, если пул пуст", 1: "Например, новый буфер", 3: "Put кладёт объект обратно для переиспользования", 4: "Put возвращает то, что взяли через Get", 5: "Get достаёт из пула или зовёт New", 6: "Нашёлся в пуле или victim → переиспользуем (без аллокации)", 7: "Пусто везде → New() аллоцирует новый", 8: "Использовали и вернули (Reset + Put)", 9: "GC: пул → victim, прежний victim — в мусор" },
       rules: [{ head: "Get из пула", body: "→ аллокации нет", cls: "gt" }, { head: "Get пуст", body: "→ New() аллоцирует", cls: "lt" }, { head: "GC", body: "пул → victim, старый victim — в мусор: это кэш, не хранилище", cls: "eq" }],
-      parse: function (root) { var raw = root.getAttribute("data-ops") || "put,put,get,put,gc,get,gc,get"; var ops = raw.split(",").map(function (s) { return s.trim(); }); return { ops: ops, steps: bSyncPool(ops) }; },
-      inputs: [{ attr: "data-ops", label: "Операции (put/get/gc)" }],
+      parse: function (root) { var raw = root.getAttribute("data-ops") || "get,get,put,put,get,put,gc,get,gc,get"; var ops = raw.split(",").map(function (s) { return s.trim(); }); return { ops: ops, steps: bSyncPool(ops) }; },
+      inputs: [{ attr: "data-ops", label: "Операции через запятую: get, put, gc" }],
       values: function () { return []; },
       title: function () { return "sync.Pool: переиспользование объектов"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       customViz: function (panel) {
         var host = mkEl("div", "algo-tp__lsm");
         function row(lab) { var r = mkEl("div", "algo-tp__lsmrow"); r.appendChild(mkEl("div", "algo-tp__lsmlabel", lab)); var c = mkEl("div", "algo-tp__lsmcells"); r.appendChild(c); host.appendChild(r); return c; }
-        var pr = row("пул (local)"), vr = row("victim — переживёт ещё один GC");
+        var ur = row("в работе у воркеров (взяты Get)"), pr = row("пул (local)"), vr = row("victim — переживёт ещё один GC");
         panel.appendChild(host);
-        function fill(el, arr, taken, lastHot) {
+        function fill(el, arr, cur, cls) {
           el.innerHTML = "";
           if (!arr.length) el.appendChild(mkEl("span", "algo-tp__lsmempty", "пусто"));
-          arr.forEach(function (x, k) { el.appendChild(mkEl("span", "algo-tp__lsmcell" + (lastHot && k === arr.length - 1 ? " algo-tp__lsmcell--cur" : ""), x)); });
+          arr.forEach(function (x) { el.appendChild(mkEl("span", "algo-tp__lsmcell" + (x === cur ? " algo-tp__lsmcell--" + cls : ""), x)); });
         }
-        return function (s) { fill(pr, s.pool, s.took, !!s.touched); fill(vr, s.victim); };
+        return function (s) { fill(ur, s.inuse, s.cur, s.fresh ? "new" : "cur"); fill(pr, s.pool, s.cur, "cur"); fill(vr, s.victim, null, "cur"); };
       },
       sumCells: ["переиспользовано", "новых аллокаций"],
-      sumValues: function (s) { return [{ text: s.vars.reused, cls: "gt" }, { text: s.vars.allocs, cls: "lt" }]; },
+      sumValues: function (s) { return [{ text: s.vars.reused, cls: "ok" }, { text: s.vars.allocs, cls: "warn" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "reuse " + s.vars.reused + " · alloc " + s.vars.allocs, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
       stepCard: function (s) { return { a: "в пуле " + s.vars.inpool, b: "reuse " + s.vars.reused, c: "alloc " + s.vars.allocs, cls: "gt" }; },
       varsOf: function (s) { return { inpool: s.vars.inpool, invictim: s.vars.invictim, reused: s.vars.reused, allocs: s.vars.allocs }; }
@@ -11165,11 +11229,41 @@
       title: function (ctx) { return "RE2 / NFA: a(b|c)*c на «" + ctx.input + "»" + (ctx.cut ? " (первые 24 из " + ctx.cut + " символов — вердикт про них)" : ""); },
       cellState: function (s, j) { if (s.done) return s.found ? { found: true } : { dim: true }; var o = {}; if (j === s.lo && s.lo >= 0) o.mid = true; else if (s.lo >= 0 && j < s.lo) o.dim = true; return o; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
-      sumCells: ["активных состояний", "подходит?"],
-      sumValues: function (s) { return [{ text: s.vars.size, cls: "lt" }, { text: s.vars.matched, cls: s.vars.matched === "да" ? "gt" : "" }]; },
+      sumCells: ["активных состояний", "q2 активно сейчас?"],
+      sumValues: function (s) { return [{ text: s.vars.size, cls: "lt" }, { text: s.vars.matched, cls: s.vars.matched === "да" ? "ok" : "" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: s.found ? "Строка подходит" : "Не подходит", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "актив " + s.vars.active, b: "размер " + s.vars.size, c: "финал:" + s.vars.matched, cls: "lt" }; },
-      varsOf: function (s) { return { active: s.vars.active, size: s.vars.size, matched: s.vars.matched }; }
+      varsOf: function (s) { return { active: s.vars.active, size: s.vars.size, matched: s.vars.matched }; },
+      // Сам автомат a(b|c)*c: q0 −a→ q1, петля b|c на q1, q1 −c→ q2 (финал). Без него
+      // q0/q1/q2 в статусе были голыми метками, и «по c активны сразу два» не с чем сверить.
+      mapViz: function (panel) {
+        var W = 330, H = 132, P = [{ x: 60, y: 84 }, { x: 172, y: 84 }, { x: 284, y: 84 }], R = 19;
+        var box = mkEl("div", "algo-tp__nfa"); box.appendChild(mkEl("div", "algo-tp__caphdr", "NFA для a(b|c)*c: залиты активные состояния, жёлтым — переходы на этом символе"));
+        var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__nfasvg"); box.appendChild(svg); panel.appendChild(box);
+        function mk(tag, at, txt) { var e = document.createElementNS(SVGNS, tag); for (var k in at) e.setAttribute(k, at[k]); if (txt != null) e.textContent = txt; svg.appendChild(e); return e; }
+        var defs = mk("defs", {}), mkr = document.createElementNS(SVGNS, "marker");
+        mkr.setAttribute("id", "algo-nfa-arr"); mkr.setAttribute("viewBox", "0 0 10 10"); mkr.setAttribute("refX", "9"); mkr.setAttribute("refY", "5"); mkr.setAttribute("markerUnits", "userSpaceOnUse"); mkr.setAttribute("markerWidth", "10"); mkr.setAttribute("markerHeight", "10"); mkr.setAttribute("orient", "auto");
+        var mp = document.createElementNS(SVGNS, "path"); mp.setAttribute("d", "M0,0 L10,5 L0,10 z"); mp.setAttribute("class", "algo-tp__nfaarrhead"); mkr.appendChild(mp); defs.appendChild(mkr);
+        mk("line", { x1: 8, y1: 84, x2: P[0].x - R - 2, y2: 84, "class": "algo-tp__nfaedge", "marker-end": "url(#algo-nfa-arr)" });
+        mk("text", { x: 4, y: 72, "class": "algo-tp__nfalab" }, "старт");
+        var E = {
+          "0-1": { el: mk("line", { x1: P[0].x + R, y1: 84, x2: P[1].x - R - 2, y2: 84, "class": "algo-tp__nfaedge", "marker-end": "url(#algo-nfa-arr)" }), lab: mk("text", { x: (P[0].x + P[1].x) / 2, y: 76, "text-anchor": "middle", "class": "algo-tp__nfalab" }, "a") },
+          "1-1": { el: mk("path", { d: "M " + (P[1].x - 11) + " " + (84 - R + 3) + " C " + (P[1].x - 34) + " 12, " + (P[1].x + 34) + " 12, " + (P[1].x + 11) + " " + (84 - R + 3), "class": "algo-tp__nfaedge", fill: "none", "marker-end": "url(#algo-nfa-arr)" }), lab: mk("text", { x: P[1].x, y: 22, "text-anchor": "middle", "class": "algo-tp__nfalab" }, "b | c") },
+          "1-2": { el: mk("line", { x1: P[1].x + R, y1: 84, x2: P[2].x - R - 5, y2: 84, "class": "algo-tp__nfaedge", "marker-end": "url(#algo-nfa-arr)" }), lab: mk("text", { x: (P[1].x + P[2].x) / 2, y: 76, "text-anchor": "middle", "class": "algo-tp__nfalab" }, "c") }
+        };
+        var nodes = P.map(function (p, i) {
+          var c = mk("circle", { cx: p.x, cy: p.y, r: R, "class": "algo-tp__nfastate" });
+          if (i === 2) mk("circle", { cx: p.x, cy: p.y, r: R - 4, "class": "algo-tp__nfaring" });
+          mk("text", { x: p.x, y: p.y + 5, "text-anchor": "middle", "class": "algo-tp__nfaname" }, "q" + i);
+          return c;
+        });
+        mk("text", { x: P[2].x, y: 124, "text-anchor": "middle", "class": "algo-tp__nfalab" }, "финал");
+        return function (s) {
+          var used = {}; (s.used || []).forEach(function (u) { used[u[0] + "-" + u[1]] = true; });
+          Object.keys(E).forEach(function (k) { E[k].el.setAttribute("class", "algo-tp__nfaedge" + (used[k] ? " algo-tp__nfaedge--on" : "")); E[k].lab.setAttribute("class", "algo-tp__nfalab" + (used[k] ? " algo-tp__nfalab--on" : "")); });
+          nodes.forEach(function (c, i) { var on = s.act.indexOf(i) >= 0; c.setAttribute("class", "algo-tp__nfastate" + (on ? (i === 2 ? " algo-tp__nfastate--acc" : " algo-tp__nfastate--on") : "")); });
+        };
+      }
     },
 
     "errgroup": {
@@ -11198,24 +11292,47 @@
     "cas-loop": {
       badge: "atomic (CAS)",
       desc: "Лок-free инкремент через Compare-And-Swap: читаем значение и меняем его на old+1 только если оно всё ещё old. Если между чтением и CAS другая горутина опередила — CAS проваливается, перечитываем и повторяем. Без мьютекса, без потерянных обновлений.",
-      valuesLabel: "Значение счётчика во времени (5 → 6 → 7)", codeKey: "cas-loop", fillRange: false,
-      ptr1: { name: "счётчик", cap: "(текущее значение)" },
+      valuesLabel: "", codeKey: "cas-loop", fillRange: false,
       complexity: { time: "O(1) амортиз.", space: "O(1)", good: "★ Лок-free, дешевле мьютекса при низкой конкуренции" },
-      varOrder: ["value", "gor", "result"],
-      varDesc: { value: "Текущее значение счётчика", gor: "Какая горутина действует", result: "Итог операции (CAS/read)" },
-      lineNotes: { 0: "Инкремент без мьютекса — на атомарном CAS", 1: "Цикл повтора (optimistic concurrency)", 2: "Читаем текущее значение (снимок)", 3: "CAS: меняем на old+1, только если значение всё ещё old", 4: "Успех → выходим из цикла", 6: "CAS провалился (значение изменилось) → повторяем" },
-      rules: [{ head: "CAS удался", body: "значение было old → стало old+1", cls: "gt" }, { head: "CAS провал", body: "кто-то опередил → перечитать и повтор", cls: "lt" }, { head: "итог", body: "без лока, без потерь обновлений", cls: "eq" }],
+      varOrder: ["counter", "G1.old", "G2.old"],
+      varDesc: { counter: "Значение в памяти", "G1.old": "Что прочитала G1 (локальная)", "G2.old": "Что прочитала G2 (локальная)" },
+      lineNotes: { 0: "Инкремент без мьютекса — на атомарном CAS", 1: "Цикл повтора (optimistic concurrency)", 2: "Читаем текущее значение в свою локальную old", 3: "CAS: меняем на old+1, только если в памяти всё ещё old", 4: "Успех → выходим из цикла" },
+      rules: [{ head: "CAS удался", body: "в памяти было old → стало old+1", cls: "gt" }, { head: "CAS провал", body: "кто-то опередил → перечитать и повтор", cls: "lt" }, { head: "итог", body: "без лока, без потерь обновлений", cls: "eq" }],
       parse: function () { return { steps: bCasLoop() }; },
       inputs: [],
-      values: function () { return bCasLoop()[0].values; },
+      values: function () { return []; },
       title: function () { return "atomic CAS: лок-free инкремент"; },
-      cellState: function (s, j) { if (j > s.lo) return { dim: true }; if (j === s.lo) return { mid: true }; return { found: true }; },
-      pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
-      sumCells: ["значение", "операция"],
-      sumValues: function (s) { return [{ text: s.vars.value, cls: "gt" }, { text: s.vars.result, cls: (String(s.vars.result).indexOf("FAIL") >= 0 ? "lt" : "eq") }]; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      customViz: function (panel) {
+        var host = mkEl("div", "algo-tp__cas");
+        var mem = mkEl("div", "algo-tp__casmem"); host.appendChild(mem);
+        var lanes = {};
+        ["G1", "G2"].forEach(function (g) {
+          var row = mkEl("div", "algo-tp__caslane");
+          row.appendChild(mkEl("div", "algo-tp__casg", g));
+          var oldEl = mkEl("div", "algo-tp__casold"); row.appendChild(oldEl);
+          var evs = mkEl("div", "algo-tp__casevs"); row.appendChild(evs);
+          host.appendChild(row); lanes[g] = { row: row, old: oldEl, evs: evs };
+        });
+        panel.appendChild(host);
+        return function (s) {
+          mem.innerHTML = "";
+          mem.appendChild(mkEl("span", "algo-tp__caslab", "counter в памяти:"));
+          s.hist.forEach(function (v, k) { if (k) mem.appendChild(mkEl("span", "algo-tp__casarrow", "→")); mem.appendChild(mkEl("span", "algo-tp__casval" + (k === s.hist.length - 1 ? " algo-tp__casval--now" : ""), v)); });
+          ["G1", "G2"].forEach(function (g) {
+            var L = lanes[g];
+            L.row.className = "algo-tp__caslane" + (s.act === g ? " algo-tp__caslane--act" : "");
+            L.old.textContent = "old = " + s.old[g];
+            L.evs.innerHTML = "";
+            s.lanes[g].forEach(function (e, k) { L.evs.appendChild(mkEl("span", "algo-tp__casev algo-tp__casev--" + e.c + (s.act === g && k === s.lanes[g].length - 1 ? " algo-tp__casev--last" : ""), e.t)); });
+          });
+        };
+      },
+      sumCells: ["counter", "G1.old · G2.old"],
+      sumValues: function (s) { return [{ text: s.vars.counter, cls: "eq" }, { text: s.vars["G1.old"] + " · " + s.vars["G2.old"] }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Оба +1 без лока и без потерь", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
-      stepCard: function (s) { return { a: s.vars.gor, b: "значение " + s.vars.value, c: s.vars.result, cls: "eq" }; },
-      varsOf: function (s) { return { value: s.vars.value, gor: s.vars.gor, result: s.vars.result }; }
+      stepCard: function (s) { return { a: s.act || "—", b: "counter " + s.vars.counter, c: "", cls: "eq" }; },
+      varsOf: function (s) { return { counter: s.vars.counter, "G1.old": s.vars["G1.old"], "G2.old": s.vars["G2.old"] }; }
     },
 
     "sync-once": {
@@ -11285,25 +11402,43 @@
 
     "json-marshal": {
       badge: "encoding/json (reflect)",
-      desc: "json.Marshal через рефлексию обходит поля структуры в рантайме: для каждого поля reflect даёт имя, тег json: и значение; omitempty пропускает пустые. Одна функция сериализует ЛЮБОЙ тип — ценой инспекции типа в рантайме (медленнее сгенерированного кода).",
-      valuesLabel: "Поля структуры", codeKey: "json-marshal", fillRange: false,
+      desc: "json.Marshal через рефлексию обходит поля структуры в рантайме: для каждого поля reflect даёт имя, тип, тег json: и значение; omitempty пропускает нулевые. Одна функция сериализует ЛЮБОЙ тип — ценой инспекции типа в рантайме (медленнее сгенерированного кода).",
+      valuesLabel: "Поля структуры User", codeKey: "json-marshal", fillRange: false,
       ptr1: { name: "поле", cap: "(обходим)" },
       complexity: { time: "O(полей)", space: "O(вывода)", good: "★ Любой тип без кодогенерации" },
-      varOrder: ["tag", "value", "out"],
-      varDesc: { tag: "Имя из тега json:", value: "Значение поля", out: "Собранный JSON" },
-      lineNotes: { 0: "Одна функция на любой тип — за счёт reflect", 1: "reflect.TypeOf берёт описание типа в рантайме", 2: "Обходим все поля структуры", 3: "Берём i-е поле", 4: "Имя ключа — из тега json:", 6: "omitempty: пустое значение пропускаем", 9: "Кладём пару ключ:значение в результат" },
-      rules: [{ head: "тег json:", body: "имя ключа (не имя поля Go)", cls: "gt" }, { head: "omitempty", body: "пустое поле → пропуск", cls: "lt" }, { head: "цена", body: "reflect в рантайме медленнее codegen", cls: "eq" }],
+      varOrder: ["name", "opt", "val", "out"],
+      varDesc: { name: "Ключ JSON (из тега)", opt: "Опция тега после запятой", val: "rv.Field(i) — значение поля", out: "Собранный JSON" },
+      lineNotes: { 0: "Одна функция на любой тип — за счёт reflect", 1: "Описание типа и само значение — в рантайме", 2: "Обходим все поля структуры", 4: "Тег json:\"имя,опции\" делим по первой запятой", 5: "Значение i-го поля", 6: "omitempty и нулевое значение?", 7: "Да — ключ не пишем", 9: "Ключ из тега, значение поля — в результат" },
+      rules: [{ head: "тег json:", body: "имя ключа (не имя поля Go)", cls: "gt" }, { head: "omitempty", body: "нулевое значение → пропуск", cls: "lt" }, { head: "цена", body: "reflect в рантайме медленнее codegen", cls: "eq" }],
       parse: function () { return { steps: bJsonMarshal() }; },
       inputs: [],
       values: function () { return bJsonMarshal()[0].values; },
       title: function () { return "encoding/json: обход полей через reflect"; },
       cellState: function (s, j) { var st = s.state[j]; var o = {}; if (st === "emit") o.found = true; else if (st === "skip") o.dim = true; if (j === s.lo && s.lo >= 0) o.mid = true; return o; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
-      sumCells: ["текущий тег", "JSON"],
-      sumValues: function (s) { return [{ text: s.vars.tag, cls: "gt" }, { text: s.vars.out, cls: "eq" }]; },
+      sumCells: ["ключ", "JSON"],
+      sumValues: function (s) { return [{ text: s.vars.name, cls: "eq" }, { text: s.vars.out, cls: "ok" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "JSON собран", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
-      stepCard: function (s) { return { a: "тег " + s.vars.tag, b: "знач " + s.vars.value, c: "reflect", cls: "eq" }; },
-      varsOf: function (s) { return { tag: s.vars.tag, value: s.vars.value, out: s.vars.out }; }
+      stepCard: function (s) { return { a: "ключ " + s.vars.name, b: "знач " + s.vars.val, c: "reflect", cls: "eq" }; },
+      varsOf: function (s) { return { name: s.vars.name, opt: s.vars.opt, val: s.vars.val, out: s.vars.out }; },
+      // Что reflect реально читает: тип, тег и значение каждого поля + решение по нему
+      mapViz: function (panel) {
+        var box = mkEl("div", "algo-tp__rj"); box.appendChild(mkEl("div", "algo-tp__caphdr", "Что видит reflect (t.Field(i) и rv.Field(i))"));
+        var wrap = mkEl("div", "algo-tp__scrollx"), tb = mkEl("table", "algo-tp__rjt"); wrap.appendChild(tb); box.appendChild(wrap);
+        var out = mkEl("div", "algo-tp__rjout"); box.appendChild(out); panel.appendChild(box);
+        var hr = mkEl("tr"); ["поле", "тип", "тег", "значение", "в JSON"].forEach(function (h) { hr.appendChild(mkEl("th", null, h)); }); tb.appendChild(hr);
+        var rows = [];
+        return function (s) {
+          if (!rows.length) s.fields.forEach(function (f) { var tr = mkEl("tr"); var cells = [f.name, f.type, f.tag, "", ""].map(function (t) { var td = mkEl("td", null, t); tr.appendChild(td); return td; }); tb.appendChild(tr); rows.push({ tr: tr, c: cells }); });
+          s.fields.forEach(function (f, i) {
+            var st = s.state[i], r = rows[i];
+            r.tr.className = "algo-tp__rjr algo-tp__rjr--" + st + (i === s.cur ? " algo-tp__rjr--cur" : "");
+            r.c[3].textContent = st === "pending" || st === "read" ? "" : f.val;
+            r.c[4].textContent = st === "emit" ? "\"" + f.key + "\"" : st === "skip" ? "пропуск (omitempty)" : "";
+          });
+          out.textContent = "out = " + s.vars.out;
+        };
+      }
     },
 
     "netpoll": {
@@ -11320,34 +11455,53 @@
       values: function () { return []; },
       title: function () { return "netpoll: «блокирующий» I/O без блокировки потока"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
-      sumCells: ["горутина G", "поток M"],
-      sumValues: function (s) { return [{ text: s.vars.g, cls: "eq" }, { text: s.vars.m, cls: "lt" }]; },
+      sumCells: ["наша горутина G", "поток M1 занят"],
+      sumValues: function (s) { return [{ text: { run: "работает", park: "спит в netpoll", ready: "в очереди" }[s.g] || "—", cls: s.g === "park" ? "" : "eq" }, { text: s.m && s.m[0] ? s.m[0] : "свободен" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Данные получены — поток не был занят ожиданием", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!(s.changed && s.changed.length) }; },
       stepCard: function (s) { return { a: "G: " + s.vars.g, b: "M: " + s.vars.m, c: "epoll", cls: "eq" }; },
       varsOf: function (s) { return { g: s.vars.g, m: s.vars.m }; },
-      customViz: netpollViz
+      customViz: netpollViz,
+      mapViz: function (panel) {
+        var box = mkEl("div", "algo-tp__npscale");
+        box.appendChild(mkEl("div", "algo-tp__caphdr", "Масштаб: 10 000 соединений на 4 потоках"));
+        var mRow = mkEl("div", "algo-tp__nprow"), qRow = mkEl("div", "algo-tp__nprow"), pRow = mkEl("div", "algo-tp__nprow");
+        box.appendChild(mRow); box.appendChild(qRow); box.appendChild(pRow); panel.appendChild(box);
+        var OTHERS = ["G3", "G4", "G5", "G6", "G7", "G8", "G10", "G11"];
+        function chip(t, cls) { return mkEl("span", "algo-tp__npg" + (cls ? " algo-tp__npg--" + cls : ""), t); }
+        return function (s) {
+          mRow.innerHTML = ""; qRow.innerHTML = ""; pRow.innerHTML = "";
+          mRow.appendChild(mkEl("span", "algo-tp__nplab", "потоки M"));
+          s.m.forEach(function (g, i) { var slot = mkEl("span", "algo-tp__npm" + (g ? "" : " algo-tp__npm--idle")); slot.appendChild(mkEl("span", "algo-tp__npmk", "M" + (i + 1))); slot.appendChild(g ? chip(g, g === "G" ? "ours" : "run") : mkEl("span", "algo-tp__npmfree", "свободен")); mRow.appendChild(slot); });
+          qRow.appendChild(mkEl("span", "algo-tp__nplab", "очередь готовых"));
+          if (s.g === "ready") qRow.appendChild(chip("G", "ours")); else qRow.appendChild(mkEl("span", "algo-tp__npnone", "пусто"));
+          pRow.appendChild(mkEl("span", "algo-tp__nplab", "спят в netpoll"));
+          if (s.g === "park") pRow.appendChild(chip("G", "ours"));
+          OTHERS.forEach(function (g) { pRow.appendChild(chip(g, "park")); });
+          pRow.appendChild(mkEl("span", "algo-tp__npmore", "… и ещё ≈ 9 990 — ни одна не держит поток"));
+        };
+      }
     },
 
     "chan-block": {
       badge: "chan (блокировка)",
-      desc: "Как канал блокирует и будит горутины. Небуферизованный: отправитель ждёт в очереди sendq, пришедший получатель забирает значение ПРЯМО из его стека (rendezvous) и будит его. Буферизованный блокирует, лишь когда буфер полон (send) или пуст (recv). Одна из очередей sendq/recvq всегда пуста.",
+      desc: "Как небуферизованный канал блокирует и будит горутины. Кто пришёл первым — ждёт в своей очереди (sendq или recvq) и паркуется; второй находит его там и копирует значение напрямую между стеками, минуя буфер, затем будит первого (goready). Одна из очередей всегда пуста.",
       valuesLabel: "", codeKey: "chan-block", fillRange: false,
       complexity: { time: "O(1) на send/recv", space: "O(ждущих)", good: "★ Синхронизация без общей памяти" },
-      varOrder: ["g1", "g2"],
-      varDesc: { g1: "Отправитель G1", g2: "Получатель G2" },
-      lineNotes: { 0: "Небуферизованный канал: dataqsiz = 0", 2: "send блокируется, пока нет получателя", 3: "recvq пуст → в sendq и gopark", 5: "recv ищет ждущего отправителя", 6: "Нашёл → прямое копирование значения, минуя буфер", 7: "goready будит отправителя — оба идут дальше", 8: "Буферизованный блокирует только на полном/пустом буфере" },
-      rules: [{ head: "recvq пуст", body: "отправитель ждёт в sendq (gopark)", cls: "lt" }, { head: "есть получатель", body: "прямая передача стек-в-стек", cls: "gt" }, { head: "инвариант", body: "sendq или recvq всегда пуста", cls: "eq" }],
-      parse: function () { var r = bChanBlock(); return { rows: r.rows, steps: r.steps }; },
+      varOrder: ["sendq", "recvq"],
+      varDesc: { sendq: "Ждущие отправители", recvq: "Ждущие получатели" },
+      lineNotes: { 0: "Небуферизованный канал: dataqsiz = 0", 2: "recvq пуст → отправитель в sendq и gopark", 3: "Ждущий отправитель есть → копия со стека на стек", 4: "goready будит отправителя — оба идут дальше", 6: "sendq пуст → получатель в recvq и gopark", 7: "Ждущий получатель есть → запись прямо в его переменную", 8: "goready будит получателя" },
+      rules: [{ head: "пришёл первым", body: "в свою очередь и gopark", cls: "lt" }, { head: "пришёл вторым", body: "копия стек-в-стек + goready", cls: "gt" }, { head: "инвариант", body: "sendq или recvq всегда пуста", cls: "eq" }],
+      parse: function () { return { steps: bChanBlock().steps }; },
       inputs: [],
       values: function () { return []; },
       title: function () { return "Канал: блокировка send/recv и прямая передача"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
-      sumCells: ["отправитель", "получатель"],
-      sumValues: function (s) { return [{ text: s.vars.g1, cls: "lt" }, { text: s.vars.g2, cls: "gt" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Rendezvous: значение передано стек-в-стек", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!(s.changed && s.changed.length) }; },
-      stepCard: function (s) { return { a: "G1: " + s.vars.g1, b: "G2: " + s.vars.g2, c: "chan", cls: "eq" }; },
-      varsOf: function (s) { return { g1: s.vars.g1, g2: s.vars.g2 }; },
-      customViz: netpollViz
+      sumCells: ["sendq", "recvq"],
+      sumValues: function (s) { return [{ text: s.vars.sendq, cls: "lt" }, { text: s.vars.recvq, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Оба сценария: копия стек-в-стек", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { return { a: "сценарий " + s.sc, b: "sendq " + s.vars.sendq, c: "recvq " + s.vars.recvq, cls: "eq" }; },
+      varsOf: function (s) { return { sendq: s.vars.sendq, recvq: s.vars.recvq }; },
+      customViz: chanViz
     },
 
     "quick-select": {

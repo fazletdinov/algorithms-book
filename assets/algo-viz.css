@@ -1699,3 +1699,91 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--backedge { background: transparent; border: 2px dashed #a855f7; border-radius: 2px; }
 .algo-tp__legdot--flowedge { background: #2e9b57; border-color: #2e9b57; border-radius: 2px; }
 .algo-tp__legdot--cutedge { background: transparent; border: 2px dashed #d9534f; border-radius: 2px; }
+
+/* RE2 / NFA: автомат a(b|c)*c под входной строкой */
+.algo-tp__nfa { margin: 0.5em 0 0.3em; }
+.algo-tp__nfasvg { display: block; width: 100%; max-width: 360px; height: auto; margin: 0.3em auto 0; }
+.algo-tp__nfastate { fill: var(--tp-panel2, #1b2233); stroke: var(--tp-border, #555); stroke-width: 2; transition: fill 0.15s, stroke 0.15s; }
+.algo-tp__nfastate--on { fill: var(--tp-lo); stroke: var(--tp-lo); }
+.algo-tp__nfastate--acc { fill: var(--tp-ok); stroke: var(--tp-ok); }
+.algo-tp__nfaring { fill: none; stroke: var(--fg, #c9d1d9); stroke-width: 1.5; opacity: 0.7; pointer-events: none; }
+.algo-tp__nfaname { fill: var(--fg, #c9d1d9); font-size: 14px; font-weight: 700; pointer-events: none; }
+.algo-tp__nfastate--on + .algo-tp__nfaname, .algo-tp__nfastate--acc + .algo-tp__nfaring + .algo-tp__nfaname, .algo-tp__nfastate--on + .algo-tp__nfaring + .algo-tp__nfaname { fill: #fff; }
+.algo-tp__nfaedge { stroke: color-mix(in srgb, var(--fg, #c9d1d9) 45%, transparent); stroke-width: 2; }
+.algo-tp__nfaedge--on { stroke: #e0a500; stroke-width: 3.5; }
+.algo-tp__nfaarrhead { fill: color-mix(in srgb, var(--fg, #c9d1d9) 60%, transparent); }
+.algo-tp__nfalab { fill: color-mix(in srgb, var(--fg, #c9d1d9) 75%, transparent); font-size: 13px; font-weight: 600; }
+.algo-tp__nfalab--on { fill: #e0a500; font-weight: 800; }
+
+/* atomic CAS: память счётчика и дорожки G1/G2 с локальной old и событиями Load/CAS */
+.algo-tp__cas { display: flex; flex-direction: column; gap: 0.55em; margin: 0.4em 0 0.6em; }
+.algo-tp__casmem { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4em; padding: 0.5em 0.7em; border-radius: 8px; border: 1px solid var(--tp-border); }
+.algo-tp__caslab { font-size: 0.85em; opacity: 0.75; margin-right: 0.2em; }
+.algo-tp__casarrow { opacity: 0.5; }
+.algo-tp__casval { min-width: 1.9em; padding: 0.15em 0.45em; text-align: center; border-radius: 6px; font-weight: 700; opacity: 0.55; border: 1px solid var(--tp-border); }
+.algo-tp__casval--now { opacity: 1; background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
+.algo-tp__caslane { display: grid; grid-template-columns: 2.4em 5.2em minmax(0, 1fr); align-items: center; gap: 0.5em; padding: 0.45em 0.6em; border-radius: 8px; border: 1px solid transparent; transition: background-color 0.15s, border-color 0.15s; }
+.algo-tp__caslane--act { border-color: color-mix(in srgb, var(--tp-lo) 55%, transparent); background: color-mix(in srgb, var(--tp-lo) 10%, transparent); }
+.algo-tp__casg { font-weight: 800; }
+.algo-tp__casold { font-family: var(--mono-font, ui-monospace, monospace); font-size: 0.9em; }
+.algo-tp__casevs { display: flex; flex-wrap: wrap; gap: 0.3em; }
+.algo-tp__casev { padding: 0.1em 0.45em; border-radius: 5px; font-size: 0.82em; border: 1px solid var(--tp-border); opacity: 0.7; white-space: nowrap; }
+.algo-tp__casev--last { opacity: 1; font-weight: 700; }
+.algo-tp__casev--ok { border-color: var(--tp-ok); color: var(--tp-ok); }
+.algo-tp__casev--fail { border-color: var(--tp-bad); color: var(--tp-bad); }
+.algo-tp__casev--last.algo-tp__casev--ok { background: var(--tp-ok); color: #fff; }
+.algo-tp__casev--last.algo-tp__casev--fail { background: var(--tp-bad); color: #fff; }
+.algo-tp__casev--last.algo-tp__casev--read { background: color-mix(in srgb, var(--tp-lo) 25%, transparent); border-color: var(--tp-lo); }
+
+/* Канал (chanViz): G1 · hchan (очереди sudog) · G2, копия значения стек-в-стек */
+.algo-tp__chan { display: flex; flex-direction: column; gap: 0.5em; margin: 0.3em 0 0.6em; }
+.algo-tp__chansc { font-size: 0.85em; font-weight: 700; opacity: 0.8; }
+.algo-tp__chanrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr); gap: 0.5em; align-items: stretch; }
+.algo-tp__chang, .algo-tp__chanh { display: flex; flex-direction: column; gap: 0.35em; padding: 0.55em 0.6em; border-radius: 9px; border: 1px solid var(--tp-border); min-width: 0; }
+.algo-tp__changt { font-weight: 800; font-size: 0.92em; }
+.algo-tp__changs { font-size: 0.8em; opacity: 0.85; }
+.algo-tp__chang--idle { opacity: 0.45; }
+.algo-tp__chang--park { border-style: dashed; background: color-mix(in srgb, var(--fg, #c9d1d9) 5%, transparent); }
+.algo-tp__chang--send, .algo-tp__chang--recv { border-color: var(--tp-lo); }
+.algo-tp__chang--ready { border-color: var(--tp-ok); }
+.algo-tp__chang--ready .algo-tp__changs { color: var(--tp-ok); font-weight: 700; }
+.algo-tp__chanslot { display: flex; align-items: center; justify-content: space-between; gap: 0.4em; font-size: 0.82em; font-family: var(--mono-font, ui-monospace, monospace); }
+.algo-tp__chanslotk { opacity: 0.7; }
+.algo-tp__chanslotv { min-width: 2em; padding: 0.1em 0.4em; text-align: center; border-radius: 5px; border: 1px solid var(--tp-border); font-weight: 700; }
+.algo-tp__chanslotv--hot { background: #e0a500; border-color: #e0a500; color: #111; }
+.algo-tp__chanbuf { font-size: 0.8em; opacity: 0.7; }
+.algo-tp__chanq { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3em; font-size: 0.8em; }
+.algo-tp__chanqk { font-family: var(--mono-font, ui-monospace, monospace); font-weight: 700; min-width: 3.4em; }
+.algo-tp__chanqe { opacity: 0.5; }
+.algo-tp__chansudog { padding: 0.1em 0.4em; border-radius: 5px; border: 1px dashed var(--tp-hi); background: color-mix(in srgb, var(--tp-hi) 14%, transparent); font-family: var(--mono-font, ui-monospace, monospace); font-size: 0.92em; }
+.algo-tp__chanmove { font-size: 0.82em; font-weight: 700; color: #e0a500; }
+@container algo-tp (max-width: 520px) { .algo-tp__chanrow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .algo-tp__chanh { grid-column: 1 / -1; order: -1; } }
+/* sync.Pool: объект, только что созданный New, — это цена (аллокация), отличаем от reuse */
+.algo-tp__lsmcell--new { border-color: var(--tp-bad); box-shadow: 0 0 0 2px color-mix(in srgb, var(--tp-bad) 35%, transparent); }
+
+/* encoding/json: таблица того, что читает reflect, и растущий out */
+.algo-tp__rj { margin: 0.6em 0 0.3em; }
+.algo-tp__rjt { border-collapse: collapse; width: 100%; font-size: 0.82em; margin: 0.35em 0; }
+.algo-tp__rjt th { text-align: left; font-weight: 600; opacity: 0.65; padding: 0.2em 0.45em; border-bottom: 1px solid var(--tp-border); }
+.algo-tp__rjt td { padding: 0.3em 0.45em; font-family: var(--mono-font, ui-monospace, monospace); white-space: nowrap; border-bottom: 1px solid color-mix(in srgb, var(--tp-border) 50%, transparent); }
+.algo-tp__rjr--pending td { opacity: 0.45; }
+.algo-tp__rjr--cur td { background: color-mix(in srgb, #e0a500 18%, transparent); }
+.algo-tp__rjr--emit td:last-child { color: var(--tp-ok); font-weight: 700; }
+.algo-tp__rjr--skip td { text-decoration: line-through; opacity: 0.6; }
+.algo-tp__rjr--skip td:last-child { text-decoration: none; opacity: 1; color: var(--tp-warn); }
+.algo-tp__rjout { font-family: var(--mono-font, ui-monospace, monospace); font-size: 0.85em; font-weight: 700; color: var(--tp-ok); overflow-wrap: anywhere; }
+
+/* netpoll: масштаб — 4 потока M, очередь готовых, тысячи горутин, спящих в netpoll */
+.algo-tp__npscale { display: flex; flex-direction: column; gap: 0.45em; margin: 0.7em 0 0.3em; }
+.algo-tp__nprow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3em; font-size: 0.82em; }
+.algo-tp__nplab { min-width: 8.5em; opacity: 0.7; }
+.algo-tp__npm { display: inline-flex; align-items: center; gap: 0.3em; padding: 0.15em 0.35em; border-radius: 6px; border: 1px solid var(--tp-border); }
+.algo-tp__npm--idle { border-style: dashed; }
+.algo-tp__npmk { font-weight: 700; opacity: 0.75; }
+.algo-tp__npmfree { opacity: 0.55; font-style: italic; }
+.algo-tp__npg { padding: 0.08em 0.4em; border-radius: 5px; font-family: var(--mono-font, ui-monospace, monospace); font-weight: 700; border: 1px solid var(--tp-border); }
+.algo-tp__npg--run { background: color-mix(in srgb, var(--tp-lo) 22%, transparent); border-color: color-mix(in srgb, var(--tp-lo) 50%, transparent); }
+.algo-tp__npg--park { opacity: 0.5; }
+.algo-tp__npg--ours { background: #e0a500; border-color: #e0a500; color: #111; }
+.algo-tp__npnone { opacity: 0.5; }
+.algo-tp__npmore { opacity: 0.6; font-style: italic; }
