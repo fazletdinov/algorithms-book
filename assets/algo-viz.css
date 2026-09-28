@@ -1539,3 +1539,11 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__tstag--a { color: #ef4444; }
 .algo-tp__tstag--b { color: var(--tp-lo); }
 .algo-tp__fwzone { font-size: 0.66em; opacity: 0.75; white-space: nowrap; font-family: ui-monospace, monospace; }
+/* Sparse table: два блока запроса на строке массива и их перекрытие */
+.algo-tp__spcell--a { box-shadow: inset 0 -4px 0 #3b82f6; }
+.algo-tp__spcell--b { box-shadow: inset 0 -4px 0 #a855f7; }
+.algo-tp__spcell--ab { box-shadow: inset 0 -4px 0 #3b82f6, inset 0 4px 0 #a855f7; background: color-mix(in srgb, #e0a500 25%, transparent); }
+.algo-tp__splegend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 0.8em; margin-top: 0.5em; }
+.algo-tp__splegend .algo-tp__spcell { display: inline-block; min-width: 1.8em; text-align: center; }
+.algo-tp__tnode--curring { outline: 3px solid #e0a500; outline-offset: 2px; }
+.algo-tp__legdot--curring { background: transparent; border: 3px solid #e0a500; }

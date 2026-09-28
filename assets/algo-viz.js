@@ -3084,13 +3084,21 @@
       grid.style.gridTemplateColumns = "auto repeat(" + n + ", minmax(2.2em, 1fr))";
       grid.appendChild(mkEl("div", "algo-tp__sphead", "k\\i"));
       for (var i = 0; i < n; i++) grid.appendChild(mkEl("div", "algo-tp__sphead", i));
+      function inB(z, i) { return !!z && i >= z[0] && i <= z[1]; }
       table.forEach(function (row, k) {
         grid.appendChild(mkEl("div", "algo-tp__sphead", "2^" + k + "=" + (1 << k)));
-        row.forEach(function (cell) {
+        row.forEach(function (cell, i) {
           if (!cell.valid) { grid.appendChild(mkEl("div", "algo-tp__spvoid", "")); return; }
-          grid.appendChild(mkEl("div", "algo-tp__spcell" + (cell.cls ? " algo-tp__tnode--" + cell.cls : ""), cell.val == null ? "·" : cell.val));
+          var blk = k === 0 ? (inB(s.blkA, i) && inB(s.blkB, i) ? " algo-tp__spcell--ab" : inB(s.blkA, i) ? " algo-tp__spcell--a" : inB(s.blkB, i) ? " algo-tp__spcell--b" : "") : "";
+          grid.appendChild(mkEl("div", "algo-tp__spcell" + (cell.cls ? " algo-tp__tnode--" + cell.cls : "") + blk, cell.val == null ? "·" : cell.val));
         });
       });
+      if (s.blkA) {
+        var lg = mkEl("div", "algo-tp__splegend");
+        lg.appendChild(mkEl("span", "algo-tp__spcell algo-tp__spcell--a", "A")); lg.appendChild(document.createTextNode(" левый блок [" + s.blkA[0] + ".." + s.blkA[1] + "]  "));
+        if (s.blkB) { lg.appendChild(mkEl("span", "algo-tp__spcell algo-tp__spcell--b", "B")); lg.appendChild(document.createTextNode(" правый [" + s.blkB[0] + ".." + s.blkB[1] + "]  ")); lg.appendChild(mkEl("span", "algo-tp__spcell algo-tp__spcell--ab", "AB")); lg.appendChild(document.createTextNode(" перекрытие — считается дважды, для min это не важно")); }
+        host.appendChild(grid); host.appendChild(lg); return;
+      }
       host.appendChild(grid);
     };
   }
@@ -3122,16 +3130,18 @@
     for (var k0 = 1; k0 <= K; k0++) { var h = 1 << (k0 - 1); for (var i = 0; i + (1 << k0) <= n; i++) { t[k0][i].v = Math.min(t[k0 - 1][i].v, t[k0 - 1][i + h].v); } }
     function snap(marks) { return t.map(function (row, k) { return row.map(function (cell, i) { return { val: cell.v, valid: cell.valid, cls: (marks && marks[k] != null && marks[k][i]) || "" }; }); }); }
     var steps = [];
-    function push(o) { steps.push({ si: steps.length, line: o.line, table: o.snap, vars: { k: (o.k == null ? "—" : String(o.k)), a: (o.a == null ? "—" : String(o.a)), b: (o.b == null ? "—" : String(o.b)), ans: (o.ans == null ? "—" : String(o.ans)) }, info: o.info, done: o.done, found: o.found }); }
+    // blkA/blkB — отрезки двух блоков на строке 2^0 (это сам массив): перекрытие видно там,
+    // где им и место, а не только двумя соседними клетками строки k
+    function push(o) { steps.push({ si: steps.length, line: o.line, table: o.snap, blkA: o.blkA || null, blkB: o.blkB || null, vars: { k: (o.k == null ? "—" : String(o.k)), a: (o.a == null ? "—" : String(o.a)), b: (o.b == null ? "—" : String(o.b)), ans: (o.ans == null ? "—" : String(o.ans)) }, info: o.info, done: o.done, found: o.found }); }
     var len = r - l + 1, k = 0; while ((1 << (k + 1)) <= len) k++;
     push({ line: 1, snap: snap({}), k: k, info: "длина [" + l + "," + r + "] = " + len + " → k = ⌊log2(" + len + ")⌋ = " + k + " (2^" + k + "=" + (1 << k) + ")" });
     var i2 = r - (1 << k) + 1, a = t[k][l].v, b = t[k][i2].v;
     var mL = {}; mL[k] = {}; mL[k][l] = "found";
-    push({ line: 2, snap: snap(mL), k: k, a: a, info: "table[" + k + "][" + l + "] = " + a + " — минимум на ЛЕВОМ блоке [" + l + ".." + (l + (1 << k) - 1) + "] длины 2^" + k + " = " + (1 << k) });
+    push({ line: 2, snap: snap(mL), blkA: [l, l + (1 << k) - 1], k: k, a: a, info: "table[" + k + "][" + l + "] = " + a + " — минимум на ЛЕВОМ блоке [" + l + ".." + (l + (1 << k) - 1) + "] длины 2^" + k + " = " + (1 << k) });
     var mR = {}; mR[k] = {}; mR[k][i2] = "found";
-    push({ line: 3, snap: snap(mR), k: k, a: a, b: b, info: "table[" + k + "][" + i2 + "] = " + b + " — минимум на ПРАВОМ блоке [" + i2 + ".." + r + "], тоже длины 2^" + k + ". Два блока ПЕРЕКРЫВАЮТСЯ и вместе покрывают [" + l + "," + r + "]" });
+    push({ line: 3, snap: snap(mR), blkA: [l, l + (1 << k) - 1], blkB: [i2, r], k: k, a: a, b: b, info: "table[" + k + "][" + i2 + "] = " + b + " — минимум на ПРАВОМ блоке [" + i2 + ".." + r + "], тоже длины 2^" + k + ". Два блока ПЕРЕКРЫВАЮТСЯ и вместе покрывают [" + l + "," + r + "]" });
     var ans = Math.min(a, b), m = {}; m[k] = {}; m[k][l] = "found"; m[k][i2] = "found";
-    push({ line: 2, snap: snap(m), k: k, a: a, b: b, ans: ans, found: true, done: true, info: "min(a=" + a + ", b=" + b + ") = " + ans + " — повтор элементов из-за перекрытия не мешает (минимум идемпотентен)" });
+    push({ line: 2, snap: snap(m), blkA: [l, l + (1 << k) - 1], blkB: [i2, r], k: k, a: a, b: b, ans: ans, found: true, done: true, info: "min(a=" + a + ", b=" + b + ") = " + ans + " — повтор элементов из-за перекрытия не мешает (минимум идемпотентен)" });
     return { steps: steps };
   }
 
@@ -3813,8 +3823,10 @@
     function lbl(nd) { return "[" + nd.lo + "," + nd.hi + "]"; }
     function snap(cur) {
       return nodes.map(function (n) {
-        var cls = (n.id === cur) ? "current" : (state[n.id] || "");
-        return { lo: n.lo, hi: n.hi, sum: n.sum, lazy: n.lazy, depth: n.depth, cls: cls };
+        // текущий узел — обводкой ПОВЕРХ цвета роли: раньше он всегда был синим
+        // («частично, спускаемся»), даже на шаге apply и когда он вне диапазона
+        var cls = state[n.id] || "";
+        return { lo: n.lo, hi: n.hi, sum: n.sum, lazy: n.lazy, depth: n.depth, cls: cls, isCur: n.id === cur };
       });
     }
     function push_(o) { steps.push({ si: steps.length, line: o.line, tree: snap(o.cur), vars: { node: (o.node || "—"), action: (o.action || "—"), lazyv: (o.lazyv == null ? "—" : o.lazyv), total: (o.total == null ? "—" : o.total) }, info: o.info, done: o.done, hot: o.hot }); }
@@ -3885,7 +3897,7 @@
       var nodes = s.tree || [];
       if (!nodes.length) return;
       var fig = segFigure(nodes, { label: function (n) { return String(n.sum); } });
-      nodes.forEach(function (n, i) { fig.nodes[i].classList.add("algo-tp__tnode--lazyhost"); if (n.lazy) fig.nodes[i].appendChild(mkEl("span", "algo-tp__lazytag", "+" + n.lazy)); });
+      nodes.forEach(function (n, i) { fig.nodes[i].classList.add("algo-tp__tnode--lazyhost"); fig.nodes[i].classList.toggle("algo-tp__tnode--curring", !!n.isCur); if (n.lazy) fig.nodes[i].appendChild(mkEl("span", "algo-tp__lazytag", "+" + n.lazy)); });
       host.appendChild(fig.el);
     };
   }
@@ -12732,7 +12744,7 @@
       values: function () { return []; },
       title: function (ctx) { return "Lazy: Update(" + ctx.ql + "," + ctx.qr + ",+" + ctx.d + "), затем Query(" + ctx.sl + "," + ctx.sr + ")"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
-      legend: [{ cls: "take", label: "apply / take (целиком внутри)" }, { cls: "split", label: "частичное пересечение (спуск)" }, { cls: "skip", label: "мимо диапазона" }],
+      legend: [{ cls: "curring", label: "текущий узел (обводка поверх роли)" }, { cls: "take", label: "apply / take (целиком внутри)" }, { cls: "split", label: "частичное пересечение (спуск)" }, { cls: "skip", label: "мимо диапазона" }],
       sumCells: ["Текущий узел", "lazy узла", "Ответ запроса"],
       sumValues: function (s) { return [{ text: s.vars.node }, { text: String(s.vars.lazyv), cls: (s.vars.lazyv !== "—" && s.vars.lazyv !== 0) ? "gt" : "" }, { text: String(s.vars.total), cls: "eq" }]; },
       status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Query(" + ctx.sl + "," + ctx.sr + ") = " + s.vars.total, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
