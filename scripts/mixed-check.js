@@ -40,6 +40,15 @@ vc.on("jsdomError", () => {}); // собственные скрипты mdBook �
 
 const asset = (f) => fs.readFileSync(path.join(root, "assets", f), "utf8");
 
+// shownProblem узнаёт показанную задачу по ПОЛНОМУ условию (абзацы в карточке —
+// отдельные <p>, поэтому \n убираем). Раньше хватало первых 40 символов, но у
+// dijkstra.ShortestPath и bellmanford.ShortestPath они совпадают («ShortestPath
+// возвращает длину кратчайшег…»), главы у них разные — и выдача dijkstra изредка
+// опознавалась как bellmanford: смоук падал с «среди вариантов нет верного».
+function shownProblem(bank, cardText) {
+  return (bank || []).find((q) => cardText.includes(q.s.split("\n").join("")));
+}
+
 function boot(page, scripts, seed) {
   return new Promise((resolve) => {
     const dom = new JSDOM(fs.readFileSync(path.join(root, "book", page), "utf8"), {
@@ -118,7 +127,7 @@ async function main() {
   if (new Set(titles).size !== titles.length) errors.push(`варианты повторяются: ${titles.join(" | ")}`);
 
   // выбираем заведомо НЕверный: тот, что не совпадает с темой показанной задачи
-  const problem = (bank || []).find((p) => statement.includes(p.s.slice(0, 40)));
+  const problem = shownProblem(bank, statement);
   if (!problem) {
     errors.push("не удалось сопоставить показанное условие с банком");
     return finish();
@@ -238,7 +247,7 @@ async function mockInterview(bank) {
   for (let i = 0; i < 60 && !p; i++) {
     click(dom, next);
     const card = w.querySelector(".algo-mixed__card");
-    const hit = card && bank.find((q) => card.textContent.includes(q.s.slice(0, 40)));
+    const hit = card && shownProblem(bank, card.textContent);
     if (!hit) continue;
     if (!hit.t || !hit.t.length) {
       errors.push(`режим собеседования выдал ${hit.p}.${hit.f} — у неё нет своих тестов`);
@@ -376,6 +385,10 @@ function finish() {
       "слабые места считаются по квизу и смешанной вместе; собеседование прячет подсказки и главу до итога, " +
       "пускает к коду только после плана, гоняет тесты одной функции с чистой заготовки, спрашивает сложность до эталона"
   );
+  // Явный выход: последняя проверка начинает собеседование, и его часы (setInterval
+  // в mixed.js) держат цикл событий jsdom-окна живым — без exit процесс после «✅»
+  // не завершался вовсе и висел до внешнего таймаута.
+  process.exit(0);
 }
 
 main().catch((e) => {
