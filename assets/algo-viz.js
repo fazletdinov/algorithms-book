@@ -4596,7 +4596,8 @@
     var fresh = 0;
     for (var r = 0; r < R; r++) for (var c = 0; c < C; c++) { if (grid0[r][c] === 2) rotTime[r][c] = 0; else if (grid0[r][c] === 1) fresh++; }
     var steps = [], minute = 0, totalFresh = fresh, RC = R * C;
-    function vv(m, fr) { return { "минута": m, "свежих": fr, "сканов сетки": (m + 1) + "× по " + RC }; }
+    // касаний клеток — чтобы сравнить с BFS в одних единицах: каждая минута трогает все R·C
+    function vv(m, fr) { return { "минута": m, "свежих": fr, "сканов сетки": (m + 1) + "× по " + RC + " = " + (m + 1) * RC + " касаний" }; }
     function fin() { return { steps: steps, rotTime: rotTime, grid: grid0, R: R, C: C, totalFresh: totalFresh }; }
     steps.push({ minute: 0, line: 1, vars: vv(0, fresh), info: "Минута 0: гнилые (2) — старты, свежих " + fresh + ". Каждую минуту пересканируем все " + RC + " клеток" });
     if (fresh === 0) { steps.push({ minute: 0, done: true, found: true, line: 20, vars: vv(0, 0), info: "Свежих нет — return 0" }); return fin(); }
@@ -4787,23 +4788,23 @@
     var rotTime = Array.from({ length: R }, function () { return new Array(C).fill(-1); });
     var q = [], fresh = 0;
     for (var r = 0; r < R; r++) for (var c = 0; c < C; c++) { if (grid0[r][c] === 2) { rotTime[r][c] = 0; q.push([r, c]); } else if (grid0[r][c] === 1) fresh++; }
-    var steps = [], minute = 0, totalFresh = fresh;
-    function vv(m, fr) { return { "минута": m, "свежих": fr, "источников": q.length }; }
+    var steps = [], minute = 0, totalFresh = fresh, touched = 0;
+    function vv(m, fr) { return { "минута": m, "свежих": fr, "источников": q.length, "касаний": touched }; }
     function fin() { return { steps: steps, rotTime: rotTime, grid: grid0, R: R, C: C, totalFresh: totalFresh }; }
-    steps.push({ minute: 0, line: 1, vars: { "минута": 0, "свежих": fresh, "источников": q.length }, info: "Минута 0: все гнилые (2) — источники, свежих апельсинов " + fresh });
+    steps.push({ minute: 0, line: 1, vars: { "минута": 0, "свежих": fresh, "источников": q.length, "касаний": 0 }, info: "Минута 0: все гнилые (2) — источники" + (q.length > 1 ? " (" + q.length + " штуки — все в очередь СРАЗУ, это и есть multi-source)" : "") + ", свежих апельсинов " + fresh });
     if (fresh === 0) { steps.push({ minute: 0, done: true, found: true, line: 2, vars: vv(0, 0), info: "fresh == 0 — гнить нечему, return 0" }); return fin(); }
     var guard = 0;
     while (q.length && fresh > 0 && guard++ < R * C + 5) {
       steps.push({ minute: minute, line: 4, vars: vv(minute, fresh), info: "for len(queue)>0 && fresh>0 — в очереди " + q.length + " гнилых (источники волны), свежих ещё " + fresh + " → запускаем минуту " + (minute + 1) });
       var next = [];
       for (var k = 0; k < q.length; k++) {
-        var rr = q[k][0], cc = q[k][1];
+        var rr = q[k][0], cc = q[k][1]; touched++;
         for (var d = 0; d < 4; d++) { var nr = rr + dirs[d][0], nc = cc + dirs[d][1]; if (nr >= 0 && nr < R && nc >= 0 && nc < C && grid0[nr][nc] === 1 && rotTime[nr][nc] < 0) { rotTime[nr][nc] = minute + 1; fresh--; next.push([nr, nc]); } }
       }
       if (!next.length) break;
       minute++;
       q = next;
-      steps.push({ minute: minute, line: 17, vars: vv(minute, fresh), info: "minutes++ → минута " + minute + ": волна гниения заразила сразу весь свой слой — " + next.length + " апельсин(ов); свежих осталось " + fresh });
+      steps.push({ minute: minute, line: 17, vars: vv(minute, fresh), info: "minutes++ → минута " + minute + ": волна гниения заразила сразу весь свой слой — " + next.length + " " + ruPlural(next.length, "апельсин", "апельсина", "апельсинов") + "; свежих осталось " + fresh });
     }
     var ok = fresh === 0;
     steps.push({ minute: minute, done: true, found: ok, line: ok ? 20 : 19, vars: vv(minute, fresh), info: ok ? ("Все апельсины сгнили за " + minute + " мин — return " + minute) : ("Осталось " + fresh + " недостижимых свежих → return -1") });
@@ -4836,8 +4837,10 @@
     var steps = [], q = [], visitedCount = 0;
     function qSnap() { return q.map(function (c) { return [c[0], c[1], dist[c[0]][c[1]]]; }); }
     function vv(cell, d) { return { "клетка": (cell ? "(" + cell[0] + "," + cell[1] + ")" : "—"), "расстояние": (d == null ? "—" : d), "посещено": visitedCount, "вОчереди": q.length }; }
-    function push(o) { steps.push({ cur: o.cur || null, queue: qSnap(), line: o.line, vars: vv(o.cur, o.d), info: o.info, done: o.done, found: o.found }); }
-    function fin() { steps.forEach(function (s, i) { s._i = i; }); return { steps: steps, visitStep: visitStep, grid: grid, R: R, C: C }; }
+    function push(o) { steps.push({ cur: o.cur || null, nb: o.nb || null, nbOk: !!o.nbOk, queue: qSnap(), line: o.line, vars: vv(o.cur, o.d), info: o.info, done: o.done, found: o.found }); }
+    // dist клетки после открытия уже не меняется — рисуем итоговую матрицу с того шага,
+    // где клетку открыли (visitStep): так в клетке виден номер волны
+    function fin() { steps.forEach(function (s, i) { s._i = i; }); return { steps: steps, visitStep: visitStep, dist: dist, grid: grid, R: R, C: C }; }
     if (grid[0][0] === 1 || grid[R - 1][C - 1] === 1) { push({ done: true, line: 16, info: "Старт или цель — препятствие, пути нет (return -1)" }); return fin(); }
     push({ line: 2, info: "dist[][] = -1 (не посещено) для всех клеток" });
     dist[0][0] = 0; visitedCount = 1; q.push([0, 0]); visitStep[0][0] = steps.length;
@@ -4852,14 +4855,16 @@
       push({ cur: [r, c], d: cd, line: 7, info: "(" + r + "," + c + ") — не цель, раскрываем 4 соседей" });
       for (var di = 0; di < dirs.length; di++) {
         var nr = r + dirs[di][0], nc = c + dirs[di][1];
-        push({ cur: [r, c], d: cd, line: 9, info: "сосед (" + nr + "," + nc + ")" });
-        var free = nr >= 0 && nr < R && nc >= 0 && nc < C && grid[nr][nc] === 0 && dist[nr][nc] < 0;
-        push({ cur: [r, c], d: cd, line: 10, info: free ? "(" + nr + "," + nc + ") свободна и не посещена → берём" : "(" + nr + "," + nc + ") вне поля / стена / уже посещена → пропуск" });
+        var inside = nr >= 0 && nr < R && nc >= 0 && nc < C, nbc = inside ? [nr, nc] : null;
+        push({ cur: [r, c], nb: nbc, d: cd, line: 9, info: "сосед (" + nr + "," + nc + ")" });
+        var free = inside && grid[nr][nc] === 0 && dist[nr][nc] < 0;
+        var why = !inside ? "вне поля" : grid[nr][nc] === 1 ? "стена" : "уже открыта раньше (dist = " + dist[nr][nc] + " ≤ " + (cd + 1) + ")";
+        push({ cur: [r, c], nb: nbc, nbOk: free, d: cd, line: 10, info: free ? "(" + nr + "," + nc + ") свободна и не посещена → берём" : "(" + nr + "," + nc + ") " + why + " → пропуск" });
         if (free) {
           dist[nr][nc] = cd + 1; visitedCount++; visitStep[nr][nc] = steps.length;
-          push({ cur: [r, c], d: cd, line: 11, info: "dist[" + nr + "][" + nc + "] = " + dist[nr][nc] + " — открыли клетку" });
+          push({ cur: [r, c], nb: [nr, nc], nbOk: true, d: cd, line: 11, info: "dist[" + nr + "][" + nc + "] = " + dist[nr][nc] + " — открыли клетку (волна " + dist[nr][nc] + ")" });
           q.push([nr, nc]);
-          push({ cur: [r, c], d: cd, line: 12, info: "queue = append((" + nr + "," + nc + ")) — в конец очереди" });
+          push({ cur: [r, c], nb: [nr, nc], nbOk: true, d: cd, line: 12, info: "queue = append((" + nr + "," + nc + ")) — в конец очереди, за всей волной " + cd });
         }
       }
     }
@@ -4867,27 +4872,38 @@
     return fin();
   }
   function gridViz(panel, ctx) {
-    var grid = ctx.grid, R = ctx.R, C = ctx.C, visitStep = ctx.visitStep;
-    var wrap = document.createElement("div"); wrap.className = "algo-viz__grid"; wrap.style.gridTemplateColumns = "repeat(" + C + ", 2.7em)";
+    var grid = ctx.grid, R = ctx.R, C = ctx.C, visitStep = ctx.visitStep, dist = ctx.dist;
+    var wrap = document.createElement("div"); wrap.className = "algo-viz__grid"; wrap.style.gridTemplateColumns = "1.6em repeat(" + C + ", 2.7em)";
     var cells = [];
+    // координаты по краям: в статусе клетки названы (r,c), без подписей их было не найти
+    wrap.appendChild(mkEl("div", "algo-viz__gcell algo-viz__gcell--head", ""));
+    for (var hc = 0; hc < C; hc++) wrap.appendChild(mkEl("div", "algo-viz__gcell algo-viz__gcell--head", String(hc)));
     for (var r = 0; r < R; r++) {
       cells.push([]);
+      wrap.appendChild(mkEl("div", "algo-viz__gcell algo-viz__gcell--head", String(r)));
       for (var c = 0; c < C; c++) {
         var cd = document.createElement("div"); cd.className = "algo-viz__gcell" + (grid[r][c] === 1 ? " algo-viz__gcell--wall" : "");
-        if (r === 0 && c === 0) cd.textContent = "S"; else if (r === R - 1 && c === C - 1) cd.textContent = "G";
         wrap.appendChild(cd); cells[r].push(cd);
       }
     }
     panel.appendChild(wrap);
+    function label(r, c) { return r === 0 && c === 0 ? "S" : r === R - 1 && c === C - 1 ? "G" : ""; }
     return function (s) {
-      var i = s._i;
+      var i = s._i, inQ = {};
+      (s.queue || []).forEach(function (q) { inQ[q[0] + "," + q[1]] = true; });
       for (var r = 0; r < R; r++) for (var c = 0; c < C; c++) {
-        var vs = visitStep[r][c];
-        cells[r][c].classList.toggle("algo-viz__gcell--visited", vs >= 0 && vs <= i && grid[r][c] === 0);
-        cells[r][c].classList.toggle("algo-viz__gcell--current", !!s.cur && s.cur[0] === r && s.cur[1] === c);
+        var vs = visitStep[r][c], open = vs >= 0 && vs <= i && grid[r][c] === 0, el = cells[r][c];
+        el.textContent = open ? (r === 0 && c === 0 ? "S" : label(r, c) ? label(r, c) + dist[r][c] : String(dist[r][c])) : label(r, c);
+        var cur = !!s.cur && s.cur[0] === r && s.cur[1] === c, nb = !!s.nb && s.nb[0] === r && s.nb[1] === c;
+        el.classList.toggle("algo-viz__gcell--visited", open && !inQ[r + "," + c]);
+        el.classList.toggle("algo-viz__gcell--frontier", open && !!inQ[r + "," + c] && !cur);
+        el.classList.toggle("algo-viz__gcell--current", cur);
+        el.classList.toggle("algo-viz__gcell--nbok", nb && s.nbOk);
+        el.classList.toggle("algo-viz__gcell--nbbad", nb && !s.nbOk);
       }
     };
   }
+
 
   // A* по сетке: f = g + h, h — манхэттенская оценка до цели. Открытый список (мин по f),
   // закрытые (раскрытые) клетки, восстановление пути по came-from.
@@ -9690,8 +9706,8 @@
       title: function () { return "Rotting Oranges (multi-source BFS)"; },
       legend: [{ cls: "current", label: "сгнил сейчас" }, { cls: "visited", label: "уже гнилой" }, { cls: "wall", label: "пусто" }],
       pointers: function () { return { lo: -1, hi: -1 }; },
-      sumCells: ["Минута", "Свежих осталось"],
-      sumValues: function (s) { return [{ text: s.vars["минута"], cls: "eq" }, { text: s.vars["свежих"], cls: (s.vars["свежих"] === 0 ? "eq" : "warn") }]; },
+      sumCells: ["Минута", "Свежих осталось", "Касаний (≤ 1 на клетку)"],
+      sumValues: function (s) { return [{ text: s.vars["минута"], cls: "eq" }, { text: s.vars["свежих"], cls: (s.vars["свежих"] === 0 ? "eq" : "warn") }, { text: s.vars["касаний"] }]; },
       status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: s.found ? ("Сгнило за " + s.vars["минута"] + " мин") : "Остались недостижимые", text: s.info }; return { kind: "info", icon: idx + 1, head: "Минута " + s.vars["минута"], text: s.info }; },
       stepCard: function (s) { return { a: "минута " + s.vars["минута"], b: "свежих " + s.vars["свежих"], c: s.done ? "✓" : "волна", cls: s.done ? "eq" : "lt" }; },
       varsOf: function (s) { return { "минута": s.vars["минута"], "свежих": s.vars["свежих"], "источников": s.vars["источников"] }; },
@@ -11830,7 +11846,7 @@
       inputs: [{ attr: "data-grid", label: "Сетка строки;через; запятую (0/1)" }],
       values: function () { return []; },
       title: function () { return "Кратчайший путь по сетке (BFS)"; },
-      legend: [{ cls: "current", label: "текущая клетка" }, { cls: "visited", label: "посещена" }, { cls: "wall", label: "стена" }, { cls: "idle", label: "не дошли" }],
+      legend: [{ cls: "current", label: "текущая клетка" }, { cls: "visited", label: "извлечена (число — dist, номер волны)" }, { cls: "frontier", label: "открыта, ждёт в очереди" }, { cls: "wall", label: "стена" }],
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Текущая клетка", "Расстояние", "Посещено · в очереди"],
       sumValues: function (s) { return [{ text: s.vars["клетка"] }, { text: s.vars["расстояние"], cls: "eq" }, { text: s.vars["посещено"] + " · " + s.vars["вОчереди"], cls: "gt" }]; },
