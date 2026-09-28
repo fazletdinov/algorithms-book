@@ -4035,7 +4035,9 @@
       var ln = document.createElementNS(SVGNS, "line");
       ln.setAttribute("x1", a.x + ux * 17); ln.setAttribute("y1", a.y + uy * 17); ln.setAttribute("x2", b.x - ux * 20); ln.setAttribute("y2", b.y - uy * 20);
       ln.setAttribute("marker-end", "url(#algoarrow-dij)"); ln.setAttribute("class", "algo-viz__gedge"); svg.appendChild(ln);
-      var wt = document.createElementNS(SVGNS, "text"); wt.setAttribute("x", (a.x + b.x) / 2 + uy * 9); wt.setAttribute("y", (a.y + b.y) / 2 - ux * 9); wt.setAttribute("text-anchor", "middle"); wt.setAttribute("class", "algo-viz__gbadge"); wt.textContent = e.w; svg.appendChild(wt);
+      // метка веса — на 40% пути от начала ребра, а не в середине: у пересекающихся рёбер
+      // (A→C и B→D на круге) середины совпадают, и «5» ложилась поверх «8»
+      var wt = document.createElementNS(SVGNS, "text"); wt.setAttribute("x", a.x + (b.x - a.x) * 0.4 + uy * 10); wt.setAttribute("y", a.y + (b.y - a.y) * 0.4 - ux * 10); wt.setAttribute("text-anchor", "middle"); wt.setAttribute("class", "algo-viz__gbadge"); wt.textContent = e.w; svg.appendChild(wt);
       edgeKey[e.u + "->" + e.v] = ei;
       return ln;
     });
@@ -4263,6 +4265,14 @@
   // Bellman–Ford: V−1 проходов релаксации по ВСЕМ рёбрам + V-й проход как детектор
   // отрицательного цикла. Переиспользует dijkstraViz (settled = «расстояние конечно»).
   // Беллман–Форд — построчный (debugger) проход; граф рисует dijkstraViz, dist[] — панель.
+  // Старт — ИМЯ вершины (в задаче «Network Delay» это k = 2 при вершинах 1..4); число,
+  // не совпавшее ни с одним именем, — индекс (так записаны графы с вершинами A, B, …)
+  function startIndex(labels, raw) {
+    var v = (raw == null ? "0" : String(raw)).trim(), i = labels.indexOf(v);
+    if (i >= 0) return i;
+    var n = parseInt(v, 10);
+    return isNaN(n) || n < 0 || n >= labels.length ? 0 : n;
+  }
   function bBellmanFord(labels, edges, start) {
     var n = labels.length, INF = Infinity, dist = new Array(n).fill(INF), steps = [], relaxN = 0;
     if (isNaN(start) || start < 0 || start >= n) start = 0;
@@ -12836,8 +12846,8 @@
       varDesc: { "u": "Вершина извлечённой записи", "u.d": "Оценка, с которой запись лежала в куче", "dist[u]": "Лучшее известное расстояние до u", "edge": "Релаксируемое ребро u→v (вес)", "dist[v]": "Расстояние до соседа: было → стало" },
       lineNotes: { 1: "dist[]: всё ∞, кроме источника (dist[src]=0)", 2: "Кладём источник в мин-кучу (приоритетную очередь)", 3: "Пока очередь не пуста — продолжаем", 4: "Извлекаем запись с минимальной оценкой", 5: "Оценка записи больше dist[u]? Да — запись устарела (continue); нет — u финализирована", 6: "Перебираем исходящие рёбра вершины u", 7: "Релаксация: новый путь dist[u]+w короче текущего dist[v]?", 8: "Короче → обновляем dist[v]", 9: "Кладём новую запись (v, новое расстояние) в очередь", 13: "Очередь пуста — все кратчайшие расстояния найдены" },
       rules: [{ head: "Извлекаем минимум", body: "ближайшая вершина — финал", cls: "lt" }, { head: "dist[u]+w < dist[v]", body: "→ релаксируем dist[v]", cls: "eq" }, { head: "Оценка > dist[u]", body: "→ устаревшая запись, пропуск", cls: "gt" }],
-      parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = (root.getAttribute("data-edges") || "").split(",").map(function (e) { return e.trim().split("-"); }).map(function (p) { return { u: labels.indexOf(p[0]), v: labels.indexOf(p[1]), w: Number(p[2]) }; }).filter(function (e) { return e.u >= 0 && e.v >= 0; }); var start = parseInt(root.getAttribute("data-start") || "0", 10); return { labels: labels, edges: edges, start: start, steps: bDijkstra(labels, edges, start).steps }; },
-      inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b-вес (ориент.)" }, { attr: "data-start", label: "старт", sm: true }],
+      parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = (root.getAttribute("data-edges") || "").split(",").map(function (e) { return e.trim().split("-"); }).map(function (p) { return { u: labels.indexOf(p[0]), v: labels.indexOf(p[1]), w: Number(p[2]) }; }).filter(function (e) { return e.u >= 0 && e.v >= 0; }); var start = startIndex(labels, root.getAttribute("data-start")); return { labels: labels, edges: edges, start: start, steps: bDijkstra(labels, edges, start).steps }; },
+      inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b-вес (ориент.)" }, { attr: "data-start", label: "старт (вершина)", sm: true }],
       values: function () { return []; },
       title: function () { return "Дейкстра: кратчайшие пути"; },
       legend: [{ cls: "current", label: "извлечена из очереди" }, { cls: "visited", label: "финализирована" }, { cls: "idle", label: "ещё в пути / не достигнута" }, { cls: "curedge", label: "релаксируемое ребро" }],
@@ -12945,8 +12955,8 @@
       varDesc: { "pass": "Номер прохода (всего V−1)", "edge": "Релаксируемое ребро u→v (вес)", "dist[u]": "Расстояние до начала ребра", "dist[v]": "Расстояние до конца: было → стало", "relaxed": "Удалось ли укоротить путь" },
       lineNotes: { 1: "Старт: dist[src]=0, остальные ∞", 2: "Кратчайший путь содержит ≤ V−1 рёбер → столько проходов и нужно", 3: "В каждом проходе перебираем ВСЕ рёбра", 4: "Проверяем каждое ребро: путь через u короче текущего dist[v]?", 5: "Короче → релаксируем dist[v] (Bellman–Ford ничего не финализирует)", 9: "V-й проход — детектор: повторяем релаксацию ещё раз", 10: "Если хоть одно ребро ещё улучшается — есть отрицательный цикл", 11: "На V-м проходе всё ещё улучшается → отрицательный цикл", 14: "V-й проход без улучшений → циклов нет, расстояния верны" },
       rules: [{ head: "dist[u]+w < dist[v]", body: "→ релаксируем (любой проход)", cls: "eq" }, { head: "V−1 проходов", body: "путь ≤ V−1 рёбер", cls: "lt" }, { head: "V-й проход улучшил", body: "→ отрицательный цикл", cls: "gt" }],
-      parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = (root.getAttribute("data-edges") || "").split(",").map(function (e) { return e.trim().split("-"); }).map(function (p) { return { u: labels.indexOf(p[0]), v: labels.indexOf(p[1]), w: Number(p.slice(2).join("-")) }; }).filter(function (e) { return e.u >= 0 && e.v >= 0 && !isNaN(e.w); }); var start = parseInt(root.getAttribute("data-start") || "0", 10); return { labels: labels, edges: edges, start: start, steps: bBellmanFord(labels, edges, start).steps }; },
-      inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b-вес (ориент., веса любые)" }, { attr: "data-start", label: "старт", sm: true }],
+      parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = (root.getAttribute("data-edges") || "").split(",").map(function (e) { return e.trim().split("-"); }).map(function (p) { return { u: labels.indexOf(p[0]), v: labels.indexOf(p[1]), w: Number(p.slice(2).join("-")) }; }).filter(function (e) { return e.u >= 0 && e.v >= 0 && !isNaN(e.w); }); var start = startIndex(labels, root.getAttribute("data-start")); return { labels: labels, edges: edges, start: start, steps: bBellmanFord(labels, edges, start).steps }; },
+      inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b-вес (ориент., веса любые)" }, { attr: "data-start", label: "старт (вершина)", sm: true }],
       values: function () { return []; },
       title: function () { return "Bellman–Ford: кратчайшие пути"; },
       legend: [{ cls: "current", label: "вершина u ребра" }, { cls: "visited", label: "достигнута (dist<∞)" }, { cls: "idle", label: "ещё ∞" }, { cls: "curedge", label: "проверяемое ребро" }],
