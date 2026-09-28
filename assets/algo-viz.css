@@ -1803,3 +1803,20 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__main--wide, .algo-tp--fs .algo-tp__main--wide { grid-template-columns: minmax(0, 1fr); }
 /* Миллер — Рабин: нетривиальный корень из единицы (цвет ячейки mid) */
 .algo-tp__legdot--mrroot { outline: 2px solid #e0a500; background: color-mix(in srgb, #e0a500 22%, transparent); border-color: #e0a500; }
+/* Гистограмма (наибольший прямоугольник): столбики, стек, прямоугольник снятого и лучший */
+.algo-tp__hist { display: block; margin: 0.4em auto 0.2em; max-width: 100%; height: auto; } /* на узком экране — масштаб, а не прокрутка */
+.algo-tp__histbar { fill: color-mix(in srgb, var(--fg) 14%, transparent); stroke: var(--quote-border); stroke-width: 1; }
+.algo-tp__histbar--stack { fill: color-mix(in srgb, #e0a500 30%, transparent); stroke: #e0a500; }
+.algo-tp__histbar--cur { fill: color-mix(in srgb, var(--tp-lo) 50%, transparent); stroke: var(--tp-lo); stroke-width: 2; }
+.algo-tp__histbar--pop { fill: color-mix(in srgb, var(--tp-bad) 45%, transparent); stroke: var(--tp-bad); stroke-width: 2; }
+.algo-tp__histcand { fill: color-mix(in srgb, var(--tp-warn) 20%, transparent); stroke: var(--tp-warn); stroke-width: 2; stroke-dasharray: 6 4; }
+.algo-tp__histbest { fill: none; stroke: var(--tp-ok); stroke-width: 3; }
+.algo-tp__histval { fill: var(--fg); font-size: 12px; font-weight: 700; text-anchor: middle; }
+.algo-tp__histidx { fill: color-mix(in srgb, var(--fg) 60%, transparent); font-size: 11px; text-anchor: middle; }
+.algo-tp__histsent { fill: none; stroke: color-mix(in srgb, var(--fg) 25%, transparent); stroke-dasharray: 3 3; }
+.algo-tp__histsent--on { stroke: var(--tp-lo); stroke-width: 2; }
+.algo-tp__legdot--hcur { background: color-mix(in srgb, var(--tp-lo) 50%, transparent); border-color: var(--tp-lo); border-radius: 3px; }
+.algo-tp__legdot--hstack { background: color-mix(in srgb, #e0a500 30%, transparent); border-color: #e0a500; border-radius: 3px; }
+.algo-tp__legdot--hpop { background: color-mix(in srgb, var(--tp-bad) 45%, transparent); border-color: var(--tp-bad); border-radius: 3px; }
+.algo-tp__legdot--hcand { background: color-mix(in srgb, var(--tp-warn) 20%, transparent); border: 2px dashed var(--tp-warn); border-radius: 3px; }
+.algo-tp__legdot--hbest { background: transparent; border: 2px solid var(--tp-ok); border-radius: 3px; }

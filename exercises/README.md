@@ -90,7 +90,9 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | Пакет           | Функции                                      |
 |-----------------|----------------------------------------------|
 | `slidingwindow` | `MaxSumSubarray`, `LongestSubstringKDistinct`, `SmallestSubarrayWithSum`, `LongestSubstringNoRepeat`, `MaxSlidingWindow` |
+| `prefixsum`     | `RangeSums`, `CountSubarraysWithSum`, `LongestBalanced`, `CountDivisibleSubarrays`, `MaxSubarraySum`, `ProductExceptSelf`, `ApplyRangeAdds`, `MatrixRegionSums` |
 | `twopointers`   | `PairWithTargetSum`, `RemoveDuplicates`, `SortedSquares`, `TripletsSumToZero`, `DutchFlagSort` |
+| `stack`         | `IsValidBrackets`, `DecodeString`, `NextGreaterCircular`, `StockSpans`, `LargestRectangle`, `SumSubarrayMins`, `RemoveKDigits` |
 | `fastslow`      | `HasCycle`, `DetectCycle`, `MiddleNode`, `IsHappyNumber`, `CycleLength` |
 | `intervals`     | `MergeIntervals`, `InsertInterval`, `IntervalsIntersection`, `CanAttendAllMeetings`, `MinMeetingRooms` |
 | `cyclicsort`    | `CyclicSort`, `FindMissingNumber`, `FindAllMissingNumbers`, `FindDuplicate`, `FindAllDuplicates` |

@@ -24,7 +24,9 @@
 ## Группа 2: Базовые паттерны (массивы и строки)
 
 - [🪟 Sliding Window (Скользящее окно)](sliding-window.md)
+- [➕ Prefix Sums (Префиксные суммы и разностные массивы)](prefix-sums.md)
 - [🎯 Two Pointers (Два указателя)](two-pointers.md)
+- [📚 Monotonic Stack (Стек и монотонный стек)](monotonic-stack.md)
 - [🐢 Fast & Slow Pointers (Быстрые и медленные указатели)](fast-slow-pointers.md)
 - [↩️ Reverse Linked List (Разворот связанного списка)](reverse-linked-list.md)
 - [🔀 Merge Intervals (Слияние интервалов)](merge-intervals.md)

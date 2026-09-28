@@ -1211,6 +1211,111 @@
       "    return res",
       "}"
     ],
+    "prefix-range": [
+      "func rangeSums(nums []int, qs [][2]int) []int {",
+      "    prefix := make([]int, len(nums)+1)",
+      "    for i, v := range nums {",
+      "        prefix[i+1] = prefix[i] + v",
+      "    }",
+      "    res := make([]int, len(qs))",
+      "    for qi, q := range qs {",
+      "        res[qi] = prefix[q[1]+1] - prefix[q[0]]",
+      "    }",
+      "    return res",
+      "}"
+    ],
+    "prefix-sum-hash": [
+      "func countSubarrays(nums []int, k int) int {",
+      "    seen := map[int]int{0: 1} // пустой префикс",
+      "    sum, count := 0, 0",
+      "    for _, v := range nums {",
+      "        sum += v",
+      "        count += seen[sum-k] // кончаются здесь",
+      "        seen[sum]++",
+      "    }",
+      "    return count",
+      "}"
+    ],
+    "diff-array": [
+      "func applyAdds(n int, ups [][3]int) []int {",
+      "    diff := make([]int, n+1)",
+      "    for _, u := range ups {",
+      "        diff[u[0]] += u[2]   // с l — прибавка",
+      "        diff[u[1]+1] -= u[2] // после r — нет",
+      "    }",
+      "    res := make([]int, n)",
+      "    run := 0",
+      "    for i := 0; i < n; i++ {",
+      "        run += diff[i]",
+      "        res[i] = run",
+      "    }",
+      "    return res",
+      "}"
+    ],
+    "bracket-stack": [
+      "func isValid(s string) bool {",
+      "    pair := map[byte]byte{')': '(', ']': '[', '}': '{'}",
+      "    stack := []byte{}",
+      "    for i := 0; i < len(s); i++ {",
+      "        c := s[i]",
+      "        if c == '(' || c == '[' || c == '{' {",
+      "            stack = append(stack, c)",
+      "        } else if open, ok := pair[c]; ok {",
+      "            if len(stack) == 0 ||",
+      "                stack[len(stack)-1] != open {",
+      "                return false // не та пара",
+      "            }",
+      "            stack = stack[:len(stack)-1] // пара",
+      "        }",
+      "    }",
+      "    return len(stack) == 0 // всё закрыто",
+      "}"
+    ],
+    "histogram-stack": [
+      "func largestRectangle(heights []int) int {",
+      "    n, best := len(heights), 0",
+      "    stack := []int{} // высоты строго растут",
+      "    for i := 0; i <= n; i++ {",
+      "        h := 0 // i == n: сторож высоты 0",
+      "        if i < n {",
+      "            h = heights[i]",
+      "        }",
+      "        for len(stack) > 0 &&",
+      "            heights[stack[len(stack)-1]] >= h {",
+      "            top := stack[len(stack)-1]",
+      "            stack = stack[:len(stack)-1]",
+      "            left := -1",
+      "            if len(stack) > 0 {",
+      "                left = stack[len(stack)-1]",
+      "            }",
+      "            w := i - left - 1",
+      "            best = max(best, heights[top]*w)",
+      "        }",
+      "        stack = append(stack, i)",
+      "    }",
+      "    return best",
+      "}"
+    ],
+    "remove-k-digits": [
+      "func removeKDigits(num string, k int) string {",
+      "    stack := []byte{}",
+      "    for i := 0; i < len(num); i++ {",
+      "        d := num[i]",
+      "        for k > 0 && len(stack) > 0 &&",
+      "            stack[len(stack)-1] > d {",
+      "            stack = stack[:len(stack)-1]",
+      "            k--",
+      "        }",
+      "        stack = append(stack, d)",
+      "    }",
+      "    stack = stack[:len(stack)-k] // хвост",
+      "    res := strings.TrimLeft(string(stack), \"0\")",
+      "    if res == \"\" {",
+      "        return \"0\"",
+      "    }",
+      "    return res",
+      "}"
+    ],
     "scheduler": [
       "func schedule() {",
       "    for {",
@@ -7487,6 +7592,213 @@
     return steps;
   }
 
+  // Префиксные суммы (RangeSums): prefix длиной n+1, prefix[i] — сумма первых i
+  // элементов, prefix[0] = 0. Сначала один проход строит prefix, затем каждый запрос
+  // [l, r] — ОДНО вычитание prefix[r+1] − prefix[l] (hot). Сверено с эталоном
+  // prefixsum.RangeSums: [3,-1,4,1,5], запросы 0:2, 1:3, 4:4 → [6,4,5].
+  function bPrefixRange(a, qs) {
+    var n = a.length, p = [0], res = [], steps = [];
+    function resStr() { return "[" + res.join(",") + "]"; }
+    function snap(extra) {
+      var o = { p: p.slice(), res: res.slice(), lo: -1, hi: -1, built: p.length - 1, pNew: -1, pSrc: -1, pPlus: -1, pMinus: -1, ptrNames: {} };
+      for (var k in extra) o[k] = extra[k];
+      return o;
+    }
+    steps.push(snap({ line: 1, vars: { i: "—", q: "—", ans: "—", resv: "[]" }, info: "prefix[0] = 0 — сумма ПУСТОГО префикса, ноль элементов. Благодаря ей отрезок с самого начала массива считается той же формулой, без особого случая" }));
+    for (var i = 0; i < n; i++) {
+      p.push(p[i] + a[i]);
+      steps.push(snap({ hi: i, pNew: i + 1, pSrc: i, line: 3, ptrNames: { hi: "i" }, vars: { i: i, q: "—", ans: "—", resv: "[]" }, info: "prefix[" + (i + 1) + "] = prefix[" + i + "] + nums[" + i + "] = " + p[i] + " + " + fmtNum(a[i]) + " = " + p[i + 1] + " — сумма " + firstN(i + 1) }));
+    }
+    qs.forEach(function (q) {
+      var l = q[0], r = q[1], v = p[r + 1] - p[l], parts = a.slice(l, r + 1).map(fmtNum).join(" + ");
+      res.push(v);
+      steps.push(snap({ lo: l, hi: r, pPlus: r + 1, pMinus: l, line: 7, hot: true, qv: v, vars: { i: "—", q: "[" + l + ", " + r + "]", ans: v, resv: resStr() }, info: "Запрос [" + l + ", " + r + "]: prefix[" + (r + 1) + "] − prefix[" + l + "] = " + p[r + 1] + " − " + fmtNum(p[l]) + " = " + v + ". «Первые " + (r + 1) + "» минус «первые " + l + "» — остаётся ровно отрезок (проверка: " + parts + " = " + v + "). Одно вычитание, какой бы длины ни был отрезок" }));
+    });
+    steps.push(snap({ done: true, line: 9, vars: { i: "—", q: "—", ans: "—", resv: resStr() }, info: "res = " + resStr() + ". Предподсчёт — n сложений один раз, дальше O(1) на запрос: O(n + q). Сложение отрезка заново стоило бы до n операций на КАЖДЫЙ запрос — O(n·q)" }));
+    return steps;
+  }
+  // отрицательное слагаемое — в скобках: «3 + (−1)», а не «3 + -1»
+  function fmtNum(x) { return x < 0 ? "(" + x + ")" : String(x); }
+  // «первого элемента» / «первых 3 элементов»: «первых 1 элемента» читалось как опечатка
+  function firstN(n) { return n === 1 ? "первого элемента" : "первых " + n + " " + ruPlural(n, "элемента", "элементов", "элементов"); }
+  // Список «l:r» или «l:r:d» через запятую (запросы, обновления диапазонов). Границы
+  // проверяются здесь: выход за массив дал бы undefined в сумме и «NaN» на экране,
+  // а так render() покажет понятную плашку.
+  function parseRanges(s, n, arity, what) {
+    return (s || "").split(",").map(function (x) { return x.trim(); })
+      .filter(function (x) { return x.length > 0; })
+      .map(function (x) {
+        var p = x.split(":").map(function (y) { return num(y.trim(), what); });
+        if (p.length !== arity) throw new Error(what + " «" + x + "»: ожидался формат " + (arity === 2 ? "l:r" : "l:r:d"));
+        if (p[0] < 0 || p[1] < p[0] || p[1] >= n) throw new Error(what + " «" + x + "»: нужно 0 ≤ l ≤ r < " + n);
+        return p;
+      });
+  }
+
+  // Подмассивы с суммой k (CountSubarraysWithSum): сумма nums[i..j] = prefix(j+1) −
+  // prefix(i), значит подмассив, кончающийся в j, найден для КАЖДОГО прошлого префикса,
+  // равного sum − k. seen считает префиксы; pos — только для показа: какие именно
+  // подмассивы найдены. Порядок строк важен: сначала поиск, потом seen[sum]++ (иначе при
+  // k = 0 префикс найдёт сам себя). Сверено с эталоном: [1,2,-2,3,-1], k=3 → 4.
+  function bPrefixHash(a, k) {
+    var n = a.length, seen = { 0: 1 }, pos = { 0: [-1] }, order = [0], sum = 0, count = 0, steps = [];
+    function snap(extra) {
+      var o = { seen: {}, pos: {}, order: order.slice(), sum: sum, count: count, hi: -1, ranges: [], need: null, bumped: null, lo: -1 };
+      for (var key in seen) { o.seen[key] = seen[key]; o.pos[key] = pos[key].slice(); }
+      for (var e in extra) o[e] = extra[e];
+      return o;
+    }
+    steps.push(snap({ line: 1, vars: { j: "—", v: "—", sum: 0, need: "—", count: 0 }, info: "seen = {0: 1}: пустой префикс (ноль элементов, сумма 0) «встречен» ещё до начала. Без него потеряются подмассивы, которые начинаются с индекса 0" }));
+    for (var j = 0; j < n; j++) {
+      var v = a[j];
+      sum += v;
+      steps.push(snap({ hi: j, line: 4, vars: { j: j, v: v, sum: sum, need: "—", count: count }, info: "sum = " + (sum - v) + " + " + fmtNum(v) + " = " + sum + " — сумма " + firstN(j + 1) }));
+      var need = sum - k, c = seen[need] || 0, ranges = (pos[need] || []).map(function (p) { return [p + 1, j]; });
+      count += c;
+      var list = ranges.map(function (rg) { return "[" + rg[0] + ".." + rg[1] + "] = " + a.slice(rg[0], rg[1] + 1).map(fmtNum).join(" + "); }).join("; ");
+      steps.push(snap({ hi: j, line: 5, need: need, ranges: ranges, hot: c > 0, vars: { j: j, v: v, sum: sum, need: need, count: count }, info: c > 0
+        ? "Ищем префикс sum − k = " + sum + " − " + fmtNum(k) + " = " + need + ": встречался " + c + " " + ruPlural(c, "раз", "раза", "раз") + " → +" + c + ". Найдено: " + list
+        : "Ищем префикс sum − k = " + sum + " − " + fmtNum(k) + " = " + need + ": не встречался — ни один подмассив с суммой " + k + " здесь не кончается" }));
+      if (!(sum in seen)) { seen[sum] = 0; pos[sum] = []; order.push(sum); }
+      seen[sum]++; pos[sum].push(j);
+      steps.push(snap({ hi: j, line: 6, bumped: sum, vars: { j: j, v: v, sum: sum, need: need, count: count }, info: "seen[" + sum + "]++ → " + seen[sum] + ". Кладём ПОСЛЕ поиска: текущий префикс ищут только те, кто правее" }));
+    }
+    steps.push(snap({ done: true, line: 8, vars: { j: "—", v: "—", sum: sum, need: "—", count: count }, info: "count = " + count + " за один проход. Перебор всех пар (i, j) стоил бы O(n²): хеш-таблица превращает «найди i, где prefix = sum − k» в один поиск O(1)" }));
+    return steps;
+  }
+
+  // Разностный массив (ApplyRangeAdds): прибавка ко всему [l, r] — две записи,
+  // diff[l] += d и diff[r+1] −= d; итог — префиксные суммы diff. Сверено с эталоном
+  // prefixsum.ApplyRangeAdds: n=5, 1:3:2, 2:4:3, 0:2:-2 → [-2,0,3,5,3].
+  function bDiffArray(n, ups) {
+    var diff = new Array(n + 1).fill(0), res = new Array(n).fill("·"), run = 0, steps = [];
+    function snap(extra) {
+      var o = { diff: diff.slice(), values: res.slice(), lo: -1, hi: -1, dPlus: -1, dMinus: -1, dRead: -1, upd: null, run: run, ptrNames: {} };
+      for (var e in extra) o[e] = extra[e];
+      return o;
+    }
+    steps.push(snap({ line: 1, vars: { u: "—", i: "—", run: "—" }, info: "diff из n+1 нулей: diff[i] — на сколько элемент i отличается от предыдущего. Лишняя ячейка diff[n] — чтобы обновление до последнего индекса не было особым случаем" }));
+    ups.forEach(function (u) {
+      var l = u[0], r = u[1], d = u[2], us = "[" + l + ".." + r + "] " + (d < 0 ? "−" + (-d) : "+" + d);
+      diff[l] += d;
+      steps.push(snap({ lo: l, hi: r, upd: [l, r], dPlus: l, line: 3, vars: { u: us, i: "—", run: "—" }, info: "Обновление " + us + ": diff[" + l + "] += " + fmtNum(d) + " — с индекса " + l + " всё дальше станет на " + Math.abs(d) + (d < 0 ? " меньше" : " больше") }));
+      diff[r + 1] -= d;
+      steps.push(snap({ lo: l, hi: r, upd: [l, r], dMinus: r + 1, line: 4, hot: true, vars: { u: us, i: "—", run: "—" }, info: "diff[" + (r + 1) + "] −= " + fmtNum(d) + " — после " + r + " прибавка гасится. Весь отрезок из " + (r - l + 1) + " " + ruPlural(r - l + 1, "элемента", "элементов", "элементов") + " обновлён ДВУМЯ записями, O(1)" }));
+    });
+    for (var i = 0; i < n; i++) {
+      run += diff[i]; res[i] = run;
+      steps.push(snap({ hi: i, dRead: i, line: 10, ptrNames: { hi: "i" }, vars: { u: "—", i: i, run: run }, info: "run += diff[" + i + "] (= " + diff[i] + ") → " + run + " = res[" + i + "]. Префиксная сумма разностей восстанавливает сами значения" }));
+    }
+    steps.push(snap({ done: true, line: 12, vars: { u: "—", i: "—", run: run }, info: "res = [" + res.join(",") + "]. " + ups.length + " " + ruPlural(ups.length, "обновление", "обновления", "обновлений") + " по O(1) + один проход O(n). Прибавлять в каждую ячейку отрезка стоило бы до n на обновление — O(n·u)" }));
+    return steps;
+  }
+
+  // Проверка скобок (IsValidBrackets): открывающая ждёт на стеке, закрывающая обязана
+  // совпасть с ВЕРШИНОЙ — последней ещё не закрытой. Прочие символы пропускаются.
+  // Сверено с эталоном stack.IsValidBrackets на «{[()()]}» (true) и «([)]» (false).
+  function bBracketStack(s) {
+    var pair = { ")": "(", "]": "[", "}": "{" }, stack = [], matched = {}, steps = [], bad = -1;
+    function stStr() { return stack.length ? stack.map(function (j) { return s[j]; }).join("") : "пусто"; }
+    function snap(extra) {
+      var o = { stack: stack.slice(), matched: {}, hi: -1, lo: -1, bad: bad, popped: -1, pushed: -1 };
+      for (var key in matched) o.matched[key] = matched[key];
+      for (var e in extra) o[e] = extra[e];
+      return o;
+    }
+    steps.push(snap({ line: 2, vars: { i: "—", c: "—", top: "—", st: "пусто" }, info: "Стек пуст. Открывающие скобки будут ждать на нём своей пары; закрывающая обязана совпасть с ПОСЛЕДНЕЙ открытой — с вершиной" }));
+    for (var i = 0; i < s.length; i++) {
+      var c = s[i];
+      if (c === "(" || c === "[" || c === "{") {
+        stack.push(i);
+        steps.push(snap({ hi: i, pushed: i, line: 6, vars: { i: i, c: c, top: c, st: stStr() }, info: "«" + c + "» — открывающая: кладём на стек ждать пары" }));
+      } else if (pair[c]) {
+        var top = stack.length ? stack[stack.length - 1] : -1;
+        if (top < 0 || s[top] !== pair[c]) {
+          bad = i;
+          steps.push(snap({ hi: i, lo: top, line: 10, done: true, fail: true, vars: { i: i, c: c, top: top < 0 ? "—" : s[top], st: stStr() }, info: top < 0
+            ? "«" + c + "» закрывает, но стек пуст — открывающей для неё не было. Ответ: false"
+            : "«" + c + "» ждёт на вершине «" + pair[c] + "», а там «" + s[top] + "» (индекс " + top + ") — пары перекрещиваются. Ответ: false" }));
+          return steps;
+        }
+        stack.pop(); matched[top] = true; matched[i] = true;
+        steps.push(snap({ hi: i, lo: top, popped: top, line: 12, hot: true, vars: { i: i, c: c, top: stack.length ? s[stack[stack.length - 1]] : "—", st: stStr() }, info: "«" + c + "» закрывает вершину «" + s[top] + "» (индекс " + top + ") — пара сошлась, снимаем её со стека" }));
+      } else {
+        steps.push(snap({ hi: i, line: 3, skip: true, vars: { i: i, c: c, top: stack.length ? s[stack[stack.length - 1]] : "—", st: stStr() }, info: "«" + c + "» — не скобка, пропускаем" }));
+      }
+    }
+    var ok = stack.length === 0;
+    if (!ok) bad = stack[stack.length - 1];
+    steps.push(snap({ done: true, fail: !ok, line: 15, vars: { i: "—", c: "—", top: stack.length ? s[stack[stack.length - 1]] : "—", st: stStr() }, info: ok
+      ? "Строка кончилась, стек пуст — каждая скобка нашла пару. Ответ: true, O(n)"
+      : "Строка кончилась, а на стеке " + stack.length + " " + ruPlural(stack.length, "незакрытая скобка", "незакрытые скобки", "незакрытых скобок") + " (" + stStr() + "). Ответ: false" }));
+    return steps;
+  }
+
+  // Наибольший прямоугольник в гистограмме (LargestRectangle): стек индексов с
+  // строго растущими высотами (снятие при >=). Столбик не выше вершины значит, что вершина дальше вправо не
+  // растянется: её прямоугольник — от «соседа снизу» по стеку до i, не включая концы.
+  // Сторож высоты 0 на позиции n выталкивает остаток. Сверено с эталоном
+  // stack.LargestRectangle: [2,1,5,6,2,3] → 10.
+  function bHistogram(hs) {
+    var n = hs.length, stack = [], best = 0, bestRg = null, steps = [];
+    function snap(extra) {
+      var o = { stack: stack.slice(), best: best, bestRg: bestRg ? bestRg.slice() : null, hi: -1, cand: null, popped: -1, pushed: -1, sentinel: false };
+      for (var e in extra) o[e] = extra[e];
+      return o;
+    }
+    steps.push(snap({ line: 2, vars: { i: "—", h: "—", top: "—", area: "—", best: 0 }, info: "Стек индексов пуст. Инвариант: высоты по стеку строго растут снизу вверх — каждый столбик в стеке ещё может расширяться вправо" }));
+    for (var i = 0; i <= n; i++) {
+      var h = i < n ? hs[i] : 0;
+      steps.push(snap({ hi: i, sentinel: i === n, line: i < n ? 6 : 4, vars: { i: i, h: h, top: stack.length ? stack[stack.length - 1] : "—", area: "—", best: best }, info: i < n
+        ? "Столбик " + i + ", высота " + h + ". Все столбики на стеке выше или равные ему дальше вправо не пройдут — их прямоугольники закрываются здесь"
+        : "i = n: столбик-сторож высоты 0. Он ниже всех — вытолкнет со стека всё, что осталось, и досчитает их прямоугольники" }));
+      while (stack.length && hs[stack[stack.length - 1]] >= h) {
+        var top = stack.pop(), left = stack.length ? stack[stack.length - 1] : -1, w = i - left - 1, area = hs[top] * w, improved = area > best;
+        if (improved) { best = area; bestRg = [left + 1, i - 1, hs[top]]; }
+        steps.push(snap({ hi: i, popped: top, sentinel: i === n, cand: [left + 1, i - 1, hs[top]], line: 17, hot: improved, vars: { i: i, h: h, top: top, area: area, best: best }, info: "Снимаем " + top + " (высота " + hs[top] + "): слева его ограничивает " + (left < 0 ? "начало (стек пуст, left = −1)" : "столбик " + left + " — он ниже") + ", справа — " + (i < n ? "столбик " + i : "сторож") + ". Ширина " + i + " − " + fmtNum(left) + " − 1 = " + w + ", площадь " + hs[top] + " × " + w + " = " + area + (improved ? " — новый максимум!" : " (лучший пока " + best + ")") }));
+      }
+      if (i < n) {
+        stack.push(i);
+        steps.push(snap({ hi: i, pushed: i, line: 19, vars: { i: i, h: h, top: i, area: "—", best: best }, info: "Кладём " + i + ": под ним только столбики ниже " + h + " — стек по-прежнему строго растёт" }));
+      }
+    }
+    steps.push(snap({ done: true, line: 21, vars: { i: "—", h: "—", top: "—", area: "—", best: best }, info: "best = " + best + (bestRg ? " — высота " + bestRg[2] + " на столбиках " + bestRg[0] + ".." + bestRg[1] : "") + ". Каждый индекс положен и снят ровно раз: O(n) вместо O(n²) перебора пар границ" }));
+    return steps;
+  }
+
+  // Удалить k цифр (RemoveKDigits): жадно — старшая цифра больше следующей? Убрать её
+  // выгоднее всего, стек цифр становится неубывающим. Остаток удалений — с хвоста, затем
+  // ведущие нули. Сверено с эталоном stack.RemoveKDigits: «1432219», k=3 → «1219».
+  function bRemoveK(num, k0) {
+    var stack = [], removed = {}, k = k0, steps = [];
+    function stStr() { return stack.map(function (j) { return num[j]; }).join("") || "пусто"; }
+    function snap(extra) {
+      var o = { stack: stack.slice(), removed: {}, k: k, hi: -1, lo: -1, popped: -1, pushed: -1 };
+      for (var key in removed) o.removed[key] = removed[key];
+      for (var e in extra) o[e] = extra[e];
+      return o;
+    }
+    steps.push(snap({ line: 1, vars: { i: "—", d: "—", k: k, st: "пусто" }, info: "Стек оставленных цифр пуст, удалений в запасе: " + k + ". Число тем меньше, чем меньше его СТАРШИЕ цифры — их и чистим в первую очередь" }));
+    for (var i = 0; i < num.length; i++) {
+      var d = num[i];
+      while (k > 0 && stack.length && num[stack[stack.length - 1]] > d) {
+        var top = stack.pop(); removed[top] = true; k--;
+        steps.push(snap({ hi: i, lo: top, popped: top, line: 6, hot: true, vars: { i: i, d: d, k: k, st: stStr() }, info: "Перед «" + d + "» стоит «" + num[top] + "» — больше. Убрав её, мы ставим на этот разряд меньшую цифру: число уменьшается сильнее, чем от любого удаления правее. Удалений осталось " + k }));
+      }
+      stack.push(i);
+      steps.push(snap({ hi: i, pushed: i, line: 9, vars: { i: i, d: d, k: k, st: stStr() }, info: "Оставляем «" + d + "»" + (stack.length > 1 ? " — перед ней не больше неё (" + num[stack[stack.length - 2]] + " ≤ " + d + ")" : "") + (k === 0 ? "; удаления кончились, дальше цифры идут как есть" : "") }));
+    }
+    if (k > 0) {
+      var cut = stack.splice(stack.length - k, k);
+      cut.forEach(function (j) { removed[j] = true; });
+      steps.push(snap({ line: 11, hot: true, cutTail: cut, vars: { i: "—", d: "—", k: 0, st: stStr() }, info: "Удалений осталось " + k + ", а стек уже не убывает — худшие цифры в хвосте. Срезаем " + k + " с конца: " + cut.map(function (j) { return num[j]; }).join("") }));
+      k = 0;
+    }
+    var raw = stack.map(function (j) { return num[j]; }).join(""), res = raw.replace(/^0+/, "") || "0";
+    steps.push(snap({ done: true, line: res === "0" && raw.replace(/^0+/, "") === "" ? 14 : 16, vars: { i: "—", d: "—", k: 0, st: stStr() }, info: (raw ? "Остались «" + raw + "»" + (raw !== res ? " → без ведущих нулей «" + res + "»" : "") : "Удалены все цифры — это ноль") + ". Ответ: " + res + ". Каждая цифра легла и снялась ≤ 1 раза — O(n)" }));
+    return steps;
+  }
+
   // Dutch National Flag (Дейкстра): три указателя делят массив на зоны
   // нулей / единиц / непросмотренного / двоек за один проход. Асимметрия —
   // «aha»-шаг: после swap с high mid НЕ двигается (приехал непросмотренный).
@@ -11713,6 +12025,381 @@
           if (s.popped >= 0) row.appendChild(mkEl("div", "algo-tp__mstackcell algo-tp__mstackcell--del", "[" + s.popped + "] = " + ctx.arr[s.popped] + " ← меньше нового"));
           if (!row.children.length) row.appendChild(mkEl("div", "algo-tp__mstackempty", "пусто"));
           foot.textContent = "res = " + s.vars.resv;
+        };
+      }
+    },
+
+    "prefix-range": {
+      badge: "Префиксные суммы",
+      desc: "Сумма любого отрезка за O(1): один проход строит prefix, где prefix[i] — сумма первых i элементов. Отрезок [l, r] — это «первые r+1» минус «первые l»: одно вычитание, какой бы длины он ни был.",
+      valuesLabel: "Массив nums (подсвечен отрезок запроса)", codeKey: "prefix-range", fillRange: false,
+      ptr1: { name: "l", cap: "(левая граница запроса)" }, ptr2: { name: "r", cap: "(правая граница; при построении prefix — i)" },
+      complexity: { time: "O(n + q)", space: "O(n)", good: "★ Много запросов суммы к неизменному массиву" },
+      varOrder: ["i", "q", "ans", "resv"],
+      varDesc: { i: "Индекс при построении prefix", q: "Текущий запрос [l, r]", ans: "prefix[r+1] − prefix[l]", resv: "Ответы res" },
+      lineNotes: { 1: "prefix длиной n+1: prefix[0] = 0 — пустой префикс", 2: "Один проход по массиву", 3: "Первые i+1 = первые i + nums[i]", 5: "По ответу на запрос", 6: "Запросы по очереди", 7: "Отрезок = первые r+1 минус первые l, O(1)", 9: "O(n) один раз + O(1) на запрос" },
+      rules: [{ head: "prefix[i]", body: "сумма nums[0..i−1]; prefix[0] = 0", cls: "lt" }, { head: "сумма [l, r]", body: "= prefix[r+1] − prefix[l]", cls: "eq" }, { head: "цена", body: "O(n) один раз, дальше O(1) на запрос", cls: "gt" }],
+      parse: function (root) {
+        var arr = nums(root.getAttribute("data-array")); if (!arr.length) arr = [3, -1, 4, 1, 5];
+        var qs = parseRanges(root.getAttribute("data-queries"), arr.length, 2, "запрос");
+        if (!qs.length) qs = [[0, arr.length - 1]];
+        return { arr: arr, qs: qs, steps: bPrefixRange(arr, qs) };
+      },
+      inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-queries", label: "Запросы l:r через запятую" }],
+      values: function (ctx) { return ctx.arr; },
+      title: function (ctx) { return "RangeSums: [" + ctx.arr.join(", ") + "]"; },
+      cellState: function (s, j) {
+        var st = {};
+        if (s.done) return st;
+        if (s.pPlus >= 0) { if (j > s.lo && j < s.hi) st.span = true; else if (j < s.lo || j > s.hi) st.dim = true; if (j === s.lo) st.lo = true; if (j === s.hi) st.hi = true; }
+        else if (s.hi >= 0) { if (j < s.hi) st.span = true; if (j === s.hi) st.hi = true; }
+        return st;
+      },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["Сумма отрезка", "res"],
+      sumValues: function (s) { return [{ text: s.qv != null ? s.qv : "—", cls: s.qv != null ? "eq" : "" }, { text: s.vars.resv, cls: "" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "res = " + s.vars.resv + " за O(n + q)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) {
+        if (s.done) return { a: "готово", b: "res = " + s.vars.resv, c: "O(n+q)", cls: "eq" };
+        if (s.pPlus >= 0) return { a: "запрос " + s.vars.q, b: "= " + s.qv, c: "O(1)", cls: "eq" };
+        if (s.pNew >= 0) return { a: "i=" + s.vars.i, b: "prefix[" + s.pNew + "]=" + s.p[s.pNew], c: "", cls: "lt" };
+        return { a: "старт", b: "prefix[0]=0", c: "", cls: "lt" };
+      },
+      varsOf: function (s) { return s.vars; },
+      // Ряд prefix: зелёная ячейка — «первые r+1», красная — вычитаемые «первые l».
+      mapViz: function (panel, ctx) {
+        var p = structPanel(panel, "prefix — prefix[i] = сумма первых i элементов (на ячейку длиннее nums)");
+        return function (s) {
+          p.grid.innerHTML = "";
+          for (var k = 0; k <= ctx.arr.length; k++) {
+            var cls = "";
+            if (k === s.pNew || k === s.pPlus) cls = "algo-tp__mapcell--add algo-tp__mapcell--hot";
+            else if (k === s.pMinus) cls = "algo-tp__mapcell--del algo-tp__mapcell--hot";
+            else if (k === s.pSrc) cls = "algo-tp__mapcell--on";
+            else if (k >= s.p.length) cls = "algo-tp__mapcell--off";
+            p.grid.appendChild(structCell("[" + k + "]", k < s.p.length ? s.p[k] : "·", cls));
+          }
+          p.foot.textContent = s.pPlus >= 0
+            ? "зелёная − красная: prefix[" + s.pPlus + "] − prefix[" + s.pMinus + "] = " + s.p[s.pPlus] + " − " + fmtNum(s.p[s.pMinus]) + " = " + s.qv
+            : (s.pNew >= 0 ? "prefix[" + s.pNew + "] = prefix[" + s.pSrc + "] + nums[" + s.pSrc + "]" : "");
+        };
+      }
+    },
+
+    "prefix-sum-hash": {
+      badge: "Префиксы + хеш-таблица",
+      desc: "Сколько подмассивов с суммой k — за один проход, даже с отрицательными числами. Подмассив, кончающийся в j, — это «текущий префикс минус прошлый», поэтому считаем, сколько раз прошлый префикс равнялся sum − k.",
+      valuesLabel: "Массив nums (подсвечены подмассивы с суммой k, найденные на этом шаге; рамка — их начала)", codeKey: "prefix-sum-hash", fillRange: false,
+      ptr1: { name: "—", cap: "" }, ptr2: { name: "j", cap: "(текущий конец подмассива)" },
+      complexity: { time: "O(n)", space: "O(n)", good: "★ Подсчёт подмассивов с условием на сумму, отрицательные числа" },
+      varOrder: ["j", "v", "sum", "need", "count"],
+      varDesc: { j: "Текущий конец подмассива", v: "nums[j]", sum: "Префикс: сумма nums[0..j]", need: "sum − k: какой прошлый префикс нужен", count: "Найдено подмассивов" },
+      lineNotes: { 1: "Пустой префикс: сумма 0 встречена один раз до начала", 2: "sum — текущий префикс, count — ответ", 3: "Один проход", 4: "Префикс вырос на v", 5: "Каждый прошлый префикс, равный sum − k, даёт подмассив, кончающийся здесь", 6: "Запоминаем текущий префикс — ПОСЛЕ поиска", 8: "O(n) времени, O(n) памяти на seen" },
+      rules: [{ head: "сумма [i..j]", body: "= prefix(j+1) − prefix(i)", cls: "lt" }, { head: "она равна k ⟺", body: "prefix(i) = sum − k: ищем в seen", cls: "eq" }, { head: "{0: 1}", body: "пустой префикс — подмассивы с начала", cls: "gt" }],
+      parse: function (root) {
+        var arr = nums(root.getAttribute("data-array")); if (!arr.length) arr = [1, 2, -2, 3, -1];
+        var k = parseInt(root.getAttribute("data-k"), 10); if (isNaN(k)) k = 3;
+        return { arr: arr, k: k, steps: bPrefixHash(arr, k) };
+      },
+      inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-k", label: "k", sm: true }],
+      values: function (ctx) { return ctx.arr; },
+      title: function (ctx) { return "Подмассивы с суммой " + ctx.k + ": [" + ctx.arr.join(", ") + "]"; },
+      param: function (ctx) { return { label: "k (нужная сумма)", value: ctx.k, ok: true }; },
+      cellState: function (s, j) {
+        var st = {};
+        if (s.done) return st;
+        s.ranges.forEach(function (rg) { if (j >= rg[0] && j <= rg[1]) st.span = true; if (j === rg[0] && j !== s.hi) st.mid = true; });
+        if (st.mid) st.span = false; // span объявлен в CSS позже и перебил бы рамку начала
+        if (j === s.hi) { st.hi = true; st.span = false; }
+        if (s.hi >= 0 && j > s.hi) st.dim = true;
+        return st;
+      },
+      pointers: function (s) { return { lo: -1, hi: s.hi }; },
+      sumCells: ["sum − k", "count"],
+      sumValues: function (s) { return [{ text: s.need != null ? s.need : "—", cls: s.need != null && s.ranges.length ? "eq" : "" }, { text: s.count, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "count = " + s.count + " за O(n)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) {
+        if (s.done) return { a: "готово", b: "count = " + s.count, c: "O(n)", cls: "eq" };
+        if (s.line === 5) return { a: "ищем " + s.need, b: s.ranges.length ? "+" + s.ranges.length : "нет", c: "count " + s.count, cls: s.ranges.length ? "eq" : "lt" };
+        if (s.line === 6) return { a: "seen[" + s.sum + "]++", b: "", c: "", cls: "lt" };
+        if (s.line === 4) return { a: "j=" + s.vars.j, b: "sum=" + s.sum, c: "", cls: "lt" };
+        return { a: "старт", b: "seen={0:1}", c: "", cls: "lt" };
+      },
+      varsOf: function (s) { return s.vars; },
+      // seen: префикс → сколько раз; под числом — после какого индекса он встретился
+      // (−1 — пустой префикс). Именно эти индексы + 1 и есть начала найденных подмассивов.
+      mapViz: function (panel) {
+        var p = structPanel(panel, "seen — префикс → сколько раз встречался (ниже — после какого индекса; −1 = пустой префикс)");
+        return function (s) {
+          p.grid.innerHTML = "";
+          s.order.forEach(function (key) {
+            var cls = key === s.need && s.ranges.length ? "algo-tp__mapcell--add algo-tp__mapcell--hot" : (key === s.bumped ? "algo-tp__mapcell--on algo-tp__mapcell--hot" : "");
+            var cell = structCell(String(key), "×" + s.seen[key], cls);
+            cell.appendChild(mkEl("div", "algo-tp__mapkey", s.pos[key].join(", ")));
+            p.grid.appendChild(cell);
+          });
+          p.foot.textContent = s.line === 5
+            ? (s.ranges.length ? "sum − k = " + s.need + " есть в seen: каждое вхождение — начало подмассива" : "sum − k = " + s.need + " в seen нет")
+            : "count = " + s.count;
+        };
+      }
+    },
+
+    "diff-array": {
+      badge: "Разностный массив",
+      desc: "Пачка прибавлений к диапазонам, а прочитать нужно один раз в конце: обновление [l, r] — две записи в diff (с l прибавка начинается, после r — кончается), итог — префиксные суммы diff.",
+      valuesLabel: "Итоговый массив res (· — ещё не собран; подсвечен диапазон обновления)", codeKey: "diff-array", fillRange: false,
+      ptr1: { name: "l", cap: "(начало обновления)" }, ptr2: { name: "r", cap: "(конец обновления; при сборке — i)" },
+      complexity: { time: "O(n + u)", space: "O(n)", good: "★ Много прибавлений к диапазонам, одно чтение в конце" },
+      varOrder: ["u", "i", "run"],
+      varDesc: { u: "Текущее обновление", i: "Индекс при сборке", run: "Префиксная сумма diff = значение res[i]" },
+      lineNotes: { 1: "n+1 ячеек: diff[n] принимает «конец» обновления до последнего индекса", 2: "Каждое обновление — O(1)", 3: "С l всё дальше больше на delta", 4: "После r — обратно: прибавка кончилась", 6: "Итоговый массив", 8: "Один проход", 9: "run — префиксная сумма diff", 10: "Префикс разностей = само значение", 12: "O(u + n) вместо O(u·n)" },
+      rules: [{ head: "обновление [l, r] + d", body: "diff[l] += d, diff[r+1] −= d", cls: "lt" }, { head: "res[i]", body: "= diff[0] + … + diff[i]", cls: "eq" }, { head: "цена", body: "O(1) на обновление + один проход O(n)", cls: "gt" }],
+      parse: function (root) {
+        var n = parseInt(root.getAttribute("data-n"), 10); if (isNaN(n) || n < 1) n = 5;
+        if (n > 16) throw new Error("n: для наглядности не больше 16");
+        var ups = parseRanges(root.getAttribute("data-updates"), n, 3, "обновление");
+        if (!ups.length && !root.getAttribute("data-updates")) ups = [[1, 3, 2], [2, 4, 3], [0, 2, -2]];
+        var init = []; for (var i = 0; i < n; i++) init.push("·");
+        return { n: n, ups: ups, init: init, steps: bDiffArray(n, ups) };
+      },
+      inputs: [{ attr: "data-n", label: "n", sm: true }, { attr: "data-updates", label: "Обновления l:r:d через запятую" }],
+      values: function (ctx) { return ctx.init; },
+      title: function (ctx) { return "ApplyRangeAdds: n = " + ctx.n + ", " + ctx.ups.length + " " + ruPlural(ctx.ups.length, "обновление", "обновления", "обновлений"); },
+      cellState: function (s, j) {
+        var st = {};
+        if (s.done) return { found: true };
+        if (s.upd) { if (j > s.upd[0] && j < s.upd[1]) st.span = true; else if (j < s.upd[0] || j > s.upd[1]) st.dim = true; if (j === s.lo) st.lo = true; if (j === s.hi) st.hi = true; }
+        else if (s.dRead >= 0) { if (j < s.hi) st.found = true; if (j === s.hi) st.hi = true; }
+        return st;
+      },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["run", "Обновление"],
+      sumValues: function (s) { return [{ text: s.dRead >= 0 || s.done ? s.run : "—", cls: s.dRead >= 0 ? "eq" : "" }, { text: s.vars.u, cls: s.upd ? "lt" : "" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "res = [" + s.values.join(",") + "]", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) {
+        if (s.done) return { a: "готово", b: "[" + s.values.join(",") + "]", c: "O(n+u)", cls: "eq" };
+        if (s.dPlus >= 0) return { a: s.vars.u, b: "diff[" + s.dPlus + "] +", c: "", cls: "lt" };
+        if (s.dMinus >= 0) return { a: s.vars.u, b: "diff[" + s.dMinus + "] −", c: "O(1)", cls: "gt" };
+        if (s.dRead >= 0) return { a: "i=" + s.vars.i, b: "run=" + s.run, c: "", cls: "eq" };
+        return { a: "старт", b: "diff = 0…", c: "", cls: "lt" };
+      },
+      varsOf: function (s) { return s.vars; },
+      mapViz: function (panel, ctx) {
+        var p = structPanel(panel, "diff — на сколько элемент i больше предыдущего (ячеек n+1)");
+        return function (s) {
+          p.grid.innerHTML = "";
+          for (var k = 0; k <= ctx.n; k++) {
+            var cls = k === s.dPlus ? "algo-tp__mapcell--add algo-tp__mapcell--hot" : (k === s.dMinus ? "algo-tp__mapcell--del algo-tp__mapcell--hot" : (k === s.dRead ? "algo-tp__mapcell--on algo-tp__mapcell--hot" : (s.dRead >= 0 && k < s.dRead ? "algo-tp__mapcell--off" : "")));
+            p.grid.appendChild(structCell("[" + k + "]", s.diff[k], cls));
+          }
+          p.foot.textContent = s.dRead >= 0 ? "run = diff[0] + … + diff[" + s.dRead + "] = " + s.run : (s.upd ? "обновление касается только diff[l] и diff[r+1] — внутренние ячейки не тронуты" : "");
+        };
+      }
+    },
+
+    "bracket-stack": {
+      badge: "Стек: скобки",
+      desc: "Проверка скобок за O(n): открывающая ждёт на стеке, закрывающая обязана совпасть с вершиной — последней ещё не закрытой. Стек — ровно та структура, у которой «последний открытый» лежит сверху.",
+      valuesLabel: "Строка (зелёное — пара сошлась, оранжевое — ждёт на стеке, красное — ошибка)", codeKey: "bracket-stack", fillRange: false,
+      ptr1: { name: "top", cap: "(вершина стека — открывающая, с которой сверяемся)" }, ptr2: { name: "i", cap: "(текущий символ)" },
+      complexity: { time: "O(n)", space: "O(n)", good: "★ Вложенные структуры: скобки, теги, выражения" },
+      varOrder: ["i", "c", "top", "st"],
+      varDesc: { i: "Текущий индекс", c: "Текущий символ s[i]", top: "Вершина стека — последняя незакрытая", st: "Стек снизу вверх" },
+      lineNotes: { 1: "Какая открывающая нужна каждой закрывающей", 2: "Стек открытых, ещё не закрытых скобок", 3: "Один проход по строке", 5: "Открывающая?", 6: "Ждёт пары на стеке", 7: "Закрывающая?", 8: "Пара обязана лежать на вершине — среди открытых она последняя", 9: "Вершина — не та открывающая?", 10: "Пустой стек или чужая вершина — ошибка", 12: "Пара сошлась — снимаем", 15: "Незакрытых не осталось?" },
+      rules: [{ head: "открывающая", body: "→ push", cls: "lt" }, { head: "закрывающая", body: "вершина — её пара? pop : false", cls: "eq" }, { head: "конец строки", body: "стек пуст ⟺ true", cls: "gt" }],
+      parse: function (root) {
+        var s = root.getAttribute("data-string"); if (s == null || s === "") s = "{[()()]}";
+        if (s.length > 28) throw new Error("строка: для наглядности не длиннее 28 символов");
+        return { s: s, chars: s.split(""), steps: bBracketStack(s) };
+      },
+      inputs: [{ attr: "data-string", label: "Строка" }],
+      values: function (ctx) { return ctx.chars; },
+      title: function (ctx) { return "IsValidBrackets: «" + ctx.s + "»"; },
+      cellState: function (s, j) {
+        var st = {};
+        if (j === s.bad) st.out = true;
+        else if (s.matched[j]) st.found = true;
+        else if (s.stack.indexOf(j) >= 0) st.mid = true;
+        if (j === s.hi && !s.done) st.hi = true;
+        if (j === s.lo && s.lo >= 0 && !s.matched[j]) st.lo = true;
+        return st;
+      },
+      pointers: function (s) { return { lo: s.lo, hi: s.done && !s.fail ? -1 : s.hi }; },
+      sumCells: ["Стек", "Ответ"],
+      sumValues: function (s) { return [{ text: s.vars.st, cls: "" }, { text: s.done ? (s.fail ? "false" : "true") : "…", cls: s.done ? (s.fail ? "gt" : "eq") : "" }]; },
+      status: function (s, idx, total) {
+        if (s.done) return s.fail ? { kind: "end", icon: "✗", head: "false", text: s.info } : { kind: "ok", icon: "✓", head: "true за O(n)", text: s.info };
+        return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot };
+      },
+      stepCard: function (s) {
+        if (s.done) return { a: s.fail ? "ошибка" : "готово", b: s.fail ? "false" : "true", c: "O(n)", cls: s.fail ? "gt" : "eq" };
+        if (s.pushed >= 0) return { a: "«" + s.vars.c + "»", b: "push", c: "стек: " + s.stack.length, cls: "lt" };
+        if (s.popped >= 0) return { a: "«" + s.vars.c + "»", b: "pop — пара", c: "стек: " + s.stack.length, cls: "eq" };
+        if (s.skip) return { a: "«" + s.vars.c + "»", b: "мимо", c: "", cls: "lt" };
+        return { a: "старт", b: "стек пуст", c: "", cls: "lt" };
+      },
+      varsOf: function (s) { return s.vars; },
+      mapViz: function (panel, ctx) {
+        var wrap = mkEl("div", "algo-tp__map");
+        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "stack — открытые, ещё не закрытые скобки (вершина сверху)"));
+        var col = mkEl("div", "algo-tp__mstack");
+        wrap.appendChild(col);
+        panel.appendChild(wrap);
+        return function (s) {
+          col.innerHTML = "";
+          if (s.popped >= 0) col.appendChild(mkEl("div", "algo-tp__mstackcell algo-tp__mstackcell--del", "[" + s.popped + "] " + ctx.s[s.popped] + " → pop, пара для «" + ctx.s[s.hi] + "»"));
+          for (var k = s.stack.length - 1; k >= 0; k--) {
+            var j = s.stack[k];
+            col.appendChild(mkEl("div", "algo-tp__mstackcell" + (k === s.stack.length - 1 ? " algo-tp__mstackcell--top" : "") + (j === s.pushed ? " algo-tp__mstackcell--add" : ""), "[" + j + "] " + ctx.s[j]));
+          }
+          if (!col.children.length) col.appendChild(mkEl("div", "algo-tp__mstackempty", "пусто"));
+        };
+      }
+    },
+
+    "histogram-stack": {
+      badge: "Монотонный стек: гистограмма",
+      desc: "Наибольший прямоугольник под гистограммой за O(n): стек держит столбики со строго растущими высотами. Пришёл столбик не выше вершины — вершина дальше вправо не растянется, её прямоугольник закрыт: слева его ограничивает сосед по стеку, справа — новый столбик.",
+      valuesLabel: "Высоты столбиков", codeKey: "histogram-stack", fillRange: false,
+      ptr1: { name: "—", cap: "" }, ptr2: { name: "i", cap: "(текущий столбик)" },
+      complexity: { time: "O(n)", space: "O(n)", good: "★ Ближайший меньший слева и справа для каждого элемента" },
+      legend: [{ cls: "hcur", label: "текущий i" }, { cls: "hstack", label: "на стеке" }, { cls: "hpop", label: "снимается" }, { cls: "hcand", label: "его прямоугольник" }, { cls: "hbest", label: "лучший на сейчас" }],
+      varOrder: ["i", "h", "top", "area", "best"],
+      varDesc: { i: "Текущий столбик (n — сторож)", h: "Его высота (у сторожа 0)", top: "Снимаемый / вершина стека", area: "Площадь прямоугольника снятого", best: "Лучшая площадь" },
+      lineNotes: { 1: "best — ответ", 2: "Стек индексов: высоты строго растут снизу вверх", 3: "i доходит до n включительно — там сторож", 4: "Сторож высоты 0 вытолкнет всё, что осталось", 6: "Обычный столбик", 8: "Стек не пуст и…", 9: "…вершина не ниже текущего? Её прямоугольник закрыт", 10: "top — высота прямоугольника", 11: "Снимаем навсегда", 14: "Левая граница — сосед снизу по стеку: он ниже top", 16: "Ширина — строго между left и i", 17: "Площадь снятого; лучшая — в best", 19: "Текущий ждёт на стеке", 21: "Каждый индекс положен и снят ровно раз — O(n)" },
+      rules: [{ head: "стек", body: "высоты строго растут снизу вверх", cls: "lt" }, { head: "h[top] ≥ h[i]", body: "pop: площадь = h[top] · (i − left − 1)", cls: "eq" }, { head: "сторож", body: "столбик высоты 0 на позиции n", cls: "gt" }],
+      parse: function (root) {
+        var hs = nums(root.getAttribute("data-heights")); if (!hs.length) hs = [2, 1, 5, 6, 2, 3];
+        if (hs.length > 14) throw new Error("высоты: для наглядности не больше 14 столбиков");
+        hs.forEach(function (h) { if (h < 0 || h > 30 || h !== Math.floor(h)) throw new Error("высота «" + h + "»: нужны целые от 0 до 30"); });
+        return { hs: hs, steps: bHistogram(hs) };
+      },
+      inputs: [{ attr: "data-heights", label: "Высоты" }],
+      values: function (ctx) { return ctx.hs; },
+      title: function (ctx) { return "LargestRectangle: [" + ctx.hs.join(", ") + "]"; },
+      pointers: function (s) { return { lo: -1, hi: s.hi }; },
+      sumCells: ["Прямоугольник снятого", "best"],
+      sumValues: function (s) { return [{ text: s.cand ? s.cand[2] + " × " + (s.cand[1] - s.cand[0] + 1) + " = " + s.vars.area : "—", cls: s.cand ? (s.hot ? "eq" : "gt") : "" }, { text: s.best, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "best = " + s.best + " за O(n)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) {
+        if (s.done) return { a: "готово", b: "best = " + s.best, c: "O(n)", cls: "eq" };
+        if (s.popped >= 0) return { a: "pop " + s.popped, b: "S = " + s.vars.area, c: s.hot ? "максимум!" : "", cls: s.hot ? "eq" : "gt" };
+        if (s.pushed >= 0) return { a: "push " + s.pushed, b: "h = " + s.vars.h, c: "стек: " + s.stack.length, cls: "lt" };
+        if (s.hi >= 0) return { a: s.sentinel ? "сторож" : "i=" + s.hi, b: "h = " + s.vars.h, c: "", cls: "lt" };
+        return { a: "старт", b: "стек пуст", c: "", cls: "lt" };
+      },
+      varsOf: function (s) { return s.vars; },
+      // Столбики — SVG: высоты в масштабе, прямоугольник снятого — пунктирная рамка
+      // на его высоте от left+1 до i−1, лучший — зелёная рамка. Справа — место сторожа.
+      customViz: function (host, ctx) {
+        var hs = ctx.hs, n = hs.length, W = 46, TOP = 22, BOT = 22, maxH = Math.max(1, Math.max.apply(null, hs));
+        var scale = Math.min(22, 170 / maxH), H = TOP + maxH * scale + BOT, base = TOP + maxH * scale;
+        var svg = document.createElementNS(SVGNS, "svg");
+        svg.setAttribute("class", "algo-tp__hist");
+        svg.setAttribute("viewBox", "0 0 " + ((n + 1) * W) + " " + H);
+        svg.setAttribute("width", (n + 1) * W); svg.setAttribute("height", H);
+        svg.setAttribute("role", "img");
+        svg.setAttribute("aria-label", "Гистограмма высот " + hs.join(", "));
+        function mk(tag, attrs, txt) { var e = document.createElementNS(SVGNS, tag); for (var a in attrs) e.setAttribute(a, attrs[a]); if (txt != null) e.textContent = txt; svg.appendChild(e); return e; }
+        var bars = hs.map(function (h, k) { return mk("rect", { x: k * W + 4, y: base - h * scale, width: W - 8, height: Math.max(h * scale, 1) }); });
+        hs.forEach(function (h, k) { mk("text", { x: k * W + W / 2, y: base - h * scale - 6, "class": "algo-tp__histval" }, h); mk("text", { x: k * W + W / 2, y: base + 15, "class": "algo-tp__histidx" }, k); });
+        var sent = mk("rect", { x: n * W + 4, y: base - 3, width: W - 8, height: 3, "class": "algo-tp__histsent" });
+        mk("text", { x: n * W + W / 2, y: base + 15, "class": "algo-tp__histidx" }, "n");
+        var best = mk("rect", { "class": "algo-tp__histbest" }), cand = mk("rect", { "class": "algo-tp__histcand" });
+        function place(el, rg) {
+          if (!rg || rg[1] < rg[0] || !rg[2]) { el.setAttribute("visibility", "hidden"); return; }
+          el.setAttribute("visibility", "visible");
+          el.setAttribute("x", rg[0] * W + 2); el.setAttribute("width", (rg[1] - rg[0] + 1) * W - 4);
+          el.setAttribute("y", base - rg[2] * scale); el.setAttribute("height", rg[2] * scale);
+        }
+        host.appendChild(svg);
+        return function (s) {
+          bars.forEach(function (b, k) {
+            var cls = "algo-tp__histbar";
+            if (k === s.popped) cls += " algo-tp__histbar--pop";
+            else if (k === s.hi) cls += " algo-tp__histbar--cur";
+            else if (s.stack.indexOf(k) >= 0) cls += " algo-tp__histbar--stack";
+            b.setAttribute("class", cls);
+          });
+          sent.setAttribute("class", "algo-tp__histsent" + (s.sentinel ? " algo-tp__histsent--on" : ""));
+          place(best, s.bestRg);
+          place(cand, s.cand);
+        };
+      },
+      mapViz: function (panel, ctx) {
+        var wrap = mkEl("div", "algo-tp__map");
+        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "stack — индексы столбиков снизу вверх (высоты строго растут, вершина справа)"));
+        var row = mkEl("div", "algo-tp__mdq");
+        wrap.appendChild(row);
+        panel.appendChild(wrap);
+        return function (s) {
+          row.innerHTML = "";
+          s.stack.forEach(function (j, k) {
+            row.appendChild(mkEl("div", "algo-tp__mstackcell" + (k === s.stack.length - 1 ? " algo-tp__mstackcell--top" : "") + (j === s.pushed ? " algo-tp__mstackcell--add" : ""), "[" + j + "] h=" + ctx.hs[j]));
+          });
+          if (s.popped >= 0) row.appendChild(mkEl("div", "algo-tp__mstackcell algo-tp__mstackcell--del", "[" + s.popped + "] h=" + ctx.hs[s.popped] + " → pop"));
+          if (!row.children.length) row.appendChild(mkEl("div", "algo-tp__mstackempty", "пусто"));
+        };
+      }
+    },
+
+    "remove-k-digits": {
+      badge: "Монотонный стек: жадность",
+      desc: "Удалить k цифр так, чтобы число стало наименьшим: пока старшая оставленная цифра больше пришедшей — убрать её выгоднее всего. Стек оставленных цифр не убывает; неизрасходованные удаления срезаются с хвоста.",
+      valuesLabel: "Цифры числа (зачёркнуто — удалена, оранжевое — оставлена)", codeKey: "remove-k-digits", fillRange: false,
+      ptr1: { name: "pop", cap: "(снимаемая со стека цифра)" }, ptr2: { name: "i", cap: "(текущая цифра)" },
+      complexity: { time: "O(n)", space: "O(n)", good: "★ Лексикографически наименьшая подпоследовательность" },
+      varOrder: ["i", "d", "k", "st"],
+      varDesc: { i: "Текущий индекс", d: "Текущая цифра", k: "Удалений в запасе", st: "Стек: оставленные цифры" },
+      lineNotes: { 1: "Стек оставленных цифр", 2: "Один проход слева направо", 4: "Можно ещё удалять и…", 5: "…предыдущая цифра больше текущей?", 6: "Убрать её: на этот разряд встанет меньшая цифра", 7: "Одно удаление потрачено", 9: "Текущая цифра остаётся", 11: "Стек не убывает — худшие цифры в хвосте", 12: "Ведущие нули не пишутся", 14: "Не осталось ничего — это ноль", 16: "Каждая цифра легла и снялась ≤ 1 раза" },
+      rules: [{ head: "стек[верх] > d и k > 0", body: "→ pop, k−−", cls: "gt" }, { head: "иначе", body: "→ push d; стек не убывает", cls: "lt" }, { head: "остаток k", body: "срезать с хвоста, потом ведущие нули", cls: "eq" }],
+      parse: function (root) {
+        var num = (root.getAttribute("data-num") || "").trim(); if (!num) num = "1432219";
+        if (!/^\d+$/.test(num)) throw new Error("число «" + num + "»: только цифры");
+        if (num.length > 18) throw new Error("число: для наглядности не длиннее 18 цифр");
+        var k = parseInt(root.getAttribute("data-k"), 10); if (isNaN(k)) k = 3;
+        if (k < 0 || k > num.length) throw new Error("k = " + k + ": нужно 0 ≤ k ≤ " + num.length);
+        return { num: num, k: k, digits: num.split(""), steps: bRemoveK(num, k) };
+      },
+      inputs: [{ attr: "data-num", label: "Число" }, { attr: "data-k", label: "k", sm: true }],
+      values: function (ctx) { return ctx.digits; },
+      title: function (ctx) { return "RemoveKDigits: «" + ctx.num + "», k = " + ctx.k; },
+      param: function (ctx) { return { label: "k (сколько удалить)", value: ctx.k, ok: true }; },
+      cellState: function (s, j) {
+        var st = {};
+        if (s.removed[j]) st.out = true;
+        else if (s.stack.indexOf(j) >= 0) { if (s.done) st.found = true; else st.mid = true; }
+        if (j === s.hi && !s.done) st.hi = true;
+        if (j === s.lo && s.lo >= 0) st.lo = true;
+        return st;
+      },
+      pointers: function (s) { return { lo: s.lo, hi: s.done ? -1 : s.hi }; },
+      sumCells: ["Удалений в запасе", "Стек"],
+      sumValues: function (s) { return [{ text: s.k, cls: s.k ? "" : "eq" }, { text: s.vars.st, cls: s.done ? "eq" : "" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Ответ за O(n)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) {
+        if (s.done) return { a: "готово", b: s.vars.st, c: "O(n)", cls: "eq" };
+        if (s.popped >= 0) return { a: "«" + s.vars.d + "»", b: "убрать " + s.popped, c: "k=" + s.k, cls: "gt" };
+        if (s.cutTail) return { a: "хвост", b: "срезать " + s.cutTail.length, c: "", cls: "gt" };
+        if (s.pushed >= 0) return { a: "«" + s.vars.d + "»", b: "оставить", c: "k=" + s.k, cls: "lt" };
+        return { a: "старт", b: "k=" + s.k, c: "", cls: "lt" };
+      },
+      varsOf: function (s) { return s.vars; },
+      mapViz: function (panel, ctx) {
+        var wrap = mkEl("div", "algo-tp__map");
+        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "stack — оставленные цифры слева направо (читается как число, не убывает)"));
+        var row = mkEl("div", "algo-tp__mdq");
+        wrap.appendChild(row);
+        panel.appendChild(wrap);
+        return function (s) {
+          row.innerHTML = "";
+          s.stack.forEach(function (j, k) {
+            row.appendChild(mkEl("div", "algo-tp__mstackcell" + (k === s.stack.length - 1 ? " algo-tp__mstackcell--top" : "") + (j === s.pushed ? " algo-tp__mstackcell--add" : ""), ctx.num[j]));
+          });
+          if (s.popped >= 0) row.appendChild(mkEl("div", "algo-tp__mstackcell algo-tp__mstackcell--del", ctx.num[s.popped] + " → убрать"));
+          (s.cutTail || []).forEach(function (j) { row.appendChild(mkEl("div", "algo-tp__mstackcell algo-tp__mstackcell--del", ctx.num[j] + " → хвост")); });
+          if (!row.children.length) row.appendChild(mkEl("div", "algo-tp__mstackempty", "пусто"));
         };
       }
     },
