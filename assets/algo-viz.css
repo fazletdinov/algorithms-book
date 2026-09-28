@@ -379,7 +379,7 @@
 .algo-tp__fnode--seq { fill: color-mix(in srgb, var(--tp-lo) 45%, var(--tp-panel2)); stroke: var(--tp-lo); }
 .algo-tp__fnode--merged { fill: color-mix(in srgb, #2e9b57 42%, var(--tp-panel2)); stroke: #2e9b57; }
 .algo-tp__fnode--cur { stroke-width: 3; }
-.algo-tp__fnodetext { fill: var(--fg, #eee); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
+.algo-tp__fnodetext { fill: var(--fg, #eee); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
 
 .algo-viz__info {
   min-height: 1.4em;

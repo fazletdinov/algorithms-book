@@ -4159,23 +4159,38 @@
       steps.push({ tree: snap(), cur: o.cur == null ? -1 : o.cur, line: o.line, info: o.info, done: !!o.done, found: !!o.found, hot: !!o.hot,
         vars: { "подзадача": o.range || "—", "размер": o.size == null ? "—" : o.size, "режим": o.mode || "—", "горутин запущено": spawned } });
     }
-    function sortRec(id) {
+    // Шаги — по ТАКТАМ, а не обходом в глубину: всё, что горутины делают одновременно,
+    // подсвечено вместе. При обходе по одному узлу правая половина «ждала», пока левая
+    // целиком отработает, — ровно тот параллелизм, ради которого виджет, и был спрятан.
+    // Такт деления и сортировки листа — глубина узла; merge — такт после готовности детей.
+    function plan(id) {
       var nd = nodes[id];
-      if (nd.leaf) {
-        cls[id] = "seq"; nd.sorted = nd.vals.slice().sort(function (a, b) { return a - b; }); text[id] = nd.sorted.join(" ");
-        push({ cur: id, line: 2, range: rng(nd), size: nd.hi - nd.lo, mode: "cutoff → последовательно", hot: true, info: "Размер " + (nd.hi - nd.lo) + " < cutoff " + cutoff + " → сортируем последовательно, новую горутину не плодим" });
-        return nd.sorted;
-      }
-      cls[id] = "split"; cls[nd.left] = "go"; cls[nd.right] = "go"; spawned += 2;
-      push({ cur: id, line: 6, range: rng(nd), size: nd.hi - nd.lo, mode: "fan-out: +2 горутины", hot: true, info: "Делим " + rng(nd) + " пополам и запускаем 2 горутины на половины" });
-      var l = sortRec(nd.left), r = sortRec(nd.right), m = merge(l, r);
-      nd.sorted = m; text[id] = m.join(" "); cls[id] = "merged";
-      push({ cur: id, line: 9, range: rng(nd), size: nd.hi - nd.lo, mode: "merge (join)", info: "wg.Wait(): половины готовы → merge в отсортированный " + rng(nd) });
-      return m;
+      if (nd.leaf) { nd.tSort = nd.depth; return nd.depth; }
+      nd.tSplit = nd.depth;
+      nd.tMerge = Math.max(plan(nd.left), plan(nd.right)) + 1;
+      return nd.tMerge;
     }
+    var T = plan(root), actions = 0;
     push({ line: 0, info: "Старт: массив [" + arr.join(" ") + "], cutoff = " + cutoff });
-    sortRec(root); cls[root] = "merged";
-    push({ line: 9, done: true, found: true, cur: root, range: "весь массив", size: arr.length, mode: "готово", info: "Отсортировано: [" + nodes[root].sorted.join(" ") + "]. Горутин запущено: " + spawned });
+    for (var t = 0; t <= T; t++) {
+      var sp = [], so = [], me = [];
+      nodes.forEach(function (nd) { if (nd.tSplit === t) sp.push(nd); if (nd.tSort === t) so.push(nd); if (nd.tMerge === t) me.push(nd); });
+      sp.forEach(function (nd) { cls[nd.id] = "split"; cls[nd.left] = "go"; cls[nd.right] = "go"; spawned += 2; });
+      so.forEach(function (nd) { cls[nd.id] = "seq"; nd.sorted = nd.vals.slice().sort(function (x, y) { return x - y; }); text[nd.id] = nd.sorted.join(" "); });
+      me.forEach(function (nd) { nd.sorted = merge(nodes[nd.left].sorted, nodes[nd.right].sorted); text[nd.id] = nd.sorted.join(" "); cls[nd.id] = "merged"; });
+      var all = sp.concat(so, me); actions += all.length;
+      var parts = [];
+      if (sp.length) parts.push("делим " + sp.map(rng).join(", ") + " → +" + 2 * sp.length + " " + ruPlural(2 * sp.length, "горутина", "горутины", "горутин"));
+      if (so.length) parts.push("сортируют последовательно (меньше cutoff " + cutoff + ") " + so.map(rng).join(", "));
+      if (me.length) parts.push("wg.Wait() и merge " + me.map(rng).join(", "));
+      var par = all.length > 1 ? " — " + all.length + " " + ruPlural(all.length, "действие", "действия", "действий") + " одновременно, каждое в своей горутине" : "";
+      push({ cur: all.map(function (nd) { return nd.id; }), line: sp.length ? 6 : so.length ? 2 : 9, hot: sp.length > 0 || so.length > 0,
+        range: all.map(rng).join(" "), size: all.map(function (nd) { return nd.hi - nd.lo; }).join(", "),
+        mode: sp.length ? "fan-out: +" + 2 * sp.length + " " + ruPlural(2 * sp.length, "горутина", "горутины", "горутин") : so.length ? "cutoff → последовательно" : "merge (join)",
+        info: "Такт " + (t + 1) + ": " + parts.join("; ") + par });
+    }
+    cls[root] = "merged";
+    push({ line: 9, done: true, found: true, cur: [root], range: "весь массив", size: arr.length, mode: "готово", info: "Отсортировано: [" + nodes[root].sorted.join(" ") + "] за " + (T + 1) + " тактов вместо " + actions + " последовательных действий: время упирается в глубину дерева (критический путь), а не в число узлов. Горутин запущено: " + spawned });
     steps.forEach(function (s, i) { s._i = i; });
     return { nodes: nodes, maxDepth: maxDepth, steps: steps };
   }
@@ -4196,7 +4211,7 @@
     });
     var rects = [], texts = [];
     nodes.forEach(function (nd, id) {
-      var w = Math.max(30, nd.vals.length * 13);
+      var w = Math.max(34, nd.vals.length * 17 + 8);
       var rc = document.createElementNS(SVGNS, "rect"); rc.setAttribute("x", pos[id].x - w / 2); rc.setAttribute("y", pos[id].y - 11); rc.setAttribute("width", w); rc.setAttribute("height", 22); rc.setAttribute("rx", 5); rc.setAttribute("class", "algo-tp__fnode"); svg.appendChild(rc); rects.push(rc);
       var tx = document.createElementNS(SVGNS, "text"); tx.setAttribute("x", pos[id].x); tx.setAttribute("y", pos[id].y + 4); tx.setAttribute("text-anchor", "middle"); tx.setAttribute("class", "algo-tp__fnodetext"); svg.appendChild(tx); texts.push(tx);
     });
@@ -4204,7 +4219,8 @@
     return function (s) {
       s.tree.forEach(function (t, id) {
         texts[id].textContent = t.text;
-        rects[id].setAttribute("class", "algo-tp__fnode algo-tp__fnode--" + t.cls + (id === s.cur ? " algo-tp__fnode--cur" : ""));
+        var curs = Array.isArray(s.cur) ? s.cur : [s.cur];
+        rects[id].setAttribute("class", "algo-tp__fnode algo-tp__fnode--" + t.cls + (curs.indexOf(id) >= 0 ? " algo-tp__fnode--cur" : ""));
       });
     };
   }
@@ -12766,7 +12782,7 @@
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Подзадача (размер)", "Режим", "Горутин запущено"],
       sumValues: function (s) { return [{ text: s.vars["подзадача"] + " (" + s.vars["размер"] + ")" }, { text: s.vars["режим"], cls: (s.line === 6 ? "eq" : "") }, { text: s.vars["горутин запущено"], cls: "gt" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Отсортировано, горутин запущено: " + s.vars["горутин запущено"], text: s.info }; if (s.line === 6) return { kind: "info", icon: idx + 1, head: "Fan-out: +2 горутины", text: s.info, hot: true }; if (s.line === 2) return { kind: "info", icon: idx + 1, head: "Cutoff → последовательно", text: s.info, hot: true }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Отсортировано, горутин запущено: " + s.vars["горутин запущено"], text: s.info }; if (s.line === 6) return { kind: "info", icon: idx + 1, head: s.vars["режим"].replace(/^fan-out/, "Fan-out"), text: s.info, hot: true }; if (s.line === 2) return { kind: "info", icon: idx + 1, head: "Cutoff → последовательно", text: s.info, hot: true }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: "горутин " + s.vars["горутин запущено"], c: "merged", cls: "eq" }; if (s.line === 6) return { a: s.vars["подзадача"], b: "size " + s.vars["размер"], c: "fan-out", cls: "lt" }; if (s.line === 2) return { a: s.vars["подзадача"], b: "size " + s.vars["размер"], c: "cutoff", cls: "gt" }; return { a: s.vars["подзадача"], b: "merge", c: "join", cls: "eq" }; },
       varsOf: function (s) { return { "подзадача": s.vars["подзадача"], "размер": s.vars["размер"], "режим": s.vars["режим"], "горутин запущено": s.vars["горутин запущено"] }; },
       customViz: fanoutViz
