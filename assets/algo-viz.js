@@ -2835,63 +2835,71 @@
   // Разбор задачи Фенвика: число инверсий. Наивно O(n²) — перебираем все пары i<j и
   // считаем, где nums[i] > nums[j]. Построчный (debugger) проход; lo=i, hi=j.
   function bCountInvNaive(arr) {
-    var n = arr.length, steps = [], cnt = 0;
+    // pairs — найденные инверсии, smaller[i] — сколько меньших справа у nums[i]: ровно
+    // то число, которое BIT-решение ниже получает одним prefix(rank−1)
+    var n = arr.length, steps = [], cnt = 0, pairs = [], smaller = arr.map(function () { return null; });
     function av(k) { return (k != null && k >= 0 && k < n) ? arr[k] : "—"; }
     function vv(i, j) { return { i: (i == null ? "—" : i), j: (j == null ? "—" : j), "nums[i]": av(i), "nums[j]": av(j), cnt: cnt }; }
-    if (!n) return [{ lo: -1, hi: -1, done: true, line: 7, vars: vv(), info: "Пустой массив" }];
-    steps.push({ lo: -1, hi: -1, line: 1, vars: vv(), info: "cnt = 0 — пока инверсий не нашли" });
+    function push(o) { o.pairs = pairs.slice(); o.smaller = smaller.slice(); steps.push(o); }
+    if (!n) return [{ lo: -1, hi: -1, done: true, line: 7, vars: vv(), pairs: [], smaller: [], info: "Пустой массив" }];
+    push({ lo: -1, hi: -1, line: 1, vars: vv(), info: "cnt = 0 — пока инверсий не нашли" });
     for (var i = 0; i < n; i++) {
-      steps.push({ lo: i, hi: -1, line: 2, vars: vv(i), info: "i = " + i + ": фиксируем левый элемент nums[" + i + "] = " + arr[i] });
+      smaller[i] = 0;
+      push({ lo: i, hi: -1, line: 2, vars: vv(i), info: "i = " + i + ": фиксируем левый элемент nums[" + i + "] = " + arr[i] + (i < n - 1 ? " и считаем, сколько справа меньше его" : " — справа никого, пар нет") });
       for (var j = i + 1; j < n; j++) {
-        steps.push({ lo: i, hi: j, line: 3, vars: vv(i, j), info: "j = " + j + ": сравниваем с правым nums[" + j + "] = " + arr[j] });
+        push({ lo: i, hi: j, line: 3, vars: vv(i, j), info: "j = " + j + ": сравниваем с правым nums[" + j + "] = " + arr[j] });
         var inv = arr[i] > arr[j];
-        if (inv) cnt++;
-        steps.push({ lo: i, hi: j, improved: inv, line: 4, vars: vv(i, j), info: inv ? "nums[" + i + "]=" + arr[i] + " > nums[" + j + "]=" + arr[j] + " — инверсия! cnt → " + cnt : "nums[" + i + "]=" + arr[i] + " ≤ nums[" + j + "]=" + arr[j] + " — не инверсия" });
+        if (inv) { cnt++; smaller[i]++; pairs.push("(" + arr[i] + "," + arr[j] + ")"); }
+        push({ lo: i, hi: j, improved: inv, line: 4, note: inv ? "Условие истинно — инверсия, cnt++" : "Условие ложно — пропускаем", vars: vv(i, j), info: inv ? "nums[" + i + "]=" + arr[i] + " > nums[" + j + "]=" + arr[j] + " — инверсия! cnt → " + cnt : "nums[" + i + "]=" + arr[i] + " ≤ nums[" + j + "]=" + arr[j] + " — не инверсия" });
       }
     }
-    steps.push({ lo: -1, hi: -1, done: true, line: 7, vars: vv(), info: "return cnt = " + cnt + " — всего инверсий" });
+    push({ lo: -1, hi: -1, done: true, line: 7, vars: vv(), info: "return cnt = " + cnt + ". По строке «меньших справа» видно: ответ — сумма " + smaller.join(" + ") + ". BIT ниже получает каждое слагаемое одним запросом вместо прохода по хвосту" });
     return steps;
   }
   // Оптимум O(n log n): сжатие координат + BIT по частотам. Идём СПРАВА НАЛЕВО; вклад
   // nums[i] = prefix(rank−1) (сколько меньших уже встречено справа), затем add(rank).
-  // Снимок tree[1..m] на каждом шаге рисует BIT-панель (mapViz); подсветка узлов на
-  // спуске prefix (idx -= idx&−idx) и подъёме add (idx += idx&−idx).
+  // Снимок freq[1..m] и tree[1..m] на каждом шаге рисует панель (mapViz): узел, который
+  // читает спуск / обновляет подъём, и его зону рангов на строке freq.
   function bCountInvBit(arr) {
     var n = arr.length, steps = [];
     var sorted = arr.slice().sort(function (a, b) { return a - b; });
-    var rank = {}, m = 0;
-    sorted.forEach(function (v) { if (rank[v] == null) { m++; rank[v] = m; } });
-    var tree = new Array(m + 1).fill(0);
-    function snap() { return tree.slice(1); } // tree[1..m]
-    function vv(i, ri, contrib, inv) { return { i: (i == null ? "—" : i), rank: (ri == null ? "—" : ri), contrib: (contrib == null ? "—" : contrib), inv: inv }; }
-    if (!n) return { m: 0, steps: [{ lo: -1, hi: -1, done: true, line: 11, tree: [], vars: vv(null, null, null, 0), info: "Пустой массив" }] };
+    var rank = {}, m = 0, valOf = [null];
+    sorted.forEach(function (v) { if (rank[v] == null) { m++; rank[v] = m; valOf.push(v); } });
+    var tree = new Array(m + 1).fill(0), freq = new Array(m + 1).fill(0);
+    function vv(i, ri, sum, inv) { return { i: (i == null ? "—" : i), rank: (ri == null ? "—" : ri), sum: (sum == null ? "—" : sum), inv: inv }; }
+    function push(o) { o.tree = tree.slice(1); o.freq = freq.slice(1); o.valOf = valOf; if (o.hi == null) o.hi = -1; steps.push(o); }
+    if (!n) return { m: 0, steps: [{ lo: -1, hi: -1, done: true, line: 11, tree: [], freq: [], valOf: [null], vars: vv(null, null, null, 0), info: "Пустой массив" }] };
     var inv = 0;
-    steps.push({ lo: n, hi: -1, line: 5, tree: snap(), vars: vv(null, null, null, 0), info: "Сжатие координат: m = " + m + " рангов. tree[1.." + m + "] = 0, inv = 0" });
+    var map = valOf.slice(1).map(function (v, k) { return v + "→" + (k + 1); }).join(", ");
+    push({ lo: n, line: 1, ranks: true, vars: vv(null, null, null, 0), info: "Сжатие координат: сортируем уникальные значения и нумеруем с 1 — " + map + ". Дальше BIT работает с рангами 1.." + m + ", а не с самими числами" });
+    push({ lo: n, line: 2, vars: vv(null, null, null, 0), info: "tree[1.." + m + "] = 0 — пусто, ни один ранг ещё не встречен; inv = 0" });
     for (var i = n - 1; i >= 0; i--) {
-      steps.push({ lo: i, hi: -1, line: 6, tree: snap(), vars: vv(i, null, null, inv), info: "i = " + i + ": берём nums[" + i + "] = " + arr[i] + " (идём справа налево)" });
+      push({ lo: i, line: 6, vars: vv(i, null, null, inv), info: "i = " + i + ": берём nums[" + i + "] = " + arr[i] + (i === n - 1 ? ". Правее никого — BIT пуст" : ". Всё правее уже лежит в BIT") });
       var ri = rank[arr[i]];
-      steps.push({ lo: i, hi: -1, line: 7, tree: snap(), vars: vv(i, ri, null, inv), info: "ri = rank[" + arr[i] + "] = " + ri });
-      var sum = 0, idx = ri - 1;
+      push({ lo: i, line: 7, cur: ri, vars: vv(i, ri, null, inv), info: "ri = rank[" + arr[i] + "] = " + ri });
+      var sum = 0, idx = ri - 1, path = [];
       if (idx <= 0) {
-        steps.push({ lo: i, hi: -1, line: 8, tree: snap(), vars: vv(i, ri, 0, inv), info: "prefix(" + (ri - 1) + ") = 0 — рангов меньше " + ri + " ещё не встречали" });
+        push({ lo: i, line: 8, cur: ri, vars: vv(i, ri, 0, inv), info: "prefix(" + (ri - 1) + ") = 0 без спуска — рангов меньше " + ri + " не бывает" });
       } else {
-        var guard = 0;
-        while (idx > 0 && guard++ < 64) {
-          sum += tree[idx];
-          steps.push({ lo: i, hi: -1, touched: idx, action: "query", line: 8, tree: snap(), vars: vv(i, ri, sum, inv), info: "prefix: tree[" + idx + "] = " + tree[idx] + " → sum = " + sum + ", дальше idx −= idx&(−idx) → " + (idx - (idx & -idx)) });
-          idx -= idx & -idx;
+        var first = true;
+        while (idx > 0) {
+          var lb = idx & -idx; sum += tree[idx]; path.push(idx);
+          push({ lo: i, line: 8, cur: ri, node: idx, zone: [idx - lb + 1, idx], path: path.slice(), action: "query", vars: vv(i, ri, sum, inv), info: (first ? "считаем prefix(" + (ri - 1) + ") — сколько справа рангов < " + ri + ". " : "") + "tree[" + idx + "] отвечает за " + (lb === 1 ? "ранг " + idx : "ранги " + (idx - lb + 1) + ".." + idx) + ": " + tree[idx] + " → sum = " + sum + (idx - lb > 0 ? "; дальше idx −= " + lb + " → " + (idx - lb) : "; idx −= " + lb + " → 0, спуск окончен") });
+          idx -= lb; first = false;
         }
       }
       inv += sum;
-      steps.push({ lo: i, hi: -1, improved: sum > 0, line: 8, tree: snap(), vars: vv(i, ri, sum, inv), info: "вклад nums[" + i + "] = prefix(" + (ri - 1) + ") = " + sum + " → inv = " + inv + (sum > 0 ? " (столько меньших уже справа)" : "") });
-      var aidx = ri, guard2 = 0;
-      while (aidx <= m && guard2++ < 64) {
-        tree[aidx]++;
-        steps.push({ lo: i, hi: -1, touched: aidx, action: "add", line: 9, tree: snap(), vars: vv(i, ri, sum, inv), info: "add: tree[" + aidx + "]++ → " + tree[aidx] + ", дальше idx += idx&(−idx) → " + (aidx + (aidx & -aidx)) });
-        aidx += aidx & -aidx;
+      push({ lo: i, line: 8, cur: ri, improved: sum > 0, vars: vv(i, ri, sum, inv), info: "вклад nums[" + i + "] = prefix(" + (ri - 1) + ") = " + sum + " → inv = " + inv + (sum > 0 ? " (столько меньших уже справа)" : "") });
+      var aidx = ri; path = [];
+      while (aidx <= m) {
+        var alb = aidx & -aidx; tree[aidx]++; path.push(aidx);
+        if (aidx === ri) freq[ri]++;
+        var nx = aidx + alb;
+        push({ lo: i, line: 9, cur: ri, node: aidx, zone: [aidx - alb + 1, aidx], path: path.slice(), action: "add", vars: vv(i, ri, sum, inv), info: (aidx === ri ? "add(" + ri + "): freq[" + ri + "] стал " + freq[ri] + "; " : "") + "tree[" + aidx + "] (" + (alb === 1 ? "ранг " + aidx : "ранги " + (aidx - alb + 1) + ".." + aidx) + ") += 1 → " + tree[aidx] + (nx <= m ? "; дальше idx += " + alb + " → " + nx : "; idx += " + alb + " → " + nx + " > m = " + m + " — подъём окончен") });
+        aidx = nx;
       }
     }
-    steps.push({ lo: -1, hi: -1, done: true, line: 11, tree: snap(), vars: vv(null, null, null, inv), info: "return inv = " + inv + " — всего инверсий" });
+    push({ lo: -1, done: true, line: 11, vars: vv(null, null, null, inv), info: "return inv = " + inv + " — всего инверсий" });
     return { m: m, steps: steps };
   }
 
@@ -12547,7 +12555,7 @@
       complexity: { time: "O(n²)", space: "O(1)", good: "⚠ База для сравнения — медленно" },
       varOrder: ["i", "j", "nums[i]", "nums[j]", "cnt"],
       varDesc: { i: "Левый индекс пары", j: "Правый индекс пары", "nums[i]": "Левый элемент", "nums[j]": "Правый элемент", cnt: "Найдено инверсий" },
-      lineNotes: { 1: "cnt = 0 — пока инверсий не нашли", 2: "Внешний цикл: левый индекс пары i", 3: "Внутренний цикл: правый индекс j > i", 4: "Левый больше правого — это инверсия, cnt++", 7: "Возвращаем общее число инверсий" },
+      lineNotes: { 1: "cnt = 0 — пока инверсий не нашли", 2: "Внешний цикл: левый индекс пары i", 3: "Внутренний цикл: правый индекс j > i", 4: "Если левый больше правого — инверсия, cnt++", 7: "Возвращаем общее число инверсий" },
       rules: [{ head: "nums[i] > nums[j]", body: "→ инверсия, cnt++", cls: "eq" }, { head: "nums[i] ≤ nums[j]", body: "→ не инверсия", cls: "lt" }, { head: "Каждая пара i<j", body: "проверяется отдельно", cls: "gt" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bCountInvNaive(arr) }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
@@ -12563,62 +12571,80 @@
       },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Инверсий: " + s.vars.cnt, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "i=" + s.vars.i + ", j=" + s.vars.j, b: s.vars["nums[i]"] + " ? " + s.vars["nums[j]"], c: "cnt=" + s.vars.cnt, cls: s.improved ? "eq" : "lt" }; },
-      varsOf: function (s) { return { i: s.vars.i, j: s.vars.j, "nums[i]": s.vars["nums[i]"], "nums[j]": s.vars["nums[j]"], cnt: s.vars.cnt }; }
+      varsOf: function (s) { return { i: s.vars.i, j: s.vars.j, "nums[i]": s.vars["nums[i]"], "nums[j]": s.vars["nums[j]"], cnt: s.vars.cnt }; },
+      // Найденные пары копятся, а под каждым nums[i] растёт «меньших справа» — то самое
+      // слагаемое, которое BIT ниже получает одним prefix(rank−1)
+      mapViz: function (panel, ctx) {
+        var p = structPanel(panel, "меньших справа у каждого nums[i] (сумма = cnt)");
+        var cells = ctx.arr.map(function (v, k) { var c = structCell("nums[" + k + "]=" + v, "—", "algo-tp__mapcell--off"); p.grid.appendChild(c); return c; });
+        return function (s) {
+          cells.forEach(function (c, k) {
+            var v = s.smaller[k], val = c.querySelector(".algo-tp__mapcnt") || c.lastChild;
+            val.textContent = v == null ? "—" : v;
+            c.className = "algo-tp__mapcell " + (v == null ? "algo-tp__mapcell--off" : k === s.lo ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : "algo-tp__mapcell--on");
+          });
+          p.foot.textContent = s.pairs.length ? "пары: " + s.pairs.join(" ") : "пар пока нет";
+        };
+      }
     },
 
     "count-inversions-bit": {
       badge: "Fenwick Tree",
-      desc: "Оптимум O(n log n): идём справа налево, вклад nums[i] = prefix(rank−1) (меньших уже справа), затем add(rank). Снизу — BIT частот рангов.",
+      desc: "Оптимум O(n log n): идём справа налево, вклад nums[i] = prefix(rank−1) (меньших уже справа), затем add(rank). Снизу — частоты рангов freq и узлы BIT tree с их зонами.",
       valuesLabel: "Массив", codeKey: "count-inversions-bit", fillRange: false,
       ptr1: { name: "i", cap: "(текущий, справа налево)" }, ptr2: { name: "—", cap: "" },
       complexity: { time: "O(n log n)", space: "O(n)", good: "★ Инверсии / меньших справа" },
-      varOrder: ["i", "rank", "contrib", "inv"],
-      varDesc: { i: "Текущий индекс (идём справа налево)", rank: "Ранг nums[i] после сжатия координат", contrib: "Вклад = prefix(rank−1)", inv: "Накопленное число инверсий" },
-      lineNotes: { 5: "inv = 0 — старт; BIT частот пуст", 6: "Идём справа налево: элементы правее i уже учтены в BIT", 7: "ri — ранг текущего значения после сжатия координат", 8: "prefix(ri−1): сколько уже встреченных (справа) рангов строго меньше — спуск idx −= idx&(−idx)", 9: "add(ri): регистрируем текущий ранг — подъём idx += idx&(−idx)", 11: "Возвращаем общее число инверсий" },
+      varOrder: ["i", "rank", "sum", "inv"],
+      varDesc: { i: "Текущий индекс (идём справа налево)", rank: "Ранг nums[i] после сжатия координат", sum: "prefix(rank−1): копится на спуске, это и есть вклад", inv: "Накопленное число инверсий" },
+      lineNotes: { 1: "Сжатие координат: значение → ранг 1..m", 2: "BIT на m рангов, 1-индексация", 6: "Идём справа налево: элементы правее i уже учтены в BIT", 7: "ri — ранг текущего значения после сжатия координат", 8: "prefix(ri−1): сколько уже встреченных (справа) рангов строго меньше — спуск idx −= idx&(−idx)", 9: "add(ri): регистрируем текущий ранг — подъём idx += idx&(−idx)", 11: "Возвращаем общее число инверсий" },
       rules: [{ head: "prefix(rank−1)", body: "меньших уже справа → вклад", cls: "eq" }, { head: "add(rank)", body: "регистрируем элемент", cls: "gt" }, { head: "Справа налево", body: "правое уже в BIT", cls: "lt" }],
+      legend: [{ cls: "fwin", label: "уже в BIT (правее i)" }, { cls: "fwq", label: "prefix читает узел" }, { cls: "fwa", label: "add обновляет узел" }, { cls: "fwz", label: "зона узла на freq" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var r = bCountInvBit(arr); return { arr: arr, m: r.m, steps: r.steps }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return ctx.arr; },
       title: function () { return "Число инверсий через BIT — O(n log n)"; },
-      cellState: function (s, j) { var i = s.lo; if (i < 0) return { found: true }; return { lo: j === i, found: j > i, dim: j < i }; },
+      cellState: function (s, j) { var i = s.lo; if (i < 0) return { span: true }; return { lo: j === i, span: j > i, dim: j < i }; },
       pointers: function (s) { return { lo: s.lo, hi: -1 }; },
-      sumCells: ["Ранг nums[i]", "Вклад = prefix(rank−1)", "Инверсий inv"],
+      sumCells: ["Ранг nums[i]", "sum = prefix(rank−1)", "Инверсий inv"],
       sumValues: function (s) {
-        var c = s.vars.contrib;
+        var c = s.vars.sum;
         return [{ text: s.vars.rank }, { text: (typeof c === "number" ? c : "—"), cls: (typeof c === "number" && c > 0) ? "eq" : "" }, { text: s.vars.inv, cls: "warn" }];
       },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Инверсий: " + s.vars.inv, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { return { a: "i=" + s.vars.i + ", rank=" + s.vars.rank, b: "вклад=" + s.vars.contrib, c: "inv=" + s.vars.inv, cls: s.improved ? "eq" : "lt" }; },
-      varsOf: function (s) { return { i: s.vars.i, rank: s.vars.rank, contrib: s.vars.contrib, inv: s.vars.inv }; },
+      stepCard: function (s) { return { a: "i=" + s.vars.i + ", rank=" + s.vars.rank, b: "sum=" + s.vars.sum, c: "inv=" + s.vars.inv, cls: s.improved ? "eq" : "lt" }; },
+      varsOf: function (s) { return { i: s.vars.i, rank: s.vars.rank, sum: s.vars.sum, inv: s.vars.inv }; },
+      // Строка freq — то, что BIT на самом деле хранит «в сумме»; tree — его узлы. Зона
+      // узла (i − lowbit(i), i] подсвечивается на freq: без неё tree[4] = 4 читалось как
+      // «ранг 4 встретился 4 раза».
       mapViz: function (parent, ctx) {
-        var m = ctx.m;
-        var wrap = mkEl("div", "algo-tp__map");
-        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "tree[1.." + m + "] — BIT частот рангов (узел i отвечает за i&(−i) рангов)"));
-        var grid = mkEl("div", "algo-tp__mapgrid");
-        var cells = [];
-        for (var r = 1; r <= m; r++) {
-          var col = mkEl("div", "algo-tp__mapcell");
-          col.appendChild(mkEl("div", "algo-tp__mapkey", r));
-          var cnt = mkEl("div", "algo-tp__mapcnt", "0");
-          col.appendChild(cnt);
-          grid.appendChild(col);
-          cells.push({ col: col, cnt: cnt });
-        }
+        var m = ctx.m, wrap = mkEl("div", "algo-tp__fw");
+        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "freq[r] — сколько раз ранг r встречен справа; tree[k] — сумма freq по зоне узла"));
+        var grid = mkEl("div", "algo-tp__fwgrid"); grid.style.gridTemplateColumns = "auto repeat(" + m + ", minmax(2.3em, 3.6em))";
+        var rows = { val: [], rank: [], freq: [], tree: [] };
+        [["val", "значение"], ["rank", "ранг r"], ["freq", "freq[r]"], ["tree", "tree[k]"]].forEach(function (rw) {
+          grid.appendChild(mkEl("div", "algo-tp__fwlab", rw[1]));
+          for (var r = 1; r <= m; r++) {
+            var lb = r & -r, c = mkEl("div", "algo-tp__fwc algo-tp__fwc--" + rw[0]);
+            if (rw[0] === "tree") { c.appendChild(mkEl("div", "algo-tp__fwv", "0")); c.appendChild(mkEl("div", "algo-tp__fwzone", lb === 1 ? "r" + r : "r" + (r - lb + 1) + ".." + r)); }
+            else c.textContent = rw[0] === "rank" ? r : rw[0] === "freq" ? "0" : "";
+            grid.appendChild(c); rows[rw[0]].push(c);
+          }
+        });
         wrap.appendChild(grid);
-        var info = mkEl("div", "algo-tp__mapsize", "");
-        wrap.appendChild(info);
+        var foot = mkEl("div", "algo-tp__mapsize", ""); wrap.appendChild(foot);
         parent.appendChild(wrap);
         return function (s) {
-          var tree = s.tree || [];
-          cells.forEach(function (c, k) {
-            var val = tree[k] || 0;
-            c.cnt.textContent = val;
-            var touched = s.touched === (k + 1);
-            c.col.className = "algo-tp__mapcell" + (val > 0 ? " algo-tp__mapcell--on" : " algo-tp__mapcell--off") + (touched ? " algo-tp__mapcell--hot algo-tp__mapcell--" + (s.action === "add" ? "add" : "dec") : "");
-          });
-          info.innerHTML = "";
-          info.appendChild(mkEl("span", "algo-tp__mapsizek", "inv = " + s.vars.inv));
-          if (typeof s.vars.contrib === "number") info.appendChild(mkEl("span", "algo-tp__mapsizecmp algo-tp__mapsizecmp--ok", "  вклад текущего = " + s.vars.contrib));
+          var act = s.action === "add" ? "a" : "q", inZone = function (r) { return s.zone && r >= s.zone[0] && r <= s.zone[1]; };
+          for (var r = 1; r <= m; r++) {
+            rows.val[r - 1].textContent = s.valOf[r];
+            rows.val[r - 1].className = "algo-tp__fwc algo-tp__fwc--val" + (s.ranks ? " algo-tp__fwc--rk" : "") + (s.cur === r ? " algo-tp__fwc--cur" : "");
+            rows.rank[r - 1].className = "algo-tp__fwc algo-tp__fwc--rank" + (s.ranks ? " algo-tp__fwc--rk" : "") + (s.cur === r ? " algo-tp__fwc--cur" : "");
+            rows.freq[r - 1].textContent = s.freq[r - 1];
+            rows.freq[r - 1].className = "algo-tp__fwc algo-tp__fwc--freq" + (s.freq[r - 1] ? " algo-tp__fwc--on" : "") + (inZone(r) ? " algo-tp__fwc--z" + act : "");
+            var tc = rows.tree[r - 1]; tc.firstChild.textContent = s.tree[r - 1];
+            tc.className = "algo-tp__fwc algo-tp__fwc--tree" + (s.tree[r - 1] ? " algo-tp__fwc--on" : "") + (s.node === r ? " algo-tp__fwc--n" + act : s.path && s.path.indexOf(r) >= 0 ? " algo-tp__fwc--p" + act : "");
+          }
+          foot.textContent = s.action === "query" ? "спуск prefix(" + (s.cur - 1) + "): пройдены tree[" + s.path.join("], tree[") + "], sum = " + s.vars.sum + " — вклад будет готов, когда idx дойдёт до 0" : s.action === "add" ? "подъём add(" + s.cur + "): +1 в tree[" + s.path.join("], tree[") + "] — во все узлы, чья зона накрывает ранг " + s.cur : "inv = " + s.vars.inv;
         };
       }
     },
