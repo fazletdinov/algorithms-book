@@ -1262,21 +1262,96 @@ body.algo-tp-fslock { overflow: hidden; }
 /* удаляемый узел: цвет (от него зависит ремонт) сохраняем, помечаем пунктиром и зачёркиванием */
 .algo-tp__rbnode--removed { outline: 3px dashed var(--tp-warn); outline-offset: 2px; opacity: 0.6; text-decoration: line-through; }
 
-/* Count-Min Sketch (cmsViz) — 2D-сетка счётчиков d×w */
-.algo-tp__cms { display: grid; gap: 3px; justify-content: start; margin: 0.5em 0; font-variant-numeric: tabular-nums; }
-.algo-tp__cmscell {
-  display: flex; align-items: center; justify-content: center; height: 1.9em; border-radius: 5px;
-  border: 1px solid var(--tp-border); background: color-mix(in srgb, var(--fg, #c9d1d9) 6%, transparent);
-  font-weight: 700; font-size: 0.9em; transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+/* Bloom (bloomViz) — биты двумя строками, под битом — метки URL-владельцев */
+.algo-tp__bloom { display: flex; flex-direction: column; gap: 0.6em; margin: 0.3em 0 0.5em; }
+.algo-tp__bloomurls { display: flex; flex-wrap: wrap; gap: 0.35em 0.8em; font-size: 0.88em; }
+.algo-tp__bloomurl { display: inline-flex; align-items: center; gap: 0.35em; transition: opacity 0.15s; }
+.algo-tp__bloomurl--cur { font-weight: 700; }
+.algo-tp__bloomurl--next { opacity: 0.4; }
+.algo-tp__bloomurl--q { font-weight: 700; padding: 0.1em 0.5em; border-radius: 6px; border: 1px dashed var(--tp-lo); }
+.algo-tp__bown { display: inline-flex; align-items: center; justify-content: center; min-width: 1.35em; height: 1.35em; padding: 0 0.2em; border-radius: 4px; font-size: 0.78em; font-weight: 700; color: #fff; line-height: 1; }
+.algo-tp__bown--0 { background: #db2777; }
+.algo-tp__bown--1 { background: #0d9488; }
+.algo-tp__bown--2 { background: #9333ea; }
+.algo-tp__bown--3 { background: #b45309; }
+.algo-tp__bloomgrid { display: grid; grid-template-columns: repeat(8, minmax(1.9em, 3.4em)); gap: 0.45em 0.25em; justify-content: start; font-variant-numeric: tabular-nums; }
+.algo-tp__bbit { display: flex; flex-direction: column; align-items: center; gap: 0.15em; transition: transform 0.15s; }
+.algo-tp__bbitidx { font-size: 0.72em; opacity: 0.6; }
+.algo-tp__bbitval {
+  display: flex; align-items: center; justify-content: center; width: 100%; height: 2.1em; border-radius: 6px;
+  border: 2px solid var(--tp-border); background: color-mix(in srgb, var(--fg, #c9d1d9) 5%, transparent);
+  font-weight: 700; opacity: 0.75; transition: background-color 0.15s, border-color 0.15s;
 }
-.algo-tp__cmscell--cur { background: var(--tp-warn); border-color: var(--tp-warn); color: #111; transform: scale(1.12); }
+.algo-tp__bbitown { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; min-height: 1.35em; }
+.algo-tp__bbit--on .algo-tp__bbitval { opacity: 1; background: color-mix(in srgb, var(--tp-ok) 20%, transparent); border-color: color-mix(in srgb, var(--tp-ok) 60%, transparent); }
+.algo-tp__bbit--shared .algo-tp__bbitval { border-style: dashed; border-color: var(--tp-warn); }
+.algo-tp__bbit--again .algo-tp__bbitval { background: color-mix(in srgb, var(--tp-warn) 38%, transparent); }
+.algo-tp__bbit--hit .algo-tp__bbitval { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+.algo-tp__bbit--miss .algo-tp__bbitval { background: var(--tp-bad); border-color: var(--tp-bad); color: #fff; opacity: 1; }
+.algo-tp__bbit--cur { transform: translateY(-2px); }
+.algo-tp__bbit--cur .algo-tp__bbitval { outline: 3px solid var(--tp-lo); outline-offset: 2px; }
+.algo-tp__bbit--cur .algo-tp__bbitidx { opacity: 1; font-weight: 700; color: var(--tp-lo); }
+.algo-tp__bloomline { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35em; font-size: 0.88em; min-height: 1.7em; }
+.algo-tp__bloomwho { font-weight: 700; }
+.algo-tp__bloomhint { opacity: 0.65; }
+.algo-tp__bloompos { padding: 0.1em 0.5em; border-radius: 5px; border: 1px solid var(--tp-border); font-variant-numeric: tabular-nums; }
+.algo-tp__bloompos--cur { border-color: var(--tp-lo); color: var(--tp-lo); font-weight: 700; }
+.algo-tp__bloompos--new { background: color-mix(in srgb, var(--tp-ok) 20%, transparent); border-color: color-mix(in srgb, var(--tp-ok) 60%, transparent); }
+.algo-tp__bloompos--again { background: color-mix(in srgb, var(--tp-warn) 30%, transparent); border-color: var(--tp-warn); }
+.algo-tp__bloompos--hit { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+.algo-tp__bloompos--miss { background: var(--tp-bad); border-color: var(--tp-bad); color: #fff; }
+.algo-tp__legdot--bon { background: color-mix(in srgb, var(--tp-ok) 20%, transparent); border: 2px solid color-mix(in srgb, var(--tp-ok) 60%, transparent); }
+.algo-tp__legdot--bshared { background: transparent; border: 2px dashed var(--tp-warn); }
+.algo-tp__legdot--bagain { background: color-mix(in srgb, var(--tp-warn) 38%, transparent); border-color: var(--tp-warn); }
+.algo-tp__legdot--bhit { background: var(--tp-ok); border-color: var(--tp-ok); }
+.algo-tp__legdot--bmiss { background: var(--tp-bad); border-color: var(--tp-bad); }
+.algo-tp__legdot--bcur { background: transparent; border: 3px solid var(--tp-lo); }
+
+/* HyperLogLog: биты хеша текущего ID (регистр · серия нулей · первая единица) */
+.algo-tp__hll { margin: 0.6em 0 0.4em; padding: 0.6em 0.7em; border-radius: 8px; border: 1px solid var(--tp-border); }
+.algo-tp__hll--idle .algo-tp__hllbits { opacity: 0.35; }
+.algo-tp__hllbits { display: flex; flex-wrap: wrap; row-gap: 0.3em; margin: 0.35em 0; font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 0.95em; font-variant-numeric: tabular-nums; }
+.algo-tp__hllb { display: inline-block; width: 0.95em; text-align: center; border-radius: 3px; }
+.algo-tp__hllb--gap { margin-left: 0.45em; }
+.algo-tp__hllb--reg { background: var(--tp-lo); color: #fff; font-weight: 700; }
+.algo-tp__hllb--zero { background: color-mix(in srgb, var(--tp-warn) 45%, transparent); font-weight: 700; }
+.algo-tp__hllb--one { background: var(--tp-ok); color: #fff; font-weight: 700; }
+.algo-tp__hllb--rest { opacity: 0.4; }
+.algo-tp__hllfoot { font-size: 0.85em; opacity: 0.85; }
+
+/* Count-Min Sketch (cmsViz) — поток + 2D-сетка счётчиков d×w с подписями */
+.algo-tp__cmswrap { display: flex; flex-direction: column; gap: 0.7em; margin: 0.3em 0 0.5em; }
+.algo-tp__cmsstream { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3em; font-size: 0.85em; }
+.algo-tp__cmsstreamlab { opacity: 0.65; margin-right: 0.15em; }
+.algo-tp__cmsitem { padding: 0.12em 0.45em; border-radius: 5px; border: 1px solid var(--tp-border); transition: opacity 0.15s, background-color 0.15s; }
+.algo-tp__cmsitem--done { opacity: 0.5; text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--fg, #c9d1d9) 40%, transparent); }
+.algo-tp__cmsitem--cur { background: var(--tp-warn); border-color: var(--tp-warn); color: #111; font-weight: 700; }
+.algo-tp__cmsitem--next { opacity: 0.85; }
+.algo-tp__cmsitem--q { border-color: var(--tp-lo); color: var(--tp-lo); font-weight: 700; }
+.algo-tp__cms { display: grid; gap: 4px; justify-content: start; align-items: center; font-variant-numeric: tabular-nums; }
+.algo-tp__cmshead { text-align: center; font-size: 0.75em; opacity: 0.6; }
+.algo-tp__cmsrowlab { padding-right: 0.4em; font-size: 0.85em; font-weight: 700; opacity: 0.8; }
+.algo-tp__cmscell {
+  display: flex; align-items: center; justify-content: center; height: 2.3em; border-radius: 6px;
+  border: 2px solid var(--tp-border); background: color-mix(in srgb, var(--fg, #c9d1d9) 8%, transparent);
+  font-weight: 700; transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.algo-tp__cmscell--zero { opacity: 0.45; font-weight: 400; }
+.algo-tp__cmscell--cur { background: var(--tp-warn); border-color: var(--tp-warn); color: #111; opacity: 1; transform: scale(1.1); }
+.algo-tp__cmscell--coll { background: var(--tp-warn); border: 2px dashed var(--tp-bad); color: #111; opacity: 1; transform: scale(1.1); }
+.algo-tp__cmscell--seen { background: color-mix(in srgb, var(--tp-lo) 22%, transparent); border-color: color-mix(in srgb, var(--tp-lo) 55%, transparent); }
+.algo-tp__cmscell--over { background: color-mix(in srgb, var(--tp-bad) 18%, transparent); border: 2px dashed var(--tp-bad); }
 .algo-tp__cmscell--min { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
-.algo-tp__cmscell--seen { background: color-mix(in srgb, var(--tp-lo) 22%, transparent); border-color: color-mix(in srgb, var(--tp-lo) 45%, transparent); }
+.algo-tp__legdot--cmscur { background: var(--tp-warn); border-color: var(--tp-warn); }
+.algo-tp__legdot--cmscoll { background: var(--tp-warn); border: 2px dashed var(--tp-bad); }
+.algo-tp__legdot--cmsseen { background: color-mix(in srgb, var(--tp-lo) 22%, transparent); border-color: color-mix(in srgb, var(--tp-lo) 55%, transparent); }
+.algo-tp__legdot--cmsover { background: color-mix(in srgb, var(--tp-bad) 18%, transparent); border: 2px dashed var(--tp-bad); }
+.algo-tp__legdot--cmsmin { background: var(--tp-ok); border-color: var(--tp-ok); }
 
 /* Skip-list (skipViz) — башни уровней с express-полосами */
-.algo-tp__skip { display: grid; gap: 4px 3px; justify-content: start; align-items: center; margin: 0.5em 0; font-variant-numeric: tabular-nums; }
+.algo-tp__skip { display: grid; gap: 4px 2px; justify-content: start; align-items: center; margin: 0.5em 0; font-variant-numeric: tabular-nums; }
 .algo-tp__skipcell {
-  display: flex; align-items: center; justify-content: center; height: 1.8em; min-width: 2.2em; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center; height: 1.8em; min-width: 0; border-radius: 5px;
   border: 1px solid var(--tp-border); background: color-mix(in srgb, var(--fg, #c9d1d9) 10%, transparent);
   font-weight: 700; font-size: 0.88em; transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
 }
@@ -1285,6 +1360,15 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__skipcell--path { background: color-mix(in srgb, var(--tp-lo) 20%, transparent); border-color: color-mix(in srgb, var(--tp-lo) 40%, transparent); }
 .algo-tp__skipcell--cur { background: var(--tp-warn); border-color: var(--tp-warn); color: #111; transform: scale(1.1); }
 .algo-tp__skipcell--found { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+.algo-tp__skipcell--link { background: linear-gradient(var(--tp-border), var(--tp-border)) center / 100% 2px no-repeat; }
+.algo-tp__skiphead--path { opacity: 1; color: var(--tp-lo); }
+.algo-tp__skiphead--cur { opacity: 1; background: var(--tp-warn); border-color: var(--tp-warn); color: #111; }
+.algo-tp__skipcell--cmpok { outline: 3px dashed var(--tp-ok); outline-offset: 2px; }
+.algo-tp__skipcell--cmpno { outline: 3px dashed var(--tp-bad); outline-offset: 2px; }
+.algo-tp__legdot--skcur { background: var(--tp-warn); border-color: var(--tp-warn); }
+.algo-tp__legdot--skpath { background: color-mix(in srgb, var(--tp-lo) 20%, transparent); border-color: color-mix(in srgb, var(--tp-lo) 40%, transparent); }
+.algo-tp__legdot--skok { background: transparent; border: 2px dashed var(--tp-ok); }
+.algo-tp__legdot--skno { background: transparent; border: 2px dashed var(--tp-bad); }
 
 /* TLS handshake (handshakeViz) — последовательность Клиент ↔ Сервер */
 .algo-tp__hs { display: flex; flex-direction: column; gap: 0.35em; width: 100%; }

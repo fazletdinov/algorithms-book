@@ -5814,51 +5814,64 @@
   // «discord» даёт ложное срабатывание — его биты зажгли reddit/github.
   function bloomH1(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) >>> 0; return h; }
   function bloomH2(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (Math.imul(h, 131) + s.charCodeAt(i) + 7) >>> 0; return (h >>> 0) || 1; }
-  function bloomBits(words, m, k) {
-    var bits = new Array(m).fill(0);
-    for (var w = 0; w < words.length; w++) {
-      var a = bloomH1(words[w]), b = bloomH2(words[w]);
-      for (var i = 0; i < k; i++) bits[((a + Math.imul(i, b)) >>> 0) % m] = 1;
-    }
-    return bits;
+  function bloomPos(word, m, k) { var a = bloomH1(word), b = bloomH2(word), out = []; for (var i = 0; i < k; i++) out.push(((a + Math.imul(i, b)) >>> 0) % m); return out; }
+  // own[p] — какие URL (индексы) зажгли бит p. Фильтр этого НЕ хранит — виджет знает
+  // для наглядности: иначе «пересечение бит» и «чужие биты дали ложное да» были
+  // только словами в статусе.
+  function bloomOwners(words, m, k) {
+    var own = []; for (var j = 0; j < m; j++) own.push([]);
+    words.forEach(function (w, wi) { bloomPos(w, m, k).forEach(function (p) { if (own[p].indexOf(wi) < 0) own[p].push(wi); }); });
+    return own;
   }
+  function bloomWho(own, words, p) { return own[p].map(function (w) { return words[w]; }).join(" и "); }
   function bBloomAdd(words, m, k) {
     m = m || 16; k = k || 3;
-    var bits = new Array(m).fill(0), steps = [], setCount = 0;
-    function snap(extra) { var o = { values: bits.slice(), st: bits.slice(), lo: -1, hi: -1 }; for (var kk in extra) o[kk] = extra[kk]; return o; }
+    var bits = new Array(m).fill(0), steps = [], setCount = 0, own = [], qp = [], cur = -1;
+    for (var j = 0; j < m; j++) own.push([]);
+    function snap(extra) { var o = { values: bits.slice(), st: bits.slice(), lo: -1, hi: -1, own: own.map(function (a) { return a.slice(); }), qp: qp.map(function (q) { return { p: q.p, cls: q.cls }; }), w: cur }; for (var kk in extra) o[kk] = extra[kk]; return o; }
     steps.push(snap({ line: 0, vars: { url: "—", hash: "—", pos: "—", set: 0 }, info: "Bloom-фильтр пуст: " + m + " бит, все нули. Сами URL не храним — только биты" }));
     for (var w = 0; w < words.length; w++) {
-      var url = words[w], a = bloomH1(url), b = bloomH2(url);
-      steps.push(snap({ line: 1, vars: { url: url, hash: "—", pos: "—", set: setCount }, info: "URL «" + url + "»: считаем два базовых хеша, из них получим " + k + " позиции" }));
+      var url = words[w], ps = bloomPos(url, m, k);
+      cur = w; qp = [];
+      steps.push(snap({ line: 1, vars: { url: url, hash: "—", pos: "—", set: setCount }, info: "URL «" + url + "»: считаем два базовых хеша, из них получим " + k + " " + ruPlural(k, "позицию", "позиции", "позиций") }));
       for (var i = 0; i < k; i++) {
-        var p = ((a + Math.imul(i, b)) >>> 0) % m;
+        var p = ps[i];
+        qp.push({ p: p, cls: "cur" });
         steps.push(snap({ lo: p, line: 3, vars: { url: url, hash: "#" + (i + 1), pos: p, set: setCount }, info: "хеш #" + (i + 1) + " указывает на бит " + p }));
-        var was = bits[p]; bits[p] = 1; if (!was) setCount++;
-        steps.push(snap({ lo: p, line: 4, vars: { url: url, hash: "#" + (i + 1), pos: p, set: setCount }, info: "ставим бит " + p + " в 1" + (was ? " (он уже стоял — общий с другим URL)" : "") }));
+        var was = bits[p], prev = was ? bloomWho(own, words, p) : "";
+        bits[p] = 1; if (!was) setCount++;
+        if (own[p].indexOf(w) < 0) own[p].push(w);
+        qp[qp.length - 1].cls = was ? "again" : "new";
+        steps.push(snap({ lo: p, again: !!was, line: 4, vars: { url: url, hash: "#" + (i + 1), pos: p, set: setCount }, info: was ? "бит " + p + " уже стоял — его зажёг " + prev + ". Теперь он общий: один бит на двоих, и по нему их не различить" : "ставим бит " + p + " в 1" }));
       }
     }
-    steps.push(snap({ done: true, line: 6, vars: { url: "—", hash: "—", pos: "—", set: setCount }, info: "Добавлено " + words.length + " URL; горит " + setCount + " из " + m + " бит. Память не зависит от длины URL" }));
+    cur = words.length; qp = [];
+    var shared = []; own.forEach(function (o, p) { if (o.length > 1) shared.push(p + " (" + bloomWho(own, words, p) + ")"); });
+    steps.push(snap({ done: true, line: 6, vars: { url: "—", hash: "—", pos: "—", set: setCount }, info: "Добавлено " + words.length + " URL; горит " + setCount + " из " + m + " бит" + (shared.length ? ". Общие биты: " + shared.join(", ") + " — источник будущих ложных «да»" : "") + ". Память не зависит от длины URL" }));
     return steps;
   }
   function bBloomCheck(addWords, query, m, k) {
     m = m || 16; k = k || 3;
-    var bits = bloomBits(addWords, m, k);
-    var stBase = bits.map(function (x) { return x ? 2 : 0; }); // стоящие биты — серый фон
-    var steps = [], qa = bloomH1(query), qb = bloomH2(query);
-    function snap(st, extra) { var o = { values: bits.slice(), st: st.slice(), lo: -1, hi: -1 }; for (var kk in extra) o[kk] = extra[kk]; return o; }
-    steps.push(snap(stBase, { line: 0, vars: { url: query, pos: "—", bit: "—" }, info: "Проверяем «" + query + "»: стоят ли ВСЕ его " + k + " бит? (серые биты уже заняты другими URL)" }));
-    var st = stBase.slice();
+    var own = bloomOwners(addWords, m, k), bits = own.map(function (o) { return o.length ? 1 : 0; });
+    var steps = [], qp = [], ps = bloomPos(query, m, k), wasAdded = addWords.indexOf(query) >= 0;
+    function snap(extra) { var o = { values: bits.slice(), st: bits.slice(), lo: -1, hi: -1, own: own, qp: qp.map(function (q) { return { p: q.p, cls: q.cls }; }) }; for (var kk in extra) o[kk] = extra[kk]; return o; }
+    steps.push(snap({ line: 0, vars: { url: query, pos: "—", bit: "—" }, info: "Проверяем «" + query + "»: стоят ли ВСЕ " + k + " " + ruPlural(k, "его бит", "его бита", "его бит") + "? Под каждым горящим битом — кто его зажёг" }));
     for (var i = 0; i < k; i++) {
-      var p = ((qa + Math.imul(i, qb)) >>> 0) % m;
-      steps.push(snap(st, { lo: p, line: 3, vars: { url: query, pos: p, bit: bits[p] }, info: "хеш #" + (i + 1) + " → бит " + p }));
+      var p = ps[i];
+      qp.push({ p: p, cls: "cur" });
+      steps.push(snap({ lo: p, line: 3, vars: { url: query, pos: p, bit: bits[p] }, info: "хеш #" + (i + 1) + " → бит " + p }));
       if (bits[p] === 0) {
-        steps.push(snap(st, { lo: p, line: 5, done: true, no: true, vars: { url: query, pos: p, bit: 0 }, info: "бит " + p + " равен 0 → «" + query + "» ТОЧНО не добавляли (иначе бит стоял бы). Уверенный ответ" }));
+        qp[qp.length - 1].cls = "miss";
+        steps.push(snap({ lo: p, line: 5, done: true, no: true, vars: { url: query, pos: p, bit: 0 }, info: "бит " + p + " равен 0 → «" + query + "» ТОЧНО не добавляли (иначе бит стоял бы). Уверенный ответ, остальные биты не нужны" }));
         return steps;
       }
-      st = st.slice(); st[p] = 1; // подтверждённый бит — зелёный
-      steps.push(snap(st, { lo: p, line: 4, vars: { url: query, pos: p, bit: 1 }, info: "бит " + p + " стоит ✓ — пока сходится, проверяем дальше" }));
+      qp[qp.length - 1].cls = "hit";
+      steps.push(snap({ lo: p, line: 4, vars: { url: query, pos: p, bit: 1 }, info: "бит " + p + " стоит ✓ (зажёг " + bloomWho(own, addWords, p) + ") — пока сходится, проверяем дальше" }));
     }
-    steps.push(snap(st, { done: true, fp: true, line: 8, vars: { url: query, pos: "—", bit: "—" }, info: "все " + k + " бит стоят → «" + query + "» ВОЗМОЖНО добавляли. Но на деле его не было: биты зажгли reddit/github — это ЛОЖНОЕ срабатывание" }));
+    var who = ps.map(function (p) { return p + " ← " + bloomWho(own, addWords, p); }).join("; ");
+    steps.push(snap(wasAdded
+      ? { done: true, line: 8, vars: { url: query, pos: "—", bit: "—" }, info: "все " + k + " " + ruPlural(k, "бит стоит", "бита стоят", "бит стоят") + " → «" + query + "» ВОЗМОЖНО добавляли — и его действительно добавляли. Верное «да»" }
+      : { done: true, fp: true, line: 8, vars: { url: query, pos: "—", bit: "—" }, info: "все " + k + " " + ruPlural(k, "бит стоит", "бита стоят", "бит стоят") + " → «" + query + "» ВОЗМОЖНО добавляли. Но его не было: " + who + " — это ЛОЖНОЕ срабатывание" }));
     return steps;
   }
 
@@ -5879,16 +5892,23 @@
     function lc() { var e = raw(), V = reg.filter(function (x) { return x === 0; }).length; return (e <= 2.5 * M && V > 0) ? Math.round(M * Math.log(M / V)) : e; }
     function snap(extra) { var o = { values: reg.slice(), st: reg.map(function (x) { return x > 0 ? 1 : 0; }), lo: -1, hi: -1 }; for (var k in extra) o[k] = extra[k]; return o; }
     function vv(id, j, r) { return { id: id, bucket: j, rho: r, est: raw(), lc: lc() }; }
+    // hx — биты хеша текущего ID для панели под регистрами: stage 1 — просто хеш,
+    // 2 — выделены старшие P бит (регистр), 3 — ещё серия нулей и первая единица (rho)
     steps.push(snap({ line: 0, vars: vv("—", "—", "—"), info: "Пусто: " + M + " регистров, все 0. Сами ID не храним. Уже здесь сырая формула говорит «≈ " + raw() + "» — на малых n ей верить нельзя" }));
+    var seen = {};
     for (var e = 0; e < elems.length; e++) {
       var id = elems[e], x = fnv32(id), j = x >>> (32 - P), w = x & ((1 << (32 - P)) - 1), r = hllRho(w, 32 - P);
-      steps.push(snap({ lo: j, line: 2, vars: vv(id, j, "—"), info: "«" + id + "»: старшие биты хеша → регистр " + j }));
-      steps.push(snap({ lo: j, line: 3, vars: vv(id, j, r), info: "серия нулей в остатке: rho = " + r }));
+      var rep = seen[id];
+      seen[id] = true;
+      steps.push(snap({ hx: { x: x, p: P, r: r, stage: 1 }, line: 1, vars: vv(id, "—", "—"), info: "«" + id + "»" + (rep ? " — ПОВТОР, этот ID уже был: хеш детерминирован, биты те же, что в первый раз" : ": хешируем — 32 «случайных» бита (под регистрами)") }));
+      steps.push(snap({ lo: j, hx: { x: x, p: P, r: r, stage: 2 }, line: 2, vars: vv(id, j, "—"), info: "старшие " + P + " " + ruPlural(P, "бит", "бита", "бит") + " " + j.toString(2).padStart(P, "0") + "₂ = " + j + " → регистр " + j }));
+      steps.push(snap({ lo: j, hx: { x: x, p: P, r: r, stage: 3 }, line: 3, vars: vv(id, j, r), info: r === 1 ? "сразу за ними 1 — нулей в серии нет → rho = 0 + 1 = 1" : "дальше серия из " + (r - 1) + " " + ruPlural(r - 1, "нуля", "нулей", "нулей") + ", затем 1 → rho = " + (r - 1) + " + 1 = " + r }));
       var old = reg[j], grew = r > old; if (grew) reg[j] = r;
       // строка 6 (присваивание) — только если регистр реально вырос; иначе стоим на if
-      steps.push(snap({ lo: j, line: grew ? 5 : 4, vars: vv(id, j, r), info: grew ? "rho " + r + " > " + old + " → регистр " + j + " растёт до " + r : "rho " + r + " ≤ " + old + " → регистр не меняем (храним максимум)" }));
+      steps.push(snap({ lo: j, hx: { x: x, p: P, r: r, stage: 3 }, line: grew ? 5 : 4, vars: vv(id, j, r), info: grew ? "rho " + r + " > " + old + " → регистр " + j + " растёт до " + r : "rho " + r + " ≤ " + old + " → регистр не меняем (храним максимум)" + (rep ? ". Повтор ничего не меняет: тот же хеш даёт те же регистр и rho — поэтому HLL и считает УНИКАЛЬНЫЕ" : "") }));
     }
-    steps.push(snap({ done: true, line: 7, vars: vv("—", "—", "—"), info: "Сырая формула: ≈ " + raw() + " при " + elems.length + " уникальных — на малых n промах в разы. С поправкой linear counting (как в Redis: m·ln(m/V), пустых регистров V = " + reg.filter(function (x) { return x === 0; }).length + ") — ≈ " + lc() + ". На миллионах поправка не нужна: ошибка сырой формулы ~2%" }));
+    var uniq = Object.keys(seen).length;
+    steps.push(snap({ done: true, line: 7, vars: vv("—", "—", "—"), info: "Сырая формула: ≈ " + raw() + " при " + uniq + " " + ruPlural(uniq, "уникальном", "уникальных", "уникальных") + " — на малых n промах в разы. С поправкой linear counting (как в Redis: m·ln(m/V), пустых регистров V = " + reg.filter(function (x) { return x === 0; }).length + ") — ≈ " + lc() + ". На миллионах поправка не нужна: ошибка сырой формулы ~2%" }));
     return steps;
   }
 
@@ -5896,44 +5916,66 @@
   // Add: в каждой строке инкремент своей ячейки. Count: МИНИМУМ по строкам (коллизии
   // только завышают счётчик, поэтому наименьший — ближе всего к правде).
   function cmsHash(s, row, w) { return fnv32("r" + row + ":" + s) % w; }
-  function cmsBuild(stream, D, W) { var t = []; for (var r = 0; r < D; r++) t.push(new Array(W).fill(0)); for (var i = 0; i < stream.length; i++) for (var r2 = 0; r2 < D; r2++) t[r2][cmsHash(stream[i], r2, W)]++; return t; }
+  // who[r][c] — какие элементы и сколько раз попали в ячейку: скетч этого не хранит,
+  // виджету нужно, чтобы назвать коллизию по имени («тут уже #go»)
+  function cmsBuild(stream, D, W) {
+    var t = [], who = [];
+    for (var r = 0; r < D; r++) { t.push(new Array(W).fill(0)); who.push([]); for (var c = 0; c < W; c++) who[r].push({}); }
+    for (var i = 0; i < stream.length; i++) for (var r2 = 0; r2 < D; r2++) { var c2 = cmsHash(stream[i], r2, W); t[r2][c2]++; who[r2][c2][stream[i]] = (who[r2][c2][stream[i]] || 0) + 1; }
+    return { t: t, who: who };
+  }
+  function cmsOthers(cell, item) { return Object.keys(cell).filter(function (k) { return k !== item; }).map(function (k) { return k + (cell[k] > 1 ? "×" + cell[k] : ""); }).join(", "); }
   function bCmsAdd(stream, D, W) {
     D = D || 3; W = W || 8;
-    var t = []; for (var r = 0; r < D; r++) t.push(new Array(W).fill(0));
+    var t = [], who = [], seen = {};
+    for (var r = 0; r < D; r++) { t.push(new Array(W).fill(0)); who.push([]); for (var c0 = 0; c0 < W; c0++) who[r].push({}); }
     var steps = [];
-    function snap(marks, extra) { var o = { table: t.map(function (row) { return row.slice(); }), marks: marks || [], lo: -1, hi: -1 }; for (var k in extra) o[k] = extra[k]; return o; }
-    steps.push(snap([], { line: 0, vars: { item: "—", row: "—", col: "—" }, info: "Скетч пуст: " + D + " строки × " + W + " столбцов счётчиков" }));
+    function snap(marks, extra) { var o = { table: t.map(function (row) { return row.slice(); }), marks: marks || [], lo: -1, hi: -1, si: -1 }; for (var k in extra) o[k] = extra[k]; return o; }
+    steps.push(snap([], { line: 0, vars: { item: "—", row: "—", col: "—" }, info: "Скетч пуст: " + D + " строки × " + W + " столбцов счётчиков. Поток — сверху" }));
     for (var i = 0; i < stream.length; i++) {
-      var it = stream[i];
-      for (var rr = 0; rr < D; rr++) {
-        var c = cmsHash(it, rr, W);
-        t[rr][c]++;
-        steps.push(snap([{ r: rr, c: c, cls: "cur" }], { line: 3, vars: { item: it, row: rr, col: c }, info: "«" + it + "»: строка " + rr + " → столбец " + c + ", счётчик стал " + t[rr][c] }));
+      var it = stream[i], cols = [];
+      for (var rr = 0; rr < D; rr++) cols.push(cmsHash(it, rr, W));
+      if (seen[it]) {
+        // Повтор: те же d ячеек, что и в первый раз. Разворачивать цикл по строкам ещё
+        // раз — пять одинаковых троек подряд для #cats, механизм виден с первой.
+        cols.forEach(function (c, r2) { t[r2][c]++; who[r2][c][it]++; });
+        seen[it]++;
+        steps.push(snap(cols.map(function (c, r2) { return { r: r2, c: c, cls: "cur" }; }), { si: i, line: 3, note: "Цикл по всем d строкам разом: хеши те же — и ячейки те же", vars: { item: it, row: "0…" + (D - 1), col: cols.join(", ") }, info: "«" + it + "» ещё раз (" + seen[it] + "-й): хеши те же → +1 в тех же " + D + " ячейках, счётчики стали " + cols.map(function (c, r2) { return t[r2][c]; }).join(", ") }));
+        continue;
+      }
+      seen[it] = 1;
+      for (var r3 = 0; r3 < D; r3++) {
+        var c = cols[r3], others = cmsOthers(who[r3][c], it);
+        t[r3][c]++; who[r3][c][it] = (who[r3][c][it] || 0) + 1;
+        steps.push(snap([{ r: r3, c: c, cls: others ? "coll" : "cur" }], { si: i, line: 3, coll: !!others, vars: { item: it, row: r3, col: c }, info: "«" + it + "»: строка " + r3 + " → столбец " + c + (others ? " — КОЛЛИЗИЯ: тут уже " + others + ", счётчик " + (t[r3][c] - 1) + " → " + t[r3][c] + ". По ячейке их больше не различить" : ", счётчик стал " + t[r3][c]) }));
       }
     }
-    steps.push(snap([], { done: true, line: 5, vars: { item: "—", row: "—", col: "—" }, info: "Поток обработан. Память фиксированная — " + (D * W) + " счётчиков на любой поток" }));
+    var cnt = D * W;
+    steps.push(snap([], { done: true, si: stream.length, line: 5, vars: { item: "—", row: "—", col: "—" }, info: "Поток обработан. Память фиксированная — " + cnt + " " + ruPlural(cnt, "счётчик", "счётчика", "счётчиков") + " на любой поток" }));
     return steps;
   }
   function bCmsQuery(stream, q, D, W) {
     D = D || 3; W = W || 8;
-    var t = cmsBuild(stream, D, W), steps = [], cells = [], est = Infinity;
-    function snap(marks, extra) { var o = { table: t.map(function (row) { return row.slice(); }), marks: marks || [], lo: -1, hi: -1 }; for (var k in extra) o[k] = extra[k]; return o; }
+    var b = cmsBuild(stream, D, W), t = b.t, steps = [], cells = [], est = Infinity;
+    var truth = stream.filter(function (x) { return x === q; }).length;
+    function snap(marks, extra) { var o = { table: t.map(function (row) { return row.slice(); }), marks: marks || [], lo: -1, hi: -1, truth: truth }; for (var k in extra) o[k] = extra[k]; return o; }
     var base = [];
-    steps.push(snap(base.slice(), { line: 1, vars: { item: q, col: "—", val: "—", est: "∞" }, info: "Считаем «" + q + "»: смотрим по одной ячейке в каждой строке" }));
+    steps.push(snap(base.slice(), { line: 1, vars: { item: q, col: "—", val: "—", est: "∞" }, info: "Считаем «" + q + "»: смотрим по одной ячейке в каждой строке. Для сверки: в потоке «" + q + "» встретился " + truth + " " + ruPlural(truth, "раз", "раза", "раз") + " (скетч этого не знает)" }));
     for (var r = 0; r < D; r++) {
-      var c = cmsHash(q, r, W), v = t[r][c]; cells.push({ r: r, c: c, v: v });
-      base.push({ r: r, c: c, cls: "seen" });
+      var c = cmsHash(q, r, W), v = t[r][c], others = cmsOthers(b.who[r][c], q), over = v - truth;
+      cells.push({ r: r, c: c, v: v, over: over });
+      base.push({ r: r, c: c, cls: over > 0 ? "over" : "seen" });
       var marks = base.slice(); marks[marks.length - 1] = { r: r, c: c, cls: "cur" };
-      steps.push(snap(marks, { line: 4, vars: { item: q, col: c, val: v, est: est === Infinity ? "∞" : est }, info: "строка " + r + ", столбец " + c + ": счётчик = " + v + (v > (est === Infinity ? 1e9 : est) ? " (завышен коллизией)" : "") }));
+      steps.push(snap(marks, { line: 4, vars: { item: q, col: c, val: v, est: est === Infinity ? "∞" : est }, info: "строка " + r + ", столбец " + c + ": счётчик = " + v + (over > 0 ? " — завышен на " + over + ": в ячейку попали ещё " + others : " — честный, коллизий тут нет") }));
       // присваивание (строка 6) — только когда счётчик меньше текущего минимума
       var lower = v < est, was = est;
       if (lower) est = v;
-      steps.push(snap(base.slice(), { line: lower ? 5 : 4, vars: { item: q, col: c, val: v, est: est }, info: lower ? v + " < " + (was === Infinity ? "∞" : was) + " → новый минимум est = " + est : v + " ≥ " + est + " → минимум не меняется (этот счётчик завышен коллизией)" }));
+      steps.push(snap(base.slice(), { line: lower ? 5 : 4, vars: { item: q, col: c, val: v, est: est }, info: lower ? v + " < " + (was === Infinity ? "∞" : was) + " → новый минимум est = " + est : v + " ≥ " + est + " → минимум не меняется" }));
     }
-    // подсветить минимум
-    var minCell = cells.reduce(function (a, b) { return b.v < a.v ? b : a; });
+    var minCell = cells.reduce(function (a, x) { return x.v < a.v ? x : a; });
     var fin = base.map(function (m) { return (m.r === minCell.r && m.c === minCell.c) ? { r: m.r, c: m.c, cls: "min" } : m; });
-    steps.push(snap(fin, { done: true, line: 8, vars: { item: q, col: minCell.c, val: minCell.v, est: est }, info: "Ответ: «" + q + "» встречалось ≈ " + est + " раз (минимум по строкам гасит завышения от коллизий)" }));
+    var nOver = cells.filter(function (x) { return x.over > 0; }).length;
+    steps.push(snap(fin, { done: true, line: 8, vars: { item: q, col: minCell.c, val: minCell.v, est: est }, info: "Ответ: «" + q + "» ≈ " + est + ", на деле " + truth + ". " + (nOver ? nOver + " из " + D + " строк завышены коллизиями" : "Коллизий не было ни в одной строке") + (est === truth ? (nOver ? ", но минимум взял честную ячейку" : "") : " — завышены все, и минимум тоже: оценка больше правды на " + (est - truth) + ". Занизить Count-Min не может") }));
     return steps;
   }
 
@@ -5944,27 +5986,34 @@
   function skipNodes(keys) { return keys.map(function (k) { return { key: k, level: skipLevel(k) }; }); }
   function bSkipSearch(keys, target) {
     var nodes = skipNodes(keys), maxL = nodes.reduce(function (a, n) { return Math.max(a, n.level); }, 0);
-    var steps = [], trail = [];
+    // trail — пары «уровень:узел», где реально стояли (башня узла целиком — не путь:
+    // 7@L0 поиск не посещает); heads — уровни, пройденные ещё из головы
+    var steps = [], trail = [], heads = [maxL];
     function nextAt(i, L) { for (var j = i + 1; j < nodes.length; j++) if (nodes[j].level >= L) return j; return nodes.length; }
-    function snap(cur, level, extra) { var o = { cur: cur, level: level, trail: trail.slice(), lo: -1, hi: -1 }; for (var k in extra) o[k] = extra[k]; return o; }
-    var cur = -1;
+    function snap(cur, level, extra) { var o = { cur: cur, level: level, trail: trail.slice(), heads: heads.slice(), cmp: null, lo: -1, hi: -1 }; for (var k in extra) o[k] = extra[k]; return o; }
+    function lane(L) { return L === 0 ? "по базовому списку (уровень 0)" : "по express-полосе уровня " + L; }
+    function at(c) { return c < 0 ? "head" : nodes[c].key; }
+    var cur = -1, jumps = 0;
     steps.push(snap(-1, maxL, { line: 1, vars: { level: maxL, node: "head", target: target }, info: "Старт с головы на верхнем уровне " + maxL }));
     for (var L = maxL; L >= 0; L--) {
-      steps.push(snap(cur, L, { line: 2, vars: { level: L, node: cur < 0 ? "head" : nodes[cur].key, target: target }, info: "Уровень " + L + ": смотрим вправо" }));
+      if (L < maxL) { if (cur < 0) heads.push(L); else trail.push(L + ":" + cur); }
+      steps.push(snap(cur, L, { line: 2, vars: { level: L, node: at(cur), target: target }, info: "Уровень " + L + (L < maxL ? ": спустились, стоим всё там же — на " + at(cur) : "") + ", смотрим вправо" }));
       while (true) {
         var nx = nextAt(cur, L), nk = nx < nodes.length ? nodes[nx].key : Infinity;
         if (nk <= target) {
-          cur = nx; if (cur >= 0) trail.push(cur);
-          steps.push(snap(cur, L, { line: 4, vars: { level: L, node: nodes[cur].key, target: target }, info: nk + " ≤ " + target + " → прыгаем к " + nk + " (express-полоса уровня " + L + ")" }));
-          if (nk === target) { steps.push(snap(cur, L, { found: true, done: true, line: 7, vars: { level: L, node: nk, target: target }, info: "Нашли " + target + " — и не за линейный проход, а прыжками" })); return steps; }
+          var from = at(cur);
+          steps.push(snap(cur, L, { cmp: { i: nx, L: L, ok: true }, line: 3, vars: { level: L, node: from, target: target }, info: "следующий на уровне " + L + " — " + nk + " ≤ " + target + " → можно прыгать" }));
+          var skipped = nx - cur - 1;
+          cur = nx; trail.push(L + ":" + cur); jumps++;
+          steps.push(snap(cur, L, { line: 4, vars: { level: L, node: nk, target: target }, info: "прыжок " + from + " → " + nk + " " + lane(L) + (skipped > 0 ? " — через " + skipped + " " + ruPlural(skipped, "узел", "узла", "узлов") + " разом" : "") }));
         } else {
-          steps.push(snap(cur, L, { line: 3, vars: { level: L, node: cur < 0 ? "head" : nodes[cur].key, target: target }, info: "следующий " + (nk === Infinity ? "nil" : nk) + " > " + target + " → спускаемся ниже" }));
+          steps.push(snap(cur, L, { cmp: nx < nodes.length ? { i: nx, L: L, ok: false } : null, line: 3, vars: { level: L, node: at(cur), target: target }, info: (nk === Infinity ? "дальше на уровне " + L + " — nil (конец полосы)" : "следующий на уровне " + L + " — " + nk + " > " + target) + (L > 0 ? " → спускаемся ниже" : " → ниже уровней нет, выходим из цикла") }));
           break;
         }
       }
     }
     var found = cur >= 0 && nodes[cur].key === target;
-    steps.push(snap(cur, 0, { done: true, found: found, line: 7, vars: { level: 0, node: cur < 0 ? "head" : nodes[cur].key, target: target }, info: found ? "Нашли " + target : target + " нет в списке (дошли до " + (cur < 0 ? "head" : nodes[cur].key) + ")" }));
+    steps.push(snap(cur, 0, { done: true, found: found, line: 7, vars: { level: 0, node: at(cur), target: target }, info: found ? "Стоим на " + target + " = target → нашли: " + jumps + " " + ruPlural(jumps, "прыжок", "прыжка", "прыжков") + " вместо " + (cur + 1) + " " + ruPlural(cur + 1, "шага", "шагов", "шагов") + " по базовому списку" : target + " нет в списке: стоим на " + at(cur) + " — наибольшем ключе < " + target }));
     return steps;
   }
 
@@ -6200,39 +6249,104 @@
     };
   }
 
-  // customViz count-min: сетка d×w счётчиков; подсветка проверяемых/минимальной ячеек.
-  function cmsViz(panel, ctx) {
-    var D = ctx.D, W = ctx.W, wrap = mkEl("div", "algo-tp__cms");
-    wrap.style.gridTemplateColumns = "repeat(" + W + ", 2.1em)";
-    var cells = [];
-    for (var r = 0; r < D; r++) { cells.push([]); for (var c = 0; c < W; c++) { var e = mkEl("div", "algo-tp__cmscell", "0"); wrap.appendChild(e); cells[r].push(e); } }
+  // customViz Bloom: 16 бит двумя строками по 8 (одной строкой на панель не влезали и
+  // уезжали в прокрутку), под горящим битом — буквы URL, которые его зажгли. Сверху —
+  // URL и позиции текущего: «reddit → 14 · 12 · 10».
+  function bloomViz(panel, ctx) {
+    var m = ctx.m, words = ctx.add, wrap = mkEl("div", "algo-tp__bloom");
+    // метка URL — кратчайший уникальный префикс (github и gitlab не должны слиться в «g»)
+    var tag = words.map(function (w) { for (var L = 1; L < w.length; L++) { var pre = w.slice(0, L); if (words.every(function (o) { return o === w || o.slice(0, L) !== pre; })) return pre; } return w; });
+    function ownChip(wi) { return mkEl("span", "algo-tp__bown algo-tp__bown--" + (wi % 4), tag[wi]); }
+    var leg = mkEl("div", "algo-tp__bloomurls");
+    var chips = words.map(function (w, wi) { var c = mkEl("span", "algo-tp__bloomurl"); c.appendChild(ownChip(wi)); c.appendChild(mkEl("span", null, w)); leg.appendChild(c); return c; });
+    if (ctx.q != null) { leg.appendChild(mkEl("span", "algo-tp__bloomurl algo-tp__bloomurl--q", "проверяем: " + ctx.q)); }
+    wrap.appendChild(leg);
+    var grid = mkEl("div", "algo-tp__bloomgrid"), cells = [];
+    for (var j = 0; j < m; j++) {
+      var cell = mkEl("div", "algo-tp__bbit"), val = mkEl("div", "algo-tp__bbitval", "0"), ow = mkEl("div", "algo-tp__bbitown");
+      cell.appendChild(mkEl("div", "algo-tp__bbitidx", j)); cell.appendChild(val); cell.appendChild(ow); grid.appendChild(cell);
+      cells.push({ el: cell, val: val, ow: ow });
+    }
+    wrap.appendChild(grid);
+    var line = mkEl("div", "algo-tp__bloomline"); wrap.appendChild(line);
     panel.appendChild(wrap);
     return function (s) {
-      for (var r = 0; r < D; r++) for (var c = 0; c < W; c++) { var el = cells[r][c]; el.textContent = s.table[r][c]; el.className = "algo-tp__cmscell"; }
+      var qOf = {}; s.qp.forEach(function (q) { qOf[q.p] = q.cls; });
+      cells.forEach(function (c, j) {
+        var o = s.own[j] || [], on = s.values[j] === 1;
+        c.val.textContent = s.values[j];
+        c.el.className = "algo-tp__bbit" + (on ? " algo-tp__bbit--on" : "") + (o.length > 1 ? " algo-tp__bbit--shared" : "") + (qOf[j] ? " algo-tp__bbit--" + qOf[j] : "") + (j === s.lo ? " algo-tp__bbit--cur" : "");
+        c.ow.innerHTML = ""; o.forEach(function (wi) { c.ow.appendChild(ownChip(wi)); });
+      });
+      if (s.w != null) chips.forEach(function (c, wi) { c.className = "algo-tp__bloomurl" + (wi === s.w ? " algo-tp__bloomurl--cur" : wi > s.w ? " algo-tp__bloomurl--next" : ""); });
+      line.innerHTML = "";
+      var who = s.w != null ? (s.w >= 0 && s.w < words.length ? words[s.w] : "") : ctx.q;
+      if (!who) { line.appendChild(mkEl("span", "algo-tp__bloomhint", s.w < 0 ? "биты пока пусты" : "каждый URL — " + ctx.k + " бита; буквы под битом — кто его зажёг")); return; }
+      line.appendChild(mkEl("span", "algo-tp__bloomwho", who + " →"));
+      if (!s.qp.length) line.appendChild(mkEl("span", "algo-tp__bloomhint", "считаем хеши…"));
+      s.qp.forEach(function (q) { line.appendChild(mkEl("span", "algo-tp__bloompos algo-tp__bloompos--" + q.cls, q.p + (q.cls === "hit" ? " ✓" : q.cls === "miss" ? " = 0" : q.cls === "again" ? " (уже стоял)" : ""))); });
+    };
+  }
+
+  // customViz count-min: поток сверху (что уже учтено, что впереди), под ним сетка d×w
+  // с подписями строк (своя хеш-функция на строку) и столбцов — статусы говорят
+  // «строка 1, столбец 5», и столбцы иначе приходилось считать глазами.
+  function cmsViz(panel, ctx) {
+    var D = ctx.D, W = ctx.W, wrap = mkEl("div", "algo-tp__cmswrap");
+    var strip = mkEl("div", "algo-tp__cmsstream");
+    strip.appendChild(mkEl("span", "algo-tp__cmsstreamlab", ctx.q != null ? "поток:" : "поток →"));
+    var chips = ctx.stream.map(function (x) { var c = mkEl("span", "algo-tp__cmsitem", x); strip.appendChild(c); return c; });
+    wrap.appendChild(strip);
+    var grid = mkEl("div", "algo-tp__cms");
+    grid.style.gridTemplateColumns = "auto repeat(" + W + ", minmax(1.7em, 2.8em))";
+    grid.appendChild(mkEl("div", "algo-tp__cmshead"));
+    for (var c0 = 0; c0 < W; c0++) grid.appendChild(mkEl("div", "algo-tp__cmshead", c0));
+    var cells = [];
+    for (var r = 0; r < D; r++) {
+      grid.appendChild(mkEl("div", "algo-tp__cmshead algo-tp__cmsrowlab", "h" + String.fromCharCode(0x2080 + r)));
+      cells.push([]);
+      for (var c = 0; c < W; c++) { var e = mkEl("div", "algo-tp__cmscell", "0"); grid.appendChild(e); cells[r].push(e); }
+    }
+    wrap.appendChild(grid);
+    panel.appendChild(wrap);
+    return function (s) {
+      chips.forEach(function (ch, i) {
+        ch.className = "algo-tp__cmsitem" + (ctx.q != null ? (ctx.stream[i] === ctx.q ? " algo-tp__cmsitem--q" : "") : i < s.si ? " algo-tp__cmsitem--done" : i === s.si ? " algo-tp__cmsitem--cur" : " algo-tp__cmsitem--next");
+      });
+      for (var r = 0; r < D; r++) for (var c = 0; c < W; c++) { var el = cells[r][c]; el.textContent = s.table[r][c]; el.className = "algo-tp__cmscell" + (s.table[r][c] ? "" : " algo-tp__cmscell--zero"); }
       if (s.marks) for (var k = 0; k < s.marks.length; k++) { var m = s.marks[k], el2 = cells[m.r] && cells[m.r][m.c]; if (el2) el2.classList.add("algo-tp__cmscell--" + m.cls); }
     };
   }
 
   // customViz skip-list: башни узлов (высота = уровень), верхний уровень сверху.
+  // Пустые клетки, через которые идёт полоса, перечёркнуты линией — иначе связи
+  // «7 → 21 на уровне 2» не было видно, и прыжок выглядел переносом курсора.
   function skipViz(panel, ctx) {
     var nodes = ctx.nodes, maxL = ctx.maxLevel, n = nodes.length, wrap = mkEl("div", "algo-tp__skip");
-    wrap.style.gridTemplateColumns = "2.4em repeat(" + n + ", 2.4em)";
+    wrap.style.gridTemplateColumns = "1.8em repeat(" + n + ", minmax(1.5em, 2.4em))";
     var head = {}, cell = {};
     for (var L = maxL; L >= 0; L--) {
       head[L] = mkEl("div", "algo-tp__skipcell algo-tp__skiphead", "L" + L); wrap.appendChild(head[L]);
       cell[L] = [];
-      for (var i = 0; i < n; i++) { var pres = nodes[i].level >= L, e = mkEl("div", "algo-tp__skipcell" + (pres ? "" : " algo-tp__skipcell--gap"), pres ? String(nodes[i].key) : ""); wrap.appendChild(e); cell[L][i] = e; }
+      var more = false; for (var q = 0; q < n; q++) if (nodes[q].level >= L) more = true;
+      for (var i = 0; i < n; i++) {
+        var pres = nodes[i].level >= L, right = false;
+        for (var j = i + 1; j < n; j++) if (nodes[j].level >= L) { right = true; break; }
+        var e = mkEl("div", "algo-tp__skipcell" + (pres ? "" : " algo-tp__skipcell--gap" + (right && more ? " algo-tp__skipcell--link" : "")), pres ? String(nodes[i].key) : "");
+        wrap.appendChild(e); cell[L][i] = e;
+      }
     }
     panel.appendChild(wrap);
     return function (s) {
       for (var L = maxL; L >= 0; L--) {
-        head[L].classList.toggle("algo-tp__skipcell--cur", s.cur === -1 && s.level === L);
+        head[L].className = "algo-tp__skipcell algo-tp__skiphead" + (s.heads.indexOf(L) >= 0 ? " algo-tp__skiphead--path" : "") + (s.cur === -1 && s.level === L ? " algo-tp__skiphead--cur" : "");
         for (var i = 0; i < n; i++) {
-          var e = cell[L][i]; if (!e || nodes[i].level < L) continue;
-          e.className = "algo-tp__skipcell";
-          if (s.trail && s.trail.indexOf(i) >= 0) e.classList.add("algo-tp__skipcell--path");
-          if (i === s.cur && L === s.level) e.classList.add(s.found ? "algo-tp__skipcell--found" : "algo-tp__skipcell--cur");
-          else if (s.found && i === s.cur) e.classList.add("algo-tp__skipcell--found");
+          var e = cell[L][i]; if (nodes[i].level < L) continue;
+          var cls = "algo-tp__skipcell";
+          if (s.trail.indexOf(L + ":" + i) >= 0) cls += " algo-tp__skipcell--path";
+          if (s.cmp && s.cmp.L === L && s.cmp.i === i) cls += s.cmp.ok ? " algo-tp__skipcell--cmpok" : " algo-tp__skipcell--cmpno";
+          if (i === s.cur && L === s.level) cls += s.found ? " algo-tp__skipcell--found" : " algo-tp__skipcell--cur";
+          e.className = cls;
         }
       }
     };
@@ -10336,63 +10450,86 @@
       varDesc: { url: "Добавляемый URL", hash: "Какой из k хешей", pos: "Бит, на который он указывает", set: "Сколько бит горит" },
       lineNotes: { 0: "Добавляем URL — ставим k его бит", 1: "Два базовых хеша (из них получаем k позиций)", 2: "k позиций приёмом h1 + i·h2", 3: "Позиция i-го хеша в массиве", 4: "Зажигаем бит: было 0 или 1 — станет 1", 6: "Все k бит URL стоят" },
       rules: [{ head: "Add", body: "ставим k бит в 1", cls: "gt" }, { head: "бит общий", body: "разные URL делят биты", cls: "eq" }, { head: "память", body: "URL не хранится, только биты", cls: "lt" }],
-      parse: function (root) { var add = (root.getAttribute("data-add") || "reddit,github,medium").split(",").map(function (x) { return x.trim(); }); return { add: add, steps: bBloomAdd(add, 16, 3) }; },
+      legend: [{ cls: "bon", label: "бит = 1 (буквы под ним — чей)" }, { cls: "bshared", label: "общий бит двух URL" }, { cls: "bagain", label: "хеш попал в уже горящий бит" }, { cls: "bcur", label: "текущая позиция хеша" }],
+      parse: function (root) { var add = (root.getAttribute("data-add") || "reddit,github,medium").split(",").map(function (x) { return x.trim(); }); return { add: add, m: 16, k: 3, steps: bBloomAdd(add, 16, 3) }; },
       inputs: [],
       values: function (ctx) { return bBloomAdd(ctx.add, 16, 3)[0].values; },
       title: function (ctx) { return "Bloom · добавляем: " + ctx.add.join(", "); },
-      cellState: function (s, j) { var st = {}; if (s.st[j] === 1) st.found = true; if (j === s.lo && s.lo >= 0) st.lo = true; return st; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
       sumCells: ["горит бит", "хеш"],
       sumValues: function (s) { return [{ text: s.vars.set, cls: "gt" }, { text: s.vars.hash }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Добавлено", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Добавлено", text: s.info }; return { kind: "info", hot: s.again, icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: s.vars.url, b: "бит " + s.vars.pos, c: "горит " + s.vars.set, cls: "gt" }; },
-      varsOf: function (s) { return { url: s.vars.url, hash: s.vars.hash, pos: s.vars.pos, set: s.vars.set }; }
+      varsOf: function (s) { return { url: s.vars.url, hash: s.vars.hash, pos: s.vars.pos, set: s.vars.set }; },
+      customViz: bloomViz
     },
 
     "bloom-check": {
       badge: "Bloom filter · Check",
       desc: "Проверка «видели ли»: считаем те же k бит. Хоть один 0 — элемента ТОЧНО не было. Все 1 — ВОЗМОЖНО был (либо ложное срабатывание: биты зажгли другие элементы).",
-      valuesLabel: "Битовый массив фильтра (серый — уже занятые биты)", codeKey: "bloom-check", fillRange: false,
+      valuesLabel: "Битовый массив фильтра (после всех Add)", codeKey: "bloom-check", fillRange: false,
       ptr1: { name: "бит", cap: "(проверяемая позиция)" },
       complexity: { time: "O(k)", space: "O(1)", good: "★ «точно нет» — мгновенно" },
       varOrder: ["url", "pos", "bit"],
       varDesc: { url: "Проверяемый URL", pos: "Проверяемый бит", bit: "Значение бита (0/1)" },
       lineNotes: { 0: "Проверяем, могли ли добавлять URL", 1: "Те же два базовых хеша", 2: "Считаем те же k позиций", 3: "Позиция i-го хеша", 4: "Бит равен 0?", 5: "Нашли 0 → ТОЧНО не добавляли (уверенно)", 8: "Все биты стоят → ВОЗМОЖНО добавляли" },
       rules: [{ head: "есть 0", body: "→ точно НЕТ", cls: "gt" }, { head: "все 1", body: "→ возможно да", cls: "eq" }, { head: "ложь", body: "чужие биты дали ложное «да»", cls: "lt" }],
-      parse: function (root) { var add = (root.getAttribute("data-add") || "reddit,github,medium").split(",").map(function (x) { return x.trim(); }); var q = (root.getAttribute("data-check") || "discord").trim(); return { add: add, q: q, steps: bBloomCheck(add, q, 16, 3) }; },
+      legend: [{ cls: "bon", label: "бит = 1 (буквы под ним — кто зажёг)" }, { cls: "bhit", label: "бит запроса стоит" }, { cls: "bmiss", label: "бит запроса = 0" }, { cls: "bcur", label: "проверяемая позиция" }],
+      parse: function (root) { var add = (root.getAttribute("data-add") || "reddit,github,medium").split(",").map(function (x) { return x.trim(); }); var q = (root.getAttribute("data-check") || "discord").trim(); return { add: add, q: q, m: 16, k: 3, steps: bBloomCheck(add, q, 16, 3) }; },
       inputs: [],
       values: function (ctx) { return bBloomCheck(ctx.add, ctx.q, 16, 3)[0].values; },
       title: function (ctx) { return "Bloom · проверяем «" + ctx.q + "»"; },
-      cellState: function (s, j) { var st = {}; if (s.st[j] === 1) st.found = true; else if (s.st[j] === 2) st.dim = true; if (j === s.lo && s.lo >= 0) st.lo = true; return st; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
       sumCells: ["бит", "вердикт"],
       sumValues: function (s) { return [{ text: s.vars.bit }, { text: s.no ? "точно нет" : (s.fp ? "ложное да" : "…"), cls: s.no ? "gt" : "lt" }]; },
-      status: function (s, idx, total) { if (s.no) return { kind: "ok", icon: "✓", head: "Точно нет", text: s.info }; if (s.fp) return { kind: "end", icon: "⚠", head: "Возможно да (ложное!)", text: s.info }; if (s.done) return { kind: "ok", icon: "✓", head: "Возможно да", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      status: function (s, idx, total) { if (s.no) return { kind: "ok", icon: "✓", head: "Точно нет", text: s.info }; if (s.fp) return { kind: "end", icon: "⚠", head: "Возможно да (ложное!)", text: s.info }; if (s.done) return { kind: "ok", icon: "✓", head: "Возможно да (верно)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: s.vars.url, b: "бит " + s.vars.pos, c: "= " + s.vars.bit, cls: "eq" }; },
-      varsOf: function (s) { return { url: s.vars.url, pos: s.vars.pos, bit: s.vars.bit }; }
+      varsOf: function (s) { return { url: s.vars.url, pos: s.vars.pos, bit: s.vars.bit }; },
+      customViz: bloomViz
     },
 
     "hll-add": {
       badge: "HyperLogLog · Add",
       desc: "Счёт уникальных: ID хешируется, старшие биты выбирают регистр, в остатке считаем длину серии нулей rho. Регистр хранит МАКСИМУМ rho — а он ≈ log2 числа уникальных в бакете (как «самая длинная серия решек» ≈ log2 числа бросков).",
-      valuesLabel: "Регистры (макс. длина серии нулей)", codeKey: "hll-add", fillRange: false,
+      valuesLabel: "Регистры: макс. rho (серия нулей + 1)", codeKey: "hll-add", fillRange: false,
       ptr1: { name: "рег", cap: "(текущий регистр)" },
       complexity: { time: "O(1)", space: "O(регистров)", good: "★ млрд уникальных в ~1.5 КБ" },
       varOrder: ["id", "bucket", "rho", "est", "lc"],
       varDesc: { id: "Добавляемый ID", bucket: "Номер регистра", rho: "Длина серии нулей+1", est: "Сырая оценка α·m²/Σ2^−reg", lc: "С поправкой linear counting (малые n)" },
       lineNotes: { 0: "Учитываем ID в оценке уникальных", 1: "Хешируем ID", 2: "Старшие p бит → номер регистра", 3: "rho = длина серии нулей в остатке + 1", 4: "Новый rho больше сохранённого?", 5: "Храним МАКСИМУМ rho для этого регистра", 7: "Оценка = по всем регистрам (гармоническое среднее)" },
-      rules: [{ head: "регистр", body: "= макс. серия нулей", cls: "gt" }, { head: "почему макс", body: "длинная серия ⇒ много уникальных", cls: "eq" }, { head: "память", body: "ID не хранятся, только регистры", cls: "lt" }],
+      rules: [{ head: "регистр", body: "= макс. rho (нули + 1)", cls: "gt" }, { head: "почему макс", body: "длинная серия ⇒ много уникальных", cls: "eq" }, { head: "память", body: "ID не хранятся, только регистры", cls: "lt" }],
       parse: function (root) { var el = (root.getAttribute("data-elems") || "user_8143,user_2290,user_5561,user_9033,user_1204,user_7788,user_4415,user_6672").split(",").map(function (x) { return x.trim(); }); return { elems: el, steps: bHllAdd(el) }; },
       inputs: [],
       values: function (ctx) { return bHllAdd(ctx.elems)[0].values; },
-      title: function (ctx) { return "HyperLogLog: " + ctx.elems.length + " уникальных ID"; },
+      title: function (ctx) { var u = ctx.elems.filter(function (x, i) { return ctx.elems.indexOf(x) === i; }).length; return "HyperLogLog: " + ctx.elems.length + " ID" + (u < ctx.elems.length ? ", из них " + u + " " + ruPlural(u, "уникальный", "уникальных", "уникальных") : ", все уникальные"); },
       cellState: function (s, j) { var o = {}; if (s.st[j] === 1) o.found = true; if (j === s.lo && s.lo >= 0) o.lo = true; return o; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
       sumCells: ["rho", "сырая оценка", "с поправкой (как в Redis)"],
       sumValues: function (s) { return [{ text: s.vars.rho }, { text: s.vars.est, cls: "gt" }, { text: s.vars.lc, cls: "ok" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "≈ " + s.vars.lc + " уникальных (сырая формула: " + s.vars.est + ")", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: s.vars.id, b: "рег " + s.vars.bucket, c: "rho " + s.vars.rho, cls: "gt" }; },
-      varsOf: function (s) { return { id: s.vars.id, bucket: s.vars.bucket, rho: s.vars.rho, est: s.vars.est, lc: s.vars.lc }; }
+      varsOf: function (s) { return { id: s.vars.id, bucket: s.vars.bucket, rho: s.vars.rho, est: s.vars.est, lc: s.vars.lc }; },
+      // Биты хеша: без них rho появлялся голым числом, и «серию нулей» приходилось
+      // принимать на веру. Старшие p бит — регистр, затем нули серии и первая единица.
+      mapViz: function (panel) {
+        var box = mkEl("div", "algo-tp__hll"), hdr = mkEl("div", "algo-tp__caphdr", "hash(id) — 32 бита"), row = mkEl("div", "algo-tp__hllbits"), foot = mkEl("div", "algo-tp__hllfoot");
+        box.appendChild(hdr); box.appendChild(row); box.appendChild(foot); panel.appendChild(box);
+        var bits = []; for (var i = 0; i < 32; i++) { var b = mkEl("span", "algo-tp__hllb", "0"); row.appendChild(b); bits.push(b); }
+        return function (s) {
+          var h = s.hx; box.classList.toggle("algo-tp__hll--idle", !h);
+          if (!h) { bits.forEach(function (b) { b.textContent = "·"; b.className = "algo-tp__hllb"; }); foot.textContent = s.done ? "все ID учтены" : "хеш появится, когда придёт ID"; return; }
+          var str = (h.x >>> 0).toString(2); while (str.length < 32) str = "0" + str;
+          bits.forEach(function (b, i) {
+            var cls = "algo-tp__hllb" + (i === h.p ? " algo-tp__hllb--gap" : "");
+            if (h.stage >= 2 && i < h.p) cls += " algo-tp__hllb--reg";
+            else if (h.stage >= 3 && i < h.p + h.r - 1) cls += " algo-tp__hllb--zero";
+            else if (h.stage >= 3 && i === h.p + h.r - 1) cls += " algo-tp__hllb--one";
+            else if (h.stage >= 3) cls += " algo-tp__hllb--rest";
+            b.textContent = str[i]; b.className = cls;
+          });
+          foot.textContent = h.stage === 1 ? "старшие биты выберут регистр, по остатку посчитаем rho" : h.stage === 2 ? "синие — номер регистра: " + str.slice(0, h.p) + "₂ = " + parseInt(str.slice(0, h.p), 2) : "синие — регистр " + parseInt(str.slice(0, h.p), 2) + ", жёлтые — серия нулей (" + (h.r - 1) + "), зелёная — первая единица → rho = " + h.r;
+        };
+      }
     },
 
     "cms-add": {
@@ -10404,6 +10541,7 @@
       varDesc: { item: "Элемент потока", row: "Строка (своя хеш-функция)", col: "Столбец = hash(item, row)" },
       lineNotes: { 0: "Учитываем элемент потока", 1: "По каждой из d строк", 2: "Столбец = свой хеш строки", 3: "Инкремент счётчика этой ячейки", 5: "Элемент учтён во всех d строках" },
       rules: [{ head: "Add", body: "+1 в каждой строке", cls: "gt" }, { head: "коллизия", body: "разные элементы делят ячейку", cls: "eq" }, { head: "память", body: "d·w счётчиков на любой поток", cls: "lt" }],
+      legend: [{ cls: "cmscur", label: "+1 сейчас" }, { cls: "cmscoll", label: "+1 в ячейку, где уже есть чужой элемент (коллизия)" }],
       parse: function (root) { var st = (root.getAttribute("data-stream") || "#cats,#cats,#cats,#cats,#cats,#go,#go,#news,#rust").split(",").map(function (x) { return x.trim(); }); return { D: 3, W: 8, stream: st, steps: bCmsAdd(st, 3, 8) }; },
       inputs: [],
       values: function () { return []; },
@@ -10426,13 +10564,14 @@
       varDesc: { item: "Запрашиваемый элемент", col: "Столбец в текущей строке", val: "Счётчик этой ячейки", est: "Минимум по строкам" },
       lineNotes: { 1: "est = +∞ (ищем минимум)", 2: "По каждой из d строк", 3: "Столбец = хеш строки", 4: "Счётчик меньше текущего минимума?", 5: "Обновляем минимум", 8: "Минимум и есть оценка частоты" },
       rules: [{ head: "коллизия", body: "→ счётчик завышен", cls: "lt" }, { head: "минимум", body: "→ гасит завышения", cls: "gt" }, { head: "гарантия", body: "оценка ≥ истинной частоты", cls: "eq" }],
+      legend: [{ cls: "cmscur", label: "читаем сейчас" }, { cls: "cmsseen", label: "прочитана, честная" }, { cls: "cmsover", label: "прочитана, завышена коллизией" }, { cls: "cmsmin", label: "минимум — ответ" }],
       parse: function (root) { var st = (root.getAttribute("data-stream") || "#cats,#cats,#cats,#cats,#cats,#go,#go,#news,#rust").split(",").map(function (x) { return x.trim(); }); var q = (root.getAttribute("data-query") || "#rust").trim(); return { D: 3, W: 8, stream: st, q: q, steps: bCmsQuery(st, q, 3, 8) }; },
       inputs: [],
       values: function () { return []; },
       title: function (ctx) { return "Count-Min · частота «" + ctx.q + "»"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
-      sumCells: ["счётчик", "минимум"],
-      sumValues: function (s) { return [{ text: s.vars.val }, { text: s.vars.est, cls: "ok" }]; },
+      sumCells: ["счётчик", "минимум", "на деле (для сверки)"],
+      sumValues: function (s) { return [{ text: s.vars.val }, { text: s.vars.est, cls: "ok" }, { text: s.truth }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Частота ≈ " + s.vars.est, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: s.vars.item, b: "= " + s.vars.val, c: "min " + s.vars.est, cls: "gt" }; },
       varsOf: function (s) { return { item: s.vars.item, col: s.vars.col, val: s.vars.val, est: s.vars.est }; },
@@ -10502,6 +10641,7 @@
       status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: s.found ? "Нашли " + s.vars.target : s.vars.target + " нет", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "L" + s.vars.level, b: "у " + s.vars.node, c: s.found ? "нашли" : "", cls: "lo" }; },
       varsOf: function (s) { return { level: s.vars.level, node: s.vars.node, target: s.vars.target }; },
+      legend: [{ cls: "skcur", label: "где стоим" }, { cls: "skpath", label: "путь поиска" }, { cls: "skok", label: "next ≤ цели — прыгаем" }, { cls: "skno", label: "next > цели — спускаемся" }],
       customViz: skipViz
     },
 
