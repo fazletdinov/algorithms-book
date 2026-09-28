@@ -4530,25 +4530,35 @@
     function has(k) { return k < arr.length && arr[k] != null; }
     function height(k) { if (!has(k)) return 0; return 1 + Math.max(height(2 * k + 1), height(2 * k + 2)); }
     function subtree(k) { var out = []; (function go(x) { if (!has(x)) return; out.push(x); go(2 * x + 1); go(2 * x + 2); })(k); return out; }
-    var steps = [], best = 0;
-    function vv(node, through) { return { "узел": (node == null ? "—" : arr[node]), "через узел": (through == null ? "—" : through), "диаметр": best }; }
+    // visits[k] — сколько раз height() прошла через узел k: это и есть повторная работа,
+    // которую убирает один проход (там каждый узел посещается ровно один раз)
+    var steps = [], best = 0, visits = {}, total = 0;
+    function vv(node, through) { return { "узел": (node == null ? "—" : arr[node]), "через узел": (through == null ? "—" : through), "диаметр": best, "визитов": total }; }
     var order = []; (function go(k) { if (!has(k)) return; order.push(k); go(2 * k + 1); go(2 * k + 2); })(0);
     order.forEach(function (k) {
       var hl = height(2 * k + 1), hr = height(2 * k + 2), through = hl + hr;
       var measure = subtree(2 * k + 1).concat(subtree(2 * k + 2));
+      var again = measure.filter(function (x) { return (visits[x] || 0) > 0; });
+      measure.forEach(function (x) { visits[x] = (visits[x] || 0) + 1; }); total += measure.length;
       var improved = through > best; if (improved) best = through;
-      steps.push({ cur: k, measure: measure, improved: improved, line: 11, vars: vv(k, through), info: "узел " + arr[k] + ": height(left)=" + hl + " + height(right)=" + hr + " = " + through + " — заново обошли оба поддерева" + (improved ? " → новый максимум диаметра!" : "") });
+      steps.push({ cur: k, measure: measure, again: again, visits: Object.assign({}, visits), improved: improved, line: 11, vars: vv(k, through), info: "узел " + arr[k] + ": height(left)=" + hl + " + height(right)=" + hr + " = " + through + ". height() обошла " + measure.length + " " + ruPlural(measure.length, "узел", "узла", "узлов") + (again.length ? ", из них " + again.length + " — ПОВТОРНО (уже считали выше)" : "") + (improved ? " → новый максимум диаметра!" : "") });
     });
-    steps.push({ cur: -1, measure: [], done: true, found: true, line: 14, vars: vv(null, null), info: "return " + best + " — диаметр (самый длинный путь через какой-то узел)" });
+    steps.push({ cur: -1, measure: [], again: [], visits: Object.assign({}, visits), done: true, found: true, line: 14, vars: vv(null, null), info: "return " + best + " — диаметр. height() сделала " + total + " визитов на " + present.length + " узлах; один проход (post-order ниже) — ровно " + present.length + ". На бамбуке из n узлов визитов n(n−1)/2 — отсюда O(n²)" });
     return { arr: arr, present: present, steps: steps };
   }
   function naiveTreeViz(panel, ctx) {
     var arr = ctx.arr, present = ctx.present;
-    var fig = binaryFigure(arr, present), byIdx = fig.byIdx;
+    var fig = binaryFigure(arr, present, true), byIdx = fig.byIdx;
     panel.appendChild(fig.el);
     return function (s) {
-      var measure = s.measure || [];
-      present.forEach(function (i) { byIdx[i].classList.toggle("algo-tp__tnode--visited", measure.indexOf(i) >= 0); byIdx[i].classList.toggle("algo-tp__tnode--current", i === s.cur); });
+      var measure = s.measure || [], again = s.again || [], vis = s.visits || {};
+      present.forEach(function (i) {
+        byIdx[i].classList.toggle("algo-tp__tnode--visited", measure.indexOf(i) >= 0 && again.indexOf(i) < 0);
+        byIdx[i].classList.toggle("algo-tp__tnode--again", again.indexOf(i) >= 0);
+        byIdx[i].classList.toggle("algo-tp__tnode--current", i === s.cur);
+        // счётчик визитов height() под узлом
+        if (fig.subOf[i]) { fig.subOf[i].textContent = vis[i] ? "×" + vis[i] : ""; fig.subOf[i].classList.toggle("algo-tp__tfigsub--in", (vis[i] || 0) > 1); }
+      });
     };
   }
 
@@ -6032,9 +6042,30 @@
     panel.appendChild(svg);
     function pt(ang, r) { var rad = (ang - 90) * Math.PI / 180; return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) }; }
     function mk(tag, attrs) { var e = document.createElementNS(SVGNS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); svg.appendChild(e); return e; }
+    // Цвет сервера — по порядку появления; ключ красится цветом владельца, дуга
+    // (предыдущий сервер, сервер] — его сегмент. Без этого «новый сервер крадёт один
+    // сегмент» было только в тексте.
+    var PAL = ["#3b82f6", "#a855f7", "#14b8a6", "#e0a500", "#ec4899", "#22c55e"], colorOf = {}, nextC = 0;
+    function col(name) { if (!(name in colorOf)) colorOf[name] = PAL[nextC++ % PAL.length]; return colorOf[name]; }
+    function arcPath(from, to, r) {
+      var a1 = pt(from, r), a2 = pt(to, r), delta = (to - from + 360) % 360;
+      if (delta === 0) delta = 360;
+      if (delta >= 359.9) { var m = pt(from + 180, r); return "M " + a1.x.toFixed(1) + " " + a1.y.toFixed(1) + " A " + r + " " + r + " 0 1 1 " + m.x.toFixed(1) + " " + m.y.toFixed(1) + " A " + r + " " + r + " 0 1 1 " + a1.x.toFixed(1) + " " + a1.y.toFixed(1); }
+      return "M " + a1.x.toFixed(1) + " " + a1.y.toFixed(1) + " A " + r + " " + r + " 0 " + (delta > 180 ? 1 : 0) + " 1 " + a2.x.toFixed(1) + " " + a2.y.toFixed(1);
+    }
     return function (s) {
       svg.innerHTML = "";
       mk("circle", { cx: CX, cy: CY, r: R, "class": "algo-tp__ringbase" });
+      var srv = (s.srv || []).slice().sort(function (x, y) { return x.a - y.a; });
+      srv.forEach(function (v, i) {
+        var prev = srv[(i - 1 + srv.length) % srv.length];
+        mk("path", { d: arcPath(srv.length === 1 ? v.a : prev.a, v.a, R), "class": "algo-tp__ringseg" + (v.isNew ? " algo-tp__ringseg--new" : ""), style: "stroke:" + col(v.n) });
+        if (v.isNew && srv.length > 1) {
+          // у кого украден сегмент: следующий по часовой сервер (без нового) — прежний владелец
+          var victim = srv[(i + 1) % srv.length], mid = prev.a + ((v.a - prev.a + 360) % 360) / 2, lp = pt(mid, R - 44);
+          mk("text", { x: lp.x.toFixed(1), y: (lp.y + 3).toFixed(1), "text-anchor": "middle", "class": "algo-tp__ringsteal" }).textContent = "украден у " + victim.n;
+        }
+      });
       if (s.arc && s.arc.from !== s.arc.to) {
         var a1 = pt(s.arc.from, R), a2 = pt(s.arc.to, R);
         var delta = (s.arc.to - s.arc.from + 360) % 360;
@@ -6043,13 +6074,13 @@
       (s.keys || []).forEach(function (k) {
         var p = pt(k.a, R), lp = pt(k.a, R + 22);
         var cls = "algo-tp__ringkey" + (k.moved ? " algo-tp__ringkey--moved" : "") + (s.cur && s.cur.type === "key" && s.cur.n === k.n ? " algo-tp__ringkey--cur" : "");
-        mk("circle", { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: 4.5, "class": cls });
+        mk("circle", { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: 4.5, "class": cls, style: k.owner ? "fill:" + col(k.owner) : "" });
         mk("text", { x: lp.x.toFixed(1), y: (lp.y + 3).toFixed(1), "text-anchor": "middle", "class": "algo-tp__ringlabel" }).textContent = k.n;
       });
       (s.srv || []).forEach(function (v) {
         var p = pt(v.a, R);
         var cls = "algo-tp__ringsrv" + (v.isNew ? " algo-tp__ringsrv--new" : "") + (s.cur && s.cur.type === "srv" && s.cur.n === v.n ? " algo-tp__ringsrv--cur" : "");
-        mk("circle", { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: 11, "class": cls });
+        mk("circle", { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: 11, "class": cls, style: "fill:" + col(v.n) });
         mk("text", { x: p.x.toFixed(1), y: (p.y + 4).toFixed(1), "text-anchor": "middle", "class": "algo-tp__ringsrvtext" }).textContent = v.n;
       });
     };
@@ -7869,7 +7900,7 @@
         if (kids.length) push({ line: has(2 * node + 2) ? 11 : 10, cur: node, i: k, note: "Дети — в хвост, за границу уровня", info: "дети " + arr[node] + " → в хвост: " + kids.join(", ") + (rem ? " (за " + rem + " ещё не снятыми узлами уровня " + depth + ")" : " — это уже целиком уровень " + (depth + 1)) });
       }
       result.push(level.slice());
-      push({ line: 13, hot: true, info: "уровень " + depth + " закрыт: снято ровно levelSize = " + ls + " " + (ls % 10 === 1 && ls % 100 !== 11 ? "узел" : ls % 10 >= 2 && ls % 10 <= 4 && (ls % 100 < 10 || ls % 100 >= 20) ? "узла" : "узлов") + ". result = " + fmtRes() + "; в очереди остался только уровень " + (depth + 1) + (queue.length ? " (" + queue.map(function (q) { return arr[q]; }).join(", ") + ")" : " — пусто") });
+      push({ line: 13, hot: true, info: "уровень " + depth + " закрыт: снято ровно levelSize = " + ls + " " + ruPlural(ls, "узел", "узла", "узлов") + ". result = " + fmtRes() + "; в очереди остался только уровень " + (depth + 1) + (queue.length ? " (" + queue.map(function (q) { return arr[q]; }).join(", ") + ")" : " — пусто") });
       lvl = []; ls = 0;
     }
     push({ line: 3, info: "len(queue) = 0 — уровней больше нет" });
@@ -8441,7 +8472,7 @@
       subtree(start).forEach(function (x) { ok[x] = true; });
       push({ line: 4, i: start, action: "поддерево " + start + " — куча", info: "поддерево с корнем в индексе " + start + " теперь куча (" + depth + " обмен" + (depth === 1 ? "" : depth >= 2 && depth <= 4 ? "а" : "ов") + ", высота поддерева ≤ " + Math.floor(Math.log(n / (start + 1)) / Math.LN2) + ")" });
     }
-    push({ line: 4, marks: {}, done: true, action: "готово", info: "куча построена: [" + h.join(", ") + "]. " + sifts + " " + (sifts % 10 === 1 && sifts % 100 !== 11 ? "просеивание" : sifts % 10 >= 2 && sifts % 10 <= 4 && (sifts % 100 < 10 || sifts % 100 >= 20) ? "просеивания" : "просеиваний") + ", всего " + work + " " + (work % 10 === 1 && work % 100 !== 11 ? "обмен" : work % 10 >= 2 && work % 10 <= 4 && (work % 100 < 10 || work % 100 >= 20) ? "обмена" : "обменов") + " на " + n + " элементов: половина узлов — листья без работы, у следующей четверти путь ≤ 1, у восьмой части ≤ 2… — сумма ограничена ~n, отсюда O(n), а не O(n log n)" });
+    push({ line: 4, marks: {}, done: true, action: "готово", info: "куча построена: [" + h.join(", ") + "]. " + sifts + " " + ruPlural(sifts, "просеивание", "просеивания", "просеиваний") + ", всего " + work + " " + ruPlural(work, "обмен", "обмена", "обменов") + " на " + n + " элементов: половина узлов — листья без работы, у следующей четверти путь ≤ 1, у восьмой части ≤ 2… — сумма ограничена ~n, отсюда O(n), а не O(n log n)" });
     return { steps: steps };
   }
 
@@ -8746,6 +8777,13 @@
   }
 
   // ===== Обобщённый «дашборд»-рендерер для пошаговых алгоритмов ==============
+  // Русское склонение по числу: 1 узел, 2 узла, 5 узлов (11–14 — «многие»).
+  function ruPlural(n, one, few, many) {
+    var m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return one;
+    if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
+    return many;
+  }
   function mkEl(tag, cls, txt) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -9371,8 +9409,9 @@
       values: function () { return []; },
       title: function () { return "Диаметр дерева — наивно O(n²)"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
-      sumCells: ["Узел", "Путь через узел", "Диаметр"],
-      sumValues: function (s) { return [{ text: s.vars["узел"] }, { text: s.vars["через узел"], cls: "lt" }, { text: s.vars["диаметр"], cls: "eq" }]; },
+      legend: [{ cls: "tcur", label: "узел, для которого считаем" }, { cls: "tvis", label: "height() обходит впервые" }, { cls: "again", label: "обходит ПОВТОРНО" }],
+      sumCells: ["Узел", "Путь через узел", "Диаметр", "Визитов height()"],
+      sumValues: function (s, ctx) { return [{ text: s.vars["узел"] }, { text: s.vars["через узел"], cls: "lt" }, { text: s.vars["диаметр"], cls: "eq" }, { text: s.vars["визитов"] + " (n = " + ctx.present.length + ")", cls: s.vars["визитов"] > ctx.present.length ? "gt" : "" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Диаметр = " + s.vars["диаметр"], text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "узел " + s.vars["узел"], b: "через=" + s.vars["через узел"], c: s.improved ? "макс!" : "·", cls: s.improved ? "eq" : "" }; },
       varsOf: function (s) { return { "узел": s.vars["узел"], "через узел": s.vars["через узел"], "диаметр": s.vars["диаметр"] }; },

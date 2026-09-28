@@ -1511,3 +1511,11 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__hrkey--cur { background: #e0a500; border-color: #e0a500; color: #1a1a1a; }
 .algo-tp__hrkey--gone { opacity: 0.3; text-decoration: line-through; }
 .algo-tp__hrkey--empty { border-style: dashed; opacity: 0.5; }
+/* Наивный диаметр: узел, который height() обходит повторно */
+.algo-tp__tnode--again { background: #e0a500; border-color: #e0a500; color: #1a1a1a; }
+.algo-tp__legdot--again { background: #e0a500; border-color: #e0a500; }
+/* Кольцо: сегменты владения (цвет сервера), украденный сегмент нового сервера */
+.algo-tp__ringseg { fill: none; stroke-width: 7; opacity: 0.35; }
+.algo-tp__ringseg--new { opacity: 0.8; stroke-width: 9; }
+.algo-tp__ringsteal { fill: var(--fg, #555); font-size: 9px; font-weight: 700; }
+.algo-tp__ringkey--moved { stroke: #fff; stroke-width: 2; }
