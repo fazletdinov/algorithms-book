@@ -8641,13 +8641,13 @@
   // kwayViz рисует списки+результат (ptr/pick/output), куча — отдельная панель (s.heap).
   function bKwayMerge(lists) {
     var K = lists.length, ptr = lists.map(function () { return 0; }), output = [], heap = [], steps = [];
-    function heapSnap() { return heap.map(function (e) { return { v: e.v, li: e.li }; }); }
+    function heapSnap() { return heap.map(function (e) { return { v: e.v, li: e.li, ci: e.ci }; }); }
     function popMin() { var mi = 0; for (var i = 1; i < heap.length; i++) if (heap[i].v < heap[mi].v) mi = i; return heap.splice(mi, 1)[0]; }
-    function push(o) { steps.push({ ptr: ptr.slice(), output: output.slice(), pick: (o.pick || null), heap: heapSnap(), line: o.line, vars: { min: (o.min == null ? "—" : o.min), list: (o.list == null ? "—" : o.list), outLen: output.length, "вКуче": heap.length }, info: o.info, done: o.done, found: o.found }); }
+    function push(o) { steps.push({ ptr: ptr.slice(), output: output.slice(), pick: (o.pick || null), pushed: (o.pushed || null), heap: heapSnap(), line: o.line, vars: { min: (o.min == null ? "—" : o.min), list: (o.list == null ? "—" : o.list), outLen: output.length, "вКуче": heap.length }, info: o.info, done: o.done, found: o.found }); }
     push({ line: 1, info: "h := пустая min-куча из (значение, список, индекс)" });
     for (var i = 0; i < K; i++) {
-      push({ line: 2, info: "список " + (i + 1) });
-      if (lists[i].length) { heap.push({ v: lists[i][0], li: i, ci: 0 }); push({ line: 3, info: "h.Push: голова списка " + (i + 1) + " = " + lists[i][0] }); }
+      push({ line: 2, info: "lists[" + i + "]" });
+      if (lists[i].length) { heap.push({ v: lists[i][0], li: i, ci: 0 }); push({ line: 3, info: "h.Push: голова lists[" + i + "] = " + lists[i][0] }); }
     }
     push({ line: 5, info: "out := [] — результат" });
     var guard = 0, lim = 10; for (var g = 0; g < K; g++) lim += lists[g].length; lim = lim * 4 + 10;
@@ -8655,31 +8655,50 @@
       push({ line: 6, info: "len(h) = " + heap.length + " > 0 — продолжаем сливать" });
       var e = popMin(), li = e.li, ci = e.ci;
       ptr[li] = ci + 1;
-      push({ line: 7, pick: [li, ci], min: e.v, list: li + 1, info: "Pop min = " + e.v + " (список " + (li + 1) + ") — минимальная голова" });
+      push({ line: 7, pick: [li, ci], min: e.v, list: li, info: "Pop min = " + e.v + " (из lists[" + li + "]) — минимальная голова в куче" });
       output.push(e.v);
-      push({ line: 8, pick: [li, ci], min: e.v, list: li + 1, info: "out = append(out, " + e.v + ") → [" + output.join(",") + "]" });
+      push({ line: 8, pick: [li, ci], min: e.v, list: li, info: "out = append(out, " + e.v + ") → [" + output.join(",") + "]" });
       var hasNext = ci + 1 < lists[li].length;
-      push({ line: 9, pick: [li, ci], min: e.v, list: li + 1, info: "в списке " + (li + 1) + (hasNext ? " есть следующий: " + lists[li][ci + 1] : " элементы кончились") });
-      if (hasNext) { heap.push({ v: lists[li][ci + 1], li: li, ci: ci + 1 }); push({ line: 10, min: e.v, list: li + 1, info: "h.Push следующий из списка " + (li + 1) + " = " + lists[li][ci + 1] }); }
+      push({ line: 9, pick: [li, ci], min: e.v, list: li, info: "в lists[" + li + "]" + (hasNext ? " есть следующий: " + lists[li][ci + 1] : " элементы кончились") });
+      if (hasNext) { heap.push({ v: lists[li][ci + 1], li: li, ci: ci + 1 }); push({ line: 10, min: e.v, list: li, pushed: [li, ci + 1], info: "h.Push(" + lists[li][ci + 1] + ") — преемник из ТОГО ЖЕ lists[" + li + "]: у каждого списка в куче всегда ровно одна голова" }); }
     }
     push({ line: 6, info: "len(h) = 0 — куча пуста, всё слито" });
     push({ line: 13, done: true, found: true, info: "Готово: " + output.join(", ") });
     return steps;
   }
+  // Куча голов — отдельной строкой в нотации таблицы главы (значение₍список₎, по
+  // возрастанию, минимум слева); у списков отмечены элементы, лежащие сейчас в куче.
   function kwayViz(panel, ctx) {
-    var lists = ctx.lists;
+    var lists = ctx.lists, SUB = "₀₁₂₃₄₅₆₇₈₉";
+    function sub(n) { return String(n).split("").map(function (d) { return SUB[+d]; }).join(""); }
     var wrap = document.createElement("div"); wrap.className = "algo-tp__collection";
     var rowEls = lists.map(function (lst, li) {
-      var cells = vizRow(wrap, "Список " + (li + 1));
+      var cells = vizRow(wrap, "lists[" + li + "]");
       return lst.map(function (v) { var c = document.createElement("div"); c.className = "algo-tp__ccell"; c.textContent = v; cells.appendChild(c); return c; });
     });
-    var outCells = vizRow(wrap, "Результат");
+    var heapCells = vizRow(wrap, "куча (min слева)");
+    var outCells = vizRow(wrap, "out");
     panel.appendChild(wrap);
     return function (s) {
-      rowEls.forEach(function (cs, li) { cs.forEach(function (c, ci) { c.classList.toggle("algo-tp__ccell--done", ci < s.ptr[li]); c.classList.toggle("algo-tp__ccell--cur", !!s.pick && s.pick[0] === li && s.pick[1] === ci); }); });
+      var heap = (s.heap || []).slice().sort(function (x, y) { return x.v - y.v || x.li - y.li; });
+      function inHeap(li, ci) { return heap.some(function (e) { return e.li === li && e.ci === ci; }); }
+      rowEls.forEach(function (cs, li) { cs.forEach(function (c, ci) {
+        var picked = !!s.pick && s.pick[0] === li && s.pick[1] === ci, pushed = !!s.pushed && s.pushed[0] === li && s.pushed[1] === ci;
+        c.classList.toggle("algo-tp__ccell--done", ci < s.ptr[li] && !picked);
+        c.classList.toggle("algo-tp__ccell--cur", picked);
+        c.classList.toggle("algo-tp__ccell--inheap", inHeap(li, ci) && !pushed);
+        c.classList.toggle("algo-tp__ccell--new", pushed);
+      }); });
+      heapCells.innerHTML = "";
+      if (!heap.length) { var e = document.createElement("span"); e.className = "algo-tp__cempty"; e.textContent = "∅"; heapCells.appendChild(e); }
+      heap.forEach(function (x, k) {
+        var c = document.createElement("div"); c.className = "algo-tp__ccell" + (k === 0 ? " algo-tp__ccell--top" : "") + (s.pushed && s.pushed[0] === x.li && s.pushed[1] === x.ci ? " algo-tp__ccell--new" : "");
+        c.textContent = x.v + sub(x.li); heapCells.appendChild(c);
+      });
       fillCells(outCells, s.output || [], { out: true });
     };
   }
+
 
 
 
@@ -11681,19 +11700,8 @@
       sumCells: ["Минимум", "В результате", "Размер кучи"],
       sumValues: function (s) { return [{ text: s.vars.min, cls: "eq" }, { text: s.vars.outLen }, { text: s.vars["вКуче"], cls: "gt" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Слито в один список", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.outLen + " элементов", c: "merge", cls: "eq" }; if (s.pick == null) return { a: "K списков", b: "min-heap голов", c: "старт", cls: "lt" }; return { a: "min = " + s.vars.min, b: "список " + s.vars.list, c: "→ результат", cls: "lt" }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.outLen + " элементов", c: "merge", cls: "eq" }; if (s.pick == null) return { a: "K списков", b: "min-heap голов", c: "старт", cls: "lt" }; return { a: "min = " + s.vars.min, b: "lists[" + s.vars.list + "]", c: "→ out", cls: "lt" }; },
       varsOf: function (s) { return { "min": s.vars.min, "list": s.vars.list, "outLen": s.vars.outLen }; },
-      // Панель содержимого min-кучи: текущие головы списков, сверху минимум (его извлечём).
-      mapViz: function (panel) {
-        var p = structPanel(panel, "h — min-куча голов (значение : список), сверху min");
-        return function (s) {
-          p.grid.innerHTML = "";
-          var h = (s.heap || []).slice().sort(function (a, b) { return a.v - b.v; });
-          if (!h.length) p.grid.appendChild(structCell("", "∅", "algo-tp__mapcell--off"));
-          else h.forEach(function (e, k) { p.grid.appendChild(structCell("L" + (e.li + 1), e.v, k === 0 ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : "algo-tp__mapcell--on")); });
-          p.foot.textContent = "в куче голов: " + h.length;
-        };
-      },
       customViz: kwayViz
     },
 

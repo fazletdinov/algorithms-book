@@ -1523,3 +1523,5 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__ccell--new { box-shadow: 0 0 0 3px #16a34a; }
 .algo-tp__ccell--moved { box-shadow: 0 0 0 3px #e0a500; }
 .algo-tp__thmed { font-size: 0.9em; font-weight: 700; min-height: 1.4em; margin-top: 0.3em; color: var(--tp-ok); }
+/* K-way merge: элемент списка, который сейчас лежит в куче */
+.algo-tp__ccell--inheap { box-shadow: 0 0 0 2px var(--tp-lo); }
