@@ -2575,17 +2575,18 @@
     if (!n) return [{ lo: -1, hi: -1, done: true, line: 14, vars: vv(), info: "Пустой массив" }];
     steps.push({ lo: -1, hi: -1, line: 1, vars: vv(), info: "xorAll = 0 — первый проход XOR-им всё" });
     for (var i = 0; i < n; i++) { xorAll ^= arr[i]; steps.push({ lo: i, hi: -1, line: 3, vars: vv(i, arr[i]), info: "xorAll ^= " + arr[i] + " → " + xorAll + " (" + bin(xorAll) + "); пары сокращаются" }); }
-    var diff = xorAll & (-xorAll);
-    steps.push({ lo: -1, hi: -1, improved: true, line: 5, vars: vv(null, null, { diff: diff }), info: "diff = xorAll & (−xorAll) = " + diff + " (" + bin(diff) + ") — младший бит, где a и b различаются" });
+    var diff = xorAll & (-xorAll), grp = {};
+    steps.push({ lo: -1, hi: -1, diffBit: diff, improved: true, line: 5, vars: vv(null, null, { diff: diff }), info: "diff = xorAll & (−xorAll) = " + diff + " (" + bin(diff) + ") — младший бит, где a и b различаются" });
     var a = 0, b = 0;
-    steps.push({ lo: -1, hi: -1, line: 6, vars: vv(null, null, { diff: diff, a: 0, b: 0 }), info: "a = b = 0 — второй проход делит числа по биту diff" });
+    steps.push({ lo: -1, hi: -1, diffBit: diff, line: 6, vars: vv(null, null, { diff: diff, a: 0, b: 0 }), info: "a = b = 0 — второй проход делит числа по биту diff" });
     for (var j = 0; j < n; j++) {
       var x = arr[j], inA = (x & diff) !== 0;
-      steps.push({ lo: j, hi: -1, line: 8, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "x = " + x + " (" + bin(x) + "), x & diff " + (inA ? "≠ 0 → группа a (бит установлен)" : "= 0 → группа b (бит сброшен)") });
-      if (inA) { a ^= x; steps.push({ lo: j, hi: -1, line: 9, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "a ^= " + x + " → a = " + a }); }
-      else { b ^= x; steps.push({ lo: j, hi: -1, line: 11, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "b ^= " + x + " → b = " + b }); }
+      grp[j] = inA ? "a" : "b";
+      steps.push({ lo: j, hi: -1, grp: Object.assign({}, grp), diffBit: diff, line: 8, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "x = " + x + " (" + bin(x) + "), x & diff " + (inA ? "≠ 0 → группа a (бит установлен)" : "= 0 → группа b (бит сброшен)") });
+      if (inA) { a ^= x; steps.push({ lo: j, hi: -1, grp: Object.assign({}, grp), diffBit: diff, line: 9, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "a ^= " + x + " → a = " + a }); }
+      else { b ^= x; steps.push({ lo: j, hi: -1, grp: Object.assign({}, grp), diffBit: diff, line: 11, vars: vv(j, x, { diff: diff, a: a, b: b }), info: "b ^= " + x + " → b = " + b }); }
     }
-    steps.push({ lo: -1, hi: -1, done: true, found: true, line: 14, vars: vv(null, null, { diff: diff, a: a, b: b }), info: "return [" + a + ", " + b + "] — два числа-одиночки" });
+    steps.push({ lo: -1, hi: -1, grp: Object.assign({}, grp), diffBit: diff, done: true, found: true, line: 14, vars: vv(null, null, { diff: diff, a: a, b: b }), info: "return [" + a + ", " + b + "] — два числа-одиночки" });
     return steps;
   }
   // Разбор задачи двух указателей: 3Sum. Наивно O(n³) — три вложенных цикла i<j<k,
@@ -7465,16 +7466,21 @@
   }
   // XOR-накопление: единственное число среди пар.
   // Single Number (XOR) — построчный (debugger) проход; result-биты видно на панели mapViz.
+  // cancel — индексы уже сократившихся пар: момент «a ^ a = 0» назван и виден на массиве
+  // (второй экземпляр гасит первый), а не только в итоговой строке.
   function bBitXor(arr) {
-    var steps = [], x = 0, n = arr.length;
+    var steps = [], x = 0, n = arr.length, open = {}, cancel = [];
     function bin(v) { return (v >>> 0).toString(2); }
-    steps.push({ values: arr.slice(), primary: -1, line: 1, vars: { i: "—", num: "—", result: 0, "bin(result)": "0" }, info: "result = 0 — нейтральный элемент XOR" });
+    steps.push({ values: arr.slice(), primary: -1, cancel: [], line: 1, vars: { i: "—", num: "—", result: 0, "bin(result)": "0" }, info: "result = 0 — нейтральный элемент XOR" });
     for (var i = 0; i < n; i++) {
-      steps.push({ values: arr.slice(), primary: i, line: 2, vars: { i: i, num: arr[i], result: x, "bin(result)": bin(x) }, info: "num = nums[" + i + "] = " + arr[i] });
-      x ^= arr[i];
-      steps.push({ values: arr.slice(), primary: i, line: 3, vars: { i: i, num: arr[i], result: x, "bin(result)": bin(x) }, info: "result ^= " + arr[i] + " → " + x + " (биты, где у " + arr[i] + " единицы, переключились)" });
+      steps.push({ values: arr.slice(), primary: i, cancel: cancel.slice(), line: 2, vars: { i: i, num: arr[i], result: x, "bin(result)": bin(x) }, info: "num = nums[" + i + "] = " + arr[i] + " (bin " + bin(arr[i]) + ")" });
+      var prev = x; x ^= arr[i];
+      var mate = open[arr[i]];
+      if (mate != null) { cancel.push(mate, i); delete open[arr[i]]; } else open[arr[i]] = i;
+      steps.push({ values: arr.slice(), primary: i, cancel: cancel.slice(), line: 3, vars: { i: i, num: arr[i], result: x, "bin(result)": bin(x) },
+        info: "result ^= " + arr[i] + ": " + bin(prev) + " ^ " + bin(arr[i]) + " = " + bin(x) + " (" + x + ")" + (mate != null ? ". " + arr[i] + " уже было в nums[" + mate + "] — пара сократилась: " + arr[i] + " ^ " + arr[i] + " = 0, её биты вернулись в прежнее состояние" : ". Переключились биты, где у " + arr[i] + " единицы") });
     }
-    steps.push({ values: arr.slice(), done: true, found: true, line: 5, vars: { i: "—", num: "—", result: x, "bin(result)": bin(x) }, info: "return result = " + x + " — пары взаимно уничтожились, остался одиночка" });
+    steps.push({ values: arr.slice(), done: true, found: true, cancel: cancel.slice(), line: 5, vars: { i: "—", num: "—", result: x, "bin(result)": bin(x) }, info: "return result = " + x + " — пары взаимно уничтожились, остался одиночка" });
     return steps;
   }
   // Слияние интервалов: сортировка по началу, затем один проход.
@@ -9810,6 +9816,33 @@
       sumValues: function (s) { return [{ text: s.vars.a, cls: "gt" }, { text: s.vars.b, cls: "lt" }, { text: (s.vars.diff !== "—" ? "diff = " + s.vars.diff : "xorAll = " + s.vars.xorAll), cls: "warn" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Одиночки: " + s.vars.a + ", " + s.vars.b, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "x=" + s.vars.x, b: "a=" + s.vars.a + ", b=" + s.vars.b, c: "·", cls: "lt" }; },
+      // Биты каждого числа со столбцом diff: видно, почему пара всегда попадает в одну группу
+      // (у одинаковых чисел бит diff одинаков), а a и b — в разные (по определению diff).
+      mapViz: function (parent, ctx) {
+        var arr = ctx.arr, mx = 1; arr.forEach(function (v) { if (v > mx) mx = v; });
+        var BITS = Math.max(3, Math.min(8, (mx >>> 0).toString(2).length));
+        var p = structPanel(parent, "биты чисел; столбец бита diff подсвечен — по нему делим на группы");
+        p.grid.style.flexDirection = "column"; p.grid.style.alignItems = "stretch";
+        var rows = arr.map(function (v, j) {
+          var row = mkEl("div", "algo-tp__tsrow");
+          row.appendChild(mkEl("span", "algo-tp__tslab", "nums[" + j + "] = " + v));
+          var bits = [];
+          for (var b = BITS - 1; b >= 0; b--) { var c = mkEl("span", "algo-tp__tsbit", String((v >> b) & 1)); c.dataset.b = b; row.appendChild(c); bits.push(c); }
+          var tag = mkEl("span", "algo-tp__tstag", ""); row.appendChild(tag);
+          p.grid.appendChild(row);
+          return { row: row, bits: bits, tag: tag };
+        });
+        return function (s) {
+          var d = s.diffBit || 0, grp = s.grp || {};
+          rows.forEach(function (r, j) {
+            r.row.classList.toggle("algo-tp__tsrow--cur", j === s.lo && s.lo >= 0);
+            r.bits.forEach(function (c) { c.classList.toggle("algo-tp__tsbit--diff", d > 0 && (1 << +c.dataset.b) === d); });
+            r.tag.textContent = grp[j] ? "→ " + grp[j] : "";
+            r.tag.className = "algo-tp__tstag" + (grp[j] ? " algo-tp__tstag--" + grp[j] : "");
+          });
+          p.foot.textContent = d ? "diff = " + d + " (бит 2^" + Math.round(Math.log(d) / Math.LN2) + ")" : "сначала первый проход: xorAll = a ^ b";
+        };
+      },
       varsOf: function (s) { return { i: s.vars.i, x: s.vars.x, xorAll: s.vars.xorAll, diff: s.vars.diff, a: s.vars.a, b: s.vars.b }; }
     },
 
@@ -11269,7 +11302,7 @@
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return ctx.arr; },
       title: function () { return "Single Number (XOR)"; },
-      cellState: function (s, j) { if (s.done) return {}; return { found: j < s.primary, lo: j === s.primary }; },
+      cellState: function (s, j) { var gone = (s.cancel || []).indexOf(j) >= 0; if (s.done) return { dim: gone, found: !gone }; return { dim: gone && j !== s.primary, lo: j === s.primary }; },
       pointers: function (s) { return { lo: (s.primary == null ? -1 : s.primary), hi: -1 }; },
       sumCells: ["result (XOR)", "Двоичное"],
       sumValues: function (s) { return [{ text: s.vars.result, cls: s.done ? "eq" : "" }, { text: s.vars["bin(result)"] }]; },
@@ -11278,37 +11311,37 @@
       varsOf: function (s) { return { i: s.vars.i, num: s.vars.num, result: s.vars.result, "bin(result)": s.vars["bin(result)"] }; },
       // Панель битов аккумулятора: 8 ячеек 0/1; на строке result^=num подсвечиваются
       // переключённые биты (где у операнда единицы) — видно, как пары гасят друг друга.
+      // Панель битов: сверху num, снизу result. На result ^= num обведены переключённые биты
+      // (где у num единицы) — и погасший 1→0 тоже, раньше он выглядел пустой ячейкой.
+      // Разрядность — по максимуму входа: 8 фиксированных бит рвались на 400px.
       mapViz: function (parent, ctx) {
-        var BITS = 8;
+        var mx = 1; (ctx.arr || []).forEach(function (v) { if (v > mx) mx = v; });
+        var BITS = Math.max(3, Math.min(8, (mx >>> 0).toString(2).length));
         var wrap = mkEl("div", "algo-tp__map");
-        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "result — биты XOR-аккумулятора (8 бит)"));
-        var grid = mkEl("div", "algo-tp__mapgrid");
-        var cells = [];
-        for (var b = BITS - 1; b >= 0; b--) {
-          var col = mkEl("div", "algo-tp__mapcell");
-          col.appendChild(mkEl("div", "algo-tp__mapkey", "2^" + b));
-          var bit = mkEl("div", "algo-tp__mapcnt", "0");
-          col.appendChild(bit);
-          grid.appendChild(col);
-          cells.push({ col: col, bit: bit, b: b });
+        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "num и result в битах: обведены биты, которые переключает ^"));
+        function row(label) {
+          var g = mkEl("div", "algo-tp__mapgrid"); g.appendChild(mkEl("div", "algo-tp__bitlab", label));
+          var cs = [];
+          for (var b = BITS - 1; b >= 0; b--) { var col = mkEl("div", "algo-tp__mapcell"); col.appendChild(mkEl("div", "algo-tp__mapkey", "2^" + b)); var bit = mkEl("div", "algo-tp__mapcnt", "0"); col.appendChild(bit); g.appendChild(col); cs.push({ col: col, bit: bit, b: b }); }
+          wrap.appendChild(g); return cs;
         }
-        wrap.appendChild(grid);
+        var numCells = row("num"), resCells = row("result");
         var dec = mkEl("div", "algo-tp__mapsize", "");
         wrap.appendChild(dec);
         parent.appendChild(wrap);
         return function (s) {
-          var r = (typeof s.vars.result === "number") ? s.vars.result : 0;
-          var flipping = (s.line === 3 && typeof s.vars.num === "number") ? s.vars.num : 0; // на result^=num подсвечиваем флипнутые биты
-          cells.forEach(function (c) {
+          var r = (typeof s.vars.result === "number") ? s.vars.result : 0, num = typeof s.vars.num === "number" ? s.vars.num : null;
+          var flipping = (s.line === 3 && num != null) ? num : 0;
+          numCells.forEach(function (c) { var on = num != null && ((num >> c.b) & 1); c.bit.textContent = num == null ? "·" : on ? "1" : "0"; c.col.className = "algo-tp__mapcell" + (on ? " algo-tp__mapcell--on" : " algo-tp__mapcell--off"); });
+          resCells.forEach(function (c) {
             var on = (r >> c.b) & 1, flip = (flipping >> c.b) & 1;
             c.bit.textContent = on ? "1" : "0";
-            c.col.className = "algo-tp__mapcell" + (on ? " algo-tp__mapcell--on" : " algo-tp__mapcell--off") + (flip ? " algo-tp__mapcell--hot algo-tp__mapcell--dec" : "");
+            c.col.className = "algo-tp__mapcell" + (on ? " algo-tp__mapcell--on" : " algo-tp__mapcell--off") + (flip ? (on ? " algo-tp__mapcell--flipon" : " algo-tp__mapcell--flipoff") : "");
           });
-          dec.innerHTML = "";
-          dec.appendChild(mkEl("span", "algo-tp__mapsizek", "result = " + r));
-          dec.appendChild(mkEl("span", "algo-tp__mapsizecmp", "  (bin " + (r >>> 0).toString(2) + ")"));
+          dec.textContent = "result = " + r + " (bin " + (r >>> 0).toString(2) + ")";
         };
       }
+
     },
 
     "merge-intervals": {
