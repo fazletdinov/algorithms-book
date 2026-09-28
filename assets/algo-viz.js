@@ -2185,18 +2185,18 @@
     "max-flow": [
       "func maxFlow(cap [][]int, s, t int) int {",
       "    flow := 0",
-      "    for {                              // пока есть путь",
-      "        parent := bfs(cap, s, t)       // BFS в остаточной сети",
-      "        if parent[t] == -1 { break }   // пути нет — поток максимален",
-      "        b := bottleneck(cap, parent, s, t) // узкое место вдоль пути",
-      "        for v := t; v != s; v = parent[v] { // проталкиваем поток",
+      "    for { // пока есть путь",
+      "        parent := bfs(cap, s, t) // остаточная сеть",
+      "        if parent[t] == -1 { break } // пути нет",
+      "        b := bottleneck(cap, parent, s, t)",
+      "        for v := t; v != s; v = parent[v] {",
       "            u := parent[v]",
-      "            cap[u][v] -= b             // прямое ребро",
-      "            cap[v][u] += b             // обратное (остаточное)",
+      "            cap[u][v] -= b // прямое: заняли",
+      "            cap[v][u] += b // обратное: можно отменить",
       "        }",
       "        flow += b",
       "    }",
-      "    return flow // = величина потока = пропускная способность мин. разреза",
+      "    return flow // = мин. разрез",
       "}"
     ],
     "parallel-dc": [
@@ -4152,21 +4152,22 @@
   // Максимальный поток (Эдмондс—Карп) + минимальный разрез. Кадры: BFS находит
   // дополняющий путь → узкое место → проталкивание; в конце — мин-разрез
   // (вершины, достижимые из истока в остаточной сети). Выверен node-прототипом.
-  function bMaxFlow(labels, edges, s, t) {
+  function bMaxFlow(labels, edges, s, t, opts) {
+    opts = opts || {};
     var n = labels.length, cap = [], f = [], i;
     for (i = 0; i < n; i++) { cap.push(new Array(n).fill(0)); f.push(new Array(n).fill(0)); }
     var origPair = {}, adj = labels.map(function () { return []; });
     edges.forEach(function (e, ei) { cap[e.u][e.v] += e.cap; origPair[e.u + "," + e.v] = ei; adj[e.u].push(e.v); adj[e.v].push(e.u); });
-    var steps = [], total = 0, aug = 0;
+    var steps = [], total = 0, aug = 0, st = labels[s] + "→" + labels[t];
     function flowSnap() { return edges.map(function (e) { return f[e.u][e.v]; }); }
     function push(o) {
       steps.push({
-        flow: flowSnap(), pathEdges: o.pathEdges || [], cut: o.cut || null, sSide: o.sSide || null,
-        line: o.line, info: o.info, done: !!o.done, found: !!o.found, hot: !!o.hot,
+        flow: flowSnap(), pathEdges: o.pathEdges || [], backEdges: o.backEdges || [], bnEdge: o.bnEdge == null ? -1 : o.bnEdge, cut: o.cut || null, sSide: o.sSide || null,
+        line: o.line, info: o.info, done: !!o.done, found: !!o.found, hot: !!o.hot, pushed: o.pushed,
         vars: { "путь": o.path || "—", "узкое место": o.bottleneck == null ? "—" : o.bottleneck, "поток": total, "аугментаций": aug }
       });
     }
-    push({ line: 1, info: "flow = 0, остаточная сеть = исходные пропускные способности" });
+    push({ line: 1, info: "flow = 0, остаточная сеть = исходные пропускные способности. Подпись ребра — поток/пропускная" });
     var guard = 0, lim = 4 * (n + edges.length) + 40;
     while (guard++ < lim) {
       var parent = new Array(n).fill(-1); parent[s] = s;
@@ -4175,34 +4176,39 @@
         var u = q.shift();
         for (var k = 0; k < adj[u].length; k++) { var v = adj[u][k]; if (parent[v] === -1 && cap[u][v] > 0) { parent[v] = u; q.push(v); } }
       }
-      if (parent[t] === -1) { push({ line: 4, info: "BFS: дополняющего пути s→t больше нет — поток максимален (" + total + ")" }); break; }
-      var path = [], edgeIdxs = [], b = Infinity, x;
+      if (parent[t] === -1) { push({ line: 4, info: "BFS: дополняющего пути " + st + " больше нет — поток максимален (" + total + ")" }); break; }
+      var path = [], edgeIdxs = [], backIdxs = [], b = Infinity, bn = -1, bnName = "", x;
       for (x = t; x !== s; x = parent[x]) path.unshift(x);
       path.unshift(s);
+      // обратное ребро в пути — ровно тот «передумать», ради которого остаточная сеть
+      var backs = [];
       for (var pi = 0; pi + 1 < path.length; pi++) {
-        var a = path[pi], c = path[pi + 1];
-        if (cap[a][c] < b) b = cap[a][c];
-        var idx = origPair[a + "," + c]; if (idx == null) idx = origPair[c + "," + a];
+        var a = path[pi], c = path[pi + 1], fwd = origPair[a + "," + c], idx = fwd != null ? fwd : origPair[c + "," + a];
         if (idx != null) edgeIdxs.push(idx);
+        if (fwd == null && idx != null) { backIdxs.push(idx); backs.push({ name: labels[a] + "→" + labels[c], orig: labels[c] + "→" + labels[a] }); }
+        if (cap[a][c] < b) { b = cap[a][c]; bn = idx == null ? -1 : idx; bnName = labels[a] + "→" + labels[c] + (fwd == null ? " (обратное)" : ""); }
       }
       var pathLabel = path.map(function (id) { return labels[id]; }).join("→");
-      // обратное ребро в пути — ровно тот «передумать», ради которого остаточная сеть; называем
-      var backs = [];
-      for (var bi = 0; bi + 1 < path.length; bi++) if (origPair[path[bi] + "," + path[bi + 1]] == null) backs.push(labels[path[bi]] + "→" + labels[path[bi + 1]]);
-      push({ line: 5, path: pathLabel, bottleneck: b, pathEdges: edgeIdxs, hot: true, info: "BFS нашёл путь " + pathLabel + ", узкое место = " + b + (backs.length ? ". " + backs.join(", ") + " — ОБРАТНОЕ ребро: такого ребра в сети нет, это остаток уже пущенного потока, и проталкивание по нему отменяет его часть" : "") });
+      push({ line: 5, path: pathLabel, bottleneck: b, pathEdges: edgeIdxs, backEdges: backIdxs, bnEdge: bn, hot: true, info: "BFS нашёл путь " + pathLabel + ". Узкое место — ребро " + bnName + ": остаток " + b + (backs.length ? ". " + backs.map(function (bk) { return bk.name; }).join(", ") + (backs.length > 1 ? " — ОБРАТНЫЕ рёбра: в сети их нет, это остатки уже пущенного по " : " — ОБРАТНОЕ ребро: в сети его нет, это остаток уже пущенного по ") + backs.map(function (bk) { return bk.orig; }).join(", ") + " потока; пройти по " + (backs.length > 1 ? "ним" : "нему") + " — значит этот поток отменить" : "") });
       for (var pj = 0; pj + 1 < path.length; pj++) {
         var au = path[pj], av = path[pj + 1];
         cap[au][av] -= b; cap[av][au] += b;
         if (origPair[au + "," + av] != null) f[au][av] += b; else if (origPair[av + "," + au] != null) f[av][au] -= b;
       }
       aug++; total += b;
-      push({ line: 8, path: pathLabel, bottleneck: b, pathEdges: edgeIdxs, hot: true, info: "протолкнули поток " + b + " вдоль " + pathLabel + " → всего " + total });
+      push({ line: 11, path: pathLabel, bottleneck: b, pathEdges: edgeIdxs, backEdges: backIdxs, pushed: b, hot: true, info: "по пути " + pathLabel + ": прямым рёбрам +" + b + " потока" + (backs.length ? ", а по " + backs.map(function (bk) { return bk.orig; }).join(", ") + " поток −" + b + " — отменили (" + (backs.length > 1 ? "обратные рёбра " : "обратное ребро ") + backs.map(function (bk) { return bk.name; }).join(", ") + ")" : "") + " → всего " + total });
     }
     var reach = new Array(n).fill(false); reach[s] = true; var q2 = [s];
     while (q2.length) { var u2 = q2.shift(); for (var kk = 0; kk < adj[u2].length; kk++) { var v2 = adj[u2][kk]; if (!reach[v2] && cap[u2][v2] > 0) { reach[v2] = true; q2.push(v2); } } }
     var cutEdges = []; edges.forEach(function (e, ei) { if (reach[e.u] && !reach[e.v]) cutEdges.push(ei); });
-    push({ line: 13, done: true, found: true, sSide: reach.slice(), cut: cutEdges, info: "Мин. разрез: S = {" + labels.filter(function (l, id) { return reach[id]; }).join(",") + "}, его пропускная способность = " + total + " = макс. поток." });
-    steps.forEach(function (st, ii) { st._i = ii; });
+    var fin = "Мин. разрез: S = {" + labels.filter(function (l, id) { return reach[id]; }).join(",") + "}, его пропускная способность = " + total + " = макс. поток.";
+    if (opts.matching) {
+      // паросочетание — рёбра с потоком между внутренними вершинами (не из истока и не в сток)
+      var pairs = edges.filter(function (e, ei) { return e.u !== s && e.v !== t && f[e.u][e.v] > 0; }).map(function (e) { return labels[e.u] + "–" + labels[e.v]; });
+      fin = "Паросочетание: " + pairs.join(", ") + " — " + pairs.length + " " + ruPlural(pairs.length, "пара", "пары", "пар") + " (зелёные рёбра). " + fin;
+    }
+    push({ line: 13, done: true, found: true, sSide: reach.slice(), cut: cutEdges, info: fin });
+    steps.forEach(function (st2, ii) { st2._i = ii; });
     return { labels: labels, edges: edges, s: s, t: t, steps: steps };
   }
   // Рендер сети потока: слои BFS от истока s (столбцы слева направо), рёбра с
@@ -4226,7 +4232,9 @@
     var defs = document.createElementNS(SVGNS, "defs");
     var marker = document.createElementNS(SVGNS, "marker");
     marker.setAttribute("id", "algoarrow-flow"); marker.setAttribute("viewBox", "0 0 10 10"); marker.setAttribute("refX", "9"); marker.setAttribute("refY", "5");
-    marker.setAttribute("markerWidth", "7"); marker.setAttribute("markerHeight", "7"); marker.setAttribute("orient", "auto-start-reverse");
+    // размер стрелки — в единицах viewBox, а не толщины линии: ребро с потоком толще,
+    // и маркер по умолчанию раздувался вместе с ним до огромного треугольника
+    marker.setAttribute("markerUnits", "userSpaceOnUse"); marker.setAttribute("markerWidth", "12"); marker.setAttribute("markerHeight", "12"); marker.setAttribute("orient", "auto-start-reverse");
     var mp = document.createElementNS(SVGNS, "path"); mp.setAttribute("d", "M0,0 L10,5 L0,10 z"); mp.setAttribute("fill", "#888");
     marker.appendChild(mp); defs.appendChild(marker); svg.appendChild(defs);
     var edgeEls = edges.map(function (e) {
@@ -4235,22 +4243,34 @@
       ln.setAttribute("x1", a.x + ux * 17 + px * off); ln.setAttribute("y1", a.y + uy * 17 + py * off);
       ln.setAttribute("x2", b.x - ux * 20 + px * off); ln.setAttribute("y2", b.y - uy * 20 + py * off);
       ln.setAttribute("marker-end", "url(#algoarrow-flow)"); ln.setAttribute("class", "algo-viz__gedge"); svg.appendChild(ln);
-      var badge = document.createElementNS(SVGNS, "text"); badge.setAttribute("x", (a.x + b.x) / 2 + px * (off + 9)); badge.setAttribute("y", (a.y + b.y) / 2 + py * (off + 9)); badge.setAttribute("text-anchor", "middle"); badge.setAttribute("class", "algo-viz__gbadge"); svg.appendChild(badge);
+      // подпись — на 40% длины от начала ребра: в середине подписи двух скрещённых рёбер
+      // (w1→t2 и w2→t1) ложились в одну точку и слипались в «1/10/1»
+      var bx = a.x + dx * 0.4 + px * (off + 11), by = a.y + dy * 0.4 + py * (off + 11) + 5;
+      var badge = document.createElementNS(SVGNS, "text"); badge.setAttribute("x", bx); badge.setAttribute("y", by); badge.setAttribute("text-anchor", "middle"); badge.setAttribute("class", "algo-viz__gbadge algo-viz__fbadge"); svg.appendChild(badge);
       return { ln: ln, badge: badge };
     });
     var circles = [];
     labels.forEach(function (lab, id) {
-      var c = document.createElementNS(SVGNS, "circle"); c.setAttribute("cx", pos[id].x); c.setAttribute("cy", pos[id].y); c.setAttribute("r", 16); c.setAttribute("class", "algo-viz__gnode"); svg.appendChild(c); circles.push(c);
-      var tx = document.createElementNS(SVGNS, "text"); tx.setAttribute("x", pos[id].x); tx.setAttribute("y", pos[id].y + 4); tx.setAttribute("text-anchor", "middle"); tx.setAttribute("class", "algo-viz__gtext"); tx.textContent = lab; svg.appendChild(tx);
+      var c = document.createElementNS(SVGNS, "circle"); c.setAttribute("cx", pos[id].x); c.setAttribute("cy", pos[id].y); c.setAttribute("r", 17); c.setAttribute("class", "algo-viz__gnode"); svg.appendChild(c); circles.push(c);
+      var tx = document.createElementNS(SVGNS, "text"); tx.setAttribute("x", pos[id].x); tx.setAttribute("y", pos[id].y + 5); tx.setAttribute("text-anchor", "middle"); tx.setAttribute("class", "algo-viz__gtext algo-viz__ftext"); tx.textContent = lab; svg.appendChild(tx);
     });
     panel.appendChild(svg);
     return function (st) {
       edgeEls.forEach(function (o, ei) {
-        o.badge.textContent = st.flow[ei] + "/" + edges[ei].cap;
+        var fl = st.flow[ei], cp = edges[ei].cap, back = st.backEdges && st.backEdges.indexOf(ei) >= 0;
+        o.badge.textContent = (back ? "↶ " : "") + fl + "/" + cp;
         var onPath = st.pathEdges && st.pathEdges.indexOf(ei) >= 0, onCut = st.cut && st.cut.indexOf(ei) >= 0;
-        o.ln.classList.toggle("algo-viz__gedge--path", !!onPath && !st.done);
+        o.ln.classList.toggle("algo-viz__gedge--path", !!onPath && !back && !st.done);
+        o.ln.classList.toggle("algo-viz__gedge--back", back && !st.done);
         o.ln.classList.toggle("algo-viz__gedge--cut", !!onCut);
-        o.badge.classList.toggle("algo-viz__gbadge--flow", st.flow[ei] > 0);
+        o.ln.classList.toggle("algo-viz__gedge--flow", fl > 0 && !onPath && !onCut);
+        o.ln.classList.toggle("algo-viz__gedge--idle", !!st.done && fl === 0 && !onCut);
+        o.ln.classList.toggle("algo-viz__gedge--bn", ei === st.bnEdge);
+        // толщина — доля занятой пропускной: насыщенное ребро видно без чтения подписи
+        o.ln.style.strokeWidth = fl > 0 && !onPath && !onCut ? String(2 + 3 * fl / cp) : "";
+        o.badge.classList.toggle("algo-viz__gbadge--flow", fl > 0);
+        o.badge.classList.toggle("algo-viz__fbadge--back", back && !st.done);
+        o.badge.classList.toggle("algo-viz__fbadge--bn", ei === st.bnEdge);
       });
       var pn = {}; if (st.pathEdges && !st.done) st.pathEdges.forEach(function (ei) { pn[edges[ei].u] = 1; pn[edges[ei].v] = 1; });
       circles.forEach(function (c, id) {
@@ -13146,19 +13166,19 @@
       valuesLabel: "", codeKey: "max-flow", fillRange: false,
       complexity: { time: "O(V·E²)", space: "O(V²)", good: "★ Макс. поток = мин. разрез" },
       varOrder: ["путь", "узкое место", "поток", "аугментаций"],
-      varDesc: { "путь": "Дополняющий путь s→t, найденный BFS", "узкое место": "Минимум остаточной пропускной вдоль пути", "поток": "Накопленная величина потока", "аугментаций": "Сколько путей уже протолкнули" },
-      lineNotes: { 1: "flow = 0, остаточная сеть = исходные пропускные способности", 3: "BFS ищет кратчайший путь s→t по рёбрам с остаточной пропускной > 0", 4: "Дополняющего пути нет — поток максимален", 5: "Узкое место — минимум остаточной пропускной вдоль найденного пути", 8: "Прямому ребру −b (заняли), обратному +b — возможность позже отменить", 13: "Величина потока равна пропускной способности минимального разреза" },
+      varDesc: { "путь": "Дополняющий путь от истока к стоку, найденный BFS", "узкое место": "Минимум остаточной пропускной вдоль пути", "поток": "Накопленная величина потока", "аугментаций": "Сколько путей уже протолкнули" },
+      lineNotes: { 1: "flow = 0, остаточная сеть = исходные пропускные способности", 3: "BFS ищет кратчайший путь исток → сток по рёбрам с остаточной пропускной > 0", 4: "Дополняющего пути нет — поток максимален", 5: "Узкое место — минимум остаточной пропускной вдоль найденного пути", 11: "Остатки пути пересчитаны (прямым −b, обратным +b), поток вырос на b", 13: "Величина потока равна пропускной способности минимального разреза" },
       rules: [{ head: "BFS нашёл путь", body: "→ проталкиваем узкое место", cls: "lt" }, { head: "Обратное ребро +b", body: "отмена прежнего потока", cls: "eq" }, { head: "Пути больше нет", body: "поток = мин. разрез", cls: "gt" }],
-      parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = (root.getAttribute("data-edges") || "").split(",").map(function (e) { return e.trim().split("-"); }).map(function (p) { return { u: labels.indexOf(p[0]), v: labels.indexOf(p[1]), cap: Number(p[2]) }; }).filter(function (e) { return e.u >= 0 && e.v >= 0; }); var s = labels.indexOf((root.getAttribute("data-source") || "").trim()); var t = labels.indexOf((root.getAttribute("data-sink") || "").trim()); if (s < 0) s = 0; if (t < 0) t = labels.length - 1; return { labels: labels, edges: edges, s: s, t: t, steps: bMaxFlow(labels, edges, s, t).steps }; },
+      parse: function (root) { var matching = root.getAttribute("data-matching") === "true"; var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = (root.getAttribute("data-edges") || "").split(",").map(function (e) { return e.trim().split("-"); }).map(function (p) { return { u: labels.indexOf(p[0]), v: labels.indexOf(p[1]), cap: Number(p[2]) }; }).filter(function (e) { return e.u >= 0 && e.v >= 0; }); var s = labels.indexOf((root.getAttribute("data-source") || "").trim()); var t = labels.indexOf((root.getAttribute("data-sink") || "").trim()); if (s < 0) s = 0; if (t < 0) t = labels.length - 1; return { labels: labels, edges: edges, s: s, t: t, steps: bMaxFlow(labels, edges, s, t, { matching: matching }).steps }; },
       inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b-пропускная (ориент.)" }],
       values: function () { return []; },
       title: function (ctx) { return "Максимальный поток: " + ctx.labels[ctx.s] + " → " + ctx.labels[ctx.t]; },
-      legend: [{ cls: "source", label: "исток s" }, { cls: "sink", label: "сток t" }, { cls: "path", label: "дополняющий путь" }, { cls: "scut", label: "S-сторона разреза" }],
+      legend: [{ cls: "source", label: "исток" }, { cls: "sink", label: "сток" }, { cls: "augpath", label: "дополняющий путь" }, { cls: "backedge", label: "↶ обратное ребро пути — отмена потока" }, { cls: "flowedge", label: "по ребру идёт поток (толще — полнее)" }, { cls: "cutedge", label: "рёбра мин. разреза" }, { cls: "scut", label: "S-сторона разреза" }],
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Путь", "Узкое место", "Поток · аугментаций"],
       sumValues: function (s) { return [{ text: s.vars["путь"] }, { text: s.vars["узкое место"], cls: "eq" }, { text: s.vars["поток"] + " · " + s.vars["аугментаций"], cls: "gt" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Поток " + s.vars["поток"] + " = мин. разрез", text: s.info }; if (s.line === 4) return { kind: "end", icon: idx + 1, head: "Дополняющего пути нет", text: s.info }; if (s.line === 5) return { kind: "info", icon: idx + 1, head: "Нашли путь, узкое место " + s.vars["узкое место"], text: s.info, hot: true }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
-      stepCard: function (s) { if (s.done) return { a: "готово", b: "поток " + s.vars["поток"], c: "мин-разрез", cls: "eq" }; if (s.line === 5) return { a: s.vars["путь"], b: "узкое " + s.vars["узкое место"], c: "найден", cls: "lt" }; if (s.line === 8) return { a: "протолкнули", b: "+" + s.vars["узкое место"], c: "поток " + s.vars["поток"], cls: "eq" }; if (s.line === 4) return { a: "путей нет", b: "поток " + s.vars["поток"], c: "максимум", cls: "gt" }; return { a: "старт", b: "flow = 0", c: "→", cls: "lt" }; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Поток " + s.vars["поток"] + " = мин. разрез", text: s.info }; if (s.line === 4) return { kind: "end", icon: idx + 1, head: "Дополняющего пути нет", text: s.info }; if (s.line === 5) return { kind: "info", icon: idx + 1, head: "Нашли путь, узкое место " + s.vars["узкое место"], text: s.info, hot: true }; if (s.line === 11) return { kind: "info", icon: idx + 1, head: "Протолкнули +" + s.pushed + " → поток " + s.vars["поток"], text: s.info, hot: true }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "поток " + s.vars["поток"], c: "мин-разрез", cls: "eq" }; if (s.line === 5) return { a: s.vars["путь"], b: "узкое " + s.vars["узкое место"], c: "найден", cls: "lt" }; if (s.line === 11) return { a: "протолкнули", b: "+" + s.vars["узкое место"], c: "поток " + s.vars["поток"], cls: "eq" }; if (s.line === 4) return { a: "путей нет", b: "поток " + s.vars["поток"], c: "максимум", cls: "gt" }; return { a: "старт", b: "flow = 0", c: "→", cls: "lt" }; },
       varsOf: function (s) { return { "путь": s.vars["путь"], "узкое место": s.vars["узкое место"], "поток": s.vars["поток"], "аугментаций": s.vars["аугментаций"] }; },
       customViz: maxflowViz
     },

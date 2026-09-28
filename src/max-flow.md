@@ -244,7 +244,7 @@ func maxFlow(n int, cap [][]int, s, t int) int {
 > при необходимости **перекидывает** уже назначенную задачу другому воркеру через обратное ребро — это и есть
 > «увеличивающая цепь» из алгоритма Куна ниже.
 
-<div class="algo-viz" data-viz="max-flow" data-nodes="s,w1,w2,w3,t1,t2,t3,z" data-edges="s-w1-1,s-w2-1,s-w3-1,w1-t1-1,w1-t2-1,w2-t1-1,w3-t2-1,w3-t3-1,t1-z-1,t2-z-1,t3-z-1" data-source="s" data-sink="z"></div>
+<div class="algo-viz" data-viz="max-flow" data-nodes="s,w1,w2,w3,t1,t2,t3,z" data-edges="s-w1-1,s-w2-1,s-w3-1,w1-t1-1,w1-t2-1,w2-t1-1,w3-t2-1,w3-t3-1,t1-z-1,t2-z-1,t3-z-1" data-source="s" data-sink="z" data-matching="true"></div>
 
 На практике для паросочетания редко строят полную сеть — используют её «свёрнутую» форму, **алгоритм Куна**:
 для каждой левой вершины ищем **увеличивающую цепь** поиском в глубину. Если задача свободна или её текущего

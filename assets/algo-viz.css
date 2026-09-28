@@ -1681,3 +1681,21 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--fwq { background: var(--tp-ok); border-color: var(--tp-ok); }
 .algo-tp__legdot--fwa { background: var(--tp-hi); border-color: var(--tp-hi); }
 .algo-tp__legdot--fwz { background: transparent; border: 2px dashed var(--fg, #c9d1d9); opacity: 0.6; }
+
+/* Сеть потока (maxflowViz): подписи крупнее и на подложке — SVG ужимается до ~300px,
+   и 10-пиксельные в единицах viewBox подписи становились 6-пиксельными. Нулевой поток —
+   нейтральный, не янтарь пути; путь — янтарь (как в легенде); обратное ребро пути —
+   фиолетовый пунктир со значком ↶; толщина ребра с потоком — доля занятой пропускной. */
+.algo-viz__fbadge { font-size: 15px; fill: color-mix(in srgb, var(--fg, #333) 70%, transparent); paint-order: stroke; stroke: var(--tp-panel, #fff); stroke-width: 4px; stroke-linejoin: round; }
+.algo-viz__fbadge.algo-viz__gbadge--flow { fill: #2e9b57; }
+.algo-viz__fbadge--back { fill: #a855f7 !important; }
+.algo-viz__fbadge--bn { fill: #e0a500 !important; font-size: 17px; text-decoration: underline; }
+.algo-viz__ftext { font-size: 15px; }
+.algo-viz__gedge--flow { stroke: #2e9b57; }
+.algo-viz__gedge--back { stroke: #a855f7; stroke-width: 3.5; stroke-dasharray: 6 4; }
+.algo-viz__gedge--idle { opacity: 0.3; }
+.algo-viz__gedge--bn { stroke-width: 6 !important; }
+.algo-tp__legdot--augpath { background: #e0a500; border-color: #e0a500; border-radius: 2px; }
+.algo-tp__legdot--backedge { background: transparent; border: 2px dashed #a855f7; border-radius: 2px; }
+.algo-tp__legdot--flowedge { background: #2e9b57; border-color: #2e9b57; border-radius: 2px; }
+.algo-tp__legdot--cutedge { background: transparent; border: 2px dashed #d9534f; border-radius: 2px; }
