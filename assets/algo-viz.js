@@ -2754,9 +2754,26 @@
   }
   // Дерево Фенвика: prefixSum(target) как сумма «зон ответственности» BIT-узлов.
   // Fenwick (BIT) PrefixSum — построчный (debugger) проход; зона узла подсвечивается на массиве.
+  // tree[1..n] из массива — для панели узлов; зона узла k (1-индекс BIT) в индексах
+  // массива (с нуля) — arr[k − lowbit(k) .. k − 1]
+  function fenwickBuild(arr) { var n = arr.length, t = new Array(n + 1).fill(0); for (var k = 1; k <= n; k++) { var lo = k - (k & -k); for (var q = lo; q < k; q++) t[k] += arr[q]; } return t; }
+  function fenwickTreePanel(panel, ctx) {
+    var n = ctx.arr.length, p = structPanel(panel, "tree[k] — узел хранит сумму своей зоны arr[a..b]");
+    var cells = [];
+    for (var k = 1; k <= n; k++) { var lo = k - (k & -k); var c = structCell("tree[" + k + "]", "0", "algo-tp__mapcell--off"); c.appendChild(mkEl("div", "algo-tp__fwzone", "arr[" + lo + ".." + (k - 1) + "]")); p.grid.appendChild(c); cells.push(c); }
+    return function (s) {
+      var vis = s.visited || [];
+      cells.forEach(function (c, j) {
+        var k = j + 1;
+        c.children[1].textContent = s.tree ? s.tree[k] : "";
+        c.className = "algo-tp__mapcell " + (k === s.cur ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : vis.indexOf(k) >= 0 ? "algo-tp__mapcell--on algo-tp__mapcell--add" : "algo-tp__mapcell--off");
+      });
+      p.foot.textContent = vis.length ? "пройдено узлов: " + vis.map(function (k) { return "tree[" + k + "]"; }).join(" → ") : "";
+    };
+  }
   function bFenwick(arr, target) {
-    var steps = [], i = target + 1, sum = 0; // 1-индексация внутри
-    function push(o) { steps.push({ lo: (o.lo == null ? -1 : o.lo), hi: (o.hi == null ? -1 : o.hi), line: o.line, vars: { i: (o.i == null ? "—" : o.i), range: (o.range || "—"), sum: sum }, info: o.info, done: o.done, found: o.found }); }
+    var steps = [], i = target + 1, sum = 0, tree = fenwickBuild(arr), visited = [], covered = []; // 1-индексация внутри
+    function push(o) { steps.push({ lo: (o.lo == null ? -1 : o.lo), hi: (o.hi == null ? -1 : o.hi), tree: tree, cur: o.cur == null ? -1 : o.cur, visited: visited.slice(), covered: covered.slice(), line: o.line, vars: { i: (o.i == null ? "—" : o.i), range: (o.range || "—"), sum: sum }, info: o.info, done: o.done, found: o.found }); }
     // Листинг — как в главе, с i++ (раньше его не было, а трасса стартовала с i = 6:
     // показанный код при буквальном выполнении дал бы другую сумму). Запрос идёт ВНИЗ
     // (i −= i&−i) — «подъём» здесь противоречил мнемонике главы «Add — вверх, запрос — вниз».
@@ -2767,8 +2784,8 @@
       push({ line: 3, i: i, info: "i = " + i + " > 0 — продолжаем спуск по BIT" });
       var low = i & (-i), lo0 = i - low, hi0 = i - 1, partial = 0;
       for (var k = lo0; k <= hi0; k++) partial += arr[k];
-      sum += partial;
-      push({ line: 4, lo: lo0, hi: hi0, i: i, range: "[" + lo0 + ".." + hi0 + "]", info: "sum += tree[" + i + "] = сумма arr[" + lo0 + ".." + hi0 + "] = " + partial + " → итог " + sum });
+      sum += partial; visited.push(i); covered.push([lo0, hi0]);
+      push({ line: 4, cur: i, lo: lo0, hi: hi0, i: i, range: "[" + lo0 + ".." + hi0 + "]", info: "sum += tree[" + i + "] = сумма arr[" + lo0 + ".." + hi0 + "] = " + partial + " → итог " + sum + (covered.length > 1 ? "; накрыто уже arr[" + lo0 + ".." + target + "]" : "") });
       var oldi = i; i -= low;
       push({ line: 5, lo: lo0, hi: hi0, i: i, range: "[" + lo0 + ".." + hi0 + "]", info: "i −= i&(−i) = " + oldi + " − " + low + " = " + i + " (спуск: сбросили младший единичный бит)" });
     }
@@ -2778,16 +2795,17 @@
   }
   // Fenwick (BIT): точечное добавление delta — подъём i += i&(-i).
   function bFenwickAdd(arr, idx, delta) {
-    var steps = [], n = arr.length, i = idx + 1;
-    function push(o) { steps.push({ lo: (o.lo == null ? -1 : o.lo), hi: (o.hi == null ? -1 : o.hi), line: o.line, vars: { i: (o.i == null ? "—" : o.i), range: (o.range || "—"), delta: String(delta) }, info: o.info, done: o.done, found: o.found }); }
+    var steps = [], n = arr.length, i = idx + 1, tree = fenwickBuild(arr), visited = [];
+    function push(o) { steps.push({ lo: (o.lo == null ? -1 : o.lo), hi: (o.hi == null ? -1 : o.hi), idx: idx, tree: tree.slice(), cur: o.cur == null ? -1 : o.cur, visited: visited.slice(), line: o.line, vars: { i: (o.i == null ? "—" : o.i), range: (o.range || "—"), delta: String(delta) }, info: o.info, done: o.done, found: o.found }); }
     push({ line: 1, i: i, info: "i = " + idx + " + 1 = " + i + " (внутри BIT 1-индексация)" });
     var guard = 0;
     while (i <= n && guard++ < 64) {
       push({ line: 2, i: i, info: "i = " + i + " ≤ " + n + " — продолжаем подъём по BIT" });
       var low = i & (-i), lo0 = i - low, hi0 = i - 1;
-      push({ line: 3, lo: lo0, hi: hi0, i: i, range: "[" + lo0 + ".." + hi0 + "]", info: "tree[" + i + "] += " + delta + " — узел отвечает за arr[" + lo0 + ".." + hi0 + "]" });
+      tree[i] += delta; visited.push(i);
+      push({ line: 3, cur: i, lo: lo0, hi: hi0, i: i, range: "[" + lo0 + ".." + hi0 + "]", info: "tree[" + i + "] += " + delta + " → " + tree[i] + " — зона arr[" + lo0 + ".." + hi0 + "] содержит индекс " + idx + (visited.length > 1 ? " и накрывает предыдущую зону" : "") });
       var oldi = i; i += low;
-      push({ line: 4, lo: lo0, hi: hi0, i: i, range: "[" + lo0 + ".." + hi0 + "]", info: "i += i&(−i) = " + oldi + " + " + low + " = " + i + " (следующий ответственный узел)" });
+      push({ line: 4, i: i, range: i <= n ? "[" + (i - (i & -i)) + ".." + (i - 1) + "]" : "—", info: "i += i&(−i) = " + oldi + " + " + low + " = " + i + (i <= n ? " — следующий узел, чья зона тоже содержит индекс " + idx : " — за пределами") });
     }
     push({ line: 2, i: i, done: true, found: true, info: "i = " + i + " > " + n + " — вышли за пределы, обновление завершено" });
     return steps;
@@ -12210,13 +12228,15 @@
       varOrder: ["i", "range", "sum"],
       varDesc: { "i": "Номер узла BIT (1-индекс)", "range": "Покрываемый диапазон", "sum": "Накопленная префиксная сумма" },
       lineNotes: { 1: "Переходим в 1-индексацию BIT: i++", 2: "sum = 0", 3: "Спускаемся по BIT, пока i > 0", 4: "Прибавляем сумму зоны ответственности узла i", 5: "Спуск: сбрасываем младший единичный бит, i −= i & (−i)", 7: "Накоплена префиксная сумма на диапазоне [0..target]" },
-      rules: [{ head: "Зона узла i", body: "[i − lowbit + 1 .. i]", cls: "lt" }, { head: "Складываем", body: "sum += tree[i]", cls: "eq" }, { head: "i −= i&(−i)", body: "переход к родителю", cls: "gt" }],
+      rules: [{ head: "Зона tree[k]", body: "arr[k − lowbit(k) .. k − 1]", cls: "lt" }, { head: "Складываем", body: "sum += tree[i]", cls: "eq" }, { head: "i −= i&(−i)", body: "переход к родителю", cls: "gt" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var target = parseInt(root.getAttribute("data-index"), 10); return { arr: arr, target: target, steps: bFenwick(arr, target) }; },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-index", label: "индекс", sm: true }],
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Fenwick: префиксная сумма до индекса " + ctx.target; },
       param: function (ctx) { return { label: "Индекс", value: ctx.target }; },
+      cellState: function (s, j) { if (s.done) return { found: j <= s.hi }; var cov = (s.covered || []).some(function (z) { return j >= z[0] && j <= z[1]; }); var inZ = s.lo >= 0 && j >= s.lo && j <= s.hi; return { found: cov && !inZ, span: inZ, lo: j === s.lo, hi: j === s.hi }; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      mapViz: fenwickTreePanel,
       sumCells: ["Зона узла", "Итог суммы"],
       sumValues: function (s) { return [{ text: s.vars.range }, { text: s.vars.sum, cls: "eq" }]; },
       status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "PrefixSum(0.." + ctx.target + ") = " + s.vars.sum, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
@@ -12232,13 +12252,15 @@
       varOrder: ["i", "range", "delta"],
       varDesc: { "i": "Номер узла BIT (1-индекс)", "range": "Зона ответственности узла", "delta": "Прибавляемая величина" },
       lineNotes: { 1: "Переходим в 1-индексацию: i++", 2: "Поднимаемся по BIT, пока i ≤ n", 3: "Прибавляем delta к зоне ответственности узла i", 4: "К следующему ответственному узлу: i += i & (−i)" },
-      rules: [{ head: "Зона узла i", body: "[i − lowbit + 1 .. i]", cls: "lt" }, { head: "Прибавляем", body: "tree[i] += delta", cls: "eq" }, { head: "i += i&(−i)", body: "следующий узел", cls: "gt" }],
+      rules: [{ head: "Зона tree[k]", body: "arr[k − lowbit(k) .. k − 1]", cls: "lt" }, { head: "Прибавляем", body: "tree[i] += delta", cls: "eq" }, { head: "i += i&(−i)", body: "следующий узел", cls: "gt" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var idx = parseInt(root.getAttribute("data-index"), 10); var delta = parseInt(root.getAttribute("data-delta"), 10); return { arr: arr, idx: idx, delta: delta, steps: bFenwickAdd(arr, idx, delta) }; },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-index", label: "индекс", sm: true }, { attr: "data-delta", label: "delta", sm: true }],
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Fenwick: добавить " + ctx.delta + " в индекс " + ctx.idx; },
       param: function (ctx) { return { label: "Индекс", value: ctx.idx }; },
+      cellState: function (s, j) { var inZ = s.lo >= 0 && j >= s.lo && j <= s.hi; return { mid: j === s.idx, span: inZ && j !== s.idx, lo: j === s.lo && j !== s.idx, hi: j === s.hi && j !== s.idx }; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      mapViz: fenwickTreePanel,
       sumCells: ["Зона узла", "delta"],
       sumValues: function (s) { return [{ text: s.vars.range }, { text: s.vars.delta, cls: "eq" }]; },
       status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Добавили " + ctx.delta + " в индекс " + ctx.idx, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },

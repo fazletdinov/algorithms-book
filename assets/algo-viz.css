@@ -1538,3 +1538,4 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__tstag { font-size: 0.8em; font-weight: 700; min-width: 2.5em; }
 .algo-tp__tstag--a { color: #ef4444; }
 .algo-tp__tstag--b { color: var(--tp-lo); }
+.algo-tp__fwzone { font-size: 0.66em; opacity: 0.75; white-space: nowrap; font-family: ui-monospace, monospace; }
