@@ -4338,7 +4338,7 @@
         c.classList.toggle("algo-tp__ccell--top", s.action === "choose" && s.pick === j);
         c.classList.toggle("algo-tp__ccell--cur", s.action === "back" && s.pick === j);
         // отсечение: candidates[i] > remain — и всё правее тоже (массив отсортирован)
-        c.classList.toggle("algo-tp__ccell--cut", s.action === "prune" && j >= s.pick);
+        c.classList.toggle("algo-tp__ccell--cut", (s.action === "prune" && j >= s.pick) || (s.action === "skip" && j === s.pick));
       });
       curCells.innerHTML = "";
       if (!s.current.length) { var e = document.createElement("span"); e.className = "algo-tp__cempty"; e.textContent = "∅"; curCells.appendChild(e); }
@@ -4706,26 +4706,44 @@
 
   // Разбор subsets: подмножества массива С ДУБЛЯМИ. sort + skip на уровне (i>start &&
   // nums[i]==nums[i-1] → continue) вместо set. Рисует subsetsViz (множество/текущее/найдено).
+  // Панель стека кадров backtracking (start и текущий i): общая для подмножеств и
+  // подмножеств с дублями — без неё возвраты из рекурсии выглядели скачками.
+  function btStackPanel(fn) {
+    return function (panel) {
+      var p = structPanel(panel, "стек вызовов: слева дно, справа — текущий кадр");
+      return function (st) {
+        p.grid.innerHTML = "";
+        var fr = st.stack || [];
+        if (!fr.length) p.grid.appendChild(structCell("", "∅", "algo-tp__mapcell--off"));
+        fr.forEach(function (f, k) { var top = k === fr.length - 1; p.grid.appendChild(structCell(fn + "(" + f.start + ")", f.i == null ? "—" : "i=" + f.i, top ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : "algo-tp__mapcell--on")); });
+        p.foot.textContent = fr.length ? "глубина " + fr.length + "; start — откуда кадр перебирает элементы" : "рекурсия закончилась";
+      };
+    };
+  }
   function bSubsetsDup(set0) {
-    var set = set0.slice().sort(function (a, b) { return a - b; }), n = set.length, steps = [], result = [], current = [];
+    var set = set0.slice().sort(function (a, b) { return a - b; }), n = set.length, steps = [], result = [], current = [], stack = [];
     function vv(action) { return { action: action, cur: "[" + current.join(",") + "]", count: result.length }; }
-    function snap(extra) { var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }) }; for (var k in extra) s[k] = extra[k]; steps.push(s); }
+    function snap(extra) { var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }), stack: stack.map(function (f) { return { start: f.start, i: f.i }; }) }; for (var k in extra) s[k] = extra[k]; steps.push(s); }
     (function bt(start) {
+      var fr = { start: start, i: null }; stack.push(fr);
       result.push(current.slice());
       snap({ action: "record", line: 6, vars: vv("записать [" + current.join(",") + "]"), info: "записали подмножество [" + current.join(", ") + "]" });
       for (var i = start; i < n; i++) {
+        fr.i = i;
         if (i > start && set[i] === set[i - 1]) {
-          snap({ action: "skip", pick: i, line: 8, vars: vv("пропуск " + set[i]), info: "i = " + i + ": " + set[i] + " == предыдущего на этом уровне → continue (дубль)" });
+          snap({ action: "skip", pick: i, line: 9, vars: vv("пропуск " + set[i]), info: "i = " + i + " > start = " + start + " и nums[" + i + "] == nums[" + (i - 1) + "] = " + set[i] + " → continue: подмножества, начинающиеся с этого " + set[i] + ", на этом уровне уже построены из предыдущего" });
           continue;
         }
-        snap({ action: "loop", pick: i, line: 7, vars: vv("i = " + i), info: "i = " + i + ": берём элемент " + set[i] });
+        var eqPrev = i > 0 && set[i] === set[i - 1];
+        snap({ action: "loop", pick: i, line: 7, vars: vv("i = " + i), info: "i = " + i + ": берём элемент " + set[i] + (eqPrev ? " — он равен nums[" + (i - 1) + "], но i == start = " + start + ": это первый выбор на уровне, не дубль" : "") });
         current.push(set[i]);
         snap({ action: "choose", pick: i, line: 11, vars: vv("выбрать " + set[i]), info: "current = append(current, " + set[i] + ")" });
         snap({ action: "recurse", pick: i, line: 12, vars: vv("backtrack(" + (i + 1) + ")"), info: "backtrack(" + (i + 1) + ") — глубже" });
         bt(i + 1);
         current.pop();
-        snap({ action: "back", pick: i, line: 13, vars: vv("откат " + set[i]), info: "откат: убираем " + set[i] });
+        snap({ action: "back", pick: i, line: 13, vars: vv("откат " + set[i]), info: "вернулись в кадр backtrack(" + start + "), откат: убираем " + set[i] });
       }
+      stack.pop();
     })(0);
     snap({ done: true, found: true, line: 17, vars: vv("готово"), info: "Готово: " + result.length + " уникальных подмножеств" });
     return steps;
@@ -9630,6 +9648,7 @@
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: s.vars.count + " подмножеств", text: s.info }; if (s.action === "skip") return { kind: "info", icon: idx + 1, head: "Пропуск дубля", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.count + " шт.", c: "backtrack", cls: "eq" }; var cls = s.action === "choose" ? "lt" : (s.action === "back" || s.action === "skip" ? "gt" : "eq"); return { a: s.vars.action, b: s.vars.cur, c: s.action === "skip" ? "дубль" : "→", cls: cls }; },
       varsOf: function (s) { return { "action": s.vars.action, "cur": s.vars.cur, "count": s.vars.count }; },
+      mapViz: btStackPanel("backtrack"),
       customViz: subsetsViz
     },
 
@@ -11739,16 +11758,7 @@
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: s.vars.count + " подмножеств", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.count + " шт.", c: "backtrack", cls: "eq" }; var cls = s.action === "choose" ? "lt" : (s.action === "back" ? "gt" : "eq"); return { a: s.vars.action, b: s.vars.cur, c: s.action === "record" ? "записать" : (s.action === "choose" ? "выбор" : (s.action === "back" ? "откат" : "→")), cls: cls }; },
       varsOf: function (s) { return { "action": s.vars.action, "cur": s.vars.cur, "count": s.vars.count }; },
-      mapViz: function (panel) {
-        var p = structPanel(panel, "стек вызовов: слева дно, справа — текущий кадр");
-        return function (st) {
-          p.grid.innerHTML = "";
-          var fr = st.stack || [];
-          if (!fr.length) p.grid.appendChild(structCell("", "∅", "algo-tp__mapcell--off"));
-          fr.forEach(function (f, k) { var top = k === fr.length - 1; p.grid.appendChild(structCell("bt(" + f.start + ")", f.i == null ? "—" : "i=" + f.i, top ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : "algo-tp__mapcell--on")); });
-          p.foot.textContent = fr.length ? "глубина " + fr.length + "; start — откуда кадр перебирает элементы" : "рекурсия закончилась";
-        };
-      },
+      mapViz: btStackPanel("bt"),
       customViz: subsetsViz
     },
 
