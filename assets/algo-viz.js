@@ -1483,6 +1483,16 @@
       "    } else if m.hi.Len() > m.lo.Len()+1 {",
       "        m.lo.Push(m.hi.PopTop())",
       "    }",
+      "}",
+      "func (m *MedianFinder) FindMedian() float64 {",
+      "    switch {",
+      "    case m.lo.Len() == m.hi.Len():",
+      "        return float64(m.lo.Top()+m.hi.Top()) / 2",
+      "    case m.lo.Len() > m.hi.Len():",
+      "        return float64(m.lo.Top())",
+      "    default:",
+      "        return float64(m.hi.Top())",
+      "    }",
       "}"
     ],
     "top-k": [
@@ -8491,51 +8501,73 @@
       var c = document.createElement("div"); c.className = "algo-tp__ccell"; c.textContent = v;
       if (opts && opts.topIdx === k) c.classList.add("algo-tp__ccell--top");
       if (opts && opts.out) c.classList.add("algo-tp__ccell--out");
+      if (opts && opts.marks && opts.marks[k]) c.classList.add("algo-tp__ccell--" + opts.marks[k]);
       container.appendChild(c);
     });
   }
 
   // Две кучи: медиана потока.
   // Две кучи (медиана потока) — построчный (debugger) проход; обе кучи рисует twoHeapsViz.
+  // Настоящие кучи в порядке container/heap (массив, [0] — вершина), а не отсортированные
+  // ряды: иначе виджет расходился с таблицей трассировки главы (hi = [5, 15, 8]).
+  // mark — где стоит только что вставленный / перенесённый элемент после просеивания.
   function bTwoHeaps(stream) {
-    var lower = [], upper = [], steps = [], reb = 0; // отсортированы по возрастанию; top(lower)=последний, top(upper)=первый
-    function ins(arr, x) { var i = 0; while (i < arr.length && arr[i] < x) i++; arr.splice(i, 0, x); }
-    function loTop() { return lower.length ? lower[lower.length - 1] : "—"; }
+    var lo = [], hi = [], steps = [], reb = 0, si = -1, mark = null;
+    function maxLess(a, b) { return a > b; }
+    function minLess(a, b) { return a < b; }
+    function up(h, i, less) { while (i > 0) { var p = (i - 1) >> 1; if (!less(h[i], h[p])) break; var t = h[i]; h[i] = h[p]; h[p] = t; i = p; } return i; }
+    function down(h, i, less) { for (;;) { var l = 2 * i + 1; if (l >= h.length) return; var j = l; if (l + 1 < h.length && less(h[l + 1], h[l])) j = l + 1; if (!less(h[j], h[i])) return; var t = h[i]; h[i] = h[j]; h[j] = t; i = j; } }
+    function hpush(h, x, less) { h.push(x); return up(h, h.length - 1, less); }
+    function hpop(h, less) { var n = h.length - 1, t = h[0]; h[0] = h[n]; h[n] = t; var x = h.pop(); if (h.length) down(h, 0, less); return x; }
     function median() {
-      if (!lower.length && !upper.length) return "—";
-      // Пока размеры куч расходятся больше чем на 1, вершины — не медиана: раньше тут
-      // показывалось «5» для {5,15,1,3} (медиана 4). Это как раз момент, ради которого
-      // нужна балансировка, — так и пишем.
-      if (Math.abs(lower.length - upper.length) > 1) return "— (кучи " + lower.length + "/" + upper.length + ", нужен перенос)";
-      return lower.length === upper.length ? (lower[lower.length - 1] + upper[0]) / 2 : (lower.length > upper.length ? lower[lower.length - 1] : upper[0]);
+      if (!lo.length && !hi.length) return "—";
+      // Пока размеры расходятся больше чем на 1, вершины — не медиана: ради этого момента
+      // и нужна балансировка.
+      if (Math.abs(lo.length - hi.length) > 1) return "— (кучи " + lo.length + "/" + hi.length + ", нужен перенос)";
+      return lo.length === hi.length ? (lo[0] + hi[0]) / 2 : (lo.length > hi.length ? lo[0] : hi[0]);
     }
-    function push(o) { steps.push({ lower: lower.slice(), upper: upper.slice(), line: o.line, vars: { num: o.num, loSize: lower.length, hiSize: upper.length, median: median(), "перенесено": reb }, info: o.info, done: o.done, found: o.found }); }
-    stream.forEach(function (x) {
-      var toLo = lower.length === 0 || x <= lower[lower.length - 1];
-      push({ line: 1, num: x, info: "Добавляем " + x + ": " + (lower.length === 0 ? "max-heap пуст" : x + (toLo ? " ≤ " : " > ") + "top(lo)=" + loTop()) + " → " + (toLo ? "в МЕНЬШУЮ половину" : "в БОЛЬШУЮ половину") });
-      if (toLo) { ins(lower, x); push({ line: 2, num: x, info: x + " → max-heap (меньшая половина), top = " + loTop() }); }
-      else { ins(upper, x); push({ line: 4, num: x, info: x + " → min-heap (большая половина), top = " + upper[0] }); }
-      var loBig = lower.length > upper.length + 1;
-      push({ line: 6, num: x, info: "баланс: |lo|=" + lower.length + ", |hi|=" + upper.length + (loBig ? " → меньшая перевешивает на 2" : " → меньшая не перевешивает") });
-      if (loBig) { var m = lower.pop(); ins(upper, m); reb++; push({ line: 7, num: x, info: "перенос №" + reb + ": вершина max-heap (" + m + ") уходит в min-heap → выравниваем" }); }
+    function formula() {
+      if (lo.length === hi.length) return "размеры равны → (lo[0] + hi[0]) / 2 = (" + lo[0] + " + " + hi[0] + ") / 2 = " + (lo[0] + hi[0]) / 2;
+      return lo.length > hi.length ? "в lo на один больше → медиана = lo[0] = " + lo[0] : "в hi на один больше → медиана = hi[0] = " + hi[0];
+    }
+    function push(o) { steps.push({ lower: lo.slice(), upper: hi.slice(), si: si, mark: o.mark || null, line: o.line, vars: { num: o.num, loSize: lo.length, hiSize: hi.length, median: median(), "перенесено": reb }, info: o.info, done: o.done, found: o.found, formula: o.formula }); }
+    stream.forEach(function (x, idx) {
+      si = idx;
+      var toLo = lo.length === 0 || x <= lo[0];
+      push({ line: 1, num: x, info: "AddNum(" + x + "): " + (lo.length === 0 ? "lo пуст" : x + (toLo ? " ≤ " : " > ") + "lo[0] = " + lo[0]) + " → " + (toLo ? "в МЕНЬШУЮ половину (lo)" : "в БОЛЬШУЮ половину (hi)") });
+      if (toLo) { var at = hpush(lo, x, maxLess); push({ line: 2, num: x, mark: { heap: "lo", i: at, cls: "top" }, info: x + " → lo: встал в конец массива и поднялся на индекс " + at + "; вершина lo[0] = " + lo[0] }); }
+      else { var at2 = hpush(hi, x, minLess); push({ line: 4, num: x, mark: { heap: "hi", i: at2, cls: "top" }, info: x + " → hi: встал в конец массива и поднялся на индекс " + at2 + "; вершина hi[0] = " + hi[0] }); }
+      var loBig = lo.length > hi.length + 1;
+      push({ line: 6, num: x, info: "баланс: |lo| = " + lo.length + ", |hi| = " + hi.length + (loBig ? " → lo перевешивает на 2" : " → lo не перевешивает") });
+      if (loBig) { var m = hpop(lo, maxLess); reb++; var at3 = hpush(hi, m, minLess); push({ line: 7, num: x, mark: { heap: "hi", i: at3, cls: "cur" }, info: "перенос №" + reb + ": вершина lo (" + m + ") уходит в hi — это граничный элемент меньшей половины" }); }
       else {
-        var hiBig = upper.length > lower.length + 1;
-        push({ line: 8, num: x, info: "иначе: |hi|=" + upper.length + " > |lo|+1=" + (lower.length + 1) + "? " + (hiBig ? "да" : "нет") });
-        if (hiBig) { var m2 = upper.shift(); ins(lower, m2); reb++; push({ line: 9, num: x, info: "перенос №" + reb + ": вершина min-heap (" + m2 + ") уходит в max-heap → выравниваем" }); }
+        var hiBig = hi.length > lo.length + 1;
+        push({ line: 8, num: x, info: "иначе: |hi| = " + hi.length + " > |lo| + 1 = " + (lo.length + 1) + "? " + (hiBig ? "да" : "нет") });
+        if (hiBig) { var m2 = hpop(hi, minLess); reb++; var at4 = hpush(lo, m2, maxLess); push({ line: 9, num: x, mark: { heap: "lo", i: at4, cls: "cur" }, info: "перенос №" + reb + ": вершина hi (" + m2 + ") уходит в lo — это граничный элемент большей половины" }); }
       }
+      push({ line: lo.length === hi.length ? 15 : lo.length > hi.length ? 17 : 19, num: x, formula: true, note: "FindMedian смотрит только на две вершины — O(1)", info: "FindMedian(): " + formula() });
     });
-    if (steps.length) { steps[steps.length - 1].done = true; steps[steps.length - 1].found = true; }
-    else steps.push({ lower: [], upper: [], done: true, found: true, line: 11, vars: { num: "—", loSize: 0, hiSize: 0, median: "—", "перенесено": 0 }, info: "Пустой поток" });
+    if (steps.length) { var last = steps[steps.length - 1]; last.done = true; last.found = true; last.info = "Поток прочитан. " + last.info.replace("FindMedian(): ", "FindMedian(): "); }
+    else steps.push({ lower: [], upper: [], si: -1, mark: null, done: true, found: true, line: 21, vars: { num: "—", loSize: 0, hiSize: 0, median: "—", "перенесено": 0 }, info: "Пустой поток" });
     return steps;
   }
   function twoHeapsViz(panel, ctx) {
     var wrap = document.createElement("div"); wrap.className = "algo-tp__collection";
-    var loCells = vizRow(wrap, "Меньшая (max-heap)");
-    var hiCells = vizRow(wrap, "Большая (min-heap)");
+    var stCells = vizRow(wrap, "Поток");
+    var loCells = vizRow(wrap, "lo · max-heap");
+    var hiCells = vizRow(wrap, "hi · min-heap");
+    var med = mkEl("div", "algo-tp__thmed", "");
+    wrap.appendChild(med);
     panel.appendChild(wrap);
     return function (s) {
-      fillCells(loCells, s.lower || [], { topIdx: (s.lower || []).length - 1 });
-      fillCells(hiCells, s.upper || [], { topIdx: 0 });
+      var st = ctx.stream || [], mk = {};
+      st.forEach(function (v, k) { mk[k] = k === s.si ? "cur" : k < s.si ? "done" : ""; });
+      fillCells(stCells, st, { marks: mk });
+      var lm = {}, hm = {};
+      if (s.mark) (s.mark.heap === "lo" ? lm : hm)[s.mark.i] = s.mark.cls === "top" ? "new" : "moved";
+      fillCells(loCells, s.lower || [], { topIdx: 0, marks: lm });
+      fillCells(hiCells, s.upper || [], { topIdx: 0, marks: hm });
+      med.textContent = s.formula ? "медиана: " + s.info.replace(/^.*FindMedian\(\): /, "") : "";
     };
   }
 
@@ -11574,7 +11606,7 @@
       complexity: { time: "O(log n) вставка", space: "O(n)", good: "★ Медианы потока" },
       varOrder: ["num", "loSize", "hiSize", "median"],
       varDesc: { "num": "Текущее число", "loSize": "Размер max-heap (меньшая)", "hiSize": "Размер min-heap (большая)", "median": "Текущая медиана" },
-      lineNotes: { 1: "Сравниваем число с вершиной меньшей половины", 2: "Число ≤ вершины меньшей половины → в max-кучу (меньшая половина)", 4: "Число больше → в min-кучу (большая половина)", 6: "Балансировка: если в меньшей половине на 2 больше — отдаём вершину в большую", 7: "Вершина max-heap уезжает в min-heap", 8: "Иначе: большая половина перевешивает на 2?", 9: "Если в большей на 2 больше — отдаём вершину в меньшую" },
+      lineNotes: { 15: "Размеры равны — среднее двух вершин", 17: "В lo на один больше — медиана = вершина lo", 19: "В hi на один больше — медиана = вершина hi", 1: "Сравниваем число с вершиной меньшей половины", 2: "Число ≤ вершины меньшей половины → в max-кучу (меньшая половина)", 4: "Число больше → в min-кучу (большая половина)", 6: "Балансировка: если в меньшей половине на 2 больше — отдаём вершину в большую", 7: "Вершина max-heap уезжает в min-heap", 8: "Иначе: большая половина перевешивает на 2?", 9: "Если в большей на 2 больше — отдаём вершину в меньшую" },
       rules: [{ head: "num ≤ вершины меньшей", body: "→ в max-heap", cls: "lt" }, { head: "иначе", body: "→ в min-heap", cls: "gt" }, { head: "Балансируем", body: "размеры отличаются ≤ 1", cls: "eq" }],
       parse: function (root) { var stream = nums(root.getAttribute("data-stream")); return { stream: stream, steps: bTwoHeaps(stream) }; },
       inputs: [{ attr: "data-stream", label: "Поток (через запятую)" }],

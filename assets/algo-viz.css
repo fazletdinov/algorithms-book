@@ -1519,3 +1519,7 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__ringseg--new { opacity: 0.8; stroke-width: 9; }
 .algo-tp__ringsteal { fill: var(--fg, #555); font-size: 9px; font-weight: 700; }
 .algo-tp__ringkey--moved { stroke: #fff; stroke-width: 2; }
+/* Две кучи: поток, новый и перенесённый элементы, формула медианы */
+.algo-tp__ccell--new { box-shadow: 0 0 0 3px #16a34a; }
+.algo-tp__ccell--moved { box-shadow: 0 0 0 3px #e0a500; }
+.algo-tp__thmed { font-size: 0.9em; font-weight: 700; min-height: 1.4em; margin-top: 0.3em; color: var(--tp-ok); }
