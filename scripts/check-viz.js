@@ -3,7 +3,8 @@
 // Ловит класс ошибок, который иначе проходит незаметно (mdBook просто копирует JS):
 //  1) каждый data-viz="X" в src/*.md имеет конфиг в реестре DASH (иначе пустой <div>);
 //  2) у каждого конфига DASH codeKey есть запись в реестре CODE (иначе пустая панель кода);
-//  3) индексы в lineNotes не выходят за пределы листинга CODE (иначе подпись о несуществующей строке).
+//  3) индексы в lineNotes не выходят за пределы листинга CODE (иначе подпись о несуществующей строке);
+//  4) пресет граничного случая задаёт ровно поля ввода своего типа (иначе кнопка молча не работает).
 // Синтаксис самих *.js проверяется отдельно через `node --check` (см. CI).
 "use strict";
 const fs = require("fs");
@@ -36,6 +37,10 @@ configs.forEach((cfg, i) => {
   cfg.codeKey = (body.match(/codeKey:\s*"([^"]+)"/) || [])[1];
   const ln = body.match(/lineNotes:\s*\{([^}]*)\}/);
   cfg.lineNotes = ln ? [...ln[1].matchAll(/(\d+):/g)].map((x) => +x[1]) : [];
+  const inp = body.match(/\n      inputs: \[([^\n]*)\],/);
+  cfg.inputs = inp ? [...inp[1].matchAll(/attr: "([^"]+)"/g)].map((x) => x[1]) : [];
+  const pr = body.match(/\n      presets: \[\n([\s\S]*?)\n      \],/);
+  cfg.presets = pr ? [...pr[1].matchAll(/label: ("(?:[^"\\]|\\.)*"), set: \{([^}]*)\}/g)].map((x) => ({ label: JSON.parse(x[1]), keys: [...x[2].matchAll(/"(data-[a-z-]+)":/g)].map((k) => k[1]) })) : null;
 });
 
 // (2) codeKey есть в CODE; (3) индексы lineNotes в пределах листинга
@@ -50,6 +55,20 @@ configs.forEach((cfg) => {
   });
 });
 
+// (4) пресет граничного случая задаёт РОВНО поля ввода своего типа: лишний атрибут
+// движок не прочитает (кнопка молча ничего не меняет), недостающий останется от
+// прошлого пресета — и «другой target» покажет разное в зависимости от порядка нажатий
+let presetCount = 0;
+configs.forEach((cfg) => {
+  if (!cfg.presets) return;
+  if (!cfg.inputs.length) errors.push(`Конфиг "${cfg.key}": presets без inputs — подставлять некуда`);
+  const want = [...cfg.inputs].sort().join(",");
+  cfg.presets.forEach((p) => {
+    presetCount++;
+    const got = [...p.keys].sort().join(",");
+    if (got !== want) errors.push(`Конфиг "${cfg.key}": пресет «${p.label}» задаёт {${got}}, а поля ввода типа — {${want}}`);
+  });
+});
 // (1) каждый data-viz из src имеет конфиг DASH
 const srcDir = path.join(root, "src");
 const used = new Map(); // тип -> файлы
@@ -71,4 +90,4 @@ if (errors.length) {
   console.error(`\n❌ check-viz: ${errors.length} проблем(ы)`);
   process.exit(1);
 }
-console.log(`✅ check-viz: ${used.size} типов data-viz, ${dashKeys.size} конфигов DASH, ${Object.keys(CODE).length} листингов CODE — всё согласовано`);
+console.log(`✅ check-viz: ${used.size} типов data-viz, ${dashKeys.size} конфигов DASH, ${Object.keys(CODE).length} листингов CODE, ${presetCount} пресетов граничных случаев — всё согласовано`);

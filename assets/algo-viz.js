@@ -9737,6 +9737,12 @@
       rules: [{ head: "Если сумма < target", body: "→ сдвинуть левый вправо (lo++)", cls: "lt" }, { head: "Если сумма > target", body: "→ сдвинуть правый влево (hi--)", cls: "gt" }, { head: "Если сумма = target", body: "→ пара найдена!", cls: "eq" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var target = parseInt(root.getAttribute("data-target"), 10); return { arr: arr, target: target, steps: bTwoPointers(arr, target) }; },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-target", label: "target", sm: true }],
+      presets: [
+        { label: "пары нет", set: { "data-array": "1,2,4,7,11", "data-target": "20" }, hint: "Указатели сходятся, ответа нет" },
+        { label: "пара на краях", set: { "data-array": "1,3,5,8,12", "data-target": "13" }, hint: "Ответ находится на первом же шаге" },
+        { label: "дубли", set: { "data-array": "2,2,3,3,5", "data-target": "4" }, hint: "Пара из двух равных соседей" },
+        { label: "два элемента", set: { "data-array": "3,7", "data-target": "10" }, hint: "Минимальный вход" }
+      ],
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Поиск пары с суммой " + ctx.target; },
       param: function (ctx) { return { label: "Target (цель)", value: ctx.target, ok: true }; },
@@ -9780,6 +9786,11 @@
       rules: [{ head: "nums[mid] = 0", body: "swap(low, mid), low++ и mid++", cls: "eq" }, { head: "nums[mid] = 1", body: "уже на месте → mid++", cls: "lt" }, { head: "nums[mid] = 2", body: "swap(mid, high), high−−, mid СТОИТ", cls: "gt" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")).map(function (x) { return Math.max(0, Math.min(2, x)); }); if (!arr.length) arr = [2, 0, 2, 1, 1, 0]; return { arr: arr, steps: bDutchFlag(arr) }; },
       inputs: [{ attr: "data-array", label: "Массив из 0/1/2" }],
+      presets: [
+        { label: "одни двойки", set: { "data-array": "2,2,2" }, hint: "high идёт навстречу, mid стоит" },
+        { label: "уже отсортирован", set: { "data-array": "0,0,1,1,2,2" }, hint: "Нули меняются сами с собой (low == mid) — лишняя, но безвредная работа" },
+        { label: "обратный", set: { "data-array": "2,2,1,1,0,0" }, hint: "Худший порядок для зон" }
+      ],
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Dutch National Flag: [" + ctx.arr.join(", ") + "]"; },
       cellState: function (s, j) { var st = {}; if (j < s.low) st.found = true; else if (j < s.mid) st.span = true; if (j > s.high) st.hi = true; if (j === s.mid && !s.done) st.mid = true; return st; },
@@ -9805,6 +9816,11 @@
       rules: [{ head: "Добавить arr[right]", body: "+ новый элемент справа", cls: "lt" }, { head: "Убрать arr[left]", body: "− старый элемент слева", cls: "gt" }, { head: "Обновить максимум", body: "если сумма окна больше", cls: "eq" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var k = parseInt(root.getAttribute("data-k"), 10); return { arr: arr, k: k, steps: bSlidingWindow(arr, k) }; },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-k", label: "k", sm: true }],
+      presets: [
+        { label: "k = 1", set: { "data-array": "2,3,5,1,8,2,6,4", "data-k": "1" }, hint: "Окно из одного — ответ просто максимум" },
+        { label: "k = n", set: { "data-array": "2,3,5,1", "data-k": "4" }, hint: "Одно окно на весь массив" },
+        { label: "отрицательные", set: { "data-array": "-2,-3,4,-1,-2,1,5,-3", "data-k": "3" }, hint: "Фиксированному окну знаки не мешают" }
+      ],
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Максимум окна размера " + ctx.k; },
       param: function (ctx) { return { label: "Размер окна k", value: ctx.k }; },
@@ -9836,6 +9852,12 @@
       rules: [{ head: "slow", body: "+1 шаг за итерацию", cls: "lt" }, { head: "fast", body: "+2 шага за итерацию", cls: "gt" }, { head: "slow == fast", body: "→ цикл найден", cls: "eq" }],
       parse: function (root) { var list = nums(root.getAttribute("data-list")); var cyc = parseInt(root.getAttribute("data-cycle"), 10); return { list: list, cyc: cyc, steps: bListCycle(list, cyc) }; },
       inputs: [{ attr: "data-list", label: "Список" }, { attr: "data-cycle", label: "цикл с индекса", sm: true }],
+      presets: [
+        { label: "без цикла", set: { "data-list": "1,2,3,4,5", "data-cycle": "-1" }, hint: "fast упирается в nil" },
+        { label: "петля на себя", set: { "data-list": "1,2,3", "data-cycle": "2" }, hint: "Последний узел ссылается сам на себя" },
+        { label: "цикл с головы", set: { "data-list": "1,2,3,4", "data-cycle": "0" }, hint: "Весь список — кольцо" },
+        { label: "один узел", set: { "data-list": "7", "data-cycle": "-1" }, hint: "Минимальный вход" }
+      ],
       values: function (ctx) { return ctx.list; },
       title: function () { return "Поиск цикла: заяц и черепаха"; },
       param: function (ctx) { var ok = !isNaN(ctx.cyc) && ctx.cyc >= 0 && ctx.cyc < ctx.list.length; return { label: "Цикл с узла", value: ok ? ctx.list[ctx.cyc] : "нет" }; },
@@ -9902,6 +9924,11 @@
       rules: [{ head: "Расширяем right", body: "+ символ справа", cls: "lt" }, { head: "distinct > k", body: "→ сжимаем слева (left++)", cls: "gt" }, { head: "Обновляем maxLen", body: "если окно длиннее", cls: "eq" }],
       parse: function (root) { var chars = (root.getAttribute("data-string") || "").split(""); var k = parseInt(root.getAttribute("data-k"), 10); return { chars: chars, k: k, steps: bSlidingVar(chars, k) }; },
       inputs: [{ attr: "data-string", label: "Строка" }, { attr: "data-k", label: "k", sm: true }],
+      presets: [
+        { label: "все одинаковые", set: { "data-string": "AAAAA", "data-k": "1" }, hint: "Окно ни разу не сжимается" },
+        { label: "k ≥ различных", set: { "data-string": "ABCABC", "data-k": "3" }, hint: "Ответ — вся строка" },
+        { label: "k = 1", set: { "data-string": "AABBBCC", "data-k": "1" }, hint: "Самая длинная серия одного символа" }
+      ],
       values: function (ctx) { return ctx.chars; },
       title: function (ctx) { return "Подстрока с ≤" + ctx.k + " различными символами"; },
       param: function (ctx) { return { label: "Максимум различных k", value: ctx.k }; },
@@ -10012,6 +10039,11 @@
       rules: [{ head: "Расширяем right", body: "+ nums[right] в сумму", cls: "lt" }, { head: "sum ≥ target", body: "жадно сжимаем слева", cls: "gt" }, { head: "Обновляем best", body: "если окно короче", cls: "eq" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var target = parseInt(root.getAttribute("data-target"), 10); return { arr: arr, target: target, steps: bMinSubWindow(arr, target) }; },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-target", label: "target", sm: true }],
+      presets: [
+        { label: "не набирается", set: { "data-array": "1,1,1,1", "data-target": "10" }, hint: "Сумма всего массива меньше target — ответ 0" },
+        { label: "один элемент", set: { "data-array": "1,4,10,2", "data-target": "7" }, hint: "Хватает одного числа" },
+        { label: "весь массив", set: { "data-array": "1,2,3", "data-target": "6" }, hint: "Нужен весь массив целиком" }
+      ],
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Мин. подмассив с суммой ≥ " + ctx.target + " — окно O(n)"; },
       param: function (ctx) { return { label: "target (цель суммы)", value: ctx.target, ok: true }; },
@@ -10166,6 +10198,12 @@
       rules: [{ head: "nums[mid] < target", body: "→ lo = mid + 1", cls: "lt" }, { head: "иначе", body: "→ hi = mid (без −1)", cls: "gt" }, { head: "lo == hi", body: "→ ответ lo (может быть len)", cls: "eq" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var t = parseInt(root.getAttribute("data-target"), 10); return { arr: arr, target: t, steps: bLowerBound(arr, t) }; },
       inputs: [{ attr: "data-array", label: "Отсортированный массив" }, { attr: "data-target", label: "target", sm: true }],
+      presets: [
+        { label: "меньше всех", set: { "data-array": "5,7,7,8,8,10", "data-target": "1" }, hint: "Ответ — индекс 0" },
+        { label: "больше всех", set: { "data-array": "5,7,7,8,8,10", "data-target": "12" }, hint: "Ответ — n: вставка в конец" },
+        { label: "все равны", set: { "data-array": "4,4,4,4", "data-target": "4" }, hint: "Первое вхождение — самый левый" },
+        { label: "нет в массиве", set: { "data-array": "5,7,7,8,8,10", "data-target": "9" }, hint: "Позиция вставки между 8 и 10" }
+      ],
       // лишняя клетка «конец»: hi = len(nums) указывает туда
       values: function (ctx) { return ctx.arr.concat(["end"]); },
       title: function (ctx) { return "lowerBound(" + ctx.target + ") — [lo, hi)"; },
@@ -10453,6 +10491,11 @@
       rules: [{ head: "Пропустить дом", body: "→ берём prev1", cls: "lt" }, { head: "Взять дом", body: "→ prev2 + nums[i]", cls: "gt" }, { head: "dp[i]", body: "= максимум из двух", cls: "eq" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bHouseRobber(arr) }; },
       inputs: [{ attr: "data-array", label: "Дома (деньги)" }],
+      presets: [
+        { label: "один дом", set: { "data-array": "5" }, hint: "Минимальный вход" },
+        { label: "два дома", set: { "data-array": "2,7" }, hint: "Берём больший" },
+        { label: "выгодно через два", set: { "data-array": "2,1,1,9" }, hint: "Лучше пропустить два дома подряд, чем чередовать" }
+      ],
       values: function (ctx) { return ctx.arr; },
       title: function () { return "House Robber — ДП O(n), память O(1)"; },
       pointers: function (s) { return { lo: s.lo, hi: -1 }; },
@@ -10662,6 +10705,12 @@
       rules: [{ head: "arr[mid] < target", body: "→ ищем правее (left = mid+1)", cls: "lt" }, { head: "arr[mid] > target", body: "→ ищем левее (right = mid−1)", cls: "gt" }, { head: "arr[mid] = target", body: "→ найдено!", cls: "eq" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var target = parseInt(root.getAttribute("data-target"), 10); return { arr: arr, target: target, steps: bBinarySearch(arr, target) }; },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-target", label: "target", sm: true }],
+      presets: [
+        { label: "нет в массиве", set: { "data-array": "1,3,5,7,9,11,13", "data-target": "8" }, hint: "Границы пересекаются — ответ −1" },
+        { label: "первый элемент", set: { "data-array": "1,3,5,7,9,11,13", "data-target": "1" }, hint: "Сжимаемся к левому краю" },
+        { label: "последний элемент", set: { "data-array": "1,3,5,7,9,11,13", "data-target": "13" }, hint: "Сжимаемся к правому краю" },
+        { label: "один элемент", set: { "data-array": "5", "data-target": "5" }, hint: "left == right с самого начала" }
+      ],
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Бинарный поиск " + ctx.target; },
       param: function (ctx) { return { label: "Target (цель)", value: ctx.target, ok: true }; },
@@ -10716,6 +10765,11 @@
       rules: [{ head: "nums[i] не на месте", body: "→ swap с nums[correct], i не растёт", cls: "lt" }, { head: "nums[i] на месте", body: "→ i++", cls: "eq" }, { head: "Готово", body: "всё на местах", cls: "gt" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bCyclicSort(arr) }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
+      presets: [
+        { label: "уже на местах", set: { "data-array": "1,2,3,4,5" }, hint: "Ни одного обмена" },
+        { label: "обратный порядок", set: { "data-array": "5,4,3,2,1" }, hint: "Обмены парами с концов" },
+        { label: "один цикл", set: { "data-array": "2,3,4,5,1" }, hint: "Все элементы в одном цикле: n−1 обменов на первом индексе" }
+      ],
       values: function (ctx) { return ctx.arr; },
       title: function () { return "Циклическая сортировка на месте"; },
       // зелёная клетка — число уже на своём индексе v−1 (инвариант главы: оттуда оно не уйдёт)
@@ -11946,6 +12000,12 @@
       rules: [{ head: "nums[top] < v", body: "→ pop: res[top] = v", cls: "eq" }, { head: "nums[top] ≥ v", body: "→ push i, стек остаётся убывающим", cls: "lt" }, { head: "почему O(n)", body: "каждый индекс кладётся и снимается ≤ 1 раза", cls: "gt" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); if (!arr.length) arr = [2, 1, 3, 1]; return { arr: arr, steps: bMonoStack(arr) }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
+      presets: [
+        { label: "убывающий", set: { "data-array": "5,4,3,2,1" }, hint: "Никто не дождётся большего: стек растёт до n" },
+        { label: "возрастающий", set: { "data-array": "1,2,3,4,5" }, hint: "Каждый снимается сразу следующим" },
+        { label: "все равны", set: { "data-array": "3,3,3" }, hint: "Строго больший не найден: снятие при <, а не <=" },
+        { label: "один снимает многих", set: { "data-array": "4,3,2,1,5" }, hint: "Вложенный while снимает сразу четверых" }
+      ],
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Next Greater Element: [" + ctx.arr.join(", ") + "]"; },
       cellState: function (s, j) { var st = {}; if (s.res[j] != null && s.res[j] !== -1) st.found = true; else if (s.stack.indexOf(j) >= 0) st.mid = true; if (j === s.lo && s.lo >= 0) st.lo = true; if (j === s.hi && s.hi >= 0) st.hi = true; return st; },
@@ -11994,6 +12054,11 @@
         return { arr: arr, k: k, steps: bMonoDeque(arr, k) };
       },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-k", label: "k", sm: true }],
+      presets: [
+        { label: "убывающий", set: { "data-array": "9,7,5,3,1", "data-k": "3" }, hint: "Максимум уходит слева — выбывает с головы" },
+        { label: "возрастающий", set: { "data-array": "1,3,5,7,9", "data-k": "3" }, hint: "Каждый новый вычищает весь дек" },
+        { label: "k = 1", set: { "data-array": "4,2,12,3", "data-k": "1" }, hint: "Окно из одного элемента" }
+      ],
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "MaxSlidingWindow: окно " + ctx.k + " по [" + ctx.arr.join(", ") + "]"; },
       param: function (ctx) { return { label: "k (ширина окна)", value: ctx.k, ok: true }; },
@@ -12046,6 +12111,11 @@
         return { arr: arr, qs: qs, steps: bPrefixRange(arr, qs) };
       },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-queries", label: "Запросы l:r через запятую" }],
+      presets: [
+        { label: "отрезок из одного", set: { "data-array": "3,-1,4,1,5", "data-queries": "2:2" }, hint: "l == r: одно вычитание соседних префиксов" },
+        { label: "весь массив", set: { "data-array": "3,-1,4,1,5", "data-queries": "0:4" }, hint: "prefix[n] − prefix[0]" },
+        { label: "с начала", set: { "data-array": "3,-1,4,1,5", "data-queries": "0:0,0:2" }, hint: "l = 0 — работает пустой префикс" }
+      ],
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "RangeSums: [" + ctx.arr.join(", ") + "]"; },
       cellState: function (s, j) {
@@ -12102,6 +12172,11 @@
         return { arr: arr, k: k, steps: bPrefixHash(arr, k) };
       },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-k", label: "k", sm: true }],
+      presets: [
+        { label: "нули, k = 0", set: { "data-array": "0,0,0", "data-k": "0" }, hint: "6 подмассивов; поставь seen[sum]++ до поиска — выйдет 9" },
+        { label: "не найдено", set: { "data-array": "1,2,3", "data-k": "7" }, hint: "Ни один прошлый префикс не подходит" },
+        { label: "только положительные", set: { "data-array": "1,1,1", "data-k": "2" }, hint: "Здесь сработало бы и окно — сравни" }
+      ],
       values: function (ctx) { return ctx.arr; },
       title: function (ctx) { return "Подмассивы с суммой " + ctx.k + ": [" + ctx.arr.join(", ") + "]"; },
       param: function (ctx) { return { label: "k (нужная сумма)", value: ctx.k, ok: true }; },
@@ -12164,6 +12239,11 @@
         return { n: n, ups: ups, init: init, steps: bDiffArray(n, ups) };
       },
       inputs: [{ attr: "data-n", label: "n", sm: true }, { attr: "data-updates", label: "Обновления l:r:d через запятую" }],
+      presets: [
+        { label: "до последнего индекса", set: { "data-n": "4", "data-updates": "1:3:5" }, hint: "diff[r+1] = diff[n] — лишняя ячейка" },
+        { label: "гасящие", set: { "data-n": "4", "data-updates": "0:3:2,0:3:-2" }, hint: "Разности обнуляются — массив остаётся нулевым" },
+        { label: "одна точка", set: { "data-n": "5", "data-updates": "2:2:7" }, hint: "l == r: прибавка к одному элементу" }
+      ],
       values: function (ctx) { return ctx.init; },
       title: function (ctx) { return "ApplyRangeAdds: n = " + ctx.n + ", " + ctx.ups.length + " " + ruPlural(ctx.ups.length, "обновление", "обновления", "обновлений"); },
       cellState: function (s, j) {
@@ -12214,6 +12294,12 @@
         return { s: s, chars: s.split(""), steps: bBracketStack(s) };
       },
       inputs: [{ attr: "data-string", label: "Строка" }],
+      presets: [
+        { label: "перекрёст", set: { "data-string": "([)]" }, hint: "Скобок поровну, но пары перекрещиваются — счётчик бы не заметил" },
+        { label: "лишняя закрывающая", set: { "data-string": "())" }, hint: "Закрывающая на пустом стеке" },
+        { label: "незакрытая", set: { "data-string": "(()" }, hint: "Строка кончилась, стек не пуст" },
+        { label: "не только скобки", set: { "data-string": "f(a[i]) {x}" }, hint: "Прочие символы пропускаются" }
+      ],
       values: function (ctx) { return ctx.chars; },
       title: function (ctx) { return "IsValidBrackets: «" + ctx.s + "»"; },
       cellState: function (s, j) {
@@ -12276,6 +12362,12 @@
         return { hs: hs, steps: bHistogram(hs) };
       },
       inputs: [{ attr: "data-heights", label: "Высоты" }],
+      presets: [
+        { label: "возрастающие", set: { "data-heights": "1,2,3,4,5" }, hint: "Никто не снимается до сторожа" },
+        { label: "убывающие", set: { "data-heights": "5,4,3,2,1" }, hint: "Каждый новый снимает предыдущего" },
+        { label: "все равны", set: { "data-heights": "3,3,3,3" }, hint: "Равные снимают друг друга; полную ширину получает последний" },
+        { label: "ноль посередине", set: { "data-heights": "4,0,4" }, hint: "Ноль разрывает прямоугольник" }
+      ],
       values: function (ctx) { return ctx.hs; },
       title: function (ctx) { return "LargestRectangle: [" + ctx.hs.join(", ") + "]"; },
       pointers: function (s) { return { lo: -1, hi: s.hi }; },
@@ -12363,6 +12455,12 @@
         return { num: num, k: k, digits: num.split(""), steps: bRemoveK(num, k) };
       },
       inputs: [{ attr: "data-num", label: "Число" }, { attr: "data-k", label: "k", sm: true }],
+      presets: [
+        { label: "ведущие нули", set: { "data-num": "10200", "data-k": "1" }, hint: "«0200» пишется как «200»" },
+        { label: "срез хвоста", set: { "data-num": "12345", "data-k": "2" }, hint: "Стек не убывает — удаления уходят с конца" },
+        { label: "удалить всё", set: { "data-num": "10", "data-k": "2" }, hint: "Пустой результат — это «0»" },
+        { label: "равные цифры", set: { "data-num": "1111", "data-k": "2" }, hint: "Снятие только при строго большей" }
+      ],
       values: function (ctx) { return ctx.digits; },
       title: function (ctx) { return "RemoveKDigits: «" + ctx.num + "», k = " + ctx.k; },
       param: function (ctx) { return { label: "k (сколько удалить)", value: ctx.k, ok: true }; },
@@ -12548,6 +12646,13 @@
         return { ivs: order.map(function (i) { return raw[i]; }), origPos: order, steps: bMergeIntervals(raw) };
       },
       inputs: [{ attr: "data-intervals", label: "Интервалы a-b,c-d" }],
+      presets: [
+        { label: "нет пересечений", set: { "data-intervals": "1-2,4-5,7-8" }, hint: "Ни одного слияния: каждый интервал — новый" },
+        { label: "касание границ", set: { "data-intervals": "1-2,2-3,3-4" }, hint: "[1,2] и [2,3] сливаются: касание считается перекрытием (<=)" },
+        { label: "вложенный", set: { "data-intervals": "1-10,2-3,5-7" }, hint: "Конец берётся max(), а не последний: иначе [1,10] укоротится" },
+        { label: "вход не отсортирован", set: { "data-intervals": "8-10,1-3,2-6,15-18" }, hint: "Без сортировки по началу слияние пропустит пары" },
+        { label: "один интервал", set: { "data-intervals": "3-6" }, hint: "Минимальный вход" }
+      ],
       values: function (ctx) { return ctx.ivs.map(function (p) { return p[0] + "–" + p[1]; }); },
       title: function () { return "Слияние интервалов"; },
       pointers: function (s) { return { lo: s.cur, hi: -1 }; },
@@ -12846,6 +12951,11 @@
       rules: [{ head: "levelSize = len(queue)", body: "снимок отделяет уровень от детей", cls: "lt" }, { head: "дети в хвост", body: "за границу — это уровень d+1", cls: "gt" }, { head: "сняли levelSize", body: "→ уровень закрыт", cls: "eq" }],
       parse: function (root) { return bTreeLevelOrder(parseTree(root.getAttribute("data-tree"))); },
       inputs: [{ attr: "data-tree", label: "Дерево по уровням, как в LeetCode (null — нет узла)" }],
+      presets: [
+        { label: "одна ветка", set: { "data-tree": "1,2,null,3,null,4" }, hint: "Дерево-«палка»: на каждом уровне по одному узлу" },
+        { label: "один узел", set: { "data-tree": "1" }, hint: "Минимальный вход" },
+        { label: "полное дерево", set: { "data-tree": "1,2,3,4,5,6,7" }, hint: "Уровень удваивается" }
+      ],
       values: function () { return []; },
       title: function () { return "Обход дерева по уровням (BFS)"; },
       legend: [{ cls: "tcur", label: "снимаем сейчас" }, { cls: "lvl", label: "текущий уровень (в снимке levelSize)" }, { cls: "tnext", label: "в очереди за границей — следующий уровень" }, { cls: "tvis", label: "уже снят" }],
@@ -13027,6 +13137,11 @@
       rules: [{ head: "i ≤ maxReach", body: "индекс достижим", cls: "lt" }, { head: "i+nums[i] > maxReach", body: "→ обновляем maxReach", cls: "eq" }, { head: "i > maxReach", body: "→ недостижимо", cls: "gt" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bJump(arr) }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
+      presets: [
+        { label: "ноль в начале", set: { "data-array": "0,1,2" }, hint: "Дальше старта не уйти" },
+        { label: "один элемент", set: { "data-array": "0" }, hint: "Уже на месте — достижимо" },
+        { label: "яма из нулей", set: { "data-array": "2,0,0,1" }, hint: "Прыжка не хватает перепрыгнуть два нуля" }
+      ],
       values: function (ctx) { return ctx.arr; },
       title: function () { return "Jump Game: можно ли допрыгнуть?"; },
       cellState: function (s, j) { if (s.found) return { found: j <= s.hi }; return { dim: j > s.hi, mid: j === s.mid, span: j <= s.hi && j !== s.mid }; },
@@ -13048,6 +13163,11 @@
       rules: [{ head: "Извлекаем из начала", body: "queue[0] (FIFO)", cls: "lt" }, { head: "Соседей — в конец", body: "если ещё не посещены", cls: "gt" }, { head: "Ближние раньше", body: "обход по слоям", cls: "eq" }],
       parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = parseEdges(root.getAttribute("data-edges")); var start = parseInt(root.getAttribute("data-start") || "0", 10); return { labels: labels, edges: edges, start: start, steps: bGraphBfs(labels, edges, start) }; },
       inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b" }, { attr: "data-start", label: "старт", sm: true }],
+      presets: [
+        { label: "несвязный", set: { "data-nodes": "0,1,2,3,4", "data-edges": "0-1,1-2,3-4", "data-start": "0" }, hint: "До 3 и 4 не дойти" },
+        { label: "одна вершина", set: { "data-nodes": "0", "data-edges": "", "data-start": "0" }, hint: "Минимальный вход" },
+        { label: "цикл", set: { "data-nodes": "0,1,2,3", "data-edges": "0-1,1-2,2-3,3-0", "data-start": "0" }, hint: "visited не даёт ходить по кругу" }
+      ],
       values: function (ctx) { return ctx.labels; },
       title: function () { return "Обход графа в ширину (BFS)"; },
       legend: [{ cls: "current", label: "извлекли (node)" }, { cls: "visited", label: "уже в order" }, { cls: "ready", label: "в очереди (visited уже true)" }, { cls: "idle", label: "не открыта" }],
@@ -13115,6 +13235,11 @@
       rules: [{ head: "Входящая степень 0", body: "→ можно убирать", cls: "lt" }, { head: "Убрали вершину", body: "уменьшаем степени соседей", cls: "eq" }, { head: "Очередь пуста, а сняты не все", body: "→ в графе цикл", cls: "gt" }],
       parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = (root.getAttribute("data-edges") || "").split(",").map(function (e) { return e.trim().split("-"); }).map(function (p) { return [labels.indexOf(p[0]), labels.indexOf(p[1])]; }).filter(function (p) { return p[0] >= 0 && p[1] >= 0; }); return { labels: labels, edges: edges, steps: bTopoKahn(labels, edges) }; },
       inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b (ориент.)" }],
+      presets: [
+        { label: "есть цикл", set: { "data-nodes": "A,B,C,D", "data-edges": "A-B,B-C,C-A,C-D" }, hint: "Очередь пустеет раньше, чем сняты все вершины: порядка нет" },
+        { label: "без рёбер", set: { "data-nodes": "A,B,C", "data-edges": "" }, hint: "Любой порядок верен — все сразу в очереди" },
+        { label: "цепочка", set: { "data-nodes": "A,B,C,D", "data-edges": "A-B,B-C,C-D" }, hint: "Единственный порядок" }
+      ],
       values: function (ctx) { return ctx.labels; },
       title: function () { return "Топологическая сортировка (Кан)"; },
       legend: [{ cls: "current", label: "убираем сейчас" }, { cls: "visited", label: "уже в порядке" }, { cls: "ready", label: "в очереди (in:0, готова)" }, { cls: "idle", label: "ждёт (in>0)" }, { cls: "goneln", label: "ребро снято" }],
@@ -13150,6 +13275,11 @@
       rules: [{ head: "Перебираем монеты", body: "для каждой суммы a", cls: "lt" }, { head: "dp[a−c]+1 < best", body: "→ обновляем best", cls: "eq" }, { head: "dp[a] = best", body: "минимум монет на a", cls: "gt" }],
       parse: function (root) { var coins = nums(root.getAttribute("data-coins")); var amount = parseInt(root.getAttribute("data-amount"), 10); return { coins: coins, amount: amount, steps: bDpCoins(coins, amount) }; },
       inputs: [{ attr: "data-coins", label: "Монеты" }, { attr: "data-amount", label: "сумма", sm: true }],
+      presets: [
+        { label: "сдачу не дать", set: { "data-coins": "2", "data-amount": "3" }, hint: "Нечётную сумму двойками не набрать — ответ −1" },
+        { label: "сумма 0", set: { "data-coins": "1,2", "data-amount": "0" }, hint: "Ноль монет — база ДП" },
+        { label: "одна монета", set: { "data-coins": "5", "data-amount": "10" }, hint: "Одна номинация" }
+      ],
       values: function (ctx) { return ctx.steps[0].values; },
       title: function (ctx) { return "Coin Change: минимум монет на " + ctx.amount; },
       param: function (ctx) { return { label: "Сумма", value: ctx.amount }; },
@@ -14251,6 +14381,37 @@
       runBtn.onclick = rerun;
       editRow.appendChild(runBtn);
       cArr.appendChild(editRow);
+      // Пресеты граничных случаев (cfg.presets): готовые входы, на которых живут баги —
+      // «нет пересечений», «перекрёст скобок», «все равны». Пресет задаёт ВСЕ поля типа
+      // (иначе «другой target» применялся бы к массиву от прошлого пресета; держит
+      // check-viz.js). Первая кнопка возвращает пример главы: он запоминается на узле при
+      // первой отрисовке и переживает перезапуски — rerun() строит виджет на том же root.
+      if (cfg.presets) {
+        if (!root.__algoOrig) {
+          root.__algoOrig = {};
+          inputs.forEach(function (o) { root.__algoOrig[o.attr] = root.getAttribute(o.attr) || ""; });
+        }
+        var chips = [{ label: "пример главы", set: root.__algoOrig, hint: "Вход, с которым виджет стоит в главе" }].concat(cfg.presets);
+        var pr = mkEl("div", "algo-tp__presets");
+        pr.setAttribute("role", "group");
+        pr.setAttribute("aria-label", "Граничные случаи");
+        pr.appendChild(mkEl("span", "algo-tp__presetlab", "Граничные случаи:"));
+        chips.forEach(function (p) {
+          var btn = mkEl("button", "algo-tp__preset", p.label); btn.type = "button";
+          if (p.hint) btn.title = p.hint;
+          var on = inputs.every(function (o) { return (root.getAttribute(o.attr) || "") === (p.set[o.attr] || ""); });
+          if (on) { btn.classList.add("algo-tp__preset--on"); btn.setAttribute("aria-pressed", "true"); }
+          btn.onclick = function () {
+            inputs.forEach(function (o) { o.inp.value = p.set[o.attr] || ""; });
+            root.__algoFocusPreset = p.label; // кнопка пересоздаётся — вернём на неё фокус клавиатуры
+            rerun();
+          };
+          pr.appendChild(btn);
+          // focus() на ещё не вставленной в документ кнопке молча не срабатывает — после вставки
+          if (root.__algoFocusPreset === p.label) { root.__algoFocusPreset = null; setTimeout(function () { btn.focus({ preventScroll: true }); }, 0); }
+        });
+        cArr.appendChild(pr);
+      }
     }
     if (inputs.length || values.length) top.appendChild(cArr);
 
