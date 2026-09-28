@@ -917,15 +917,19 @@
     ],
     "rabin-karp": [
       "func rabinKarp(text, pat string) []int {",
+      "    const base, mod = 256, 113 // в главе mod = 1_000_000_007",
       "    m := len(pat)",
-      "    ph := hash(pat)               // хеш образца",
-      "    wh := hash(text[:m])          // хеш первого окна",
+      "    power := pow(base, m-1) % mod // вес старшего символа",
+      "    ph, wh := hash(pat), hash(text[:m])",
       "    var res []int",
       "    for i := 0; i+m <= len(text); i++ {",
       "        if wh == ph && text[i:i+m] == pat {",
-      "            res = append(res, i)  // хеши И строки совпали",
+      "            res = append(res, i)",
       "        }",
-      "        wh = roll(wh, text, i, m) // сдвиг окна за O(1)",
+      "        if i+m < len(text) { // сдвиг окна за O(1)",
+      "            remove := int(text[i]) * power % mod",
+      "            wh = ((wh-remove+mod)*base + int(text[i+m])) % mod",
+      "        }",
       "    }",
       "    return res",
       "}"
@@ -6385,23 +6389,37 @@
   // Rabin — Karp — поиск подстроки по хешам. Ячейки = текст; окно [lo,hi] скользит.
   // Сравниваем хеш окна с хешем образца; при совпадении хешей проверяем строки
   // (защита от коллизий). В среднем O(n+m) — хеш окна пересчитывается за O(1).
+  // Скользящий хеш — как в коде главы (base 256), но с маленьким модулем 113: хеши
+  // читаются, и на примере главы есть честная коллизия (окно «raca»). Раньше хеш каждого
+  // окна считался заново, а подпись обещала «сдвиг за O(1)» — самого сдвига не было.
   function bRabinKarp(text, pat) {
-    var n = text.length, m = pat.length, steps = [], res = [];
-    var B = 131, MOD = 1000000007, ps = pat.join("");
-    function hashOf(str) { var h = 0; for (var i = 0; i < str.length; i++) { h = (h * B + str.charCodeAt(i)) % MOD; } return h; }
-    var pHash = hashOf(ps);
-    function vv(i, wh) { return { i: (i == null ? "—" : i), "хеш образца": pHash, "хеш окна": (wh == null ? "—" : wh), "найдено": res.length }; }
+    var n = text.length, m = pat.length, steps = [], res = [], B = 256, MOD = 113;
+    function code(ch) { return ch.charCodeAt(0); }
+    function vv(i, wh, extra) { var v = { i: (i == null ? "—" : i), "хеш образца": ph == null ? "—" : ph, "хеш окна": (wh == null ? "—" : wh), "найдено": res.length }; for (var k in extra) v[k] = extra[k]; return v; }
+    var ph = null;
     if (!m || m > n) return [{ values: text.slice(), lo: -1, hi: -1, done: true, line: 0, vars: vv(), info: "Пустой или слишком длинный образец" }];
     function snap(extra) { var o = { values: text.slice(), lo: -1, hi: -1 }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    var power = 1; for (var q = 0; q < m - 1; q++) power = power * B % MOD;
+    steps.push(snap({ line: 3, vars: vv(null, null), info: "power = 256^" + (m - 1) + " mod 113 = " + power + " — вес старшего (уходящего) символа окна" }));
+    ph = 0; var wh = 0;
+    for (var c = 0; c < m; c++) { ph = (ph * B + code(pat[c])) % MOD; wh = (wh * B + code(text[c])) % MOD; }
+    steps.push(snap({ lo: 0, hi: m - 1, line: 4, vars: vv(0, wh), info: "хеш образца «" + pat.join("") + "» = " + ph + ", хеш первого окна «" + text.slice(0, m).join("") + "» = " + wh + " — это единственный раз, когда окно считается целиком" }));
     for (var i = 0; i + m <= n; i++) {
-      var win = text.slice(i, i + m).join(""), wHash = hashOf(win), hm = wHash === pHash;
-      steps.push(snap({ lo: i, hi: i + m - 1, match: hm, line: 6, vars: vv(i, wHash), info: "окно [" + i + ".." + (i + m - 1) + "] хеш=" + wHash + (hm ? " == " : " ≠ ") + "хеш образца=" + pHash + (hm ? " → проверяем строки" : " → сдвиг за O(1)") }));
+      var hm = wh === ph;
+      steps.push(snap({ lo: i, hi: i + m - 1, match: hm, line: 7, vars: vv(i, wh), note: hm ? "Хеши равны — сравниваем строки" : "Хеши разные — строки даже не сравниваем", info: "окно [" + i + ".." + (i + m - 1) + "]: хеш " + wh + (hm ? " == " : " ≠ ") + ph + (hm ? " → сравниваем строки посимвольно" : " → точно не вхождение") }));
       if (hm) {
-        if (win === ps) { res.push(i); steps.push(snap({ lo: i, hi: i + m - 1, improved: true, line: 7, vars: vv(i, wHash), info: "хеши совпали И строки равны → вхождение на позиции " + i + "!" })); }
-        else { steps.push(snap({ lo: i, hi: i + m - 1, line: 7, vars: vv(i, wHash), info: "хеши совпали, но строки разные — ложная тревога (коллизия), пропускаем" })); }
+        var win = text.slice(i, i + m).join("");
+        if (win === pat.join("")) { res.push(i); steps.push(snap({ lo: i, hi: i + m - 1, improved: true, line: 8, vars: vv(i, wh), info: "«" + win + "» == «" + pat.join("") + "» → вхождение на позиции " + i }));
+        } else steps.push(snap({ lo: i, hi: i + m - 1, spurious: true, line: 7, note: "Хеши равны, строки нет — коллизия", vars: vv(i, wh), info: "«" + win + "» ≠ «" + pat.join("") + "»: хеши совпали случайно (коллизия по модулю 113) — ложная тревога. Ради неё и нужна посимвольная проверка" }));
+      }
+      if (i + m < n) {
+        var out = code(text[i]), inn = code(text[i + m]), remove = out * power % MOD, nw = ((wh - remove + MOD) * B + inn) % MOD;
+        steps.push(snap({ lo: i, hi: i + m - 1, gone: i, line: 11, vars: vv(i, wh, { remove: remove }), info: "уходит '" + text[i] + "' (" + out + "): remove = " + out + "·" + power + " mod 113 = " + remove }));
+        steps.push(snap({ lo: i + 1, hi: i + m, gone: i, added: i + m, line: 12, vars: vv(i, nw, { remove: remove }), info: "приходит '" + text[i + m] + "' (" + inn + "): wh = ((" + wh + " − " + remove + " + 113)·256 + " + inn + ") mod 113 = " + nw + " — три операции вместо пересчёта всего окна" }));
+        wh = nw;
       }
     }
-    steps.push(snap({ lo: -1, hi: -1, done: true, found: res.length > 0, line: 11, vars: vv(), info: "return [" + res.join(", ") + "] — все вхождения, в среднем O(n + m)" }));
+    steps.push(snap({ lo: -1, hi: -1, done: true, found: res.length > 0, line: 15, vars: vv(null, null), info: "return [" + res.join(", ") + "] — все вхождения, в среднем O(n + m)" }));
     return steps;
   }
 
@@ -10571,21 +10589,21 @@
       valuesLabel: "Текст", codeKey: "rabin-karp", fillRange: true,
       ptr1: { name: "i", cap: "(начало окна)" }, ptr2: { name: "i+m−1", cap: "(конец окна)" },
       complexity: { time: "O(n + m) в ср.", space: "O(1)", good: "★ Хеш окна за O(1) на сдвиг" },
-      varOrder: ["i", "хеш образца", "хеш окна", "найдено"],
-      varDesc: { i: "Начало окна", "хеш образца": "Полиномиальный хеш pat", "хеш окна": "Хеш текущего окна", "найдено": "Найдено вхождений" },
-      lineNotes: { 2: "Хеш образца — считаем один раз", 3: "Хеш первого окна текста", 5: "Скользим окном по тексту", 6: "Хеши равны И строки равны → вхождение", 7: "Записываем позицию вхождения", 9: "Пересчитываем хеш окна за O(1) (rolling)", 11: "Возвращаем все позиции" },
+      varOrder: ["i", "хеш образца", "хеш окна", "remove", "найдено"],
+      varDesc: { i: "Начало окна", "хеш образца": "Полиномиальный хеш pat", "хеш окна": "Хеш текущего окна", "найдено": "Найдено вхождений", remove: "Вклад уходящего символа" },
+      lineNotes: { 1: "Маленький модуль — только для наглядности", 3: "Вес уходящего символа: base^(m−1)", 4: "Хеши образца и первого окна — один раз", 6: "Скользим окном по тексту", 7: "Хеши равны И строки равны → вхождение", 8: "Записываем позицию вхождения", 11: "Вклад уходящего символа", 12: "Новый хеш окна за O(1): −старый, ·base, +новый", 15: "Все позиции вхождений" },
       rules: [{ head: "хеши разные", body: "→ точно не вхождение, сдвиг", cls: "gt" }, { head: "хеши равны", body: "→ проверяем строки (коллизия?)", cls: "lt" }, { head: "rolling", body: "хеш окна за O(1)", cls: "eq" }],
       parse: function (root) { var text = (root.getAttribute("data-text") || "").split(""); var pat = (root.getAttribute("data-pattern") || "").split(""); return { text: text, pat: pat, steps: bRabinKarp(text, pat) }; },
       inputs: [{ attr: "data-text", label: "Текст" }, { attr: "data-pattern", label: "Образец" }],
       values: function (ctx) { return ctx.text; },
       title: function (ctx) { return "Rabin — Karp: поиск «" + ctx.pat.join("") + "»"; },
-      cellState: function (s, j) { if (s.improved && j >= s.lo && j <= s.hi) return { found: true }; var o = {}; if (j === s.lo && s.lo >= 0) o.lo = true; if (j === s.hi && s.hi >= 0) o.hi = true; if (s.lo >= 0 && j > s.lo && j < s.hi) o.span = true; return o; },
+      cellState: function (s, j) { if (s.improved && j >= s.lo && j <= s.hi) return { found: true }; var o = { out: j === s.gone, mid: j === s.added }; if (j === s.lo && s.lo >= 0) o.lo = true; if (j === s.hi && s.hi >= 0) o.hi = true; if (s.lo >= 0 && j > s.lo && j < s.hi) o.span = true; return o; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
       sumCells: ["хеш окна", "хеш образца", "найдено"],
       sumValues: function (s) { return [{ text: s.vars["хеш окна"], cls: (s.match ? "eq" : "") }, { text: s.vars["хеш образца"] }, { text: s.vars["найдено"], cls: "gt" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: s.found ? "ok" : "end", icon: s.found ? "✓" : "∅", head: "Вхождений: " + s.vars["найдено"], text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { return { a: "i=" + s.vars.i, b: "хеш " + s.vars["хеш окна"], c: s.improved ? "вхождение!" : (s.match ? "хеши=" : "·"), cls: s.improved ? "eq" : (s.match ? "lt" : "gt") }; },
-      varsOf: function (s) { return { i: s.vars.i, "хеш образца": s.vars["хеш образца"], "хеш окна": s.vars["хеш окна"], "найдено": s.vars["найдено"] }; }
+      stepCard: function (s) { return { a: "i=" + s.vars.i, b: "хеш " + s.vars["хеш окна"], c: s.improved ? "вхождение!" : s.spurious ? "коллизия" : (s.match ? "хеши=" : "·"), cls: s.improved ? "eq" : (s.match ? "lt" : "gt") }; },
+      varsOf: function (s) { return { i: s.vars.i, "хеш образца": s.vars["хеш образца"], "хеш окна": s.vars["хеш окна"], remove: s.vars.remove == null ? "—" : s.vars.remove, "найдено": s.vars["найдено"] }; }
     },
 
     "ring-buffer": {
