@@ -5911,9 +5911,9 @@
         steps.push(snap({ line: 7, vars: { p: p + "…" + n, m: "—", primes: cnt }, info: "Цикл по p доходит до " + n + ", но только добавляет в список: " + rest.join(", ") + " → простые" }));
         break;
       }
-      steps.push(snap({ lo: idxOf[p], line: 3, vars: { p: p, m: "—", primes: cnt }, info: "p = " + p + ": смотрим, вычеркнуто ли" }));
+      steps.push(snap({ lo: idxOf[p], line: 4, vars: { p: p, m: "—", primes: cnt }, info: "p = " + p + ": смотрим, вычеркнуто ли" }));
       if (st[idxOf[p]] === 2) {
-        steps.push(snap({ lo: idxOf[p], line: 4, vars: { p: p, m: "—", primes: cnt }, info: p + " уже вычеркнуто → составное, пропускаем" }));
+        steps.push(snap({ lo: idxOf[p], line: 5, vars: { p: p, m: "—", primes: cnt }, info: p + " уже вычеркнуто → составное, пропускаем" }));
         continue;
       }
       st[idxOf[p]] = 1; cnt++;
@@ -6577,10 +6577,12 @@
     var chain = [], x = modexp(a, d, n);
     chain.push(x);
     for (var i = 0; i < s - 1; i++) { x = x * x % n; chain.push(x); }
-    var target = n - 1, st = new Array(chain.length).fill(0), steps = [];
-    function snap(extra) { var o = { values: chain.slice(), st: st.slice(), lo: -1, hi: -1 }; for (var k in extra) { o[k] = extra[k]; } return o; }
-    steps.push(snap({ line: 1, vars: { a: a, x: "—", target: target }, info: "n−1 = " + d + "·2^" + s + "; проверяем свидетеля a = " + a }));
-    var first = chain[0];
+    // known — сколько членов уже посчитано: остальные «?», иначе итоговая 1 была видна
+    // с первого шага и ответ читался раньше, чем алгоритм до него доходил
+    var target = n - 1, st = new Array(chain.length).fill(0), steps = [], known = -1;
+    function snap(extra) { var o = { values: chain.map(function (v, i) { return i <= known ? v : "?"; }), st: st.slice(), lo: -1, hi: -1 }; for (var k in extra) { o[k] = extra[k]; } return o; }
+    steps.push(snap({ line: 1, vars: { a: a, x: "—", target: target }, info: "n−1 = " + d + "·2^" + s + "; проверяем свидетеля a = " + a + ". Цепочка — " + s + " " + ruPlural(s, "член", "члена", "членов") + ": a^d и s−1 квадратов" }));
+    var first = chain[0]; known = 0;
     steps.push(snap({ lo: 0, line: 3, vars: { a: a, x: first, target: target }, info: "x = " + a + "^" + d + " mod " + n + " = " + first }));
     if (first === 1 || first === target) {
       st[0] = 1;
@@ -6589,7 +6591,7 @@
     }
     for (var j = 1; j < chain.length; j++) {
       var v = chain[j];
-      st[j - 1] = 2;
+      st[j - 1] = 2; known = j;
       if (v === target) {
         st[j] = 1;
         steps.push(snap({ done: true, pass: true, lo: j, line: 9, vars: { a: a, x: v, target: target }, info: "x² = n−1 = " + target + " (≡ −1): следующий квадрат даст 1 «честно», как у простого → свидетель " + a + " НЕ уличает: " + n + " может быть простым" }));
@@ -6597,11 +6599,11 @@
       }
       // Приход к 1 из x ≠ ±1 — и есть суть теста: нашли нетривиальный корень из единицы.
       var prev = chain[j - 1], root1 = v === 1;
+      if (root1) st[j - 1] = 4; // x ≠ ±1, чей квадрат 1, — улика
       steps.push(snap({ lo: j, line: 8, improved: root1, vars: { a: a, x: v, target: target },
         info: root1 ? prev + "² mod " + n + " = 1, а " + prev + " ≠ ±1 — нетривиальный корень из единицы. У простого n корни из 1 только ±1, значит " + n + " составное"
                     : "x = " + prev + "² mod " + n + " = " + v }));
     }
-    st[chain.length - 1] = 3;
     steps.push(snap({ done: true, composite: true, lo: chain.length - 1, line: 11, vars: { a: a, x: chain[chain.length - 1], target: target }, info: (chain.indexOf(1) > 0
         ? "Цепочка пришла к 1 через " + chain[chain.indexOf(1) - 1] + " ≠ ±1, минуя n−1 = " + target + " → свидетель " + a + " УЛИЧАЕТ: " + n + " составное (тест Ферма " + a + "^" + target + " ≡ 1 это число обманывает)"
         : "Цепочка так и не дошла ни до n−1, ни до 1: " + a + "^" + target + " mod " + n + " ≠ 1 — не проходит даже тест Ферма → " + n + " составное") }));
@@ -10523,8 +10525,8 @@
       complexity: { time: "O(n log log n)", space: "O(n)", good: "★ Всех простых до n" },
       varOrder: ["p", "m", "primes"],
       varDesc: { p: "Текущий кандидат", m: "Вычёркиваемое кратное", primes: "Найдено простых" },
-      lineNotes: { 0: "Решето простых в [2, n]", 3: "Перебираем кандидатов p от 2 до n", 4: "p уже вычеркнуто (составное)?", 7: "p не вычеркнуто → простое, добавляем", 8: "Вычёркиваем кратные p, начиная с p·p", 12: "Остались только простые числа" },
-      rules: [{ head: "не вычеркнуто", body: "→ p простое", cls: "gt" }, { head: "кратные p", body: "→ составные (с p·p)", cls: "lt" }, { head: "p·p > n", body: "→ вычёркивать нечего, остальные простые", cls: "eq" }],
+      lineNotes: { 0: "Решето простых в [2, n]", 3: "Перебираем кандидатов p от 2 до n", 4: "p уже вычеркнуто (составное)?", 5: "Составное — к следующему p", 7: "p не вычеркнуто → простое, добавляем", 8: "Вычёркиваем кратные p, начиная с p·p", 12: "Остались только простые числа" },
+      rules: [{ head: "не вычеркнуто", body: "→ p простое", cls: "eq" }, { head: "кратные p", body: "→ составные (с p·p)", cls: "gt" }, { head: "p·p > n", body: "→ вычёркивать нечего, остальные простые", cls: "lt" }],
       parse: function (root) { var n = parseInt(root.getAttribute("data-n"), 10); if (isNaN(n)) n = 30; return { n: n, steps: bSieve(n) }; },
       inputs: [{ attr: "data-n", label: "n" }],
       values: function () { return []; },
@@ -10927,7 +10929,8 @@
       inputs: [{ attr: "data-n", label: "n" }, { attr: "data-a", label: "свидетель a" }],
       values: function (ctx) { return bMillerRabin(ctx.n, ctx.a)[0].values; },
       title: function (ctx) { return "Миллер — Рабин: n = " + ctx.n + ", свидетель a = " + ctx.a; },
-      cellState: function (s, j) { if (s.st[j] === 1) return { found: true }; if (s.st[j] === 3) return { mid: true }; var o = {}; if (s.st[j] === 2) o.dim = true; if (j === s.lo && s.lo >= 0) o.lo = true; return o; },
+      cellState: function (s, j) { if (s.st[j] === 1) return { found: true }; if (s.st[j] === 4) return { mid: true }; var o = {}; if (s.st[j] === 2 || s.values[j] === "?") o.dim = true; if (j === s.lo && s.lo >= 0) { o.lo = true; o.dim = false; } return o; },
+      legend: [{ cls: "tcur", label: "текущий x" }, { cls: "mrroot", label: "x ≠ ±1, но x² = 1 — улика: составное" }, { cls: "tvis", label: "1 или n−1 — свидетель не уличает" }],
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
       sumCells: ["x", "цель n−1"],
       sumValues: function (s) { return [{ text: s.vars.x }, { text: s.vars.target, cls: "eq" }]; },

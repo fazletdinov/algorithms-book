@@ -1524,7 +1524,7 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--tvis { background: var(--tp-ok); border-color: var(--tp-ok); }
 .algo-tp__legdot--dead { background: color-mix(in srgb, var(--fg) 25%, transparent); border-style: dashed; }
 /* решето Эратосфена: таблица по 10 в ряд */
-.algo-tp__sieve { display: grid; grid-template-columns: repeat(10, minmax(2.1em, 1fr)); gap: 4px; max-width: 30em; margin: 0.4em auto; }
+.algo-tp__sieve { display: grid; grid-template-columns: repeat(10, minmax(1.55em, 1fr)); gap: 3px; max-width: 30em; margin: 0.4em auto; }
 .algo-tp__sievecell { display: flex; align-items: center; justify-content: center; height: 2.2em; border-radius: 7px; font-weight: 700; font-variant-numeric: tabular-nums; border: 2px solid var(--tp-border); background: color-mix(in srgb, var(--fg) 8%, transparent); transition: background-color .15s, opacity .15s; }
 .algo-tp__sievecell--one { opacity: 0.25; }
 .algo-tp__sievecell--prime { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
@@ -1801,3 +1801,5 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__npmore { opacity: 0.6; font-style: italic; }
 /* cfg.wide: визуализация во всю ширину, код и переменные — под ней */
 .algo-tp__main--wide, .algo-tp--fs .algo-tp__main--wide { grid-template-columns: minmax(0, 1fr); }
+/* Миллер — Рабин: нетривиальный корень из единицы (цвет ячейки mid) */
+.algo-tp__legdot--mrroot { outline: 2px solid #e0a500; background: color-mix(in srgb, #e0a500 22%, transparent); border-color: #e0a500; }
