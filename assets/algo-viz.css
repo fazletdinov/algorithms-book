@@ -1179,9 +1179,27 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__hempty { opacity: 0.4; font-style: italic; padding: 0.2em; }
 
 /* Дек: горизонтальный ряд с подписями обоих концов */
-.algo-tp__deque { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0.5em 0 0.8em; }
+.algo-tp__deque { display: flex; flex-wrap: nowrap; align-items: center; gap: 5px; margin: 0.2em 0 0.4em; }
 .algo-tp__dqcell { min-width: 2.1em; padding: 0.32em 0.55em; border: 2px solid var(--tp-surface); border-radius: 9px; background: var(--tp-panel2); color: var(--fg); font-weight: 600; text-align: center; }
 .algo-tp__dqend { opacity: 0.6; font-size: 0.85em; font-weight: 700; padding: 0 4px; }
+/* кольцевой буфер дека: физические ячейки с индексами, head/tail под ними */
+.algo-tp__dqwrap { display: flex; flex-direction: column; gap: 0.45em; margin: 0.3em 0 0.6em; }
+.algo-tp__dqcap { font-size: 0.82em; opacity: 0.75; }
+.algo-tp__dqring { display: grid; gap: 0.4em; justify-content: start; }
+.algo-tp__dqslot { display: flex; flex-direction: column; align-items: stretch; gap: 0.2em; }
+.algo-tp__dqidx { text-align: center; font-size: 0.72em; opacity: 0.6; }
+.algo-tp__dqtags { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 2.9em; }
+.algo-tp__dqtags .algo-tp__pill { font-size: 0.72em; }
+.algo-tp__dqwrapnote { font-size: 0.8em; opacity: 0.65; }
+.algo-tp__dqcell--empty { opacity: 0.35; font-weight: 400; }
+.algo-tp__dqcell--stale { opacity: 0.4; border-style: dashed; text-decoration: line-through; }
+.algo-tp__dqcell--calc { outline: 3px dashed var(--tp-lo); outline-offset: 2px; }
+.algo-tp__dqcell--created { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; opacity: 1; text-decoration: none; border-style: solid; }
+.algo-tp__dqcell--removed { background: color-mix(in srgb, var(--tp-warn) 35%, transparent); border-color: var(--tp-warn); opacity: 1; text-decoration: line-through; text-decoration-thickness: 2px; }
+.algo-tp__legdot--dqcalc { background: transparent; border: 2px dashed var(--tp-lo); }
+.algo-tp__legdot--dqnew { background: var(--tp-ok); border-color: var(--tp-ok); }
+.algo-tp__legdot--dqout { background: color-mix(in srgb, var(--tp-warn) 35%, transparent); border-color: var(--tp-warn); }
+.algo-tp__legdot--dqstale { background: transparent; border: 2px dashed var(--tp-border); opacity: 0.6; }
 
 /* Sparse table: 2D-таблица (строки k, столбцы i) */
 .algo-tp__sparse { margin: 0.6em 0 0.8em; overflow-x: auto; }

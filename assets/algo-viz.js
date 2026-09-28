@@ -1972,11 +1972,32 @@
       "}"
     ],
     "deque-ops": [
-      "// двусторонняя очередь (deque): вставка/удаление с обоих концов",
-      "func (d *Deque) PushBack(x int)  { d.data = append(d.data, x) }",
-      "func (d *Deque) PushFront(x int) { d.data = append([]int{x}, d.data...) }",
-      "func (d *Deque) PopBack() int    { n := len(d.data)-1; x := d.data[n]; d.data = d.data[:n]; return x }",
-      "func (d *Deque) PopFront() int   { x := d.data[0]; d.data = d.data[1:]; return x }"
+      "func (d *Deque) PushBack(x int) {",
+      "    if d.size == len(d.data) { d.grow() }",
+      "    tail := (d.head + d.size) % len(d.data)",
+      "    d.data[tail] = x",
+      "    d.size++",
+      "}",
+      "func (d *Deque) PushFront(x int) {",
+      "    if d.size == len(d.data) { d.grow() }",
+      "    n := len(d.data)",
+      "    d.head = (d.head - 1 + n) % n",
+      "    d.data[d.head] = x",
+      "    d.size++",
+      "}",
+      "func (d *Deque) PopBack() (int, bool) {",
+      "    if d.size == 0 { return 0, false }",
+      "    x := d.data[(d.head+d.size-1)%len(d.data)]",
+      "    d.size-- // ячейку не стираем",
+      "    return x, true",
+      "}",
+      "func (d *Deque) PopFront() (int, bool) {",
+      "    if d.size == 0 { return 0, false }",
+      "    x := d.data[d.head]",
+      "    d.head = (d.head + 1) % len(d.data)",
+      "    d.size--",
+      "    return x, true",
+      "}"
     ],
     "sparse-build": [
       "func buildSparse(arr []int) {",
@@ -3035,34 +3056,87 @@
     return { steps: steps };
   }
 
-  // ===== Дек (deque): вставка/удаление с обоих концов =========================
-  // Один виджет проигрывает последовательность операций; dequeViz рисует горизонтальный
-  // ряд с подписями «перёд»/«зад», снимок s.seq пересобирается каждый шаг.
+  // ===== Дек (deque): кольцевой буфер ==========================================
+  // Виджет проигрывает операции на том же кольце, что эталон тренажёра
+  // (exercises/deque): физические ячейки 0..cap−1, head/size, tail = (head+size) % cap.
+  // Логический ряд «перёд … зад» — производная от кольца, рисуется под ним: так видно,
+  // что PushFront не сдвигает ни одного элемента, а заворачивает head через границу.
   function dequeViz(panel) {
-    var host = mkEl("div", "algo-tp__deque"); panel.appendChild(host);
+    var host = mkEl("div", "algo-tp__dqwrap"); panel.appendChild(host);
     return function (s) {
       host.innerHTML = "";
-      var seq = s.seq || [];
-      host.appendChild(mkEl("div", "algo-tp__dqend", "◀ перёд"));
-      if (!seq.length) host.appendChild(mkEl("div", "algo-tp__llnil", "∅"));
-      else seq.forEach(function (e) { host.appendChild(mkEl("div", "algo-tp__dqcell" + (e.cls ? " algo-tp__tnode--" + e.cls : ""), e.val)); });
-      host.appendChild(mkEl("div", "algo-tp__dqend", "зад ▶"));
+      var cap = s.cap, live = {};
+      for (var k = 0; k < s.size; k++) live[(s.head + k) % cap] = k;
+      host.appendChild(mkEl("div", "algo-tp__dqcap", "data — массив на " + cap + " " + ruPlural(cap, "ячейку", "ячейки", "ячеек") + (s.grew ? " (удвоен)" : "") + "; живые — от head по кругу, size штук"));
+      var ring = mkEl("div", "algo-tp__dqring"); ring.style.gridTemplateColumns = "repeat(" + cap + ", minmax(2.2em, 3.2em))";
+      for (var i = 0; i < cap; i++) {
+        var col = mkEl("div", "algo-tp__dqslot");
+        col.appendChild(mkEl("div", "algo-tp__dqidx", i));
+        var isLive = i in live, v = s.data[i];
+        var cls = "algo-tp__dqcell" + (isLive ? "" : v == null ? " algo-tp__dqcell--empty" : " algo-tp__dqcell--stale");
+        if (s.mark && s.mark.i === i) cls += " algo-tp__dqcell--" + s.mark.cls;
+        col.appendChild(mkEl("div", cls, v == null ? "·" : String(v)));
+        var tags = mkEl("div", "algo-tp__dqtags");
+        if (i === s.head) tags.appendChild(mkEl("span", "algo-tp__pill algo-tp__pill--lo", "head"));
+        if (i === (s.head + s.size) % cap) tags.appendChild(mkEl("span", "algo-tp__pill algo-tp__pill--hi", "tail"));
+        col.appendChild(tags);
+        ring.appendChild(col);
+      }
+      host.appendChild(ring);
+      host.appendChild(mkEl("div", "algo-tp__dqwrapnote", "↻ за ячейкой " + (cap - 1) + " снова идёт 0 — индексы по модулю " + cap));
+      var row = mkEl("div", "algo-tp__deque");
+      row.appendChild(mkEl("div", "algo-tp__dqend", "◀ перёд"));
+      if (!s.size) row.appendChild(mkEl("div", "algo-tp__llnil", "∅"));
+      for (var j = 0; j < s.size; j++) { var pi = (s.head + j) % cap; row.appendChild(mkEl("div", "algo-tp__dqcell algo-tp__dqcell--log" + (s.mark && s.mark.i === pi && s.mark.cls !== "calc" ? " algo-tp__dqcell--" + s.mark.cls : ""), String(s.data[pi]))); }
+      row.appendChild(mkEl("div", "algo-tp__dqend", "зад ▶"));
+      host.appendChild(mkEl("div", "algo-tp__dqcap", "логически (как видит пользователь):"));
+      host.appendChild(row);
     };
   }
   function bDeque(ops) {
-    var dq = [], steps = [];
-    function seqOf(marks) { return dq.map(function (v, i) { return { val: v, cls: (marks && marks[i]) || "" }; }); }
-    function push(o) { steps.push({ si: steps.length, line: o.line, seq: o.seq, vars: { op: (o.op || "—"), val: (o.val == null ? "—" : String(o.val)) }, info: o.info, done: o.done }); }
-    push({ line: 0, seq: seqOf({}), op: "старт", info: "дек пуст — применяем операции" });
+    var cap = 4, data = new Array(cap).fill(null), head = 0, size = 0, steps = [], grew = false;
+    function tail() { return (head + size) % cap; }
+    function push(o) {
+      steps.push({ line: o.line, cap: cap, data: data.slice(), head: head, size: size, grew: grew, mark: o.mark || null, warn: !!o.warn, done: !!o.done, bad: !!o.bad,
+        vars: { op: o.op || "—", x: o.x == null ? "—" : String(o.x), head: head, size: size, tail: tail(), cap: cap }, info: o.info });
+    }
+    function grow(op, line) {
+      var bigger = new Array(cap * 2).fill(null);
+      for (var i = 0; i < size; i++) bigger[i] = data[(head + i) % cap];
+      data = bigger; cap *= 2; head = 0; grew = true;
+      push({ line: line, op: op, info: "size = " + size + " = len(data): буфер полон → grow: новый массив на " + cap + ", элементы переложены по порядку с нуля, head = 0 (единственное O(n), редкое — амортизированно O(1))" });
+    }
+    push({ line: -1, op: "старт", info: "Кольцо на " + cap + " ячейки: head = 0, size = 0. Пусто" });
     ops.forEach(function (tok) {
       tok = tok.trim(); if (!tok) return;
-      var c = tok[0];
-      if (c === "b") { var v = parseInt(tok.slice(1), 10); dq.push(v); var m = {}; m[dq.length - 1] = "created"; push({ line: 1, op: "pushBack", val: v, seq: seqOf(m), info: "PushBack(" + v + ") — добавили в конец (зад)" }); }
-      else if (c === "f") { var w = parseInt(tok.slice(1), 10); dq.unshift(w); var mf = {}; mf[0] = "created"; push({ line: 2, op: "pushFront", val: w, seq: seqOf(mf), info: "PushFront(" + w + ") — добавили в начало (перёд)" }); }
-      else if (c === "B") { if (dq.length) { var rb = {}; rb[dq.length - 1] = "removed"; push({ line: 3, op: "popBack", val: dq[dq.length - 1], seq: seqOf(rb), info: "PopBack() → " + dq[dq.length - 1] + " (сняли с конца)" }); dq.pop(); } }
-      else if (c === "F") { if (dq.length) { var rf = {}; rf[0] = "removed"; push({ line: 4, op: "popFront", val: dq[0], seq: seqOf(rf), info: "PopFront() → " + dq[0] + " (сняли с начала)" }); dq.shift(); } }
+      var c = tok[0], num = parseInt(tok.slice(1), 10);
+      if ((c === "b" || c === "f") && isNaN(num)) { push({ line: -1, op: tok, bad: true, info: "«" + tok + "» — не понял операцию: после b/f нужно число (b5 — PushBack 5, f7 — PushFront 7)" }); return; }
+      if (c === "b") {
+        if (size === cap) grow("PushBack", 1);
+        var t = tail();
+        push({ line: 2, op: "PushBack", x: num, mark: { i: t, cls: "calc" }, info: "PushBack(" + num + "): tail = (head + size) % " + cap + " = (" + head + " + " + size + ") % " + cap + " = " + t });
+        data[t] = num; size++;
+        push({ line: 4, op: "PushBack", x: num, mark: { i: t, cls: "created" }, info: "пишем " + num + " в ячейку " + t + ", size = " + size + ". Ни один элемент не сдвинулся" });
+      } else if (c === "f") {
+        if (size === cap) grow("PushFront", 7);
+        var nh = (head - 1 + cap) % cap;
+        push({ line: 9, op: "PushFront", x: num, mark: { i: nh, cls: "calc" }, info: "PushFront(" + num + "): head = (" + head + " − 1 + " + cap + ") % " + cap + " = " + nh + (head === 0 ? " — перед ячейкой 0 по кругу стоит " + (cap - 1) + ": завернулись через границу" : "") });
+        head = nh; data[head] = num; size++;
+        push({ line: 11, op: "PushFront", x: num, mark: { i: head, cls: "created" }, info: "пишем " + num + " в ячейку " + head + ", size = " + size + ". Остальные остались на своих местах — поэтому O(1), а не сдвиг всего, как на срезе" });
+      } else if (c === "B" || c === "F") {
+        var nm = c === "B" ? "PopBack" : "PopFront";
+        if (!size) { push({ line: c === "B" ? 14 : 20, op: nm, warn: true, info: nm + "() на пустом деке: size = 0 → return 0, false. На срезе из кода главы тут была бы паника index out of range" }); return; }
+        var pi = c === "B" ? (head + size - 1) % cap : head, x = data[pi];
+        push({ line: c === "B" ? 15 : 21, op: nm, x: x, mark: { i: pi, cls: "removed" }, info: nm + "(): x = data[" + (c === "B" ? "(" + head + " + " + size + " − 1) % " + cap : "head") + "] = data[" + pi + "] = " + x });
+        if (c === "F") head = (head + 1) % cap;
+        size--;
+        push({ line: c === "B" ? 16 : 23, op: nm, x: x, mark: { i: pi, cls: "stale" }, info: (c === "F" ? "head сдвигается на " + head + ", " : "") + "size = " + size + " → вернули " + x + ". Ячейка " + pi + " не стирается: " + x + " в ней остался, но в живой отрезок больше не входит" });
+      } else {
+        push({ line: -1, op: tok, bad: true, info: "«" + tok + "» — не понял операцию: b/f с числом, B или F" });
+      }
     });
-    push({ line: 0, seq: seqOf({}), op: "готово", done: true, info: "итог: [" + dq.join(", ") + "]" });
+    var out = []; for (var k = 0; k < size; k++) out.push(data[(head + k) % cap]);
+    push({ line: -1, op: "готово", done: true, info: "итог: [" + out.join(", ") + "], head = " + head + ", size = " + size + ". Каждая операция — пара присваиваний по модулю: O(1) с обоих концов" });
     return { steps: steps };
   }
 
@@ -12673,23 +12747,24 @@
     },
 
     "deque-ops": {
-      badge: "Deque", desc: "Двусторонняя очередь: вставка и удаление с обоих концов. На срезе, как в коде ниже, PushFront копирует весь срез — O(n); кольцевой буфер (глава дальше) делает оба конца за O(1).",
+      badge: "Deque · кольцевой буфер", desc: "Двусторонняя очередь на кольцевом буфере, как в эталоне тренажёра: массив, head и size; индексы идут по модулю ёмкости. PushFront сдвигает head назад по кругу, PushBack пишет в (head + size) % cap — ни один элемент не двигается, оба конца O(1).",
       valuesLabel: "", codeKey: "deque-ops", fillRange: false,
-      complexity: { time: "O(1) сзади · O(n) PushFront на срезе", space: "O(n)", good: "★ Очередь/стек с двух концов" },
-      varOrder: ["op", "val"],
-      varDesc: { "op": "Операция", "val": "Значение" },
-      lineNotes: { 0: "Операции над двусторонней очередью", 1: "PushBack — добавить в конец, амортизированно O(1)", 2: "PushFront на срезе — копия всех n элементов, O(n); кольцевой буфер сдвигает head по модулю за O(1)", 3: "PopBack — снять с конца, O(1)", 4: "PopFront — перешагнуть первый, O(1)" },
-      rules: [{ head: "Push", body: "→ в начало или конец", cls: "gt" }, { head: "Pop", body: "→ с начала или конца", cls: "lt" }, { head: "Оба конца за O(1)", body: "только на кольцевом буфере", cls: "eq" }],
+      complexity: { time: "O(1) оба конца (grow — амортизированно)", space: "O(n)", good: "★ Очередь/стек с двух концов" },
+      varOrder: ["op", "x", "head", "size", "tail", "cap"],
+      varDesc: { op: "Операция", x: "Значение (кладём или вернули)", head: "Индекс первого элемента", size: "Сколько элементов живо", tail: "(head + size) % cap — куда ляжет PushBack", cap: "len(data)" },
+      lineNotes: { 1: "Буфер полон — удваиваем (редко, амортизированно O(1))", 2: "Свободная ячейка за последним — по модулю", 4: "Записали, size вырос; сдвигов нет", 7: "Буфер полон — удваиваем", 9: "head назад по кругу: из 0 — в последнюю ячейку", 11: "Записали в новую голову; сдвигов нет", 14: "Пусто — (0, false) вместо паники", 15: "Последний живой — (head + size − 1) % cap", 16: "size−−: ячейка не стирается, просто выпала из живого отрезка", 20: "Пусто — (0, false) вместо паники", 21: "Первый живой — data[head]", 23: "head вперёд по кругу, size−−" },
+      rules: [{ head: "Push", body: "индекс по модулю, запись, size++", cls: "gt" }, { head: "Pop", body: "чтение, size−− (ячейку не стираем)", cls: "lt" }, { head: "Сдвигов нет", body: "поэтому оба конца O(1)", cls: "eq" }],
+      legend: [{ cls: "dqcalc", label: "считаем индекс" }, { cls: "dqnew", label: "записали" }, { cls: "dqout", label: "снимаем" }, { cls: "dqstale", label: "старое значение вне отрезка" }],
       parse: function (root) { var ops = (root.getAttribute("data-ops") || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean); var r = bDeque(ops); return { ops: ops, steps: r.steps }; },
-      inputs: [{ attr: "data-ops", label: "Операции (b/f/B/F)" }],
+      inputs: [{ attr: "data-ops", label: "Операции: bN — PushBack, fN — PushFront, B — PopBack, F — PopFront" }],
       values: function () { return []; },
-      title: function () { return "Дек: операции с обоих концов"; },
+      title: function () { return "Дек на кольцевом буфере"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
-      sumCells: ["Операция", "Значение"],
-      sumValues: function (s) { return [{ text: s.vars.op }, { text: s.vars.val, cls: "eq" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Операции применены", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { if (s.done) return { a: "готово", b: "", c: "✓", cls: "eq" }; return { a: s.vars.op, b: s.vars.val, c: "·", cls: "lt" }; },
-      varsOf: function (s) { return { "op": s.vars.op, "val": s.vars.val }; },
+      sumCells: ["head · size", "tail"],
+      sumValues: function (s) { return [{ text: s.vars.head + " · " + s.vars.size, cls: "lo" }, { text: s.vars.tail, cls: "hi" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Операции применены", text: s.info }; if (s.warn || s.bad) return { kind: "end", icon: "⚠", head: s.bad ? "Ошибка ввода" : "Пустой дек", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: "", c: "✓", cls: "eq" }; return { a: s.vars.op, b: s.vars.x, c: "head " + s.vars.head, cls: "lt" }; },
+      varsOf: function (s) { return { op: s.vars.op, x: s.vars.x, head: s.vars.head, size: s.vars.size, tail: s.vars.tail, cap: s.vars.cap }; },
       customViz: dequeViz
     },
 
