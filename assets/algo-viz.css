@@ -1547,3 +1547,6 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__splegend .algo-tp__spcell { display: inline-block; min-width: 1.8em; text-align: center; }
 .algo-tp__tnode--curring { outline: 3px solid #e0a500; outline-offset: 2px; }
 .algo-tp__legdot--curring { background: transparent; border: 3px solid #e0a500; }
+/* AVL: высота и баланс под узлом; дисбаланс красным */
+.algo-tp__avlhb { position: absolute; translate: -50% 0; font-size: 0.66em; opacity: 0.8; white-space: nowrap; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
+.algo-tp__avlhb--bad { color: #ef4444; opacity: 1; font-weight: 800; }

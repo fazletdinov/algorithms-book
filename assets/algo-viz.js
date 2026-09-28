@@ -3389,12 +3389,14 @@
       push({ line: 4, tree: bstSnap(root, mb), node: n.val, action: "баланс", info: "узел " + n.val + ": высота " + n.h + ", баланс = " + b + (Math.abs(b) <= 1 ? " (ок)" : " — ДИСБАЛАНС") });
       if (Math.abs(b) <= 1) continue;
       var sub, caseName, ln;
-      if (b > 1) { if (bal(n.left) < 0) { caseName = "LR"; ln = 6; n.left = rotL(n.left); } else { caseName = "LL"; ln = 5; } sub = rotR(n); }
-      else { if (bal(n.right) > 0) { caseName = "RL"; ln = 8; n.right = rotR(n.right); } else { caseName = "RR"; ln = 7; } sub = rotL(n); }
+      // LR/RL — два поворота, и промежуточное дерево показываем отдельным шагом: раньше
+      // «излом» 30 ← 10 → 20 превращался в сбалансированное поддерево за один кадр
+      if (b > 1) { if (bal(n.left) < 0) { caseName = "LR"; ln = 6; var was = n.left.val; n.left = rotL(n.left); var mi = {}; mi[n.left.id] = "found"; push({ line: 6, tree: bstSnap(root, mi), node: n.left.val, action: "LR: поворот 1 из 2", info: "случай LR, шаг 1 из 2: левый поворот вокруг " + was + " — излом выпрямился в цепочку " + n.val + " ← " + n.left.val + " ← " + was + " (теперь это случай LL)" }); } else { caseName = "LL"; ln = 5; } sub = rotR(n); }
+      else { if (bal(n.right) > 0) { caseName = "RL"; ln = 8; var was2 = n.right.val; n.right = rotR(n.right); var mi2 = {}; mi2[n.right.id] = "found"; push({ line: 8, tree: bstSnap(root, mi2), node: n.right.val, action: "RL: поворот 1 из 2", info: "случай RL, шаг 1 из 2: правый поворот вокруг " + was2 + " — излом выпрямился в цепочку " + n.val + " → " + n.right.val + " → " + was2 + " (теперь это случай RR)" }); } else { caseName = "RR"; ln = 7; } sub = rotL(n); }
       var par = stack[s - 1];
       if (!par) root = sub; else if (par.left === n) par.left = sub; else par.right = sub;
       var mr = {}; mr[sub.id] = "found";
-      push({ line: ln, tree: bstSnap(root, mr), node: sub.val, action: "поворот " + caseName, info: "случай " + caseName + ": поворот вокруг " + n.val + " → новый корень поддерева " + sub.val + " (высота снова сбалансирована)" });
+      push({ line: ln, tree: bstSnap(root, mr), node: sub.val, action: "поворот " + caseName, info: "случай " + caseName + ((caseName === "LR" || caseName === "RL") ? ", шаг 2 из 2" : "") + ": " + (caseName[0] === "L" ? "правый" : "левый") + " поворот вокруг " + n.val + " → новый корень поддерева " + sub.val + " (высота снова сбалансирована)" });
       rotated = true; break;
     }
     push({ line: 10, tree: bstSnap(root, {}), node: (root ? root.val : "—"), action: "готово", done: true, info: rotated ? "дерево сбалансировано поворотом, высота O(log n)" : "дерево осталось сбалансированным — поворот не понадобился" });
@@ -3462,15 +3464,15 @@
       push({ line: 10, tree: bstSnap(root, mb), node: n.val, action: "баланс", info: "узел " + n.val + ": высота " + n.h + ", баланс = " + b + (Math.abs(b) <= 1 ? " (ок)" : " — ДИСБАЛАНС, поворот") });
       if (Math.abs(b) <= 1) continue;
       var sub, caseName, ln;
-      if (b > 1) { if (bal(n.left) < 0) { caseName = "LR"; ln = 12; n.left = rotL(n.left); } else { caseName = "LL"; ln = 12; } sub = rotR(n); }
-      else { if (bal(n.right) > 0) { caseName = "RL"; ln = 12; n.right = rotR(n.right); } else { caseName = "RR"; ln = 12; } sub = rotL(n); }
+      if (b > 1) { if (bal(n.left) < 0) { caseName = "LR"; ln = 12; var w1 = n.left.val; n.left = rotL(n.left); var md1 = {}; md1[n.left.id] = "found"; push({ line: 12, tree: bstSnap(root, md1), node: n.left.val, action: "LR: поворот 1 из 2", info: "случай LR, шаг 1 из 2: левый поворот вокруг " + w1 + " — излом выпрямлен, дальше как LL" }); } else { caseName = "LL"; ln = 12; } sub = rotR(n); }
+      else { if (bal(n.right) > 0) { caseName = "RL"; ln = 12; var w2 = n.right.val; n.right = rotR(n.right); var md2 = {}; md2[n.right.id] = "found"; push({ line: 12, tree: bstSnap(root, md2), node: n.right.val, action: "RL: поворот 1 из 2", info: "случай RL, шаг 1 из 2: правый поворот вокруг " + w2 + " — излом выпрямлен, дальше как RR" }); } else { caseName = "RR"; ln = 12; } sub = rotL(n); }
       var par = path[i - 1];
       if (!par) root = sub; else if (par.left === n) par.left = sub; else par.right = sub;
       var mr = {}; mr[sub.id] = "found";
-      push({ line: 12, tree: bstSnap(root, mr), node: sub.val, action: "поворот " + caseName, info: "случай " + caseName + ": поворот вокруг " + n.val + " → корень поддерева " + sub.val + ". Балансируем ДАЛЬШЕ вверх" });
+      push({ line: 12, tree: bstSnap(root, mr), node: sub.val, action: "поворот " + caseName, info: "случай " + caseName + ((caseName === "LR" || caseName === "RL") ? ", шаг 2 из 2" : "") + ": " + (caseName[0] === "L" ? "правый" : "левый") + " поворот вокруг " + n.val + " → корень поддерева " + sub.val + ". Балансируем ДАЛЬШЕ вверх" });
       rotations++;
     }
-    push({ line: 15, tree: bstSnap(root, {}), node: (root ? root.val : "—"), action: "готово", done: true, info: rotations ? (val + " удалён; сбалансировано (" + rotations + " поворот(ов) вверх по пути)") : (val + " удалён; дерево осталось сбалансированным") });
+    push({ line: 15, tree: bstSnap(root, {}), node: (root ? root.val : "—"), action: "готово", done: true, info: rotations ? (val + " удалён; сбалансировано (" + rotations + " " + ruPlural(rotations, "поворот", "поворота", "поворотов") + " вверх по пути)") : (val + " удалён; дерево осталось сбалансированным") });
     return { steps: steps };
   }
 
@@ -8216,7 +8218,9 @@
   function bstSnap(root, marks) {
     var list = [], rank = { n: 0 };
     (function rec(n, d) { if (!n) return; rec(n.left, d + 1); n._r = rank.n++; n._d = d; list.push(n); rec(n.right, d + 1); })(root, 0);
-    var nodes = list.map(function (n) { return { val: n.val, rank: n._r, depth: n._d, cls: (marks && marks[n.id]) || "" }; });
+    // у узлов AVL (есть h) — высота и баланс: инвариант |bal| ≤ 1 должен быть виден на дереве
+    function hh(x) { return x ? (x.h || 0) : 0; }
+    var nodes = list.map(function (n) { return { val: n.val, rank: n._r, depth: n._d, cls: (marks && marks[n.id]) || "", h: n.h, bal: n.h != null ? hh(n.left) - hh(n.right) : null }; });
     var edges = [];
     list.forEach(function (n) { if (n.left) edges.push([n._r, n._d, n.left._r, n.left._d]); if (n.right) edges.push([n._r, n._d, n.right._r, n.right._d]); });
     return { nodes: nodes, edges: edges };
@@ -8230,6 +8234,9 @@
       if (!tr.nodes.length) { host.appendChild(mkEl("div", "algo-tp__llnil", "∅ (пустое дерево)")); return; }
       var maxR = 0, maxD = 0;
       tr.nodes.forEach(function (n) { maxR = Math.max(maxR, n.rank); maxD = Math.max(maxD, n.depth); });
+      // ширина колонки — под панель (36–48px): дерево из 12 узлов при 48px уезжало за край
+      var avail = panel.clientWidth || 0;
+      CW = avail ? Math.max(36, Math.min(48, Math.floor((avail - 12) / (maxR + 1)))) : 48;
       var W = (maxR + 1) * CW, H = (maxD + 1) * CH;
       host.style.position = "relative"; host.style.width = W + "px"; host.style.height = H + "px";
       function cx(r) { return r * CW + CW / 2; }
@@ -8248,6 +8255,10 @@
         var b = mkEl("div", "algo-tp__tnode algo-tp__centered" + (n.cls ? " algo-tp__tnode--" + n.cls : ""), n.val);
         b.style.left = cx(n.rank) + "px"; b.style.top = cy(n.depth) + "px";
         host.appendChild(b);
+        if (n.h != null) {
+          var hb = mkEl("div", "algo-tp__avlhb" + (Math.abs(n.bal) > 1 ? " algo-tp__avlhb--bad" : ""), "h" + n.h + " " + (n.bal > 0 ? "+" : "") + n.bal);
+          hb.style.left = cx(n.rank) + "px"; hb.style.top = (cy(n.depth) + 19) + "px"; host.appendChild(hb);
+        }
       });
     };
   }
