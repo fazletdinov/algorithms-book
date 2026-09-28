@@ -6230,22 +6230,25 @@
     m = Math.max(1, Math.min(100000, m | 0));
     var bits = exp0 > 0 ? exp0.toString(2).split("").map(Number) : [0];
     var nb = bits.length;
-    var st = new Array(nb).fill(0), steps = [];
+    // pw[i] — base^(2^i) mod m, известная к шагу i (так видно связь «бит i ↔ base^(2^i)»:
+    // 65^17 = 65^16 · 65^1 — перемножаются степени при единичных битах)
+    var st = new Array(nb).fill(0), steps = [], pw = [];
     var result = 1 % m, base = ((base0 % m) + m) % m, exp = exp0;
     function snap(extra) {
-      var b = { values: bits.slice(), st: st.slice(), lo: -1, hi: -1 };
+      var b = { values: bits.slice(), st: st.slice(), lo: -1, hi: -1, pw: pw.slice(), base0: base0, m: m };
       for (var k in extra) { b[k] = extra[k]; }
       return b;
     }
     steps.push(snap({ line: 1, vars: { base: base, result: result, bit: "—" }, info: "Старт: result = 1 mod m = " + result + ", base = " + base0 + " mod m = " + base }));
     var idx = nb - 1;
     while (exp > 0) {
-      var bit = exp & 1;
-      steps.push(snap({ lo: idx, line: 4, vars: { base: base, result: result, bit: bit }, info: "Бит " + bit + " (справа): " + (bit ? "нечётный → домножим result на base" : "чётный → result не меняем") }));
+      var bit = exp & 1, pos = nb - 1 - idx;
+      pw[pos] = base;
+      steps.push(snap({ lo: idx, line: 4, vars: { base: base, result: result, bit: bit }, info: "Разряд " + pos + " (вес 2^" + pos + " = " + (1 << pos) + "), бит = " + bit + "; сейчас base = " + base0 + "^" + (1 << pos) + " mod " + m + " = " + base + ": " + (bit ? "бит 1 → домножим result на base" : "бит 0 → result не меняем") }));
       if (bit === 1) {
         result = result * base % m;
         st[idx] = 1;
-        steps.push(snap({ lo: idx, line: 5, vars: { base: base, result: result, bit: bit }, info: "result = result·base mod " + m + " = " + result }));
+        steps.push(snap({ lo: idx, line: 5, vars: { base: base, result: result, bit: bit }, info: "result = result·base mod " + m + " = " + result + " — в результат вошла " + base0 + "^" + (1 << pos) }));
       } else {
         st[idx] = 2;
       }
@@ -10489,6 +10492,20 @@
       values: function (ctx) { return bModExp(ctx.base, ctx.exp, ctx.m)[0].values; },
       title: function (ctx) { return "ModExp: " + ctx.base + "^" + ctx.exp + " mod " + ctx.m; },
       cellState: function (s, j) { var st = {}; if (s.st[j] === 1) st.found = true; else if (s.st[j] === 2) st.dim = true; if (j === s.lo && s.lo >= 0) st.lo = true; return st; },
+      mapViz: function (panel) {
+        var p = structPanel(panel, "разряды exp: вес 2^i и base^(2^i) mod m");
+        return function (s) {
+          p.grid.innerHTML = "";
+          var nb = s.values.length, taken = [];
+          for (var pos = nb - 1; pos >= 0; pos--) {
+            var idx = nb - 1 - pos, known = s.pw[pos] != null, on = s.st[idx] === 1;
+            if (on) taken.push(s.base0 + "^" + (1 << pos));
+            var c = structCell("2^" + pos + "=" + (1 << pos), known ? String(s.pw[pos]) : "·", !known ? "algo-tp__mapcell--off" : on ? "algo-tp__mapcell--on algo-tp__mapcell--add" : idx === s.lo ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : "algo-tp__mapcell--on");
+            p.grid.appendChild(c);
+          }
+          p.foot.textContent = taken.length ? "result = " + taken.reverse().join(" · ") + " (mod " + s.m + ") — степени при единичных битах" : "значение в клетке — base^(2^i) mod m; зелёные идут в result";
+        };
+      },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
       sumCells: ["result", "base"],
       sumValues: function (s) { return [{ text: s.vars.result, cls: "gt" }, { text: s.vars.base, cls: "lt" }]; },
