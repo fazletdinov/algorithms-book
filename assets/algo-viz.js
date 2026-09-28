@@ -3500,7 +3500,8 @@
     if (root.keys.length === BT_MAX) { var s = { id: seq.n++, keys: [], children: [root] }; splitChild(s, 0); rootRef.root = s; root = s; }
     insNonFull(root, k);
   }
-  function btreeSnap(root, marks) {
+  // kmarks[id] = { j: cls } — подсветка отдельных ключей узла (где остановился поиск)
+  function btreeSnap(root, marks, kmarks) {
     var list = [], c = { c: 0 };
     (function rec(n, d) {
       n._d = d;
@@ -3508,7 +3509,7 @@
       else { var xs = []; n.children.forEach(function (ch) { rec(ch, d + 1); xs.push(ch._x); }); n._x = (xs[0] + xs[xs.length - 1]) / 2; }
       list.push(n);
     })(root, 0);
-    var nodes = list.map(function (n) { return { keys: n.keys.slice(), x: n._x, depth: n._d, cls: (marks && marks[n.id]) || "" }; });
+    var nodes = list.map(function (n) { return { keys: n.keys.slice(), x: n._x, depth: n._d, cls: (marks && marks[n.id]) || "", kcls: (kmarks && kmarks[n.id]) || {} }; });
     var edges = []; list.forEach(function (n) { n.children.forEach(function (ch) { edges.push([n._x, n._d, ch._x, ch._d]); }); });
     return { nodes: nodes, edges: edges };
   }
@@ -3529,7 +3530,7 @@
       host.appendChild(trimLines(svg, 19));
       tr.nodes.forEach(function (n) {
         var box = mkEl("div", "algo-tp__btnode" + (n.cls ? " algo-tp__btnode--" + n.cls : ""));
-        n.keys.forEach(function (k) { box.appendChild(mkEl("div", "algo-tp__btkey", k)); });
+        n.keys.forEach(function (k, j) { box.appendChild(mkEl("div", "algo-tp__btkey" + (n.kcls && n.kcls[j] ? " algo-tp__btkey--" + n.kcls[j] : ""), k)); });
         if (!n.keys.length) box.appendChild(mkEl("div", "algo-tp__btkey", "∅")); // опустевший узел — рамкой с ∅, а не точкой
         box.style.position = "absolute"; box.style.left = (cx(n.x) - n.keys.length * 13) + "px"; box.style.top = (cy(n.depth) - RH) + "px";
         host.appendChild(box);
@@ -3573,20 +3574,26 @@
     push({ line: 5, tree: btreeSnap(root, {}), done: true, action: "готово", info: "вставка завершена; все листья на одной глубине" });
     return { steps: steps };
   }
+  // Путь от корня остаётся подсвеченным; в узле видно, где остановился линейный поиск:
+  // ключи меньше искомого пройдены, на первом ≥ — остановка, отсюда номер ребёнка i.
   function bBTreeSearch(keys, key) {
     var seq = { n: 0 }, rootRef = { root: { id: seq.n++, keys: [], children: [] } };
     keys.forEach(function (k) { btreeSilentInsert(rootRef, k, seq); });
-    var root = rootRef.root, steps = [];
-    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, vars: { node: (o.node || "—"), key: String(key) }, info: o.info, done: o.done, found: o.found }); }
+    var root = rootRef.root, steps = [], path = [];
+    function push(o) { steps.push({ si: steps.length, line: o.line, tree: o.tree, vars: { node: (o.node || "—"), key: String(key), i: o.i == null ? "—" : String(o.i) }, info: o.info, done: o.done, found: o.found }); }
+    function marks(cur, cls) { var m = {}; path.forEach(function (id) { m[id] = "path"; }); if (cur != null) m[cur] = cls; return m; }
     push({ line: 1, tree: btreeSnap(root, {}), node: (root.keys.join(",") || "∅"), info: "Search(" + key + "): начинаем с корня" });
     var n = root;
     while (n) {
       var i = 0; while (i < n.keys.length && key > n.keys[i]) i++;
-      var m = {}; m[n.id] = "current";
-      push({ line: 4, tree: btreeSnap(root, m), node: n.keys.join(","), info: "в узле [" + n.keys.join(",") + "] ищем позицию для " + key });
-      if (i < n.keys.length && key === n.keys[i]) { var mf = {}; mf[n.id] = "found"; push({ line: 5, tree: btreeSnap(root, mf), node: n.keys.join(","), found: true, done: true, info: key + " найден в узле [" + n.keys.join(",") + "]" }); return { steps: steps }; }
-      if (!n.children.length) { push({ line: 6, tree: btreeSnap(root, m), node: n.keys.join(","), done: true, info: key + " нет: дошли до листа" }); return { steps: steps }; }
-      push({ line: 7, tree: btreeSnap(root, m), node: n.keys.join(","), info: "спускаемся в ребёнка #" + i + " (между ключами)" });
+      var km = {}; km[n.id] = {}; for (var q = 0; q < i; q++) km[n.id][q] = "pass"; if (i < n.keys.length) km[n.id][i] = key === n.keys[i] ? "hit" : "stop";
+      var cmp = n.keys.slice(0, i).map(function (k) { return key + " > " + k; });
+      if (i < n.keys.length) cmp.push(key + (key === n.keys[i] ? " = " : " < ") + n.keys[i]);
+      push({ line: 4, i: i, tree: btreeSnap(root, marks(n.id, "current"), km), node: n.keys.join(","), info: "узел [" + n.keys.join(",") + "]: " + cmp.join(", ") + " → i = " + i + (i < n.keys.length && key === n.keys[i] ? "" : i === 0 ? " (левее всех ключей)" : i === n.keys.length ? " (правее всех ключей)" : " (между " + n.keys[i - 1] + " и " + n.keys[i] + ")") });
+      if (i < n.keys.length && key === n.keys[i]) { push({ line: 5, i: i, tree: btreeSnap(root, marks(n.id, "found"), km), node: n.keys.join(","), found: true, done: true, info: key + " найден в узле [" + n.keys.join(",") + "] на позиции " + i + "; путь — " + (path.length + 1) + " " + ruPlural(path.length + 1, "узел", "узла", "узлов") + " = высота дерева" }); return { steps: steps }; }
+      if (!n.children.length) { push({ line: 6, i: i, tree: btreeSnap(root, marks(n.id, "current"), km), node: n.keys.join(","), done: true, info: key + " нет: дошли до листа" }); return { steps: steps }; }
+      push({ line: 7, i: i, tree: btreeSnap(root, marks(n.id, "current"), km), node: n.keys.join(","), info: "спускаемся в ребёнка #" + i + " — там все ключи " + (i === 0 ? "< " + n.keys[0] : i === n.keys.length ? "> " + n.keys[i - 1] : "между " + n.keys[i - 1] + " и " + n.keys[i]) });
+      path.push(n.id);
       n = n.children[i];
     }
     return { steps: steps };
@@ -12655,8 +12662,8 @@
       badge: "B-Tree", desc: "Поиск в B-дереве: в каждом узле ищем позицию ключа и спускаемся к нужному ребёнку.",
       valuesLabel: "", codeKey: "btree-search", fillRange: false,
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Поиск по ключу" },
-      varOrder: ["node", "key"],
-      varDesc: { "node": "Текущий узел", "key": "Искомый ключ" },
+      varOrder: ["node", "key", "i"],
+      varDesc: { "node": "Текущий узел", "key": "Искомый ключ" , i: "Позиция в узле = номер ребёнка для спуска"},
       lineNotes: { 1: "Начинаем с корня", 4: "Линейно/бинарно ищем позицию ключа в узле", 5: "Ключ совпал — нашли", 6: "Лист и не совпало — ключа нет", 7: "Спускаемся к ребёнку между ключами" },
       rules: [{ head: "k == keys[i]", body: "→ нашли", cls: "eq" }, { head: "Лист", body: "→ нет ключа", cls: "gt" }, { head: "Иначе", body: "→ ребёнок между ключами", cls: "lt" }],
       parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var key = parseInt(root.getAttribute("data-search"), 10); var r = bBTreeSearch(keys, key); return { keys: keys, key: key, steps: r.steps }; },
@@ -12668,7 +12675,7 @@
       sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.key, cls: "eq" }]; },
       status: function (s, idx, total, ctx) { if (s.found) return { kind: "ok", icon: "✓", head: ctx.key + " найден", text: s.info }; if (s.done) return { kind: "end", icon: idx + 1, head: ctx.key + " не найден", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.found) return { a: "найдено", b: s.vars.key, c: "✓", cls: "eq" }; if (s.done) return { a: "не найдено", b: "", c: "✗", cls: "gt" }; return { a: "узел " + s.vars.node, b: "поиск", c: "↓", cls: "lt" }; },
-      varsOf: function (s) { return { "node": s.vars.node, "key": s.vars.key }; },
+      varsOf: function (s) { return { "node": s.vars.node, "key": s.vars.key, i: s.vars.i }; },
       customViz: btreeViz
     },
 
