@@ -1830,3 +1830,190 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__preset:hover { border-color: var(--tp-lo); }
 .algo-tp__preset:focus-visible { outline: 2px solid var(--tp-lo); outline-offset: 1px; }
 .algo-tp__preset--on { background: color-mix(in srgb, var(--tp-lo) 26%, transparent); border-color: var(--tp-lo); font-weight: 600; }
+/* ===== Раскладка по умолчанию (по образцу AlgoMaster; data-layout="classic" — прежняя) == */
+/* Сверху вниз: ввод (свёрнут) → холст → строка шага → переменные → управление → код. Узлы
+   те же, что в классической раскладке, — compactLayout в algo-viz.js только переставляет их. */
+.algo-tp--compact { --nn-green: #2ee59d; --nn-cyan: #22d3ee; --nn-amber: #fbbf24; --nn-red: #f87171; --nn-cell: #1a1e26; --nn-line: #3a4150; }
+.algo-tp--compact .algo-tp__head { margin-bottom: 0.9em; align-items: center; }
+.algo-tp--compact .algo-tp__top { margin-bottom: 0.7em; }
+.algo-tp--compact .algo-tp__card--arr { padding: 0.6em 1em; }
+.algo-tp--compact > .algo-tp__panel, .algo-tp--compact > .algo-tp__status, .algo-tp--compact > .algo-tp__vchips { margin: 0 0 0.7em; }
+.algo-tp__captgl {
+  cursor: pointer; font: inherit; font-weight: 700; font-size: 0.88em; color: inherit;
+  background: none; border: 0; padding: 0; display: flex; align-items: center; gap: 0.4em; width: 100%;
+}
+.algo-tp__captgl::after { content: "▾"; opacity: 0.6; margin-left: auto; transition: transform 0.2s; }
+.algo-tp__card--closed .algo-tp__captgl::after { transform: rotate(90deg); }
+.algo-tp__card--closed .algo-tp__edit, .algo-tp__card--closed .algo-tp__presets { display: none; }
+.algo-tp--compact .algo-tp__edit { margin-top: 0.6em; }
+.algo-tp--compact .algo-tp__main { grid-template-columns: minmax(0, 1fr); margin: 0.7em 0 0; }
+/* холст */
+.algo-tp--compact > .algo-tp__panel:not(.algo-tp__panel--code) { background: #14171d; padding: 1.2em 1em; }
+/* строка шага: левая полоса несёт состояние (идёт / событие / готово / ошибка) */
+.algo-tp--compact .algo-tp__status { flex: none; padding: 0.65em 1em; gap: 0.6em; border-left: 3px solid var(--nn-cyan); border-radius: 10px; justify-content: center; text-align: center; }
+.algo-tp--compact .algo-tp__status--hot { border-left-color: var(--nn-amber); }
+.algo-tp--compact .algo-tp__status--ok { border-left-color: var(--nn-green); }
+.algo-tp--compact .algo-tp__status--end { border-left-color: var(--nn-red); }
+.algo-tp--compact .algo-tp__staticon { display: none; }
+.algo-tp--compact .algo-tp__statbody { font-size: 0.92em; line-height: 1.45; }
+.algo-tp--compact .algo-tp__stathead, .algo-tp--compact .algo-tp__stattext { display: inline; font-size: 1em; margin: 0; }
+.algo-tp--compact .algo-tp__stathead { opacity: 0.6; font-weight: 600; }
+.algo-tp--compact .algo-tp__stathead::after { content: ":  "; }
+.algo-tp--compact .algo-tp__stattext { opacity: 1; }
+/* чипы переменных: имя · значение; изменившиеся на этом шаге — янтарные */
+.algo-tp__vchips { display: flex; flex-wrap: wrap; gap: 0.35em; justify-content: center; }
+.algo-tp__vchip {
+  display: inline-flex; gap: 0.45em; align-items: baseline; padding: 0.22em 0.6em; border-radius: 7px;
+  font-family: var(--mono-font, ui-monospace, monospace); font-size: 0.8em;
+  background: var(--tp-panel2); border: 1px solid var(--tp-border); transition: background 0.3s, border-color 0.3s;
+}
+.algo-tp__vchipk { opacity: 0.6; }
+.algo-tp__vchipv { font-weight: 700; }
+.algo-tp__vchip--ch { border-color: var(--nn-amber); background: color-mix(in srgb, var(--nn-amber) 16%, transparent); }
+/* управление: ▶ ◀ ▶ ━━●━━ 6 / 19 [1×] ⛶ в одну строку */
+.algo-tp--compact .algo-tp__ctrl { display: flex; align-items: center; gap: 0.55em; flex-wrap: wrap; padding: 0.7em 0.9em; margin: 0 0 0.7em; }
+.algo-tp--compact .algo-tp__playbtn { min-width: 2.7em !important; }
+.algo-tp__scrub { flex: 1 1 160px; min-width: 120px; accent-color: var(--nn-green); height: 1.4em; cursor: pointer; }
+.algo-tp--compact .algo-viz__counter { font-variant-numeric: tabular-nums; min-width: 4.2em; text-align: center; font-size: 0.9em; }
+.algo-tp__speedsel {
+  font: inherit; font-size: 0.85em; color: var(--fg); background: var(--tp-panel2);
+  border: 1px solid var(--tp-border); border-radius: 8px; padding: 0.35em 0.5em; cursor: pointer;
+}
+/* «Подробнее» */
+.algo-tp__more { margin-top: 0.7em; background: var(--tp-panel); border: 1px solid var(--tp-border); border-radius: 12px; padding: 0 1.1em; }
+.algo-tp__more > summary { cursor: pointer; padding: 0.75em 0; font-size: 0.88em; opacity: 0.75; }
+.algo-tp__more[open] { padding-bottom: 1.1em; }
+.algo-tp__more[open] > summary { opacity: 1; margin-bottom: 0.4em; }
+.algo-tp__more > * + * { margin-top: 0.9em; }
+.algo-tp__loop--more { display: flex; align-items: center; gap: 0.6em; font-size: 0.85em; }
+
+/* ===== Неоновый массив (компактная раскладка) ============================== */
+.algo-nn { display: flex; align-items: center; justify-content: center; gap: 0.9em; --nn-size: clamp(34px, calc((100cqw - 8em) / var(--n) - 12px), 66px); }
+.algo-nn__lab { font-family: var(--mono-font, ui-monospace, monospace); font-size: 0.85em; opacity: 0.55; flex: none; }
+.algo-nn__track { position: relative; padding: 3.3em 0 3.4em; }
+.algo-nn__row { display: flex; gap: clamp(6px, 1.2cqw, 12px); }
+.algo-nn__col { display: flex; flex-direction: column; align-items: center; gap: 0.45em; }
+.algo-nn__idx { font-size: 0.72em; opacity: 0.5; font-variant-numeric: tabular-nums; }
+.algo-tp--compact .algo-nn__cell {
+  width: var(--nn-size); height: var(--nn-size);
+  display: flex; align-items: center; justify-content: center; padding: 0;
+  font-family: var(--mono-font, ui-monospace, monospace); font-weight: 800; font-size: clamp(0.9em, 2.4cqw, 1.45em);
+  border-radius: 14px; background: var(--nn-cell); border: 2px solid var(--nn-line); color: #e6e9f2;
+  box-shadow: none; transform: none;
+  transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, color 0.35s ease, opacity 0.35s ease;
+}
+/* длинное значение («locked», имя поля) — ячейка растёт в ширину, высота та же */
+.algo-tp--compact .algo-nn__cell--long { width: auto; min-width: var(--nn-size); padding: 0 0.6em; white-space: nowrap; font-size: clamp(0.72em, 1.6cqw, 0.95em); }
+/* обработано / ответ — сплошная зелёная заливка со свечением */
+.algo-tp--compact .algo-nn__cell.algo-tp__big--found {
+  background: var(--nn-green); border-color: var(--nn-green); color: #05281a;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--nn-green) 45%, transparent);
+}
+/* ptr2 (сканер, сверху) — голубая обводка; ptr1 (запись, снизу) — зелёная */
+.algo-tp--compact .algo-nn__cell.algo-tp__big--hi {
+  background: #10161f; border-color: var(--nn-cyan); color: #e6f9fc;
+  box-shadow: 0 0 0 1px var(--nn-cyan), 0 0 20px color-mix(in srgb, var(--nn-cyan) 50%, transparent);
+}
+.algo-tp--compact .algo-nn__cell.algo-tp__big--lo {
+  background: #10161f; border-color: var(--nn-green); color: #e6fff4;
+  box-shadow: 0 0 0 1px var(--nn-green), 0 0 20px color-mix(in srgb, var(--nn-green) 45%, transparent);
+}
+.algo-tp--compact .algo-nn__cell.algo-tp__big--mid { border-color: var(--nn-amber); box-shadow: 0 0 18px color-mix(in srgb, var(--nn-amber) 45%, transparent); }
+.algo-tp--compact .algo-nn__cell.algo-tp__big--span { background: color-mix(in srgb, var(--nn-cyan) 12%, var(--nn-cell)); border-color: color-mix(in srgb, var(--nn-cyan) 40%, var(--nn-line)); }
+.algo-tp--compact .algo-nn__cell.algo-tp__big--dim { opacity: 0.45; border-style: dashed; box-shadow: none; }
+.algo-tp--compact .algo-nn__cell.algo-tp__big--out { border-style: dashed; border-color: var(--nn-red); color: var(--nn-red); opacity: 0.7; text-decoration: line-through; box-shadow: none; }
+/* указатели: плашка на ножке, ЕДЕТ к ячейке (transform) */
+.algo-nn__tag {
+  position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; pointer-events: none; z-index: 1;
+}
+.algo-nn__track--still .algo-nn__tag { transition: none; }
+.algo-nn__tag--off { opacity: 0; }
+.algo-nn__tagtx {
+  font-family: var(--mono-font, ui-monospace, monospace); font-weight: 800; font-size: 0.85em; line-height: 1;
+  padding: 0.42em 0.7em; border-radius: 8px; color: #06131a; white-space: nowrap;
+}
+.algo-nn__stem { width: 2px; height: 1.1em; }
+.algo-nn__tag--hi .algo-nn__tagtx { background: var(--nn-cyan); box-shadow: 0 0 16px color-mix(in srgb, var(--nn-cyan) 55%, transparent); }
+.algo-nn__tag--hi .algo-nn__stem { background: var(--nn-cyan); }
+.algo-nn__tag--lo .algo-nn__tagtx { background: var(--nn-green); box-shadow: 0 0 16px color-mix(in srgb, var(--nn-green) 50%, transparent); }
+.algo-nn__tag--lo .algo-nn__stem { background: var(--nn-green); height: 2.3em; } /* ножка вниз проходит мимо индекса */
+@media (prefers-reduced-motion: reduce) { .algo-nn__tag, .algo-tp--compact .algo-nn__cell { transition: none; } }
+/* узкий экран: подпись над массивом, ячейки и зазоры меньше — 8–10 ячеек помещаются без прокрутки */
+@container algo-tp (max-width: 520px) {
+  .algo-nn { flex-direction: column; gap: 0.2em; }
+  .algo-nn__row { gap: 5px; }
+  .algo-nn { --nn-size: clamp(26px, calc((100cqw - 3em) / var(--n) - 5px), 52px); }
+  .algo-tp--compact .algo-nn__cell { border-radius: 10px; font-size: clamp(0.8em, 3.6cqw, 1.2em); }
+  .algo-nn__tagtx { font-size: 0.78em; }
+  /* у холста своя подложка — боковой отступ можно сжать сильнее, чем у классической
+     панели (0.7em): на 400px это ещё ~8px ширины для деревьев и SVG-схем */
+  .algo-tp--compact > .algo-tp__panel:not(.algo-tp__panel--code) { padding: 0.9em 0.45em; }
+  /* кнопки и скорость — одной строкой, ползунок со счётчиком — второй во всю ширину
+     (иначе ползунок рвал ряд, и управление расползалось на три строки) */
+  .algo-tp--compact .algo-tp__speedsel { margin-left: auto; }
+  .algo-tp--compact .algo-tp__scrub { order: 1; flex-basis: calc(100% - 7em); min-width: 0; }
+  .algo-tp--compact .algo-viz__counter { order: 2; }
+}
+/* совсем узко (телефон 320–360px): ряд кнопок иначе не влезает, и ⛶ уезжала к ползунку */
+@container algo-tp (max-width: 320px) {
+  .algo-tp--compact .algo-tp__ctrl { padding: 0.6em 0.45em; gap: 0.4em; }
+  .algo-tp--compact .algo-tp__ctrl .algo-viz__btn { min-width: 2.3em !important; height: 2.4em; padding: 0; }
+  .algo-tp--compact .algo-tp__speedsel { padding: 0.35em 0.2em; }
+}
+/* Вкладки «перебор / оптимум» над виджетами */
+.algo-viz-tabs__bar { display: flex; justify-content: center; gap: 0.25em; margin: 1.4em auto -0.6em; padding: 0.25em; width: max-content; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; border-radius: 10px; background: #131927; border: 1px solid #283145; }
+.algo-viz-tabs__tab { cursor: pointer; font: inherit; font-size: 0.9em; padding: 0.4em 1em; border-radius: 7px; border: 0; background: transparent; color: #aab3c5; }
+.algo-viz-tabs__tab--on { background: #0a0e16; color: #e6e9f2; font-weight: 700; box-shadow: 0 0 0 1px #3b82f6 inset; }
+.algo-viz[hidden] { display: none !important; }
+/* перенос значения (по кадрам записи AlgoMaster): движущиеся ячейки и «призрак» копии — в
+   янтарной обводке; после посадки цвет перетекает в обычное состояние (transition ячейки) */
+.algo-tp--compact .algo-nn__cell.algo-nn__cell--move {
+  background: #1d1a12; border-color: var(--nn-amber); color: #fff7e0;
+  box-shadow: 0 0 0 1px var(--nn-amber), 0 0 22px color-mix(in srgb, var(--nn-amber) 55%, transparent);
+}
+.algo-nn__ghost {
+  position: absolute; z-index: 3; display: flex; align-items: center; justify-content: center; pointer-events: none;
+  font-family: var(--mono-font, ui-monospace, monospace); font-weight: 800; color: #fff7e0;
+  background: #1d1a12; border: 2px solid var(--nn-amber);
+  box-shadow: 0 0 0 1px var(--nn-amber), 0 0 24px color-mix(in srgb, var(--nn-amber) 60%, transparent), 0 10px 24px rgba(0, 0, 0, 0.45);
+}
+.algo-tp--compact .algo-nn__cell.algo-nn__cell--land { animation: algo-nn-land 0.45s ease-out; }
+@keyframes algo-nn-land {
+  0% { box-shadow: 0 0 0 2px var(--nn-amber), 0 0 28px color-mix(in srgb, var(--nn-amber) 70%, transparent); }
+}
+/* одинаковые шевроны «назад/вперёд» и полноэкранный режим новой раскладки */
+.algo-tp__chev { display: block; }
+.algo-tp--compact.algo-tp--fs .algo-tp__main { grid-template-columns: minmax(0, 1fr); }
+.algo-tp--compact.algo-tp--fs .algo-tp__ctrl { margin-top: 0; }
+/* связный список с циклом: узел входа — пунктиром, обратная ссылка — дуга под рядом */
+.algo-tp--compact .algo-nn__cell.algo-tp__big--cycle { border-style: dashed; }
+.algo-nn__track--cyc { padding-bottom: 5.6em; }
+.algo-nn__arc {
+  position: absolute; height: 1.3em; margin-top: 3.9em; pointer-events: none;
+  border: 2px dashed var(--nn-amber); border-top: 0; border-radius: 0 0 12px 12px; opacity: 0.85;
+}
+.algo-nn__arclab { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 0.25em); white-space: nowrap; font-size: 0.72em; color: var(--nn-amber); }
+/* Наивное слияние интервалов (intervalBarsViz): полоски на общей оси, ширина — от холста.
+   Отступ справа у дорожки — под минимальную ширину полоски у правого края оси. */
+.algo-ib { display: flex; flex-direction: column; gap: 0.55em; padding: 0.6em 0.2em; min-height: 4em; }
+.algo-ib__row { display: flex; align-items: center; gap: 0.7em; }
+.algo-ib__idx { flex: none; width: 1.4em; text-align: right; font-size: 0.75em; opacity: 0.5; font-variant-numeric: tabular-nums; font-family: var(--mono-font, ui-monospace, monospace); }
+.algo-ib__track { position: relative; flex: 1; height: 2.1em; margin-right: 4.2em; }
+.algo-ib__bar {
+  position: absolute; top: 0; height: 100%; min-width: 4.6em; box-sizing: border-box; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; white-space: nowrap;
+  font-family: var(--mono-font, ui-monospace, monospace); font-weight: 700; font-size: 0.85em;
+  background: var(--tp-panel2); border: 1px solid var(--tp-border); color: var(--fg);
+  transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+.algo-ib__bar--i { background: color-mix(in srgb, var(--nn-green, #2ee59d) 20%, var(--tp-panel2)); border-color: var(--nn-green, #2ee59d); box-shadow: 0 0 14px color-mix(in srgb, var(--nn-green, #2ee59d) 35%, transparent); }
+.algo-ib__bar--j { background: color-mix(in srgb, var(--nn-cyan, #22d3ee) 20%, var(--tp-panel2)); border-color: var(--nn-cyan, #22d3ee); box-shadow: 0 0 14px color-mix(in srgb, var(--nn-cyan, #22d3ee) 35%, transparent); }
+.algo-ib__bar--merged { background: color-mix(in srgb, var(--nn-amber, #fbbf24) 22%, var(--tp-panel2)); border-color: var(--nn-amber, #fbbf24); box-shadow: 0 0 16px color-mix(in srgb, var(--nn-amber, #fbbf24) 40%, transparent); }
+/* Образцы легенды для неонового массива (legend[].nn): повторяют вид ячейки в этом состоянии */
+.algo-tp__legdot--nn-found { background: var(--nn-green); border-color: var(--nn-green); }
+.algo-tp__legdot--nn-lo { background: transparent; border: 2px solid var(--nn-green); }
+.algo-tp__legdot--nn-hi { background: transparent; border: 2px solid var(--nn-cyan); }
+.algo-tp__legdot--nn-mid { background: transparent; border: 2px solid var(--nn-amber); }
+.algo-tp__legdot--nn-span { background: color-mix(in srgb, var(--nn-cyan) 30%, var(--nn-cell)); border-color: color-mix(in srgb, var(--nn-cyan) 45%, var(--nn-line)); }
+.algo-tp__legdot--nn-dim { background: transparent; border: 1px dashed var(--nn-line); opacity: 0.7; }

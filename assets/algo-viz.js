@@ -1211,6 +1211,20 @@
       "    return res",
       "}"
     ],
+    "move-zeroes": [
+      "func moveZeroes(nums []int) {",
+      "    insertPos := 0",
+      "    for i := 0; i < len(nums); i++ {",
+      "        if nums[i] != 0 {",
+      "            if i != insertPos {",
+      "                nums[insertPos] = nums[i]",
+      "                nums[i] = 0",
+      "            }",
+      "            insertPos++",
+      "        }",
+      "    }",
+      "}"
+    ],
     "prefix-range": [
       "func rangeSums(nums []int, qs [][2]int) []int {",
       "    prefix := make([]int, len(nums)+1)",
@@ -4797,19 +4811,23 @@
     steps.push({ res: snap(), done: true, found: true, line: 16, vars: vv(), info: "стабилизировалось за " + passes + " проход(ов): " + res.map(fmt).join(", ") });
     return steps;
   }
+  // Интервалы res на общей оси: позиция и длина — в процентах от ширины холста. Раньше
+  // ось была жёсткой (440px): на широком экране полоски жались в левый угол, на телефоне
+  // уезжали в прокрутку. Слева — индекс в res: чипы i и j показывают именно его.
   function intervalBarsViz(panel, ctx) {
-    var minX = ctx.minX, maxX = ctx.maxX, span = (maxX - minX) || 1, W = 440, padL = 8;
-    function X(v) { return padL + (v - minX) / span * (W - padL - 8); }
-    var wrap = document.createElement("div"); wrap.style.cssText = "display:flex;flex-direction:column;gap:6px;padding:10px 0;min-height:60px;"; panel.appendChild(wrap);
+    var minX = ctx.minX, span = (ctx.maxX - minX) || 1;
+    function pct(v) { return (v - minX) / span * 100 + "%"; }
+    var wrap = mkEl("div", "algo-ib"); panel.appendChild(wrap);
     return function (s) {
       wrap.innerHTML = "";
       (s.res || []).forEach(function (p, k) {
-        var row = document.createElement("div"); row.style.cssText = "position:relative;height:20px;";
-        var bar = document.createElement("div");
-        var bg = s.ci === k ? "#f59e0b" : (s.cj === k ? "#60a5fa" : "#475569");
-        bar.style.cssText = "position:absolute;left:" + X(p[0]) + "px;width:" + Math.max(16, X(p[1]) - X(p[0])) + "px;height:18px;border-radius:4px;background:" + bg + ";color:#fff;font-size:11px;line-height:18px;text-align:center;white-space:nowrap;overflow:hidden;";
-        bar.textContent = "[" + p[0] + "," + p[1] + "]";
-        row.appendChild(bar); wrap.appendChild(row);
+        var row = mkEl("div", "algo-ib__row");
+        row.appendChild(mkEl("span", "algo-ib__idx", String(k)));
+        var track = mkEl("div", "algo-ib__track");
+        var st = s.ci === k ? (s.improved ? " algo-ib__bar--merged" : " algo-ib__bar--i") : (s.cj === k ? " algo-ib__bar--j" : "");
+        var bar = mkEl("div", "algo-ib__bar" + st, "[" + p[0] + "," + p[1] + "]");
+        bar.style.left = pct(p[0]); bar.style.width = (p[1] - p[0]) / span * 100 + "%";
+        track.appendChild(bar); row.appendChild(track); wrap.appendChild(row);
       });
     };
   }
@@ -5388,6 +5406,16 @@
       if (n.sub != null) { var sb = mkEl("div", "algo-tp__tfigsub", n.sub); sb.style.left = px(i) + "px"; sb.style.top = (py(i) + 17) + "px"; box.appendChild(sb); subs[i] = sb; }
       return b;
     });
+    // Отступ под подпись — только когда она НЕ пуста: подписи вроде «h=2» у диаметра
+    // появляются по ходу прогона, и ребро от пустого места висело в воздухе под узлом.
+    // Пересчёт зовёт fitFigures дашборда после каждого шага.
+    box.__syncEdges = function () {
+      Object.keys(edges).forEach(function (c) {
+        var p = nodes[c].parent, sb = subs[p];
+        edges[c].setAttribute("y1", py(p) + (sb && sb.textContent ? 27 : 16));
+      });
+    };
+    box.__syncEdges();
     return { el: box, svg: svg, nodes: els, edges: edges, subs: subs, pos: nodes.map(function (n, i) { return { x: px(i), y: py(i) }; }) };
   }
   // Дерево маршрутов ServeMux: текущий путь спуска, тупиковые ветки после отката.
@@ -5494,7 +5522,12 @@
     // Рёбра обязательны: отмена идёт по ним вниз, к потомкам, и не трогает соседа req2.
     // Раньше узлы стояли рядами без рёбер, а подписи вылезали из кружков.
     var nodes = ctx.nodes;
-    var fig = treeFigure(nodes.map(function (n) { return { parent: n.parent, label: n.label }; }), { cw: 150, ch: 62 });
+    // «dbCtx (WithTimeout)» одной пилюлей — ~170px: соседи наезжали друг на друга, а шаг под
+    // них не влезал в телефон даже ужатым. Имя — в узле, вид контекста — подписью под ним.
+    var fig = treeFigure(nodes.map(function (n) {
+      var m = /^(\S+) \((\w+)\)$/.exec(n.label);
+      return { parent: n.parent, label: m ? m[1] : n.label, sub: m ? m[2] : null };
+    }), { cw: 116, ch: 76 });
     var byId = fig.nodes;
     panel.appendChild(fig.el);
     return function (s) {
@@ -5641,7 +5674,10 @@
       }
       nodes[cur].end = true;
     });
-    function hasKids(n) { var ch = nodes[n].children; for (var c in ch) { if (ch[c] != null) return true; } return false; }
+    // Удалённый узел помечается removedAt, а из children НЕ вычёркивается: рисунок строится
+    // по children уже после прогона, и вычеркнутый узел оставался без родителя — treeFigure
+    // брал его за корень, остальные узлы не получали координат и слипались в точку.
+    function hasKids(n) { var ch = nodes[n].children; for (var c in ch) { if (nodes[ch[c]].removedAt < 0) return true; } return false; }
     var path = [0], steps = [];
     function push(o) { steps.push({ si: steps.length, cur: (o.cur == null ? -1 : o.cur), upto: o.upto, line: o.line, vars: { char: (o.char || "—"), node: (o.node || "—"), action: (o.action || "—") }, info: o.info, done: o.done, removed: o.removed }); }
     push({ line: 1, cur: 0, upto: 0, node: "корень", action: "find", info: "node := find(\"" + del + "\") — спускаемся к слову" });
@@ -5673,7 +5709,6 @@
         break;
       }
       nodes[child].removedAt = steps.length;
-      nodes[path[i]].children[del[i]] = null;
       push({ line: 11, cur: path[i], upto: i, node: nodes[child].ch, action: "удаляем", removed: true, info: "удаляем висячий узел «" + nodes[child].ch + "»" });
     }
     push({ line: 13, cur: 0, upto: 0, action: "return true", done: true, info: "«" + del + "» удалено" });
@@ -7589,6 +7624,38 @@
       }
     }
     steps.push(snap({ done: true, line: 15, vars: { i: "—", v: "—", front: frontStr(), resv: resStr() }, info: "res = " + resStr() + ". Каждый индекс вошёл в дек и вышел ≤ 1 раза → O(n), а не O(n·k)" }));
+    return steps;
+  }
+
+  // Сдвиг нулей (LeetCode 283, вариант «минимум операций» — тот же, что в анимации
+  // AlgoMaster): insertPos — куда встанет следующий ненулевой, i сканирует. Ненулевой не на
+  // своём месте переносится на insertPos, а на его место пишется 0 — это ОБМЕН (на insertPos
+  // в этот момент всегда 0), и компактная раскладка показывает его встречным полётом ячеек.
+  // Итог сверяется с моделью «ненулевые по порядку, потом нули» (vizmodel.js).
+  function bMoveZeroes(arr) {
+    var a = arr.slice(), n = a.length, ins = 0, steps = [];
+    function snap(extra) {
+      var o = { values: a.slice(), ins: ins, lo: ins < n ? ins : -1, hi: -1 };
+      for (var k in extra) o[k] = extra[k];
+      return o;
+    }
+    function vars(i) { return { i: i < 0 ? "—" : i, insertPos: ins, v: i < 0 ? "—" : a[i] }; }
+    steps.push(snap({ line: 1, vars: vars(-1), info: "insertPos = 0 — сюда встанет следующий ненулевой элемент" }));
+    for (var i = 0; i < n; i++) {
+      var v = a[i];
+      steps.push(snap({ hi: i, line: 3, vars: vars(i), info: "Проверяем nums[" + i + "] = " + v + (v === 0 ? " — ноль, пропускаем: insertPos остаётся на " + ins : " — не ноль, его место в начале") }));
+      if (v === 0) continue;
+      if (i !== ins) {
+        var to = ins;
+        a[to] = v; a[i] = 0;
+        steps.push(snap({ hi: i, line: 5, hot: true, vars: vars(i), info: "Переносим " + v + " на позицию " + to + ", на место " + i + " пишем 0 — обмен с нулём" }));
+      } else {
+        steps.push(snap({ hi: i, line: 4, vars: vars(i), info: "i == insertPos — " + v + " уже на своём месте, ничего не двигаем" }));
+      }
+      ins++;
+      steps.push(snap({ hi: i, line: 8, vars: vars(i), info: "insertPos++ → " + ins + (ins < n ? "" : " — ненулевых больше нет") }));
+    }
+    steps.push(snap({ done: true, lo: -1, hi: -1, line: 11, vars: vars(-1), info: "Ненулевые сохранили порядок, нули — в конце. Каждый ненулевой перенесён не больше одного раза: O(n), O(1) памяти" }));
     return steps;
   }
 
@@ -9777,7 +9844,7 @@
       valuesLabel: "Массив", codeKey: "dutch-flag", fillRange: false,
       // легенда — у основной сетки и в её настоящих цветах (раньше подпись над мини-строкой
       // обещала «оранжевые двойки», а двойки были фиолетовыми)
-      legend: [{ cls: "zero", label: "нули [0, low)" }, { cls: "ones", label: "единицы [low, mid)" }, { cls: "two", label: "двойки (high, n)" }, { cls: "curedge", label: "mid — разбираем" }],
+      legend: [{ cls: "zero", nn: "found", label: "нули [0, low)" }, { cls: "ones", nn: "span", label: "единицы [low, mid)" }, { cls: "two", nn: "hi", label: "двойки (high, n)" }, { cls: "curedge", nn: "mid", label: "mid — разбираем" }],
       ptr1: { name: "low", cap: "(граница нулей)" }, ptr2: { name: "high", cap: "(граница двоек)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Разбиение на 3 класса за проход" },
       varOrder: ["low", "mid", "high", "v"],
@@ -9843,7 +9910,7 @@
     "list-cycle": {
       badge: "Fast & Slow",
       desc: "Обнаружение цикла в связном списке (заяц и черепаха).",
-      valuesLabel: "Связный список", codeKey: "list-cycle", fillRange: false,
+      valuesLabel: "Связный список", codeKey: "list-cycle", arrLabel: "list", fillRange: false,
       ptr1: { name: "slow", cap: "(черепаха)" }, ptr2: { name: "fast", cap: "(заяц)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Связных списков и циклов" },
       varOrder: ["slow", "fast"],
@@ -9882,7 +9949,7 @@
     "list-cycle-entry": {
       badge: "Fast & Slow",
       desc: "Вход в цикл (алгоритм Флойда): фаза 1 — заяц и черепаха встречаются внутри кольца; фаза 2 — slow в голову, оба по одному шагу, и они сходятся ровно на входе.",
-      valuesLabel: "Связный список", codeKey: "list-cycle-entry", fillRange: false,
+      valuesLabel: "Связный список", codeKey: "list-cycle-entry", arrLabel: "list", fillRange: false,
       ptr1: { name: "slow", cap: "(черепаха)" }, ptr2: { name: "fast", cap: "(заяц)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Связных списков и циклов" },
       varOrder: ["slow", "fast"],
@@ -10189,7 +10256,7 @@
 
     "lower-bound": {
       badge: "Binary Search · [lo, hi)", desc: "Поиск границы: наименьший индекс, где nums[i] ≥ target. Полуинтервал [lo, hi), цикл lo < hi, hi = mid (без −1) — mid остаётся кандидатом; ответ может быть len(nums).",
-      valuesLabel: "", codeKey: "lower-bound", fillRange: true,
+      valuesLabel: "", codeKey: "lower-bound", arrLabel: "nums", fillRange: true,
       ptr1: { name: "lo", cap: "левый край [lo, hi)" }, ptr2: { name: "hi", cap: "правый край, не входит (может быть «за концом»)" },
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Первое/последнее вхождение, место вставки" },
       varOrder: ["lo", "hi", "mid", "nums[mid]"],
@@ -10671,7 +10738,7 @@
     "list-middle": {
       badge: "Fast & Slow",
       desc: "Поиск середины списка: fast идёт вдвое быстрее, slow останавливается в центре.",
-      valuesLabel: "Связный список", codeKey: "list-middle", fillRange: false,
+      valuesLabel: "Связный список", codeKey: "list-middle", arrLabel: "list", fillRange: false,
       ptr1: { name: "slow", cap: "(середина)" }, ptr2: { name: "fast", cap: "(конец)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Связных списков" },
       varOrder: ["slow", "fast"],
@@ -10774,7 +10841,7 @@
       title: function () { return "Циклическая сортировка на месте"; },
       // зелёная клетка — число уже на своём индексе v−1 (инвариант главы: оттуда оно не уйдёт)
       cellState: function (s, j) { if (s.done && !s.error) return { found: true }; var p = (s.primary == null ? -1 : s.primary), q = (s.secondary == null ? -1 : s.secondary); return { lo: j === p, hi: j === q, found: j !== p && j !== q && s.values[j] === j + 1 }; },
-      legend: [{ cls: "path", label: "число уже на своём месте (v на индексе v−1)" }],
+      legend: [{ cls: "path", nn: "found", label: "число уже на своём месте (v на индексе v−1)" }],
       pointers: function (s) { return { lo: (s.primary == null ? -1 : s.primary), hi: (s.secondary == null ? -1 : s.secondary) }; },
       sumCells: ["nums[i]", "Целевой индекс", "Обменов (≤ n−1)"],
       sumValues: function (s) { return [{ text: s.vars["nums[i]"] }, { text: s.vars.correct, cls: (typeof s.vars.correct === "number" ? "" : "eq") }, { text: s.swaps, cls: "lt" }]; },
@@ -11050,7 +11117,7 @@
     "hll-add": {
       badge: "HyperLogLog · Add",
       desc: "Счёт уникальных: ID хешируется, старшие биты выбирают регистр, в остатке считаем длину серии нулей rho. Регистр хранит МАКСИМУМ rho — а он ≈ log2 числа уникальных в бакете (как «самая длинная серия решек» ≈ log2 числа бросков).",
-      valuesLabel: "Регистры: макс. rho (серия нулей + 1)", codeKey: "hll-add", fillRange: false,
+      valuesLabel: "Регистры: макс. rho (серия нулей + 1)", codeKey: "hll-add", arrLabel: "reg", fillRange: false,
       ptr1: { name: "рег", cap: "(текущий регистр)" },
       complexity: { time: "O(1)", space: "O(регистров)", good: "★ млрд уникальных в ~1.5 КБ" },
       varOrder: ["id", "bucket", "rho", "est", "lc"],
@@ -11207,7 +11274,7 @@
     "mod-exp": {
       badge: "Modular Exponentiation",
       desc: "Быстрое возведение base^exp mod m (square-and-multiply) — ядро RSA. Степень читается по битам справа налево: на бите 1 домножаем result, на каждом шаге возводим base в квадрат — всё по модулю.",
-      valuesLabel: "Биты exp (MSB слева, читаем справа налево)", codeKey: "mod-exp", fillRange: false,
+      valuesLabel: "Биты exp (MSB слева, читаем справа налево)", codeKey: "mod-exp", arrLabel: "exp", fillRange: false,
       ptr1: { name: "бит", cap: "(текущий бит exp)" },
       complexity: { time: "O(log exp)", space: "O(1)", good: "★ Основа RSA и «по модулю»" },
       varOrder: ["base", "result", "bit"],
@@ -11296,7 +11363,7 @@
       values: function (ctx) { return bMillerRabin(ctx.n, ctx.a)[0].values; },
       title: function (ctx) { return "Миллер — Рабин: n = " + ctx.n + ", свидетель a = " + ctx.a; },
       cellState: function (s, j) { if (s.st[j] === 1) return { found: true }; if (s.st[j] === 4) return { mid: true }; var o = {}; if (s.st[j] === 2 || s.values[j] === "?") o.dim = true; if (j === s.lo && s.lo >= 0) { o.lo = true; o.dim = false; } return o; },
-      legend: [{ cls: "tcur", label: "текущий x" }, { cls: "mrroot", label: "x ≠ ±1, но x² = 1 — улика: составное" }, { cls: "tvis", label: "1 или n−1 — свидетель не уличает" }],
+      legend: [{ cls: "tcur", nn: "lo", label: "текущий x" }, { cls: "mrroot", nn: "mid", label: "x ≠ ±1, но x² = 1 — улика: составное" }, { cls: "tvis", nn: "found", label: "1 или n−1 — свидетель не уличает" }],
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
       sumCells: ["x", "цель n−1"],
       sumValues: function (s) { return [{ text: s.vars.x }, { text: s.vars.target, cls: "eq" }]; },
@@ -11308,7 +11375,7 @@
     "counting-sort": {
       badge: "Counting Sort",
       desc: "Сортировка подсчётом: без сравнений. Ячейки — гистограмма count[v] (индекс = значение). Сначала считаем, сколько раз встретилось каждое значение, потом обходим бакеты по возрастанию и выдаём. O(n + k), устойчива.",
-      valuesLabel: "Гистограмма count[v] (индекс ячейки = значение)", codeKey: "counting-sort", fillRange: false,
+      valuesLabel: "Гистограмма count[v] (индекс ячейки = значение)", codeKey: "counting-sort", arrLabel: "count", fillRange: false,
       ptr1: { name: "v", cap: "(текущее значение)" },
       complexity: { time: "O(n + k)", space: "O(k)", good: "★ Без сравнений, при малом k" },
       varOrder: ["v", "out"],
@@ -11417,7 +11484,7 @@
     "ring-buffer": {
       badge: "Ring Buffer (chan)",
       desc: "Кольцевой буфер — как устроен буфер канала Go. Слоты выделены одним блоком; sendx (запись) и recvx (чтение) бегут по кругу, заворачиваясь в 0. FIFO фиксированной ёмкости без аллокаций; при заполнении send блокируется, при пустом — recv.",
-      valuesLabel: "Слоты кольца (· — свободно)", codeKey: "ring-buffer", fillRange: false,
+      valuesLabel: "Слоты кольца (· — свободно)", codeKey: "ring-buffer", arrLabel: "buf", fillRange: false,
       ptr1: { name: "sendx", cap: "(куда пишем)" }, ptr2: { name: "recvx", cap: "(откуда читаем)" },
       complexity: { time: "O(1) send/recv", space: "O(n)", good: "★ FIFO без аллокаций на элемент" },
       varOrder: ["sendx", "recvx", "qcount"],
@@ -11486,7 +11553,7 @@
     "mutex-bits": {
       badge: "sync.Mutex (биты)",
       desc: "Всё состояние sync.Mutex упаковано в один int32: бит 0 — locked, бит 1 — woken, бит 2 — starving, биты 3+ — счётчик ожидающих. Lock/Unlock меняют флаги и счётчик атомарно (CAS/Add) — компактно и без аллокаций. Ячейки — биты 0..7 слева направо.",
-      valuesLabel: "Биты state (0..7 слева направо; бит 0 = locked)", codeKey: "mutex-bits", fillRange: false,
+      valuesLabel: "Биты state (0..7 слева направо; бит 0 = locked)", codeKey: "mutex-bits", arrLabel: "state", fillRange: false,
       ptr1: { name: "бит", cap: "(изменённый бит)" },
       complexity: { time: "O(1) атомарно", space: "1 слово", good: "★ Флаги + счётчик в одном int32" },
       varOrder: ["locked", "woken", "waiters"],
@@ -12094,6 +12161,46 @@
       }
     },
 
+    "move-zeroes": {
+      badge: "Two Pointers",
+      desc: "Сдвиг нулей в конец на месте: insertPos — куда встанет следующий ненулевой, i сканирует массив. Ненулевой не на своём месте меняется местами с нулём на insertPos.",
+      valuesLabel: "Массив", codeKey: "move-zeroes", fillRange: false,
+      ptr1: { name: "insertPos", cap: "(куда встанет следующий ненулевой)" }, ptr2: { name: "i", cap: "(сканер)" },
+      complexity: { time: "O(n)", space: "O(1)", good: "★ Стабильный сдвиг на месте" },
+      varOrder: ["i", "insertPos", "v"],
+      varDesc: { i: "Сканер", insertPos: "Куда встанет следующий ненулевой", v: "nums[i]" },
+      lineNotes: { 1: "insertPos — граница уже собранных ненулевых", 2: "i сканирует массив слева направо", 3: "Ноль пропускаем — он уедет в конец сам", 4: "Элемент уже на месте? Тогда без записи", 5: "Переносим ненулевой на insertPos…", 6: "…а на его место — ноль: это обмен", 8: "Следующий ненулевой встанет правее", 11: "Каждый элемент перенесён не больше раза" },
+      rules: [{ head: "nums[i] == 0", body: "→ пропуск", cls: "gt" }, { head: "nums[i] != 0", body: "→ обмен с insertPos, insertPos++", cls: "lt" }, { head: "[0..insertPos)", body: "ненулевые в исходном порядке", cls: "eq" }],
+      parse: function (root) {
+        var arr = nums(root.getAttribute("data-array")); if (!arr.length) arr = [2, 1, 0, 0, 4, 0, 5];
+        if (arr.length > 14) throw new Error("массив: для наглядности не длиннее 14");
+        return { arr: arr, steps: bMoveZeroes(arr) };
+      },
+      inputs: [{ attr: "data-array", label: "Массив" }],
+      presets: [
+        { label: "одни нули", set: { "data-array": "0,0,0" }, hint: "insertPos не сдвигается ни разу" },
+        { label: "без нулей", set: { "data-array": "1,2,3,4" }, hint: "Все элементы уже на месте — ни одного обмена" },
+        { label: "нули в начале", set: { "data-array": "0,0,1,2" }, hint: "Каждый ненулевой едет через нули" },
+        { label: "нули в конце", set: { "data-array": "1,2,0,0" }, hint: "Нечего делать: только сканирование" }
+      ],
+      values: function (ctx) { return ctx.arr; },
+      title: function () { return "Сдвиг нулей в конец"; },
+      cellState: function (s, j) {
+        var st = {}, v = s.values[j];
+        if (s.done) { if (v !== 0) st.found = true; else st.dim = true; return st; }
+        if (j < s.ins) st.found = true;
+        else if (v === 0 && j !== s.hi && j !== s.lo) st.dim = true; // нули — пунктиром, как у AlgoMaster
+        if (j === s.hi) st.hi = true;
+        if (j === s.lo) st.lo = true;
+        return st;
+      },
+      pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
+      sumCells: ["insertPos", "nums[i]"],
+      sumValues: function (s) { return [{ text: s.vars.insertPos, cls: "eq" }, { text: s.vars.v }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: !!s.hot }; },
+      varsOf: function (s) { return s.vars; }
+    },
+
     "prefix-range": {
       badge: "Префиксные суммы",
       desc: "Сумма любого отрезка за O(1): один проход строит prefix, где prefix[i] — сумма первых i элементов. Отрезок [l, r] — это «первые r+1» минус «первые l»: одно вычитание, какой бы длины он ни был.",
@@ -12223,7 +12330,7 @@
     "diff-array": {
       badge: "Разностный массив",
       desc: "Пачка прибавлений к диапазонам, а прочитать нужно один раз в конце: обновление [l, r] — две записи в diff (с l прибавка начинается, после r — кончается), итог — префиксные суммы diff.",
-      valuesLabel: "Итоговый массив res (· — ещё не собран; подсвечен диапазон обновления)", codeKey: "diff-array", fillRange: false,
+      valuesLabel: "Итоговый массив res (· — ещё не собран; подсвечен диапазон обновления)", codeKey: "diff-array", arrLabel: "res", fillRange: false,
       ptr1: { name: "l", cap: "(начало обновления)" }, ptr2: { name: "r", cap: "(конец обновления; при сборке — i)" },
       complexity: { time: "O(n + u)", space: "O(n)", good: "★ Много прибавлений к диапазонам, одно чтение в конце" },
       varOrder: ["u", "i", "run"],
@@ -12547,7 +12654,7 @@
       sumValues: function (s) { return [{ text: s.vars["серых"], cls: "lt" }, { text: s.vars["чёрных"], cls: "gt" }]; },
       status: function (s, idx, total) { if (s.swept) return { kind: "ok", icon: "✓", head: "Разметка завершена, мусор найден", text: s.info, hot: true }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "серых " + s.vars["серых"], b: "чёрных " + s.vars["чёрных"], c: s.swept ? "sweep" : "mark", cls: "gt" }; },
-      varsOf: function (s) { return { "серых": s.vars["серых"], "чёрных": s.vars["чёрных"] }; },
+      varsOf: function (s) { return s.vars; },
       customViz: gcMarkViz
     },
 
@@ -13266,7 +13373,7 @@
 
     "dp-coins": {
       badge: "Dynamic Programming", desc: "Coin Change: dp[a] = минимум монет на сумму a, перебираем каждую монету.",
-      valuesLabel: "Таблица dp[]", codeKey: "dp-coins", fillRange: false,
+      valuesLabel: "Таблица dp[]", codeKey: "dp-coins", arrLabel: "dp", fillRange: false,
       ptr1: { name: "a", cap: "(сумма)" }, ptr2: { name: "a−c", cap: "(источник)" },
       complexity: { time: "O(amount·k)", space: "O(amount)", good: "★ Перекрывающихся подзадач" },
       varOrder: ["a", "c", "dp[a−c]", "best", "dp[a]"],
@@ -13618,7 +13725,7 @@
       varDesc: { i: "Текущий индекс (идём справа налево)", rank: "Ранг nums[i] после сжатия координат", sum: "prefix(rank−1): копится на спуске, это и есть вклад", inv: "Накопленное число инверсий" },
       lineNotes: { 1: "Сжатие координат: значение → ранг 1..m", 2: "BIT на m рангов, 1-индексация", 6: "Идём справа налево: элементы правее i уже учтены в BIT", 7: "ri — ранг текущего значения после сжатия координат", 8: "prefix(ri−1): сколько уже встреченных (справа) рангов строго меньше — спуск idx −= idx&(−idx)", 9: "add(ri): регистрируем текущий ранг — подъём idx += idx&(−idx)", 11: "Возвращаем общее число инверсий" },
       rules: [{ head: "prefix(rank−1)", body: "меньших уже справа → вклад", cls: "eq" }, { head: "add(rank)", body: "регистрируем элемент", cls: "gt" }, { head: "Справа налево", body: "правое уже в BIT", cls: "lt" }],
-      legend: [{ cls: "fwin", label: "уже в BIT (правее i)" }, { cls: "fwq", label: "prefix читает узел" }, { cls: "fwa", label: "add обновляет узел" }, { cls: "fwz", label: "зона узла на freq" }],
+      legend: [{ cls: "fwin", nn: "span", label: "уже в BIT (правее i)" }, { cls: "fwq", label: "prefix читает узел" }, { cls: "fwa", label: "add обновляет узел" }, { cls: "fwz", label: "зона узла на freq" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var r = bCountInvBit(arr); return { arr: arr, m: r.m, steps: r.steps }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return ctx.arr; },
@@ -14328,6 +14435,10 @@
     var steps = ctx.steps;
     var values = cfg.values(ctx);
     var n = values.length;
+    // Раскладка по образцу шаговых анимаций AlgoMaster — по умолчанию; data-layout="classic"
+    // возвращает прежнюю (две колонки, итоги, правила и сложность на виду).
+    var compact = root.getAttribute("data-layout") !== "classic";
+    var nnPlace = null; // неоновый массив компактного режима: расстановка указателей-плашек
 
     root.classList.add("algo-viz--ready", "algo-tp");
     root.innerHTML = "";
@@ -14404,6 +14515,7 @@
           btn.onclick = function () {
             inputs.forEach(function (o) { o.inp.value = p.set[o.attr] || ""; });
             root.__algoFocusPreset = p.label; // кнопка пересоздаётся — вернём на неё фокус клавиатуры
+            root.__algoInputOpen = true;      // нажатый пресет — значит, ввод раскрыт; не сворачивать
             rerun();
           };
           pr.appendChild(btn);
@@ -14448,11 +14560,15 @@
     pViz.appendChild(mkEl("div", "algo-tp__panelhdr", "Визуализация алгоритма"));
     if (cfg.note) { var noteTxt = cfg.note(ctx); if (noteTxt) pViz.appendChild(mkEl("div", "algo-tp__note", noteTxt)); }
     // Легенда состояний (для графов/сеток): что значит каждый цвет узла/клетки/ребра.
+    // it.nn — как это состояние выглядит в неоновом массиве (found/lo/hi/mid/span/dim):
+    // там свои цвета, и классический образец врал бы (двойки флага — фиолетовые в
+    // сетке, но голубая рамка в неоне). Для ячеек не массива (панели, узлы) nn не ставят.
     if (cfg.legend) {
+      var nnLegend = compact && !cfg.customViz;
       var leg = mkEl("div", "algo-tp__legend");
       cfg.legend.forEach(function (it) {
         var item = mkEl("div", "algo-tp__legitem");
-        item.appendChild(mkEl("span", "algo-tp__legdot algo-tp__legdot--" + it.cls));
+        item.appendChild(mkEl("span", "algo-tp__legdot algo-tp__legdot--" + (nnLegend && it.nn ? "nn-" + it.nn : it.cls)));
         item.appendChild(mkEl("span", "algo-tp__leglabel", it.label));
         leg.appendChild(item);
       });
@@ -14470,7 +14586,29 @@
       if (scrollPending) return; scrollPending = true;
       (window.requestAnimationFrame || setTimeout)(function () { scrollPending = false; markScroll(); });
     }
+    // Рисунок дерева (treeFigure) — жёсткая сетка в px: на телефоне 8 листьев дерева
+    // отрезков шире холста, и корень с правым поддеревом уезжали в прокрутку. Дерево
+    // читается только целиком, поэтому его ужимаем (zoom — меняет и раскладку, резерв
+    // высоты остаётся честным), но не мельче 0.6: дальше подписи узлов не прочесть,
+    // и честнее прокрутка. Массивы и таблицы не трогаем — их читают по ячейке.
+    // Заодно — пересчёт начала рёбер под подписи узлов (treeFigure.__syncEdges): шаг мог
+    // заполнить или очистить подпись, а markScroll и так идёт после каждого show().
+    function fitFigures() {
+      var figs = vizHost.querySelectorAll(".algo-tp__tfig");
+      if (!figs.length) return;
+      [].forEach.call(figs, function (f) { if (f.__syncEdges) f.__syncEdges(); });
+      var cs = getComputedStyle(vizHost); // у обёртки свой боковой отступ (под тень узлов)
+      var avail = vizHost.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      if (avail <= 0) return;
+      [].forEach.call(figs, function (f) {
+        var w = parseFloat(f.style.width);
+        if (!w) return;
+        var z = Math.max(0.6, Math.min(1, avail / w));
+        f.style.zoom = z < 1 ? String(Math.round(z * 1000) / 1000) : "";
+      });
+    }
     function markScroll() {
+      fitFigures();
       var more = vizHost.scrollWidth > vizHost.clientWidth + 2;
       vizHost.classList.toggle("algo-tp__scrollx--r", more && vizHost.scrollLeft + vizHost.clientWidth < vizHost.scrollWidth - 2);
       vizHost.classList.toggle("algo-tp__scrollx--l", more && vizHost.scrollLeft > 2);
@@ -14480,6 +14618,168 @@
     if (cfg.customViz) {
       // алгоритм рисует свою центральную визуализацию (например, интервалы на прямой)
       updateViz = cfg.customViz(vizHost, ctx);
+    } else if (compact) {
+      // Неоновый массив (компактная раскладка): крупные ячейки со свечением, индексы под
+      // ними, указатели — плашки на ножке, которые ЕДУТ к ячейке (transform + transition),
+      // а не перерисовываются: ptr2 сверху, ptr1 снизу. Состояния ячеек — те же классы
+      // algo-tp__big--*, что у сетки, поэтому cellState конфигов работает без правок.
+      var nn = mkEl("div", "algo-nn");
+      nn.style.setProperty("--n", n);
+      // подпись ряда: cfg.arrLabel или первый параметр-срез/строка из сигнатуры листинга
+      // (arr, nums, s, text…); без имени — без подписи, а не выдуманное «nums»
+      var nnLab = cfg.arrLabel;
+      if (nnLab == null) {
+        var sig = (CODE[cfg.codeKey] || [""])[0], mm = /^func\s[^(]*\(([^)]*)\)/.exec(sig) || /^func\s\([^)]*\)\s*\w+\(([^)]*)\)/.exec(sig);
+        var pm = mm && /(?:^|,\s*)(\w+)(?:,\s*\w+)*\s+(?:\[\]\w+|string)\b/.exec(mm[1]);
+        nnLab = pm ? pm[1] : "";
+      }
+      if (nnLab) nn.appendChild(mkEl("div", "algo-nn__lab", nnLab));
+      var track = mkEl("div", "algo-nn__track");
+      var tagHi = mkEl("div", "algo-nn__tag algo-nn__tag--hi"), tagLo = mkEl("div", "algo-nn__tag algo-nn__tag--lo");
+      var tagHiTx = mkEl("span", "algo-nn__tagtx"), tagLoTx = mkEl("span", "algo-nn__tagtx");
+      tagHi.appendChild(tagHiTx); tagHi.appendChild(mkEl("span", "algo-nn__stem"));
+      tagLo.appendChild(mkEl("span", "algo-nn__stem")); tagLo.appendChild(tagLoTx);
+      var nnRow = mkEl("div", "algo-nn__row");
+      bigCells = values.map(function (v, i) {
+        var col = mkEl("div", "algo-nn__col");
+        var c = mkEl("div", "algo-tp__big algo-nn__cell", v);
+        if (String(v).length > 3) c.classList.add("algo-nn__cell--long"); // растёт в ширину, а не вылезает из квадрата
+        col.appendChild(c); col.appendChild(mkEl("div", "algo-nn__idx", i));
+        nnRow.appendChild(col); return c;
+      });
+      track.appendChild(tagHi); track.appendChild(nnRow); track.appendChild(tagLo);
+      // обратная ссылка цикла: пунктирная дуга под рядом от последнего узла к узлу входа
+      var nnCy = cfg.cycleIdx ? cfg.cycleIdx(ctx) : -1, nnArc = null;
+      if (nnCy >= 0 && nnCy < n) {
+        bigCells[nnCy].classList.add("algo-tp__big--cycle");
+        nnArc = mkEl("div", "algo-nn__arc");
+        nnArc.appendChild(mkEl("span", "algo-nn__arclab", "Next последнего узла → " + values[nnCy]));
+        track.appendChild(nnArc); track.classList.add("algo-nn__track--cyc");
+      }
+      nn.appendChild(track);
+      vizHost.appendChild(nn);
+      var nnLast = null, nnMoved = false, ghosts = [];
+      var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+      // Перенос значений по образцу AlgoMaster (разобрано по кадрам их записи Move Zeroes):
+      // ~0.15 подсветка янтарём и лёгкий отрыв, ~0.55 полёт по дуге, ~0.15 посадка в янтаре,
+      // потом цвет ячейки перетекает в её обычное состояние. ОБМЕН — едут сами ячейки: та,
+      // что движется влево, — высокой дугой сверху, вправо — низкой снизу, их места на время
+      // полёта пустеют. КОПИЯ (источник значение сохраняет: nums[slow] = nums[fast]) — летит
+      // янтарный «призрак» числа, а ячейка до посадки показывает старое значение.
+      var clearGhosts = function () {
+        ghosts.forEach(function (g) {
+          g.anims.forEach(function (a) { a.cancel(); });
+          if (g.el && g.el.parentNode) g.el.parentNode.removeChild(g.el);
+          g.cells.forEach(function (c) { c.classList.remove("algo-nn__cell--move"); c.style.zIndex = ""; });
+        });
+        ghosts = [];
+      };
+      var settle = function (rec, pairs) {
+        if (rec.done) return; rec.done = true;
+        rec.anims.forEach(function (a) { a.cancel(); }); // ячейки возвращаются в свои слоты…
+        pairs.forEach(function (p) { p[0].textContent = p[1]; p[0].style.zIndex = ""; }); // …уже с новыми значениями
+        if (rec.el && rec.el.parentNode) rec.el.parentNode.removeChild(rec.el);
+        setTimeout(function () { rec.cells.forEach(function (c) { c.classList.remove("algo-nn__cell--move"); }); }, rec.hold);
+        ghosts = ghosts.filter(function (x) { return x !== rec; });
+      };
+      // дуга: влево — вверх почти на высоту ячейки, вправо — вниз на половину
+      var arcFrames = function (d, h) {
+        var up = d < 0 || d === 0, lift = up ? -0.95 * h : 0.5 * h, pre = up ? -6 : 6;
+        return [
+          { transform: "translate(0px, 0px)", offset: 0 },
+          { transform: "translate(0px, " + pre + "px)", offset: 0.18 },
+          { transform: "translate(" + d / 2 + "px, " + lift + "px)", offset: 0.55 },
+          { transform: "translate(" + d + "px, 0px)", offset: 0.82 },
+          { transform: "translate(" + d + "px, 0px)", offset: 1 }
+        ];
+      };
+      var swapCells = function (j, k, oldTexts, dur) {
+        var a = bigCells[j], b = bigCells[k], na = a.textContent, nb = b.textContent;
+        a.textContent = oldTexts[j]; b.textContent = oldTexts[k]; // до переезда — старые значения на своих местах
+        var d = b.offsetLeft - a.offsetLeft, h = a.offsetHeight;
+        var rec = { el: null, anims: [], cells: [a, b], hold: Math.round(dur * 0.25) };
+        [[a, d], [b, -d]].forEach(function (p) {
+          p[0].classList.add("algo-nn__cell--move");
+          p[0].style.zIndex = "3";
+          rec.anims.push(p[0].animate(arcFrames(p[1], h), { duration: dur, easing: "ease-in-out", fill: "forwards" }));
+        });
+        rec.anims[0].onfinish = function () { settle(rec, [[a, na], [b, nb]]); };
+        ghosts.push(rec);
+      };
+      var copyValue = function (k, j, oldText, newText, dur) {
+        var from = bigCells[k], to = bigCells[j];
+        var g = mkEl("div", "algo-nn__ghost", newText), cs = getComputedStyle(to);
+        g.style.width = to.offsetWidth + "px"; g.style.height = to.offsetHeight + "px";
+        g.style.left = from.offsetLeft + "px"; g.style.top = from.offsetTop + "px";
+        g.style.fontSize = cs.fontSize; g.style.borderRadius = cs.borderRadius;
+        track.appendChild(g);
+        to.textContent = oldText;
+        from.classList.add("algo-nn__cell--move"); to.classList.add("algo-nn__cell--move");
+        var rec = { el: g, anims: [], cells: [from, to], hold: Math.round(dur * 0.25) };
+        rec.anims.push(g.animate(arcFrames(to.offsetLeft - from.offsetLeft, to.offsetHeight), { duration: dur, easing: "ease-in-out", fill: "forwards" }));
+        rec.anims[0].onfinish = function () { settle(rec, [[to, newText]]); };
+        ghosts.push(rec);
+      };
+      var flash = function (c) {
+        c.classList.remove("algo-nn__cell--land"); void c.offsetWidth; c.classList.add("algo-nn__cell--land");
+      };
+      var flyValues = function (oldTexts, lo, hi, dur) {
+        var changed = [], used = {};
+        bigCells.forEach(function (c, j) { if (oldTexts[j] !== c.textContent) changed.push(j); });
+        // 1) обмены: пара, где значения поменялись местами, — едут сами ячейки
+        changed.forEach(function (j) {
+          if (used[j]) return;
+          for (var t = 0; t < changed.length; t++) {
+            var k = changed[t];
+            if (k !== j && !used[k] && bigCells[k].textContent === oldTexts[j] && bigCells[j].textContent === oldTexts[k]) {
+              used[j] = used[k] = true; swapCells(j, k, oldTexts, dur); return;
+            }
+          }
+        });
+        // 2) копии: источник — ТОЛЬКО ячейка под указателем, где лежало это значение
+        //    (nums[slow] = nums[fast]). Совпадение с какой-нибудь другой ячейкой ничего не
+        //    доказывает: счётчик гистограммы вырос до 2 рядом с другой двойкой — это
+        //    вычисление, а не перенос, и полёт «оттуда» был бы неправдой.
+        changed.forEach(function (j) {
+          if (used[j]) return;
+          var nv = bigCells[j].textContent, src = -1;
+          [hi, lo].forEach(function (k) { if (src < 0 && k >= 0 && k !== j && oldTexts[k] === nv) src = k; });
+          if (src >= 0) copyValue(src, j, oldTexts[j], nv, dur);
+          else flash(bigCells[j]); // значение вычислено, а не перенесено — просто вспышка
+        });
+      };
+      var placeTag = function (tag, tx, j, name, below) {
+        var on = j >= 0 && j < n && !!name && name !== "—";
+        tag.classList.toggle("algo-nn__tag--off", !on);
+        if (!on) return;
+        tx.textContent = name;
+        var c = bigCells[j]; // offsetLeft/Top — от .algo-nn__track (position: relative)
+        var x = c.offsetLeft + c.offsetWidth / 2, y = below ? c.offsetTop + c.offsetHeight : c.offsetTop;
+        tag.style.transform = "translate(calc(" + x + "px - 50%), " + (below ? y + "px" : "calc(" + y + "px - 100%)") + ")";
+      };
+      nnPlace = function (lo, hi, s, oldTexts, dur) {
+        nnLast = [lo, hi, s];
+        clearGhosts();
+        if (!nnRow.offsetWidth) return; // скрытая вкладка: расставим, когда появится ширина
+        if (nnArc) {
+          var ca = bigCells[nnCy], cb = bigCells[n - 1];
+          nnArc.style.left = (ca.offsetLeft + ca.offsetWidth / 2) + "px";
+          nnArc.style.width = Math.max(0, cb.offsetLeft + cb.offsetWidth / 2 - ca.offsetLeft - ca.offsetWidth / 2) + "px";
+          nnArc.style.top = (ca.offsetTop + ca.offsetHeight) + "px";
+        }
+        if (oldTexts && !reduceMotion && typeof track.animate === "function") flyValues(oldTexts, lo, hi, dur);
+        // первая расстановка — без анимации, иначе плашки выезжали бы из левого угла
+        if (!nnMoved) { track.classList.add("algo-nn__track--still"); }
+        var pn = s.ptrNames || {};
+        placeTag(tagHi, tagHiTx, hi, pn.hi || (cfg.ptr2 && cfg.ptr2.name), false);
+        placeTag(tagLo, tagLoTx, lo, pn.lo || (cfg.ptr1 && cfg.ptr1.name), true);
+        if (!nnMoved) { nnMoved = true; void track.offsetWidth; track.classList.remove("algo-nn__track--still"); }
+      };
+      if (window.ResizeObserver) new ResizeObserver(function () {
+        if (!nnLast) return;
+        track.classList.add("algo-nn__track--still"); nnPlace.apply(null, nnLast);
+        void track.offsetWidth; track.classList.remove("algo-nn__track--still");
+      }).observe(nnRow);
     } else {
       var grid = mkEl("div", "algo-tp__grid");
       grid.style.gridTemplateColumns = "auto repeat(" + n + ", minmax(var(--algo-cell, 2.6em), 1fr))";
@@ -14645,6 +14945,16 @@
     var btns = mkEl("div", "algo-tp__ctrlbtns");
     var bFirst = mkBtn("⏮", "В начало"), bPrev = mkBtn("◀", "Назад");
     var bNext = mkBtn("⏵", "Вперёд"), bLast = mkBtn("⏭", "В конец");
+    // «назад» и «вперёд» — одинаковые SVG-шевроны: глифы ◀ и ⏵ из разных наборов символов
+    // рисовались разного размера
+    [[bPrev, "M10 3.5 5.5 8l4.5 4.5"], [bNext, "M6 3.5 10.5 8 6 12.5"]].forEach(function (p) {
+      var svg = document.createElementNS(SVGNS, "svg"), path = document.createElementNS(SVGNS, "path");
+      svg.setAttribute("viewBox", "0 0 16 16"); svg.setAttribute("width", "16"); svg.setAttribute("height", "16");
+      svg.setAttribute("aria-hidden", "true"); svg.setAttribute("class", "algo-tp__chev");
+      path.setAttribute("d", p[1]); path.setAttribute("fill", "none"); path.setAttribute("stroke", "currentColor");
+      path.setAttribute("stroke-width", "2.2"); path.setAttribute("stroke-linecap", "round"); path.setAttribute("stroke-linejoin", "round");
+      svg.appendChild(path); p[0].textContent = ""; p[0].appendChild(svg);
+    });
     var bPlay = mkBtn("▶", "Автопроигрывание (пробел)");
     bPlay.classList.add("algo-tp__playbtn");
     [bFirst, bPrev, bPlay, bNext, bLast].forEach(function (x) { btns.appendChild(x); });
@@ -14695,12 +15005,13 @@
     // читатель не увидит перебор шагов). Смена ширины (полный экран, поворот,
     // сайдбар) запускает пересчёт.
     var job = null, reservedW = -1, onScreen = false, armed = false;
+    var reserveEl = main; // компактная раскладка переназначает на холст (compactLayout)
     function startJob() {
       var w = root.getBoundingClientRect().width;
       if (!w || Math.abs(w - reservedW) < 1) return false;
       job = { w: w, phase: 0, k: 0, cur: idx, maxStat: 0, maxNote: 0, maxMain: 0,
         keep: [statHead.textContent, statText.textContent, codeNoteLn.textContent, codeNoteTx.textContent] };
-      cStat.style.minHeight = ""; codeNote.style.minHeight = ""; main.style.minHeight = "";
+      cStat.style.minHeight = ""; codeNote.style.minHeight = ""; reserveEl.style.minHeight = "";
       return true;
     }
     function runJob(more) {
@@ -14714,7 +15025,7 @@
           if (nt) { codeNoteLn.textContent = nt.ln; codeNoteTx.textContent = nt.tx; job.maxNote = Math.max(job.maxNote, codeNote.getBoundingClientRect().height); }
         } else {
           show(job.k);
-          job.maxMain = Math.max(job.maxMain, main.getBoundingClientRect().height);
+          job.maxMain = Math.max(job.maxMain, reserveEl.getBoundingClientRect().height);
         }
         if (++job.k < steps.length) continue;
         if (job.phase === 0) {
@@ -14724,7 +15035,7 @@
           job.phase = 1; job.k = 0;
         } else {
           prevVars = null; show(job.cur);
-          if (job.maxMain) main.style.minHeight = Math.ceil(job.maxMain) + "px";
+          if (job.maxMain) reserveEl.style.minHeight = Math.ceil(job.maxMain) + "px";
           reservedW = job.w; job = null;
         }
       }
@@ -14754,8 +15065,17 @@
     if (window.ResizeObserver) new ResizeObserver(function () { if (armed) { if (job && Math.abs(root.getBoundingClientRect().width - job.w) >= 1) { finishNow(); } reserve(); } }).observe(root);
 
     var prevVars = null, idx = 0;
+    var scrub = null, varChips = null; // компактная раскладка (см. compactLayout ниже)
+    var stepAnim = false; // показ вызван шагом вперёд (кнопка, автоплей, →) — можно анимировать перенос
+    function stepTo(i) { stepAnim = true; try { show(i); } finally { stepAnim = false; } }
     function show(i) {
+      var prevIdx = idx;
       idx = Math.max(0, Math.min(steps.length - 1, i));
+      // прежние значения — из ДАННЫХ предыдущего шага, а не с экрана: во время полёта ячейки
+      // намеренно показывают старое значение до посадки, и быстрый следующий шаг принимал
+      // его за новый обмен, перезапуская полёт на каждом шаге
+      var prevVals = steps[prevIdx] && steps[prevIdx].values;
+      var nnOld = nnPlace && stepAnim && idx === prevIdx + 1 && prevVals ? bigCells.map(function (c, j) { return j < prevVals.length ? String(prevVals[j]) : c.textContent; }) : null;
       var s = steps[idx], pt = cfg.pointers(s), lo = pt.lo, hi = pt.hi, found = !!s.found;
       if (updateViz) {
         updateViz(s);
@@ -14784,6 +15104,7 @@
           if (atLo) c.appendChild(mkEl("div", "algo-tp__pill algo-tp__pill--lo", pn.lo || cfg.ptr1.name));
           if (atHi) c.appendChild(mkEl("div", "algo-tp__pill algo-tp__pill--hi", pn.hi || cfg.ptr2.name));
         });
+        if (nnPlace) nnPlace(lo, hi, s, nnOld, timer ? Math.max(200, Math.min(800, playDelay() * 0.8)) : 800);
       }
       miniCells.forEach(function (c, j) {
         // мини-строка — ТЕКУЩИЙ массив: при записи на месте (сортировки, дедуп)
@@ -14817,14 +15138,15 @@
       lineEls.forEach(function (d, li) { d.classList.toggle("algo-tp__codeline--active", li === s.line); });
 
       var cur = cfg.varsOf(s, ctx);
-      var anyChanged = false;
+      var anyChanged = false, changed = {};
       cfg.varOrder.forEach(function (k) {
         varRows[k].textContent = cur[k];
         var ch = !!(prevVars && String(prevVars[k]) !== String(cur[k]));
-        if (ch) anyChanged = true;
+        if (ch) { anyChanged = true; changed[k] = true; }
         varRows[k].parentNode.classList.toggle("algo-tp__vrow--changed", ch);
       });
       prevVars = cur;
+      if (varChips) varChips(cur, changed);
 
       // Подпись под кодом: «▸ строка N» + что она делает. Объяснение — из
       // cfg.lineNotes (по индексу строки), иначе короткий текст статуса.
@@ -14851,6 +15173,10 @@
       counter.setAttribute("aria-label", "Шаг " + (idx + 1) + " из " + steps.length);
       bFirst.disabled = bPrev.disabled = idx === 0;
       bNext.disabled = bLast.disabled = idx === steps.length - 1;
+      if (scrub) {
+        scrub.value = idx;
+        scrub.setAttribute("aria-valuetext", "Шаг " + (idx + 1) + " из " + steps.length);
+      }
     }
     // --- Автопроигрывание: алгоритм сам листает шаги, строка кода подсвечивается на лету ---
     var timer = null;
@@ -14869,7 +15195,7 @@
           if (loopChk.checked) { show(0); return; } // автоповтор: начинаем заново
           stopPlay(); return;
         }
-        show(idx + 1);
+        stepTo(idx + 1);
       }, playDelay());
     }
     bPlay.onclick = function () { timer ? stopPlay() : startPlay(); };
@@ -14878,21 +15204,113 @@
 
     bFirst.onclick = function () { stopPlay(); show(0); };
     bPrev.onclick = function () { stopPlay(); show(idx - 1); };
-    bNext.onclick = function () { stopPlay(); show(idx + 1); };
+    bNext.onclick = function () { stopPlay(); stepTo(idx + 1); };
     bLast.onclick = function () { stopPlay(); show(steps.length - 1); };
     root.setAttribute("tabindex", "0");
     root.addEventListener("keydown", function (e) {
       if (e.target && e.target.tagName === "INPUT") return;
       if (e.key === "ArrowLeft") { stopPlay(); show(idx - 1); e.preventDefault(); }
-      else if (e.key === "ArrowRight") { stopPlay(); show(idx + 1); e.preventDefault(); }
+      else if (e.key === "ArrowRight") { stopPlay(); stepTo(idx + 1); e.preventDefault(); }
       else if (e.key === "Home") { stopPlay(); show(0); e.preventDefault(); }
       else if (e.key === "End") { stopPlay(); show(steps.length - 1); e.preventDefault(); }
       else if (e.key === " " || e.key === "Spacebar") { bPlay.onclick(); e.preventDefault(); }
       else if (e.key === "f" || e.key === "F" || e.key === "а" || e.key === "А") { setFs(!root.classList.contains("algo-tp--fs")); e.preventDefault(); }
       else if (e.key === "Escape" && root.classList.contains("algo-tp--fs")) { setFs(false); e.preventDefault(); }
     });
+    // --- Раскладка по умолчанию (по образцу AlgoMaster; data-layout="classic" — прежняя):
+    //     код слева, холст справа и под ним ОДНА строка шага + чипы переменных, внизу
+    //     ползунок шагов. Итоги, правила, таблица переменных с описаниями и сложность —
+    //     в свёрнутом «Подробнее». Узлы не пересоздаются, а переставляются: show()
+    //     обновляет их по ссылкам, поэтому логика шагов и резерв высоты не меняются. ---
+    if (compact) compactLayout();
+    function compactLayout() {
+      root.classList.add("algo-tp--compact");
+      miniRow.style.display = "none"; // hidden перебивается display из CSS; значения видны на холсте
+      // ввод — свёрнутая карточка, как «Input ▾»
+      var capHdr = cArr.querySelector(".algo-tp__caphdr");
+      if (capHdr) {
+        var tgl = mkEl("button", "algo-tp__captgl", "Ввод и граничные случаи"); tgl.type = "button";
+        // раскрытость помнится на узле: пресет и «Запустить» перестраивают виджет, и
+        // свернувшийся заново ввод прятал бы кнопку, которую только что нажали
+        tgl.onclick = function () { var c = cArr.classList.toggle("algo-tp__card--closed"); root.__algoInputOpen = !c; tgl.setAttribute("aria-expanded", String(!c)); };
+        capHdr.replaceWith(tgl);
+        var inOpen = !!root.__algoInputOpen;
+        cArr.classList.toggle("algo-tp__card--closed", !inOpen); tgl.setAttribute("aria-expanded", String(inOpen));
+      }
+      var vizHdr = pViz.querySelector(".algo-tp__panelhdr"); if (vizHdr) vizHdr.style.display = "none";
+      // сверху вниз: ввод → холст → строка шага → переменные → управление → код → «Подробнее»
+      var chipsBox = mkEl("div", "algo-tp__vchips");
+      [pViz, cStat, chipsBox, ctrl].forEach(function (el) { root.insertBefore(el, main); });
+      reserveEl = pViz; // растёт холст (дерево прирастает уровнем) — резерв высоты на нём
+      varChips = function (cur, changed) {
+        chipsBox.innerHTML = "";
+        cfg.varOrder.forEach(function (k) {
+          var c = mkEl("span", "algo-tp__vchip" + (changed[k] ? " algo-tp__vchip--ch" : ""));
+          c.title = cfg.varDesc[k] || "";
+          c.appendChild(mkEl("span", "algo-tp__vchipk", k));
+          // пустое значение — прочерк, как в остальных виджетах (String() дал бы «undefined»)
+          c.appendChild(mkEl("span", "algo-tp__vchipv", cur[k] == null ? "—" : String(cur[k])));
+          chipsBox.appendChild(c);
+        });
+      };
+      // «Подробнее» нет: холст, строка шага и чипы переменных показывают всё нужное на шаге.
+      // Узлы итогов, правил, таблицы переменных и сложности отсоединяются, но остаются живыми —
+      // show() по-прежнему их обновляет, просто в DOM их нет.
+      var sub = headMain.querySelector(".algo-tp__sub"); if (sub) sub.remove();
+      var varsHdr = pCode.querySelector(".algo-tp__panelhdr--sm"); if (varsHdr) varsHdr.remove();
+      [sumBox, rules, table, foot].forEach(function (el) { el.remove(); });
+      // контролы: ▶ ◀ ▶ ━━●━━ 6 / 19 [1×] ⛶
+      ctrl.innerHTML = "";
+      ctrl.appendChild(bPlay); ctrl.appendChild(bPrev); ctrl.appendChild(bNext);
+      scrub = mkEl("input", "algo-tp__scrub");
+      scrub.type = "range"; scrub.min = "0"; scrub.max = String(steps.length - 1); scrub.step = "1"; scrub.value = "0";
+      scrub.setAttribute("aria-label", "Шаг алгоритма");
+      scrub.addEventListener("input", function () { var v = +scrub.value; stopPlay(); if (v === idx + 1) stepTo(v); else show(v); });
+      ctrl.appendChild(scrub);
+      ctrl.appendChild(counter);
+      var sel = mkEl("select", "algo-tp__speedsel");
+      sel.setAttribute("aria-label", "Скорость автопроигрывания");
+      [["0.5×", 20], ["1×", 50], ["2×", 80], ["4×", 100]].forEach(function (o) {
+        var op = mkEl("option", null, o[0]); op.value = String(o[1]); sel.appendChild(op);
+      });
+      sel.value = speedInp.value;
+      sel.onchange = function () { speedInp.value = sel.value; speedInp.dispatchEvent(new Event("input")); };
+      ctrl.appendChild(sel);
+      ctrl.appendChild(bFs);
+    }
+
     show(0);
     armReserve();
+  }
+
+  // Вкладки (например «перебор / оптимум»): <div class="algo-viz-tabs"> с двумя и более
+  // виджетами внутри, подпись вкладки — data-tab, стартовая — data-active на обёртке.
+  // Скрытая вкладка строится как обычно: резерв высоты досчитается по ResizeObserver,
+  // когда она станет видимой и получит ширину.
+  function initTabs() {
+    Array.prototype.forEach.call(document.querySelectorAll(".algo-viz-tabs:not(.algo-viz-tabs--ready)"), function (box) {
+      box.classList.add("algo-viz-tabs--ready");
+      var panes = Array.prototype.filter.call(box.children, function (c) { return c.classList.contains("algo-viz"); });
+      if (panes.length < 2) return;
+      var bar = mkEl("div", "algo-viz-tabs__bar");
+      bar.setAttribute("role", "tablist");
+      var tabs = panes.map(function (p, i) {
+        var b = mkEl("button", "algo-viz-tabs__tab", p.getAttribute("data-tab") || ("Вариант " + (i + 1)));
+        b.type = "button"; b.setAttribute("role", "tab");
+        b.onclick = function () { select(i); };
+        bar.appendChild(b);
+        return b;
+      });
+      function select(k) {
+        panes.forEach(function (p, i) {
+          p.hidden = i !== k;
+          tabs[i].classList.toggle("algo-viz-tabs__tab--on", i === k);
+          tabs[i].setAttribute("aria-selected", String(i === k));
+        });
+      }
+      box.insertBefore(bar, panes[0]);
+      select(Math.min(panes.length - 1, +(box.getAttribute("data-active") || 0)));
+    });
   }
 
   // ===== Диспетчер ============================================================
@@ -14917,6 +15335,7 @@
     el.appendChild(mkEl("div", "algo-tp__note", "⚠️ Неизвестный тип визуализации: " + t));
   }
   function init() {
+    initTabs();
     Array.prototype.forEach.call(document.querySelectorAll(".algo-viz:not(.algo-viz--ready)"), render);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
