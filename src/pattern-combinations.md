@@ -239,7 +239,7 @@ func ladderLength(beginWord, endWord string, wordList []string) int {
 Обход по уровням (вершины: `0=hit, 1=hot, 2=dot, 3=dog, 4=lot, 5=log, 6=cog`): BFS
 расходится волной от `hit`, и `cog` достигается за 5 слоёв — это и есть длина цепочки.
 
-<div class="algo-viz" data-viz="graph-bfs" data-nodes="0,1,2,3,4,5,6" data-edges="0-1,1-2,1-4,2-3,4-5,3-6,5-6" data-start="0"></div>
+<div class="algo-viz" data-viz="graph-bfs" data-nodes="0,1,2,3,4,5,6" data-edges="0-1,1-2,1-4,2-3,2-4,4-5,3-5,3-6,5-6" data-start="0"></div>
 
 > ⚠️ Удалять кандидата из словаря нужно **сразу при добавлении в очередь**, а не при
 > извлечении. Иначе одно слово попадёт в очередь несколько раз с разных вершин одного
