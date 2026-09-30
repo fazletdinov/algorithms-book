@@ -1180,13 +1180,41 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__tnode--root { border-width: 3px; border-color: var(--links); font-weight: 800; }
 
 /* Хеш-таблица: ряд бакетов, под каждым — цепочка записей */
-.algo-tp__hash { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin: 0.6em 0 0.8em; }
-.algo-tp__hbucket { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px; border-radius: 8px; border: 2px solid transparent; }
-.algo-tp__hbucket--cur { border-color: var(--tp-lo); background: color-mix(in srgb, var(--tp-lo) 14%, transparent); }
-.algo-tp__hidx { font-size: 0.78em; opacity: 0.7; font-weight: 700; }
-.algo-tp__hchain { display: flex; flex-direction: column; gap: 4px; }
-.algo-tp__hentry { min-width: 2em; padding: 0.3em 0.5em; border: 2px solid var(--tp-surface); border-radius: 7px; background: var(--tp-panel2); color: var(--fg); font-weight: 600; text-align: center; }
-.algo-tp__hempty { opacity: 0.4; font-style: italic; padding: 0.2em; }
+/* Хеш-таблица с цепочками: очередь вызовов, вычисление бакета, вертикальный массив
+   бакетов и цепочки стрелками. Плашки i / j / e — имена переменных листинга. */
+.algo-tp__hash { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0.6em 0 0.8em; }
+.algo-tp__hqueue { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; font-size: 0.9em; }
+.algo-tp__hqlab { opacity: 0.7; margin-right: 2px; }
+.algo-tp__hq { min-width: 1.9em; padding: 0.12em 0.45em; border-radius: 6px; border: 1px solid var(--tp-border); text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.algo-tp__hq--done { opacity: 0.38; }
+.algo-tp__hq--cur { border-color: var(--tp-lo); background: color-mix(in srgb, var(--tp-lo) 24%, transparent); }
+.algo-tp__hcalc { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 6px 10px; border-radius: 9px; border: 1px dashed var(--tp-border); font-variant-numeric: tabular-nums; transition: background 0.2s, border-color 0.2s; }
+.algo-tp__hcalc--hot { border-style: solid; border-color: var(--tp-lo); background: color-mix(in srgb, var(--tp-lo) 14%, transparent); }
+.algo-tp__hop { font-weight: 800; }
+.algo-tp__hcode { font-size: 0.9em; opacity: 0.85; }
+.algo-tp__hsub { font-weight: 600; }
+.algo-tp__hres { font-weight: 800; color: var(--tp-lo); }
+.algo-tp__htables { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 1.2em 2.5em; width: 100%; }
+.algo-tp__htable { display: flex; flex-direction: column; gap: 0.6em; padding-top: 0.35em; min-width: min(100%, 16em); }
+.algo-tp__hcap { font-size: 0.75em; opacity: 0.65; font-family: var(--mono-font, monospace); margin-bottom: -0.45em; }
+.algo-tp__hrow { display: flex; align-items: center; gap: 6px; padding: 3px 8px 3px 3px; border-radius: 10px; border: 2px solid transparent; min-height: 2.4em; }
+.algo-tp__hrow--cur { border-color: var(--tp-lo); background: color-mix(in srgb, var(--tp-lo) 10%, transparent); }
+.algo-tp__hidx { position: relative; width: 2.3em; height: 2.3em; flex: none; display: flex; align-items: center; justify-content: center; border: 2px solid var(--tp-border); border-radius: 7px; background: var(--tp-panel2); font-weight: 800; font-variant-numeric: tabular-nums; }
+.algo-tp__hrow--cur .algo-tp__hidx { border-color: var(--tp-lo); background: var(--tp-lo); color: #fff; }
+.algo-tp__harrow { color: var(--links); font-weight: 700; opacity: 0.75; }
+.algo-tp__hempty { opacity: 0.45; font-style: italic; font-size: 0.9em; padding-left: 4px; }
+.algo-tp__hnode { position: relative; min-width: 2.3em; padding: 0.32em 0.55em; border: 2px solid var(--tp-surface); border-radius: 8px; background: var(--tp-panel2); color: var(--fg); font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; transition: background 0.2s, border-color 0.2s; }
+.algo-tp__hnode--cmp { border-color: #e0a500; background: color-mix(in srgb, #e0a500 26%, var(--tp-panel2)); }
+.algo-tp__hnode--gone { opacity: 0.3; border-style: dashed; text-decoration: line-through; }
+.algo-tp__hnode--found { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+.algo-tp__hnode--created { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; outline: 3px dashed color-mix(in srgb, var(--tp-ok) 55%, transparent); outline-offset: 2px; }
+.algo-tp__htag { position: absolute; left: 50%; top: -1.3em; transform: translateX(-50%); padding: 0 0.5em; border-radius: 5px; border: 1px solid var(--tp-surface); font-size: 0.8em; line-height: 1.35; font-weight: 800; background: #e0a500; color: #1a1a1a; pointer-events: none; }
+.algo-tp__htag--i { background: var(--tp-lo); color: #fff; }
+.algo-tp__legdot--hbucket { background: var(--tp-lo); border-color: var(--tp-lo); border-radius: 3px; }
+.algo-tp__legdot--hcmp { background: color-mix(in srgb, #e0a500 40%, transparent); border: 2px solid #e0a500; border-radius: 3px; }
+.algo-tp__legdot--hfound { background: var(--tp-ok); border-color: var(--tp-ok); border-radius: 3px; }
+.algo-tp__legdot--hgone { background: transparent; border: 2px dashed currentColor; border-radius: 3px; opacity: 0.45; }
+.algo-tp__legdot--hnew { background: var(--tp-ok); border-color: var(--tp-ok); border-radius: 3px; outline: 2px dashed color-mix(in srgb, var(--tp-ok) 55%, transparent); outline-offset: 1px; }
 
 /* Дек: горизонтальный ряд с подписями обоих концов */
 .algo-tp__deque { display: flex; flex-wrap: nowrap; align-items: center; gap: 5px; margin: 0.2em 0 0.4em; }
@@ -1498,15 +1526,15 @@ body.algo-tp-fslock { overflow: hidden; }
 /* не рисовалась. Здесь модификаторы повторены с повышенной              */
 /* специфичностью.                                                       */
 /* ===================================================================== */
-:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--visited { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
-:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--current { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
-:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--found { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
-:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--created { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; outline: 3px dashed color-mix(in srgb, var(--tp-lo) 55%, transparent); }
-:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--removed { background: color-mix(in srgb, var(--tp-warn) 30%, transparent); border-color: var(--tp-warn); text-decoration: line-through; outline: 3px dashed var(--tp-warn); }
-:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--take { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
-:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--split { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
-:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--skip { opacity: 0.35; }
-:is(.algo-tp__hentry, .algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--ghost { opacity: 0.16; border-style: dashed; }
+:is(.algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--visited { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+:is(.algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--current { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
+:is(.algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--found { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+:is(.algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--created { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; outline: 3px dashed color-mix(in srgb, var(--tp-lo) 55%, transparent); }
+:is(.algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--removed { background: color-mix(in srgb, var(--tp-warn) 30%, transparent); border-color: var(--tp-warn); text-decoration: line-through; outline: 3px dashed var(--tp-warn); }
+:is(.algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--take { background: var(--tp-ok); border-color: var(--tp-ok); color: #fff; }
+:is(.algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--split { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; }
+:is(.algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--skip { opacity: 0.35; }
+:is(.algo-tp__dqcell, .algo-tp__spcell, .algo-tp__heapcell).algo-tp__tnode--ghost { opacity: 0.16; border-style: dashed; }
 
 /* (в конце файла: при равной специфичности должно перебивать базовые правила выше) */
 /* узкий виджет (телефон, колонка с сайдбаром): клетки мельче, чтобы типичный
@@ -1554,9 +1582,14 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__mapcell--zero .algo-tp__mapcnt { color: var(--tp-warn); }
 /* разворот списка: подписи prev/curr/next под узлами, разорванная связь */
 .algo-tp__llrev { flex-wrap: nowrap; justify-content: center; }
-.algo-tp__llrevlab { margin-top: -0.3em; min-height: 1.3em; }
-.algo-tp__llrevghost { visibility: visible; background: transparent !important; border-color: transparent !important; color: var(--tp-lo) !important; font-size: 0.7em; font-weight: 700; transform: none !important; outline: none !important; box-shadow: none !important; }
-.algo-tp__llrevlab .algo-tp__llarrow, .algo-tp__llrevlab .algo-tp__llnil { color: transparent !important; }
+.algo-tp__llgrid { display: grid; grid-auto-flow: column; grid-template-rows: auto auto; column-gap: 5px; row-gap: 3px; align-items: center; justify-items: center; justify-content: center; margin: 0.5em 0 0.4em; }
+.algo-tp__lllab { min-height: 1.3em; font-size: 0.72em; font-weight: 700; color: var(--tp-lo); white-space: nowrap; }
+.algo-tp__llnode--past { opacity: 0.4; }
+.algo-tp__legdot--llprev, .algo-tp__legdot--llfound { background: var(--tp-ok); border-color: var(--tp-ok); border-radius: 3px; }
+.algo-tp__legdot--llcur { background: var(--tp-lo); border-color: var(--tp-lo); border-radius: 3px; }
+.algo-tp__legdot--llpast { background: var(--tp-panel2); border-color: var(--tp-border); border-radius: 3px; opacity: 0.5; }
+.algo-tp__legdot--llcut { background: transparent; border: 2px dashed #ef4444; border-radius: 3px; }
+.algo-tp__legdot--llhot { background: #e0a500; border-color: #e0a500; border-radius: 2px; height: 0.35em; align-self: center; }
 .algo-tp__llnode--next { outline: 2px dashed var(--tp-warn); outline-offset: 2px; }
 .algo-tp__llarrow--cut { color: var(--tp-bad); opacity: 1; }
 .algo-tp__llarrow--hot { color: var(--tp-ok); opacity: 1; transform: scale(1.4); display: inline-block; }
@@ -1629,12 +1662,6 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__dabarb--last { outline: 2px solid var(--fg, #c9d1d9); outline-offset: 1px; }
 .algo-tp__dabarl { font-size: 0.68em; opacity: 0.6; margin-top: 2px; }
 /* Перехеширование: старая таблица рядом с новой */
-.algo-tp__hrrow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.algo-tp__hrlab { font-size: 0.75em; opacity: 0.65; min-width: 4.2em; font-variant-numeric: tabular-nums; }
-.algo-tp__hrkey { padding: 1px 8px; border-radius: 6px; border: 1px solid var(--tp-border); font-weight: 700; font-variant-numeric: tabular-nums; }
-.algo-tp__hrkey--cur { background: #e0a500; border-color: #e0a500; color: #1a1a1a; }
-.algo-tp__hrkey--gone { opacity: 0.3; text-decoration: line-through; }
-.algo-tp__hrkey--empty { border-style: dashed; opacity: 0.5; }
 /* Наивный диаметр: узел, который height() обходит повторно */
 .algo-tp__tnode--again { background: #e0a500; border-color: #e0a500; color: #1a1a1a; }
 .algo-tp__legdot--again { background: #e0a500; border-color: #e0a500; }
@@ -2091,3 +2118,41 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--nbbad { background: transparent; border: 2px dashed var(--tp-bad, #ef4444); border-radius: 3px; }
 /* Кан: текущее ребро, уже снятое строкой indeg[v]-- — жёлтый пунктир в полную яркость */
 .algo-viz__gedge--cur.algo-viz__gedge--skip { stroke-dasharray: 6 4; opacity: 1; }
+
+/* Ханойская башня: дерево вызовов + стержни + стек кадров (hanoiViz). Состояния узлов
+   дерева — rc--*: синий — текущий, янтарная рамка — ждёт на стеке, зелёный — завершён,
+   призрак — ещё не вызван. Цвет диска = его размер: диск легко проследить глазами. */
+.algo-tp__tw { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 0.4em 0 0.6em; }
+.algo-tp__twcap { font-size: 0.75em; opacity: 0.7; text-align: center; }
+.algo-tp__tfignode.algo-tp__rc--base { min-width: 1.7em; height: 1.7em; font-size: 0.78em; padding: 0 0.35em; }
+.algo-tp__tfignode.algo-tp__rc--ghost { opacity: 0.22; border-style: dashed; }
+.algo-tp__rcedge--ghost { opacity: 0.2; }
+.algo-tp__tfignode.algo-tp__rc--wait { border: 2px solid #e0a500; background: color-mix(in srgb, #e0a500 18%, var(--tp-panel2)); }
+.algo-tp__tfignode.algo-tp__rc--done { background: color-mix(in srgb, var(--tp-ok) 70%, var(--tp-panel2)); border-color: var(--tp-ok); color: #fff; }
+.algo-tp__tfignode.algo-tp__rc--cur { background: var(--tp-lo); border-color: var(--tp-lo); color: #fff; outline: 3px solid color-mix(in srgb, var(--tp-lo) 40%, transparent); z-index: 1; }
+.algo-tp__twrow { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 1em 1.5em; width: 100%; }
+.algo-tp__twpegs { display: flex; gap: 10px; flex: 1 1 18em; max-width: 30em; min-width: min(100%, 16em); }
+.algo-tp__twpeg { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.algo-tp__twstand { position: relative; width: 100%; display: flex; align-items: flex-end; justify-content: center; border-bottom: 5px solid #64748b; border-radius: 2px; }
+.algo-tp__twpole { position: absolute; bottom: 0; left: 50%; width: 6px; height: calc(100% - 4px); transform: translateX(-50%); border-radius: 3px 3px 0 0; background: #64748b; }
+.algo-tp__twdisks { position: relative; width: 100%; display: flex; flex-direction: column-reverse; align-items: center; gap: 2px; padding-bottom: 2px; }
+.algo-tp__twdisk { height: 22px; border-radius: 6px; color: #0f172a; font-size: 0.8em; font-weight: 800; line-height: 22px; text-align: center; transition: opacity 0.2s, transform 0.2s; }
+.algo-tp__twdisk--s1 { background: #60a5fa; }
+.algo-tp__twdisk--s2 { background: #34d399; }
+.algo-tp__twdisk--s3 { background: #f472b6; }
+.algo-tp__twdisk--s4 { background: #a78bfa; }
+.algo-tp__twdisk--dim { opacity: 0.5; filter: saturate(0.4); }
+.algo-tp__twdisk--moved { outline: 3px solid #e0a500; outline-offset: 2px; transform: translateY(-3px); }
+.algo-tp__twname { margin-top: 5px; font-weight: 800; }
+.algo-tp__twrole { min-height: 1.3em; font-size: 0.8em; font-weight: 700; color: #e0a500; }
+.algo-tp__twstack { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; max-width: 100%; }
+.algo-tp__twframe { padding: 3px 9px 4px; border-radius: 8px; border: 2px solid #e0a500; background: color-mix(in srgb, #e0a500 10%, transparent); }
+.algo-tp__twframe--top { border-color: var(--tp-lo); background: color-mix(in srgb, var(--tp-lo) 16%, transparent); }
+.algo-tp__twsig { font-size: 0.78em; white-space: nowrap; }
+.algo-tp__twat { font-size: 0.72em; opacity: 0.75; }
+.algo-tp__twempty { font-size: 0.8em; opacity: 0.55; font-style: italic; }
+.algo-tp__legdot--rccur { background: var(--tp-lo); border-color: var(--tp-lo); }
+.algo-tp__legdot--rcwait { background: color-mix(in srgb, #e0a500 25%, transparent); border: 2px solid #e0a500; }
+.algo-tp__legdot--rcdone { background: var(--tp-ok); border-color: var(--tp-ok); }
+.algo-tp__legdot--rcghost { background: transparent; border: 1px dashed currentColor; opacity: 0.45; }
+.algo-tp__legdot--twmoved { background: #60a5fa; border: 2px solid #e0a500; border-radius: 3px; }

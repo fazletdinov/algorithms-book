@@ -3177,60 +3177,132 @@
   }
 
   // ===== Хеш-таблица (разрешение коллизий цепочками): Put / Get ==============
-  // Массив бакетов, каждый — цепочка записей. hash(key)=key%m. hashViz рисует ряд
-  // бакетов с цепочками; снимок s.buckets пересобирается каждый шаг (видно коллизию
-  // как удлинение цепочки и скан цепочки при поиске).
+  // hashViz рисует таблицу так, как её рисуют на доске: сверху — очередь вызовов и
+  // вычисление бакета («hash(9) % 4 = 1» — строка, которая выбирает бакет), под ним
+  // вертикальный массив h.buckets, у каждого бакета справа цепочка записей стрелками.
+  // Плашки — имена переменных листинга: i над бакетом, j (или e) над записью, на
+  // которую он сейчас смотрит. Прежние столбики без стрелок и без вычисления хеша
+  // не отвечали на главный вопрос «почему ключ оказался именно здесь».
   function hashViz(panel) {
     var host = mkEl("div", "algo-tp__hash"); panel.appendChild(host);
     return function (s) {
       host.innerHTML = "";
-      var buckets = s.buckets || [], cur = (s.curBucket == null ? -1 : s.curBucket);
-      buckets.forEach(function (chain, i) {
-        var col = mkEl("div", "algo-tp__hbucket" + (i === cur ? " algo-tp__hbucket--cur" : ""));
-        col.appendChild(mkEl("div", "algo-tp__hidx", i));
-        var chainBox = mkEl("div", "algo-tp__hchain");
-        if (!chain.length) chainBox.appendChild(mkEl("div", "algo-tp__hempty", "∅"));
-        else chain.forEach(function (e) { chainBox.appendChild(mkEl("div", "algo-tp__hentry" + (e.cls ? " algo-tp__tnode--" + e.cls : ""), e.key)); });
-        col.appendChild(chainBox);
-        host.appendChild(col);
-      });
+      if (s.ops) {
+        var q = mkEl("div", "algo-tp__hqueue");
+        q.appendChild(mkEl("span", "algo-tp__hqlab", s.opName + " по очереди:"));
+        s.ops.forEach(function (k, p) { q.appendChild(mkEl("span", "algo-tp__hq" + (p < s.opIdx ? " algo-tp__hq--done" : p === s.opIdx ? " algo-tp__hq--cur" : ""), String(k))); });
+        host.appendChild(q);
+      }
+      if (s.calc) {
+        var c = mkEl("div", "algo-tp__hcalc" + (s.calc.hot ? " algo-tp__hcalc--hot" : ""));
+        c.appendChild(mkEl("span", "algo-tp__hop", s.calc.op));
+        c.appendChild(mkEl("code", "algo-tp__hcode", s.calc.code));
+        c.appendChild(mkEl("span", "algo-tp__hsub", "= " + s.calc.sub + " ="));
+        c.appendChild(mkEl("span", "algo-tp__hres", "бакет " + s.calc.res));
+        host.appendChild(c);
+      }
+      // Рост таблицы (s.old): старый и новый массивы рядом, в одной манере — видно, как
+      // цепочка при % m расходится по разным бакетам при % 2m.
+      var wrap = mkEl("div", "algo-tp__htables");
+      if (s.old) {
+        var oldSnap = s.old.map(function (chain) { return chain.map(function (k) { return { key: k, cls: k === s.curKey ? "cmp" : s.moved.indexOf(k) >= 0 ? "gone" : "", tag: k === s.curKey ? "e" : "" }; }); });
+        wrap.appendChild(hashTable(oldSnap, -1, "h.buckets — старый, % " + s.oldM + (s.done ? " (уходит сборщику мусора)" : "")));
+      }
+      wrap.appendChild(hashTable(s.buckets || [], s.curBucket == null ? -1 : s.curBucket, s.arrName || "h.buckets"));
+      host.appendChild(wrap);
     };
+  }
+  function hashTable(buckets, cur, cap) {
+    var tbl = mkEl("div", "algo-tp__htable");
+    tbl.appendChild(mkEl("div", "algo-tp__hcap", cap));
+    buckets.forEach(function (chain, b) {
+      var row = mkEl("div", "algo-tp__hrow" + (b === cur ? " algo-tp__hrow--cur" : ""));
+      var idx = mkEl("div", "algo-tp__hidx", String(b));
+      if (b === cur) idx.appendChild(mkEl("span", "algo-tp__htag algo-tp__htag--i", "i"));
+      row.appendChild(idx);
+      if (!chain.length) row.appendChild(mkEl("span", "algo-tp__hempty", "∅"));
+      chain.forEach(function (e) {
+        row.appendChild(mkEl("span", "algo-tp__harrow", "→"));
+        var node = mkEl("div", "algo-tp__hnode" + (e.cls ? " algo-tp__hnode--" + e.cls : ""), String(e.key));
+        if (e.tag) node.appendChild(mkEl("span", "algo-tp__htag", e.tag));
+        row.appendChild(node);
+      });
+      tbl.appendChild(row);
+    });
+    return tbl;
   }
   function hashBuild(keys, m) {
     var buckets = []; for (var i = 0; i < m; i++) buckets.push([]);
     keys.forEach(function (k) { buckets[((k % m) + m) % m].push(k); });
     return buckets;
   }
-  function bHashPut(keys, m, key) {
+  // Снимок таблицы: mark = {b, j, cls, tag} — одна выделенная запись (или null).
+  function hashSnap(buckets, mark) {
+    return buckets.map(function (chain, b) { return chain.map(function (k, j) { var on = mark && mark.b === b && mark.j === j; return { key: k, cls: on ? mark.cls : "", tag: on ? mark.tag || "" : "" }; }); });
+  }
+  // Put по очереди для каждого ключа из puts: один кадр — одна строка листинга, включая
+  // заголовок цикла (на нём j берёт следующую запись или цикл кончается — это развилка,
+  // о которой спрашивает режим 🎯). Повторный ключ показывает ветку «обновить на месте».
+  function bHashPut(keys, m, puts) {
     var buckets = hashBuild(keys, m), steps = [];
-    function snap(curB, marks) { return buckets.map(function (chain, i) { return chain.map(function (k, j) { return { key: k, cls: (marks && marks[i] != null && marks[i][j]) || "" }; }); }); }
-    function push(o) { steps.push({ si: steps.length, line: o.line, buckets: o.snap, curBucket: (o.curBucket == null ? -1 : o.curBucket), vars: { i: (o.i == null ? "—" : String(o.i)), key: String(key) }, info: o.info, done: o.done, created: o.created }); }
-    var i = ((key % m) + m) % m;
-    push({ line: 1, snap: snap(i, {}), curBucket: i, i: i, info: "hash(" + key + ") % " + m + " = " + i + " — бакет " + i });
-    var chain = buckets[i], found = -1;
-    for (var j = 0; j < chain.length; j++) {
-      var mk = {}; mk[i] = {}; mk[i][j] = "current";
-      push({ line: 3, snap: snap(i, mk), curBucket: i, i: i, info: "j = " + j + ": сравниваем ключ " + key + " с записью " + chain[j] + " в цепочке" });
-      if (chain[j] === key) { found = j; var mf = {}; mf[i] = {}; mf[i][j] = "found"; push({ line: 4, snap: snap(i, mf), curBucket: i, i: i, done: true, info: "ключ " + key + " уже есть — обновили бы значение на месте" }); return { steps: steps }; }
+    function push(o) {
+      steps.push({ si: steps.length, line: o.line, buckets: hashSnap(buckets, o.mark), curBucket: o.i,
+        opName: "Put", ops: puts, opIdx: o.p,
+        calc: { op: "Put(" + o.key + ")", code: "hash(key) % len(h.buckets)", sub: o.key + " % " + m, res: o.i, hot: o.line === 1 },
+        vars: { key: String(o.key), i: String(o.i), j: o.j == null ? "—" : String(o.j) },
+        info: o.info, done: o.done, created: o.created, found: o.found });
     }
-    chain.push(key);
-    var mc = {}; mc[i] = {}; mc[i][chain.length - 1] = "created";
-    push({ line: 8, snap: snap(i, mc), curBucket: i, i: i, created: true, done: true, info: (chain.length > 1 ? "коллизия: " : "") + "добавили " + key + " в конец цепочки бакета " + i });
+    puts.forEach(function (key, p) {
+      var i = ((key % m) + m) % m, chain = buckets[i], last = p === puts.length - 1;
+      var at = { key: key, i: i, p: p };
+      function st(o) { for (var f in at) o[f] = at[f]; push(o); }
+      st({ line: 1, info: "Put(" + key + "): hash(" + key + ") % " + m + " = " + i + " → ключ живёт в бакете " + i });
+      for (var j = 0; j < chain.length; j++) {
+        var mk = { b: i, j: j, cls: "cmp", tag: "j" };
+        st({ line: 2, j: j, mark: mk, info: (j ? "Следующая запись цепочки" : "В бакете " + i + " есть записи — начинаем с первой") + ": j = " + j });
+        var eq = chain[j] === key;
+        st({ line: 3, j: j, mark: mk, info: "Сравниваем ключи: " + chain[j] + " == " + key + "? " + (eq ? "Да — такой ключ уже есть" : "Нет — смотрим дальше") });
+        if (eq) {
+          st({ line: 4, j: j, mark: { b: i, j: j, cls: "found", tag: "j" }, found: true, done: last, info: "Ключ " + key + " уже в таблице — меняем его значение на месте и выходим. Новой записи нет" });
+          return;
+        }
+      }
+      st({ line: 2, info: chain.length ? "Цепочка бакета " + i + " кончилась — ключа " + key + " в ней нет" : "Бакет " + i + " пуст — цикл не делает ни одной итерации" });
+      chain.push(key);
+      st({ line: 8, mark: { b: i, j: chain.length - 1, cls: "created" }, created: true, done: last,
+        info: chain.length > 1 ? "Коллизия: бакет " + i + " уже занят (" + chain.slice(0, -1).join(" → ") + ") — ставим " + key + " в конец цепочки" : "Бакет " + i + " был пуст — " + key + " становится его первой записью" });
+    });
     return { steps: steps };
   }
-  function bHashGet(keys, m, key) {
+  // Get по очереди для каждого ключа из gets: тот же бакет, скан цепочки; e — запись,
+  // которую выдал range (плашка e над ней, чип e.key — её ключ).
+  function bHashGet(keys, m, gets) {
     var buckets = hashBuild(keys, m), steps = [];
-    function snap(marks) { return buckets.map(function (chain, i) { return chain.map(function (k, j) { return { key: k, cls: (marks && marks[i] != null && marks[i][j]) || "" }; }); }); }
-    function push(o) { steps.push({ si: steps.length, line: o.line, buckets: o.snap, curBucket: (o.curBucket == null ? -1 : o.curBucket), vars: { i: (o.i == null ? "—" : String(o.i)), key: String(key) }, info: o.info, done: o.done, found: o.found }); }
-    var i = ((key % m) + m) % m;
-    push({ line: 1, snap: snap({}), curBucket: i, i: i, info: "hash(" + key + ") % " + m + " = " + i + " — ищем в бакете " + i });
-    var chain = buckets[i];
-    for (var j = 0; j < chain.length; j++) {
-      var mk = {}; mk[i] = {}; mk[i][j] = "current";
-      push({ line: 3, snap: snap(mk), curBucket: i, i: i, info: "сравниваем с " + chain[j] + (chain[j] === key ? " — совпало!" : " — мимо") });
-      if (chain[j] === key) { var mf = {}; mf[i] = {}; mf[i][j] = "found"; push({ line: 4, snap: snap(mf), curBucket: i, i: i, done: true, found: true, info: "нашли ключ " + key + " в бакете " + i }); return { steps: steps }; }
+    function push(o) {
+      steps.push({ si: steps.length, line: o.line, buckets: hashSnap(buckets, o.mark), curBucket: o.i,
+        opName: "Get", ops: gets, opIdx: o.p,
+        calc: { op: "Get(" + o.key + ")", code: "hash(key) % len(h.buckets)", sub: o.key + " % " + m, res: o.i, hot: o.line === 1 },
+        vars: { key: String(o.key), i: String(o.i), e: o.e == null ? "—" : String(o.e) },
+        info: o.info, done: o.done, found: o.found, miss: o.miss });
     }
-    push({ line: 7, snap: snap({}), curBucket: i, i: i, done: true, info: "ключа " + key + " нет в бакете " + i + " → return false" });
+    gets.forEach(function (key, p) {
+      var i = ((key % m) + m) % m, chain = buckets[i], last = p === gets.length - 1;
+      var at = { key: key, i: i, p: p };
+      function st(o) { for (var f in at) o[f] = at[f]; push(o); }
+      st({ line: 1, info: "Get(" + key + "): hash(" + key + ") % " + m + " = " + i + " → если ключ есть, то только в бакете " + i });
+      for (var j = 0; j < chain.length; j++) {
+        var mk = { b: i, j: j, cls: "cmp", tag: "e" };
+        st({ line: 2, e: chain[j], mark: mk, info: (j ? "Следующая запись цепочки" : "Берём первую запись цепочки") + ": e.key = " + chain[j] });
+        var eq = chain[j] === key;
+        st({ line: 3, e: chain[j], mark: mk, info: "Сравниваем: e.key == key → " + chain[j] + " == " + key + "? " + (eq ? "Да" : "Нет — мимо") });
+        if (eq) {
+          st({ line: 4, e: chain[j], mark: { b: i, j: j, cls: "found", tag: "e" }, found: true, done: last, info: "Нашли " + key + " за " + (j + 1) + " " + ruPlural(j + 1, "сравнение", "сравнения", "сравнений") + " — возвращаем e.val, true" });
+          return;
+        }
+      }
+      st({ line: 2, info: chain.length ? "Цепочка бакета " + i + " кончилась, совпадения не было" : "Бакет " + i + " пуст — сравнивать не с чем" });
+      st({ line: 7, miss: true, done: last, info: "Ключа " + key + " в таблице нет — return 0, false. Остальные бакеты не смотрели: в другом месте его быть не может" });
+    });
     return { steps: steps };
   }
 
@@ -3239,12 +3311,12 @@
   function bHashResize(keys, m) {
     var oldB = hashBuild(keys, m), n = keys.length, newM = m * 2, steps = [];
     function snapOf(buckets, curB, marks) { return buckets.map(function (chain, i) { return chain.map(function (k, j) { return { key: k, cls: (marks && marks[i] != null && marks[i][j]) || "" }; }); }); }
-    // old/moved — старая таблица остаётся на экране (панель под новой): иначе «цепочка при m
+    // old/moved — старая таблица остаётся на экране (рядом с новой): иначе «цепочка при m
     // расходится по разным бакетам при 2m» не видно — старый массив просто исчезал
     var moved = [];
-    function push(o) { steps.push({ si: steps.length, line: o.line, buckets: o.snap, old: oldB, oldM: m, moved: moved.slice(), curKey: o.key == null ? null : o.key, curBucket: (o.curBucket == null ? -1 : o.curBucket), vars: { key: (o.key == null ? "—" : String(o.key)), load: o.load }, info: o.info, done: o.done, fix: o.fix }); }
+    function push(o) { steps.push({ si: steps.length, line: o.line, buckets: o.snap, old: oldB, oldM: m, moved: moved.slice(), curKey: o.key == null ? null : o.key, curBucket: (o.curBucket == null ? -1 : o.curBucket), arrName: o.snap.length === newM ? "nb — новый массив на " + newM + " бакетов" : "h.buckets — " + m + " " + ruPlural(m, "бакет", "бакета", "бакетов"), calc: o.key == null ? null : { op: "перенос " + o.key, code: "e.key % newM", sub: o.key + " % " + newM, res: o.curBucket, hot: o.line === 10 }, vars: { key: (o.key == null ? "—" : String(o.key)), i: (o.line === 10 || o.line === 11 ? String(o.curBucket) : "—"), load: o.load }, info: o.info, done: o.done, fix: o.fix }); }
     var loadOld = (n / m).toFixed(2);
-    push({ line: 2, snap: snapOf(oldB, -1, {}), load: loadOld, info: "В таблице " + n + " ключей на " + m + " бакетов: load factor = " + n + "/" + m + " = " + loadOld + " > 0.75 → цепочки длинны, пора расти" });
+    push({ line: 2, snap: snapOf(oldB, -1, {}), load: loadOld, info: "В таблице " + n + " " + ruPlural(n, "ключ", "ключа", "ключей") + " на " + m + " " + ruPlural(m, "бакет", "бакета", "бакетов") + ": load factor = " + n + "/" + m + " = " + loadOld + " > 0.75 → цепочки длинны, пора расти" });
     push({ line: 3, snap: snapOf(oldB, -1, {}), load: loadOld, info: "Создаём массив вдвое больше — " + newM + " бакетов — и перехешируем в него КАЖДЫЙ ключ по новому модулю % " + newM });
     // перехешируем ключи в порядке старых бакетов
     var newB = []; for (var b = 0; b < newM; b++) newB.push([]);
@@ -7528,101 +7600,122 @@
     return steps;
   }
 
-  // Ханойская башня — классическая рекурсия T(n)=2·T(n−1)+1. Builder симулирует
-  // рекурсию, на каждый move() сохраняет снимок трёх стержней (pegs). customViz рисует
-  // диски на стержнях, подсвечивая только что переехавший.
-  // Построчная (debugger) трассировка РЕКУРСИИ hanoi: шаг на каждую исполнённую
-  // строку каждого вызова, со стеком вызовов (растёт на входе, снимается на
-  // return). Кламп n=4 — иначе сотни шагов (2^(n+1)−1 вызовов).
+  // Ханойская башня — канон рекурсии T(n) = 2·T(n−1) + 1. Построчная трассировка: шаг
+  // на каждую исполненную строку каждого вызова. Кроме стержней снимок несёт ДЕРЕВО
+  // вызовов (кто на стеке, кто завершён, кто ещё не вызван — state[id]) и кадры стека с
+  // их собственными n/from/to/via и строкой, на которой кадр ждёт возврата (at). Без
+  // дерева «как ход рождается из рекурсии» было нечем показать: стек — это только путь
+  // от корня до текущего узла. Кламп n = 4 — иначе сотни шагов (2^(n+1) − 1 вызовов).
   function bHanoi(n) {
     n = Math.max(1, Math.min(4, n | 0));
-    var pegs = [[], [], []], names = ["A", "B", "C"], steps = [], moveNo = 0, depth = 0, stack = [];
-    for (var d = n; d >= 1; d--) { pegs[0].push(d); } // дно = n, верх = 1
-    function vv(k, from, to, via) { return { "n": k, "перенос": names[from] + " → " + names[to], "запасной": names[via], "глубина": depth, "ход": moveNo }; }
-    function snap(line, k, from, to, via, extra) {
-      var base = { pegs: [pegs[0].slice(), pegs[1].slice(), pegs[2].slice()], n: n, line: line, depth: depth, stack: stack.slice(), disk: -1, to: -1, cf: { k: k, from: from, dst: to, via: via }, vars: vv(k, from, to, via) };
-      if (extra) { for (var key in extra) base[key] = extra[key]; }
+    var pegs = [[], [], []], names = ["A", "B", "C"], steps = [], moveNo = 0, frames = [], tree = [], state = [], moveAt = [];
+    for (var d = n; d >= 1; d--) pegs[0].push(d); // дно = n, верх = 1
+    function sig(f) { return "hanoi(" + f.k + ", " + names[f.from] + ", " + names[f.to] + ", " + names[f.via] + ")"; }
+    function disks(k) { return k + " " + ruPlural(k, "диск", "диска", "дисков"); }
+    function snap(line, f, extra) {
+      var base = { pegs: pegs.map(function (p) { return p.slice(); }), n: n, line: line,
+        frames: frames.map(function (x) { return { k: x.k, from: x.from, to: x.to, via: x.via, at: x.at }; }),
+        state: state.slice(), moveAt: moveAt.slice(), cur: f ? f.id : -1, disk: -1, to: -1,
+        cf: f ? { k: f.k, from: f.from, dst: f.to, via: f.via } : null,
+        vars: { n: f ? String(f.k) : "—", from: f ? names[f.from] : "—", to: f ? names[f.to] : "—", via: f ? names[f.via] : "—", depth: frames.length, moves: moveNo } };
+      if (extra) for (var key in extra) base[key] = extra[key];
       return base;
     }
-    function call(k, from, to, via) {
-      var sig = "hanoi(" + k + "," + names[from] + "→" + names[to] + ")";
-      depth++; stack.push(sig);
-      steps.push(snap(0, k, from, to, via, { info: "→ входим в " + sig + " (глубина стека " + depth + "): перенести " + k + " " + ruPlural(k, "диск", "диска", "дисков") + " с " + names[from] + " на " + names[to] + ", запасной " + names[via] }));
-      steps.push(snap(1, k, from, to, via, { info: "if n == 0? n = " + k + (k === 0 ? " — ДА, базовый случай: дно рекурсии" : " — нет, рекурсия идёт глубже") }));
+    function back() { // куда вернётся управление после снятия верхнего кадра
+      if (frames.length < 2) return ", стек пуст";
+      var p = frames[frames.length - 2];
+      return ", управление возвращается в " + sig(p) + " — туда, где он ждал (строка " + (p.at + 1) + ")";
+    }
+    function call(k, from, to, via, parent) {
+      var f = { id: tree.length, k: k, from: from, to: to, via: via, at: 0 };
+      tree.push({ parent: parent, k: k, from: from, to: to });
+      frames.push(f); state[f.id] = 1;
+      steps.push(snap(0, f, { info: "Вызов " + sig(f) + ": перенести " + disks(k) + " с " + names[from] + " на " + names[to] + " через " + names[via] + ". Новый кадр — на верх стека (глубина " + frames.length + ")" }));
+      steps.push(snap(1, f, { info: "n == 0? n = " + k + (k === 0 ? " — да: это база, переносить нечего" : " — нет, задача не пустая: идём в рекурсию") }));
       if (k === 0) {
-        steps.push(snap(2, k, from, to, via, { info: "return — переносить нечего; кадр вызова снимается со стека, управление возвращается наверх" }));
-        depth--; stack.pop();
+        steps.push(snap(2, f, { info: "return — пустой вызов закончился сразу. Кадр снимается" + back() }));
+        frames.pop(); state[f.id] = 2;
         return;
       }
-      steps.push(snap(4, k, from, to, via, { info: "hanoi(" + (k - 1) + ", " + names[from] + "→" + names[via] + ") — РЕКУРСИЯ: сначала уносим верхние " + (k - 1) + " " + ruPlural(k - 1, "диск", "диска", "дисков") + " на запасной " + names[via] }));
-      call(k - 1, from, via, to);
-      var disk = pegs[from].pop(); pegs[to].push(disk); moveNo++;
-      steps.push(snap(5, k, from, to, via, { disk: disk, to: to, info: "move(" + names[from] + ", " + names[to] + ") — ход " + moveNo + ": самый большой диск " + disk + " этого вызова переезжает " + names[from] + " → " + names[to] }));
-      steps.push(snap(6, k, from, to, via, { info: "hanoi(" + (k - 1) + ", " + names[via] + "→" + names[to] + ") — РЕКУРСИЯ: переносим те же " + (k - 1) + " " + ruPlural(k - 1, "диск", "диска", "дисков") + " с запасного " + names[via] + " на цель " + names[to] }));
-      call(k - 1, via, to, from);
-      // возврат кадра n > 0 — отдельным шагом: раньше такие кадры снимались молча,
-      // и стек сворачивался пачкой
-      steps.push(snap(7, k, from, to, via, { info: sig + " закончен: " + (k === 1 ? "диск 1 стоит" : "диски 1.." + k + " стоят") + " на " + names[to] + " → кадр снимается" + (stack.length > 1 ? ", возврат в " + stack[stack.length - 2] : ", стек пуст") }));
-      depth--; stack.pop();
+      f.at = 4;
+      steps.push(snap(4, f, { info: k > 1 ? "Первый рекурсивный вызов: сначала убираем верхние " + disks(k - 1) + " с " + names[from] + " на запасной " + names[via] + ". Этот кадр замирает на строке 5 и ждёт" : "Первый рекурсивный вызов — hanoi(0, …): над диском 1 ничего нет, вызов пустой, но он всё равно делается. Этот кадр ждёт на строке 5" }));
+      call(k - 1, from, via, to, f.id);
+      var disk = pegs[from].pop(); pegs[to].push(disk); moveNo++; moveAt[f.id] = moveNo;
+      f.at = 5;
+      steps.push(snap(5, f, { disk: disk, to: to, info: "move(" + names[from] + ", " + names[to] + ") — ход " + moveNo + ": диск " + disk + " (самый большой в этой подзадаче) переезжает " + names[from] + " → " + names[to] + (k > 1 ? ". Путь свободен: меньшие диски уже на " + names[via] : "") }));
+      f.at = 6;
+      steps.push(snap(6, f, { info: (k > 1 ? "Второй рекурсивный вызов: " + disks(k - 1) + " с запасного " + names[via] + " — поверх диска " + disk + " на " + names[to] : "Второй рекурсивный вызов — снова hanoi(0, …), снова пустой") + ". Кадр ждёт, теперь на строке 7" }));
+      call(k - 1, via, to, from, f.id);
+      f.at = 7;
+      steps.push(snap(7, f, { info: sig(f) + " закончен: " + (k === 1 ? "диск 1 стоит" : "диски 1…" + k + " стоят") + " на " + names[to] + ". Кадр снимается" + back() }));
+      frames.pop(); state[f.id] = 2;
     }
-    call(n, 0, 2, 1);
-    var finSnap = snap(7, 0, 0, 2, 1, {}); finSnap.vars.n = "—";
-    steps.push(Object.assign(finSnap, { done: true, info: "Готово за " + moveNo + " " + ruPlural(moveNo, "ход", "хода", "ходов") + " = 2^" + n + " − 1 (меньше при честных правилах нельзя). Стек вызовов пуст — рекурсия полностью свернулась." }));
-    return steps;
+    call(n, 0, 2, 1, -1);
+    steps.push(snap(7, null, { done: true, info: "Готово за " + moveNo + " " + ruPlural(moveNo, "ход", "хода", "ходов") + " = 2^" + n + " − 1: по ходу на каждый непустой вызов. Всего вызовов " + tree.length + ", а стек ни разу не был глубже " + (n + 1) + " — поэтому память O(n), а время O(2ⁿ)" }));
+    return { steps: steps, tree: tree };
   }
 
-  // customViz Ханоя: три стержня, диски снизу вверх; переехавший — янтарный.
+  // customViz Ханоя. Сверху — дерево ВСЕХ вызовов (ещё не вызванные — призраки): под
+  // узлом номер хода, который он сделал, и номера растут слева направо — ходы идут в
+  // порядке обхода «левое поддерево → узел → правое». Ниже — стержни со штангами и
+  // цветными дисками (цвет = размер, диск легко проследить глазами) и стек кадров:
+  // у каждого кадра СВОИ n/from/to/via и строка, на которой он ждёт возврата.
   function hanoiViz(panel, ctx) {
     var n = Math.max(1, Math.min(4, (ctx.n | 0) || 3)), names = ["A", "B", "C"];
-    // полоса стека вызовов: кадры рекурсии (растёт на входе, снимается на return)
-    var stackWrap = document.createElement("div");
-    stackWrap.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:8px;font-size:11px;min-height:22px;";
-    var slbl = document.createElement("span"); slbl.style.cssText = "opacity:.6;margin-right:2px;"; slbl.textContent = "стек вызовов:";
-    var stackChips = document.createElement("span"); stackChips.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;";
-    stackWrap.appendChild(slbl); stackWrap.appendChild(stackChips); panel.appendChild(stackWrap);
-    var wrap = document.createElement("div");
-    wrap.style.cssText = "display:flex;justify-content:space-around;align-items:flex-end;gap:14px;padding:12px 6px;min-height:" + (n * 16 + 30) + "px;";
-    panel.appendChild(wrap);
-    var hosts = [], roles = [];
+    var host = mkEl("div", "algo-tp__tw"); panel.appendChild(host);
+    host.appendChild(mkEl("div", "algo-tp__twcap", "Дерево вызовов: в узле n: from→to, под узлом — номер хода"));
+    var fig = treeFigure(ctx.tree.map(function (t) {
+      return { parent: t.parent, label: t.k ? t.k + ": " + names[t.from] + "→" + names[t.to] : "0", sub: "", cls: t.k ? "" : "algo-tp__rc--base" };
+    }), { cw: 46, ch: 54 });
+    host.appendChild(fig.el);
+    var row = mkEl("div", "algo-tp__twrow"); host.appendChild(row);
+    var pegsBox = mkEl("div", "algo-tp__twpegs"); row.appendChild(pegsBox);
+    var diskHosts = [], roles = [];
     for (var p = 0; p < 3; p++) {
-      var col = document.createElement("div");
-      col.style.cssText = "display:flex;flex-direction:column;align-items:center;flex:1;";
-      var disks = document.createElement("div");
-      disks.style.cssText = "display:flex;flex-direction:column-reverse;align-items:center;justify-content:flex-start;min-height:" + (n * 16) + "px;width:100%;border-bottom:3px solid #64748b;padding-bottom:2px;";
-      var label = document.createElement("div");
-      label.style.cssText = "margin-top:5px;font-weight:700;";
-      label.textContent = names[p];
-      var role = document.createElement("div");
-      role.style.cssText = "font-size:11px;min-height:1.3em;color:#e0a500;font-weight:700;";
-      col.appendChild(disks); col.appendChild(label); col.appendChild(role); wrap.appendChild(col);
-      hosts.push(disks); roles.push(role);
+      var col = mkEl("div", "algo-tp__twpeg");
+      var stand = mkEl("div", "algo-tp__twstand"); stand.style.height = (n * 24 + 26) + "px";
+      stand.appendChild(mkEl("div", "algo-tp__twpole"));
+      var dk = mkEl("div", "algo-tp__twdisks"); stand.appendChild(dk);
+      col.appendChild(stand);
+      col.appendChild(mkEl("div", "algo-tp__twname", names[p]));
+      var role = mkEl("div", "algo-tp__twrole"); col.appendChild(role);
+      pegsBox.appendChild(col); diskHosts.push(dk); roles.push(role);
     }
+    var stackBox = mkEl("div", "algo-tp__twstack"); row.appendChild(stackBox);
     return function (s) {
-      // стек вызовов: верхний (текущий) кадр — янтарный
-      var st = s.stack || [];
-      stackChips.innerHTML = "";
-      if (!st.length) { var em = document.createElement("span"); em.style.cssText = "opacity:.5;"; em.textContent = "(пусто)"; stackChips.appendChild(em); }
-      st.forEach(function (sig, i) {
-        var c = document.createElement("span");
-        var top = i === st.length - 1;
-        c.style.cssText = "padding:1px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;background:" + (top ? "#f59e0b" : "#e2e8f0") + ";color:" + (top ? "#fff" : "#475569") + ";font-weight:" + (top ? 700 : 500) + ";";
-        c.textContent = sig;
-        stackChips.appendChild(c);
+      var state = s.state || [], moveAt = s.moveAt || [];
+      fig.nodes.forEach(function (el, id) {
+        var st = state[id];
+        el.classList.toggle("algo-tp__rc--ghost", st == null);
+        el.classList.toggle("algo-tp__rc--cur", id === s.cur);
+        el.classList.toggle("algo-tp__rc--wait", st === 1 && id !== s.cur);
+        el.classList.toggle("algo-tp__rc--done", st === 2);
+        if (fig.edges[id]) fig.edges[id].classList.toggle("algo-tp__rcedge--ghost", st == null);
+        if (fig.subs[id]) { fig.subs[id].textContent = moveAt[id] ? "ход " + moveAt[id] : ""; fig.subs[id].classList.toggle("algo-tp__tfigsub--in", s.line === 5 && id === s.cur); }
       });
-      var pegs = s.pegs || [[], [], []], cf = !s.done && s.cf && s.cf.k > 0 ? s.cf : null;
+      var cf = s.cf && s.cf.k > 0 ? s.cf : null;
       // роли стержней в ТЕКУЩЕМ вызове: они меняются от кадра к кадру
       for (var r = 0; r < 3; r++) roles[r].textContent = !cf ? "" : r === cf.from ? "from" : r === cf.dst ? "to" : "via";
-      for (var p = 0; p < 3; p++) {
-        hosts[p].innerHTML = "";
-        pegs[p].forEach(function (size) {
-          var d = document.createElement("div");
-          var moved = s.disk === size && s.to === p;
-          // hanoi(k, …) всегда отвечает за k самых маленьких дисков — это его подзадача
-          var mine = cf && size <= cf.k;
-          d.style.cssText = "height:13px;margin:1px 0;border-radius:3px;width:" + (18 + size * 16) + "px;background:" + (moved ? "#f59e0b" : "#3b82f6") + ";color:#fff;font-size:10px;line-height:13px;text-align:center;font-weight:600;" + (mine ? "outline:2px dashed #e0a500;outline-offset:1px;" : "opacity:.55;");
-          d.textContent = size;
-          hosts[p].appendChild(d);
+      (s.pegs || [[], [], []]).forEach(function (pg, p) {
+        diskHosts[p].innerHTML = "";
+        pg.forEach(function (size) {
+          // hanoi(k, …) отвечает только за k самых маленьких дисков — остальные для него фон
+          var cls = "algo-tp__twdisk algo-tp__twdisk--s" + size + (s.disk === size && s.to === p ? " algo-tp__twdisk--moved" : "") + (cf && size > cf.k ? " algo-tp__twdisk--dim" : "");
+          var d = mkEl("div", cls, String(size));
+          d.style.width = (28 + 72 * size / n) + "%";
+          diskHosts[p].appendChild(d);
         });
+      });
+      stackBox.innerHTML = "";
+      stackBox.appendChild(mkEl("div", "algo-tp__twcap", "Стек вызовов (сверху — текущий)"));
+      var fr = s.frames || [];
+      if (!fr.length) stackBox.appendChild(mkEl("div", "algo-tp__twempty", "пуст — рекурсия свернулась"));
+      for (var i = fr.length - 1; i >= 0; i--) {
+        var f = fr[i], top = i === fr.length - 1;
+        var box = mkEl("div", "algo-tp__twframe" + (top ? " algo-tp__twframe--top" : ""));
+        box.appendChild(mkEl("code", "algo-tp__twsig", "hanoi(n=" + f.k + ", from=" + names[f.from] + ", to=" + names[f.to] + ", via=" + names[f.via] + ")"));
+        box.appendChild(mkEl("div", "algo-tp__twat", top ? "выполняется: строка " + (s.line + 1) : "ждёт возврата на строке " + (f.at + 1)));
+        stackBox.appendChild(box);
       }
     };
   }
@@ -8419,7 +8512,7 @@
         push({ line: 9, cur: k, i: k, interval: fmt(iv), last: fmt(last), info: "разрыв → добавляем " + fmt(iv) + " как новый интервал" });
       }
     }
-    push({ line: 12, cur: -1, done: true, found: true, info: "return result — " + merged.length + " интервал(ов): " + merged.map(fmt).join(", ") });
+    push({ line: 12, cur: -1, done: true, found: true, info: "return result — " + merged.length + " " + ruPlural(merged.length, "интервал", "интервала", "интервалов") + ": " + merged.map(fmt).join(", ") });
     return steps;
   }
   // Разворот списка: три указателя prev / curr / next (как индексы).
@@ -8459,16 +8552,23 @@
     push({ line: 9, curr: -1, done: true, found: true, info: "return prev — новая голова: " + lbl(prev) + ". Список теперь " + chain.join(" → ") + " → nil" });
     return steps;
   }
+  // Узел (или стрелка) и подпись-указатель под ним — одна колонка сетки из двух строк.
+  // Раньше подписи были отдельным рядом «призраков» с меньшим шрифтом: их ширины не
+  // совпадали с узлами, и при prev = dummy подпись prev висела под стрелкой, а node —
+  // под соседним узлом.
+  function llCell(grid, txt, cls, lab) {
+    grid.appendChild(mkEl("span", cls, txt));
+    grid.appendChild(mkEl("span", "algo-tp__lllab", lab || ""));
+  }
   // Список узлами со стрелками по НАСТОЯЩИМ ссылкам шага: развёрнутая часть смотрит
   // влево, остаток — вправо, между ними на шаге curr.Next = prev связь разорвана.
   function listRevViz(panel, ctx) {
     var list = ctx.list, n = list.length;
-    var row = mkEl("div", "algo-tp__ll algo-tp__llrev"), labs = mkEl("div", "algo-tp__ll algo-tp__llrev algo-tp__llrevlab");
-    panel.appendChild(row); panel.appendChild(labs);
+    var grid = mkEl("div", "algo-tp__llgrid"); panel.appendChild(grid);
     return function (s) {
-      row.innerHTML = ""; labs.innerHTML = "";
+      grid.innerHTML = "";
       var L = s.links || [], reversedHead = n > 1 && L[0] === -1; // исходно у головы Next = второй узел
-      function cell(txt, cls, lab) { row.appendChild(mkEl("span", cls, txt)); labs.appendChild(mkEl("span", cls + " algo-tp__llrevghost", lab || "")); }
+      function cell(txt, cls, lab) { llCell(grid, txt, cls, lab); }
       cell(reversedHead ? "nil ←" : "", "algo-tp__llnil");
       for (var i = 0; i < n; i++) {
         var cls = "algo-tp__llnode" + (i === s.curr ? " algo-tp__llnode--cur" : (s.prev >= 0 && i <= s.prev ? " algo-tp__llnode--found" : "")) + (i === s.next && s.next >= 0 ? " algo-tp__llnode--next" : "");
@@ -8542,17 +8642,19 @@
     if (!list.length) { push({ line: 6, seq: [], done: true, info: "список пуст — return nil" }); return { steps: steps }; }
     for (var i = 0; i < list.length; i++) {
       var m = {}; m[i] = "cur";
+      for (var q = 0; q < i; q++) m[q] = "past"; // пройденные узлы гаснут: видно, сколько уже сравнили
       push({ line: 1, seq: seqOf(m), node: String(list[i]), info: "node = " + list[i] });
       push({ line: 2, seq: seqOf(m), node: String(list[i]), info: list[i] === target ? list[i] + " == " + target + " — нашли!" : list[i] + " ≠ " + target + " — идём дальше" });
       if (list[i] === target) { var mf = {}; mf[i] = "found"; push({ line: 3, seq: seqOf(mf), node: String(list[i]), done: true, found: true, info: "return node — " + target + " найден на позиции " + i }); return { steps: steps }; }
     }
-    push({ line: 6, seq: seqOf({}), done: true, info: "return nil — " + target + " в списке нет" });
+    var mp = {}; for (var q2 = 0; q2 < list.length; q2++) mp[q2] = "past";
+    push({ line: 6, seq: seqOf(mp), done: true, info: "return nil — " + target + " в списке нет" });
     return { steps: steps };
   }
   function bLLDelete(list, target) {
     var n = list.length, labels = ["dummy"].concat(list.map(String)), nx = [], steps = [], prev = -1, cut = -1;
     for (var k = 0; k <= n; k++) nx[k] = k < n ? k + 1 : -1;
-    function push(o) { steps.push({ line: o.line, nx: nx.slice(), prev: prev, node: o.node == null ? -1 : o.node, hot: o.hot == null ? -1 : o.hot, aside: cut >= 0 ? [cut] : [], cut: cut, vars: { prev: prev >= 0 ? labels[prev] : "—", "prev.Next": prev >= 0 ? (nx[prev] >= 0 ? labels[nx[prev]] : "nil") : "—", target: String(target) }, info: o.info, done: o.done, removed: o.removed }); }
+    function push(o) { steps.push({ line: o.line, nx: nx.slice(), prev: prev, node: o.node == null ? -1 : o.node, hot: o.hot == null ? -1 : o.hot, aside: cut >= 0 ? [cut] : [], cut: cut, vars: { prev: prev >= 0 ? labels[prev] : "—", "prev.Next": prev >= 0 ? (nx[prev] >= 0 ? labels[nx[prev]] : "nil") : "—", target: String(target) }, info: o.info, done: o.done, removed: o.removed, missing: o.missing }); }
     push({ line: 1, nodeLbl: "dummy", info: "dummy → голова: удаление головы — такой же случай, как любого другого узла" });
     prev = 0;
     push({ line: 2, nodeLbl: "dummy", info: "prev = dummy — смотрим всегда на prev.Next, чтобы было кого перецепить" });
@@ -8575,27 +8677,27 @@
     }
     push({ line: 3, info: "prev.Next = nil — список кончился" });
     prev = -1;
-    push({ line: 10, done: true, info: "return — " + target + " не найден, список без изменений" });
+    push({ line: 10, done: true, missing: true, info: "return — " + target + " не найден, список без изменений" });
     return { steps: steps, labels: labels };
   }
   // Список со ссылками: цепочка от dummy по nx, под узлами — имена указателей; узлы вне
   // цепочки (новый до вставки, вырезанный после) — отдельной строкой со своей ссылкой.
   function llPtrViz(panel, ctx) {
-    var row = mkEl("div", "algo-tp__ll algo-tp__llrev"), labs = mkEl("div", "algo-tp__ll algo-tp__llrev algo-tp__llrevlab"), aside = mkEl("div", "algo-tp__ll algo-tp__llrev");
-    panel.appendChild(row); panel.appendChild(labs); panel.appendChild(aside);
+    var grid = mkEl("div", "algo-tp__llgrid"), aside = mkEl("div", "algo-tp__ll algo-tp__llrev");
+    panel.appendChild(grid); panel.appendChild(aside);
     var L = ctx.labels;
     return function (s) {
-      row.innerHTML = ""; labs.innerHTML = ""; aside.innerHTML = "";
+      grid.innerHTML = ""; aside.innerHTML = "";
       function names(k) { var a = []; if (k === s.prev) a.push("prev"); if (k === s.node && k !== s.prev) a.push(s.cut === k ? "вырезан" : s.created || s.line === 7 || s.line === 8 ? "node" : "prev.Next"); return a.join(" · "); }
       function cls(k) { return "algo-tp__llnode" + (k === 0 ? " algo-tp__llnode--dummy" + (s.done ? " algo-tp__llnode--gone" : "") : "") + (k === s.node ? (s.cut === k ? " algo-tp__llnode--cut" : " algo-tp__llnode--cur") : k === s.prev && k !== 0 ? " algo-tp__llnode--found" : ""); }
       var at = 0, seen = {};
       while (at >= 0 && !seen[at]) {
         seen[at] = true;
-        row.appendChild(mkEl("span", cls(at), L[at])); labs.appendChild(mkEl("span", cls(at) + " algo-tp__llrevghost", names(at)));
-        row.appendChild(mkEl("span", "algo-tp__llarrow" + (at === s.hot ? " algo-tp__llarrow--hot" : ""), "→")); labs.appendChild(mkEl("span", "algo-tp__llarrow", ""));
+        llCell(grid, L[at], cls(at), names(at));
+        llCell(grid, "→", "algo-tp__llarrow" + (at === s.hot ? " algo-tp__llarrow--hot" : ""), "");
         at = s.nx[at];
       }
-      row.appendChild(mkEl("span", "algo-tp__llnil", "nil"));
+      llCell(grid, "nil", "algo-tp__llnil", "");
       (s.aside || []).forEach(function (k) {
         if (seen[k]) return;
         aside.appendChild(mkEl("span", "algo-tp__llnil", s.cut === k ? "вне списка:" : "новый:"));
@@ -8814,21 +8916,21 @@
     return { list: list, steps: steps };
   }
   function listRevBetweenViz(panel, ctx) {
-    var row = mkEl("div", "algo-tp__ll algo-tp__llrev"), labs = mkEl("div", "algo-tp__ll algo-tp__llrev algo-tp__llrevlab"), aside = mkEl("div", "algo-tp__ll algo-tp__llrev");
-    panel.appendChild(row); panel.appendChild(labs); panel.appendChild(aside);
+    var grid = mkEl("div", "algo-tp__llgrid"), aside = mkEl("div", "algo-tp__ll algo-tp__llrev");
+    panel.appendChild(grid); panel.appendChild(aside);
     function lbl(k) { return k === 0 ? "dummy" : String(ctx.list[k - 1]); }
     return function (s) {
-      row.innerHTML = ""; labs.innerHTML = ""; aside.innerHTML = "";
+      grid.innerHTML = ""; aside.innerHTML = "";
       function names(k) { var a = []; if (k === s.prev) a.push("prev"); if (k === s.curr) a.push("curr"); if (k === s.next && s.next > 0) a.push("next"); return a.join(" · "); }
       var at = 0, seen = {}, onChain = {};
       while (at >= 0 && !seen[at]) {
         seen[at] = true; onChain[at] = true;
         var cls = "algo-tp__llnode" + (at === 0 ? " algo-tp__llnode--dummy" : "") + (at === s.curr ? " algo-tp__llnode--cur" : (at === s.prev && at !== 0 ? " algo-tp__llnode--found" : "")) + (at === s.next && s.next > 0 ? " algo-tp__llnode--next" : "");
-        row.appendChild(mkEl("span", cls, lbl(at))); labs.appendChild(mkEl("span", cls + " algo-tp__llrevghost", names(at)));
+        llCell(grid, lbl(at), cls, names(at));
         at = s.nx[at];
-        row.appendChild(mkEl("span", "algo-tp__llarrow", "→")); labs.appendChild(mkEl("span", "algo-tp__llarrow", ""));
+        llCell(grid, "→", "algo-tp__llarrow", "");
       }
-      row.appendChild(mkEl("span", "algo-tp__llnil", "nil"));
+      llCell(grid, "nil", "algo-tp__llnil", "");
       // вынутый узел (шаги 2–3): его нет на пути от dummy — показываем отдельно, со своей ссылкой
       if (s.next > 0 && !onChain[s.next]) {
         aside.appendChild(mkEl("span", "algo-tp__llnil", "вынут:"));
@@ -12208,21 +12310,26 @@
       desc: "Ханойская башня — классическая рекурсия: перенести (n−1) дисков на запасной стержень, сдвинуть самый большой, перенести (n−1) поверх. T(n) = 2·T(n−1) + 1.",
       valuesLabel: "", codeKey: "hanoi", fillRange: false,
       complexity: { time: "O(2ⁿ)", space: "O(n)", good: "★ Канон рекурсии; глубина стека n + 1 = O(n)" },
-      varOrder: ["n", "from→to", "via", "глубина", "ход"],
-      metrics: ["глубина", "ход"],
-      varDesc: { "n": "Сколько дисков переносит текущий вызов", "from→to": "Откуда → куда (этот вызов)", "via": "Вспомогательный стержень", "глубина": "Глубина стека вызовов", "ход": "Номер сделанного хода" },
-      lineNotes: { 0: "Вход в вызов hanoi(n, from, to, via): перенести n дисков from → to", 1: "База рекурсии: n == 0 — переносить нечего", 2: "return — снимаем кадр со стека, возвращаемся в вызывающий", 4: "Рекурсия 1: (n−1) дисков уводим на запасной стержень", 5: "Двигаем самый большой диск этого вызова на целевой", 6: "Рекурсия 2: (n−1) дисков переносим поверх большого", 7: "Вызов закончен — кадр снимается со стека" },
+      varOrder: ["n", "from", "to", "via", "глубина", "ходов"],
+      metrics: ["глубина", "ходов"],
+      varDesc: { "n": "Сколько дисков переносит текущий вызов", "from": "Откуда (этот вызов)", "to": "Куда (этот вызов)", "via": "Вспомогательный стержень", "глубина": "Сколько кадров на стеке", "ходов": "Сколько ходов сделано" },
+      lineNotes: { 0: "Вход в вызов: новый кадр со своими n, from, to, via", 1: "База рекурсии: n == 0 — переносить нечего", 2: "return — снимаем кадр со стека, возвращаемся в вызывающий", 4: "Рекурсия 1: (n−1) дисков уводим на запасной стержень", 5: "Двигаем самый большой диск этого вызова на целевой", 6: "Рекурсия 2: (n−1) дисков переносим поверх большого", 7: "Вызов закончен — кадр снимается со стека" },
       rules: [{ head: "T(n)", body: "= 2·T(n−1) + 1", cls: "lt" }, { head: "Ходов", body: "ровно 2ⁿ − 1", cls: "gt" }, { head: "Глубина стека", body: "= n + 1 (с кадром базы n == 0) → O(n)", cls: "eq" }],
-      parse: function (root) { var n = parseInt(root.getAttribute("data-n"), 10); if (isNaN(n)) n = 3; return { n: n, steps: bHanoi(n) }; },
+      legend: [{ cls: "rccur", label: "текущий вызов (верх стека)" }, { cls: "rcwait", label: "ждёт возврата — лежит на стеке" }, { cls: "rcdone", label: "вызов завершён" }, { cls: "rcghost", label: "ещё не вызван" }, { cls: "twmoved", label: "диск, который только что переехал" }],
+      presets: [
+        { label: "1 диск", set: { "data-n": "1" }, hint: "Самая маленькая рекурсия: пустой вызов, один ход, ещё один пустой вызов" },
+        { label: "4 диска", set: { "data-n": "4" }, hint: "15 ходов и 31 вызов: дерево вдвое шире, а стек всего на один кадр глубже" }
+      ],
+      parse: function (root) { var n = parseInt(root.getAttribute("data-n"), 10); if (isNaN(n)) n = 3; var r = bHanoi(n); return { n: n, steps: r.steps, tree: r.tree }; },
       inputs: [{ attr: "data-n", label: "Дисков" }],
       values: function () { return []; },
       title: function (ctx) { var k = Math.max(1, Math.min(4, ctx.n | 0)); return "Ханойская башня: " + k + " " + ruPlural(k, "диск", "диска", "дисков"); },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Глубина стека", "Ходов сделано"],
-      sumValues: function (s) { return [{ text: s.vars["глубина"], cls: "lt" }, { text: s.vars["ход"], cls: "eq" }]; },
+      sumValues: function (s) { return [{ text: s.vars.depth, cls: "lt" }, { text: s.vars.moves, cls: "eq" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Башня перенесена, стек пуст", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info, hot: s.line === 5 }; },
-      stepCard: function (s) { return { a: "глубина " + s.vars["глубина"], b: s.vars["перенос"], c: "ход " + s.vars["ход"], cls: s.line === 5 ? "eq" : "lt" }; },
-      varsOf: function (s) { return { "n": s.vars["n"], "from→to": s.vars["перенос"], "via": s.vars["запасной"], "глубина": s.vars["глубина"], "ход": s.vars["ход"] }; },
+      stepCard: function (s) { return { a: "глубина " + s.vars.depth, b: s.vars.from + " → " + s.vars.to, c: "ход " + s.vars.moves, cls: s.line === 5 ? "eq" : "lt" }; },
+      varsOf: function (s) { return { "n": s.vars.n, "from": s.vars.from, "to": s.vars.to, "via": s.vars.via, "глубина": s.vars.depth, "ходов": s.vars.moves }; },
       customViz: hanoiViz
     },
 
@@ -12988,8 +13095,8 @@
       pointers: function (s) { return { lo: s.cur, hi: -1 }; },
       sumCells: ["Текущий интервал", "Интервалов в ответе"],
       sumValues: function (s) { return [{ text: s.vars.interval }, { text: s.vars.result, cls: "eq" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Слито в " + s.vars.result + " интервал(ов)", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.result + " интервал(ов)", c: "O(n log n)", cls: "eq" }; if (s.unsorted) return { a: "вход", b: "как пришёл", c: "до сортировки", cls: "gt" }; if (s.cur < 0) return { a: "сортировка", b: "по началу", c: "старт", cls: "lt" }; var merge = s.line === 7; return { a: "интервал " + s.vars.interval, b: merge ? "⊆ последний " + s.vars.last : "разрыв → новый", c: merge ? "слить" : "добавить", cls: merge ? "lt" : "gt" }; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Итог: " + s.vars.result + " " + ruPlural(+s.vars.result, "интервал", "интервала", "интервалов"), text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.result + " " + ruPlural(+s.vars.result, "интервал", "интервала", "интервалов"), c: "O(n log n)", cls: "eq" }; if (s.unsorted) return { a: "вход", b: "как пришёл", c: "до сортировки", cls: "gt" }; if (s.cur < 0) return { a: "сортировка", b: "по началу", c: "старт", cls: "lt" }; var merge = s.line === 7; return { a: "интервал " + s.vars.interval, b: merge ? "⊆ последний " + s.vars.last : "разрыв → новый", c: merge ? "слить" : "добавить", cls: merge ? "lt" : "gt" }; },
       varsOf: function (s) { return { i: s.vars.i, "cur": s.vars.interval, "last": s.vars.last, "result": s.vars.result }; },
       customViz: function (panel, ctx) {
         var ivs = ctx.ivs;
@@ -13067,9 +13174,15 @@
       complexity: { time: "O(n)", space: "O(1)", good: "★ Вставки по ссылке" },
       varOrder: ["prev", "node"],
       varDesc: { "prev": "Узел перед позицией вставки", "node": "Новый узел (появляется строкой node := …)" },
+      legend: [{ cls: "llprev", label: "prev — узел перед местом вставки" }, { cls: "llcur", label: "node — новый узел" }, { cls: "llhot", label: "ссылка, которую меняет эта строка" }],
       lineNotes: { 1: "Фиктивная голова (dummy) — чтобы вставка в начало не была спецслучаем", 2: "prev стартует с dummy", 3: "Идём до узла перед нужной позицией", 4: "Сдвигаем prev вперёд", 6: "Создаём новый узел", 7: "Новый узел указывает на остаток (сначала сохрани то, что перезапишешь)", 8: "Предыдущий узел указывает на новый — узел вставлен", 9: "Возвращаем голову (dummy.Next)" },
       rules: [{ head: "Дошли до позиции", body: "→ создаём узел", cls: "lt" }, { head: "node.Next = prev.Next", body: "новый → остаток", cls: "eq" }, { head: "prev.Next = node", body: "предыдущий → новый", cls: "gt" }],
       parse: function (root) { var list = nums(root.getAttribute("data-list")); var val = parseInt(root.getAttribute("data-val"), 10); var pos = parseInt(root.getAttribute("data-pos") || "0", 10); var r = bLLInsert(list, val, pos); return { list: list, val: val, pos: pos, labels: r.labels, steps: r.steps }; },
+      presets: [
+        { label: "в начало", set: { "data-list": "3,7,1,8,5", "data-val": "9", "data-pos": "0" }, hint: "Цикл не делает ни шага: prev = dummy, вставка в голову — O(1)" },
+        { label: "в конец", set: { "data-list": "3,7,1,8,5", "data-val": "9", "data-pos": "5" }, hint: "prev доходит до последнего узла, node.Next = nil — хвост просто удлиняется" },
+        { label: "пустой список", set: { "data-list": "", "data-val": "9", "data-pos": "0" }, hint: "head = nil: благодаря dummy отдельного случая нет" }
+      ],
       inputs: [{ attr: "data-list", label: "Список" }, { attr: "data-val", label: "значение" }, { attr: "data-pos", label: "позиция" }],
       values: function () { return []; },
       title: function (ctx) { return "Список: вставка " + ctx.val + " в позицию " + ctx.pos; },
@@ -13088,9 +13201,14 @@
       complexity: { time: "O(n)", space: "O(1)", good: "★ Линейный поиск" },
       varOrder: ["node", "target"],
       varDesc: { "node": "Текущий узел", "target": "Искомое значение" },
+      legend: [{ cls: "llcur", label: "node — сравниваем с target" }, { cls: "llpast", label: "уже сравнили — не то" }, { cls: "llfound", label: "нашли" }],
       lineNotes: { 1: "Идём по списку от головы, пока узел не nil", 2: "Сравниваем значение узла с целью", 3: "Совпало — возвращаем узел", 6: "Дошли до конца — значения нет" },
       rules: [{ head: "node.Val == target", body: "→ нашли", cls: "eq" }, { head: "node.Val ≠ target", body: "→ node = node.Next", cls: "lt" }, { head: "node == nil", body: "→ нет в списке", cls: "gt" }],
       parse: function (root) { var list = nums(root.getAttribute("data-list")); var target = parseInt(root.getAttribute("data-target"), 10); var r = bLLSearch(list, target); return { list: list, target: target, steps: r.steps }; },
+      presets: [
+        { label: "нет в списке", set: { "data-list": "4,8,15,16,23,42", "data-target": "9" }, hint: "Сравниваем со всеми шестью и упираемся в nil — худший случай O(n)" },
+        { label: "первый узел", set: { "data-list": "4,8,15,16,23,42", "data-target": "4" }, hint: "Лучший случай: одно сравнение" }
+      ],
       inputs: [{ attr: "data-list", label: "Список" }, { attr: "data-target", label: "искомое" }],
       values: function () { return []; },
       title: function (ctx) { return "Список: поиск " + ctx.target; },
@@ -13109,16 +13227,22 @@
       complexity: { time: "O(n)", space: "O(1)", good: "★ Удаления по ссылке" },
       varOrder: ["prev", "prev.Next", "target"],
       varDesc: { "prev": "Узел, стрелку которого перецепим", "prev.Next": "Проверяемый узел", "target": "Удаляемое значение" },
+      legend: [{ cls: "llprev", label: "prev — узел перед удаляемым" }, { cls: "llcur", label: "prev.Next — проверяем его Val" }, { cls: "llcut", label: "вырезанный узел" }, { cls: "llhot", label: "ссылка, которую меняет эта строка" }],
       lineNotes: { 1: "Фиктивная голова — чтобы удаление головы не было спецслучаем", 2: "prev стартует с dummy", 3: "Пока есть следующий узел", 4: "Это удаляемое значение?", 5: "Да — перецепляем prev.Next через узел (узел выпадает из цепочки)", 6: "Выходим из цикла", 8: "Нет — сдвигаем prev вперёд", 10: "Возвращаем голову (dummy.Next)" },
       rules: [{ head: "prev.Next.Val == target", body: "→ вырезаем", cls: "gt" }, { head: "prev.Next.Val ≠ target", body: "→ prev = prev.Next", cls: "lt" }, { head: "prev.Next = prev.Next.Next", body: "узел выпал", cls: "eq" }],
       parse: function (root) { var list = nums(root.getAttribute("data-list")); var target = parseInt(root.getAttribute("data-target"), 10); var r = bLLDelete(list, target); return { list: list, target: target, labels: r.labels, steps: r.steps }; },
+      presets: [
+        { label: "голова", set: { "data-list": "4,8,15,16,23,42", "data-target": "4" }, hint: "prev = dummy: голова удаляется тем же перецеплением, без особого случая" },
+        { label: "хвост", set: { "data-list": "4,8,15,16,23,42", "data-target": "42" }, hint: "prev.Next.Next = nil — предпоследний узел становится последним" },
+        { label: "нет в списке", set: { "data-list": "4,8,15,16,23,42", "data-target": "9" }, hint: "Проходим весь список, ничего не перецепляем" }
+      ],
       inputs: [{ attr: "data-list", label: "Список" }, { attr: "data-target", label: "удаляем" }],
       values: function () { return []; },
       title: function (ctx) { return "Список: удаление " + ctx.target; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Текущий узел", "Цель"],
       sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.target, cls: s.removed ? "gt" : "eq" }]; },
-      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Удаление " + ctx.target + " завершено", text: s.info }; if (s.removed) return { kind: "info", icon: idx + 1, head: "Узел вырезан", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      status: function (s, idx, total, ctx) { if (s.done && s.missing) return { kind: "end", icon: "✗", head: ctx.target + " в списке нет", text: s.info }; if (s.done) return { kind: "ok", icon: "✓", head: "Удаление " + ctx.target + " завершено", text: s.info }; if (s.removed) return { kind: "info", icon: idx + 1, head: "Узел вырезан", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: "", c: "✓", cls: "eq" }; if (s.removed) return { a: "узел «" + s.vars.node + "»", b: "вырезан", c: "–", cls: "gt" }; return { a: "узел «" + s.vars.node + "»", b: "vs " + s.vars.target, c: "↓", cls: "lt" }; },
       varsOf: function (s) { return { "prev": s.vars.prev, "prev.Next": s.vars["prev.Next"], "target": s.vars.target }; },
       customViz: llPtrViz
@@ -14048,44 +14172,55 @@
     },
 
     "hash-put": {
-      badge: "Hash Map", desc: "Вставка в хеш-таблицу (цепочки): hash(key) даёт бакет, запись уходит в его цепочку.",
+      badge: "Hash Map", desc: "Вставка в хеш-таблицу (цепочки): hash(key) % m даёт бакет, запись уходит в конец его цепочки.",
       valuesLabel: "", codeKey: "hash-put", fillRange: false,
       complexity: { time: "O(1) сред.", space: "O(n)", good: "★ Доступ по ключу" },
-      varOrder: ["i", "key"],
-      varDesc: { "i": "Индекс бакета", "key": "Вставляемый ключ" },
-      lineNotes: { 1: "hash(key) % m — в какой бакет кладём", 2: "Идём по цепочке по индексу j", 3: "Ключ совпал?", 4: "Обновляем по индексу: e из range — копия, правка через неё потерялась бы", 8: "Новый ключ — добавляем в конец цепочки (коллизия = непустая цепочка)" },
+      varOrder: ["key", "i", "j"],
+      varDesc: { "key": "Вставляемый ключ", "i": "Номер бакета = hash(key) % m", "j": "Номер записи в цепочке" },
+      lineNotes: { 1: "hash(key) % m — в какой бакет кладём", 2: "Берём следующую запись цепочки (или цикл кончился)", 3: "Ключ совпал?", 4: "Обновляем по индексу: e из range — копия, правка через неё потерялась бы", 8: "Новый ключ — в конец цепочки (коллизия = цепочка уже непуста)" },
       rules: [{ head: "hash(key) % m", body: "→ номер бакета", cls: "lt" }, { head: "Ключ уже есть", body: "→ обновить", cls: "eq" }, { head: "Нет — в цепочку", body: "коллизия = длиннее 1", cls: "gt" }],
-      parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var m = parseInt(root.getAttribute("data-buckets"), 10); var key = parseInt(root.getAttribute("data-key"), 10); var r = bHashPut(keys, m, key); return { keys: keys, m: m, key: key, steps: r.steps }; },
-      inputs: [{ attr: "data-keys", label: "Ключи в таблице" }, { attr: "data-buckets", label: "бакетов", sm: true }, { attr: "data-key", label: "вставить", sm: true }],
+      legend: [{ cls: "hbucket", label: "бакет i — сюда привёл хеш" }, { cls: "hcmp", label: "запись, на которую смотрит j" }, { cls: "hfound", label: "ключ уже есть — обновляем" }, { cls: "hnew", label: "новая запись в конце цепочки" }],
+      presets: [
+        { label: "все в один бакет", set: { "data-keys": "", "data-buckets": "4", "data-key": "4,8,12,16,20" }, hint: "Все ключи делятся на 4 — каждый падает в бакет 0, и новая вставка сравнивается со ВСЕМИ прежними: худший случай, O(n) на операцию" },
+        { label: "без коллизий", set: { "data-keys": "", "data-buckets": "4", "data-key": "0,1,2,3" }, hint: "Каждый ключ в свой бакет: цикл ни разу не входит в тело, вставка — одно вычисление хеша" },
+        { label: "много бакетов", set: { "data-keys": "", "data-buckets": "8", "data-key": "1,5,3,8,9,6,5" }, hint: "Те же ключи, что в примере, но бакетов вдвое больше: цепочка 1 → 5 → 9 распадается" }
+      ],
+      parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var m = parseInt(root.getAttribute("data-buckets"), 10); if (!(m > 0)) m = 4; var puts = nums(root.getAttribute("data-key")); if (!puts.length) puts = [9]; var r = bHashPut(keys, m, puts); return { keys: keys, m: m, puts: puts, steps: r.steps }; },
+      inputs: [{ attr: "data-keys", label: "Уже в таблице" }, { attr: "data-buckets", label: "бакетов", sm: true }, { attr: "data-key", label: "Put по очереди" }],
       values: function () { return []; },
-      title: function (ctx) { return "Хеш-таблица: вставка ключа " + ctx.key; },
+      title: function (ctx) { return "Хеш-таблица на " + ctx.m + " " + ruPlural(ctx.m, "бакет", "бакета", "бакетов") + ": Put " + ctx.puts.join(", "); },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Бакет", "Ключ"],
       sumValues: function (s) { return [{ text: s.vars.i }, { text: s.vars.key, cls: "eq" }]; },
-      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Ключ " + ctx.key + " в бакете " + s.vars.i, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      status: function (s, idx, total, ctx) { if (s.done) return { kind: "ok", icon: "✓", head: "Все " + ctx.puts.length + " Put выполнены", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.created) return { a: "ключ " + s.vars.key, b: "в бакет " + s.vars.i, c: "+", cls: "gt" }; return { a: "бакет " + s.vars.i, b: "скан цепочки", c: "·", cls: "lt" }; },
-      varsOf: function (s) { return { "i": s.vars.i, "key": s.vars.key }; },
+      varsOf: function (s) { return { "key": s.vars.key, "i": s.vars.i, "j": s.vars.j }; },
       customViz: hashViz
     },
 
     "hash-get": {
-      badge: "Hash Map", desc: "Поиск в хеш-таблице (цепочки): hash(key) даёт бакет, сканируем его цепочку.",
+      badge: "Hash Map", desc: "Поиск в хеш-таблице (цепочки): hash(key) % m даёт бакет, сканируем только его цепочку.",
       valuesLabel: "", codeKey: "hash-get", fillRange: false,
       complexity: { time: "O(1) сред.", space: "O(1)", good: "★ Доступ по ключу" },
-      varOrder: ["i", "key"],
-      varDesc: { "i": "Индекс бакета", "key": "Искомый ключ" },
-      lineNotes: { 1: "hash(key) % m — тот же бакет, что при вставке", 2: "Сканируем цепочку бакета", 3: "Сравниваем ключ звена с искомым", 4: "Ключ совпал — возвращаем значение", 7: "Прошли всю цепочку — ключа нет" },
+      varOrder: ["key", "i", "e.key"],
+      varDesc: { "key": "Искомый ключ", "i": "Номер бакета = hash(key) % m", "e.key": "Ключ записи, которую выдал range" },
+      lineNotes: { 1: "hash(key) % m — тот же бакет, что при вставке", 2: "Берём следующую запись цепочки (или цикл кончился)", 3: "Сравниваем ключ записи с искомым", 4: "Ключ совпал — возвращаем значение", 7: "Прошли всю цепочку — ключа нет" },
       rules: [{ head: "hash(key) % m", body: "→ номер бакета", cls: "lt" }, { head: "Ключ в цепочке", body: "→ нашли", cls: "eq" }, { head: "Конец цепочки", body: "→ нет ключа", cls: "gt" }],
-      parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var m = parseInt(root.getAttribute("data-buckets"), 10); var key = parseInt(root.getAttribute("data-key"), 10); var r = bHashGet(keys, m, key); return { keys: keys, m: m, key: key, steps: r.steps }; },
-      inputs: [{ attr: "data-keys", label: "Ключи в таблице" }, { attr: "data-buckets", label: "бакетов", sm: true }, { attr: "data-key", label: "искать", sm: true }],
+      legend: [{ cls: "hbucket", label: "бакет i — только здесь может быть ключ" }, { cls: "hcmp", label: "запись e, которую сравниваем" }, { cls: "hfound", label: "нашли" }],
+      presets: [
+        { label: "длинная цепочка", set: { "data-keys": "4,8,12,16,20", "data-buckets": "4", "data-key": "20,24" }, hint: "Все ключи в бакете 0: поиск последнего — пять сравнений, промах — тоже пять. Это и есть деградация до O(n)" },
+        { label: "пустой бакет", set: { "data-keys": "1,5,3,8,9", "data-buckets": "4", "data-key": "2,13" }, hint: "Для 2 бакет пуст — ответ «нет» без единого сравнения; для 13 бакет 1 полон, и тот же промах стоит три сравнения" }
+      ],
+      parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var m = parseInt(root.getAttribute("data-buckets"), 10); if (!(m > 0)) m = 4; var gets = nums(root.getAttribute("data-key")); if (!gets.length) gets = [5]; var r = bHashGet(keys, m, gets); return { keys: keys, m: m, gets: gets, steps: r.steps }; },
+      inputs: [{ attr: "data-keys", label: "Ключи в таблице" }, { attr: "data-buckets", label: "бакетов", sm: true }, { attr: "data-key", label: "Get по очереди" }],
       values: function () { return []; },
-      title: function (ctx) { return "Хеш-таблица: поиск ключа " + ctx.key; },
+      title: function (ctx) { return "Хеш-таблица на " + ctx.m + " " + ruPlural(ctx.m, "бакет", "бакета", "бакетов") + ": Get " + ctx.gets.join(", "); },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Бакет", "Ключ"],
       sumValues: function (s) { return [{ text: s.vars.i }, { text: s.vars.key, cls: "eq" }]; },
-      status: function (s, idx, total, ctx) { if (s.found) return { kind: "ok", icon: "✓", head: "Ключ " + ctx.key + " найден", text: s.info }; if (s.done) return { kind: "end", icon: idx + 1, head: "Ключ " + ctx.key + " не найден", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { if (s.found) return { a: "найдено", b: "ключ " + s.vars.key, c: "✓", cls: "eq" }; if (s.done) return { a: "не найдено", b: "", c: "✗", cls: "gt" }; return { a: "бакет " + s.vars.i, b: "скан", c: "↓", cls: "lt" }; },
-      varsOf: function (s) { return { "i": s.vars.i, "key": s.vars.key }; },
+      status: function (s, idx, total) { if (s.found) return { kind: "ok", icon: "✓", head: "Ключ " + s.vars.key + " найден", text: s.info }; if (s.miss) return { kind: "end", icon: "✗", head: "Ключа " + s.vars.key + " нет", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.found) return { a: "найдено", b: "ключ " + s.vars.key, c: "✓", cls: "eq" }; if (s.miss) return { a: "не найдено", b: "", c: "✗", cls: "gt" }; return { a: "бакет " + s.vars.i, b: "скан", c: "↓", cls: "lt" }; },
+      varsOf: function (s) { return { "key": s.vars.key, "i": s.vars.i, "e.key": s.vars.e }; },
       customViz: hashViz
     },
 
@@ -14093,11 +14228,12 @@
       badge: "Hash Map · Resize", desc: "Рост таблицы: когда load factor (ключей на бакет) превышает порог, массив удваивается и ВСЕ ключи перехешируются по новому модулю % 2m. Ключи, что коллизировали при m, часто расходятся при 2m — цепочки снова короткие.",
       valuesLabel: "", codeKey: "hash-resize", fillRange: false,
       complexity: { time: "O(n) разово", space: "O(n)", good: "★ амортизированно O(1) на Put" },
-      varOrder: ["key", "загрузка"],
+      varOrder: ["e.key", "i", "загрузка"],
       metrics: ["загрузка"],
-      varDesc: { "key": "Перехешируемый ключ", "загрузка": "Load factor (n / бакетов)" },
+      varDesc: { "e.key": "Перехешируемый ключ", "i": "Его бакет в новом массиве", "загрузка": "Load factor (n / бакетов)" },
       lineNotes: { 2: "Load factor превысил порог (обычно ~0.75)", 3: "Удваиваем число бакетов", 7: "Новый массив вдвое больше", 10: "НОВЫЙ индекс: key % newM (не % старого m!)", 11: "Кладём ключ в новый бакет", 14: "Старый массив выброшен, цепочки короче" },
       rules: [{ head: "load > порог", body: "→ удвоить и перехешировать", cls: "gt" }, { head: "% newM", body: "новый индекс каждого ключа", cls: "lt" }, { head: "коллизии при m", body: "часто расходятся при 2m", cls: "eq" }],
+      legend: [{ cls: "hcmp", label: "e — ключ, который переносим" }, { cls: "hbucket", label: "его новый бакет i = e.key % newM" }, { cls: "hnew", label: "только что положили в nb" }, { cls: "hgone", label: "уехал из старого" }],
       parse: function (root) { var keys = nums(root.getAttribute("data-keys")); var m = parseInt(root.getAttribute("data-buckets"), 10); if (isNaN(m)) m = 4; var r = bHashResize(keys, m); return { keys: keys, m: m, steps: r.steps }; },
       inputs: [{ attr: "data-keys", label: "Ключи в таблице" }, { attr: "data-buckets", label: "бакетов (m)", sm: true }],
       values: function () { return []; },
@@ -14107,25 +14243,7 @@
       sumValues: function (s) { return [{ text: s.vars.key }, { text: s.vars.load, cls: s.done ? "ok" : "warn" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Перехешировано, load factor " + s.vars.load, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { return { a: "ключ " + s.vars.key, b: "load " + s.vars.load, c: s.done ? "✓" : "↻", cls: s.done ? "eq" : "lt" }; },
-      varsOf: function (s) { return { "key": s.vars.key, "загрузка": s.vars.load }; },
-      mapViz: function (panel) {
-        var p = structPanel(panel, "старый массив — ключи уезжают из него по одному");
-        p.grid.style.flexDirection = "column"; p.grid.style.alignItems = "stretch";
-        return function (s) {
-          p.grid.innerHTML = "";
-          (s.old || []).forEach(function (chain, b) {
-            var row = mkEl("div", "algo-tp__hrrow");
-            row.appendChild(mkEl("span", "algo-tp__hrlab", "[" + b + "] % " + s.oldM));
-            if (!chain.length) row.appendChild(mkEl("span", "algo-tp__hrkey algo-tp__hrkey--empty", "∅"));
-            chain.forEach(function (k) {
-              var gone = s.moved.indexOf(k) >= 0 && k !== s.curKey;
-              row.appendChild(mkEl("span", "algo-tp__hrkey" + (k === s.curKey ? " algo-tp__hrkey--cur" : gone ? " algo-tp__hrkey--gone" : ""), String(k)));
-            });
-            p.grid.appendChild(row);
-          });
-          p.foot.textContent = s.done ? "старый массив пуст и уходит сборщику мусора" : s.curKey != null ? "переносим " + s.curKey + ": его новый бакет — " + s.curKey + " % " + (s.oldM * 2) : "ключи ещё на месте";
-        };
-      },
+      varsOf: function (s) { return { "e.key": s.vars.key, "i": s.vars.i, "загрузка": s.vars.load }; },
       customViz: hashViz
     },
 

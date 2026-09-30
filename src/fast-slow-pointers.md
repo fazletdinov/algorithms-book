@@ -103,7 +103,7 @@
 
 <b>Обнаружение цикла</b> — `fast` (2 шага) догоняет `slow` (1 шаг) внутри кольца:
 
-<div class="algo-viz" data-viz="list-cycle" data-list="1,2,3,4,5" data-cycle="2"></div>
+<div class="algo-viz" data-viz="list-cycle" data-list="1,2,3,4,5,6,7,8" data-cycle="3"></div>
 
 <b>Середина списка</b> — тот же приём без цикла: когда `fast` дошёл до конца, `slow` ровно в центре:
 
