@@ -2624,6 +2624,10 @@
     for (var e = 0; e < n; e++) {
       var nx = next(e), a = pos[e];
       if (nx < 0) { svg.appendChild(el("line", { x1: a.x + r, y1: a.y, x2: a.x + 38, y2: a.y, "marker-end": "url(#" + mid + ")" }, "algo-tp__rhoedge")); svg.appendChild(el("text", { x: a.x + 42, y: a.y + 4 }, "algo-tp__rhonil", "nil")); continue; }
+      if (nx === e) { // петля на себя (кольцо из одного узла): дуга справа — сверху и снизу плашки
+        svg.appendChild(el("path", { d: "M" + (a.x + r - 3) + "," + (a.y - 9) + " C" + (a.x + 64) + "," + (a.y - 36) + " " + (a.x + 64) + "," + (a.y + 36) + " " + (a.x + r - 1) + "," + (a.y + 10), fill: "none", "marker-end": "url(#" + mid + ")" }, "algo-tp__rhoedge algo-tp__rhoedge--back"));
+        continue;
+      }
       var b = pos[nx], ddx = b.x - a.x, ddy = b.y - a.y, d = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
       svg.appendChild(el("line", { x1: a.x + ddx / d * r, y1: a.y + ddy / d * r, x2: b.x - ddx / d * (r + 2), y2: b.y - ddy / d * (r + 2), "marker-end": "url(#" + mid + ")" }, "algo-tp__rhoedge" + (e === n - 1 && hasCyc ? " algo-tp__rhoedge--back" : "")));
     }
@@ -4823,33 +4827,61 @@
   // step.action (record/choose/back) использует viz; vars — английские (action/cur/count).
   // stack — активные кадры bt(start) с их текущим i: без него возврат из рекурсии и
   // продолжение цикла в кадре выше выглядели как скачки.
+  // Дерево вызовов перебора (subsetsViz рисует его сверху): узел — вызов со своим
+  // текущим набором, стек — путь от корня, «пеньки» — отсечённые ветки. Без дерева порядок
+  // ответов ({1,2,3} раньше {1,3}, {1,3} раньше {2}) нельзя было вывести из картинки.
+  // snap() возвращает состояние для шага: стек, завершённые, id следующего вызова.
+  function callTree() {
+    var nodes = [], stack = [], done = {};
+    return {
+      nodes: nodes,
+      enter: function (label, sub, cls) { var id = nodes.length; nodes.push({ parent: stack.length ? stack[stack.length - 1] : -1, label: label, sub: sub == null ? null : sub, cls: cls || "" }); stack.push(id); return id; },
+      leave: function () { done[stack.pop()] = true; },
+      stub: function (label, cls) { var id = nodes.length; nodes.push({ parent: stack[stack.length - 1], label: label, sub: null, cls: cls, stub: true }); done[id] = true; return id; },
+      snap: function (next, back) { return { stack: stack.slice(), done: Object.keys(done).map(Number), next: next == null ? -1 : next, back: back == null ? -1 : back }; },
+      nextId: function () { return nodes.length; }
+    };
+  }
   function bSubsets(set) {
-    var n = set.length, steps = [], result = [], current = [], stack = [];
+    var n = set.length, steps = [], result = [], current = [], stack = [], T = callTree();
     function vv(action) { return { action: action, cur: "[" + current.join(",") + "]", count: result.length }; }
-    function snap(extra) { var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }), stack: stack.map(function (f) { return { start: f.start, i: f.i }; }) }; for (var k in extra) s[k] = extra[k]; steps.push(s); }
+    function snap(extra) { var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }), stack: stack.map(function (f) { return { start: f.start, i: f.i }; }), tree: T.snap(extra.tnext, extra.tback) }; for (var k in extra) s[k] = extra[k]; steps.push(s); }
     (function bt(start) {
       var fr = { start: start, i: null }; stack.push(fr);
+      T.enter("{" + current.join(",") + "}");
       result.push(current.slice());
       snap({ action: "record", line: 5, vars: vv("записать [" + current.join(",") + "]"), info: "res = append(res, cur) → записали подмножество [" + current.join(", ") + "]" });
       for (var i = start; i < n; i++) {
         fr.i = i;
-        snap({ action: "loop", pick: i, line: 6, vars: vv("i = " + i), info: "i = " + i + ": рассматриваем элемент " + set[i] });
+        var nx = T.nextId();
+        snap({ action: "loop", pick: i, line: 6, tnext: nx, vars: vv("i = " + i), info: "i = " + i + ": рассматриваем элемент " + set[i] });
         current.push(set[i]);
-        snap({ action: "choose", pick: i, line: 7, vars: vv("выбрать " + set[i]), info: "cur = append(cur, " + set[i] + ") → берём " + set[i] });
-        snap({ action: "recurse", pick: i, line: 8, vars: vv("bt(" + (i + 1) + ")"), info: "bt(" + (i + 1) + ") — спускаемся в рекурсию" });
+        snap({ action: "choose", pick: i, line: 7, tnext: nx, vars: vv("выбрать " + set[i]), info: "cur = append(cur, " + set[i] + ") → берём " + set[i] });
+        snap({ action: "recurse", pick: i, line: 8, tnext: nx, vars: vv("bt(" + (i + 1) + ")"), info: "bt(" + (i + 1) + ") — спускаемся в рекурсию: новый узел дерева {" + current.join(",") + "}" });
         bt(i + 1);
         current.pop();
-        snap({ action: "back", pick: i, line: 9, vars: vv("откат " + set[i]), info: "вернулись в кадр bt(" + start + "), cur = cur[:len−1] → откат, убираем " + set[i] });
+        snap({ action: "back", pick: i, line: 9, tback: nx, vars: vv("откат " + set[i]), info: "вернулись в кадр bt(" + start + "), cur = cur[:len−1] → откат, убираем " + set[i] + ": поднимаемся по дереву на уровень" });
       }
       fr.i = n;
       snap({ action: "return", line: 10, vars: vv("return"), info: "bt(" + start + "): i = " + n + " — элементов правее нет, цикл кончился → возврат" + (stack.length > 1 ? " в кадр bt(" + stack[stack.length - 2].start + ")" : " из самого первого вызова") });
-      stack.pop();
+      stack.pop(); T.leave();
     })(0);
-    snap({ done: true, found: true, line: 13, vars: vv("готово"), info: "Готово: собрано " + result.length + " подмножеств" });
+    snap({ done: true, found: true, line: 13, vars: vv("готово"), info: "Готово: собрано " + result.length + " подмножеств — ровно столько, сколько узлов в дереве: каждый вызов записывает свой набор" });
+    steps.tree = T.nodes;
     return steps;
   }
   function subsetsViz(panel, ctx) {
     var set = ctx.set;
+    // дерево решений сверху: те же состояния, что у дерева вызовов Ханоя (rc--*)
+    var tree = ctx.steps.tree, fig = null;
+    if (tree && tree.length) {
+      var tbox = mkEl("div", "algo-tp__tw algo-tp__tw--tree"); panel.appendChild(tbox);
+      tbox.appendChild(mkEl("div", "algo-tp__twcap", "Дерево решений: узел — вызов со своим набором; путь от корня до синего — стек"));
+      var longest = Math.max.apply(null, tree.map(function (t) { return t.label.length; }));
+      fig = treeFigure(tree.map(function (t) { return { parent: t.parent, label: t.label, sub: t.sub, cls: t.cls }; }), { cw: Math.max(52, longest * 8 + 14), ch: t0h(tree) });
+      tbox.appendChild(fig.el);
+    }
+    function t0h(tr) { return tr.some(function (t) { return t.sub != null; }) ? 62 : 52; }
     var wrap = document.createElement("div"); wrap.className = "algo-tp__collection";
     var setCells = vizRow(wrap, "Множество");
     var setEls = set.map(function (v) { var c = document.createElement("div"); c.className = "algo-tp__ccell"; c.textContent = v; setCells.appendChild(c); return c; });
@@ -4857,6 +4889,21 @@
     var chipCells = vizRow(wrap, "Найдено");
     panel.appendChild(wrap);
     return function (s) {
+      if (fig && s.tree) {
+        var onStack = {}, doneIds = {}, top = s.tree.stack[s.tree.stack.length - 1];
+        s.tree.stack.forEach(function (id) { onStack[id] = true; });
+        s.tree.done.forEach(function (id) { doneIds[id] = true; });
+        fig.nodes.forEach(function (el, id) {
+          var seen = onStack[id] || doneIds[id];
+          el.classList.toggle("algo-tp__rc--ghost", !seen && id !== s.tree.next);
+          el.classList.toggle("algo-tp__rc--next", !seen && id === s.tree.next);
+          el.classList.toggle("algo-tp__rc--cur", id === top && !s.done);
+          el.classList.toggle("algo-tp__rc--wait", !!onStack[id] && id !== top);
+          el.classList.toggle("algo-tp__rc--done", !!doneIds[id] && !tree[id].stub);
+          if (fig.edges[id]) fig.edges[id].classList.toggle("algo-tp__rcedge--ghost", !seen);
+          if (fig.subs[id]) fig.subs[id].style.opacity = seen ? "" : "0.25";
+        });
+      }
       setEls.forEach(function (c, j) {
         c.classList.toggle("algo-tp__ccell--top", s.action === "choose" && s.pick === j);
         c.classList.toggle("algo-tp__ccell--cur", s.action === "back" && s.pick === j);
@@ -4916,17 +4963,73 @@
     steps.push({ current: -1, visited: visited.slice(), done: true, found: true, line: 16, vars: { "узел": "—", "очередь": "[]", "порядок": ordLabels(), "посещено": visited.filter(Boolean).length + "/" + n, "вОчереди": 0 }, info: "return order — BFS-порядок: " + ordLabels() });
     return steps;
   }
+  // Послойная раскладка графа. Раньше вершины стояли по кругу в порядке номеров: рёбра
+  // пересекались, а «волны» BFS не читались (самая дальняя вершина стояла рядом со
+  // стартом). Неориентированный: слой = расстояние от корня компоненты (корень — start,
+  // потом наименьший непосещённый), компоненты — рядом слева направо. Ориентированный:
+  // слой = длина самого длинного пути от источника, так все рёбра смотрят вниз. Порядок в
+  // слое — барицентры соседей по соседним слоям (несколько проходов), меньше пересечений.
+  function layeredLayout(n, edges, directed, start) {
+    var adj = [], i; for (i = 0; i < n; i++) adj.push([]);
+    edges.forEach(function (e) { adj[e[0]].push(e[1]); if (!directed) adj[e[1]].push(e[0]); else adj[e[1]].push(e[0]); });
+    var level = new Array(n).fill(-1), comp = new Array(n).fill(-1), nComp = 0;
+    if (directed) {
+      var indeg = new Array(n).fill(0), out = []; for (i = 0; i < n; i++) out.push([]);
+      edges.forEach(function (e) { indeg[e[1]]++; out[e[0]].push(e[1]); });
+      var q = [], deg = indeg.slice(); for (i = 0; i < n; i++) if (!deg[i]) { q.push(i); level[i] = 0; }
+      while (q.length) { var v = q.shift(); out[v].forEach(function (w) { level[w] = Math.max(level[w], level[v] + 1); if (--deg[w] === 0) q.push(w); }); }
+      var mx = Math.max.apply(null, level.concat([0]));
+      for (i = 0; i < n; i++) { if (level[i] < 0) level[i] = ++mx; comp[i] = 0; } // цикл: остаток — ниже по одной
+      nComp = 1;
+    } else {
+      var roots = []; if (start >= 0 && start < n) roots.push(start); for (i = 0; i < n; i++) roots.push(i);
+      roots.forEach(function (r) {
+        if (level[r] >= 0) return;
+        level[r] = 0; comp[r] = nComp; var bq = [r];
+        while (bq.length) { var u = bq.shift(); adj[u].slice().sort(function (x, y) { return x - y; }).forEach(function (w) { if (level[w] < 0) { level[w] = level[u] + 1; comp[w] = nComp; bq.push(w); } }); }
+        nComp++;
+      });
+    }
+    var maxL = Math.max.apply(null, level.concat([0])), layers = [];
+    for (var c = 0; c < nComp; c++) { layers.push([]); for (var l = 0; l <= maxL; l++) layers[c].push([]); }
+    for (i = 0; i < n; i++) layers[comp[i]][level[i]].push(i);
+    var order = new Array(n).fill(0);
+    function reindex() { layers.forEach(function (ls) { ls.forEach(function (row) { row.forEach(function (v, k) { order[v] = k; }); }); }); }
+    reindex();
+    for (var sweep = 0; sweep < 6; sweep++) {
+      var down = sweep % 2 === 0;
+      layers.forEach(function (ls) {
+        for (var li = down ? 1 : maxL - 1; down ? li <= maxL : li >= 0; li += down ? 1 : -1) {
+          var ref = down ? li - 1 : li + 1;
+          ls[li].sort(function (x, y) {
+            function bc(v) { var nb = adj[v].filter(function (w) { return level[w] === ref && comp[w] === comp[v]; }); return nb.length ? nb.reduce(function (a2, w) { return a2 + order[w]; }, 0) / nb.length : order[v]; }
+            return bc(x) - bc(y) || x - y;
+          });
+          ls[li].forEach(function (v, k) { order[v] = k; });
+        }
+      });
+    }
+    var gx = 76, gy = 72, pad = 40, pos = new Array(n), x0 = pad;
+    layers.forEach(function (ls) {
+      var wide = Math.max.apply(null, ls.map(function (row) { return row.length; })), bw = Math.max(1, wide) * gx;
+      ls.forEach(function (row, li) { row.forEach(function (v, k) { pos[v] = { x: x0 + (bw - row.length * gx) / 2 + k * gx + gx / 2, y: pad + li * gy }; }); });
+      x0 += bw + (ls.some(function (row) { return row.length; }) ? 20 : 0);
+    });
+    return { pos: pos, W: Math.max(300, x0 + pad - 20), H: pad * 2 + maxL * gy };
+  }
   function graphVizFactory(directed) {
     return function (panel, ctx) {
       var labels = ctx.labels, edges = ctx.edges, n = labels.length;
-      var W = 380, H = 280, cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 34;
-      var pos = labels.map(function (_, i) { var a = -Math.PI / 2 + 2 * Math.PI * i / n; return { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) }; });
+      var lay = layeredLayout(n, edges, directed, ctx.start == null ? 0 : ctx.start);
+      var W = lay.W, H = lay.H, pos = lay.pos;
       var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-viz__graph");
+      svg.style.maxWidth = Math.min(640, W * 1.25) + "px";
       if (directed) {
         var defs = document.createElementNS(SVGNS, "defs");
         var marker = document.createElementNS(SVGNS, "marker");
         marker.setAttribute("id", "algoarrow"); marker.setAttribute("viewBox", "0 0 10 10"); marker.setAttribute("refX", "9"); marker.setAttribute("refY", "5");
-        marker.setAttribute("markerWidth", "7"); marker.setAttribute("markerHeight", "7"); marker.setAttribute("orient", "auto-start-reverse");
+        // размер наконечника — в единицах рисунка: иначе у толстого текущего ребра он раздувался
+        marker.setAttribute("markerUnits", "userSpaceOnUse"); marker.setAttribute("markerWidth", "11"); marker.setAttribute("markerHeight", "11"); marker.setAttribute("orient", "auto-start-reverse");
         var mpath = document.createElementNS(SVGNS, "path"); mpath.setAttribute("d", "M0,0 L10,5 L0,10 z"); mpath.setAttribute("fill", "#888");
         marker.appendChild(mpath); defs.appendChild(marker); svg.appendChild(defs);
       }
@@ -4941,7 +5044,8 @@
       labels.forEach(function (lab, i) {
         var c = document.createElementNS(SVGNS, "circle"); c.setAttribute("cx", pos[i].x); c.setAttribute("cy", pos[i].y); c.setAttribute("r", 16); c.setAttribute("class", "algo-viz__gnode"); svg.appendChild(c); circles.push(c);
         var t = document.createElementNS(SVGNS, "text"); t.setAttribute("x", pos[i].x); t.setAttribute("y", pos[i].y + 4); t.setAttribute("text-anchor", "middle"); t.setAttribute("class", "algo-viz__gtext"); t.textContent = lab; svg.appendChild(t);
-        var bt = document.createElementNS(SVGNS, "text"); bt.setAttribute("x", pos[i].x + 20); bt.setAttribute("y", pos[i].y - 14); bt.setAttribute("text-anchor", "middle"); bt.setAttribute("class", "algo-viz__gbadge"); svg.appendChild(bt); badges.push(bt);
+        // подпись (d=, in:) — справа от вершины, с тёмной обводкой: на ребре она не теряется
+        var bt = document.createElementNS(SVGNS, "text"); bt.setAttribute("x", pos[i].x + 20); bt.setAttribute("y", pos[i].y + 4); bt.setAttribute("text-anchor", "start"); bt.setAttribute("class", "algo-viz__gbadge"); svg.appendChild(bt); badges.push(bt);
       });
       panel.appendChild(svg);
       return function (s) {
@@ -5262,62 +5366,73 @@
     };
   }
   function bSubsetsDup(set0) {
-    var set = set0.slice().sort(function (a, b) { return a - b; }), n = set.length, steps = [], result = [], current = [], stack = [];
+    var set = set0.slice().sort(function (a, b) { return a - b; }), n = set.length, steps = [], result = [], current = [], stack = [], T = callTree();
     function vv(action) { return { action: action, cur: "[" + current.join(",") + "]", count: result.length }; }
-    function snap(extra) { var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }), stack: stack.map(function (f) { return { start: f.start, i: f.i }; }) }; for (var k in extra) s[k] = extra[k]; steps.push(s); }
+    function snap(extra) { var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }), stack: stack.map(function (f) { return { start: f.start, i: f.i }; }), tree: T.snap(extra.tnext, extra.tback) }; for (var k in extra) s[k] = extra[k]; steps.push(s); }
     (function bt(start) {
       var fr = { start: start, i: null }; stack.push(fr);
+      T.enter("{" + current.join(",") + "}");
       result.push(current.slice());
       snap({ action: "record", line: 6, vars: vv("записать [" + current.join(",") + "]"), info: "записали подмножество [" + current.join(", ") + "]" });
       for (var i = start; i < n; i++) {
         fr.i = i;
         if (i > start && set[i] === set[i - 1]) {
+          T.stub("⤫" + set[i], "algo-tp__rc--cut");
           snap({ action: "skip", pick: i, line: 9, vars: vv("пропуск " + set[i]), info: "i = " + i + " > start = " + start + " и nums[" + i + "] == nums[" + (i - 1) + "] = " + set[i] + " → continue: подмножества, начинающиеся с этого " + set[i] + ", на этом уровне уже построены из предыдущего" });
           continue;
         }
         var eqPrev = i > 0 && set[i] === set[i - 1];
-        snap({ action: "loop", pick: i, line: 7, vars: vv("i = " + i), info: "i = " + i + ": берём элемент " + set[i] + (eqPrev ? " — он равен nums[" + (i - 1) + "], но i == start = " + start + ": это первый выбор на уровне, не дубль" : "") });
+        var nx = T.nextId();
+        snap({ action: "loop", pick: i, line: 7, tnext: nx, vars: vv("i = " + i), info: "i = " + i + ": берём элемент " + set[i] + (eqPrev ? " — он равен nums[" + (i - 1) + "], но i == start = " + start + ": это первый выбор на уровне, не дубль" : "") });
         current.push(set[i]);
-        snap({ action: "choose", pick: i, line: 11, vars: vv("выбрать " + set[i]), info: "current = append(current, " + set[i] + ")" });
-        snap({ action: "recurse", pick: i, line: 12, vars: vv("backtrack(" + (i + 1) + ")"), info: "backtrack(" + (i + 1) + ") — глубже" });
+        snap({ action: "choose", pick: i, line: 11, tnext: nx, vars: vv("выбрать " + set[i]), info: "current = append(current, " + set[i] + ")" });
+        snap({ action: "recurse", pick: i, line: 12, tnext: nx, vars: vv("backtrack(" + (i + 1) + ")"), info: "backtrack(" + (i + 1) + ") — глубже" });
         bt(i + 1);
         current.pop();
-        snap({ action: "back", pick: i, line: 13, vars: vv("откат " + set[i]), info: "вернулись в кадр backtrack(" + start + "), откат: убираем " + set[i] });
+        snap({ action: "back", pick: i, line: 13, tback: nx, vars: vv("откат " + set[i]), info: "вернулись в кадр backtrack(" + start + "), откат: убираем " + set[i] });
       }
-      stack.pop();
+      stack.pop(); T.leave();
     })(0);
     snap({ done: true, found: true, line: 17, vars: vv("готово"), info: "Готово: " + result.length + " уникальных подмножеств" });
+    steps.tree = T.nodes;
     return steps;
   }
 
   // Разбор backtracking: Combination Sum. Несём остаток remain; база remain==0, отсечение
   // candidates[i] > remain (break, т.к. отсортировано); i (не i+1) — повтор кандидата. Рисует subsetsViz.
   function bCombSum(cands0, target) {
-    var c = cands0.slice().sort(function (a, b) { return a - b; }), n = c.length, steps = [], result = [], current = [], guard = 0;
+    var c = cands0.slice().sort(function (a, b) { return a - b; }), n = c.length, steps = [], result = [], current = [], guard = 0, T = callTree();
     function vv(action, remain) { return { action: action, cur: "[" + current.join(",") + "]", remain: (remain == null ? "—" : remain), count: result.length }; }
-    function snap(extra) { var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }) }; for (var k in extra) s[k] = extra[k]; steps.push(s); }
+    function snap(extra) { var s = { current: current.slice(), results: result.map(function (x) { return x.slice(); }), tree: T.snap(extra.tnext, extra.tback) }; for (var k in extra) s[k] = extra[k]; steps.push(s); }
     (function bt(start, remain) {
       if (guard++ > 4000) return;
+      // в узле — набор и остаток; найденная комбинация — зелёная рамка
+      T.enter("{" + current.join(",") + "}", "r=" + remain, remain === 0 ? "algo-tp__rc--hit" : "");
       if (remain === 0) {
         result.push(current.slice());
         snap({ action: "record", line: 7, vars: vv("записать [" + current.join(",") + "]", 0), info: "remain == 0 → комбинация [" + current.join(", ") + "]!" });
+        T.leave();
         return;
       }
       for (var i = start; i < n; i++) {
         if (c[i] > remain) {
+          T.stub("✂" + c[i], "algo-tp__rc--cut");
           snap({ action: "prune", pick: i, line: 12, vars: vv("обрыв: " + c[i] + " > " + remain, remain), info: "candidates[" + i + "] = " + c[i] + " > remain " + remain + " → break (дальше только больше)" });
           break;
         }
-        snap({ action: "loop", pick: i, line: 10, vars: vv("i = " + i, remain), info: "i = " + i + ": кандидат " + c[i] + ", remain " + remain });
+        var nx = T.nextId();
+        snap({ action: "loop", pick: i, line: 10, tnext: nx, vars: vv("i = " + i, remain), info: "i = " + i + ": кандидат " + c[i] + ", remain " + remain });
         current.push(c[i]);
-        snap({ action: "choose", pick: i, line: 14, vars: vv("выбрать " + c[i], remain), info: "берём " + c[i] + ": current = append(current, " + c[i] + "); в вызов уйдёт remain − " + c[i] + " = " + (remain - c[i]) });
-        snap({ action: "recurse", pick: i, line: 15, vars: vv("backtrack(" + i + ", " + (remain - c[i]) + ")", remain - c[i]), info: "backtrack(i=" + i + " — повтор разрешён, remain=" + (remain - c[i]) + ")" });
+        snap({ action: "choose", pick: i, line: 14, tnext: nx, vars: vv("выбрать " + c[i], remain), info: "берём " + c[i] + ": current = append(current, " + c[i] + "); в вызов уйдёт remain − " + c[i] + " = " + (remain - c[i]) });
+        snap({ action: "recurse", pick: i, line: 15, tnext: nx, vars: vv("backtrack(" + i + ", " + (remain - c[i]) + ")", remain - c[i]), info: "backtrack(i=" + i + " — повтор разрешён, remain=" + (remain - c[i]) + ")" });
         bt(i, remain - c[i]);
         current.pop();
-        snap({ action: "back", pick: i, line: 16, vars: vv("откат " + c[i], remain), info: "откат: убираем " + c[i] });
+        snap({ action: "back", pick: i, line: 16, tback: nx, vars: vv("откат " + c[i], remain), info: "откат: убираем " + c[i] });
       }
+      T.leave();
     })(0, target);
-    snap({ done: true, found: true, line: 20, vars: vv("готово", "—"), info: "Готово: " + result.length + " комбинаций" });
+    snap({ done: true, found: true, line: 20, vars: vv("готово", "—"), info: "Готово: " + result.length + " " + ruPlural(result.length, "комбинация", "комбинации", "комбинаций") + ". Зелёные узлы дерева — где remain дошёл до 0, красные «пеньки» — где break отрезал всю правую часть" });
+    steps.tree = T.nodes;
     return steps;
   }
 
@@ -10989,6 +11104,7 @@
       complexity: { time: "O(2ⁿ·n)", space: "O(n)", good: "★ Подмножества без дублей" },
       varOrder: ["action", "cur", "count"],
       varDesc: { "action": "Текущий шаг", "cur": "Текущее частичное подмножество", "count": "Найдено уникальных подмножеств" },
+      legend: [{ cls: "rccur", label: "текущий вызов" }, { cls: "rcwait", label: "на стеке — ждёт возврата" }, { cls: "rcdone", label: "вызов закончен" }, { cls: "rcnext", label: "сейчас будет вызван" }, { cls: "rccut", label: "дубль пропущен (continue)" }],
       lineNotes: { 6: "Записываем текущее подмножество (копию буфера)", 7: "Перебираем элементы начиная со start", 8: "Не первая копия дубля на этом уровне → continue", 11: "Выбираем элемент i — добавляем в текущее", 12: "Рекурсия по оставшимся (i+1)", 13: "Откат: убираем элемент", 17: "Все уникальные подмножества собраны" },
       rules: [{ head: "Выбрать элемент", body: "append → рекурсия", cls: "lt" }, { head: "Дубль на уровне", body: "→ continue (пропуск)", cls: "gt" }, { head: "Записать", body: "current → результат", cls: "eq" }],
       parse: function (root) { var set = nums(root.getAttribute("data-set")); return { set: set.slice().sort(function (a, b) { return a - b; }), steps: bSubsetsDup(set) }; },
@@ -10998,7 +11114,7 @@
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Текущее", "Найдено подмножеств"],
       sumValues: function (s) { return [{ text: s.vars.cur }, { text: s.vars.count, cls: "eq" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: s.vars.count + " подмножеств", text: s.info }; if (s.action === "skip") return { kind: "info", icon: idx + 1, head: "Пропуск дубля", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: s.vars.count + " " + ruPlural(+s.vars.count, "подмножество", "подмножества", "подмножеств"), text: s.info }; if (s.action === "skip") return { kind: "info", icon: idx + 1, head: "Пропуск дубля", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.count + " шт.", c: "backtrack", cls: "eq" }; var cls = s.action === "choose" ? "lt" : (s.action === "back" || s.action === "skip" ? "gt" : "eq"); return { a: s.vars.action, b: s.vars.cur, c: s.action === "skip" ? "дубль" : "→", cls: cls }; },
       varsOf: function (s) { return { "action": s.vars.action, "cur": s.vars.cur, "count": s.vars.count }; },
       mapViz: btStackPanel("backtrack"),
@@ -11012,6 +11128,7 @@
       complexity: { time: "экспонента (с отсечением)", space: "O(target)", good: "★ Перебор с обрезкой ветвей" },
       varOrder: ["current", "remain", "len(result)"],
       varDesc: { "current": "Текущая комбинация", "remain": "Остаток до target", "len(result)": "Найдено комбинаций" },
+      legend: [{ cls: "rccur", label: "текущий вызов" }, { cls: "rcwait", label: "на стеке — ждёт возврата" }, { cls: "rcdone", label: "вызов закончен" }, { cls: "rcnext", label: "сейчас будет вызван" }, { cls: "rchit", label: "remain = 0 — комбинация" }, { cls: "rccut", label: "отсечено break" }],
       lineNotes: { 7: "remain == 0 — комбинация набрана, записываем снимок", 10: "Перебираем кандидатов начиная со start", 12: "candidates[i] > remain → break (отсортировано, дальше только больше)", 14: "Берём кандидата — remain уменьшается", 15: "Рекурсия с i (не i+1) — кандидата можно повторять", 16: "Откат: убираем кандидата", 20: "Все комбинации найдены" },
       rules: [{ head: "remain == 0", body: "→ комбинация готова", cls: "eq" }, { head: "candidates[i] > remain", body: "→ break (отсечение)", cls: "gt" }, { head: "берём кандидата", body: "remain − candidates[i]", cls: "lt" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var target = parseInt(root.getAttribute("data-target"), 10); return { set: arr.slice().sort(function (a, b) { return a - b; }), target: target, steps: bCombSum(arr, target) }; },
@@ -11022,7 +11139,7 @@
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Текущая комбинация", "Остаток", "Найдено"],
       sumValues: function (s) { return [{ text: s.vars.cur }, { text: s.vars.remain, cls: (s.vars.remain === 0 ? "eq" : "lt") }, { text: s.vars.count, cls: "warn" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: s.vars.count + " комбинаций", text: s.info }; if (s.action === "prune") return { kind: "info", icon: idx + 1, head: "Отсечение ветки", text: s.info }; if (s.action === "record") return { kind: "info", icon: idx + 1, head: "Комбинация найдена", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: s.vars.count + " " + ruPlural(+s.vars.count, "комбинация", "комбинации", "комбинаций"), text: s.info }; if (s.action === "prune") return { kind: "info", icon: idx + 1, head: "Отсечение ветки", text: s.info }; if (s.action === "record") return { kind: "info", icon: idx + 1, head: "Комбинация найдена", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.count + " шт.", c: "backtrack", cls: "eq" }; var cls = s.action === "choose" ? "lt" : (s.action === "back" || s.action === "prune" ? "gt" : "eq"); return { a: s.vars.action, b: "remain=" + s.vars.remain, c: s.action === "prune" ? "обрыв" : "→", cls: cls }; },
       varsOf: function (s) { return { "current": s.vars.cur, "remain": s.vars.remain, "len(result)": s.vars.count }; },
       customViz: subsetsViz
@@ -13544,6 +13661,7 @@
       complexity: { time: "O(h)", space: "O(1)", good: "★ Поиск по упорядоченному дереву" },
       varOrder: ["node", "val"],
       varDesc: { "node": "Текущий узел", "val": "Искомое значение" },
+      legend: [{ cls: "tvisited", label: "пройденный путь" }, { cls: "tcurrent", label: "node — сравниваем с target" }, { cls: "tskip", label: "отброшенное поддерево" }, { cls: "tfound", label: "нашли" }],
       lineNotes: { 1: "Стартуем с корня", 2: "Пока не дошли до nil", 3: "Сравниваем цель со значением узла", 4: "Равно — нашли", 6: "Меньше — идём в левое поддерево", 8: "Больше — идём в правое поддерево", 11: "Дошли до nil — значения нет" },
       rules: [{ head: "val == node.Val", body: "→ нашли", cls: "eq" }, { head: "val < node.Val", body: "→ влево", cls: "lt" }, { head: "val > node.Val", body: "→ вправо", cls: "gt" }],
       parse: function (root) { var vals = nums(root.getAttribute("data-tree")); var target = parseInt(root.getAttribute("data-target"), 10); var r = bBSTSearch(vals, target); return { vals: vals, target: target, steps: r.steps }; },
@@ -13565,6 +13683,7 @@
       complexity: { time: "O(h)", space: "O(1)", good: "★ Вставки с сохранением порядка" },
       varOrder: ["node", "parent"],
       varDesc: { "node": "Куда идём (nil — место найдено)", "parent": "Последний пройденный узел — к нему подцепим лист" },
+      legend: [{ cls: "tcurrent", label: "node — спускаемся" }, { cls: "tcreated", label: "новый лист" }],
       lineNotes: { 1: "Пустое дерево — новый узел становится корнем", 2: "Идём от корня, помня родителя", 5: "Сравниваем вставляемое значение с узлом", 6: "Меньше — в левое поддерево", 8: "Больше-равно — в правое поддерево", 11: "Дошли до пустого места — создаём лист", 13: "Подцепляем слева", 15: "Подцепляем справа" },
       rules: [{ head: "val < node.Val", body: "→ влево", cls: "lt" }, { head: "val ≥ node.Val", body: "→ вправо", cls: "gt" }, { head: "Пустое место", body: "→ новый лист", cls: "eq" }],
       parse: function (root) { var vals = nums(root.getAttribute("data-tree")); var val = parseInt(root.getAttribute("data-val"), 10); var r = bBSTInsert(vals, val); return { vals: vals, val: val, steps: r.steps }; },
@@ -13586,6 +13705,7 @@
       complexity: { time: "O(h)", space: "O(1)", good: "★ Удаления с сохранением порядка" },
       varOrder: ["node", "succ"],
       varDesc: { "node": "Текущий / удаляемый узел", "succ": "Преемник — минимум правого поддерева" },
+      legend: [{ cls: "tcurrent", label: "node" }, { cls: "tfound", label: "succ — преемник (min правого поддерева)" }, { cls: "tcreated", label: "сюда скопировали значение succ" }, { cls: "tremoved", label: "отцепляемый узел" }],
       lineNotes: { 1: "Ищем узел, помня родителя", 2: "Пока не нашли значение", 4: "Влево или вправо по сравнению", 6: "Значения нет — выходим", 7: "Два ребёнка — особый случай", 8: "Преемник: минимум правого поддерева", 9: "Идём влево до упора", 10: "Копируем значение преемника в узел", 11: "Дальше удаляем узел преемника", 13: "У узла теперь ≤ 1 ребёнка — берём его", 14: "Левого нет — берём правого (или nil)", 15: "Отцепляем узел: ссылку на него заменит child", 16: "Удаляли корень — корнем становится child", 17: "Перецепляем левую ссылку родителя", 18: "Перецепляем правую ссылку родителя" },
       rules: [{ head: "0–1 ребёнок", body: "→ заменяем ребёнком/nil", cls: "lt" }, { head: "2 ребёнка", body: "→ значение преемника", cls: "gt" }, { head: "Преемник", body: "min правого поддерева", cls: "eq" }],
       parse: function (root) { var vals = nums(root.getAttribute("data-tree")); var target = parseInt(root.getAttribute("data-delete"), 10); var r = bBSTDelete(vals, target); return { vals: vals, target: target, steps: r.steps }; },
@@ -13607,6 +13727,7 @@
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Вставка в кучу" },
       varOrder: ["i"],
       varDesc: { "i": "Индекс просеиваемого узла" },
+      legend: [{ cls: "tcurrent", label: "i — новый элемент, всплывает" }, { cls: "tfound", label: "родитель, с которым сравниваем" }, { cls: "tcreated", label: "только что добавлен в конец" }],
       lineNotes: { 1: "Кладём новый элемент листом в конец массива", 2: "i — индекс нового элемента", 3: "Просеивание вверх, пока не корень", 4: "Индекс родителя: (i-1)/2", 5: "Родитель не больше — куча восстановлена", 6: "Стоп", 8: "Меняем узел с родителем местами (поднимаем вверх)", 9: "Поднимаемся: i = parent" },
       rules: [{ head: "Новый элемент", body: "→ лист в конец", cls: "lt" }, { head: "Меньше родителя", body: "→ swap вверх", cls: "gt" }, { head: "Не меньше родителя", body: "→ стоп", cls: "eq" }],
       parse: function (root) { var initial = nums(root.getAttribute("data-heap")); var val = parseInt(root.getAttribute("data-val"), 10); var r = bHeapPush(initial, val); return { initial: initial, val: val, steps: r.steps }; },
@@ -13628,6 +13749,7 @@
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Извлечение минимума" },
       varOrder: ["i"],
       varDesc: { "i": "Индекс просеиваемого узла" },
+      legend: [{ cls: "tremoved", label: "извлекаемый минимум" }, { cls: "tcurrent", label: "i — тонущий элемент" }, { cls: "tfound", label: "его дети — сравниваем" }],
       lineNotes: { 1: "Корень — минимум, его возвращаем", 3: "Последний лист переносим в корень", 4: "Отрезаем хвост массива", 6: "Просеивание вниз", 7: "Меньший из узла и двух детей", 8: "Левый ребёнок меньше?", 9: "Правый ребёнок меньше?", 10: "Меньший — сам узел: порядок восстановлен", 11: "Меняем с меньшим ребёнком местами (опускаем вниз)", 14: "Возвращаем минимум" , 5: "Начинаем просеивание с корня", 12: "Спускаемся вслед за опустившимся значением"},
       rules: [{ head: "Корень", body: "→ это минимум", cls: "eq" }, { head: "Последний лист", body: "→ в корень", cls: "lt" }, { head: "Больше ребёнка", body: "→ swap вниз", cls: "gt" }],
       parse: function (root) { var initial = nums(root.getAttribute("data-heap")); var r = bHeapPop(initial); return { initial: initial, steps: r.steps }; },
@@ -13717,6 +13839,7 @@
       varOrder: ["node", "посещено", "order"],
       metrics: ["посещено"],
       varDesc: { "node": "Текущий узел", "посещено": "Сколько узлов посещено", "order": "Порядок обхода (preorder)" },
+      legend: [{ cls: "tcurrent", label: "текущий вызов (node)" }, { cls: "tvisited", label: "уже обработан" }],
       lineNotes: { 1: "Базовый случай: пустой узел → return", 2: "Preorder: записываем узел ДО спуска к потомкам", 3: "Рекурсивно обходим левое поддерево", 4: "Затем правое поддерево", 5: "Возврат из всех вызовов = обход завершён" },
       rules: [{ head: "Посетить корень", body: "записать node.Val", cls: "eq" }, { head: "Затем левое", body: "dfs(node.Left)", cls: "lt" }, { head: "Затем правое", body: "dfs(node.Right)", cls: "gt" }],
       parse: function (root) { return bTree(parseTree(root.getAttribute("data-tree")), "dfs"); },
@@ -13839,6 +13962,7 @@
       complexity: { time: "O(n·2ⁿ)", space: "O(n)", good: "★ Перебор всех вариантов" },
       varOrder: ["cur", "len(res)"],
       varDesc: { "cur": "Текущее частичное решение", "len(res)": "Сколько подмножеств найдено" },
+      legend: [{ cls: "rccur", label: "текущий вызов" }, { cls: "rcwait", label: "на стеке — ждёт возврата" }, { cls: "rcdone", label: "вызов закончен" }, { cls: "rcnext", label: "сейчас будет вызван" }],
       lineNotes: { 10: "Цикл кончился — кадр возвращается к вызвавшему", 5: "Записываем текущее частичное подмножество в ответ", 6: "Перебираем элементы начиная со start (без повторов)", 7: "Выбираем элемент i — добавляем в текущее", 8: "Рекурсивно перебираем оставшиеся элементы", 9: "Откат: убираем элемент, чтобы попробовать другие ветки", 13: "Все подмножества (2ⁿ) собраны" },
       rules: [{ head: "Выбрать элемент", body: "append → рекурсия", cls: "lt" }, { head: "Записать", body: "current → результат", cls: "eq" }, { head: "Откат", body: "pop, пробуем дальше", cls: "gt" }],
       parse: function (root) { var set = nums(root.getAttribute("data-set")); return { set: set, steps: bSubsets(set) }; },
@@ -13848,7 +13972,7 @@
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Текущее", "Найдено подмножеств"],
       sumValues: function (s) { return [{ text: s.vars.cur }, { text: s.vars.count, cls: "eq" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: s.vars.count + " подмножеств", text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: s.vars.count + " " + ruPlural(+s.vars.count, "подмножество", "подмножества", "подмножеств"), text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.count + " шт.", c: "backtrack", cls: "eq" }; var cls = s.action === "choose" ? "lt" : (s.action === "back" ? "gt" : "eq"); return { a: s.vars.action, b: s.vars.cur, c: s.action === "record" ? "записать" : (s.action === "choose" ? "выбор" : (s.action === "back" ? "откат" : "→")), cls: cls }; },
       varsOf: function (s) { return { "cur": s.vars.cur, "len(res)": s.vars.count }; },
       mapViz: btStackPanel("bt"),
@@ -15256,6 +15380,18 @@
     // Чтение scrollWidth форсирует раскладку; синхронно в show() это стоило
     // лишний пересчёт страницы на каждый виджет при загрузке — откладываем на кадр.
     var scrollPending = false;
+    // Холст шире экрана (таблица рюкзака, дерево решений на телефоне): после шага текущий
+    // элемент доводится прокруткой в центр, если он за краем. Иначе на телефоне текущая
+    // клетка dp[3][5] оказывалась справа за краем, и шаг «ничего не делал». Прокрутку
+    // читателя не трогаем: срабатывает только на смену шага.
+    function followCurrent() {
+      if (vizHost.scrollWidth <= vizHost.clientWidth + 2) return;
+      var cur = vizHost.querySelector(".algo-tp__dcell--cur, .algo-tp__rc--cur, .algo-tp__tnode--current, .algo-tp__hrow--cur, .algo-tp__rhonode--slow");
+      if (!cur || !cur.getBoundingClientRect) return;
+      var hr = vizHost.getBoundingClientRect(), cr = cur.getBoundingClientRect();
+      if (!cr.width) return;
+      if (cr.left < hr.left + 12 || cr.right > hr.right - 12) vizHost.scrollLeft += (cr.left + cr.width / 2) - (hr.left + hr.width / 2);
+    }
     function markScrollSoon() {
       if (scrollPending) return; scrollPending = true;
       (window.requestAnimationFrame || setTimeout)(function () { scrollPending = false; markScroll(); });
@@ -15851,6 +15987,7 @@
       var s = steps[idx], pt = cfg.pointers(s), lo = pt.lo, hi = pt.hi, found = !!s.found;
       if (updateViz) {
         updateViz(s);
+        if (!inJob) followCurrent();
       } else {
         bigCells.forEach(function (c, j) {
           if (s.values && j < s.values.length) c.textContent = s.values[j]; // мутация значений (дедуп на месте)

@@ -240,8 +240,11 @@
 /* бейдж входящей степени (топосорт) */
 .algo-viz__gbadge {
   fill: #e0a500;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: var(--tp-surface, #0a0e16);
+  stroke-width: 3px;
 }
 
 /* граф */
@@ -2286,3 +2289,22 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--rhoslow { background: #2ee59d; border-color: #2ee59d; }
 .algo-tp__legdot--rhofast { background: #22d3ee; border-color: #22d3ee; }
 .algo-tp__legdot--rhofound { background: #16a34a; border-color: #16a34a; }
+/* Дерево решений перебора: следующий вызов, найденная комбинация, отсечённая ветка */
+.algo-tp__tfignode.algo-tp__rc--next { opacity: 1; border: 2px dashed #e0a500; background: transparent; }
+.algo-tp__tfignode.algo-tp__rc--hit { box-shadow: 0 0 0 3px var(--tp-ok); }
+.algo-tp__tfignode.algo-tp__rc--cut { border: 2px dashed #ef4444; color: #ef4444; background: transparent; min-width: 1.9em; font-size: 0.8em; }
+.algo-tp__tfignode.algo-tp__rc--cut.algo-tp__rc--ghost { opacity: 0.15; }
+.algo-tp__legdot--rcnext { background: transparent; border: 2px dashed #e0a500; }
+.algo-tp__legdot--rchit { background: var(--tp-panel2); border: 3px solid var(--tp-ok); }
+.algo-tp__legdot--rccut { background: transparent; border: 2px dashed #ef4444; }
+/* легенды узлов деревьев и кучи (состояния algo-tp__tnode--*) */
+.algo-tp__legdot--tcurrent { background: var(--tp-lo); border-color: var(--tp-lo); }
+.algo-tp__legdot--tvisited, .algo-tp__legdot--tfound { background: var(--tp-ok); border-color: var(--tp-ok); }
+.algo-tp__legdot--tskip { background: var(--tp-panel2); border-color: var(--tp-border); opacity: 0.4; }
+.algo-tp__legdot--tcreated { background: var(--tp-lo); border: 2px dashed color-mix(in srgb, var(--tp-lo) 55%, #fff); }
+.algo-tp__legdot--tremoved { background: color-mix(in srgb, var(--tp-warn) 30%, transparent); border: 2px dashed var(--tp-warn); }
+/* подписи и карточки внутри широкого (прокручиваемого) холста не уезжают за край */
+.algo-tp__dpcard, .algo-tp__twcap, .algo-tp__hpcap, .algo-tp__rhonote { position: sticky; left: 8px; right: 8px; }
+.algo-tp__dpcard { max-width: min(34em, calc(100vw - 64px)); }
+.algo-tp__twcap, .algo-tp__hpcap, .algo-tp__rhonote { width: fit-content; max-width: calc(100vw - 84px); }
+.algo-tp__tw--tree { width: max-content; min-width: 100%; }
