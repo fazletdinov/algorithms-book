@@ -5,10 +5,12 @@
 //   mdbook build && node scripts/mixed-check.js
 //
 // Что проверяется (и почему именно это):
-//   1) до ответа НЕ видно ни имени пакета, ни главы, ни подсказок из условия —
+//   1) до ответа НЕ видно ни имени пакета и функции, ни главы, ни подсказок из условия —
 //      иначе вся затея бессмысленна: подсказка «Ожидаемая сложность: O(log n)»
 //      на отсортированном массиве и есть ответ «бинарный поиск»;
-//   2) вариантов ровно 4, среди них верный, и все — реальные главы книги;
+//   2) вариантов ровно 4, среди них верный, и все — реальные главы книги; неверные
+//      сначала берутся из путаемых шаблонов (ALGO_CONFUSABLE), а группы названы
+//      настоящими главами — опечатка тихо выключила бы группу;
 //   3) верный ответ раскрывает тему, подсказки и редактор с пакетом задачи;
 //   4) промах пишется в algoMixedMissed, верный ответ убирает запись;
 //   5) промахи квиза и смешанной тренировки попадают в таблицу слабых мест;
@@ -140,6 +142,25 @@ async function main() {
   if (!titles.includes(correctTitle)) {
     errors.push(`среди вариантов нет верного («${correctTitle}»): ${titles.join(" | ")}`);
     return finish();
+  }
+  // Имя функции — тоже подсказка («SieveOfEratosthenes возвращает…»): генератор банка
+  // заменяет его на «Функция» и f(…), и до ответа его быть не должно.
+  if (new RegExp("\\b" + problem.f + "\\b").test(statement)) {
+    errors.push(`в условии видно имя функции ${problem.f} — оно называет приём`);
+  }
+  // Путаемые шаблоны: имена групп — настоящие главы, и если у верной главы есть
+  // соседи в банке, среди неверных вариантов стоит хотя бы min(2, соседей) из них.
+  const groups = dom.window.ALGO_CONFUSABLE || [];
+  const slugs = new Set(fs.readdirSync(path.join(root, "src")).map((f) => f.replace(/\.md$/, "")));
+  const typos = [].concat(...groups).filter((c) => !slugs.has(c));
+  if (!groups.length) errors.push("mixed.js не выставил ALGO_CONFUSABLE — неверные варианты снова случайные");
+  if (typos.length) errors.push(`в группах путаемых шаблонов нет таких глав: ${typos.join(", ")}`);
+  const inBank = new Set(bank.map((p) => p.c));
+  const titleOf = (slug) => ((dom.window.ALGO_CHAPTERS || []).find((c) => c.h === slug + ".html") || {}).t || slug;
+  const near = new Set([].concat(...groups.filter((g) => g.includes(problem.c))).filter((c) => c !== problem.c && inBank.has(c)));
+  const nearShown = titles.filter((t) => [...near].map(titleOf).includes(t)).length;
+  if (nearShown < Math.min(2, near.size)) {
+    errors.push(`для «${problem.c}» среди вариантов ${nearShown} путаемых шаблонов из ${near.size}: ${titles.join(" | ")}`);
   }
 
   const wrongBtn = opts.find((b) => b.textContent !== correctTitle);

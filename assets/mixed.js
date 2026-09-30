@@ -132,12 +132,43 @@
 
   // distractors — три чужие главы: берём темы ДРУГИХ задач банка, поэтому
   // варианты всегда правдоподобны и не требуют ручного ведения списка.
+  // Шаблоны, которые путают по условию. Неверные варианты берутся сначала отсюда:
+  // отличить окно от префиксных сумм — это и есть навык, а случайная глава
+  // («теория чисел» против задачи на подмассив) отсеивается сама и ничему не учит.
+  // Польза чередования растёт именно со сходством категорий (мета-анализ Brunmair &
+  // Richter, 2019). Имена — слаги глав; опечатку ловит mixed-check.
+  var CONFUSABLE = [
+    ["sliding-window", "prefix-sums", "two-pointers", "monotonic-stack"],
+    ["two-pointers", "modified-binary-search", "sorting", "cyclic-sort"],
+    ["top-k-elements", "two-heaps", "k-way-merge", "sorting"],
+    ["graphs", "topological-sort", "graph-connectivity", "grids-and-shortest-paths", "advanced-graph-algorithms", "max-flow"],
+    ["tree-bfs", "tree-dfs", "graphs", "recursion"],
+    ["backtracking", "subsets", "combinatorics", "dynamic-programming", "complexity-classes"],
+    ["greedy", "dynamic-programming", "merge-intervals", "complexity-classes"],
+    ["fast-slow-pointers", "reverse-linked-list", "linked-list-structure"],
+    ["number-theory", "cryptography", "bit-manipulation", "combinatorics", "probability"],
+    ["string-algorithms", "aho-corasick", "sliding-window"],
+    ["fenwick-tree", "prefix-sums"],
+  ];
+  window.ALGO_CONFUSABLE = CONFUSABLE; // для mixed-check: имена групп — настоящие главы
+  // Соседей — не больше двух: один вариант остаётся случайным. Три соседа сразу
+  // превращают вопрос в экзамен на тонкие различия, и чаще попадался бы шаблон,
+  // которым задача тоже решается (окно фиксированного размера — и префиксами).
+  var NEAR = 2;
+
   function distractors(problems, correctChapter) {
     var others = {};
     problems.forEach(function (p) {
       if (p.c !== correctChapter) others[p.c] = true;
     });
-    return shuffle(Object.keys(others)).slice(0, OPTIONS - 1);
+    var near = {};
+    CONFUSABLE.forEach(function (group) {
+      if (group.indexOf(correctChapter) < 0) return;
+      group.forEach(function (c) { if (others[c]) near[c] = true; });
+    });
+    var picked = shuffle(Object.keys(near)).slice(0, NEAR);
+    var rest = shuffle(Object.keys(others).filter(function (c) { return picked.indexOf(c) < 0; }));
+    return picked.concat(rest).slice(0, OPTIONS - 1);
   }
 
   // expectedComplexity достаёт эталон из подсказок: абзац «Ожидаемая сложность: …».
