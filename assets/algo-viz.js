@@ -2420,6 +2420,38 @@
   // здесь запрещали SVG сжиматься вовсе, и граф обрезался на телефоне на четверть.
   var SVG_TEXT_MIN = 8;
 
+  // Развилки листинга для режима 🎯. Кандидат — шаг k на строке `if …{`, `} else if …{`
+  // или `for …{` (строка кончается «{»: иначе условие переносится дальше или тело стоит в
+  // той же строке), у которого есть шаг k+1. Спрашивают на переходе к шагу k: снимок
+  // шага — состояние ПОСЛЕ его строки, и статус строки условия уже говорит «— да / — нет».
+  // Верный ответ — попал ли шаг k+1 в тело (строка L+1). Спрашиваем при первой встрече
+  // строки и когда её исход сменился (цикл кончился, условие впервые ложно): на каждой
+  // развилке — утомительно (в ядре 710 развилок против 294 таких «переворотов»).
+  function branchOf(line) {
+    var t = String(line).replace(/\/\/.*$/, "").trim();
+    if (!/\{$/.test(t)) return null;
+    var m = t.match(/^(?:\}\s*else\s+)?if\s+(.+?)\s*\{$/);
+    if (m) return { kind: "if", cond: m[1].replace(/^[^;]*;\s*/, "") }; // if v := f(); cond {
+    m = t.match(/^for\s+(.*?)\s*\{$/);
+    if (!m || !m[1]) return null; // for { — без условия, развилки нет
+    if (/\brange\b/.test(m[1])) return { kind: "range", cond: m[1].replace(/^.*\brange\s+/, "") };
+    var parts = m[1].split(";");
+    return { kind: "for", cond: (parts.length === 3 ? parts[1] : m[1]).trim() };
+  }
+  function predictionQuestions(steps, code) {
+    var qs = {}, last = {};
+    for (var k = 1; k + 1 < steps.length; k++) {
+      var L = steps[k].line, M = steps[k + 1].line;
+      if (typeof L !== "number" || typeof M !== "number" || M === L || !code[L]) continue;
+      var b = branchOf(code[L]);
+      if (!b) continue;
+      var entered = M === L + 1;
+      if (!(L in last) || last[L] !== entered) qs[k] = { at: k, line: L, kind: b.kind, cond: b.cond, entered: entered };
+      last[L] = entered;
+    }
+    return qs;
+  }
+
   // ===== Общий степпер ========================================================
   function mkBtn(label, title) {
     var b = document.createElement("button");
@@ -15250,6 +15282,12 @@
       if (on) root.focus();
     }
     bFs.onclick = function () { setFs(!root.classList.contains("algo-tp--fs")); };
+    // В полноэкранном режиме кнопка ✕ в ряду управления терялась внизу среди остальных:
+    // выход — ещё и отдельной крупной ✕ в правом верхнем углу, где её ищут глазами.
+    var bFsClose = mkBtn("✕", "Выйти из полноэкранного режима (Esc)");
+    bFsClose.classList.add("algo-tp__fsclose");
+    bFsClose.onclick = function () { setFs(false); };
+    root.appendChild(bFsClose);
 
     function noteOf(s, st) {
       if (!(typeof s.line === "number" && s.line >= 0 && codeLines[s.line])) return null;
@@ -15270,7 +15308,7 @@
     // успел показаться — дорабатываем одним куском (без промежуточной отрисовки
     // читатель не увидит перебор шагов). Смена ширины (полный экран, поворот,
     // сайдбар) запускает пересчёт.
-    var job = null, reservedW = -1, onScreen = false, armed = false;
+    var job = null, reservedW = -1, onScreen = false, armed = false, inJob = false;
     var reserveEl = main; // компактная раскладка переназначает на холст (compactLayout)
     function startJob() {
       var w = root.getBoundingClientRect().width;
@@ -15290,7 +15328,7 @@
           var nt = noteOf(s, st);
           if (nt) { codeNoteLn.textContent = nt.ln; codeNoteTx.textContent = nt.tx; job.maxNote = Math.max(job.maxNote, codeNote.getBoundingClientRect().height); }
         } else {
-          show(job.k);
+          inJob = true; try { show(job.k); } finally { inJob = false; }
           job.maxMain = Math.max(job.maxMain, reserveEl.getBoundingClientRect().height);
         }
         if (++job.k < steps.length) continue;
@@ -15300,7 +15338,7 @@
           if (job.maxNote) codeNote.style.minHeight = Math.ceil(job.maxNote) + "px";
           job.phase = 1; job.k = 0;
         } else {
-          prevVars = null; show(job.cur);
+          prevVars = null; inJob = true; try { show(job.cur); } finally { inJob = false; }
           if (job.maxMain) reserveEl.style.minHeight = Math.ceil(job.maxMain) + "px";
           reservedW = job.w; job = null;
         }
@@ -15313,7 +15351,9 @@
       if (onScreen) { finishNow(); return; }
       idle(function (d) { if (onScreen) finishNow(); else runJob(function () { return d.timeRemaining() > 3; }); pump(); });
     }
-    function reserve() { if (!job && startJob()) { if (onScreen) finishNow(); else pump(); } }
+    // Пересчёт перебирает все шаги через show() и закрыл бы открытый вопрос 🎯: пока
+    // вопрос открыт, новый пересчёт не стартует (догонит после ответа, predClose).
+    function reserve() { if (predPending) return; if (!job && startJob()) { if (onScreen) finishNow(); else pump(); } }
     // пока шаги перебираются, читатель не должен листать этот же виджет
     ["pointerdown", "keydown", "focusin"].forEach(function (t) { root.addEventListener(t, finishNow, true); });
     function armReserve() {
@@ -15335,6 +15375,12 @@
     var stepAnim = false; // показ вызван шагом вперёд (кнопка, автоплей, →) — можно анимировать перенос
     function stepTo(i) { stepAnim = true; try { show(i); } finally { stepAnim = false; } }
     function show(i) {
+      // show() зовёт и пересчёт высоты (перебор всех шагов): ему нельзя ни закрывать
+      // вопрос 🎯, ни стирать пометку «Верно / Не угадал» — это делает только навигация
+      if (!inJob) {
+        if (predPending) predClose();
+        if (predVerdict && predVerdict.at !== i) predVerdict = null;
+      }
       var prevIdx = idx;
       idx = Math.max(0, Math.min(steps.length - 1, i));
       // прежние значения — из ДАННЫХ предыдущего шага, а не с экрана: во время полёта ячейки
@@ -15398,6 +15444,10 @@
       cStat.classList.toggle("algo-tp__status--hot", !!hot);
       statIcon.textContent = st.icon;
       statHead.textContent = stepHead(st.head, idx, steps.length); statText.textContent = st.text;
+      if (predVerdict && predVerdict.at === idx) {
+        statText.insertBefore(mkEl("span", "algo-tp__predv algo-tp__predv--" + (predVerdict.ok ? "ok" : "no"),
+          predVerdict.ok ? "✓ Верно. " : "✗ Не угадал. "), statText.firstChild);
+      }
 
       lineEls.forEach(function (d, li) { d.classList.toggle("algo-tp__codeline--active", li === s.line); });
       // Выполняемая строка — копией прямо под строкой шага: полный листинг стоит ниже
@@ -15478,7 +15528,7 @@
           if (idx >= steps.length - 1) {
             if (!loopChk.checked) { stopPlay(); return; }
             show(0); // автоповтор: начинаем заново
-          } else stepTo(idx + 1);
+          } else if (!tryAdvance(true)) return; // остановились на вопросе 🎯
           tick();
         }, stepDelay());
       })();
@@ -15487,16 +15537,19 @@
     // смена скорости на лету — перезапускаем таймер с новым интервалом
     speedInp.addEventListener("input", function () { if (timer) { stopPlay(); startPlay(); } });
 
-    bFirst.onclick = function () { stopPlay(); show(0); };
+    bFirst.onclick = function () { stopPlay(); predAnswered = {}; show(0); };
     bPrev.onclick = function () { stopPlay(); show(idx - 1); };
-    bNext.onclick = function () { stopPlay(); stepTo(idx + 1); };
+    bNext.onclick = function () { stopPlay(); tryAdvance(false); };
     bLast.onclick = function () { stopPlay(); show(steps.length - 1); };
     root.setAttribute("tabindex", "0");
     root.addEventListener("keydown", function (e) {
       if (e.target && e.target.tagName === "INPUT") return;
-      if (e.key === "ArrowLeft") { stopPlay(); show(idx - 1); }
-      else if (e.key === "ArrowRight") { stopPlay(); stepTo(idx + 1); }
-      else if (e.key === "Home") { stopPlay(); show(0); }
+      var k = e.key && e.key.toLowerCase();
+      if (predPending && (k === "y" || k === "д" || k === "1")) { predAnswer(true); }
+      else if (predPending && (k === "n" || k === "н" || k === "2")) { predAnswer(false); }
+      else if (e.key === "ArrowLeft") { stopPlay(); show(idx - 1); }
+      else if (e.key === "ArrowRight") { stopPlay(); tryAdvance(false); }
+      else if (e.key === "Home") { stopPlay(); predAnswered = {}; show(0); }
       else if (e.key === "End") { stopPlay(); show(steps.length - 1); }
       else if (e.key === " " || e.key === "Spacebar") { bPlay.onclick(); }
       else if (e.key === "f" || e.key === "F" || e.key === "а" || e.key === "А") { setFs(!root.classList.contains("algo-tp--fs")); }
@@ -15506,6 +15559,110 @@
       // смотрит: без stopPropagation шаг виджета заодно уводил на соседнюю главу.
       e.preventDefault(); e.stopPropagation();
     });
+    // --- 🎯 Режим «Предсказывать»: на развилке виджет спрашивает исход ДО показа шага
+    //     (отбор развилок — predictionQuestions). Промах пишется в algoVizMissed, откуда
+    //     srs.js заводит карточку viz:<тип>. Режим общий для всех виджетов книги.
+    var PRED_KEY = "algoVizPredict", PRED_MISS = "algoVizMissed";
+    var predQs = predictionQuestions(steps, codeLines);
+    var predHas = Object.keys(predQs).length > 0;
+    var predOn = false, predPending = null, predAnswered = {}, predVerdict = null, predRight = 0, predTotal = 0, predBox = null;
+    try { predOn = localStorage.getItem(PRED_KEY) === "1"; } catch (e) { /* приватный режим */ }
+    var bPred = mkBtn("🎯", "Предсказывать исход на развилках if / for");
+    bPred.classList.add("algo-tp__predbtn");
+    var predScore = mkEl("span", "algo-tp__predscore", "");
+    predScore.title = "Верных предсказаний из заданных";
+    function predSync() {
+      bPred.classList.toggle("algo-tp__predbtn--on", predOn && predHas);
+      bPred.setAttribute("aria-pressed", String(predOn && predHas));
+      bPred.disabled = !predHas;
+      bPred.title = !predHas ? "В этом виджете развилок на шагах нет — листай как обычно"
+        : (predOn ? "🎯 включён: на развилках виджет спросит исход до показа шага (Y — да, N — нет)" : "Включить 🎯: предсказывать исход на развилках if / for");
+      predScore.textContent = predTotal ? predRight + "/" + predTotal : "";
+    }
+    bPred.onclick = function () {
+      predOn = !predOn;
+      try { localStorage.setItem(PRED_KEY, predOn ? "1" : "0"); } catch (e) { /* ничего */ }
+      if (!predOn && predPending) { predClose(); show(idx); }
+      predSync();
+      // остальные виджеты страницы подхватывают режим сразу
+      document.dispatchEvent(new CustomEvent("algo-viz:predict", { detail: { on: predOn, from: root } }));
+    };
+    document.addEventListener("algo-viz:predict", function (e) {
+      if (e.detail.from === root) return;
+      predOn = e.detail.on;
+      if (!predOn && predPending) { predClose(); show(idx); }
+      predSync();
+    });
+    function tryAdvance(fromPlay) {
+      if (predPending) { // вопрос открыт — «›» не листает, а напоминает о нём
+        predBox.classList.remove("algo-tp__pred--nudge"); void predBox.offsetWidth; predBox.classList.add("algo-tp__pred--nudge");
+        return false;
+      }
+      var nx = idx + 1;
+      if (predOn && predQs[nx] && !predAnswered[nx]) { if (fromPlay) stopPlay(); predAsk(predQs[nx]); return false; }
+      stepTo(nx);
+      return true;
+    }
+    function predAsk(q) {
+      finishNow(); // недоделанный пересчёт высоты — до вопроса, а не поверх него
+      predPending = q;
+      var yes = q.kind === "if" ? "Да — войдём в ветку" : "Да — ещё итерация";
+      var no = q.kind === "if" ? "Нет — пропустим" : "Нет — выйдем из цикла";
+      var ask = q.kind === "if" ? "Условие выполнится?" : (q.kind === "range" ? "Цикл по " + q.cond + " сделает ещё итерацию?" : "Условие цикла выполнится?");
+      predBox = mkEl("div", "algo-tp__pred");
+      var line = mkEl("div", "algo-tp__predline");
+      line.appendChild(mkEl("span", "algo-tp__curlineno", String(q.line + 1)));
+      var code = mkEl("code", "algo-tp__curlinetx"); code.appendChild(hlGo(codeLines[q.line].trim())); line.appendChild(code);
+      predBox.appendChild(line);
+      predBox.appendChild(mkEl("div", "algo-tp__predq", ask + " Посмотри на значения в чипах."));
+      var row = mkEl("div", "algo-tp__predrow");
+      [[yes, true], [no, false]].forEach(function (o) {
+        var b = mkEl("button", "algo-tp__predans", o[0]); b.type = "button";
+        b.onclick = function () { predAnswer(o[1]); };
+        row.appendChild(b);
+      });
+      var skip = mkEl("button", "algo-tp__predskip", "Пропустить"); skip.type = "button";
+      skip.onclick = function () { predAnswered[q.at] = true; predClose(); stepTo(q.at); };
+      row.appendChild(skip);
+      predBox.appendChild(row);
+      cStat.classList.add("algo-tp__status--pred");
+      statHead.textContent = "🎯 Предскажи";
+      statText.textContent = "";
+      cStat.appendChild(predBox);
+      row.firstChild.focus({ preventScroll: true });
+    }
+    function predClose() {
+      if (predBox && predBox.parentNode) predBox.parentNode.removeChild(predBox);
+      predBox = null; predPending = null;
+      cStat.classList.remove("algo-tp__status--pred");
+      if (armed) reserve(); // ширина могла смениться, пока вопрос был открыт
+    }
+    function predAnswer(yes) {
+      var q = predPending;
+      if (!q) return;
+      var ok = yes === q.entered;
+      predAnswered[q.at] = true; predTotal++; if (ok) predRight++; else predMiss(q);
+      predClose();
+      predVerdict = { at: q.at, ok: ok };
+      stepTo(q.at);
+      predSync();
+      root.focus({ preventScroll: true });
+    }
+    function predMiss(q) {
+      try {
+        var m = JSON.parse(localStorage.getItem(PRED_MISS) || "{}") || {};
+        var type = root.getAttribute("data-viz") || cfg.badge;
+        var e = m[type] || { n: 0 };
+        e.n++; e.ts = Date.now();
+        e.page = location.pathname.split("/").pop() || "";
+        e.title = cfg.title(ctx); e.line = q.line + 1; e.code = codeLines[q.line].trim();
+        m[type] = e;
+        localStorage.setItem(PRED_MISS, JSON.stringify(m));
+      } catch (err) { /* приватный режим: промах просто не запомнится */ }
+    }
+    predSync();
+    [bPred, predScore].forEach(function (x) { btns.appendChild(x); });
+
     // --- Раскладка по умолчанию (по образцу AlgoMaster; data-layout="classic" — прежняя):
     //     код слева, холст справа и под ним ОДНА строка шага + чипы переменных, внизу
     //     ползунок шагов. Итоги, правила, таблица переменных с описаниями и сложность —
@@ -15556,7 +15713,7 @@
       [sumBox, rules, table, foot].forEach(function (el) { el.remove(); });
       // контролы: ‹ › ▶ ━━●━━ 6 / 19 [1×] ⛶
       ctrl.innerHTML = "";
-      ctrl.appendChild(bPrev); ctrl.appendChild(bNext); ctrl.appendChild(bPlay);
+      ctrl.appendChild(bPrev); ctrl.appendChild(bNext); ctrl.appendChild(bPlay); ctrl.appendChild(bPred); ctrl.appendChild(predScore);
       scrub = mkEl("input", "algo-tp__scrub");
       scrub.type = "range"; scrub.min = "0"; scrub.max = String(steps.length - 1); scrub.step = "1"; scrub.value = "0";
       scrub.setAttribute("aria-label", "Шаг алгоритма");

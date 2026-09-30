@@ -2022,6 +2022,36 @@ body.algo-tp-fslock { overflow: hidden; }
   .algo-tp--compact.algo-tp--fs > .algo-tp__vchips { grid-column: 2; grid-row: 5; }
   .algo-tp--compact.algo-tp--fs > .algo-tp__curline { display: none; } /* код и так рядом */
 }
+/* 🎯 режим «Предсказывать» */
+.algo-tp .algo-tp__predbtn--on { background: color-mix(in srgb, var(--nn-amber, #fbbf24) 22%, var(--tp-panel2)); border-color: var(--nn-amber, #fbbf24); }
+.algo-tp__predscore { font-size: 0.85em; font-variant-numeric: tabular-nums; color: var(--nn-amber, #fbbf24); min-width: 0; }
+.algo-tp__predscore:empty { display: none; }
+.algo-tp__status--pred { border-color: var(--nn-amber, #fbbf24); }
+.algo-tp__pred { display: flex; flex-direction: column; gap: 0.55em; margin-top: 0.3em; text-align: left; }
+.algo-tp__predline {
+  display: flex; align-items: baseline; gap: 0.7em; padding: 0.35em 0.8em; border-radius: 8px;
+  background: #0b0f1a; border: 1px solid var(--tp-border); font-family: var(--mono-font, ui-monospace, monospace); font-size: 0.85em;
+  overflow-x: auto; white-space: nowrap;
+}
+.algo-tp__predq { font-weight: 600; }
+.algo-tp__predrow { display: flex; flex-wrap: wrap; gap: 0.5em; }
+.algo-tp__predans, .algo-tp__predskip {
+  font: inherit; font-size: 0.9em; cursor: pointer; border-radius: 8px; padding: 0.45em 0.9em;
+  border: 1px solid var(--tp-border); background: var(--tp-panel2); color: var(--fg);
+}
+.algo-tp__predans:hover, .algo-tp__predans:focus-visible { border-color: var(--nn-amber, #fbbf24); outline: none; }
+.algo-tp__predskip { opacity: 0.7; margin-left: auto; }
+.algo-tp__pred--nudge { animation: algo-tp-nudge 0.35s ease-in-out; }
+@keyframes algo-tp-nudge { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.algo-tp__predv { font-weight: 700; }
+.algo-tp__predv--ok { color: var(--nn-green, #2ee59d); }
+.algo-tp__predv--no { color: var(--nn-red, #f87171); }
+/* крупная ✕ выхода из полноэкранного режима — в правом верхнем углу */
+.algo-tp__fsclose { display: none !important; }
+.algo-tp--fs .algo-tp__fsclose {
+  display: inline-flex !important; position: fixed; top: 0.7em; right: 1em; z-index: 1002;
+  width: 2.6em; height: 2.6em; font-size: 1.1em; border-radius: 50%;
+}
 /* одинаковые шевроны «назад/вперёд» и полноэкранный режим новой раскладки */
 .algo-tp__chev { display: block; }
 .algo-tp--compact.algo-tp--fs .algo-tp__main { grid-template-columns: minmax(0, 1fr); }

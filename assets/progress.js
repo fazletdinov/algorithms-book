@@ -209,7 +209,7 @@
     // а не только этот трекер.
     var PREFIXES = ["algoProgress", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:", "algoPkgSolved", "algoSRS",
       "algoExplain", "algoExplainDone", "algoQuizMissed", "algoMixedMissed", "algoMixedSeen",
-      "algoMockLog", "algoMockCxMissed"];
+      "algoMockLog", "algoMockCxMissed", "algoVizMissed", "algoVizPredict"];
     function isOurs(key) {
       return PREFIXES.some(function (p) { return key === p || key.indexOf(p) === 0; });
     }

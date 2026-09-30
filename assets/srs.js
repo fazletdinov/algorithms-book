@@ -23,6 +23,8 @@
  *                  ответом, и «Помню» ничего не проверяло;
  *   cx:<pkg>.<fn>  — в режиме собеседования сложность своего решения оценена
  *                  неверно (mixed.js): шаблон мог быть узнан, а цена кода — нет.
+ *   viz:<тип>    — в режиме 🎯 виджета исход развилки предсказан неверно (algo-viz.js,
+ *                  algoVizMissed): механику алгоритма читатель ещё не прокручивает в голове.
  *
  * Расписание — SM-2 в упрощённом виде: у карточки есть интервал (дни) и «лёгкость»
  * ease. «Помню» умножает интервал на ease, «с трудом» растит его чуть-чуть,
@@ -45,6 +47,7 @@
   var QUIZ_MISSED = "algoQuizMissed";
   var MIXED_MISSED = "algoMixedMissed";
   var CX_MISSED = "algoMockCxMissed";
+  var VIZ_MISSED = "algoVizMissed";
 
   var DAY = 24 * 60 * 60 * 1000;
   var EASE_START = 2.5;
@@ -146,6 +149,15 @@
       changed = true;
     });
 
+    // Промах предсказания в виджете — тоже сегодня: пока развилка свежа в памяти.
+    var vizMissed = loadMap(VIZ_MISSED);
+    Object.keys(vizMissed).forEach(function (k) {
+      var id = "viz:" + k;
+      if (cards[id]) return;
+      cards[id] = newCard(now, vizMissed[k]);
+      changed = true;
+    });
+
     var missed = loadMap(MISSED);
     var solved = loadMap(SOLVED);
     Object.keys(missed).forEach(function (taskId) {
@@ -231,6 +243,15 @@
         what: prob
           ? "Назови шаблон и примету в условии, по которой его узнал, — потом открой ответ."
           : "Её условия больше нет в банке. Вспомни, каким шаблоном она решалась, и открой ответ.",
+      };
+    }
+    if (kindOf(id) === "viz") {
+      return {
+        kind: "Предсказание шага",
+        title: meta.title || id.slice(4),
+        href: meta.page || "",
+        what: "Развилка «строка " + (meta.line || "?") + ": " + (meta.code || "") + "» пошла не так, как ты предсказал. " +
+          "Открой главу, включи 🎯 в этом виджете и пройди его заново — перед каждым ответом проговори условие по значениям в чипах.",
       };
     }
     if (kindOf(id) === "cx") {

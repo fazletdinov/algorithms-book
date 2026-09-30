@@ -148,6 +148,20 @@ async function main() {
   }
   const grades = box.querySelector(".algo-today__grades");
   if (!grades || grades.style.display !== "none") errors.push("карточка mix: оценки доступны до «Показать ответ»");
+  // Промах предсказания в виджете (режим 🎯) — карточка viz: на сегодня, со строкой
+  // развилки и ссылкой на страницу виджета.
+  const viz = await newDom({
+    algoVizMissed: JSON.stringify({ "sliding-window-fixed": { n: 2, page: "sliding-window.html", title: "Максимум окна размера 3", line: 9, code: "if windowSum > maxSum {" } }),
+  });
+  const vc = cards(viz)["viz:sliding-window-fixed"];
+  if (!vc) errors.push("промах предсказания не завёл карточку viz:");
+  else if (vc.due - Date.now() > DAY * 0.1) errors.push("карточка viz: заведена не на сегодня");
+  const vizText = viz.window.document.querySelector(".algo-today").textContent;
+  const vizLink = viz.window.document.querySelector(".algo-today__title");
+  if (!/Предсказание шага/.test(vizText) || !/строка 9: if windowSum > maxSum/.test(vizText) || !vizLink || vizLink.getAttribute("href") !== "sliding-window.html") {
+    errors.push(`карточка viz: без вида, развилки или ссылки на страницу: «${vizText.slice(0, 160)}»`);
+  }
+
   if (click(mix, "Показать ответ")) {
     const ans = box.querySelector(".algo-today__answer a");
     if (!ans || ans.getAttribute("href") !== "top-k-elements.html") {
