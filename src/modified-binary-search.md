@@ -217,11 +217,11 @@ func searchIdiomatic(arr []int, target int) int {
 <div class="algo-explain" data-key="modified-binary-search">
   <div class="algo-explain__item">
     <div class="algo-explain__q">Настоящее предусловие бинарного поиска — это не «массив отсортирован». Что это?</div>
-    <div class="algo-explain__ref"><b>Монотонность предиката</b>: есть <code>p(i)</code> вида <code>false … false true … true</code> с единственной точкой переключения, и поиск находит эту границу. Отсортированность — лишь частый способ получить монотонность (<code>p(i) = arr[i] >= target</code>), но, скажем, «минимум в повёрнутом массиве» даёт монотонный предикат <code>arr[i] <= arr[last]</code> на неотсортированном массиве. Предикат не монотонен — ответ будет <b>неверным</b>, а не просто промахом.</div>
+    <div class="algo-explain__ref"><b>Монотонность предиката</b>: есть <code>p(i)</code> вида <code>false … false true … true</code> с единственной точкой переключения, и поиск находит эту границу. Отсортированность — лишь частый способ получить монотонность (<code>p(i) = arr[i] >= target</code>), но, скажем, «минимум в повёрнутом массиве» даёт монотонный предикат <code>arr[i] &lt;= arr[last]</code> на неотсортированном массиве. Предикат не монотонен — ответ будет <b>неверным</b>, а не просто промахом.</div>
   </div>
   <div class="algo-explain__item">
     <div class="algo-explain__q">Почему присваивание <code>left = mid</code> (без <code>+1</code>) даёт вечный цикл, а <code>left = mid + 1</code> — нет?</div>
-    <div class="algo-explain__ref"><code>mid = left + (right-left)/2</code> округляет вниз, поэтому при <code>left <= right</code> всегда <code>left <= mid <= right</code>. Тогда <code>left = mid + 1</code> строго больше прежнего <code>left</code>, а <code>right = mid - 1</code> строго меньше прежнего — интервал сужается каждый шаг. С <code>left = mid</code> при <code>right - left == 1</code> получаем <code>mid == left</code>, и присваивание не двигает границу: прогресса нет, цикл вечный. Отсюда правило: конвенция <code>left <= right</code> идёт в паре с <code>mid±1</code>, полуинтервал <code>[left, right)</code> — с <code>right = mid</code>; смешивать нельзя.</div>
+    <div class="algo-explain__ref"><code>mid = left + (right-left)/2</code> округляет вниз, поэтому при <code>left &lt;= right</code> всегда <code>left &lt;= mid &lt;= right</code>. Тогда <code>left = mid + 1</code> строго больше прежнего <code>left</code>, а <code>right = mid - 1</code> строго меньше прежнего — интервал сужается каждый шаг. С <code>left = mid</code> при <code>right - left == 1</code> получаем <code>mid == left</code>, и присваивание не двигает границу: прогресса нет, цикл вечный. Отсюда правило: конвенция <code>left &lt;= right</code> идёт в паре с <code>mid±1</code>, полуинтервал <code>[left, right)</code> — с <code>right = mid</code>; смешивать нельзя.</div>
   </div>
 </div>
 
@@ -297,9 +297,9 @@ right` и `right = mid` — и не смешивай их. Смешение ко
 Самое мощное обобщение: предикат `p` не обязан читать заранее посчитанный массив — это
 может быть функция «достижимо ли значение `X`?», монотонная по `X`. Тогда бинарный
 поиск идёт **по диапазону ответов**, а не по индексам. Это отдельный приём — [бинарный
-поиск по ответу](#бинарный-поиск-по-ответу) ниже.
+поиск по ответу](#-вариант-бинарный-поиск-по-ответу) ниже.
 
-## Бинарный поиск по ответу
+## 🎯 Вариант: бинарный поиск по ответу
 
 Самый недооценённый приём бинарного поиска — когда массива для поиска **нет**, а
 ищем мы сам ответ в диапазоне его возможных значений. Это решает целый класс задач

@@ -619,8 +619,9 @@ go test -tags solution ./slidingwindow/  # эталон
 выполнения **твоего собственного** кода: подсветку текущей строки (в т.ч.
 внутри сработавшей ветки `if`) и то, какими были переменные на каждой
 итерации твоего решения, включая вложенный цикл «сжимающегося окна» —
-работают все пять функций пакета. Не поддерживаются пока только горутины,
-замыкания, `range`-циклы, рекурсия и циклы, спрятанные внутри `switch`.
+работают все пять функций пакета. Циклы `for` и `range` любой вложенности
+поддерживаются; не поддерживаются пока только горутины, замыкания, рекурсия
+и циклы, спрятанные внутри `switch`.
 
 <div class="algo-runner" data-pkg="slidingwindow" data-trace-calls='[{"func": "MaxSumSubarray", "call": "MaxSumSubarray([]int{2, 3, 5, 1, 8, 2, 6, 4}, 3)"}, {"func": "LongestSubstringKDistinct", "call": "LongestSubstringKDistinct(\"araaci\", 2)"}, {"func": "SmallestSubarrayWithSum", "call": "SmallestSubarrayWithSum([]int{2, 1, 5, 2, 3, 2}, 7)"}, {"func": "LongestSubstringNoRepeat", "call": "LongestSubstringNoRepeat(\"abcabcbb\")"}, {"func": "MaxSlidingWindow", "call": "MaxSlidingWindow([]int{1, 3, -1, -3, 5, 3, 6, 7}, 3)"}]'></div>
 
