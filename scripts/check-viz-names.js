@@ -14,6 +14,8 @@
 // считается верным, если все идентификаторы в нём есть в листинге (комментарии и строки
 // листинга не в счёт: «// dp[i-2]» не объявляет i). Числа и выражения из них (0, m−1)
 // допустимы — это не переменные. Русские подписи — нарушение: чип подписывает переменную.
+// Исключение — счётчики для наглядности («копий», «обменов»), объявленные в cfg.metrics:
+// движок рисует их другим чипом, и имя у них обязано быть русским, без идентификаторов.
 //
 // Известные нарушения перечислены в scripts/viz-names-allow.json — это «храповик»: новое
 // нарушение роняет проверку, а запись, которая больше не нарушается, тоже (список обязан
@@ -77,6 +79,9 @@ setTimeout(() => {
     const counter = el.querySelector(".algo-viz__counter");
     for (let guard = 0; guard < 500; guard++) {
       el.querySelectorAll(".algo-tp__vchipk").forEach((x) => names.add("chip:" + x.textContent.trim()));
+      // метрика («копий», «обменов») честно помечена как не-переменная, но и выдавать себя
+      // за переменную не должна: латинское имя в метрике — это спрятанный чип-переменная
+      el.querySelectorAll(".algo-tp__vchipm").forEach((x) => { if (idents(x.textContent).length) names.add("metric:" + x.textContent.trim()); });
       el.querySelectorAll(".algo-nn__tag:not(.algo-nn__tag--off) .algo-nn__tagtx").forEach((x) => {
         const t = x.textContent.trim();
         if (t) names.add("tag:" + t);
@@ -86,6 +91,7 @@ setTimeout(() => {
       el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
     }
     const bad = [...names].filter((n) => {
+      if (n.startsWith("metric:")) return true;
       const name = n.slice(n.indexOf(":") + 1);
       const words = idents(name);
       if (!words.length) return !/^[\d\s+\-−*/().]+$/.test(name); // русская подпись — нарушение, число — нет
@@ -104,7 +110,9 @@ setTimeout(() => {
   const fails = [];
   for (const [type, bad] of Object.entries(found)) {
     const ok = new Set(allow[type] || []);
-    bad.filter((b) => !ok.has(b)).forEach((b) => fails.push(`${type}: «${b.replace(/^chip:/, "чип ").replace(/^tag:/, "плашка ")}» — такого имени нет в листинге`));
+    bad.filter((b) => !ok.has(b)).forEach((b) => fails.push(b.startsWith("metric:")
+      ? `${type}: метрика «${b.slice(7)}» названа как переменная — метрике нужна русская подпись`
+      : `${type}: «${b.replace(/^chip:/, "чип ").replace(/^tag:/, "плашка ")}» — такого имени нет в листинге`));
   }
   for (const [type, list] of Object.entries(allow)) {
     const now = new Set(found[type] || []);

@@ -879,6 +879,13 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__codenotetx { flex: 1 1 auto; opacity: 0.9; }
 .algo-tp__lineno { display: inline-block; min-width: 1.8em; margin-right: 0.8em; text-align: right; opacity: 0.4; font-variant-numeric: tabular-nums; user-select: none; }
 .algo-tp__linetext { font-family: var(--mono-font, monospace); }
+/* На телефоне длинная строка кода переносится, а не уезжает вбок: при горизонтальной
+   прокрутке ключевая строка окна читалась как «windowSum += arr[i]» — без «- arr[i-k]».
+   pre-wrap сохраняет отступы, продолжение встаёт под текстом строки, после номера. */
+@container algo-tp (max-width: 520px) {
+  .algo-tp__codeline { white-space: pre-wrap; }
+  .algo-tp__linetext { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+}
 /* «стрелка» отладчика в гаттере: зарезервирована на всех строках, видна на активной */
 .algo-tp__codearrow { flex: 0 0 1em; margin-right: 0.2em; text-align: center; color: var(--tp-lo); font-weight: 700; user-select: none; opacity: 0; transition: opacity 0.12s; }
 .algo-tp__codeline--active .algo-tp__codearrow { opacity: 1; }
@@ -1871,6 +1878,8 @@ body.algo-tp-fslock { overflow: hidden; }
   background: var(--tp-panel2); border: 1px solid var(--tp-border); transition: background 0.3s, border-color 0.3s;
 }
 .algo-tp__vchipk { opacity: 0.6; }
+.algo-tp__vchip--metric { border-style: dashed; font-family: inherit; }
+.algo-tp__vchipm { opacity: 0.65; font-style: italic; }
 .algo-tp__vchipv { font-weight: 700; }
 .algo-tp__vchip--ch { border-color: var(--nn-amber); background: color-mix(in srgb, var(--nn-amber) 16%, transparent); }
 /* управление: ▶ ◀ ▶ ━━●━━ 6 / 19 [1×] ⛶ в одну строку */
@@ -1984,6 +1993,34 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp--compact .algo-nn__cell.algo-nn__cell--land { animation: algo-nn-land 0.45s ease-out; }
 @keyframes algo-nn-land {
   0% { box-shadow: 0 0 0 2px var(--nn-amber), 0 0 28px color-mix(in srgb, var(--nn-amber) 70%, transparent); }
+}
+/* выполняемая строка кода — копией под строкой шага (одна строка, без переноса:
+   высота не прыгает от шага к шагу) */
+.algo-tp__curline {
+  display: flex; align-items: baseline; gap: 0.7em; margin: -0.35em 0 0.6em; padding: 0.35em 0.8em;
+  border-radius: 8px; background: #0b0f1a; border: 1px solid var(--tp-border);
+  font-family: var(--mono-font, ui-monospace, monospace); font-size: 0.8em;
+  white-space: nowrap; overflow: hidden;
+}
+.algo-tp__curlineno { opacity: 0.55; flex: none; }
+.algo-tp__curlineno::before { content: "▶ "; color: var(--tp-lo); }
+.algo-tp__curlinetx { background: none; padding: 0; overflow: hidden; text-overflow: ellipsis; }
+/* полноэкранный режим на широком экране: слева ввод, холст и управление, справа код,
+   под ним строка шага и переменные — объяснение шага стоит рядом с выполняемой строкой */
+@media (min-width: 1000px) {
+  .algo-tp--compact.algo-tp--fs {
+    display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    column-gap: 1.4em; align-content: start;
+  }
+  .algo-tp--compact.algo-tp--fs > * { min-width: 0; }
+  .algo-tp--compact.algo-tp--fs > .algo-tp__head { grid-column: 1 / -1; grid-row: 1; }
+  .algo-tp--compact.algo-tp--fs > .algo-tp__top { grid-column: 1; grid-row: 2; }
+  .algo-tp--compact.algo-tp--fs > .algo-tp__panel { grid-column: 1; grid-row: 3; }
+  .algo-tp--compact.algo-tp--fs > .algo-tp__ctrl { grid-column: 1; grid-row: 4 / span 2; align-self: end; }
+  .algo-tp--compact.algo-tp--fs > .algo-tp__main { grid-column: 2; grid-row: 2 / span 2; align-self: start; }
+  .algo-tp--compact.algo-tp--fs > .algo-tp__status { grid-column: 2; grid-row: 4; }
+  .algo-tp--compact.algo-tp--fs > .algo-tp__vchips { grid-column: 2; grid-row: 5; }
+  .algo-tp--compact.algo-tp--fs > .algo-tp__curline { display: none; } /* код и так рядом */
 }
 /* одинаковые шевроны «назад/вперёд» и полноэкранный режим новой раскладки */
 .algo-tp__chev { display: block; }

@@ -17,10 +17,6 @@
   "chip:pass",
   "chip:relaxed"
  ],
- "bfs-local-timeline": [
-  "chip:act",
-  "chip:g"
- ],
  "bit-xor": [
   "chip:i",
   "tag:i"
@@ -33,20 +29,6 @@
  "bloom-check": [
   "chip:bit",
   "chip:pos"
- ],
- "bracket-stack": [
-  "chip:st",
-  "chip:top",
-  "tag:top"
- ],
- "bst-delete": [
-  "chip:action"
- ],
- "bst-insert": [
-  "chip:action"
- ],
- "bst-search": [
-  "chip:target"
  ],
  "btree-delete": [
   "chip:action",
@@ -78,11 +60,6 @@
  "cms-query": [
   "chip:val"
  ],
- "combination-sum": [
-  "chip:action",
-  "chip:count",
-  "chip:cur"
- ],
  "context-tree": [
   "chip:alive",
   "chip:cancelled"
@@ -101,30 +78,9 @@
   "chip:cap",
   "chip:op"
  ],
- "diameter-naive": [
-  "chip:диаметр",
-  "chip:узел",
-  "chip:через узел"
- ],
- "diff-array": [
-  "tag:l",
-  "tag:r"
- ],
  "dijkstra": [
   "chip:dist[v]",
   "chip:edge"
- ],
- "dp-lcs": [
-  "chip:rule"
- ],
- "dutch-flag": [
-  "chip:v"
- ],
- "dynarray": [
-  "chip:длина",
-  "chip:добавили",
-  "chip:копий",
-  "chip:ёмкость"
  ],
  "errgroup": [
   "chip:failed",
@@ -155,48 +111,15 @@
   "chip:cell",
   "chip:visited"
  ],
- "growth-curves": [
-  "chip:at20",
-  "chip:curve"
- ],
- "hanoi": [
-  "chip:глубина",
-  "chip:запасной",
-  "chip:перенос",
-  "chip:ход"
- ],
- "hash-resize": [
-  "chip:load"
- ],
- "hash-ring": [
-  "chip:server"
- ],
- "heap-build": [
-  "chip:action"
- ],
- "heap-pop": [
-  "chip:action"
- ],
- "heap-push": [
-  "chip:action"
- ],
  "heap-sort": [
-  "chip:обменов",
   "tag:child",
   "tag:root"
- ],
- "histogram-stack": [
-  "chip:area"
  ],
  "hll-add": [
   "chip:bucket",
   "chip:est",
   "chip:lc",
   "tag:рег"
- ],
- "house-robber": [
-  "chip:i",
-  "tag:i"
  ],
  "json-marshal": [
   "tag:поле"
@@ -214,18 +137,10 @@
   "chip:compare",
   "chip:shift"
  ],
- "knapsack": [
-  "chip:cap",
-  "chip:item",
-  "chip:rule"
- ],
  "lazy-range": [
   "chip:action",
   "chip:lazyv",
   "chip:total"
- ],
- "ll-insert": [
-  "chip:action"
  ],
  "lru": [
   "chip:op",
@@ -243,32 +158,12 @@
   "chip:путь",
   "chip:узкое место"
  ],
- "merge-intervals": [
-  "chip:interval"
- ],
- "merge-intervals-naive": [
-  "chip:интервалов",
-  "chip:проходов"
- ],
  "miller-rabin": [
   "chip:target"
  ],
  "mod-exp": [
   "chip:bit",
   "tag:бит"
- ],
- "monotonic-deque": [
-  "chip:front",
-  "chip:resv",
-  "tag:lo"
- ],
- "monotonic-stack": [
-  "chip:resv",
-  "chip:top",
-  "tag:top"
- ],
- "move-zeroes": [
-  "chip:v"
  ],
  "mst-kruskal": [
   "chip:edge",
@@ -290,14 +185,6 @@
   "chip:size",
   "tag:позиция"
  ],
- "num-provinces": [
-  "chip:вершина",
-  "chip:посещено",
-  "chip:провинций"
- ],
- "num-provinces-naive": [
-  "chip:провинций"
- ],
  "oauth-flow": [
   "chip:api"
  ],
@@ -318,25 +205,10 @@
   "chip:размер",
   "chip:режим"
  ],
- "prefix-range": [
-  "chip:ans",
-  "chip:resv",
-  "tag:l",
-  "tag:r"
- ],
- "prefix-sum-hash": [
-  "chip:j",
-  "chip:need",
-  "tag:j"
- ],
  "rabin-karp": [
   "chip:найдено",
   "chip:хеш образца",
   "chip:хеш окна"
- ],
- "race-timeline": [
-  "chip:act",
-  "chip:g"
  ],
  "rb-delete": [
   "chip:action",
@@ -346,10 +218,6 @@
   "chip:action",
   "chip:node"
  ],
- "remove-k-digits": [
-  "chip:st",
-  "tag:pop"
- ],
  "route-match": [
   "chip:caps"
  ],
@@ -357,10 +225,6 @@
   "chip:GRQ",
   "chip:P1 бежит",
   "chip:источник"
- ],
- "search-range-naive": [
-  "chip:first",
-  "chip:last"
  ],
  "segtree-build": [
   "chip:action",
@@ -377,13 +241,6 @@
  "skip-search": [
   "chip:level"
  ],
- "sliding-window-fixed": [
-  "tag:left",
-  "tag:right"
- ],
- "sliding-window-var": [
-  "chip:distinct"
- ],
  "sparse-query": [
   "chip:a",
   "chip:ans",
@@ -392,10 +249,6 @@
  "string-match-naive": [
   "chip:найдено",
   "chip:сравнение"
- ],
- "subsets-bt": [
-  "chip:action",
-  "chip:count"
  ],
  "subsets-with-dup": [
   "chip:action",
@@ -417,35 +270,11 @@
   "chip:invictim",
   "chip:reused"
  ],
- "three-sum": [
-  "chip:found"
- ],
- "three-sum-naive": [
-  "chip:found",
-  "chip:sum"
- ],
  "tls-handshake": [
   "chip:appenc",
   "chip:auth",
   "chip:hsenc",
   "chip:secret"
- ],
- "top-k": [
-  "chip:heapSize",
-  "chip:popped"
- ],
- "top-k-freq": [
-  "chip:heapSize",
-  "chip:popped"
- ],
- "tree-bfs": [
-  "chip:depth"
- ],
- "tree-dfs": [
-  "chip:visited"
- ],
- "tree-right-view": [
-  "chip:level"
  ],
  "trie-delete": [
   "chip:action",
@@ -477,13 +306,5 @@
  ],
  "union-find-union": [
   "chip:action"
- ],
- "wordcount-local": [
-  "chip:act",
-  "chip:g"
- ],
- "wordcount-race": [
-  "chip:act",
-  "chip:g"
  ]
 }
