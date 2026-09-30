@@ -729,6 +729,7 @@ body.algo-tp-fslock { overflow: hidden; }
 }
 .algo-tp__status--ok .algo-tp__staticon { color: var(--tp-ok); }
 .algo-tp__stathead { font-weight: 800; font-size: 1.05em; }
+.algo-tp .algo-tp__stathead:empty { display: none; } /* «Шаг N из M» убран — не оставлять пустую строку и «: » */
 .algo-tp__status--ok .algo-tp__stathead { color: var(--tp-ok); }
 .algo-tp__stattext { opacity: 0.8; font-size: 0.92em; margin-top: 0.15em; }
 
@@ -956,9 +957,11 @@ body.algo-tp-fslock { overflow: hidden; }
 }
 .algo-tp .algo-viz__btn:hover:not(:disabled) { background: var(--tp-panel); border-color: color-mix(in srgb, var(--tp-lo) 55%, transparent); color: var(--fg); transform: translateY(-1px); }
 .algo-tp .algo-viz__btn:disabled { opacity: 0.35; }
-/* главная кнопка play — синяя заливка */
-.algo-tp__playbtn { background: var(--tp-grad-lo) !important; border-color: transparent !important; color: #fff !important; min-width: 3em !important; box-shadow: 0 6px 18px color-mix(in srgb, var(--tp-lo) 45%, transparent); }
-.algo-tp__playbtn--on { background: var(--tp-grad-lo) !important; }
+/* главная кнопка — «шаг вперёд», синяя заливка; play — обычная, заливается, пока идёт показ */
+.algo-tp .algo-tp__nextbtn:not(:disabled) { background: var(--tp-grad-lo); border-color: transparent; color: #fff; box-shadow: 0 6px 18px color-mix(in srgb, var(--tp-lo) 45%, transparent); }
+.algo-tp .algo-tp__nextbtn:hover:not(:disabled) { background: var(--tp-grad-lo); color: #fff; }
+.algo-tp__playbtn { min-width: 3em !important; }
+.algo-tp__playbtn--on { background: var(--tp-grad-lo) !important; border-color: transparent !important; color: #fff !important; }
 .algo-viz__counter { color: var(--fg); opacity: 0.85; }
 /* слайдер скорости */
 .algo-tp__speed { display: flex; align-items: center; gap: 0.7em; font-size: 0.85em; }

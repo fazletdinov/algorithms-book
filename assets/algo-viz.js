@@ -2427,6 +2427,14 @@
     return b;
   }
 
+  // Заголовок строки шага без «Шаг N из M»: так начинались ~150 конфигов, и самое
+  // заметное место строки дословно повторяло счётчик под холстом. Смысловая часть
+  // («Фаза 2 · шаг 3 из 9» → «Фаза 2», «Ключ переехал») остаётся как была.
+  function stepHead(head, idx, total) {
+    var re = new RegExp("(?:^|\\s*·\\s*)шаг\\s+" + (idx + 1) + "\\s+из\\s+" + total + "$", "i");
+    return String(head == null ? "" : head).replace(re, "").trim();
+  }
+
   // ===== Построители «оконных» шагов (значения массива фиксированы) ===========
   // шаг: { lo, hi, mid?, info, done?, found? }
   // Фиксированное окно — построчный (debugger) проход: набор первого окна, затем скольжение.
@@ -15120,6 +15128,9 @@
     });
     var bPlay = mkBtn("▶", "Автопроигрывание (пробел)");
     bPlay.classList.add("algo-tp__playbtn");
+    // Главная кнопка — «шаг вперёд», а не автопроигрывание: в своём темпе шаг успеваешь
+    // понять, а слайд-шоу обычно проматывают быстрее, чем читают.
+    bNext.classList.add("algo-tp__nextbtn");
     [bFirst, bPrev, bPlay, bNext, bLast].forEach(function (x) { btns.appendChild(x); });
     var counter = mkEl("span", "algo-viz__counter", "");
     mid.appendChild(btns); mid.appendChild(counter);
@@ -15182,7 +15193,7 @@
         var s = steps[job.k];
         if (job.phase === 0) {
           var st = cfg.status(s, job.k, steps.length, ctx);
-          statHead.textContent = st.head; statText.textContent = st.text;
+          statHead.textContent = stepHead(st.head, job.k, steps.length); statText.textContent = st.text;
           job.maxStat = Math.max(job.maxStat, cStat.getBoundingClientRect().height);
           var nt = noteOf(s, st);
           if (nt) { codeNoteLn.textContent = nt.ln; codeNoteTx.textContent = nt.tx; job.maxNote = Math.max(job.maxNote, codeNote.getBoundingClientRect().height); }
@@ -15296,7 +15307,7 @@
       var hot = (st.hot != null) ? st.hot : !!(s && (s.improved || s.created || s.removed));
       cStat.classList.toggle("algo-tp__status--hot", !!hot);
       statIcon.textContent = st.icon;
-      statHead.textContent = st.head; statText.textContent = st.text;
+      statHead.textContent = stepHead(st.head, idx, steps.length); statText.textContent = st.text;
 
       lineEls.forEach(function (d, li) { d.classList.toggle("algo-tp__codeline--active", li === s.line); });
 
@@ -15343,9 +15354,16 @@
     }
     // --- Автопроигрывание: алгоритм сам листает шаги, строка кода подсвечивается на лету ---
     var timer = null;
+    // Пауза на шаге = база скорости + время прочесть его текст: при ровных 950 мс строка
+    // шага (медиана 43 символа, у каждого десятого больше 87) менялась раньше, чем её
+    // успевали дочитать. Скорость 2×/4× сжимает обе части.
+    function stepDelay() {
+      var base = playDelay(), txt = (statText.textContent || "").length;
+      return base + Math.round(30 * txt * base / 950);
+    }
     function stopPlay() {
       if (!timer) return;
-      clearInterval(timer); timer = null;
+      clearTimeout(timer); timer = null;
       bPlay.textContent = "▶"; bPlay.classList.remove("algo-tp__playbtn--on");
       bPlay.setAttribute("aria-label", "Автопроигрывание шагов");
     }
@@ -15353,13 +15371,15 @@
       if (idx >= steps.length - 1) show(0); // с конца — начинаем заново
       bPlay.textContent = "⏸"; bPlay.classList.add("algo-tp__playbtn--on");
       bPlay.setAttribute("aria-label", "Пауза автопроигрывания");
-      timer = setInterval(function () {
-        if (idx >= steps.length - 1) {
-          if (loopChk.checked) { show(0); return; } // автоповтор: начинаем заново
-          stopPlay(); return;
-        }
-        stepTo(idx + 1);
-      }, playDelay());
+      (function tick() {
+        timer = setTimeout(function () {
+          if (idx >= steps.length - 1) {
+            if (!loopChk.checked) { stopPlay(); return; }
+            show(0); // автоповтор: начинаем заново
+          } else stepTo(idx + 1);
+          tick();
+        }, stepDelay());
+      })();
     }
     bPlay.onclick = function () { timer ? stopPlay() : startPlay(); };
     // смена скорости на лету — перезапускаем таймер с новым интервалом
@@ -15426,9 +15446,9 @@
       var sub = headMain.querySelector(".algo-tp__sub"); if (sub) sub.remove();
       var varsHdr = pCode.querySelector(".algo-tp__panelhdr--sm"); if (varsHdr) varsHdr.remove();
       [sumBox, rules, table, foot].forEach(function (el) { el.remove(); });
-      // контролы: ▶ ◀ ▶ ━━●━━ 6 / 19 [1×] ⛶
+      // контролы: ‹ › ▶ ━━●━━ 6 / 19 [1×] ⛶
       ctrl.innerHTML = "";
-      ctrl.appendChild(bPlay); ctrl.appendChild(bPrev); ctrl.appendChild(bNext);
+      ctrl.appendChild(bPrev); ctrl.appendChild(bNext); ctrl.appendChild(bPlay);
       scrub = mkEl("input", "algo-tp__scrub");
       scrub.type = "range"; scrub.min = "0"; scrub.max = String(steps.length - 1); scrub.step = "1"; scrub.value = "0";
       scrub.setAttribute("aria-label", "Шаг алгоритма");
