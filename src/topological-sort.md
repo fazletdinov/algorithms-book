@@ -1,4 +1,4 @@
-# 🪜 Topological Sort (Топологическая сортировка)
+# 🪜 Топологическая сортировка (Topological Sort)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

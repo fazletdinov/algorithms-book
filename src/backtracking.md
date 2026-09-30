@@ -1,4 +1,4 @@
-# 🧩 Backtracking (Поиск с возвратом)
+# 🧩 Поиск с возвратом (Backtracking)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

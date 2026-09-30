@@ -1,4 +1,4 @@
-# 🎯 Two Pointers (Два указателя)
+# 🎯 Два указателя (Two Pointers)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

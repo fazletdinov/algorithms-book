@@ -23,15 +23,15 @@
 
 ## Группа 2: Базовые паттерны (массивы и строки)
 
-- [🪟 Sliding Window (Скользящее окно)](sliding-window.md)
-- [➕ Prefix Sums (Префиксные суммы и разностные массивы)](prefix-sums.md)
-- [🎯 Two Pointers (Два указателя)](two-pointers.md)
-- [📚 Monotonic Stack (Стек и монотонный стек)](monotonic-stack.md)
-- [🐢 Fast & Slow Pointers (Быстрые и медленные указатели)](fast-slow-pointers.md)
+- [🪟 Скользящее окно (Sliding Window)](sliding-window.md)
+- [➕ Префиксные суммы и разностные массивы (Prefix Sums)](prefix-sums.md)
+- [🎯 Два указателя (Two Pointers)](two-pointers.md)
+- [📚 Стек и монотонный стек (Monotonic Stack)](monotonic-stack.md)
+- [🐢 Быстрый и медленный указатели (Fast & Slow Pointers)](fast-slow-pointers.md)
 - [↩️ Reverse Linked List (Разворот связанного списка)](reverse-linked-list.md)
-- [🔀 Merge Intervals (Слияние интервалов)](merge-intervals.md)
+- [🔀 Слияние интервалов (Merge Intervals)](merge-intervals.md)
 - [🔄 Cyclic Sort (Циклическая сортировка)](cyclic-sort.md)
-- [🔍 Modified Binary Search (Модифицированный бинарный поиск)](modified-binary-search.md)
+- [🔍 Модифицированный бинарный поиск (Modified Binary Search)](modified-binary-search.md)
 - [⚙️ Bit Manipulation (Битовые операции)](bit-manipulation.md)
 
 ## Группа 3: Деревья и кучи
@@ -39,20 +39,20 @@
 - [🪴 Бинарное дерево поиска (BST): устройство и операции](bst-structure.md)
 - [⚖️ AVL-дерево: балансировка](avl-tree-structure.md)
 - [🔴 Красно-чёрное дерево: балансировка через цвет](red-black-tree-structure.md)
-- [🌳 Tree BFS (Обход дерева в ширину)](tree-bfs.md)
-- [🌲 Tree DFS (Обход дерева в глубину)](tree-dfs.md)
+- [🌳 Обход дерева в ширину (Tree BFS)](tree-bfs.md)
+- [🌲 Обход дерева в глубину (Tree DFS)](tree-dfs.md)
 - [⛰️ Бинарная куча (Binary Heap): устройство и операции](heap-structure.md)
 - [🗻 Two Heaps (Две кучи)](two-heaps.md)
-- [🏆 Top K Elements (Топ K элементов)](top-k-elements.md)
+- [🏆 Топ K элементов (Top K Elements)](top-k-elements.md)
 - [🧵 K-way Merge (K-way слияние)](k-way-merge.md)
 
 ## Группа 4: Комбинаторика и графы
 
 - [🎰 Subsets (Подмножества)](subsets.md)
-- [🧩 Backtracking (Поиск с возвратом)](backtracking.md)
-- [🕸️ Graphs (Обход графов)](graphs.md)
+- [🧩 Поиск с возвратом (Backtracking)](backtracking.md)
+- [🕸️ Обход графов (Graphs)](graphs.md)
 - [🪢 Union-Find (DSU): устройство и операции](union-find-structure.md)
-- [🪜 Topological Sort (Топологическая сортировка)](topological-sort.md)
+- [🪜 Топологическая сортировка (Topological Sort)](topological-sort.md)
 - [🗺️ Графы: сетки и кратчайшие пути](grids-and-shortest-paths.md)
 - [🛰️ Графы: продвинутые алгоритмы](advanced-graph-algorithms.md)
 - [🌉 Графы: сильная связность, мосты и точки сочленения](graph-connectivity.md)
@@ -60,8 +60,8 @@
 
 ## Группа 5: Оптимизация и границы возможного
 
-- [💰 Greedy (Жадные алгоритмы)](greedy.md)
-- [🧮 Dynamic Programming (Динамическое программирование)](dynamic-programming.md)
+- [💰 Жадные алгоритмы (Greedy)](greedy.md)
+- [🧮 Динамическое программирование (Dynamic Programming)](dynamic-programming.md)
 - [🚧 Классы сложности: P, NP и что делать, когда задача трудна](complexity-classes.md)
 
 ## Группа 6: Строки и продвинутые структуры

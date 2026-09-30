@@ -1,4 +1,4 @@
-# 📚 Monotonic Stack (Стек и монотонный стек)
+# 📚 Стек и монотонный стек (Monotonic Stack)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

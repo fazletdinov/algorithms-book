@@ -1,4 +1,4 @@
-# 🪟 Sliding Window (Скользящее окно)
+# 🪟 Скользящее окно (Sliding Window)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

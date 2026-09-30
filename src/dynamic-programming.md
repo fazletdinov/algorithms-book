@@ -1,4 +1,4 @@
-# 🧮 Dynamic Programming (Динамическое программирование)
+# 🧮 Динамическое программирование (Dynamic Programming)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

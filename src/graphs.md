@@ -1,4 +1,4 @@
-# 🕸️ Graphs (Обход графов)
+# 🕸️ Обход графов (Graphs)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

@@ -1,4 +1,4 @@
-# ➕ Prefix Sums (Префиксные суммы и разностные массивы)
+# ➕ Префиксные суммы и разностные массивы (Prefix Sums)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

@@ -1,4 +1,4 @@
-# 🐢 Fast & Slow Pointers (Быстрые и медленные указатели)
+# 🐢 Быстрый и медленный указатели (Fast & Slow Pointers)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

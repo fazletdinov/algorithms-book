@@ -1,4 +1,4 @@
-# 🏆 Top K Elements (Топ K элементов)
+# 🏆 Топ K элементов (Top K Elements)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

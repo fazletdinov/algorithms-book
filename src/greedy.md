@@ -1,4 +1,4 @@
-# 💰 Greedy (Жадные алгоритмы)
+# 💰 Жадные алгоритмы (Greedy)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

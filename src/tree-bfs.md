@@ -1,4 +1,4 @@
-# 🌳 Tree BFS (Обход дерева в ширину)
+# 🌳 Обход дерева в ширину (Tree BFS)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

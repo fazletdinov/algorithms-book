@@ -136,32 +136,32 @@
 
 **Этап 2. Паттерны на массивах и строках**
 
-7. [Sliding Window](./sliding-window.md)
-8. [Prefix Sums](./prefix-sums.md)
-9. [Two Pointers](./two-pointers.md)
-10. [Monotonic Stack](./monotonic-stack.md)
-11. [Fast & Slow Pointers](./fast-slow-pointers.md)
-12. [Merge Intervals](./merge-intervals.md)
-13. [Modified Binary Search](./modified-binary-search.md)
+7. [Скользящее окно](./sliding-window.md)
+8. [Префиксные суммы](./prefix-sums.md)
+9. [Два указателя](./two-pointers.md)
+10. [Монотонный стек](./monotonic-stack.md)
+11. [Быстрый и медленный указатели](./fast-slow-pointers.md)
+12. [Слияние интервалов](./merge-intervals.md)
+13. [Бинарный поиск](./modified-binary-search.md)
 
 **Этап 3. Деревья и кучи**
 
 14. [BST: устройство](./bst-structure.md)
-15. [Tree BFS](./tree-bfs.md)
-16. [Tree DFS](./tree-dfs.md)
+15. [Обход дерева в ширину](./tree-bfs.md)
+16. [Обход дерева в глубину](./tree-dfs.md)
 17. [Куча: устройство](./heap-structure.md)
-18. [Top-K Elements](./top-k-elements.md)
+18. [Топ K элементов](./top-k-elements.md)
 
 **Этап 4. Перебор и графы**
 
-19. [Backtracking](./backtracking.md)
-20. [Graphs (обход)](./graphs.md)
-21. [Topological Sort](./topological-sort.md)
+19. [Поиск с возвратом](./backtracking.md)
+20. [Обход графов](./graphs.md)
+21. [Топологическая сортировка](./topological-sort.md)
 
 **Этап 5. Оптимизация**
 
-22. [Greedy](./greedy.md)
-23. [Dynamic Programming](./dynamic-programming.md)
+22. [Жадные алгоритмы](./greedy.md)
+23. [Динамическое программирование](./dynamic-programming.md)
 
 **Сколько это времени.** Ориентир — 2–4 часа на главу вместе с практикой: самые плотные
 (окно, префиксные суммы, монотонный стек, ДП) ближе к верхней границе. Всё ядро —

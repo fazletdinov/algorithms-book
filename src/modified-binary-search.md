@@ -1,4 +1,4 @@
-# 🔍 Modified Binary Search (Модифицированный бинарный поиск)
+# 🔍 Модифицированный бинарный поиск (Modified Binary Search)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

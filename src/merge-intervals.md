@@ -1,4 +1,4 @@
-# 🔀 Merge Intervals (Слияние интервалов)
+# 🔀 Слияние интервалов (Merge Intervals)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

@@ -1,4 +1,4 @@
-# 🌲 Tree DFS (Обход дерева в глубину)
+# 🌲 Обход дерева в глубину (Tree DFS)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

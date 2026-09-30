@@ -35,42 +35,42 @@
       { t: "Сортировки и порядковые статистики", h: "sorting.html", lvl: "core" }
     ] },
     { g: "Группа 2: Базовые паттерны", items: [
-      { t: "Sliding Window", h: "sliding-window.html", lvl: "core" },
-      { t: "Prefix Sums", h: "prefix-sums.html", lvl: "core" },
-      { t: "Two Pointers", h: "two-pointers.html", lvl: "core" },
-      { t: "Monotonic Stack", h: "monotonic-stack.html", lvl: "core" },
-      { t: "Fast & Slow Pointers", h: "fast-slow-pointers.html", lvl: "core" },
+      { t: "Скользящее окно", h: "sliding-window.html", lvl: "core" },
+      { t: "Префиксные суммы", h: "prefix-sums.html", lvl: "core" },
+      { t: "Два указателя", h: "two-pointers.html", lvl: "core" },
+      { t: "Монотонный стек", h: "monotonic-stack.html", lvl: "core" },
+      { t: "Быстрый и медленный указатели", h: "fast-slow-pointers.html", lvl: "core" },
       { t: "Reverse Linked List", h: "reverse-linked-list.html", lvl: "ext" },
-      { t: "Merge Intervals", h: "merge-intervals.html", lvl: "core" },
+      { t: "Слияние интервалов", h: "merge-intervals.html", lvl: "core" },
       { t: "Cyclic Sort", h: "cyclic-sort.html", lvl: "ext" },
-      { t: "Modified Binary Search", h: "modified-binary-search.html", lvl: "core" },
+      { t: "Бинарный поиск", h: "modified-binary-search.html", lvl: "core" },
       { t: "Bit Manipulation", h: "bit-manipulation.html", lvl: "ext" }
     ] },
     { g: "Группа 3: Деревья и кучи", items: [
       { t: "BST: устройство", h: "bst-structure.html", lvl: "core" },
       { t: "AVL-дерево: балансировка", h: "avl-tree-structure.html", lvl: "ref" },
       { t: "Красно-чёрное дерево", h: "red-black-tree-structure.html", lvl: "ref" },
-      { t: "Tree BFS", h: "tree-bfs.html", lvl: "core" },
-      { t: "Tree DFS", h: "tree-dfs.html", lvl: "core" },
+      { t: "Обход дерева в ширину", h: "tree-bfs.html", lvl: "core" },
+      { t: "Обход дерева в глубину", h: "tree-dfs.html", lvl: "core" },
       { t: "Куча: устройство", h: "heap-structure.html", lvl: "core" },
       { t: "Two Heaps", h: "two-heaps.html", lvl: "ext" },
-      { t: "Top-K Elements", h: "top-k-elements.html", lvl: "core" },
+      { t: "Топ K элементов", h: "top-k-elements.html", lvl: "core" },
       { t: "K-way Merge", h: "k-way-merge.html", lvl: "ext" }
     ] },
     { g: "Группа 4: Комбинаторика и графы", items: [
       { t: "Subsets", h: "subsets.html", lvl: "ext" },
-      { t: "Backtracking", h: "backtracking.html", lvl: "core" },
-      { t: "Graphs (обход)", h: "graphs.html", lvl: "core" },
+      { t: "Поиск с возвратом", h: "backtracking.html", lvl: "core" },
+      { t: "Обход графов", h: "graphs.html", lvl: "core" },
       { t: "Union-Find (DSU): устройство", h: "union-find-structure.html", lvl: "ext" },
-      { t: "Topological Sort", h: "topological-sort.html", lvl: "core" },
+      { t: "Топологическая сортировка", h: "topological-sort.html", lvl: "core" },
       { t: "Сетки и кратчайшие пути", h: "grids-and-shortest-paths.html", lvl: "ext" },
       { t: "Графы: продвинутые", h: "advanced-graph-algorithms.html", lvl: "ref" },
       { t: "Графы: связность (SCC, мосты)", h: "graph-connectivity.html", lvl: "ref" },
       { t: "Потоки в сетях", h: "max-flow.html", lvl: "ref" }
     ] },
     { g: "Группа 5: Оптимизация и границы", items: [
-      { t: "Greedy", h: "greedy.html", lvl: "core" },
-      { t: "Dynamic Programming", h: "dynamic-programming.html", lvl: "core" },
+      { t: "Жадные алгоритмы", h: "greedy.html", lvl: "core" },
+      { t: "Динамическое программирование", h: "dynamic-programming.html", lvl: "core" },
       { t: "Классы сложности: P и NP", h: "complexity-classes.html", lvl: "ref" }
     ] },
     { g: "Группа 6: Строки и продвинутые структуры", items: [
