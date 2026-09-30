@@ -2156,3 +2156,133 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--rcdone { background: var(--tp-ok); border-color: var(--tp-ok); }
 .algo-tp__legdot--rcghost { background: transparent; border: 1px dashed currentColor; opacity: 0.45; }
 .algo-tp__legdot--twmoved { background: #60a5fa; border: 2px solid #e0a500; border-radius: 3px; }
+
+/* Переход ДП над неоновым рядом (cfg.jumps): дуга от источника к считаемой ячейке. */
+.algo-nn__jump { position: absolute; height: 1.7em; border: 2.5px solid var(--nn-green); border-bottom: 0; border-radius: 50% 50% 0 0 / 100% 100% 0 0; pointer-events: none; z-index: 1; transition: left 0.35s ease, width 0.35s ease, border-color 0.2s; }
+.algo-nn__jump::after { content: ""; position: absolute; right: -6.5px; bottom: -8px; border-left: 5.5px solid transparent; border-right: 5.5px solid transparent; border-top: 8px solid var(--nn-green); }
+.algo-nn__jump--rev::after { right: auto; left: -6.5px; }
+.algo-nn__jump--no { border-color: var(--nn-line); border-style: dashed; border-bottom: 0; }
+.algo-nn__jump--no::after { border-top-color: var(--nn-line); }
+.algo-nn__jump--off { display: none; }
+.algo-nn__jumplab { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, -0.15em); white-space: nowrap; font-size: 0.74em; font-weight: 800; color: var(--nn-green); }
+.algo-nn__jump--no .algo-nn__jumplab { color: inherit; opacity: 0.7; }
+/* Coin Change: ряд монет и варианты для текущей суммы (mapViz) */
+.algo-tp__ccrow, .algo-tp__cccand { display: flex; align-items: center; gap: 6px; }
+.algo-tp__cclab { font-family: var(--mono-font, monospace); font-size: 0.8em; opacity: 0.6; margin-right: 2px; }
+.algo-tp__cccoin { min-width: 1.9em; height: 1.9em; padding: 0 0.3em; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; background: color-mix(in srgb, #e0a500 22%, transparent); border: 2px solid color-mix(in srgb, #e0a500 55%, transparent); font-variant-numeric: tabular-nums; }
+.algo-tp__cccoin--cur { background: #e0a500; border-color: #e0a500; color: #1a1a1a; }
+.algo-tp__cctext { font-family: var(--mono-font, monospace); font-size: 0.85em; }
+.algo-tp__ccverd { font-size: 0.78em; font-weight: 700; }
+.algo-tp__cccand--best .algo-tp__ccverd { color: var(--tp-ok); }
+.algo-tp__cccand--worse, .algo-tp__cccand--nofit, .algo-tp__cccand--beaten { opacity: 0.55; }
+.algo-tp__cccand--beaten .algo-tp__cctext { text-decoration: line-through; }
+.algo-nn__track--still .algo-nn__jump { transition: none; }
+
+/* Таблица ДП: стрелки источников, карточка решения, двухстрочные подписи строк */
+.algo-tp__dpbox { position: relative; width: max-content; margin: 0 auto; }
+.algo-tp__dpbox .algo-tp__dptable { margin-bottom: 0.4em; }
+.algo-tp__dparrows { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.algo-tp__dparrow { stroke-width: 2.4; }
+.algo-tp__dparrow--ok { stroke: #e0a500; }
+.algo-tp__dparrow--no { stroke: color-mix(in srgb, var(--fg, #c9d1d9) 45%, transparent); stroke-dasharray: 4 3; }
+.algo-tp__dpah--ok { fill: #e0a500; }
+.algo-tp__dpah--no { fill: color-mix(in srgb, var(--fg, #c9d1d9) 45%, transparent); }
+.algo-tp__dplab { font-size: 10.5px; font-weight: 800; fill: color-mix(in srgb, var(--fg, #c9d1d9) 70%, transparent); paint-order: stroke; stroke: var(--tp-surface, #0a0e16); stroke-width: 3px; }
+.algo-tp__dplab--ok { fill: #e0a500; }
+.algo-tp__dhead--two { flex-direction: column; height: auto; min-height: 1.9em; line-height: 1.1; opacity: 0.85; }
+.algo-tp__dheadt { font-size: 0.9em; }
+.algo-tp__dheads { font-size: 0.72em; font-weight: 600; opacity: 0.75; white-space: nowrap; }
+.algo-tp__dcell--path { outline: 2px solid #e0a500; outline-offset: 1px; }
+.algo-tp__dpcard { max-width: 34em; margin: 0.2em auto 0.6em; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--tp-border); background: color-mix(in srgb, var(--tp-panel2) 70%, transparent); font-variant-numeric: tabular-nums; }
+.algo-tp__dpcard--off { visibility: hidden; }
+.algo-tp__dpcardt { font-size: 0.8em; font-weight: 700; opacity: 0.8; margin-bottom: 3px; }
+.algo-tp__dprow { display: flex; gap: 10px; font-size: 0.88em; }
+.algo-tp__dprowk { min-width: 6.5em; font-weight: 700; }
+.algo-tp__dprowv { font-family: var(--mono-font, monospace); font-size: 0.95em; }
+.algo-tp__dprow--win { color: var(--tp-ok); font-weight: 700; }
+.algo-tp__dprow--lose { opacity: 0.5; text-decoration: line-through; }
+.algo-tp__dprow--na { opacity: 0.55; }
+.algo-tp__legdot--dcur { background: var(--tp-lo); border-color: var(--tp-lo); border-radius: 3px; }
+.algo-tp__legdot--dsrc { background: var(--tp-hi); border-color: #e0a500; border-width: 2px; border-radius: 3px; }
+.algo-tp__legdot--dcand { background: color-mix(in srgb, var(--tp-hi) 22%, transparent); border: 1px dashed currentColor; border-radius: 3px; opacity: 0.7; }
+.algo-tp__legdot--dpath { background: transparent; border: 2px solid #e0a500; border-radius: 3px; }
+.algo-tp__dpbox .algo-tp__dptable { gap: 11px 12px; }
+.algo-tp__dpbox .algo-tp__dcell { height: 2.2em; }
+.algo-tp__dpbox .algo-tp__dhead { height: 2.2em; }
+
+/* Top-K: куча деревом, корень-порог, лоток выброшенных */
+.algo-tp__hpbox { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0.2em 0 0.6em; }
+.algo-tp__hpcap { font-size: 0.8em; opacity: 0.8; text-align: center; }
+.algo-tp__tfignode.algo-tp__hp--root { border: 3px solid #e0a500; background: color-mix(in srgb, #e0a500 20%, var(--tp-panel2)); }
+.algo-tp__tfignode.algo-tp__hp--new { outline: 3px dashed var(--tp-ok); outline-offset: 2px; }
+.algo-tp__tfignode.algo-tp__hp--doomed { border: 3px dashed #ef4444; color: #ef4444; }
+.algo-tp__hptray { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; font-size: 0.88em; }
+.algo-tp__hptraylab { opacity: 0.65; }
+.algo-tp__hptrayempty { opacity: 0.45; font-style: italic; }
+.algo-tp__hpout { padding: 0 0.45em; border-radius: 6px; border: 1px dashed #ef4444; color: #ef4444; text-decoration: line-through; font-weight: 700; font-variant-numeric: tabular-nums; }
+.algo-tp__hpout--new { background: color-mix(in srgb, #ef4444 20%, transparent); text-decoration: none; }
+.algo-tp__legdot--hproot { background: color-mix(in srgb, #e0a500 25%, transparent); border: 2px solid #e0a500; }
+.algo-tp__legdot--hpnew { background: transparent; border: 2px dashed var(--tp-ok); }
+.algo-tp__legdot--hpdoom { background: transparent; border: 2px dashed #ef4444; }
+.algo-tp__legdot--ccinheap { background: transparent; border: 2px solid var(--tp-lo); border-radius: 3px; }
+.algo-tp__legdot--cccut { background: transparent; border: 2px dashed #ef4444; border-radius: 3px; }
+
+/* Рамка окна над неоновым рядом (cfg.frames) */
+.algo-nn__frame { position: absolute; border: 2.5px solid var(--nn-amber); border-radius: 14px; pointer-events: none; z-index: 0; transition: left 0.45s cubic-bezier(0.4, 0, 0.2, 1), width 0.45s cubic-bezier(0.4, 0, 0.2, 1); }
+.algo-nn__frame--best { border: 2px dashed var(--nn-green); }
+.algo-nn__frame--off { display: none; }
+.algo-nn__framelab { position: absolute; left: 8px; bottom: 100%; transform: translateY(-3px); padding: 0 0.45em; border-radius: 5px; background: var(--nn-amber); color: #111; font-size: 0.72em; font-weight: 800; white-space: nowrap; }
+.algo-nn__frame--best .algo-nn__framelab { background: var(--nn-green); }
+.algo-nn__framelab:empty { display: none; }
+.algo-nn__track--still .algo-nn__frame { transition: none; }
+
+/* Интервалы: ось, сетка, полоса перекрытия/разрыва, метка last */
+.algo-tp__ivgrid { stroke: color-mix(in srgb, var(--fg, #888) 14%, transparent); stroke-width: 1; }
+.algo-tp__ivaxis { stroke: color-mix(in srgb, var(--fg, #888) 45%, transparent); stroke-width: 1.5; }
+.algo-tp__ivtick { fill: var(--fg, #ccc); font-size: 10.5px; opacity: 0.65; font-variant-numeric: tabular-nums; }
+.algo-tp__ivband--over { fill: color-mix(in srgb, var(--tp-ok, #22c55e) 22%, transparent); }
+.algo-tp__ivband--gap { fill: color-mix(in srgb, #ef4444 20%, transparent); }
+.algo-tp__ivbar--last { stroke: #e0a500; stroke-width: 2.5; }
+.algo-tp__ivlasttag { fill: #e0a500; font-size: 11px; font-weight: 800; }
+.algo-tp__ivlbl--out, .algo-tp__ivlbl--m.algo-tp__ivlbl--out { fill: var(--fg, #ccc); }
+.algo-tp__legdot--ivcur { background: #e0a500; border-color: #e0a500; border-radius: 3px; }
+.algo-tp__legdot--ivlast { background: var(--tp-ok); border: 2px solid #e0a500; border-radius: 3px; }
+.algo-tp__legdot--ivover { background: color-mix(in srgb, var(--tp-ok) 35%, transparent); border-color: transparent; border-radius: 2px; }
+.algo-tp__legdot--ivgap { background: color-mix(in srgb, #ef4444 35%, transparent); border-color: transparent; border-radius: 2px; }
+
+/* Префиксы + хеш-таблица: лента префиксов и карта seen */
+.algo-tp__pxstrip { display: flex; flex-wrap: wrap; gap: 6px; }
+.algo-tp__pxbox { min-width: 3.4em; padding: 3px 6px; border-radius: 8px; border: 2px solid var(--tp-border); text-align: center; }
+.algo-tp__pxval { font-weight: 800; font-variant-numeric: tabular-nums; }
+.algo-tp__pxcap { font-size: 0.68em; opacity: 0.7; white-space: nowrap; }
+.algo-tp__pxbox--cur { border-color: #e0a500; background: color-mix(in srgb, #e0a500 18%, transparent); }
+.algo-tp__pxbox--pending { border-style: dashed; }
+.algo-tp__pxbox--match { border-color: var(--tp-ok); background: color-mix(in srgb, var(--tp-ok) 25%, transparent); }
+.algo-tp__pxnote { font-size: 0.85em; opacity: 0.85; }
+.algo-tp__pxnote--ok { color: var(--tp-ok); font-weight: 700; opacity: 1; }
+.algo-tp__pxcards { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px; }
+.algo-tp__pxcardslab { font-family: var(--mono-font, monospace); font-size: 0.8em; opacity: 0.6; align-self: center; }
+
+/* Цикл Флойда рисунком «ро» (rhoViz) */
+.algo-tp__rho { display: block; margin: 0.3em auto 0.6em; max-width: 100%; height: auto; overflow: visible; }
+.algo-tp__rhoedge { stroke: color-mix(in srgb, var(--links, #6ea8fe) 75%, transparent); stroke-width: 2; }
+.algo-tp__rhoedge--back { stroke: #e0a500; stroke-dasharray: 5 3; }
+.algo-tp__rhoah { fill: color-mix(in srgb, var(--links, #6ea8fe) 85%, transparent); }
+.algo-tp__rhonil { fill: var(--fg, #ccc); opacity: 0.55; font-size: 12px; font-style: italic; }
+.algo-tp__rhonode circle { fill: var(--tp-panel2, #1b2233); stroke: var(--tp-border, #283145); stroke-width: 2; transition: fill 0.2s, stroke 0.2s; }
+.algo-tp__rhoval { fill: var(--fg, #e6edf3); font-size: 13px; font-weight: 800; }
+.algo-tp__rhonode--slow circle { stroke: #2ee59d; stroke-width: 3; }
+.algo-tp__rhonode--fast circle { stroke: #22d3ee; stroke-width: 3; }
+.algo-tp__rhonode--found circle { fill: #16a34a; stroke: #16a34a; }
+.algo-tp__rhonode--found .algo-tp__rhoval { fill: #fff; }
+.algo-tp__rhotag { transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s; }
+.algo-tp__rhotag rect { stroke: none; }
+.algo-tp__rhotag text { font-size: 11px; font-weight: 800; fill: #0b1220; }
+.algo-tp__rhotag--slow rect { fill: #2ee59d; }
+.algo-tp__rhotag--fast rect { fill: #22d3ee; }
+.algo-tp__rhomark { fill: #e0a500; font-size: 11px; font-weight: 800; transition: opacity 0.2s; }
+.algo-tp__rhomark--meet { fill: #22d3ee; }
+.algo-tp__rhonote { text-align: center; font-size: 0.82em; opacity: 0.8; margin: -0.2em 0 0.5em; }
+.algo-tp__legdot--rhoslow { background: #2ee59d; border-color: #2ee59d; }
+.algo-tp__legdot--rhofast { background: #22d3ee; border-color: #22d3ee; }
+.algo-tp__legdot--rhofound { background: #16a34a; border-color: #16a34a; }
