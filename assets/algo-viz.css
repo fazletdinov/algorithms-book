@@ -2020,6 +2020,7 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--nn-mid { background: transparent; border: 2px solid var(--nn-amber); }
 .algo-tp__legdot--nn-span { background: color-mix(in srgb, var(--nn-cyan) 30%, var(--nn-cell)); border-color: color-mix(in srgb, var(--nn-cyan) 45%, var(--nn-line)); }
 .algo-tp__legdot--nn-dim { background: transparent; border: 1px dashed var(--nn-line); opacity: 0.7; }
+.algo-tp__legdot--nn-out { background: transparent; border: 2px dashed var(--nn-red); }
 .algo-tp__legdot--nbbad { background: transparent; border: 2px dashed var(--tp-bad, #ef4444); border-radius: 3px; }
 /* Кан: текущее ребро, уже снятое строкой indeg[v]-- — жёлтый пунктир в полную яркость */
 .algo-viz__gedge--cur.algo-viz__gedge--skip { stroke-dasharray: 6 4; opacity: 1; }

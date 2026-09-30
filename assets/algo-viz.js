@@ -9931,6 +9931,7 @@
     "two-pointers-sum": {
       badge: "Two Pointers",
       desc: "Дан отсортированный массив. Найти пару чисел, сумма которых равна target.",
+      legend: [{ cls: "dim", nn: "dim", label: "отброшено: в пару не входит" }, { cls: "found", nn: "found", label: "найденная пара" }],
       valuesLabel: "Массив (отсортирован)", codeKey: "two-pointers-sum", fillRange: false,
       ptr1: { name: "lo", cap: "(левый)" }, ptr2: { name: "hi", cap: "(правый)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Отсортированных массивов" },
@@ -10010,6 +10011,7 @@
     "sliding-window-fixed": {
       badge: "Sliding Window",
       desc: "Максимальная сумма непрерывного окна размера k.",
+      legend: [{ cls: "span", nn: "span", label: "внутри окна" }, { cls: "mid", nn: "mid", label: "вошёл в окно на этом шаге" }, { cls: "out", nn: "out", label: "выбыл из окна" }, { cls: "found", nn: "found", label: "лучшее окно" }, { cls: "dim", nn: "dim", label: "вне ответа" }],
       valuesLabel: "Массив", codeKey: "sliding-window-fixed", fillRange: true,
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Подотрезков и подстрок" },
@@ -10046,6 +10048,7 @@
     "list-cycle": {
       badge: "Fast & Slow",
       desc: "Обнаружение цикла в связном списке (заяц и черепаха).",
+      legend: [{ cls: "found", nn: "found", label: "здесь slow и fast встретились" }],
       valuesLabel: "Связный список", codeKey: "list-cycle", arrLabel: "list", fillRange: false,
       ptr1: { name: "slow", cap: "(черепаха)" }, ptr2: { name: "fast", cap: "(заяц)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Связных списков и циклов" },
@@ -10085,6 +10088,7 @@
     "list-cycle-entry": {
       badge: "Fast & Slow",
       desc: "Вход в цикл (алгоритм Флойда): фаза 1 — заяц и черепаха встречаются внутри кольца; фаза 2 — slow в голову, оба по одному шагу, и они сходятся ровно на входе.",
+      legend: [{ cls: "found", nn: "found", label: "вход в цикл: slow и fast сошлись" }],
       valuesLabel: "Связный список", codeKey: "list-cycle-entry", arrLabel: "list", fillRange: false,
       ptr1: { name: "slow", cap: "(черепаха)" }, ptr2: { name: "fast", cap: "(заяц)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Связных списков и циклов" },
@@ -10118,6 +10122,7 @@
     "sliding-window-var": {
       badge: "Sliding Window",
       desc: "Самая длинная подстрока, где не более k различных символов (переменное окно).",
+      legend: [{ cls: "span", nn: "span", label: "внутри окна" }, { cls: "found", nn: "found", label: "границы лучшего окна" }],
       valuesLabel: "Строка", codeKey: "sliding-window-var", fillRange: true,
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(n)", space: "O(k)", good: "★ Подстрок под условие" },
@@ -10201,6 +10206,7 @@
     "min-subarray-naive": {
       badge: "Грубый перебор",
       desc: "Наивно O(n²): для каждого левого конца i заново сканируем вправо. Эталон для сравнения — потом тот же ответ даёт окно за O(n).",
+      legend: [{ cls: "span", nn: "span", label: "текущий подмассив [i..j]" }, { cls: "found", nn: "found", label: "ответ — кратчайший подмассив" }],
       valuesLabel: "Массив (положительные)", codeKey: "min-subarray-naive", fillRange: false,
       ptr1: { name: "i", cap: "(левый конец)" }, ptr2: { name: "j", cap: "(скан вправо)" },
       complexity: { time: "O(n²)", space: "O(1)", good: "⚠ База для сравнения — медленно" },
@@ -10233,6 +10239,7 @@
     "min-subarray-window": {
       badge: "Sliding Window",
       desc: "Оптимум O(n): переменное окно. right расширяет окно, при sum ≥ target жадно сжимаем слева. left только вперёд — отсюда линейность.",
+      legend: [{ cls: "span", nn: "span", label: "окно [left..right]" }, { cls: "found", nn: "found", label: "ответ — кратчайшее окно" }],
       valuesLabel: "Массив (положительные)", codeKey: "min-subarray-window", fillRange: true,
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Подотрезок под условие суммы" },
@@ -10392,6 +10399,7 @@
 
     "lower-bound": {
       badge: "Binary Search · [lo, hi)", desc: "Поиск границы: наименьший индекс, где nums[i] ≥ target. Полуинтервал [lo, hi), цикл lo < hi, hi = mid (без −1) — mid остаётся кандидатом; ответ может быть len(nums).",
+      legend: [{ cls: "span", nn: "span", label: "ещё под подозрением: [lo, hi)" }, { cls: "mid", nn: "mid", label: "mid — проверяем" }, { cls: "dim", nn: "dim", label: "отброшено" }, { cls: "found", nn: "found", label: "ответ" }],
       valuesLabel: "", codeKey: "lower-bound", arrLabel: "nums", fillRange: true,
       ptr1: { name: "lo", cap: "левый край [lo, hi)" }, ptr2: { name: "hi", cap: "правый край, не входит (может быть «за концом»)" },
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Первое/последнее вхождение, место вставки" },
@@ -10490,6 +10498,7 @@
     "jump-game-dp": {
       badge: "Грубый перебор",
       desc: "Наивно O(n²): из каждой достижимой клетки помечаем весь диапазон прыжка. Диапазоны жирно перекрываются — повторная пометка одних позиций. Эталон для жадности.",
+      legend: [{ cls: "found", nn: "found", label: "помечена достижимой" }, { cls: "mid", nn: "mid", label: "пометка повторная — лишняя работа" }],
       valuesLabel: "Массив (макс. прыжок)", codeKey: "jump-game-dp", fillRange: false,
       ptr1: { name: "i", cap: "(откуда прыгаем)" }, ptr2: { name: "i+step", cap: "(помечаем)" },
       complexity: { time: "O(n²)", space: "O(n)", good: "⚠ База для сравнения — медленно" },
@@ -10514,6 +10523,7 @@
     "search-range-naive": {
       badge: "Грубый перебор",
       desc: "Наивно O(n): линейный проход игнорирует сортированность. res[0] фиксируется на первом совпадении, res[1] перетирается на каждом. Эталон для двух бинарных поисков.",
+      legend: [{ cls: "found", nn: "found", label: "совпадение с target" }],
       valuesLabel: "Массив (отсортирован)", codeKey: "search-range-naive", fillRange: false,
       ptr1: { name: "i", cap: "(сканер)" }, ptr2: { name: "", cap: "" },
       complexity: { time: "O(n)", space: "O(1)", good: "⚠ Не использует сортировку" },
@@ -10685,6 +10695,7 @@
     "house-robber": {
       badge: "Dynamic Programming",
       desc: "Оптимум O(n), O(1): dp[i] = max(пропустить dp[i−1], взять dp[i−2]+nums[i]). Вся таблица свёрнута в две переменные prev2, prev1.",
+      legend: [{ cls: "found", nn: "found", label: "дом в ответе" }, { cls: "dim", nn: "dim", label: "не берём" }],
       valuesLabel: "Дома (деньги)", codeKey: "house-robber", fillRange: false,
       ptr1: { name: "i", cap: "(текущий дом)" }, ptr2: { name: "—", cap: "" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ ДП с зависимостью от 1–2 шагов" },
@@ -10775,6 +10786,7 @@
     "three-sum-naive": {
       badge: "Грубый перебор",
       desc: "Наивно O(n³): три вложенных цикла i<j<k перебирают все тройки, дубли отсекаем через set. Эталон для решения двумя указателями.",
+      legend: [{ cls: "mid", nn: "mid", label: "j — второй элемент тройки" }],
       valuesLabel: "Массив", codeKey: "three-sum-naive", fillRange: false,
       ptr1: { name: "i", cap: "(первый)" }, ptr2: { name: "k", cap: "(третий)" },
       complexity: { time: "O(n³)", space: "O(n)", good: "⚠ База для сравнения — медленно" },
@@ -10813,6 +10825,7 @@
     "three-sum": {
       badge: "Two Pointers",
       desc: "Оптимум O(n²): сортируем, фиксируем nums[i], а пару с суммой −nums[i] ищем встречными указателями. Дедуп даётся отсортированным массивом даром.",
+      legend: [{ cls: "mid", nn: "mid", label: "i — зафиксированный первый элемент" }, { cls: "span", nn: "span", label: "между left и right — ещё рассматриваем" }],
       valuesLabel: "Массив (отсортирован)", codeKey: "three-sum", fillRange: false,
       ptr1: { name: "left", cap: "(левый)" }, ptr2: { name: "right", cap: "(правый)" },
       complexity: { time: "O(n²)", space: "O(1)", good: "★ Тройки/пары в отсортированном массиве" },
@@ -10851,6 +10864,7 @@
     "two-pointers-dedup": {
       badge: "Two Pointers",
       desc: "Удаление дубликатов из отсортированного массива на месте (одно направление).",
+      legend: [{ cls: "found", nn: "found", label: "готовая часть без дублей" }],
       valuesLabel: "Массив (отсортирован, с дубликатами)", codeKey: "two-pointers-dedup", fillRange: false,
       ptr1: { name: "slow", cap: "(пишем)" }, ptr2: { name: "fast", cap: "(сканируем)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Фильтрации на месте" },
@@ -10874,6 +10888,7 @@
     "list-middle": {
       badge: "Fast & Slow",
       desc: "Поиск середины списка: fast идёт вдвое быстрее, slow останавливается в центре.",
+      legend: [{ cls: "found", nn: "found", label: "середина" }],
       valuesLabel: "Связный список", codeKey: "list-middle", arrLabel: "list", fillRange: false,
       ptr1: { name: "slow", cap: "(середина)" }, ptr2: { name: "fast", cap: "(конец)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Связных списков" },
@@ -10899,6 +10914,7 @@
     "binary-search": {
       badge: "Binary Search",
       desc: "Поиск точного значения в отсортированном массиве делением пополам.",
+      legend: [{ cls: "span", nn: "span", label: "ещё под подозрением: [left, right]" }, { cls: "mid", nn: "mid", label: "mid — проверяем" }, { cls: "dim", nn: "dim", label: "отброшено" }, { cls: "found", nn: "found", label: "найдено" }],
       valuesLabel: "Массив (отсортирован)", codeKey: "binary-search", fillRange: false,
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Отсортированных массивов" },
@@ -10932,6 +10948,7 @@
     "binary-search-first": {
       badge: "Binary Search",
       desc: "Поиск ПЕРВОГО вхождения: при равенстве не останавливаемся, а идём левее.",
+      legend: [{ cls: "span", nn: "span", label: "ещё под подозрением: [left, right]" }, { cls: "mid", nn: "mid", label: "mid — проверяем" }, { cls: "dim", nn: "dim", label: "отброшено" }, { cls: "found", nn: "found", label: "res — лучший кандидат" }],
       valuesLabel: "Массив (с дубликатами)", codeKey: "binary-search-first", fillRange: false,
       ptr1: { name: "left", cap: "(левая)" }, ptr2: { name: "right", cap: "(правая)" },
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Границ в отсортированном" },
@@ -10989,6 +11006,7 @@
     "insertion-sort": {
       badge: "Insertion Sort",
       desc: "Сортировка вставками: отсортированный префикс растёт слева. key вынимается, большие элементы сдвигаются вправо, и key встаёт в освободившуюся клетку (погашена).",
+      legend: [{ cls: "found", nn: "found", label: "отсортированная часть" }, { cls: "mid", nn: "mid", label: "сюда записали на этом шаге" }, { cls: "dim", nn: "dim", label: "«дыра»: значение уже скопировано" }],
       valuesLabel: "Массив", codeKey: "insertion-sort", fillRange: false,
       ptr1: { name: "j", cap: "(идём влево)" }, ptr2: { name: "i", cap: "(граница: отсюда вынули key)" },
       complexity: { time: "O(n²)", space: "O(1)", good: "★ Почти отсортированных, малых n" },
@@ -11022,6 +11040,7 @@
     "merge-sort": {
       badge: "Merge Sort",
       desc: "Слияние двух отсортированных половин: сравниваем головы, меньшую переносим в out. Выданная клетка входа гаснет, а out растёт слева направо — и уже отсортирован.",
+      legend: [{ cls: "mid", nn: "mid", label: "mid — граница половин" }, { cls: "dim", nn: "dim", label: "уже выдан в out" }],
       valuesLabel: "Массив (левая | правая половины)", codeKey: "merge-sort", fillRange: false,
       ptr1: { name: "i", cap: "(голова левой)" }, ptr2: { name: "j", cap: "(голова правой)" },
       complexity: { time: "O(n)", space: "O(n)", good: "★ Шаг слияния в O(n log n) сортировке" },
@@ -11067,6 +11086,7 @@
     "quick-sort": {
       badge: "Quick Sort",
       desc: "Разбиение Ломуто — ядро быстрой сортировки: всё меньше pivot уезжает влево, pivot встаёт на финальное место.",
+      legend: [{ cls: "mid", nn: "mid", label: "pivot" }, { cls: "found", nn: "found", label: "меньше pivot — уже слева" }],
       valuesLabel: "Массив (pivot — последний)", codeKey: "quick-sort", fillRange: false,
       ptr1: { name: "i", cap: "(граница «< pivot»)" }, ptr2: { name: "j", cap: "(сканер)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Один шаг partition в O(n log n)" },
@@ -11511,6 +11531,7 @@
     "counting-sort": {
       badge: "Counting Sort",
       desc: "Сортировка подсчётом: без сравнений. Ячейки — гистограмма count[v] (индекс = значение). Сначала считаем, сколько раз встретилось каждое значение, потом обходим бакеты по возрастанию и выдаём. O(n + k), устойчива.",
+      legend: [{ cls: "found", nn: "found", label: "бакет не пуст" }],
       valuesLabel: "Гистограмма count[v] (индекс ячейки = значение)", codeKey: "counting-sort", arrLabel: "count", fillRange: false,
       ptr1: { name: "v", cap: "(текущее значение)" },
       complexity: { time: "O(n + k)", space: "O(k)", good: "★ Без сравнений, при малом k" },
@@ -11553,6 +11574,7 @@
     "heap-sort": {
       badge: "Heap Sort",
       desc: "Пирамидальная сортировка: строим max-heap просеиванием, затем n−1 раз меняем корень (максимум) с концом кучи и чиним кучу. Отсортированный суффикс (зелёный) растёт справа. O(n log n), память O(1).",
+      legend: [{ cls: "mid", nn: "mid", label: "двигается на этом шаге" }, { cls: "found", nn: "found", label: "отсортированный хвост — уже вне кучи" }],
       valuesLabel: "Массив (отсортированный суффикс — зелёный)", codeKey: "heap-sort", fillRange: false,
       ptr1: { name: "root", cap: "(просеиваемый узел)" }, ptr2: { name: "child", cap: "(больший ребёнок; на обмене с корнем — end, конец кучи)" },
       complexity: { time: "O(n log n)", space: "O(1)", good: "★ Гарантия n log n, на месте" },
@@ -12106,6 +12128,7 @@
     "quick-select": {
       badge: "QuickSelect",
       desc: "k-й элемент за O(n): рекурсия только в ту половину, где лежит искомый ранг. Окно поиска сужается, pivot отбрасывает половину.",
+      legend: [{ cls: "mid", nn: "mid", label: "pivot — встал на своё место" }, { cls: "dim", nn: "dim", label: "отброшено: ответа там нет" }, { cls: "found", nn: "found", label: "ответ" }],
       valuesLabel: "Массив (вне окна — затемнён)", codeKey: "quick-select", fillRange: false,
       ptr1: { name: "lo", cap: "(левая граница окна)" }, ptr2: { name: "hi", cap: "(правая граница)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ k-й по порядку без полной сортировки" },
@@ -12195,6 +12218,7 @@
     "monotonic-stack": {
       badge: "Монотонный стек",
       desc: "Next Greater Element за O(n): стек хранит индексы, ещё не встретившие большего (значения в нём убывают). Новый элемент выталкивает всех меньших — для каждого он и есть ответ — и встаёт ждать сам.",
+      legend: [{ cls: "mid", nn: "mid", label: "на стеке — ждёт ответа" }, { cls: "found", nn: "found", label: "ответ найден" }],
       valuesLabel: "Массив (зелёное — ответ найден, оранжевое — ждёт в стеке)", codeKey: "monotonic-stack", fillRange: false,
       ptr1: { name: "i", cap: "(текущий элемент)" }, ptr2: { name: "top", cap: "(снимается со стека)" },
       complexity: { time: "O(n) амортизированно", space: "O(n)", good: "★ Ближайший больший справа" },
@@ -12245,6 +12269,7 @@
     "monotonic-deque": {
       badge: "Монотонный дек",
       desc: "Максимум скользящего окна за O(n): дек хранит индексы-«кандидаты», значения убывают от головы к хвосту. Спереди выбывает вышедший из окна, сзади — все меньшие нового; максимум окна всегда в голове.",
+      legend: [{ cls: "found", nn: "found", label: "голова дека — максимум окна" }, { cls: "mid", nn: "mid", label: "в деке — ещё может стать максимумом" }, { cls: "span", nn: "span", label: "в окне, но уже не кандидат" }, { cls: "dim", nn: "dim", label: "вне окна" }],
       valuesLabel: "Массив (рамка — окно; зелёное — голова дека, максимум окна)", codeKey: "monotonic-deque", fillRange: false,
       ptr1: { name: "lo", cap: "(левый край окна)" }, ptr2: { name: "i", cap: "(правый край окна)" },
       complexity: { time: "O(n) амортизированно", space: "O(k)", good: "★ Максимум/минимум скользящего окна" },
@@ -12301,6 +12326,7 @@
     "move-zeroes": {
       badge: "Two Pointers",
       desc: "Сдвиг нулей в конец на месте: insertPos — куда встанет следующий ненулевой, i сканирует массив. Ненулевой не на своём месте меняется местами с нулём на insertPos.",
+      legend: [{ cls: "found", nn: "found", label: "ненулевые — уже на месте" }, { cls: "dim", nn: "dim", label: "ноль" }],
       valuesLabel: "Массив", codeKey: "move-zeroes", fillRange: false,
       ptr1: { name: "insertPos", cap: "(куда встанет следующий ненулевой)" }, ptr2: { name: "i", cap: "(сканер)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Стабильный сдвиг на месте" },
@@ -12341,6 +12367,7 @@
     "prefix-range": {
       badge: "Префиксные суммы",
       desc: "Сумма любого отрезка за O(1): один проход строит prefix, где prefix[i] — сумма первых i элементов. Отрезок [l, r] — это «первые r+1» минус «первые l»: одно вычитание, какой бы длины он ни был.",
+      legend: [{ cls: "span", nn: "span", label: "входит в текущую сумму" }, { cls: "dim", nn: "dim", label: "вне запроса" }],
       valuesLabel: "Массив nums (подсвечен отрезок запроса)", codeKey: "prefix-range", fillRange: false,
       ptr1: { name: "l", cap: "(левая граница запроса)" }, ptr2: { name: "r", cap: "(правая граница; при построении prefix — i)" },
       complexity: { time: "O(n + q)", space: "O(n)", good: "★ Много запросов суммы к неизменному массиву" },
@@ -12403,6 +12430,7 @@
     "prefix-sum-hash": {
       badge: "Префиксы + хеш-таблица",
       desc: "Сколько подмассивов с суммой k — за один проход, даже с отрицательными числами. Подмассив, кончающийся в j, — это «текущий префикс минус прошлый», поэтому считаем, сколько раз прошлый префикс равнялся sum − k.",
+      legend: [{ cls: "span", nn: "span", label: "подмассив с суммой k" }, { cls: "mid", nn: "mid", label: "начало такого подмассива" }, { cls: "dim", nn: "dim", label: "ещё не прочитано" }],
       valuesLabel: "Массив nums (подсвечены подмассивы с суммой k, найденные на этом шаге; рамка — их начала)", codeKey: "prefix-sum-hash", fillRange: false,
       ptr1: { name: "—", cap: "" }, ptr2: { name: "j", cap: "(текущий конец подмассива)" },
       complexity: { time: "O(n)", space: "O(n)", good: "★ Подсчёт подмассивов с условием на сумму, отрицательные числа" },
@@ -12467,6 +12495,7 @@
     "diff-array": {
       badge: "Разностный массив",
       desc: "Пачка прибавлений к диапазонам, а прочитать нужно один раз в конце: обновление [l, r] — две записи в diff (с l прибавка начинается, после r — кончается), итог — префиксные суммы diff.",
+      legend: [{ cls: "span", nn: "span", label: "отрезок обновления" }, { cls: "dim", nn: "dim", label: "вне обновления" }, { cls: "found", nn: "found", label: "значение уже восстановлено" }],
       valuesLabel: "Итоговый массив res (· — ещё не собран; подсвечен диапазон обновления)", codeKey: "diff-array", arrLabel: "res", fillRange: false,
       ptr1: { name: "l", cap: "(начало обновления)" }, ptr2: { name: "r", cap: "(конец обновления; при сборке — i)" },
       complexity: { time: "O(n + u)", space: "O(n)", good: "★ Много прибавлений к диапазонам, одно чтение в конце" },
@@ -12525,6 +12554,7 @@
     "bracket-stack": {
       badge: "Стек: скобки",
       desc: "Проверка скобок за O(n): открывающая ждёт на стеке, закрывающая обязана совпасть с вершиной — последней ещё не закрытой. Стек — ровно та структура, у которой «последний открытый» лежит сверху.",
+      legend: [{ cls: "mid", nn: "mid", label: "на стеке — ждёт закрывающую" }, { cls: "found", nn: "found", label: "пара закрыта" }, { cls: "out", nn: "out", label: "не совпала — ошибка" }],
       valuesLabel: "Строка (зелёное — пара сошлась, оранжевое — ждёт на стеке, красное — ошибка)", codeKey: "bracket-stack", fillRange: false,
       ptr1: { name: "top", cap: "(вершина стека — открывающая, с которой сверяемся)" }, ptr2: { name: "i", cap: "(текущий символ)" },
       complexity: { time: "O(n)", space: "O(n)", good: "★ Вложенные структуры: скобки, теги, выражения" },
@@ -12683,6 +12713,7 @@
     "remove-k-digits": {
       badge: "Монотонный стек: жадность",
       desc: "Удалить k цифр так, чтобы число стало наименьшим: пока старшая оставленная цифра больше пришедшей — убрать её выгоднее всего. Стек оставленных цифр не убывает; неизрасходованные удаления срезаются с хвоста.",
+      legend: [{ cls: "mid", nn: "mid", label: "на стеке — пока оставлена" }, { cls: "out", nn: "out", label: "удалена" }, { cls: "found", nn: "found", label: "итоговое число" }],
       valuesLabel: "Цифры числа (зачёркнуто — удалена, оранжевое — оставлена)", codeKey: "remove-k-digits", fillRange: false,
       ptr1: { name: "pop", cap: "(снимаемая со стека цифра)" }, ptr2: { name: "i", cap: "(текущая цифра)" },
       complexity: { time: "O(n)", space: "O(n)", good: "★ Лексикографически наименьшая подпоследовательность" },
@@ -13371,6 +13402,7 @@
 
     "jump-game": {
       badge: "Greedy", desc: "Jump Game: можно ли допрыгнуть до конца, ведя самую дальнюю достижимую позицию.",
+      legend: [{ cls: "mid", nn: "mid", label: "i — где стоим" }, { cls: "span", nn: "span", label: "достижимо: ≤ maxReach" }, { cls: "dim", nn: "dim", label: "пока недостижимо" }, { cls: "found", nn: "found", label: "достижимо" }],
       valuesLabel: "Массив (макс. прыжок)", codeKey: "jump-game", fillRange: false,
       ptr1: { name: "i", cap: "(текущий)" }, ptr2: { name: "", cap: "" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Жадных проходов" },
@@ -13509,6 +13541,7 @@
 
     "dp-coins": {
       badge: "Dynamic Programming", desc: "Coin Change: dp[a] = минимум монет на сумму a, перебираем каждую монету.",
+      legend: [{ cls: "found", nn: "found", label: "ответ dp[amount]" }],
       valuesLabel: "Таблица dp[]", codeKey: "dp-coins", arrLabel: "dp", fillRange: false,
       ptr1: { name: "a", cap: "(сумма)" }, ptr2: { name: "a−c", cap: "(источник)" },
       complexity: { time: "O(amount·k)", space: "O(amount)", good: "★ Перекрывающихся подзадач" },
@@ -14701,14 +14734,41 @@
     // сетке, но голубая рамка в неоне). Для ячеек не массива (панели, узлы) nn не ставят.
     if (cfg.legend) {
       var nnLegend = compact && !cfg.customViz;
+      // Пункт неонового состояния показывается, только если оно в ЭТОМ прогоне
+      // встречается: иначе читатель ищет на холсте «ответ» или «выбывший», которых на
+      // этом входе нет. Классические элементы (узлы, панели) движок не видит — их
+      // пункты остаются всегда.
+      var usedNN = nnLegend && cfg.pointers ? usedCellStates() : null;
       var leg = mkEl("div", "algo-tp__legend");
       cfg.legend.forEach(function (it) {
+        if (usedNN && it.nn && !usedNN[it.nn]) return;
         var item = mkEl("div", "algo-tp__legitem");
         item.appendChild(mkEl("span", "algo-tp__legdot algo-tp__legdot--" + (nnLegend && it.nn ? "nn-" + it.nn : it.cls)));
         item.appendChild(mkEl("span", "algo-tp__leglabel", it.label));
         leg.appendChild(item);
       });
       pViz.appendChild(leg);
+    }
+    // Состояние ячейки: своё правило типа или правило по умолчанию (рамки указателей,
+    // заливка между ними, найденная пара). Одна функция и для show(), и для легенды.
+    function stateOf(s, j, lo, hi) {
+      if (cfg.cellState) return cfg.cellState(s, j, lo, hi) || {};
+      var found = !!s.found;
+      return { lo: j === lo && !found, hi: j === hi && !found, span: cfg.fillRange && lo >= 0 && hi >= 0 && j > lo && j < hi && !found, found: found && (j === lo || j === hi) };
+    }
+    // Какие состояния неоновых ячеек встречаются хоть на одном шаге — тем же stateOf,
+    // что и в show(), поэтому легенда не расходится с холстом.
+    function usedCellStates() {
+      var used = {};
+      steps.forEach(function (st) {
+        var pt = cfg.pointers(st);
+        var len = st.values ? st.values.length : n;
+        for (var j = 0; j < len; j++) {
+          var cs = stateOf(st, j, pt.lo, pt.hi);
+          Object.keys(cs).forEach(function (k) { if (cs[k]) used[k] = true; });
+        }
+      });
+      return used;
     }
     var bigCells = [], ptrSlots = [], updateViz = null;
     // Центральная визуализация живёт в прокручиваемой обёртке: на узком экране
@@ -15256,9 +15316,7 @@
       } else {
         bigCells.forEach(function (c, j) {
           if (s.values && j < s.values.length) c.textContent = s.values[j]; // мутация значений (дедуп на месте)
-          var st2 = cfg.cellState
-            ? cfg.cellState(s, j, lo, hi)
-            : { lo: j === lo && !found, hi: j === hi && !found, span: cfg.fillRange && lo >= 0 && hi >= 0 && j > lo && j < hi && !found, found: found && (j === lo || j === hi) };
+          var st2 = stateOf(s, j, lo, hi);
           c.classList.toggle("algo-tp__big--lo", !!st2.lo);
           c.classList.toggle("algo-tp__big--hi", !!st2.hi);
           c.classList.toggle("algo-tp__big--span", !!st2.span);
