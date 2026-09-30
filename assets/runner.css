@@ -1,11 +1,23 @@
 /* runner.css — стили виджета «решай прямо в книге» (см. runner.js). */
 
+/* Свои токены: светлые по умолчанию и тёмные под тёмные темы mdBook. Книга по
+   умолчанию открывается в navy, а цвета были зашиты под светлый фон — подсказка
+   «runner не отвечает» читалась светло-серым по кремовому (контраст 1.79:1). */
 .algo-runner {
+  --ar-ok: #15803d; --ar-err: #b91c1c; --ar-warn: #b45309; --ar-info: #3730a3;
+  --ar-chip: #eef1f7; --ar-chip-fg: #334;
+  --ar-btn: #fff; --ar-btn-fg: #243; --ar-btn-hover: #f1f4fa; --ar-line: #cfd6e4;
   border: 1px solid var(--quote-border, #cfd6e4);
   border-radius: 10px;
   padding: 12px;
   margin: 1.4em 0;
   background: var(--sidebar-bg, #fafbfc);
+}
+html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
+  --ar-ok: #4ade80; --ar-err: #f87171; --ar-warn: #fbbf24; --ar-info: #a5b4fc;
+  --ar-chip: rgba(255, 255, 255, 0.08); --ar-chip-fg: var(--fg);
+  --ar-btn: rgba(255, 255, 255, 0.06); --ar-btn-fg: var(--fg);
+  --ar-btn-hover: rgba(255, 255, 255, 0.12); --ar-line: rgba(255, 255, 255, 0.18);
 }
 .algo-runner--ready { background: var(--bg, #fff); }
 
@@ -21,8 +33,8 @@
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 6px;
-  background: #eef1f7;
-  color: #334;
+  background: var(--ar-chip);
+  color: var(--ar-chip-fg);
 }
 .algo-runner__race {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -30,8 +42,8 @@
   font-size: 11px;
   padding: 2px 7px;
   border-radius: 6px;
-  background: #fdecec;
-  color: #b91c1c;
+  background: color-mix(in srgb, var(--ar-err) 14%, transparent);
+  color: var(--ar-err);
 }
 
 /* Мок-интервью гоняет только тесты одной функции — это надо видеть, иначе
@@ -41,25 +53,25 @@
   font-size: 11px;
   padding: 2px 7px;
   border-radius: 6px;
-  background: #eef2ff;
-  color: #3730a3;
+  background: color-mix(in srgb, var(--ar-info) 14%, transparent);
+  color: var(--ar-info);
 }
 .algo-runner__flagship {
   font-weight: 700;
   font-size: 11px;
   padding: 2px 7px;
   border-radius: 6px;
-  background: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fcd34d;
+  background: color-mix(in srgb, var(--ar-warn) 14%, transparent);
+  color: var(--ar-warn);
+  border: 1px solid color-mix(in srgb, var(--ar-warn) 50%, transparent);
 }
 .algo-runner__status { font-size: 12px; opacity: 0.85; }
-.algo-runner__status.is-ok { color: #15803d; }
-.algo-runner__status.is-err { color: #b91c1c; }
-.algo-runner__status.is-wait { color: #b45309; }
+.algo-runner__status.is-ok { color: var(--ar-ok); }
+.algo-runner__status.is-err { color: var(--ar-err); }
+.algo-runner__status.is-wait { color: var(--ar-warn); }
 
 .algo-runner__editor {
-  border: 1px solid #d7deea;
+  border: 1px solid var(--ar-line);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -72,20 +84,22 @@
   resize: vertical;
   font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
   tab-size: 4;
+  background: var(--bg, #fff);
+  color: var(--fg, #000);
 }
 
 .algo-runner__bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
 .algo-runner__btn {
   cursor: pointer;
-  border: 1px solid #cfd6e4;
-  background: #fff;
+  border: 1px solid var(--ar-line);
+  background: var(--ar-btn);
   border-radius: 7px;
   padding: 6px 12px;
   font-size: 13px;
   font-weight: 600;
-  color: #243;
+  color: var(--ar-btn-fg);
 }
-.algo-runner__btn:hover { background: #f1f4fa; }
+.algo-runner__btn:hover { background: var(--ar-btn-hover); }
 .algo-runner__btn:disabled { opacity: 0.5; cursor: default; }
 .algo-runner__btn--run {
   background: #16a34a;
@@ -100,12 +114,12 @@
 }
 .algo-runner__btn--trace:hover { background: #4338ca; }
 .algo-runner__trace-select {
-  border: 1px solid #cfd6e4;
+  border: 1px solid var(--ar-line);
   border-radius: 7px;
   padding: 6px 8px;
   font-size: 13px;
-  background: #fff;
-  color: #243;
+  background: var(--ar-btn);
+  color: var(--ar-btn-fg);
 }
 
 .algo-runner__out:empty { display: none; }
@@ -115,8 +129,8 @@
   border-radius: 7px;
   margin-bottom: 8px;
 }
-.algo-runner__verdict.is-ok { background: #e9f8ef; color: #15803d; }
-.algo-runner__verdict.is-err { background: #fdecec; color: #b91c1c; }
+.algo-runner__verdict.is-ok { background: color-mix(in srgb, var(--ar-ok) 14%, transparent); color: var(--ar-ok); }
+.algo-runner__verdict.is-err { background: color-mix(in srgb, var(--ar-err) 14%, transparent); color: var(--ar-err); }
 
 .algo-runner__tests { list-style: none; padding: 0; margin: 0; }
 .algo-runner__test {
@@ -128,8 +142,8 @@
   font-size: 13px;
   flex-wrap: wrap;
 }
-.algo-runner__test.is-ok .algo-runner__test-mark { color: #15803d; }
-.algo-runner__test.is-err .algo-runner__test-mark { color: #b91c1c; }
+.algo-runner__test.is-ok .algo-runner__test-mark { color: var(--ar-ok); }
+.algo-runner__test.is-err .algo-runner__test-mark { color: var(--ar-err); }
 .algo-runner__test-mark { font-weight: 700; }
 .algo-runner__test-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .algo-runner__test details { flex-basis: 100%; }
@@ -147,8 +161,9 @@
 }
 
 .algo-runner__down {
-  border: 1px dashed #d97706;
-  background: #fffbeb;
+  border: 1px dashed var(--ar-warn);
+  background: color-mix(in srgb, var(--ar-warn) 10%, transparent);
+  color: var(--fg, inherit);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 13px;

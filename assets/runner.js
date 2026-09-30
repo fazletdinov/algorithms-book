@@ -17,12 +17,30 @@
 
   // ---- загрузка редактора (CodeMirror 6 с фолбэком на textarea) ----
 
-  // Версии пиннятся, ?deps форсит единый экземпляр @codemirror/state — иначе
-  // StreamLanguage и basicSetup тянут разные копии и редактор падает.
-  var DEPS = "@codemirror/state@6.4.1,@codemirror/view@6.26.3";
-  var CM_URL = "https://esm.sh/codemirror@6.0.1?deps=" + DEPS;
-  var LANG_URL = "https://esm.sh/@codemirror/language@6.10.1?deps=" + DEPS;
-  var GO_URL = "https://esm.sh/@codemirror/legacy-modes@6.4.0/mode/go?deps=" + DEPS;
+  // ?deps закрепляет ВЕСЬ граф пакетов, а не только state/view. codemirror
+  // зависит от lint/search/autocomplete по «^6.0.0», и esm.sh берёт их последние
+  // версии: когда закреплены были только state и view, свежий lint потребовал
+  // view новее закреплённого («does not provide an export named activateHover»),
+  // и редактор молча откатывался на textarea у всех. Обновлять — всем набором.
+  var DEPS = [
+    "@codemirror/state@6.7.6", "@codemirror/view@6.43.13", "@codemirror/language@6.12.4",
+    "@codemirror/autocomplete@6.20.3", "@codemirror/lint@6.9.7", "@codemirror/search@6.7.2",
+    "@codemirror/commands@6.11.1", "@lezer/common@1.5.3", "@lezer/highlight@1.2.5", "@lezer/lr@1.4.10",
+  ].join(",");
+  // У language — РОВНО её собственные зависимости: esm.sh кладёт список deps в
+  // адрес сборки, и с полным списком получалась вторая копия модуля. StreamLanguage
+  // из неё не видела подсветку из basicSetup — код в редакторе был одного цвета.
+  var LANG_DEPS = "@codemirror/state@6.7.6,@codemirror/view@6.43.13,@lezer/common@1.5.3,@lezer/highlight@1.2.5,@lezer/lr@1.4.10";
+  var CM_URL = "https://esm.sh/codemirror@6.0.2?deps=" + DEPS;
+  var LANG_URL = "https://esm.sh/@codemirror/language@6.12.4?deps=" + LANG_DEPS;
+  var GO_URL = "https://esm.sh/@codemirror/legacy-modes@6.5.4/mode/go?deps=" + DEPS;
+  var DARK_URL = "https://esm.sh/@codemirror/theme-one-dark@6.1.3?deps=" + DEPS;
+
+  // Тёмные темы mdBook (по умолчанию книга открывается в navy): светлый редактор
+  // в них — белый прямоугольник посреди страницы.
+  function darkBook() {
+    return /\b(coal|navy|ayu)\b/.test(document.documentElement.className);
+  }
 
   var cmPromise = null;
   function loadCM() {
@@ -31,8 +49,9 @@
         import(/* @vite-ignore */ CM_URL),
         import(/* @vite-ignore */ LANG_URL),
         import(/* @vite-ignore */ GO_URL),
+        darkBook() ? import(/* @vite-ignore */ DARK_URL) : null,
       ]).then(function (m) {
-        return { cm: m[0], lang: m[1], go: m[2].go };
+        return { cm: m[0], lang: m[1], go: m[2].go, dark: m[3] && m[3].oneDark };
       });
     }
     return cmPromise;
@@ -52,7 +71,7 @@
               "&": { fontSize: "13px", maxHeight: "440px" },
               ".cm-scroller": { overflow: "auto", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace" },
             }),
-          ],
+          ].concat(mod.dark ? [mod.dark] : []),
           parent: host,
         });
         return {
@@ -224,6 +243,8 @@
         serverDownView(out, err);
         setStatus("сервер не запущен", "err");
         runBtn.disabled = resetBtn.disabled = true;
+        if (traceBtn) traceBtn.disabled = true; // трассу строит тот же сервер
+        if (traceSelect) traceSelect.disabled = true;
       });
 
     var saveTimer = null;
