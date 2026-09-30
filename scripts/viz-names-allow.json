@@ -1,0 +1,489 @@
+{
+ "aho-corasick": [
+  "chip:found",
+  "chip:node"
+ ],
+ "astar": [
+  "chip:openSize"
+ ],
+ "avl-delete": [
+  "chip:action"
+ ],
+ "avl-insert": [
+  "chip:action"
+ ],
+ "bellman-ford": [
+  "chip:edge",
+  "chip:pass",
+  "chip:relaxed"
+ ],
+ "bfs-local-timeline": [
+  "chip:act",
+  "chip:g"
+ ],
+ "bit-xor": [
+  "chip:i",
+  "tag:i"
+ ],
+ "bloom-add": [
+  "chip:hash",
+  "chip:pos",
+  "chip:set"
+ ],
+ "bloom-check": [
+  "chip:bit",
+  "chip:pos"
+ ],
+ "bracket-stack": [
+  "chip:st",
+  "chip:top",
+  "tag:top"
+ ],
+ "bst-delete": [
+  "chip:action"
+ ],
+ "bst-insert": [
+  "chip:action"
+ ],
+ "bst-search": [
+  "chip:target"
+ ],
+ "btree-delete": [
+  "chip:action",
+  "chip:node"
+ ],
+ "btree-insert": [
+  "chip:action",
+  "chip:node"
+ ],
+ "btree-search": [
+  "chip:key",
+  "chip:node"
+ ],
+ "build-lps": [
+  "chip:cmp",
+  "chip:written"
+ ],
+ "cas-loop": [
+  "chip:G1.old",
+  "chip:G2.old"
+ ],
+ "chan-block": [
+  "chip:recvq",
+  "chip:sendq"
+ ],
+ "cms-add": [
+  "chip:row"
+ ],
+ "cms-query": [
+  "chip:val"
+ ],
+ "combination-sum": [
+  "chip:action",
+  "chip:count",
+  "chip:cur"
+ ],
+ "context-tree": [
+  "chip:alive",
+  "chip:cancelled"
+ ],
+ "count-inversions-bit": [
+  "chip:sum"
+ ],
+ "cyclic-sort": [
+  "tag:цель"
+ ],
+ "defer-stack": [
+  "chip:depth",
+  "chip:phase"
+ ],
+ "deque-ops": [
+  "chip:cap",
+  "chip:op"
+ ],
+ "diameter-naive": [
+  "chip:диаметр",
+  "chip:узел",
+  "chip:через узел"
+ ],
+ "diff-array": [
+  "tag:l",
+  "tag:r"
+ ],
+ "dijkstra": [
+  "chip:dist[v]",
+  "chip:edge"
+ ],
+ "dp-lcs": [
+  "chip:rule"
+ ],
+ "dutch-flag": [
+  "chip:v"
+ ],
+ "dynarray": [
+  "chip:длина",
+  "chip:добавили",
+  "chip:копий",
+  "chip:ёмкость"
+ ],
+ "errgroup": [
+  "chip:failed",
+  "chip:ok",
+  "chip:running",
+  "tag:задача"
+ ],
+ "escape": [
+  "chip:в куче",
+  "chip:в стеке"
+ ],
+ "fenwick-add": [
+  "chip:range",
+  "tag:hi",
+  "tag:lo"
+ ],
+ "fenwick-prefix": [
+  "chip:range",
+  "tag:hi",
+  "tag:lo"
+ ],
+ "gc-mark": [
+  "chip:очередь",
+  "chip:серых",
+  "chip:чёрных"
+ ],
+ "grid-bfs": [
+  "chip:cell",
+  "chip:visited"
+ ],
+ "growth-curves": [
+  "chip:at20",
+  "chip:curve"
+ ],
+ "hanoi": [
+  "chip:глубина",
+  "chip:запасной",
+  "chip:перенос",
+  "chip:ход"
+ ],
+ "hash-resize": [
+  "chip:load"
+ ],
+ "hash-ring": [
+  "chip:server"
+ ],
+ "heap-build": [
+  "chip:action"
+ ],
+ "heap-pop": [
+  "chip:action"
+ ],
+ "heap-push": [
+  "chip:action"
+ ],
+ "heap-sort": [
+  "chip:обменов",
+  "tag:child",
+  "tag:root"
+ ],
+ "histogram-stack": [
+  "chip:area"
+ ],
+ "hll-add": [
+  "chip:bucket",
+  "chip:est",
+  "chip:lc",
+  "tag:рег"
+ ],
+ "house-robber": [
+  "chip:i",
+  "tag:i"
+ ],
+ "json-marshal": [
+  "tag:поле"
+ ],
+ "k-way-merge": [
+  "chip:list",
+  "chip:min",
+  "chip:outLen"
+ ],
+ "kmp": [
+  "chip:compare",
+  "chip:shift"
+ ],
+ "kmp-all": [
+  "chip:compare",
+  "chip:shift"
+ ],
+ "knapsack": [
+  "chip:cap",
+  "chip:item",
+  "chip:rule"
+ ],
+ "lazy-range": [
+  "chip:action",
+  "chip:lazyv",
+  "chip:total"
+ ],
+ "ll-insert": [
+  "chip:action"
+ ],
+ "lru": [
+  "chip:op",
+  "chip:result",
+  "chip:size"
+ ],
+ "lsm-put": [
+  "chip:memlen",
+  "chip:op",
+  "chip:sstn"
+ ],
+ "max-flow": [
+  "chip:аугментаций",
+  "chip:поток",
+  "chip:путь",
+  "chip:узкое место"
+ ],
+ "merge-intervals": [
+  "chip:interval"
+ ],
+ "merge-intervals-naive": [
+  "chip:интервалов",
+  "chip:проходов"
+ ],
+ "miller-rabin": [
+  "chip:target"
+ ],
+ "mod-exp": [
+  "chip:bit",
+  "tag:бит"
+ ],
+ "monotonic-deque": [
+  "chip:front",
+  "chip:resv",
+  "tag:lo"
+ ],
+ "monotonic-stack": [
+  "chip:resv",
+  "chip:top",
+  "tag:top"
+ ],
+ "move-zeroes": [
+  "chip:v"
+ ],
+ "mst-kruskal": [
+  "chip:edge",
+  "chip:mstWeight",
+  "chip:weight"
+ ],
+ "mutex-bits": [
+  "chip:locked",
+  "chip:waiters",
+  "chip:woken",
+  "tag:бит"
+ ],
+ "netpoll": [
+  "chip:g",
+  "chip:m"
+ ],
+ "nfa-match": [
+  "chip:matched",
+  "chip:size",
+  "tag:позиция"
+ ],
+ "num-provinces": [
+  "chip:вершина",
+  "chip:посещено",
+  "chip:провинций"
+ ],
+ "num-provinces-naive": [
+  "chip:провинций"
+ ],
+ "oauth-flow": [
+  "chip:api"
+ ],
+ "oranges-rotting": [
+  "chip:источников",
+  "chip:касаний",
+  "chip:минута",
+  "chip:свежих"
+ ],
+ "oranges-rotting-naive": [
+  "chip:минута",
+  "chip:свежих",
+  "chip:сканов сетки"
+ ],
+ "parallel-dc": [
+  "chip:горутин запущено",
+  "chip:подзадача",
+  "chip:размер",
+  "chip:режим"
+ ],
+ "prefix-range": [
+  "chip:ans",
+  "chip:resv",
+  "tag:l",
+  "tag:r"
+ ],
+ "prefix-sum-hash": [
+  "chip:j",
+  "chip:need",
+  "tag:j"
+ ],
+ "rabin-karp": [
+  "chip:найдено",
+  "chip:хеш образца",
+  "chip:хеш окна"
+ ],
+ "race-timeline": [
+  "chip:act",
+  "chip:g"
+ ],
+ "rb-delete": [
+  "chip:action",
+  "chip:node"
+ ],
+ "rb-insert": [
+  "chip:action",
+  "chip:node"
+ ],
+ "remove-k-digits": [
+  "chip:st",
+  "tag:pop"
+ ],
+ "route-match": [
+  "chip:caps"
+ ],
+ "scheduler": [
+  "chip:GRQ",
+  "chip:P1 бежит",
+  "chip:источник"
+ ],
+ "search-range-naive": [
+  "chip:first",
+  "chip:last"
+ ],
+ "segtree-build": [
+  "chip:action",
+  "chip:глубина",
+  "chip:отрезок"
+ ],
+ "segtree-query": [
+  "chip:nodeSum",
+  "chip:total"
+ ],
+ "segtree-update": [
+  "chip:action"
+ ],
+ "skip-search": [
+  "chip:level"
+ ],
+ "sliding-window-fixed": [
+  "tag:left",
+  "tag:right"
+ ],
+ "sliding-window-var": [
+  "chip:distinct"
+ ],
+ "sparse-query": [
+  "chip:a",
+  "chip:ans",
+  "chip:b"
+ ],
+ "string-match-naive": [
+  "chip:найдено",
+  "chip:сравнение"
+ ],
+ "subsets-bt": [
+  "chip:action",
+  "chip:count"
+ ],
+ "subsets-with-dup": [
+  "chip:action",
+  "chip:count",
+  "chip:cur"
+ ],
+ "swiss-lookup": [
+  "chip:res",
+  "tag:слот"
+ ],
+ "sync-once": [
+  "chip:ran",
+  "chip:владелец лока",
+  "tag:горутина"
+ ],
+ "sync-pool": [
+  "chip:allocs",
+  "chip:inpool",
+  "chip:invictim",
+  "chip:reused"
+ ],
+ "three-sum": [
+  "chip:found"
+ ],
+ "three-sum-naive": [
+  "chip:found",
+  "chip:sum"
+ ],
+ "tls-handshake": [
+  "chip:appenc",
+  "chip:auth",
+  "chip:hsenc",
+  "chip:secret"
+ ],
+ "top-k": [
+  "chip:heapSize",
+  "chip:popped"
+ ],
+ "top-k-freq": [
+  "chip:heapSize",
+  "chip:popped"
+ ],
+ "tree-bfs": [
+  "chip:depth"
+ ],
+ "tree-dfs": [
+  "chip:visited"
+ ],
+ "tree-right-view": [
+  "chip:level"
+ ],
+ "trie-delete": [
+  "chip:action",
+  "chip:char"
+ ],
+ "trie-insert": [
+  "chip:action",
+  "chip:char"
+ ],
+ "trie-search": [
+  "chip:char",
+  "chip:isWord"
+ ],
+ "trie-shortest-root": [
+  "chip:char"
+ ],
+ "trie-words": [
+  "chip:found",
+  "chip:word"
+ ],
+ "two-heaps-median": [
+  "chip:hiSize",
+  "chip:loSize",
+  "chip:median"
+ ],
+ "two-single": [
+  "chip:i",
+  "tag:i"
+ ],
+ "union-find-union": [
+  "chip:action"
+ ],
+ "wordcount-local": [
+  "chip:act",
+  "chip:g"
+ ],
+ "wordcount-race": [
+  "chip:act",
+  "chip:g"
+ ]
+}
