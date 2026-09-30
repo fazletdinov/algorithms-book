@@ -69,6 +69,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, "❌ problembank: не найдено ни одной задачи — проверь -root")
 		os.Exit(1)
 	}
+	problems, dups := dedupe(problems)
+	for _, d := range dups {
+		fmt.Println("ℹ️  problembank:", d)
+	}
 
 	generated := render(problems)
 	path := filepath.Join(*root, *out)
@@ -155,10 +159,13 @@ func collect(root string) ([]problem, int, error) {
 				continue
 			}
 			text, hint := statement(fn.Doc.Text())
+			// Порог — по исходному условию: он отсекает однострочные конструкторы, и
+			// замена длинного имени на «Функция» не должна выбрасывать LCS или Fib.
 			if len([]rune(text)) < minStatement {
 				skipped++
 				continue
 			}
+			text = neutral(text, fn.Name.Name)
 			out = append(out, problem{
 				Pkg:     pkg,
 				Fn:      fn.Name.Name,
@@ -271,9 +278,7 @@ var hintPrefix = []string{
 }
 
 // statement делит док-комментарий на условие и подсказки, схлопывая переносы
-// строк внутри абзацев (в JS это одна строка). Имя функции в начале
-// («Search возвращает…») остаётся частью условия: оно видно и в сигнатуре,
-// прятать его — самообман.
+// строк внутри абзацев (в JS это одна строка).
 func statement(doc string) (text, hint string) {
 	var body, hints []string
 	for _, p := range strings.Split(strings.TrimSpace(doc), "\n\n") {
@@ -288,6 +293,37 @@ func statement(doc string) (text, hint string) {
 		}
 	}
 	return strings.Join(body, "\n"), strings.Join(hints, "\n")
+}
+
+// neutral прячет имя функции в условии: «SieveOfEratosthenes возвращает…» или
+// «TopKFrequent…» называют приём раньше, чем читатель его выбрал, а сигнатуру
+// смешанная тренировка показывает только ПОСЛЕ ответа. В начале условия имя
+// становится словом «Функция», в примерах — f: «Пример: f(5, 2) = 10».
+func neutral(text, fn string) string {
+	if rest, ok := strings.CutPrefix(text, fn+" "); ok {
+		text = "Функция " + rest
+	}
+	return regexp.MustCompile(`\b`+regexp.QuoteMeta(fn)+`\b`).ReplaceAllString(text, "f")
+}
+
+// dedupe оставляет одну задачу из тех, чьи условия после neutral совпали.
+// Такие задачи различало только имя (ModExp в криптографии и PowMod в теории
+// чисел), и у одного и того же условия оказалось бы два «правильных» шаблона.
+// Остаётся первая по порядку банка; что выброшено, команда печатает.
+func dedupe(ps []problem) ([]problem, []string) {
+	first := map[string]problem{}
+	var out []problem
+	var dups []string
+	for _, p := range ps {
+		if kept, ok := first[p.Text]; ok {
+			dups = append(dups, fmt.Sprintf("условия %s.%s и %s.%s совпали — в банке остаётся первое",
+				kept.Pkg, kept.Fn, p.Pkg, p.Fn))
+			continue
+		}
+		first[p.Text] = p
+		out = append(out, p)
+	}
+	return out, dups
 }
 
 func isHint(para string) bool {

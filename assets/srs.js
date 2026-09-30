@@ -16,7 +16,11 @@
  *   pkg:<пакет>  — как только тесты пакета позеленели в виджете «Реши прямо здесь»;
  *   task:<id>    — как только задача в тексте не далась (промах из challenge.js);
  *   quiz:<вопрос> — промах в квизе распознавания шаблонов (quiz.js);
- *   mix:<pkg>.<fn> — в смешанной тренировке шаблон выбран неверно (mixed.js);
+ *   mix:<pkg>.<fn> — в смешанной тренировке шаблон выбран неверно (mixed.js).
+ *                  Карточка — вопрос: условие из банка задач (без имени функции) и
+ *                  «каким шаблоном это решается?»; глава-ответ и кнопки оценки —
+ *                  только после «Показать ответ». Заголовок «пакет.функция» сам был
+ *                  ответом, и «Помню» ничего не проверяло;
  *   cx:<pkg>.<fn>  — в режиме собеседования сложность своего решения оценена
  *                  неверно (mixed.js): шаблон мог быть узнан, а цена кода — нет.
  *
@@ -191,6 +195,17 @@
     return id.slice(0, id.indexOf(":"));
   }
 
+  // Задача банка смешанной тренировки (assets/problems.js) — источник условия для
+  // карточки-вопроса. Ищется при отрисовке, а не при заведении карточки: условие
+  // в банке могло поменяться, и повторять надо текущее.
+  function findProblem(pkg, fn) {
+    var list = window.ALGO_PROBLEMS || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].p === pkg && list[i].f === fn) return list[i];
+    }
+    return null;
+  }
+
   function describe(id, card) {
     var meta = card.meta || {};
     if (kindOf(id) === "ch") {
@@ -205,11 +220,17 @@
       };
     }
     if (kindOf(id) === "mix") {
+      var prob = findProblem(meta.pkg, meta.fn);
+      var chHref = (meta.chapter || (prob && prob.c) || "") + ".html";
       return {
-        kind: "Смешанная тренировка",
-        title: (meta.pkg || "") + "." + (meta.fn || "") + " — шаблон был выбран неверно",
-        href: "mixed.html",
-        what: "Здесь ты не узнал приём по условию. Открой смешанную тренировку — задача выпадет снова, такие показываются чаще.",
+        kind: "Смешанная тренировка: узнай шаблон",
+        title: prob ? "Каким шаблоном это решается?" : "Задача из смешанной тренировки",
+        href: prob ? "" : "mixed.html",
+        question: prob ? prob.s : "",
+        answer: { text: chapterTitle(chHref), href: chHref },
+        what: prob
+          ? "Назови шаблон и примету в условии, по которой его узнал, — потом открой ответ."
+          : "Её условия больше нет в банке. Вспомни, каким шаблоном она решалась, и открой ответ.",
       };
     }
     if (kindOf(id) === "cx") {
@@ -307,6 +328,11 @@
       } else {
         box.appendChild(el("div", "algo-today__title", info.title));
       }
+      if (info.question) {
+        info.question.split("\n").forEach(function (para) {
+          box.appendChild(el("p", "algo-today__q", para));
+        });
+      }
       box.appendChild(el("p", "algo-today__what", info.what));
 
       if (card.note) {
@@ -331,6 +357,22 @@
         };
         bar.appendChild(b);
       });
+      // Карточка-вопрос: сначала попытка вспомнить, потом ответ, и только потом
+      // оценка. Оценить «Помню», не увидев ответа, — значит не проверить ничего.
+      if (info.answer) {
+        bar.style.display = "none";
+        var reveal = el("button", "algo-quiz__btn algo-today__reveal", "Показать ответ");
+        reveal.type = "button";
+        reveal.onclick = function () {
+          var ans = el("p", "algo-today__answer", "Ответ: ");
+          var link = el("a", null, info.answer.text);
+          link.href = info.answer.href;
+          ans.appendChild(link);
+          box.replaceChild(ans, reveal);
+          bar.style.display = "";
+        };
+        box.appendChild(reveal);
+      }
       box.appendChild(bar);
       root.appendChild(box);
 

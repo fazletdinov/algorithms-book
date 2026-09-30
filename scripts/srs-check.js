@@ -27,6 +27,7 @@ try {
 
 const root = path.resolve(__dirname, "..");
 const srsJs = fs.readFileSync(path.join(root, "assets", "srs.js"), "utf8");
+const problemsJs = fs.readFileSync(path.join(root, "assets", "problems.js"), "utf8");
 
 const errors = [];
 const vc = new VirtualConsole();
@@ -39,7 +40,7 @@ const DAY = 24 * 60 * 60 * 1000;
 // иначе скрипт видит readyState === "loading", подписывается на DOMContentLoaded
 // и строит виджет уже после проверок (первая версия этого смоука так и падала —
 // «карточек 0» при полном localStorage).
-function newDom(seed) {
+function newDom(seed, extra) {
   return new Promise(function (resolve) {
     const dom = new JSDOM(`<!DOCTYPE html><html><body><div class="algo-today"></div></body></html>`, {
       runScripts: "dangerously",
@@ -48,9 +49,12 @@ function newDom(seed) {
     });
     dom.window.addEventListener("load", function () {
       Object.keys(seed).forEach((k) => dom.window.localStorage.setItem(k, seed[k]));
-      const script = dom.window.document.createElement("script");
-      script.textContent = srsJs;
-      dom.window.document.body.appendChild(script);
+      // extra — скрипты, которые в книге подключены раньше движка (банк задач)
+      (extra || []).concat([srsJs]).forEach((code) => {
+        const script = dom.window.document.createElement("script");
+        script.textContent = code;
+        dom.window.document.body.appendChild(script);
+      });
       resolve(dom);
     });
   });
@@ -126,6 +130,30 @@ async function main() {
   const soloText = solo.window.document.querySelector(".algo-today").textContent;
   if (!/Собеседование: сложность/.test(soloText) || !/dp\.CoinChange/.test(soloText)) {
     errors.push(`карточка промаха по сложности отрисована без своего вида или без задачи: «${soloText.slice(0, 120)}»`);
+  }
+
+  // Карточка mix: — вопрос. Раньше её заголовком было «topk.KthLargest — шаблон
+  // выбран неверно»: имя пакета и есть ответ, и «Помню» ничего не проверяло.
+  const mix = await newDom({
+    algoMixedMissed: JSON.stringify({ "topk.KthLargest": { n: 1, chapter: "top-k-elements", pkg: "topk", fn: "KthLargest" } }),
+  }, [problemsJs]);
+  const w = mix.window, box = w.document.querySelector(".algo-today");
+  const statement = (w.ALGO_PROBLEMS.find((p) => p.p === "topk" && p.f === "KthLargest") || {}).s || "";
+  const mixText = box.textContent;
+  if (!statement || !mixText.includes(statement.split("\n")[0])) {
+    errors.push(`карточка mix: не показывает условие задачи из банка: «${mixText.slice(0, 160)}»`);
+  }
+  if (/topk|KthLargest|Top-K|top-k/i.test(mixText)) {
+    errors.push(`карточка mix: до ответа выдаёт пакет, функцию или главу: «${mixText.slice(0, 200)}»`);
+  }
+  const grades = box.querySelector(".algo-today__grades");
+  if (!grades || grades.style.display !== "none") errors.push("карточка mix: оценки доступны до «Показать ответ»");
+  if (click(mix, "Показать ответ")) {
+    const ans = box.querySelector(".algo-today__answer a");
+    if (!ans || ans.getAttribute("href") !== "top-k-elements.html") {
+      errors.push(`после «Показать ответ» нет ссылки на главу-ответ: ${ans && ans.outerHTML}`);
+    }
+    if (grades.style.display === "none") errors.push("после «Показать ответ» оценки так и не появились");
   }
 }
 

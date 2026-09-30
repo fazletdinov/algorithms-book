@@ -357,6 +357,20 @@
   margin: 0.15em 0 0.4em;
 }
 
+.algo-today__q {
+  margin: 0 0 0.5em;
+  line-height: 1.5;
+}
+
+.algo-today__answer {
+  margin: 0 0 0.7em;
+  font-weight: 600;
+}
+
+.algo-today__reveal {
+  margin-bottom: 0.7em;
+}
+
 .algo-today__what {
   margin: 0 0 0.7em;
   font-size: 0.93em;
