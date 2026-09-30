@@ -15372,13 +15372,17 @@
     root.setAttribute("tabindex", "0");
     root.addEventListener("keydown", function (e) {
       if (e.target && e.target.tagName === "INPUT") return;
-      if (e.key === "ArrowLeft") { stopPlay(); show(idx - 1); e.preventDefault(); }
-      else if (e.key === "ArrowRight") { stopPlay(); stepTo(idx + 1); e.preventDefault(); }
-      else if (e.key === "Home") { stopPlay(); show(0); e.preventDefault(); }
-      else if (e.key === "End") { stopPlay(); show(steps.length - 1); e.preventDefault(); }
-      else if (e.key === " " || e.key === "Spacebar") { bPlay.onclick(); e.preventDefault(); }
-      else if (e.key === "f" || e.key === "F" || e.key === "а" || e.key === "А") { setFs(!root.classList.contains("algo-tp--fs")); e.preventDefault(); }
-      else if (e.key === "Escape" && root.classList.contains("algo-tp--fs")) { setFs(false); e.preventDefault(); }
+      if (e.key === "ArrowLeft") { stopPlay(); show(idx - 1); }
+      else if (e.key === "ArrowRight") { stopPlay(); stepTo(idx + 1); }
+      else if (e.key === "Home") { stopPlay(); show(0); }
+      else if (e.key === "End") { stopPlay(); show(steps.length - 1); }
+      else if (e.key === " " || e.key === "Spacebar") { bPlay.onclick(); }
+      else if (e.key === "f" || e.key === "F" || e.key === "а" || e.key === "А") { setFs(!root.classList.contains("algo-tp--fs")); }
+      else if (e.key === "Escape" && root.classList.contains("algo-tp--fs")) { setFs(false); }
+      else return;
+      // mdBook листает главы по ←/→ обработчиком на document и defaultPrevented не
+      // смотрит: без stopPropagation шаг виджета заодно уводил на соседнюю главу.
+      e.preventDefault(); e.stopPropagation();
     });
     // --- Раскладка по умолчанию (по образцу AlgoMaster; data-layout="classic" — прежняя):
     //     код слева, холст справа и под ним ОДНА строка шага + чипы переменных, внизу

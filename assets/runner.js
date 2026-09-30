@@ -163,6 +163,9 @@
     root.appendChild(head);
 
     var editorHost = el("div", "algo-runner__editor");
+    // CodeMirror 6 — contenteditable div, а не textarea, и mdBook его за поле ввода
+    // не считает: ← / → по коду листали бы главы. Клавиши редактора наружу не нужны.
+    editorHost.addEventListener("keydown", function (e) { e.stopPropagation(); });
     root.appendChild(editorHost);
 
     var bar = el("div", "algo-runner__bar");

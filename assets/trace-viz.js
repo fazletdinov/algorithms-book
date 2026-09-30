@@ -267,11 +267,14 @@
       }, AUTOPLAY_MS);
     });
     wrap.addEventListener("keydown", function (e) {
-      if (e.key === "ArrowLeft") { goTo(cur - 1); e.preventDefault(); }
-      else if (e.key === "ArrowRight") { goTo(cur + 1); e.preventDefault(); }
-      else if (e.key === "Home") { goTo(0); e.preventDefault(); }
-      else if (e.key === "End") { goTo(steps.length - 1); e.preventDefault(); }
-      else if (e.key === " ") { playBtn.click(); e.preventDefault(); }
+      if (e.key === "ArrowLeft") { goTo(cur - 1); }
+      else if (e.key === "ArrowRight") { goTo(cur + 1); }
+      else if (e.key === "Home") { goTo(0); }
+      else if (e.key === "End") { goTo(steps.length - 1); }
+      else if (e.key === " ") { playBtn.click(); }
+      else return;
+      // stopPropagation — иначе ←/→ ловит ещё и mdBook на document и листает главу
+      e.preventDefault(); e.stopPropagation();
     });
 
     draw();
