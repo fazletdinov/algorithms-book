@@ -32,3 +32,19 @@
   /* три подписи в строку не влезают: «свободно» уходит вниз, lower и upper — по краям */
   .iv-ruler__free { order:3; flex-basis:100%; text-align:center; }
 }
+
+/* Сканы таблицы: карточка виджета всегда тёмная (.algo-tp), поэтому одна палитра, как у pg-page */
+.iv-scan { --iv-s-unread:#334155; --iv-s-read:#1d4ed8; --iv-s-cur:#f59e0b; --iv-s-match:#16a34a; --iv-s-found:#4ade80; --iv-s-bit:#a78bfa; --iv-s-fg:#e2e8f0; }
+.iv-scan__reads { font:600 14px/1.3 system-ui,sans-serif; color:var(--iv-s-fg); margin-bottom:8px; }
+.iv-scan__grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:6px; }
+.iv-scan__page { border:2px solid transparent; border-radius:6px; padding:4px; background:var(--iv-s-unread); }
+.iv-scan__page--read { background:var(--iv-s-read); }
+.iv-scan__page--bit { border-color:var(--iv-s-bit); }
+.iv-scan__page--cur { border-color:var(--iv-s-cur); }
+.iv-scan__label { font:600 11px/1 system-ui,sans-serif; color:var(--iv-s-fg); margin-bottom:3px; }
+.iv-scan__cells { display:flex; flex-wrap:wrap; gap:2px; }
+.iv-scan__cell { width:9px; height:9px; border-radius:2px; background:rgba(255,255,255,.18); }
+.iv-scan__cell--match { background:var(--iv-s-match); }
+.iv-scan__cell--found { background:var(--iv-s-found); }
+.iv-scan__cell--tid { outline:2px solid var(--iv-s-cur); outline-offset:1px; }
+@media (max-width:520px) { .iv-scan__grid { grid-template-columns:repeat(auto-fill,minmax(78px,1fr)); } }

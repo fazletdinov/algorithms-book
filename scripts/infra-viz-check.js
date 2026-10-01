@@ -297,4 +297,53 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   eq("index: кадр if (line 4) после выбора tid (line 3) всегда", infra.bScanIndex(P, R, cases.scattered).every((s, i, a) => s.line !== 4 || a[i - 1].line === 3), true);
   eq("bitmap: страницы читаются по возрастанию", infra.bScanBitmap(P, R, cases.many).filter((s) => s.line === 7).map((s) => s.mark), infra.bScanBitmap(P, R, cases.many).filter((s) => s.line === 7).map((s) => s.mark).slice().sort((a, b) => a - b));
 }
+// --- виджеты сканов: рисунок, счётчик, пресеты ---
+{
+  const types = ["pg-scan-seq", "pg-scan-index", "pg-scan-bitmap"];
+  const P = 12, R = 8, pg = (r) => Math.floor(r / R);
+  const run = (type, attrs) => {
+    const div = `<div class="algo-viz" id="w" tabindex="0" data-viz="${type}" ${attrs}></div>`;
+    const dom = new JSDOM(`<!DOCTYPE html><html><body>${div}<script>${read("algo-viz.js")}</script><script>${read("infra-viz.js")}</script></body></html>`, { runScripts: "dangerously", pretendToBeVisual: true });
+    dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
+    const el = dom.window.document.getElementById("w");
+    for (let i = 0; i < 400; i++) el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    return el;
+  };
+  const list = infra.parseMatch("r5", P * R);
+  types.forEach((t) => {
+    const el = run(t, 'data-pages="12" data-rows="8" data-match="r5"');
+    eq(`${t}: построен без ошибок`, el.classList.contains("algo-viz--ready") && !/Ошибка визуализации|Неизвестный тип/.test(el.textContent), true);
+    eq(`${t}: сетка ${P} страниц и ${P * R} ячеек`, [el.querySelectorAll(".iv-scan__page").length, el.querySelectorAll(".iv-scan__cell").length], [P, P * R]);
+    eq(`${t}: дошёл до итога`, /Итог:/.test(el.textContent), true);
+  });
+  const want = { "pg-scan-seq": P, "pg-scan-index": last(infra.bScanIndex(P, R, list)).total, "pg-scan-bitmap": new Set(list.map(pg)).size };
+  types.forEach((t) => {
+    const el = run(t, 'data-pages="12" data-rows="8" data-match="r5"');
+    eq(`${t}: счётчик чтений на экране = модель`, +el.querySelector(".iv-scan__reads").getAttribute("data-reads"), want[t]);
+  });
+  // граница: пустой набор и нечисловые размеры не ломают
+  types.forEach((t) => {
+    const el = run(t, 'data-pages="abc" data-rows="0" data-match=""');
+    eq(`${t}: пустой набор и мусорные размеры — без ошибок`, el.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(el.textContent), true);
+  });
+  // пресеты: каждый строится без ошибок у каждого типа
+  const src = read("infra-viz.js");
+  types.forEach((t) => {
+    const body = src.slice(src.indexOf(`    "${t}": {`));
+    const block = (body.match(/presets: \[\n([\s\S]*?)\n      \],/) || [])[1] || "";
+    const presets = [...block.matchAll(/set: \{([^}]*)\}/g)].map((m) => Object.fromEntries([...m[1].matchAll(/"(data-[a-z-]+)":\s*"([^"]*)"/g)].map((x) => [x[1], x[2]])));
+    eq(`${t}: 4 пресета с ровно тремя полями`, [presets.length, presets.every((p) => Object.keys(p).sort().join() === "data-match,data-pages,data-rows")], [4, true]);
+    presets.forEach((p, i) => {
+      const el = run(t, Object.keys(p).map((k) => `${k}="${p[k]}"`).join(" "));
+      eq(`${t}: пресет ${i + 1} строится`, el.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(el.textContent) && /Итог:/.test(el.textContent), true);
+    });
+  });
+  // чип page вне цикла — «—» (итоговый кадр Seq и Bitmap)
+  eq("seq: на итоговом кадре чип page — «—»", last(infra.bScanSeq(P, R, list)).vars.page, "—");
+  eq("bitmap: на итоговом кадре чип page — «—»", last(infra.bScanBitmap(P, R, list)).vars.page, "—");
+  // падежи: «ради 1 строки», «Проверили 1 строку», «по 1 строке»
+  eq("index: «ради 1 строки» и «ради 5 строк»", [/ради 1 строки/.test(last(infra.bScanIndex(P, R, [3])).info), /ради 5 строк/.test(last(infra.bScanIndex(P, R, list)).info)], [true, true]);
+  eq("seq: R=1 — «по 1 строке» и «Проверили 1 строку»", [/по 1 строке/.test(infra.bScanSeq(3, 1, [0])[0].info), /Проверили 1 строку/.test(infra.bScanSeq(3, 1, [0])[3].info)], [true, true]);
+  eq("seq: R=3 — «Проверили 3 строки»", /Проверили 3 строки/.test(infra.bScanSeq(2, 3, [0])[3].info), true);
+}
 process.exit(failed ? 1 : 0);

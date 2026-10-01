@@ -164,19 +164,21 @@
   function matchSetOf(matches) { var m = {}; matches.forEach(function (r) { m[r] = true; }); return m; }
   function plural(n, one, few, many) { var a = n % 100, b = n % 10; return (a >= 11 && a <= 14) ? many : b === 1 ? one : (b >= 2 && b <= 4) ? few : many; }
   function pages(n) { return n + " " + plural(n, "страница", "страницы", "страниц"); }
+  // Падеж зависит от фразы («ради 1 строки», «Проверили 1 строку», «по 1 строке»), поэтому формы 1 и 2–4 передаёт вызывающий.
+  function rows(n, one, few) { return n + " " + plural(n, one, few, "строк"); }
 
   function bScanSeq(P, R, matches) {
     var st = scanState(P, R), ms = matchSetOf(matches);
-    st.snap(1, { page: "—" }, "Таблица: " + pages(P) + " по " + R + " строк. Подходящих строк: " + matches.length + ". Seq Scan читает ВСЕ страницы подряд — без индекса.");
+    st.snap(1, { page: "—" }, "Таблица: " + pages(P) + " по " + rows(R, "строке", "строки") + ". Подходящих строк: " + matches.length + ". Seq Scan читает ВСЕ страницы подряд — без индекса.");
     for (var p = 0; p < P; p++) {
       st.snap(2, { page: p }, "page = " + p, { mark: p });
       st.read(p); st.cur = p;
       st.snap(3, { page: p }, "ReadPage(" + p + "): страница целиком в буфере. Чтений: " + st.total + " из " + P, { mark: p });
       var here = rowsOnPage(p, R, ms);
       here.forEach(function (r) { st.found.push(r); });
-      st.snap(4, { page: p }, here.length ? "Проверили " + R + " строк, подошло: " + here.length + " (всего найдено " + st.found.length + ")" : "Проверили " + R + " строк — ни одна не подошла, но страницу уже прочитали", { mark: p });
+      st.snap(4, { page: p }, here.length ? "Проверили " + rows(R, "строку", "строки") + ", подошло: " + here.length + " (всего найдено " + st.found.length + ")" : "Проверили " + rows(R, "строку", "строки") + " — ни одна не подошла, но страницу уже прочитали", { mark: p });
     }
-    st.snap(6, { page: P - 1 }, "Итог: " + pages(st.total) + " прочитано ради " + st.found.length + " строк. Не зависит от того, сколько строк подошло.", { done: true });
+    st.snap(6, { page: "—" }, "Итог: " + pages(st.total) + " прочитано ради " + rows(st.found.length, "строки", "строк") + ". Не зависит от того, сколько строк подошло.", { done: true });
     return st.steps;
   }
 
@@ -198,7 +200,7 @@
       st.found.push(r);
       st.snap(8, { tid: tt, cur: st.cur }, "Строка " + tt + " добавлена в результат (" + st.found.length + " из " + matches.length + ")", { tid: t, mark: t.page });
     });
-    st.snap(10, { tid: "—", cur: st.cur }, "Итог: " + pages(st.total) + " прочитано ради " + matches.length + " строк" + (st.total > P ? " — БОЛЬШЕ, чем в таблице (" + P + ")" : "") + ".", { done: true });
+    st.snap(10, { tid: "—", cur: st.cur }, "Итог: " + pages(st.total) + " прочитано ради " + rows(matches.length, "строки", "строк") + (st.total > P ? " — БОЛЬШЕ, чем в таблице (" + P + ")" : "") + ".", { done: true });
     return st.steps;
   }
 
@@ -219,9 +221,9 @@
       st.snap(7, { tid: "—", page: p }, "ReadPage(" + p + ") — ровно один раз. Чтений: " + st.total, { mark: p });
       var here = rowsOnPage(p, R, ms);
       here.forEach(function (r) { st.found.push(r); });
-      st.snap(8, { tid: "—", page: p }, "Recheck: из " + R + " строк подошло " + here.length + " (найдено " + st.found.length + ")", { mark: p });
+      st.snap(8, { tid: "—", page: p }, "Recheck: из " + rows(R, "строки", "строк") + " подошло " + here.length + " (найдено " + st.found.length + ")", { mark: p });
     });
-    st.snap(10, { tid: "—", page: set.length ? set[set.length - 1] : "—" }, "Итог: " + pages(st.total) + " прочитано ради " + matches.length + " строк — каждая нужная страница по одному разу, никогда больше " + P + ".", { done: true });
+    st.snap(10, { tid: "—", page: "—" }, "Итог: " + pages(st.total) + " прочитано ради " + rows(matches.length, "строки", "строк") + " — каждая нужная страница по одному разу, никогда больше " + P + ".", { done: true });
     return st.steps;
   }
   exportsForTest.parseMatch = parseMatch;
@@ -297,6 +299,58 @@
     };
   }
 
+  // Размеры клампятся: поля ввода открыты читателю, а сетка из 10 000 ячеек ничему не учит.
+  function clampInt(v, lo, hi, def) { var n = parseInt(v, 10); return isNaN(n) ? def : Math.max(lo, Math.min(hi, n)); }
+
+  // Три скана делят парсинг, итоги, статус и легенду: различаются только генератор, листинг и тексты.
+  var scanCommon = {
+    parse: function (kind) {
+      return function (root) {
+        var P = clampInt(root.getAttribute("data-pages"), 1, 24, 12), R = clampInt(root.getAttribute("data-rows"), 1, 16, 8);
+        var m = parseMatch(root.getAttribute("data-match") == null ? "r5" : root.getAttribute("data-match"), P * R);
+        var gen = { seq: bScanSeq, index: bScanIndex, bitmap: bScanBitmap }[kind];
+        return { P: P, R: R, matches: m, steps: gen(P, R, m) };
+      };
+    },
+    values: function () { return []; },
+    pointers: function () { return { lo: -1, hi: -1 }; },
+    sumCells: ["Чтений страницы", "Страниц в таблице", "Найдено строк"],
+    sumValues: function (s) { return [{ text: s.total, cls: "gt" }, { text: s.P }, { text: s.found.length }]; },
+    status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", hot: !!s.hot, icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+    stepCard: function (s) { return { a: "чтений " + s.total, b: "из " + s.P, c: "найдено " + s.found.length, cls: "gt" }; },
+    legend: [{ cls: "iv-scan__page--unread", label: "страница ещё не читалась" }, { cls: "iv-scan__page--read", label: "страница прочитана (×N — сколько раз)" }, { cls: "iv-scan__page--cur", label: "страница, к которой относится шаг" }, { cls: "iv-scan__cell--match", label: "строка подходит под условие" }, { cls: "iv-scan__cell--found", label: "строка уже в результате" }, { cls: "iv-scan__page--bit", label: "бит страницы в карте (Bitmap)" }]
+  };
+
+  // Сетка «страницы × строки»: все данные идут через textContent (mkEl), разметка из данных не строится.
+  function scanViz(panel, ctx) {
+    var H = window.ALGO_VIZ, ms = {};
+    ctx.matches.forEach(function (r) { ms[r] = true; });
+    var wrap = H.mkEl("div", "iv-scan");
+    panel.appendChild(wrap);
+    return function (s) {
+      wrap.innerHTML = "";
+      var head = H.mkEl("div", "iv-scan__reads", "Чтений страницы таблицы: " + s.total + " из " + pages(s.P));
+      head.setAttribute("data-reads", String(s.total));
+      wrap.appendChild(head);
+      var foundSet = {}; s.found.forEach(function (r) { foundSet[r] = true; });
+      var grid = H.mkEl("div", "iv-scan__grid");
+      for (var p = 0; p < s.P; p++) {
+        var cls = "iv-scan__page " + (s.reads[p] ? "iv-scan__page--read" : "iv-scan__page--unread") + (s.mark === p ? " iv-scan__page--cur" : "") + (s.bits[p] ? " iv-scan__page--bit" : "");
+        var card = H.mkEl("div", cls);
+        card.appendChild(H.mkEl("div", "iv-scan__label", "стр. " + p + (s.reads[p] > 1 ? " ×" + s.reads[p] : s.reads[p] ? " ✓" : "")));
+        var cells = H.mkEl("div", "iv-scan__cells");
+        for (var c = 0; c < s.R; c++) {
+          var id = p * s.R + c;
+          var cc = "iv-scan__cell" + (ms[id] ? " iv-scan__cell--match" : "") + (foundSet[id] ? " iv-scan__cell--found" : "") + (s.tid && s.tid.page === p && s.tid.slot === c ? " iv-scan__cell--tid" : "");
+          cells.appendChild(H.mkEl("div", cc));
+        }
+        card.appendChild(cells);
+        grid.appendChild(card);
+      }
+      wrap.appendChild(grid);
+    };
+  }
+
   var CODE = {
     "pg-page": [
       "func (p *Page) Insert(data []byte) (int, bool) {",
@@ -318,6 +372,44 @@
       "    p.compact() // удалённые строки выброшены, живые сдвинуты к концу; их указатели → dead",
       "    p.freeDeadPointers() // dead → unused (в Postgres — после чистки индексов)",
       "    p.truncateTrailingPointers() // хвост unused-указателей: lower уменьшается",
+      "}"
+    ],
+    "pg-scan-seq": [
+      "func SeqScan(t *Table, pred Pred) []Row {",
+      "    var out []Row",
+      "    for page := 0; page < t.Pages; page++ { // ВСЕ страницы подряд",
+      "        buf := t.ReadPage(page) // +1 чтение страницы",
+      "        out = append(out, buf.Match(pred)...) // проверяем все строки страницы",
+      "    }",
+      "    return out",
+      "}"
+    ],
+    "pg-scan-index": [
+      "func IndexScan(idx *Index, t *Table, key Range) []Row {",
+      "    var out []Row",
+      "    cur := -1 // страница, закреплённая в буфере",
+      "    for _, tid := range idx.Lookup(key) { // ctid в порядке КЛЮЧА, не страниц",
+      "        if tid.Page != cur {",
+      "            t.ReadPage(tid.Page) // +1 чтение",
+      "            cur = tid.Page",
+      "        }",
+      "        out = append(out, t.Row(tid))",
+      "    }",
+      "    return out",
+      "}"
+    ],
+    "pg-scan-bitmap": [
+      "func BitmapScan(idx *Index, t *Table, key Range) []Row {",
+      "    bitmap := map[int]bool{}",
+      "    for _, tid := range idx.Lookup(key) {",
+      "        bitmap[tid.Page] = true // запомнили только НОМЕР страницы",
+      "    }",
+      "    var out []Row",
+      "    for _, page := range sortedKeys(bitmap) { // страницы по возрастанию",
+      "        buf := t.ReadPage(page) // каждая страница ровно один раз",
+      "        out = append(out, buf.Recheck(key)...)",
+      "    }",
+      "    return out",
       "}"
     ]
   };
@@ -357,6 +449,90 @@
       stepCard: function (s) { return { a: s.vars.op, b: "lower " + s.vars.lower, c: "upper " + s.vars.upper, cls: "gt" }; },
       varsOf: function (s) { return { size: s.vars.size, slot: s.vars.slot, need: s.vars.need, lower: s.vars.lower, upper: s.vars.upper }; },
       customViz: pgPageViz
+    },
+    "pg-scan-seq": {
+      badge: "Postgres · Seq Scan",
+      desc: "Последовательное чтение: все страницы таблицы подряд, на каждой проверяем все строки. Стоимость не зависит от того, сколько строк подошло.",
+      valuesLabel: "", codeKey: "pg-scan-seq", fillRange: false,
+      complexity: { time: "O(страниц)", space: "O(1)", good: "★ читает подряд — дёшево на странице" },
+      varOrder: ["page"],
+      varDesc: { page: "Текущая страница" },
+      lineNotes: { 2: "Страницы идут по порядку — никаких прыжков", 3: "Читаем страницу целиком — одно чтение, сколько бы на ней строк ни подошло", 4: "Проверяем ВСЕ строки страницы, даже ненужные" },
+      rules: [{ head: "чтений", body: "= страниц в таблице", cls: "eq" }, { head: "порядок", body: "физический, подряд", cls: "gt" }],
+      legend: scanCommon.legend,
+      presets: [
+        { label: "пример главы: 5% разбросаны", set: { "data-pages": "12", "data-rows": "8", "data-match": "r5" }, hint: "5 строк, все страницы" },
+        { label: "те же строки подряд", set: { "data-pages": "12", "data-rows": "8", "data-match": "0-4" }, hint: "стоимость не изменилась" },
+        { label: "70% строк", set: { "data-pages": "12", "data-rows": "8", "data-match": "r67" }, hint: "тут Seq выигрывает" },
+        { label: "ничего не подошло", set: { "data-pages": "12", "data-rows": "8", "data-match": "" }, hint: "всё равно читает всё" }
+      ],
+      parse: scanCommon.parse("seq"),
+      inputs: [{ attr: "data-pages", label: "Страниц в таблице" }, { attr: "data-rows", label: "Строк на странице" }, { attr: "data-match", label: "Подходящие строки (N, a-b, rK)" }],
+      values: scanCommon.values,
+      title: function (ctx) { return "Seq Scan: " + ctx.P + " стр. × " + ctx.R + " строк, подходит " + ctx.matches.length; },
+      pointers: scanCommon.pointers,
+      sumCells: scanCommon.sumCells,
+      sumValues: scanCommon.sumValues,
+      status: scanCommon.status,
+      stepCard: scanCommon.stepCard,
+      varsOf: function (s) { return { page: s.vars.page }; },
+      customViz: scanViz
+    },
+    "pg-scan-index": {
+      badge: "Postgres · Index Scan",
+      desc: "Чтение по индексу: индекс отдаёт ctid строк в порядке ключа, а строки таблицы лежат как попало. Страница перечитывается, когда индекс возвращается к ней после чужих.",
+      valuesLabel: "", codeKey: "pg-scan-index", fillRange: false,
+      complexity: { time: "O(найдено) чтений", space: "O(1)", good: "★ выигрывает, когда строк мало" },
+      varOrder: ["tid", "cur"],
+      varDesc: { tid: "ctid строки из индекса", cur: "Страница, что сейчас в буфере" },
+      lineNotes: { 3: "Индекс отдаёт ctid в порядке КЛЮЧА — страницы идут вразнобой", 4: "Та же страница, что и в прошлый раз? Тогда читать не надо", 5: "Новая страница — чтение; к уже виденной страницы после чужих — снова чтение (×2)", 8: "Строка берётся со страницы, что уже в буфере" },
+      rules: [{ head: "чтений", body: "= смен страницы подряд", cls: "eq" }, { head: "порядок", body: "по ключу, а не по страницам", cls: "lt" }],
+      legend: scanCommon.legend,
+      presets: [
+        { label: "пример главы: 5% разбросаны", set: { "data-pages": "12", "data-rows": "8", "data-match": "r5" }, hint: "5 строк — ≈5 чтений" },
+        { label: "те же строки подряд", set: { "data-pages": "12", "data-rows": "8", "data-match": "0-4" }, hint: "подряд — 1 чтение" },
+        { label: "70% строк", set: { "data-pages": "12", "data-rows": "8", "data-match": "r67" }, hint: "70% строк — больше, чем в таблице!" },
+        { label: "ничего не подошло", set: { "data-pages": "12", "data-rows": "8", "data-match": "" }, hint: "ничего — ноль чтений" }
+      ],
+      parse: scanCommon.parse("index"),
+      inputs: [{ attr: "data-pages", label: "Страниц в таблице" }, { attr: "data-rows", label: "Строк на странице" }, { attr: "data-match", label: "Подходящие строки (N, a-b, rK)" }],
+      values: scanCommon.values,
+      title: function (ctx) { return "Index Scan: " + ctx.P + " стр. × " + ctx.R + " строк, подходит " + ctx.matches.length; },
+      pointers: scanCommon.pointers,
+      sumCells: scanCommon.sumCells,
+      sumValues: scanCommon.sumValues,
+      status: scanCommon.status,
+      stepCard: scanCommon.stepCard,
+      varsOf: function (s) { return { tid: s.vars.tid, cur: s.vars.cur }; },
+      customViz: scanViz
+    },
+    "pg-scan-bitmap": {
+      badge: "Postgres · Bitmap Scan",
+      desc: "Сначала по индексу собирается карта нужных страниц, потом они читаются по возрастанию, каждая один раз. Порядок ключа забывается, зато повторных чтений нет.",
+      valuesLabel: "", codeKey: "pg-scan-bitmap", fillRange: false,
+      complexity: { time: "O(различных страниц)", space: "O(страниц) на карту", good: "★ не больше страниц, чем в таблице" },
+      varOrder: ["tid", "page"],
+      varDesc: { tid: "ctid строки из индекса", page: "Страница, которую читаем" },
+      lineNotes: { 3: "Запоминаем только номер страницы: порядок ключа не нужен", 6: "Страницы по возрастанию — читаем почти подряд", 7: "Каждая нужная страница — ровно один раз", 8: "Recheck: из страницы берём только подходящие строки" },
+      rules: [{ head: "чтений", body: "= различных страниц", cls: "eq" }, { head: "потолок", body: "страниц в таблице", cls: "gt" }],
+      legend: scanCommon.legend,
+      presets: [
+        { label: "пример главы: 5% разбросаны", set: { "data-pages": "12", "data-rows": "8", "data-match": "r5" }, hint: "5 строк — ≈5 страниц" },
+        { label: "те же строки подряд", set: { "data-pages": "12", "data-rows": "8", "data-match": "0-4" }, hint: "подряд — 1 страница" },
+        { label: "70% строк", set: { "data-pages": "12", "data-rows": "8", "data-match": "r67" }, hint: "70% строк — не больше 12" },
+        { label: "ничего не подошло", set: { "data-pages": "12", "data-rows": "8", "data-match": "" }, hint: "ничего — ноль" }
+      ],
+      parse: scanCommon.parse("bitmap"),
+      inputs: [{ attr: "data-pages", label: "Страниц в таблице" }, { attr: "data-rows", label: "Строк на странице" }, { attr: "data-match", label: "Подходящие строки (N, a-b, rK)" }],
+      values: scanCommon.values,
+      title: function (ctx) { return "Bitmap Scan: " + ctx.P + " стр. × " + ctx.R + " строк, подходит " + ctx.matches.length; },
+      pointers: scanCommon.pointers,
+      sumCells: scanCommon.sumCells,
+      sumValues: scanCommon.sumValues,
+      status: scanCommon.status,
+      stepCard: scanCommon.stepCard,
+      varsOf: function (s) { return { tid: s.vars.tid, page: s.vars.page }; },
+      customViz: scanViz
     }
   };
 
