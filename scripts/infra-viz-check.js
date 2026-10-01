@@ -338,6 +338,17 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
       eq(`${t}: пресет ${i + 1} строится`, el.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(el.textContent) && /Итог:/.test(el.textContent), true);
     });
   });
+  // точки легенды: движок рисует их классом algo-tp__legdot--<cls>; без правила в CSS все шесть — одинаковые пустые кружки
+  {
+    const css = read("infra-viz.css");
+    const legend = src.slice(src.indexOf("var scanCommon"));
+    const classes = [...legend.slice(legend.indexOf("legend: ["), legend.indexOf("\n  };")).matchAll(/cls: "([^"]+)"/g)].map((m) => m[1]);
+    eq("легенда сканов: найдено 6 классов", classes.length, 6);
+    classes.forEach((c) => {
+      const rule = (css.match(new RegExp("\\.algo-tp__legdot--" + c.replace(/[-_]/g, "\\$&") + "\\s*\\{([^}]*)\\}")) || [])[1] || "";
+      eq(`легенда сканов: у точки ${c} есть правило с цветом`, /#[0-9a-f]{6}/i.test(rule), true);
+    });
+  }
   // чип page вне цикла — «—» (итоговый кадр Seq и Bitmap)
   eq("seq: на итоговом кадре чип page — «—»", last(infra.bScanSeq(P, R, list)).vars.page, "—");
   eq("bitmap: на итоговом кадре чип page — «—»", last(infra.bScanBitmap(P, R, list)).vars.page, "—");
