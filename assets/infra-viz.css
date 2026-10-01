@@ -1,13 +1,33 @@
-.iv-page { --iv-hdr:#64748b; --iv-ptr:#2563eb; --iv-tup:#16a34a; --iv-dead:#dc2626; --iv-free:#e2e8f0; --iv-unused:#94a3b8; --iv-res:#f59e0b; --iv-fg:#0f172a; --iv-bd:#cbd5e1; }
-.coal .iv-page, .navy .iv-page, .ayu .iv-page { --iv-free:#1e293b; --iv-fg:#e2e8f0; --iv-bd:#334155; --iv-hdr:#94a3b8; }
+/* Токены на корне виджета, а не на .iv-page: легенда движка стоит вне рисунка страницы.
+   Палитра одна на все темы книги: карточка движка (.algo-tp) тёмная всегда, и светлые значения
+   на теме light давали тёмный текст линейки на тёмном фоне — его не было видно.
+   unused — приглушённый синий: тот же указатель, только пустой (серый путался с заголовком). */
+.algo-viz { --iv-hdr:#94a3b8; --iv-ptr:#2563eb; --iv-tup:#16a34a; --iv-dead:#dc2626; --iv-free:#1e293b; --iv-hole:#475569; --iv-unused:#35598a; --iv-res:#f59e0b; --iv-fg:#e2e8f0; --iv-bd:#334155; }
 .iv-bar { display:flex; width:100%; height:52px; border:1px solid var(--iv-bd); border-radius:6px; overflow:hidden; }
 .iv-seg { box-sizing:border-box; flex:0 1 auto; min-width:0; display:flex; align-items:center; justify-content:center; font:600 11px/1 system-ui,sans-serif; color:#fff; overflow:hidden; white-space:nowrap; border-right:1px solid rgba(255,255,255,.35); }
 .iv-seg--hdr { background:var(--iv-hdr); } .iv-seg--ptr { background:var(--iv-ptr); } .iv-seg--tup { background:var(--iv-tup); }
 .iv-seg--dead { background:var(--iv-dead); text-decoration:line-through; } .iv-seg--unused { background:var(--iv-unused); }
 .iv-seg--reserved { background:repeating-linear-gradient(45deg,var(--iv-res),var(--iv-res) 6px,#fbbf24 6px,#fbbf24 12px); color:#000; }
 .iv-seg--free { background:var(--iv-free); color:var(--iv-fg); border-right:0; }
-.iv-ruler { display:flex; justify-content:space-between; margin:6px 0 10px; font:12px/1.2 ui-monospace,monospace; color:var(--iv-fg); }
+.iv-seg--hole { background:repeating-linear-gradient(135deg,var(--iv-free),var(--iv-free) 5px,var(--iv-hole) 5px,var(--iv-hole) 10px); color:var(--iv-fg); }
+.iv-ruler { display:flex; flex-wrap:wrap; justify-content:space-between; gap:2px 8px; margin:6px 0 10px; font:12px/1.2 ui-monospace,monospace; color:var(--iv-fg); }
+.iv-ruler span { white-space:nowrap; }
+.iv-th-s { display:none; }
 .iv-slots { width:100%; border-collapse:collapse; font-size:13px; }
 .iv-slots th,.iv-slots td { border:1px solid var(--iv-bd); padding:3px 8px; text-align:left; }
-.iv-slots__deleted td { color:var(--iv-dead); } .iv-slots__unused td { color:var(--iv-unused); }
-@media (max-width:520px) { .iv-bar { height:44px; } .iv-seg { font-size:10px; } .iv-slots { font-size:12px; } }
+.iv-slots__deleted td { color:var(--iv-dead); } .iv-slots__unused td { color:var(--iv-fg); opacity:.55; }
+/* образцы в легенде движка: класс точки = algo-tp__legdot--<cls из конфига> */
+.algo-tp__legdot--iv-seg--hdr { background:var(--iv-hdr); border-color:var(--iv-hdr); border-radius:2px; }
+.algo-tp__legdot--iv-seg--ptr { background:var(--iv-ptr); border-color:var(--iv-ptr); border-radius:2px; }
+.algo-tp__legdot--iv-seg--tup { background:var(--iv-tup); border-color:var(--iv-tup); border-radius:2px; }
+.algo-tp__legdot--iv-seg--dead { background:var(--iv-dead); border-color:var(--iv-dead); border-radius:2px; }
+.algo-tp__legdot--iv-seg--unused { background:var(--iv-unused); border-color:var(--iv-unused); border-radius:2px; }
+.algo-tp__legdot--iv-seg--hole { background:repeating-linear-gradient(135deg,var(--iv-free),var(--iv-free) 2px,var(--iv-hole) 2px,var(--iv-hole) 4px); border-color:var(--iv-hole); border-radius:2px; }
+.algo-tp__legdot--iv-seg--free { background:var(--iv-free); border-color:var(--iv-bd); border-radius:2px; }
+@media (max-width:520px) {
+  .iv-bar { height:44px; } .iv-seg { font-size:10px; }
+  .iv-slots { font-size:11px; } .iv-slots th, .iv-slots td { padding:2px 5px; }
+  .iv-th-l { display:none; } .iv-th-s { display:inline; }
+  /* три подписи в строку не влезают: «свободно» уходит вниз, lower и upper — по краям */
+  .iv-ruler__free { order:3; flex-basis:100%; text-align:center; }
+}

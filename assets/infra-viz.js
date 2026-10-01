@@ -9,7 +9,9 @@
 
   // Формат: "+имя:байты" вставка, "-N" удаление слота N (с 1), "vacuum".
   function parseOps(str, pageSize) {
-    var max = (pageSize || 8192) - PAGE_HDR - ITEM - TUP_HDR;
+    // как MaxHeapTupleSize: строка длиннее не влезет даже на пустую страницу — Postgres
+    // отвечает ошибкой «row is too big: … maximum size 8160», а не уносит её на другую страницу
+    var max = (pageSize || 8192) - maxAlign(PAGE_HDR + ITEM) - TUP_HDR;
     var ops = [];
     String(str || "").split(",").forEach(function (raw) {
       var t = raw.trim();
@@ -56,16 +58,22 @@
         var slot = -1;
         for (var i = 0; i < slots.length; i++) if (slots[i].state === "unused") { slot = i; break; }
         steps.push(snap({ line: 2, vars: v(label, { size: size, slot: slot < 0 ? -1 : slot + 1 }), info: slot < 0 ? "Свободного указателя нет (-1) — заведём новый" : "Есть свободный указатель №" + (slot + 1) + " — переиспользуем" }));
-        var need = size + (slot < 0 ? ITEM : 0);
-        steps.push(snap({ line: 3, vars: v(label, { size: size, slot: slot < 0 ? -1 : slot + 1, need: need }), info: "need = " + size + (slot < 0 ? " + " + ITEM + " (новый указатель)" : " (указатель уже есть)") + " = " + need + " Б; свободно " + (upper() - lower()) + " Б" }));
+        // Запас под указатель — всегда, даже когда найдётся старый unused: так считает
+        // PageGetHeapFreeSpace, и строка, которой хватило бы места без этих 4 Б, уходит на
+        // другую страницу (сверено вживую: free 2080 и свободный №1, строка 2080 Б → ctid (1,1)).
+        var need = size + ITEM;
+        steps.push(snap({ line: 3, vars: v(label, { size: size, slot: slot < 0 ? -1 : slot + 1, need: need }), info: "need = " + size + " + " + ITEM + (slot < 0 ? " (новый указатель)" : " (запас под указатель: Postgres требует его, даже когда берёт старый №" + (slot + 1) + ")") + " = " + need + " Б; свободно " + (upper() - lower()) + " Б" }));
         if (need > upper() - lower()) {
-          steps.push(snap({ line: 5, hot: true, vars: v(label, { size: size, slot: slot < 0 ? -1 : slot + 1, need: need }), info: "need " + need + " > свободно " + (upper() - lower()) + " → не влезло. Postgres положит строку на другую страницу (или добавит новую)" }));
+          // кадр на самой проверке — и в этой ветке: без него режим 🎯 не спрашивал бы
+          // про единственный интересный исход (одна строка листинга — один кадр)
+          steps.push(snap({ line: 4, vars: v(label, { size: size, slot: slot < 0 ? -1 : slot + 1, need: need }), info: "need " + need + " > свободно " + (upper() - lower()) + " — да, места не хватает" }));
+          steps.push(snap({ line: 5, hot: true, vars: v(label, { size: size, slot: slot < 0 ? -1 : slot + 1, need: need }), info: "Не влезло: страница не меняется. Postgres положит строку на другую страницу (или добавит новую)" }));
           return;
         }
         var reserveOff = upper() - size; // новая строка кладётся под нижнюю, остальные не двигаются
         var newSlot = slot < 0 ? { n: slots.length + 1, state: "normal", name: op.name, off: reserveOff, len: size } : null;
         var target = newSlot || slots[slot];
-        steps.push(snap({ line: 4, vars: v(label, { size: size, slot: target.n, need: need }), info: "need ≤ свободно → вставка пройдёт" }));
+        steps.push(snap({ line: 4, vars: v(label, { size: size, slot: target.n, need: need }), info: "need " + need + " ≤ свободно " + (upper() - lower()) + " — нет, место есть, вставка пройдёт" }));
         // upper сдвигается ДО появления указателя и tuple: резерв места
         steps.push({ slots: snap({}).slots, lower: lower(), upper: reserveOff, reserved: { off: reserveOff, len: size }, line: 7, vars: v(label, { size: size, slot: target.n, need: need, upper: reserveOff }), info: "upper -= " + size + ": место под строку отрезано от свободной зоны" });
         if (newSlot) slots.push(newSlot); else { target.state = "normal"; target.name = op.name; target.len = size; target.off = reserveOff; }
@@ -79,7 +87,7 @@
           return;
         }
         s.state = "deleted";
-        steps.push(snap({ line: 13, vars: v("Delete(" + op.slot + ")", { slot: op.slot }), info: "xmax проставлен: строка «" + s.name + "» невидима для новых транзакций, но её " + s.len + " Б всё ещё заняты — место вернёт только VACUUM" }));
+        steps.push(snap({ line: 13, vars: v("Delete(" + op.slot + ")", { slot: op.slot }), info: "xmax проставлен: строка «" + s.name + "» невидима для новых транзакций, но её " + s.len + " Б всё ещё заняты — место вернёт очистка страницы (здесь — VACUUM)" }));
       } else {
         var dead = slots.filter(function (x) { return x.state === "deleted"; });
         if (!dead.length) {
@@ -91,11 +99,18 @@
         compact();
         steps.push(snap({ line: 17, hot: true, vars: v("Vacuum", {}), info: "compact: живые строки сдвинуты к концу страницы — upper вырос до " + upper() }));
         var before = slots.length;
-        while (slots.length && slots[slots.length - 1].state === "unused") slots.pop();
-        steps.push(snap({ line: 18, vars: v("Vacuum", {}), info: slots.length < before ? "Хвостовые unused-указатели отрезаны: lower уменьшился до " + lower() : "Хвоста из unused нет — lower не изменился (указатель в середине останется ждать новую строку)" }));
+        // как PageTruncateLinePointerArray: хвост unused отрезается, но указатель №1 — никогда
+        // (сверено вживую: страница, где удалено всё, после VACUUM — lower 28, №1 unused)
+        while (slots.length > 1 && slots[slots.length - 1].state === "unused") slots.pop();
+        var cut = slots.length < before, info18;
+        if (slots.length === 1 && slots[0].state === "unused") info18 = (cut ? "Хвост unused отрезан до одного: " : "") + "указатель №1 остаётся даже на пустой странице — его Postgres не отрезает, lower = " + lower();
+        else info18 = cut ? "Хвостовые unused-указатели отрезаны: lower уменьшился до " + lower() : "Хвоста из unused нет — lower не изменился (указатель в середине останется ждать новую строку)";
+        steps.push(snap({ line: 18, vars: v("Vacuum", {}), info: info18 }));
       }
     });
-    steps.push(snap({ done: true, line: 19, vars: v("готово", {}), info: "Итог: " + slots.filter(function (x) { return x.state === "normal"; }).length + " живых строк, свободно " + (upper() - lower()) + " Б из " + pageSize }));
+    var alive = slots.filter(function (x) { return x.state === "normal"; }).length, m10 = alive % 10, m100 = alive % 100;
+    var aliveText = alive + (m10 === 1 && m100 !== 11 ? " живая строка" : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? " живых строки" : " живых строк");
+    steps.push(snap({ done: true, line: 19, vars: v("готово", {}), info: "Итог: " + aliveText + ", свободно " + (upper() - lower()) + " Б из " + pageSize }));
     return steps;
   }
   exportsForTest.bPgPage = bPgPage;
@@ -116,27 +131,51 @@
       var specs = [{ cls: "iv-seg--hdr", bytes: PAGE_HDR, label: "hdr" }];
       s.slots.forEach(function (sl) { specs.push({ cls: sl.state === "unused" ? "iv-seg--unused" : "iv-seg--ptr", bytes: ITEM, label: "№" + sl.n }); });
       specs.push({ cls: "iv-seg--free", bytes: Math.max(freeBytes, 0), label: freeBytes > size * 0.06 ? "свободно " + freeBytes + " Б" : "" });
-      var tuples = s.slots.filter(function (x) { return x.state !== "unused" && !x.ptrOnly && x.off; }).sort(function (a, b) { return a.off - b.off; });
-      if (s.reserved && !tuples.some(function (t) { return t.off === s.reserved.off; })) specs.push({ cls: "iv-seg--reserved", bytes: s.reserved.len, label: "резерв" });
-      tuples.forEach(function (t) { specs.push({ cls: t.state === "deleted" ? "iv-seg--dead" : "iv-seg--tup", bytes: t.len, label: t.name + (t.state === "deleted" ? " ✗" : "") }); });
+      // Зона строк — от upper до конца страницы, по смещениям. Промежуток между строками —
+      // «дыра»: указатель уже unused, а байты ещё не слиты со свободной серединой (это делает
+      // compact). Без неё полоса на кадре до compact теряла эти байты и растягивала остальное.
+      function hole(n) { return { cls: "iv-seg--hole", bytes: n, label: n > size * 0.06 ? "дыра " + n + " Б" : "" }; }
+      var zone = s.slots.filter(function (x) { return x.state !== "unused" && !x.ptrOnly && x.off; }).map(function (t) {
+        return { off: t.off, bytes: t.len, cls: t.state === "deleted" ? "iv-seg--dead" : "iv-seg--tup", label: t.name + (t.state === "deleted" ? " ✗" : "") };
+      });
+      if (s.reserved && !zone.some(function (z) { return z.off === s.reserved.off; })) zone.push({ off: s.reserved.off, bytes: s.reserved.len, cls: "iv-seg--reserved", label: "резерв" });
+      zone.sort(function (a, b) { return a.off - b.off; });
+      var pos = s.upper;
+      zone.forEach(function (z) {
+        if (z.off > pos) specs.push(hole(z.off - pos));
+        specs.push(z);
+        pos = z.off + z.bytes;
+      });
+      if (pos < size) specs.push(hole(size - pos));
       // ширина = доля байт, но непустой сегмент не уже MIN_SHARE; затем весь набор
       // масштабируется к 100%, чтобы мелочь не вытесняла соседей за край полосы
       var weights = specs.map(function (sp) { return sp.bytes > 0 ? Math.max(sp.bytes / size, MIN_SHARE) : 0; });
       var total = weights.reduce(function (acc, w) { return acc + w; }, 0) || 1;
       specs.forEach(function (sp, i) {
-        var e = H.mkEl("div", "iv-seg " + sp.cls, sp.label);
+        // подпись — только там, где она помещается: обрезанное «hdr» читалось как строка «d»
+        var e = H.mkEl("div", "iv-seg " + sp.cls, weights[i] / total >= 0.04 ? sp.label : "");
         e.style.flexBasis = (weights[i] / total * 100) + "%";
         e.title = sp.label + " · " + sp.bytes + " Б";
         bar.appendChild(e);
       });
       wrap.appendChild(bar);
+      // На телефоне «свободно 2084 Б» не влезает в свой сегмент и обрезалось с двух сторон до
+      // «ободно 2084» — обрубленное число хуже никакого: убираем подпись (она есть в линейке ниже)
+      Array.prototype.forEach.call(bar.children, function (e) { if (e.textContent && e.scrollWidth > e.clientWidth + 1) e.textContent = ""; });
       var ruler = H.mkEl("div", "iv-ruler");
       ruler.appendChild(H.mkEl("span", "", "lower = " + s.lower));
       ruler.appendChild(H.mkEl("span", "iv-ruler__free", "← свободно " + freeBytes + " Б →"));
       ruler.appendChild(H.mkEl("span", "", "upper = " + s.upper));
       wrap.appendChild(ruler);
       var tbl = H.mkEl("table", "iv-slots");
-      var head = H.mkEl("tr"); ["указатель", "состояние", "строка", "смещение", "байт"].forEach(function (h) { head.appendChild(H.mkEl("th", "", h)); });
+      // короткие заголовки — для телефона: полные не влезали в 360 px, и таблица уезжала вбок
+      var head = H.mkEl("tr");
+      [["указатель", "№"], ["состояние", "сост."], ["строка", "строка"], ["смещение", "смещ."], ["байт", "Б"]].forEach(function (h) {
+        var th = H.mkEl("th");
+        th.appendChild(H.mkEl("span", "iv-th-l", h[0]));
+        th.appendChild(H.mkEl("span", "iv-th-s", h[1]));
+        head.appendChild(th);
+      });
       tbl.appendChild(head);
       var names = { normal: "живая", deleted: "удалена (xmax)", unused: "unused" };
       s.slots.forEach(function (sl) {
@@ -154,7 +193,7 @@
       "func (p *Page) Insert(data []byte) (int, bool) {",
       "    size := maxAlign(tupleHeader + len(data))",
       "    slot := p.firstUnused() // -1: свободного указателя нет",
-      "    need := size + p.pointerCost(slot) // 4 байта, если слот новый",
+      "    need := size + itemIdSize // 4 Б под указатель — даже если найдётся старый",
       "    if need > p.upper-p.lower {",
       "        return 0, false // не влезло: строка уйдёт на другую страницу",
       "    }",
@@ -177,16 +216,17 @@
   var INFRA = {
     "pg-page": {
       badge: "Postgres · страница 8 КБ",
-      desc: "Страница кучи Postgres: заголовок, массив указателей (растёт сверху вниз) и строки (растут снизу вверх). Между ними — свободное место. DELETE место не освобождает — это делает VACUUM.",
+      desc: "Страница кучи Postgres: заголовок, массив указателей (растёт сверху вниз) и строки (растут снизу вверх). Между ними — свободное место. DELETE место не освобождает — его возвращает очистка страницы (VACUUM).",
       valuesLabel: "", codeKey: "pg-page", fillRange: false,
       complexity: { time: "вставка O(1)", space: "8192 Б на страницу", good: "★ 1 чтение = 1 страница" },
       varOrder: ["size", "slot", "need", "lower", "upper"],
       varDesc: { size: "Размер строки (выровнено до 8)", slot: "Слот (указатель)", need: "Сколько байт нужно", lower: "Конец массива указателей", upper: "Начало зоны строк" },
-      lineNotes: { 1: "Заголовок tuple 24 Б + данные, округление вверх до кратного 8", 2: "Ищем освободившийся указатель — переиспользуем", 3: "Новый указатель стоит ещё 4 байта", 4: "Хватит ли места между lower и upper?", 5: "Нет — строка уедет на другую страницу", 7: "Зона строк растёт вниз-вверх: upper уменьшается", 8: "Указатель записан; lower растёт, если слот новый", 9: "Сами байты строки — по смещению upper", 13: "DELETE лишь ставит xmax: байты остаются", 16: "Указатель удалённой строки освобождается", 17: "Живые строки сдвигаются, место объединяется", 18: "Хвост неиспользуемых указателей отрезается" },
+      lineNotes: { 1: "Заголовок tuple 24 Б + данные, округление вверх до кратного 8", 2: "Ищем освободившийся указатель — переиспользуем", 3: "4 байта под указатель Postgres требует всегда — даже когда переиспользует старый", 4: "Хватит ли места между lower и upper?", 5: "Нет — строка уедет на другую страницу", 7: "Зона строк растёт вниз-вверх: upper уменьшается", 8: "Указатель записан; lower растёт, если слот новый", 9: "Сами байты строки — по смещению upper", 13: "DELETE лишь ставит xmax: байты остаются", 16: "Указатель удалённой строки освобождается", 17: "Живые строки сдвигаются, место объединяется", 18: "Хвост неиспользуемых указателей отрезается" },
       rules: [{ head: "указатели", body: "растут сверху", cls: "eq" }, { head: "строки", body: "растут снизу", cls: "gt" }, { head: "DELETE", body: "место не возвращает", cls: "lt" }],
-      legend: [{ cls: "iv-seg--hdr", label: "заголовок страницы (24 Б)" }, { cls: "iv-seg--ptr", label: "указатель на строку (4 Б)" }, { cls: "iv-seg--tup", label: "живая строка" }, { cls: "iv-seg--dead", label: "удалена, место занято" }, { cls: "iv-seg--free", label: "свободное место" }],
+      legend: [{ cls: "iv-seg--hdr", label: "заголовок страницы (24 Б)" }, { cls: "iv-seg--ptr", label: "указатель на строку (4 Б)" }, { cls: "iv-seg--tup", label: "живая строка" }, { cls: "iv-seg--dead", label: "удалена, место занято" }, { cls: "iv-seg--unused", label: "указатель unused — ждёт новую строку" }, { cls: "iv-seg--hole", label: "освобождено, но ещё не сдвинуто" }, { cls: "iv-seg--free", label: "свободное место" }],
       presets: [
-        { label: "пример главы", set: { "data-ops": "+a:2000,+b:2000,+c:2000,+d:2000,+e:2000", "data-page": "8192" }, hint: "4 строки влезли, пятая — нет" },
+        // не «пример главы»: эту кнопку движок ставит сам, и во втором виджете главы она другая
+        { label: "пятая не влезла", set: { "data-ops": "+a:2000,+b:2000,+c:2000,+d:2000,+e:2000", "data-page": "8192" }, hint: "4 строки влезли, пятая — нет" },
         { label: "узкие строки", set: { "data-ops": "+a:100,+b:100,+c:100,+d:100,+e:100,+f:100", "data-page": "8192" }, hint: "указатели тоже стоят места" },
         { label: "DELETE без VACUUM", set: { "data-ops": "+a:2000,+b:2000,+c:2000,-1,-2,+d:2000,+e:2000", "data-page": "8192" }, hint: "удалённое место не вернулось" },
         { label: "DELETE + VACUUM", set: { "data-ops": "+a:2000,+b:2000,+c:2000,-1,-2,vacuum,+d:2000,+e:2000", "data-page": "8192" }, hint: "после VACUUM место снова есть" },

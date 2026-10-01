@@ -111,6 +111,10 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   // 5-я: нужно 2024+4=2028 > 96-40=56 — не влезает
   const st5 = run("+a:2000,+b:2000,+c:2000,+d:2000,+e:2000");
   eq("5-я не влезает, состояние не меняется", [last(st5).lower, last(st5).upper, last(st5).slots.length], [40, 96, 4]);
+  // режим 🎯 спрашивает про `if need > …` по паре кадров (строка 4, следующий кадр): у вставок,
+  // что влезли, за 4 идёт 7 («нет»), у пятой — 5 («да»). Без кадра 4 в этой ветке вопрос пропадал.
+  const after4 = st5.map((s, i) => (s.line === 4 ? st5[i + 1].line : null)).filter((x) => x !== null);
+  eq("кадр на проверке if есть у каждой вставки: 4 раза «нет» (→7), 1 раз «да» (→5)", after4, [7, 7, 7, 7, 5]);
 }
 {
   // граница: после 3 строк свободно 8192-24-3*(2024+4)=2084; строка с need=2084 влезает: 4+maxAlign(24+d)=2084 → d=2056
@@ -150,6 +154,40 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   // finding 3: compact сохраняет физический порядок, а не порядок слотов
   const o = run("+a:100,+b:100,+c:100,-2,vacuum,+d:100,-1,vacuum");
   eq("compact: физический порядок (c выше d), не слотовый", last(o).slots.map((s) => [s.name, s.off]), [["a", 0], ["d", 7936], ["c", 8064]]);
+}
+{
+  // Сверка с живым Postgres 16 (pglab, pageinspect). Таблица (id int, pad text), STORAGE PLAIN,
+  // pad = repeat('x', N): данные = 4 (int) + 4 (заголовок text) + N, то есть "+a:2000" — это N = 1992.
+  // Числа ниже — вывод page_header/heap_page_items, а не пересчёт модели.
+  const slotsOf = (L) => L.slots.map((s) => [s.n, s.state, s.off]);
+  const ex = last(run("+a:2000,+b:2000,+c:2000,+d:2000,+e:2000"));
+  eq("live: пример главы — lower 40, upper 96, смещения 6168/4144/2120/96", [ex.lower, ex.upper, slotsOf(ex)],
+    [40, 96, [[1, "normal", 6168], [2, "normal", 4144], [3, "normal", 2120], [4, "normal", 96]]]);
+  const al = last(run("+a:2004,+b:2004,+c:2004,+d:2004"));
+  eq("live: lp_len 2028 занимает 2032 (смещения через 2032), upper 64", [al.upper, al.slots.map((s) => s.off)], [64, [6160, 4128, 2096, 64]]);
+  const dv = last(run("+a:2000,+b:2000,+c:2000,-1,-2,vacuum,+d:2000,+e:2000"));
+  eq("live: DELETE + VACUUM — lower 36, upper 2120, d/e в слотах 1/2, c переехала на 6168", [dv.lower, dv.upper, dv.slots.map((s) => [s.name, s.off])],
+    [36, 2120, [["d", 4144], ["e", 2120], ["c", 6168]]]);
+  const dn = last(run("+a:2000,+b:2000,+c:2000,-1,-2,+d:2000,+e:2000"));
+  eq("live: DELETE без VACUUM — lower 40, upper 96, e не влезла", [dn.lower, dn.upper, dn.slots.length], [40, 96, 4]);
+  const ti = last(run("+a:2000,+b:2000,+c:2000,+d:2056"));
+  eq("live: впритык — lower 40 = upper 40", [ti.lower, ti.upper], [40, 40]);
+  const nr = last(run("+a:100,+b:100,+c:100,+d:100,+e:100,+f:100"));
+  eq("live: узкие строки — lower 48, upper 7424", [nr.lower, nr.upper], [48, 7424]);
+  // запас под указатель нужен и при переиспользовании: free 2080, свободен №1 → строка 2080 Б ушла на (1,1)
+  const r1 = last(run("+a:2000,+b:2000,+c:2000,+d:2000,-1,vacuum,+e:2056"));
+  eq("live: старый указатель свободен, но 2080 Б при free 2080 не влезают", [r1.lower, r1.upper, r1.slots[0].state], [40, 2120, "unused"]);
+  const r2 = last(run("+a:2000,+b:2000,+c:2000,+d:2000,-1,vacuum,+e:2048"));
+  eq("live: 2072 Б при free 2080 встают в №1 — lower 40, upper 48", [r2.lower, r2.upper, r2.slots[0].name], [40, 48, "e"]);
+  // VACUUM отрезает хвост unused, но не указатель №1
+  const tr = last(run("+a:2000,+b:2000,+c:2000,+d:2000,-3,-4,vacuum"));
+  eq("live: удалены 3 и 4 → lower 32, upper 4144", [tr.lower, tr.upper], [32, 4144]);
+  const em = last(run("+a:2000,+b:2000,+c:2000,+d:2000,-1,-2,-3,-4,vacuum"));
+  eq("live: удалено всё → lower 28, upper 8192, №1 unused остался", [em.lower, em.upper, slotsOf(em)], [28, 8192, [[1, "unused", 0]]]);
+  // предел строки: 8160 Б с заголовком (MaxHeapTupleSize), больше — ошибка «row is too big»
+  eq("live: парсер принимает 8136 Б данных и отбрасывает 8137", infra.parseOps("+a:8136,+b:8137").map((o) => o.name), ["a"]);
+  const mx = last(run("+a:8136"));
+  eq("live: строка 8160 Б — lower 28, upper 32", [mx.lower, mx.upper], [28, 32]);
 }
 {
   // инварианты на случайных последовательностях (детерминированный PRNG)
