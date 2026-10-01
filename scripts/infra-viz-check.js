@@ -66,4 +66,47 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   eq("delete несуществующего слота и vacuum на пустой — не падают", last(bad).slots.length, 0);
   eq("парсер отбрасывает размер 0 и больше страницы", infra.parseOps("+a:0,+b:99999,+c:10").map((o) => o.name), ["c"]);
 }
+{
+  // finding 1: вставка в переиспользованный слот не двигает остальные строки.
+  // a@8064 b@7936 c@7808; -1+vacuum: compact сохраняет физический порядок b,c у конца страницы → b@8064 c@7936; d → 7936-128=7808
+  const st = run("+a:100,+b:100,+c:100,-1,vacuum,+d:100");
+  const L = last(st);
+  eq("reuse: d кладётся под compact-нутые b,c, они не двигаются", L.slots.map((s) => [s.name, s.off]), [["d", 7808], ["b", 8064], ["c", 7936]]);
+  const l7 = st.filter((s) => s.line === 7).pop(), l8 = st.filter((s) => s.line === 8).pop();
+  eq("reuse: reserved.off на строке 8 = на строке 7", l8.reserved.off, l7.reserved.off);
+  // finding 2: на кадре 16 tuple ещё не сдвинуты — upper не растёт; растёт на 17
+  const v = run("+a:100,+b:100,+c:100,-1,vacuum");
+  const f16 = v.filter((s) => s.line === 16)[0], f17 = v.filter((s) => s.line === 17)[0];
+  eq("vacuum: на строке 16 upper = min off живых", f16.upper, 7808);
+  eq("vacuum: на строке 17 upper вырос", f17.upper, 7936);
+  // finding 3: compact сохраняет физический порядок, а не порядок слотов
+  const o = run("+a:100,+b:100,+c:100,-2,vacuum,+d:100,-1,vacuum");
+  eq("compact: физический порядок (c выше d), не слотовый", last(o).slots.map((s) => [s.name, s.off]), [["a", 0], ["d", 7936], ["c", 8064]]);
+}
+{
+  // инварианты на случайных последовательностях (детерминированный PRNG)
+  let seed = 12345;
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
+  let bad = null;
+  for (let it = 0; it < 500 && !bad; it++) {
+    const ops = [];
+    for (let k = 0, n = 3 + rnd(12); k < n; k++) {
+      const r = rnd(10);
+      ops.push(r < 6 ? "+r" + k + ":" + (1 + rnd(1500)) : r < 9 ? "-" + (1 + rnd(5)) : "vacuum");
+    }
+    const steps = run(ops.join(","));
+    steps.forEach((s, i) => {
+      if (bad) return;
+      const live = s.slots.filter((x) => x.state !== "unused");
+      const minOff = live.length ? Math.min.apply(null, live.map((x) => x.off)) : 8192;
+      const rs = live.map((x) => [x.off, x.off + x.len]).sort((a, b) => a[0] - b[0]);
+      let overlap = false;
+      for (let j = 1; j < rs.length; j++) if (rs[j][0] < rs[j - 1][1]) overlap = true;
+      const reservedUp = s.reserved && s.line === 7;
+      if (s.lower !== 24 + 4 * s.slots.length || (!reservedUp && s.upper !== minOff) || s.lower > s.upper || overlap || rs.some((r) => r[1] > 8192))
+        bad = { ops: ops.join(","), step: i, line: s.line, lower: s.lower, upper: s.upper, minOff, overlap };
+    });
+  }
+  eq("инварианты lower/upper/пересечения на 500 случайных последовательностях", bad, null);
+}
 process.exit(failed ? 1 : 0);

@@ -27,11 +27,19 @@
   function bPgPage(ops, pageSize) {
     var slots = [], steps = [];
     function lower() { return PAGE_HDR + ITEM * slots.length; }
-    function used() { return slots.reduce(function (a, s) { return a + (s.state === "unused" ? 0 : s.len); }, 0); }
-    function upper() { return pageSize - used(); }
-    function pack() { // offset каждого tuple: упаковка от конца страницы по порядку слотов
+    // upper — физический факт: нижний offset среди tuple, что ещё лежат на странице. Не сумма длин:
+    // освобождённое место возвращается в upper только когда compact реально сдвинул строки.
+    function upper() {
+      var u = pageSize;
+      slots.forEach(function (s) { if (s.state !== "unused" && s.off < u) u = s.off; });
+      return u;
+    }
+    function compact() { // как PageRepairFragmentation: физический порядок сохраняется, строки прижаты к концу
       var off = pageSize;
-      slots.forEach(function (s) { if (s.state === "unused") { s.off = 0; return; } off -= s.len; s.off = off; });
+      slots.filter(function (s) { return s.state !== "unused"; })
+        .sort(function (a, b) { return b.off - a.off; })
+        .forEach(function (s) { off -= s.len; s.off = off; });
+      slots.forEach(function (s) { if (s.state === "unused") s.off = 0; });
     }
     function snap(extra) {
       var o = { slots: slots.map(function (s) { return { n: s.n, state: s.state, name: s.name, off: s.off, len: s.len }; }), lower: lower(), upper: upper(), reserved: null };
@@ -54,14 +62,13 @@
           steps.push(snap({ line: 5, hot: true, vars: v(label, { size: size, slot: slot < 0 ? -1 : slot + 1, need: need }), info: "need " + need + " > свободно " + (upper() - lower()) + " → не влезло. Postgres положит строку на другую страницу (или добавит новую)" }));
           return;
         }
-        var newSlot = slot < 0 ? { n: slots.length + 1, state: "normal", name: op.name, off: 0, len: size } : null;
+        var reserveOff = upper() - size; // новая строка кладётся под нижнюю, остальные не двигаются
+        var newSlot = slot < 0 ? { n: slots.length + 1, state: "normal", name: op.name, off: reserveOff, len: size } : null;
         var target = newSlot || slots[slot];
         steps.push(snap({ line: 4, vars: v(label, { size: size, slot: target.n, need: need }), info: "need ≤ свободно → вставка пройдёт" }));
         // upper сдвигается ДО появления указателя и tuple: резерв места
-        var reserveOff = upper() - size;
         steps.push({ slots: snap({}).slots, lower: lower(), upper: reserveOff, reserved: { off: reserveOff, len: size }, line: 7, vars: v(label, { size: size, slot: target.n, need: need, upper: reserveOff }), info: "upper -= " + size + ": место под строку отрезано от свободной зоны" });
-        if (newSlot) slots.push(newSlot); else { target.state = "normal"; target.name = op.name; target.len = size; }
-        pack();
+        if (newSlot) slots.push(newSlot); else { target.state = "normal"; target.name = op.name; target.len = size; target.off = reserveOff; }
         steps.push({ slots: snap({}).slots.map(function (s) { return s.n === target.n ? { n: s.n, state: s.state, name: s.name, off: s.off, len: s.len, ptrOnly: true } : s; }), lower: lower(), upper: upper(), reserved: { off: target.off, len: size }, line: 8, vars: v(label, { size: size, slot: target.n, need: need }), info: "setPointer: указатель №" + target.n + " → смещение " + target.off + (newSlot ? "; lower вырос на " + ITEM : "; lower не изменился") });
         steps.push(snap({ line: 9, vars: v(label, { size: size, slot: target.n, need: need }), info: "Данные записаны по смещению " + target.off + ". Строка «" + op.name + "» лежит в слоте №" + target.n }));
         steps.push(snap({ line: 10, vars: v(label, { size: size, slot: target.n, need: need }), info: "Готово: lower=" + lower() + ", upper=" + upper() + ", свободно " + (upper() - lower()) + " Б" }));
@@ -81,7 +88,7 @@
         }
         dead.forEach(function (x) { x.state = "unused"; });
         steps.push(snap({ line: 16, vars: v("Vacuum", {}), info: "Указатели удалённых строк (" + dead.map(function (x) { return "№" + x.n; }).join(", ") + ") → unused" }));
-        pack();
+        compact();
         steps.push(snap({ line: 17, hot: true, vars: v("Vacuum", {}), info: "compact: живые строки сдвинуты к концу страницы — upper вырос до " + upper() }));
         var before = slots.length;
         while (slots.length && slots[slots.length - 1].state === "unused") slots.pop();
