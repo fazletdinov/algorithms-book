@@ -265,4 +265,36 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   }
   eq("инварианты lower/upper/пересечения/плотность/dead на 500 случайных последовательностях", bad, null);
 }
+// --- сканы таблицы ---
+{
+  const P = 12, R = 8, total = P * R;
+  const pg = (r) => Math.floor(r / R);
+  const transitions = (list) => list.reduce((n, r, i) => n + (i === 0 || pg(r) !== pg(list[i - 1]) ? 1 : 0), 0);
+  const distinct = (list) => new Set(list.map(pg)).size;
+  const cases = {
+    scattered: infra.parseMatch("r5", total),
+    clustered: infra.parseMatch("0-4", total),
+    many: infra.parseMatch("r67", total),
+    revisit: [3, 40, 4, 41]       // страница 0, страница 5, снова 0 (перечитывается), снова 5
+  };
+  eq("parseMatch: r5 — 5 различных строк в пределах таблицы", [cases.scattered.length, new Set(cases.scattered).size, cases.scattered.every((r) => r >= 0 && r < total)], [5, 5, true]);
+  eq("parseMatch: r5 детерминирован", infra.parseMatch("r5", total), cases.scattered);
+  eq("parseMatch: диапазон, дубликаты и выход за таблицу", infra.parseMatch("2-4,3,999,x,2", total), [2, 3, 4]);
+  eq("parseMatch: пусто", infra.parseMatch("", total), []);
+  Object.keys(cases).forEach((name) => {
+    const m = cases[name];
+    eq(`seq(${name}): читает все ${P} страниц`, last(infra.bScanSeq(P, R, m)).total, P);
+    eq(`seq(${name}): находит все подходящие строки`, last(infra.bScanSeq(P, R, m)).found.slice().sort((a, b) => a - b), m.slice().sort((a, b) => a - b));
+    eq(`index(${name}): чтений = число смен страницы подряд`, last(infra.bScanIndex(P, R, m)).total, transitions(m));
+    eq(`index(${name}): строки в порядке ключа`, last(infra.bScanIndex(P, R, m)).found, m);
+    eq(`bitmap(${name}): чтений = число различных страниц`, last(infra.bScanBitmap(P, R, m)).total, distinct(m));
+    eq(`bitmap(${name}): каждая страница не больше одного раза`, Math.max.apply(null, last(infra.bScanBitmap(P, R, m)).reads), Math.min(1, distinct(m)));
+  });
+  eq("index(revisit): возврат на ту же страницу позже — перечитывание ×2", last(infra.bScanIndex(P, R, cases.revisit)).reads[0], 2);
+  eq("index(revisit): подряд на одной странице не перечитывается", infra.bScanIndex(P, R, [0, 1, 2]).filter((s) => s.line === 5).length, 1);
+  eq("пустой набор: seq читает всё, index/bitmap — ничего", [last(infra.bScanSeq(P, R, [])).total, last(infra.bScanIndex(P, R, [])).total, last(infra.bScanBitmap(P, R, [])).total], [P, 0, 0]);
+  eq("все кадры index: line из листинга 0–11, последний done", [infra.bScanIndex(P, R, cases.many).every((s) => s.line >= 0 && s.line <= 11), !!last(infra.bScanIndex(P, R, cases.many)).done], [true, true]);
+  eq("index: кадр if (line 4) после выбора tid (line 3) всегда", infra.bScanIndex(P, R, cases.scattered).every((s, i, a) => s.line !== 4 || a[i - 1].line === 3), true);
+  eq("bitmap: страницы читаются по возрастанию", infra.bScanBitmap(P, R, cases.many).filter((s) => s.line === 7).map((s) => s.mark), infra.bScanBitmap(P, R, cases.many).filter((s) => s.line === 7).map((s) => s.mark).slice().sort((a, b) => a - b));
+}
 process.exit(failed ? 1 : 0);

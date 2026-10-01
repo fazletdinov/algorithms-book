@@ -121,6 +121,113 @@
     steps.push(snap({ done: true, line: 19, vars: v("готово", {}), info: "Итог: " + aliveText + ", свободно " + (upper() - lower()) + " Б из " + pageSize }));
     return steps;
   }
+  // ===== Сканы таблицы: Seq / Index / Bitmap ===================================
+  // Модель: P страниц по R строк; строка r лежит на странице floor(r/R). matches — id подходящих
+  // строк в порядке КЛЮЧА индекса: именно в этом порядке idx.Lookup отдаёт ctid. Планировщик и
+  // стоимость не моделируются — только «сколько раз прочитали страницу таблицы».
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function shuffled(n, seed) {
+    var a = [], rnd = mulberry32(seed), i, j, k, t;
+    for (i = 0; i < n; i++) a.push(i);
+    for (j = n - 1; j > 0; j--) { k = Math.floor(rnd() * (j + 1)); t = a[j]; a[j] = a[k]; a[k] = t; }
+    return a;
+  }
+  // Токены через запятую: N | a-b | rK (K псевдослучайных строк в псевдослучайном порядке).
+  function parseMatch(str, total) {
+    var out = [], seen = {};
+    function add(r) { if (r >= 0 && r < total && !seen[r]) { seen[r] = true; out.push(r); } }
+    String(str || "").split(",").forEach(function (raw) {
+      var t = raw.trim(), m = /^(\d+)-(\d+)$/.exec(t);
+      if (m) { for (var r = +m[1]; r <= +m[2] && r < total; r++) add(r); return; }
+      m = /^r(\d+)$/.exec(t);
+      if (m) { shuffled(total, total * 31 + +m[1]).slice(0, +m[1]).forEach(function (x) { add(x); }); return; }
+      if (/^\d+$/.test(t)) add(+t);
+    });
+    return out;
+  }
+
+  // Общее состояние сканирования: snap() копирует всё, что рисуется, поэтому кадры не делят ссылок.
+  function scanState(P, R) {
+    var st = { P: P, R: R, reads: [], bits: [], found: [], cur: -1, total: 0, steps: [] };
+    for (var i = 0; i < P; i++) { st.reads.push(0); st.bits.push(false); }
+    st.read = function (page) { st.reads[page]++; st.total++; };
+    st.snap = function (line, vars, info, extra) {
+      var s = { P: P, R: R, line: line, vars: vars, info: info, reads: st.reads.slice(), bits: st.bits.slice(), found: st.found.slice(), cur: st.cur, total: st.total, tid: null, mark: null };
+      for (var k in extra) s[k] = extra[k];
+      st.steps.push(s);
+    };
+    return st;
+  }
+  function tidOf(r, R) { return { page: Math.floor(r / R), slot: r % R }; }
+  function tidText(t) { return "(" + t.page + "," + t.slot + ")"; }
+  function rowsOnPage(page, R, matchSet) { var out = []; for (var s = 0; s < R; s++) if (matchSet[page * R + s]) out.push(page * R + s); return out; }
+  function matchSetOf(matches) { var m = {}; matches.forEach(function (r) { m[r] = true; }); return m; }
+  function plural(n, one, few, many) { var a = n % 100, b = n % 10; return (a >= 11 && a <= 14) ? many : b === 1 ? one : (b >= 2 && b <= 4) ? few : many; }
+  function pages(n) { return n + " " + plural(n, "страница", "страницы", "страниц"); }
+
+  function bScanSeq(P, R, matches) {
+    var st = scanState(P, R), ms = matchSetOf(matches);
+    st.snap(1, { page: "—" }, "Таблица: " + pages(P) + " по " + R + " строк. Подходящих строк: " + matches.length + ". Seq Scan читает ВСЕ страницы подряд — без индекса.");
+    for (var p = 0; p < P; p++) {
+      st.snap(2, { page: p }, "page = " + p, { mark: p });
+      st.read(p); st.cur = p;
+      st.snap(3, { page: p }, "ReadPage(" + p + "): страница целиком в буфере. Чтений: " + st.total + " из " + P, { mark: p });
+      var here = rowsOnPage(p, R, ms);
+      here.forEach(function (r) { st.found.push(r); });
+      st.snap(4, { page: p }, here.length ? "Проверили " + R + " строк, подошло: " + here.length + " (всего найдено " + st.found.length + ")" : "Проверили " + R + " строк — ни одна не подошла, но страницу уже прочитали", { mark: p });
+    }
+    st.snap(6, { page: P - 1 }, "Итог: " + pages(st.total) + " прочитано ради " + st.found.length + " строк. Не зависит от того, сколько строк подошло.", { done: true });
+    return st.steps;
+  }
+
+  function bScanIndex(P, R, matches) {
+    var st = scanState(P, R);
+    st.snap(1, { tid: "—", cur: "—" }, "Index Scan: индекс отдаёт ctid подходящих строк в порядке КЛЮЧА, а строки таблицы лежат как попало.");
+    st.snap(2, { tid: "—", cur: -1 }, "cur = −1: в буфере пока ни одной страницы таблицы");
+    matches.forEach(function (r) {
+      var t = tidOf(r, R), tt = tidText(t), fresh = t.page !== st.cur;
+      st.snap(3, { tid: tt, cur: st.cur }, "Следующий ctid из индекса: " + tt + " — страница " + t.page + ", слот " + t.slot, { tid: t, mark: t.page });
+      st.snap(4, { tid: tt, cur: st.cur }, fresh ? "tid.Page (" + t.page + ") ≠ cur (" + st.cur + ") — страницу придётся читать" : "tid.Page = cur = " + st.cur + " — страница уже в буфере, читать не нужно", { tid: t, mark: t.page });
+      if (fresh) {
+        var again = st.reads[t.page] > 0;
+        st.read(t.page);
+        st.snap(5, { tid: tt, cur: st.cur }, "ReadPage(" + t.page + ")" + (again ? " — ПОВТОРНО (×" + st.reads[t.page] + "): к этой странице уже ходили, но между обращениями индекс уводил на другие" : "") + ". Чтений: " + st.total, { tid: t, mark: t.page });
+        st.cur = t.page;
+        st.snap(6, { tid: tt, cur: st.cur }, "cur = " + t.page, { tid: t, mark: t.page });
+      }
+      st.found.push(r);
+      st.snap(8, { tid: tt, cur: st.cur }, "Строка " + tt + " добавлена в результат (" + st.found.length + " из " + matches.length + ")", { tid: t, mark: t.page });
+    });
+    st.snap(10, { tid: "—", cur: st.cur }, "Итог: " + pages(st.total) + " прочитано ради " + matches.length + " строк" + (st.total > P ? " — БОЛЬШЕ, чем в таблице (" + P + ")" : "") + ".", { done: true });
+    return st.steps;
+  }
+
+  function bScanBitmap(P, R, matches) {
+    var st = scanState(P, R), ms = matchSetOf(matches);
+    st.snap(1, { tid: "—", page: "—" }, "Bitmap Scan: сначала по индексу собираем карту нужных страниц, потом читаем страницы по порядку.");
+    matches.forEach(function (r) {
+      var t = tidOf(r, R), tt = tidText(t), had = st.bits[t.page];
+      st.snap(2, { tid: tt, page: "—" }, "Следующий ctid из индекса: " + tt, { tid: t, mark: t.page });
+      st.bits[t.page] = true;
+      st.snap(3, { tid: tt, page: "—" }, had ? "Бит страницы " + t.page + " уже стоит — порядок ключа забыт, повтор ничего не стоит" : "bitmap[" + t.page + "] = true: запомнили только номер страницы", { tid: t, mark: t.page });
+    });
+    var set = []; st.bits.forEach(function (b, i) { if (b) set.push(i); });
+    st.snap(5, { tid: "—", page: "—" }, "Карта готова: нужных страниц " + set.length + " из " + P);
+    set.forEach(function (p) {
+      st.snap(6, { tid: "—", page: p }, "Следующая страница по возрастанию: " + p, { mark: p });
+      st.read(p); st.cur = p;
+      st.snap(7, { tid: "—", page: p }, "ReadPage(" + p + ") — ровно один раз. Чтений: " + st.total, { mark: p });
+      var here = rowsOnPage(p, R, ms);
+      here.forEach(function (r) { st.found.push(r); });
+      st.snap(8, { tid: "—", page: p }, "Recheck: из " + R + " строк подошло " + here.length + " (найдено " + st.found.length + ")", { mark: p });
+    });
+    st.snap(10, { tid: "—", page: set.length ? set[set.length - 1] : "—" }, "Итог: " + pages(st.total) + " прочитано ради " + matches.length + " строк — каждая нужная страница по одному разу, никогда больше " + P + ".", { done: true });
+    return st.steps;
+  }
+  exportsForTest.parseMatch = parseMatch;
+  exportsForTest.bScanSeq = bScanSeq;
+  exportsForTest.bScanIndex = bScanIndex;
+  exportsForTest.bScanBitmap = bScanBitmap;
   exportsForTest.bPgPage = bPgPage;
   exportsForTest.parseOps = parseOps;
   exportsForTest.maxAlign = maxAlign;
