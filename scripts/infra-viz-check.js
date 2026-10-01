@@ -75,6 +75,31 @@ function buildPg(attrs) {
   }
   eq("pg-page: найдено 5 пресетов", n, 5);
 }
+{
+  // полоса страницы: сумма flex-basis сегментов не больше 100% на КАЖДОМ шаге, а в конце ≈ 100%
+  const sums = (opsStr) => {
+    const { el, key } = buildPg({ "data-ops": opsStr, "data-page": "8192" });
+    const out = [];
+    const read1 = () => {
+      const segs = Array.from(el.querySelectorAll(".iv-bar > .iv-seg"));
+      const w = (e) => parseFloat(e.style.flexBasis);
+      const free = el.querySelector(".iv-seg--free");
+      out.push({ sum: segs.reduce((a, e) => a + w(e), 0), free: free ? w(free) : null });
+    };
+    read1();
+    for (let i = 0; i < 120; i++) { key(); read1(); }
+    return out;
+  };
+  const tight = sums("+a:2000,+b:2000,+c:2000,+d:2056");
+  eq("pg-page впритык: сумма сегментов ≤ 100% на каждом шаге", tight.every((x) => x.sum <= 100.0001), true);
+  eq("pg-page впритык: в конце сумма ≈ 100%", Math.abs(tight[tight.length - 1].sum - 100) < 0.01, true);
+  eq("pg-page впритык: free = 0 даёт сегмент нулевой ширины", tight[tight.length - 1].free, 0);
+  const vac = sums("+a:2000,+b:2000,+c:2000,-1,-2,vacuum,+d:2000,+e:2000");
+  eq("pg-page DELETE+VACUUM: сумма сегментов ≤ 100% на каждом шаге", vac.every((x) => x.sum <= 100.0001), true);
+  eq("pg-page DELETE+VACUUM: в конце сумма ≈ 100%", Math.abs(vac[vac.length - 1].sum - 100) < 0.01, true);
+  const narrow = sums("+a:1,+b:1,+c:1,+d:1,+e:1,+f:1,+g:1,+h:1,+i:1,+j:1,+k:1,+l:1,+m:1,+n:1,+o:1,+p:1,+q:1,+r:1,+s:1,+t:1");
+  eq("pg-page: много узких строк — сумма ≤ 100%", narrow.every((x) => x.sum <= 100.0001), true);
+}
 // --- генератор pg-page ---
 const infra = require(path.join(root, "assets", "infra-viz.js"));
 const last = (steps) => steps[steps.length - 1];
