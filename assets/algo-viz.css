@@ -2350,3 +2350,5 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__rhonode.algo-tp__rhonode--meet circle.algo-tp__rhohalo { stroke: #22d3ee; stroke-dasharray: 4 3; }
 .algo-tp__legdot--rhoentry { background: transparent; border: 2px solid #e0a500; }
 .algo-tp__legdot--rhomeet { background: transparent; border: 2px dashed #22d3ee; }
+/* ярлык рамки снизу, под строкой индексов (сверху стоит плашка) */
+.algo-nn__frame--labbot .algo-nn__framelab { bottom: auto; top: 100%; transform: translateY(2em); }

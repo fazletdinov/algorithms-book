@@ -7861,9 +7861,14 @@
       var t2 = a[i]; a[i] = a[phi]; a[phi] = t2;
       return i;
     }
-    var tFrame = [{ lo: target, hi: target, label: "target = " + target, kind: "target" }];
+    // ярлык мишени — там, где нет плашки: сверху, пока hi не на target; иначе снизу, под
+    // индексом, пока там нет lo; заняты обе стороны — без ярлыка (рамка, легенда и чип остаются)
+    function tFrame() {
+      var pos = hi !== target ? "top" : lo !== target ? "bottom" : "none";
+      return [{ lo: target, hi: target, label: pos === "none" ? "" : "target = " + target, labelPos: pos, kind: "target" }];
+    }
     function snap(extra) {
-      var base = { values: a.slice(), rangeLo: lo, rangeHi: hi, target: target, mid: -1, less: null, frames: tFrame };
+      var base = { values: a.slice(), rangeLo: lo, rangeHi: hi, target: target, mid: -1, less: null, frames: tFrame() };
       for (var key in extra) { base[key] = extra[key]; }
       return base;
     }
@@ -15821,7 +15826,7 @@
           if (!fon) return;
           // вид рамки — класс algo-nn__frame--<kind> (cur — по умолчанию); best обводит снаружи
           var fa = bigCells[f.lo], fb = bigCells[f.hi], ins = f.kind === "best" ? 9 : f.kind === "cur" || !f.kind ? 4 : 3;
-          F.el.className = "algo-nn__frame" + (f.kind && f.kind !== "cur" ? " algo-nn__frame--" + f.kind : "");
+          F.el.className = "algo-nn__frame" + (f.kind && f.kind !== "cur" ? " algo-nn__frame--" + f.kind : "") + (f.labelPos === "bottom" ? " algo-nn__frame--labbot" : "");
           F.lab.textContent = f.label || "";
           F.el.style.left = (fa.offsetLeft - ins) + "px"; F.el.style.top = (fa.offsetTop - ins) + "px";
           F.el.style.width = (fb.offsetLeft + fb.offsetWidth - fa.offsetLeft + 2 * ins) + "px";
