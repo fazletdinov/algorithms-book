@@ -2283,8 +2283,6 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__rhotag text { font-size: 11px; font-weight: 800; fill: #0b1220; }
 .algo-tp__rhotag--slow rect { fill: #2ee59d; }
 .algo-tp__rhotag--fast rect { fill: #22d3ee; }
-.algo-tp__rhomark { fill: #e0a500; font-size: 11px; font-weight: 800; transition: opacity 0.2s; }
-.algo-tp__rhomark--meet { fill: #22d3ee; }
 .algo-tp__rhonote { text-align: center; font-size: 0.82em; opacity: 0.8; margin: -0.2em 0 0.5em; }
 .algo-tp__legdot--rhoslow { background: #2ee59d; border-color: #2ee59d; }
 .algo-tp__legdot--rhofast { background: #22d3ee; border-color: #22d3ee; }
@@ -2308,3 +2306,47 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__dpcard { max-width: min(34em, calc(100vw - 64px)); }
 .algo-tp__twcap, .algo-tp__hpcap, .algo-tp__rhonote { width: fit-content; max-width: calc(100vw - 84px); }
 .algo-tp__tw--tree { width: max-content; min-width: 100%; }
+
+/* Рамки половин у слияния (cfg.frames, kind left/right) — цвета плашек i и j */
+.algo-nn__frame--left { border: 2px dashed var(--nn-green); border-radius: 12px; }
+.algo-nn__frame--right { border: 2px dashed var(--nn-cyan); border-radius: 12px; }
+.algo-tp__legdot--frleft { background: transparent; border: 2px dashed var(--nn-green, #2ee59d); border-radius: 3px; }
+.algo-tp__legdot--frright { background: transparent; border: 2px dashed var(--nn-cyan, #22d3ee); border-radius: 3px; }
+.algo-nn__frame--target { border: 2px dashed #c084fc; border-radius: 12px; }
+.algo-nn__frame--target .algo-nn__framelab { background: #c084fc; }
+.algo-tp__legdot--frtarget { background: transparent; border: 2px dashed #c084fc; border-radius: 3px; }
+.algo-tp__legdot--tkids { background: transparent; border: 2px dashed #e0a500; }
+.algo-tp__tnode--kid { outline: 2px dashed #e0a500; outline-offset: 3px; }
+
+/* Линейка зон под неоновым рядом (cfg.zones) — ниже нижней плашки */
+.algo-nn__track--zones { padding-bottom: 5.4em; }
+.algo-nn__zone { position: absolute; height: 1.35em; margin-top: 3.75em; border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden; pointer-events: none; transition: left 0.45s cubic-bezier(0.4, 0, 0.2, 1), width 0.45s cubic-bezier(0.4, 0, 0.2, 1); }
+.algo-nn__zone--off { display: none; }
+.algo-nn__zonelab { font-size: 0.72em; font-weight: 800; white-space: nowrap; color: #0b1220; }
+.algo-nn__zone--zero { background: var(--nn-green); }
+.algo-nn__zone--ones { background: color-mix(in srgb, var(--nn-cyan) 45%, transparent); }
+.algo-nn__zone--ones .algo-nn__zonelab { color: var(--fg, #e6edf3); }
+.algo-nn__zone--unk { border: 2px dashed var(--nn-amber); }
+.algo-nn__zone--unk .algo-nn__zonelab { color: var(--nn-amber); }
+.algo-nn__zone--two { border: 2px solid var(--nn-cyan); }
+.algo-nn__zone--two .algo-nn__zonelab { color: var(--nn-cyan); }
+.algo-nn__track--still .algo-nn__zone { transition: none; }
+/* 3Sum перебором: сумма текущей тройки над res */
+.algo-tp__tseq { font-family: var(--mono-font, monospace); font-size: 0.9em; min-height: 1.4em; margin-bottom: 4px; }
+.algo-tp__tseq--ok { color: var(--tp-ok); font-weight: 800; }
+/* DFS дерева: пустые потомки nil — бледные листья; текущий nil — янтарный пунктир */
+.algo-tp__tfignode.algo-tp__tnode--nil { min-width: 1.9em; height: 1.6em; font-size: 0.66em; font-style: italic; background: transparent; border: 1px dashed var(--tp-border); opacity: 0.35; }
+.algo-tp__tfignode.algo-tp__tnode--nil.algo-tp__tnode--nilseen { opacity: 0.55; }
+.algo-tp__tfignode.algo-tp__tnode--nil.algo-tp__tnode--nilcur { opacity: 1; border: 2px dashed #e0a500; color: #e0a500; }
+.algo-tp__legdot--tnil { background: transparent; border: 1px dashed currentColor; opacity: 0.6; }
+.algo-tp__legdot--tpath { background: var(--tp-panel2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tp-lo) 55%, transparent); }
+.algo-tp__legdot--theapok { background: var(--tp-panel2); border: 2px solid var(--tp-ok); }
+.algo-tp__heapidx { font-size: 0.72em; opacity: 0.7; }
+.algo-tp__legdot--ibi { background: color-mix(in srgb, var(--nn-green, #2ee59d) 25%, transparent); border: 2px solid var(--nn-green, #2ee59d); border-radius: 3px; }
+.algo-tp__legdot--ibj { background: color-mix(in srgb, var(--nn-cyan, #22d3ee) 25%, transparent); border: 2px solid var(--nn-cyan, #22d3ee); border-radius: 3px; }
+.algo-tp__legdot--ibm { background: color-mix(in srgb, var(--nn-amber, #fbbf24) 25%, transparent); border: 2px solid var(--nn-amber, #fbbf24); border-radius: 3px; }
+.algo-tp__rhonode circle.algo-tp__rhohalo { fill: none !important; stroke: none; stroke-width: 3; }
+.algo-tp__rhonode.algo-tp__rhonode--entry circle.algo-tp__rhohalo { stroke: #e0a500; }
+.algo-tp__rhonode.algo-tp__rhonode--meet circle.algo-tp__rhohalo { stroke: #22d3ee; stroke-dasharray: 4 3; }
+.algo-tp__legdot--rhoentry { background: transparent; border: 2px solid #e0a500; }
+.algo-tp__legdot--rhomeet { background: transparent; border: 2px dashed #22d3ee; }

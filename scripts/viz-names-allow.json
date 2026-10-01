@@ -111,10 +111,6 @@
   "chip:cell",
   "chip:visited"
  ],
- "heap-sort": [
-  "tag:child",
-  "tag:root"
- ],
  "hll-add": [
   "chip:bucket",
   "chip:est",
