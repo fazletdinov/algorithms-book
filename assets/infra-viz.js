@@ -159,7 +159,9 @@
     return st;
   }
   function tidOf(r, R) { return { page: Math.floor(r / R), slot: r % R }; }
-  function tidText(t) { return "(" + t.page + "," + t.slot + ")"; }
+  // В ctid Postgres указатели нумеруются с 1 — «(0,1)» — первая строка страницы (вживую: SELECT ctid).
+  // slot внутри модели — индекс ячейки сетки с 0, поэтому в тексте +1.
+  function tidText(t) { return "(" + t.page + "," + (t.slot + 1) + ")"; }
   function rowsOnPage(page, R, matchSet) { var out = []; for (var s = 0; s < R; s++) if (matchSet[page * R + s]) out.push(page * R + s); return out; }
   function matchSetOf(matches) { var m = {}; matches.forEach(function (r) { m[r] = true; }); return m; }
   function plural(n, one, few, many) { var a = n % 100, b = n % 10; return (a >= 11 && a <= 14) ? many : b === 1 ? one : (b >= 2 && b <= 4) ? few : many; }
@@ -188,7 +190,7 @@
     st.snap(2, { tid: "—", cur: -1 }, "cur = −1: в буфере пока ни одной страницы таблицы");
     matches.forEach(function (r) {
       var t = tidOf(r, R), tt = tidText(t), fresh = t.page !== st.cur;
-      st.snap(3, { tid: tt, cur: st.cur }, "Следующий ctid из индекса: " + tt + " — страница " + t.page + ", слот " + t.slot, { tid: t, mark: t.page });
+      st.snap(3, { tid: tt, cur: st.cur }, "Следующий ctid из индекса: " + tt + " — страница " + t.page + ", указатель №" + (t.slot + 1), { tid: t, mark: t.page });
       st.snap(4, { tid: tt, cur: st.cur }, fresh ? "tid.Page (" + t.page + ") ≠ cur (" + st.cur + ") — страницу придётся читать" : "tid.Page = cur = " + st.cur + " — страница уже в буфере, читать не нужно", { tid: t, mark: t.page });
       if (fresh) {
         var again = st.reads[t.page] > 0;
@@ -204,14 +206,18 @@
     return st.steps;
   }
 
+  // Карта ТОЧНАЯ, как у Postgres при обычном work_mem («Heap Blocks: exact=N»): помнит страницу И
+  // номера строк на ней, поэтому со страницы берутся только они — остальные строки не проверяются.
+  // Перепроверка всех строк страницы (Recheck) бывает лишь у «lossy»-страниц, когда карта не
+  // влезла в work_mem; число прочитанных страниц от этого не меняется (сверено вживую).
   function bScanBitmap(P, R, matches) {
     var st = scanState(P, R), ms = matchSetOf(matches);
-    st.snap(1, { tid: "—", page: "—" }, "Bitmap Scan: сначала по индексу собираем карту нужных страниц, потом читаем страницы по порядку.");
+    st.snap(1, { tid: "—", page: "—" }, "Bitmap Scan: сначала по индексу собираем карту — какие страницы нужны и какие строки на каждой. Потом читаем страницы по порядку.");
     matches.forEach(function (r) {
       var t = tidOf(r, R), tt = tidText(t), had = st.bits[t.page];
       st.snap(2, { tid: tt, page: "—" }, "Следующий ctid из индекса: " + tt, { tid: t, mark: t.page });
       st.bits[t.page] = true;
-      st.snap(3, { tid: tt, page: "—" }, had ? "Бит страницы " + t.page + " уже стоит — порядок ключа забыт, повтор ничего не стоит" : "bitmap[" + t.page + "] = true: запомнили только номер страницы", { tid: t, mark: t.page });
+      st.snap(3, { tid: tt, page: "—" }, had ? "Страница " + t.page + " уже в карте — дописали к ней указатель №" + (t.slot + 1) + ". Читать её второй раз не придётся" : "bitmap[" + t.page + "] ← №" + (t.slot + 1) + ": страница " + t.page + " попала в карту. Порядок ключа дальше не нужен", { tid: t, mark: t.page });
     });
     var set = []; st.bits.forEach(function (b, i) { if (b) set.push(i); });
     st.snap(5, { tid: "—", page: "—" }, "Карта готова: нужных страниц " + set.length + " из " + P);
@@ -221,7 +227,7 @@
       st.snap(7, { tid: "—", page: p }, "ReadPage(" + p + ") — ровно один раз. Чтений: " + st.total, { mark: p });
       var here = rowsOnPage(p, R, ms);
       here.forEach(function (r) { st.found.push(r); });
-      st.snap(8, { tid: "—", page: p }, "Recheck: из " + rows(R, "строки", "строк") + " подошло " + here.length + " (найдено " + st.found.length + ")", { mark: p });
+      st.snap(8, { tid: "—", page: p }, "Взяли со страницы " + rows(here.length, "строку", "строки") + " по запомненным номерам" + (here.length < R ? ", остальные строки страницы не проверяли" : "") + " (найдено " + st.found.length + ")", { mark: p });
     });
     st.snap(10, { tid: "—", page: "—" }, "Итог: " + pages(st.total) + " прочитано ради " + rows(matches.length, "строки", "строк") + " — каждая нужная страница по одному разу, никогда больше " + P + ".", { done: true });
     return st.steps;
@@ -318,8 +324,10 @@
     sumValues: function (s) { return [{ text: s.total, cls: "gt" }, { text: s.P }, { text: s.found.length }]; },
     status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", hot: !!s.hot, icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
     stepCard: function (s) { return { a: "чтений " + s.total, b: "из " + s.P, c: "найдено " + s.found.length, cls: "gt" }; },
-    legend: [{ cls: "iv-scan__page--unread", label: "страница ещё не читалась" }, { cls: "iv-scan__page--read", label: "страница прочитана (×N — сколько раз)" }, { cls: "iv-scan__page--cur", label: "страница, к которой относится шаг" }, { cls: "iv-scan__cell--match", label: "строка подходит под условие" }, { cls: "iv-scan__cell--found", label: "строка уже в результате" }, { cls: "iv-scan__page--bit", label: "бит страницы в карте (Bitmap)" }]
+    legend: [{ cls: "iv-scan__page--unread", label: "страница ещё не читалась" }, { cls: "iv-scan__page--read", label: "страница прочитана (×N — сколько раз)" }, { cls: "iv-scan__page--cur", label: "страница, к которой относится шаг" }, { cls: "iv-scan__cell--match", label: "строка подходит под условие" }, { cls: "iv-scan__cell--found", label: "строка уже в результате" }, { cls: "iv-scan__page--bit", label: "страница в карте" }]
   };
+  // У Seq и Index карты нет: пункт легенды, которого никогда не будет на холсте, читатель ищет зря.
+  scanCommon.legendNoMap = scanCommon.legend.filter(function (l) { return l.cls !== "iv-scan__page--bit"; });
 
   // Сетка «страницы × строки»: все данные идут через textContent (mkEl), разметка из данных не строится.
   function scanViz(panel, ctx) {
@@ -400,14 +408,14 @@
     ],
     "pg-scan-bitmap": [
       "func BitmapScan(idx *Index, t *Table, key Range) []Row {",
-      "    bitmap := map[int]bool{}",
+      "    bitmap := map[int][]int{} // страница → номера нужных строк на ней",
       "    for _, tid := range idx.Lookup(key) {",
-      "        bitmap[tid.Page] = true // запомнили только НОМЕР страницы",
+      "        bitmap[tid.Page] = append(bitmap[tid.Page], tid.Slot) // порядок ключа забыт",
       "    }",
       "    var out []Row",
       "    for _, page := range sortedKeys(bitmap) { // страницы по возрастанию",
       "        buf := t.ReadPage(page) // каждая страница ровно один раз",
-      "        out = append(out, buf.Recheck(key)...)",
+      "        out = append(out, buf.Rows(bitmap[page])...) // только запомненные строки",
       "    }",
       "    return out",
       "}"
@@ -459,7 +467,7 @@
       varDesc: { page: "Текущая страница" },
       lineNotes: { 2: "Страницы идут по порядку — никаких прыжков", 3: "Читаем страницу целиком — одно чтение, сколько бы на ней строк ни подошло", 4: "Проверяем ВСЕ строки страницы, даже ненужные" },
       rules: [{ head: "чтений", body: "= страниц в таблице", cls: "eq" }, { head: "порядок", body: "физический, подряд", cls: "gt" }],
-      legend: scanCommon.legend,
+      legend: scanCommon.legendNoMap,
       presets: [
         { label: "пример главы: 5% разбросаны", set: { "data-pages": "12", "data-rows": "8", "data-match": "r5" }, hint: "5 строк, все страницы" },
         { label: "те же строки подряд", set: { "data-pages": "12", "data-rows": "8", "data-match": "0-4" }, hint: "стоимость не изменилась" },
@@ -487,7 +495,7 @@
       varDesc: { tid: "ctid строки из индекса", cur: "Страница, что сейчас в буфере" },
       lineNotes: { 3: "Индекс отдаёт ctid в порядке КЛЮЧА — страницы идут вразнобой", 4: "Та же страница, что и в прошлый раз? Тогда читать не надо", 5: "Новая страница — чтение; к уже виденной страницы после чужих — снова чтение (×2)", 8: "Строка берётся со страницы, что уже в буфере" },
       rules: [{ head: "чтений", body: "= смен страницы подряд", cls: "eq" }, { head: "порядок", body: "по ключу, а не по страницам", cls: "lt" }],
-      legend: scanCommon.legend,
+      legend: scanCommon.legendNoMap,
       presets: [
         { label: "пример главы: 5% разбросаны", set: { "data-pages": "12", "data-rows": "8", "data-match": "r5" }, hint: "5 строк — ≈5 чтений" },
         { label: "те же строки подряд", set: { "data-pages": "12", "data-rows": "8", "data-match": "0-4" }, hint: "подряд — 1 чтение" },
@@ -508,12 +516,12 @@
     },
     "pg-scan-bitmap": {
       badge: "Postgres · Bitmap Scan",
-      desc: "Сначала по индексу собирается карта нужных страниц, потом они читаются по возрастанию, каждая один раз. Порядок ключа забывается, зато повторных чтений нет.",
+      desc: "Сначала по индексу собирается карта: какие страницы нужны и какие строки на каждой. Потом страницы читаются по возрастанию, каждая один раз. Порядок ключа забывается, зато повторных чтений нет.",
       valuesLabel: "", codeKey: "pg-scan-bitmap", fillRange: false,
       complexity: { time: "O(различных страниц)", space: "O(страниц) на карту", good: "★ не больше страниц, чем в таблице" },
       varOrder: ["tid", "page"],
       varDesc: { tid: "ctid строки из индекса", page: "Страница, которую читаем" },
-      lineNotes: { 3: "Запоминаем только номер страницы: порядок ключа не нужен", 6: "Страницы по возрастанию — читаем почти подряд", 7: "Каждая нужная страница — ровно один раз", 8: "Recheck: из страницы берём только подходящие строки" },
+      lineNotes: { 3: "Запоминаем страницу и номер строки на ней — порядок ключа больше не нужен", 6: "Страницы по возрастанию — читаем почти подряд", 7: "Каждая нужная страница — ровно один раз", 8: "Берём только запомненные строки: карта точная (в плане — Heap Blocks: exact)" },
       rules: [{ head: "чтений", body: "= различных страниц", cls: "eq" }, { head: "потолок", body: "страниц в таблице", cls: "gt" }],
       legend: scanCommon.legend,
       presets: [

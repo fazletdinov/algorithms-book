@@ -296,6 +296,25 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   eq("все кадры index: line из листинга 0–11, последний done", [infra.bScanIndex(P, R, cases.many).every((s) => s.line >= 0 && s.line <= 11), !!last(infra.bScanIndex(P, R, cases.many)).done], [true, true]);
   eq("index: кадр if (line 4) после выбора tid (line 3) всегда", infra.bScanIndex(P, R, cases.scattered).every((s, i, a) => s.line !== 4 || a[i - 1].line === 3), true);
   eq("bitmap: страницы читаются по возрастанию", infra.bScanBitmap(P, R, cases.many).filter((s) => s.line === 7).map((s) => s.mark), infra.bScanBitmap(P, R, cases.many).filter((s) => s.line === 7).map((s) => s.mark).slice().sort((a, b) => a - b));
+  // Сверка с живым Postgres 16 (pglab, 2026-10-01): scan_demo — 12 страниц по 8 строк, физический
+  // порядок = id, k = (id·37) mod 96. Списки id — в порядке ключа (SELECT id … ORDER BY k), числа —
+  // страницы ТАБЛИЦЫ: Seq — Buffers целиком, Index — Buffers минус 1 страница индекса (её же
+  // показывает Bitmap Index Scan), Bitmap — Heap Blocks: exact; Index ещё и по pg_statio_user_tables.
+  const live = {
+    "k < 5": { ids: [0, 13, 26, 39, 52], pg: [12, 5, 5] },
+    "id < 5": { ids: [0, 1, 2, 3, 4], pg: [12, 1, 1] },
+    "k < 67": { ids: Array.from({ length: 67 }, (_, k) => (k * 13) % 96), pg: [12, 67, 12] },
+    "k < 0": { ids: [], pg: [12, 0, 0] }
+  };
+  Object.keys(live).forEach((q) => {
+    const l = live[q].ids;
+    eq(`живой Postgres, ${q}: Seq / Index / Bitmap = ${live[q].pg.join(" / ")}`, [last(infra.bScanSeq(P, R, l)).total, last(infra.bScanIndex(P, R, l)).total, last(infra.bScanBitmap(P, R, l)).total], live[q].pg);
+  });
+  // ctid в Postgres нумерует указатели с 1: строки k < 5 вживую — (0,1) (1,6) (3,3) (4,8) (6,5)
+  eq("ctid в тексте — как у Postgres, указатели с 1", infra.bScanIndex(P, R, live["k < 5"].ids).filter((s) => s.line === 3).map((s) => s.vars.tid), ["(0,1)", "(1,6)", "(3,3)", "(4,8)", "(6,5)"]);
+  // карта точная (Heap Blocks: exact): со страницы берутся запомненные строки, всех R не перепроверяем
+  const takes = infra.bScanBitmap(P, R, [0, 13, 1]).filter((s) => s.line === 8).map((s) => s.info);
+  eq("bitmap: точная карта — берёт запомненные строки, без Recheck всей страницы", [takes.every((t) => /по запомненным номерам/.test(t) && !/Recheck/.test(t)), /2 строки/.test(takes[0]), /1 строку/.test(takes[1])], [true, true, true]);
 }
 // --- виджеты сканов: рисунок, счётчик, пресеты ---
 {
@@ -349,6 +368,8 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
       eq(`легенда сканов: у точки ${c} есть правило с цветом`, /#[0-9a-f]{6}/i.test(rule), true);
     });
   }
+  // пункт «страница в карте» — только у Bitmap: у Seq и Index карты нет, и искать её на холсте незачем
+  eq("легенда: «страница в карте» есть только у Bitmap", types.map((t) => !!run(t, 'data-pages="12" data-rows="8" data-match="r5"').querySelector(".algo-tp__legdot--iv-scan__page--bit")), [false, false, true]);
   // чип page вне цикла — «—» (итоговый кадр Seq и Bitmap)
   eq("seq: на итоговом кадре чип page — «—»", last(infra.bScanSeq(P, R, list)).vars.page, "—");
   eq("bitmap: на итоговом кадре чип page — «—»", last(infra.bScanBitmap(P, R, list)).vars.page, "—");
