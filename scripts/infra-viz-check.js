@@ -32,4 +32,38 @@ const eq = (name, got, want) => { if (JSON.stringify(got) !== JSON.stringify(wan
   eq("register: тип отрисован", a.classList.contains("algo-viz--ready") && /viz:один/.test(a.textContent), true);
   eq("register: чужой тип по-прежнему «Неизвестный»", /Неизвестный тип/.test(b.textContent), true);
 }
+// --- генератор pg-page ---
+const infra = require(path.join(root, "assets", "infra-viz.js"));
+const last = (steps) => steps[steps.length - 1];
+const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
+{
+  // 4 строки по 2000 байт данных: tuple = 24+2000 = 2024; lower 24+4*4=40, upper 8192-4*2024=96
+  const st = run("+a:2000,+b:2000,+c:2000,+d:2000");
+  eq("4 строки влезают: lower/upper", [last(st).lower, last(st).upper], [40, 96]);
+  // 5-я: нужно 2024+4=2028 > 96-40=56 — не влезает
+  const st5 = run("+a:2000,+b:2000,+c:2000,+d:2000,+e:2000");
+  eq("5-я не влезает, состояние не меняется", [last(st5).lower, last(st5).upper, last(st5).slots.length], [40, 96, 4]);
+}
+{
+  // граница: после 3 строк свободно 8192-24-3*(2024+4)=2084; строка с need=2084 влезает: 4+maxAlign(24+d)=2084 → d=2056
+  const edge = run("+a:2000,+b:2000,+c:2000,+d:2056");
+  eq("ровно впритык влезает (free=0)", last(edge).upper - last(edge).lower, 0);
+  const over = run("+a:2000,+b:2000,+c:2000,+d:2057");
+  eq("на 1 байт больше — не влезает (maxAlign округляет до 2088, need=2092)", last(over).slots.length, 3);
+}
+{
+  const st = run("+a:100,+b:100,-1");
+  eq("delete: tuple остаётся, место не освобождено", [last(st).upper, last(st).slots[0].state], [8192 - 2 * 128, "deleted"]);
+  const v = run("+a:100,+b:100,-1,vacuum");
+  eq("vacuum: место возвращено, указатель unused", [last(v).upper, last(v).slots[0].state], [8192 - 128, "unused"]);
+  const v2 = run("+a:100,+b:100,-2,vacuum");
+  eq("vacuum: хвостовой unused-указатель отрезан (lower уменьшился)", last(v2).lower, 24 + 4);
+  const re = run("+a:100,+b:100,-1,vacuum,+c:100");
+  eq("новая строка берёт освободившийся слот 1 без роста lower", [last(re).slots[0].name, last(re).lower], ["c", 24 + 2 * 4]);
+}
+{
+  const bad = run("-9,-1,vacuum");
+  eq("delete несуществующего слота и vacuum на пустой — не падают", last(bad).slots.length, 0);
+  eq("парсер отбрасывает размер 0 и больше страницы", infra.parseOps("+a:0,+b:99999,+c:10").map((o) => o.name), ["c"]);
+}
 process.exit(failed ? 1 : 0);
