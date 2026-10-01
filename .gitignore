@@ -22,3 +22,4 @@ dump.rdb
 # на лету через npm install --no-save).
 node_modules/
 .worktrees/
+.superpowers/
