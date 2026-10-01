@@ -103,4 +103,104 @@
   exportsForTest.maxAlign = maxAlign;
   if (typeof module !== "undefined" && module.exports) module.exports = exportsForTest;
   if (typeof window === "undefined" || !window.ALGO_VIZ) return;
+
+  function pgPageViz(panel, ctx) {
+    var H = window.ALGO_VIZ, size = ctx.page;
+    var wrap = H.mkEl("div", "iv-page");
+    panel.appendChild(wrap);
+    function pct(b) { return Math.max(b / size * 100, 0.8) + "%"; }
+    function seg(cls, bytes, label) { var e = H.mkEl("div", "iv-seg " + cls, label); e.style.flexBasis = pct(bytes); e.title = label + " · " + bytes + " Б"; return e; }
+    return function (s) {
+      wrap.innerHTML = "";
+      var bar = H.mkEl("div", "iv-bar");
+      bar.appendChild(seg("iv-seg--hdr", PAGE_HDR, "hdr"));
+      s.slots.forEach(function (sl) { bar.appendChild(seg(sl.state === "unused" ? "iv-seg--unused" : "iv-seg--ptr", ITEM, "№" + sl.n)); });
+      var freeBytes = s.upper - s.lower;
+      bar.appendChild(seg("iv-seg--free", Math.max(freeBytes, 0), freeBytes > size * 0.06 ? "свободно " + freeBytes + " Б" : ""));
+      var tuples = s.slots.filter(function (x) { return x.state !== "unused" && !x.ptrOnly && x.off; }).sort(function (a, b) { return a.off - b.off; });
+      if (s.reserved && !tuples.some(function (t) { return t.off === s.reserved.off; })) bar.appendChild(seg("iv-seg--reserved", s.reserved.len, "резерв"));
+      tuples.forEach(function (t) { bar.appendChild(seg(t.state === "deleted" ? "iv-seg--dead" : "iv-seg--tup", t.len, t.name + (t.state === "deleted" ? " ✗" : ""))); });
+      wrap.appendChild(bar);
+      var ruler = H.mkEl("div", "iv-ruler");
+      ruler.appendChild(H.mkEl("span", "", "lower = " + s.lower));
+      ruler.appendChild(H.mkEl("span", "iv-ruler__free", "← свободно " + freeBytes + " Б →"));
+      ruler.appendChild(H.mkEl("span", "", "upper = " + s.upper));
+      wrap.appendChild(ruler);
+      var tbl = H.mkEl("table", "iv-slots");
+      var head = H.mkEl("tr"); ["указатель", "состояние", "строка", "смещение", "байт"].forEach(function (h) { head.appendChild(H.mkEl("th", "", h)); });
+      tbl.appendChild(head);
+      var names = { normal: "живая", deleted: "удалена (xmax)", unused: "unused" };
+      s.slots.forEach(function (sl) {
+        var r = H.mkEl("tr", "iv-slots__" + sl.state);
+        [sl.n, names[sl.state], sl.state === "unused" ? "—" : sl.name, sl.state === "unused" ? "—" : sl.off, sl.state === "unused" ? "—" : sl.len].forEach(function (c) { r.appendChild(H.mkEl("td", "", String(c))); });
+        tbl.appendChild(r);
+      });
+      if (!s.slots.length) { var er = H.mkEl("tr"); var td = H.mkEl("td", "", "указателей нет"); td.colSpan = 5; er.appendChild(td); tbl.appendChild(er); }
+      wrap.appendChild(tbl);
+    };
+  }
+
+  var CODE = {
+    "pg-page": [
+      "func (p *Page) Insert(data []byte) (int, bool) {",
+      "    size := maxAlign(tupleHeader + len(data))",
+      "    slot := p.firstUnused() // -1: свободного указателя нет",
+      "    need := size + p.pointerCost(slot) // 4 байта, если слот новый",
+      "    if need > p.upper-p.lower {",
+      "        return 0, false // не влезло: строка уйдёт на другую страницу",
+      "    }",
+      "    p.upper -= size",
+      "    p.setPointer(slot, p.upper)",
+      "    copy(p.buf[p.upper:], data)",
+      "    return slot, true",
+      "}",
+      "func (p *Page) Delete(slot int) {",
+      "    p.tuple(slot).xmax = txid // помечена, но место НЕ освобождено",
+      "}",
+      "func (p *Page) Vacuum() {",
+      "    p.freeDeadPointers() // указатель удалённой строки → unused",
+      "    p.compact() // живые tuple сдвигаются к концу, upper растёт",
+      "    p.truncateTrailingPointers() // хвост unused-указателей: lower уменьшается",
+      "}"
+    ]
+  };
+
+  var INFRA = {
+    "pg-page": {
+      badge: "Postgres · страница 8 КБ",
+      desc: "Страница кучи Postgres: заголовок, массив указателей (растёт сверху вниз) и строки (растут снизу вверх). Между ними — свободное место. DELETE место не освобождает — это делает VACUUM.",
+      valuesLabel: "", codeKey: "pg-page", fillRange: false,
+      complexity: { time: "вставка O(1)", space: "8192 Б на страницу", good: "★ 1 чтение = 1 страница" },
+      varOrder: ["op", "size", "slot", "need", "lower", "upper"],
+      varDesc: { op: "Операция", size: "Размер строки (выровнено до 8)", slot: "Слот (указатель)", need: "Сколько байт нужно", lower: "Конец массива указателей", upper: "Начало зоны строк" },
+      lineNotes: { 1: "Заголовок tuple 24 Б + данные, округление вверх до кратного 8", 2: "Ищем освободившийся указатель — переиспользуем", 3: "Новый указатель стоит ещё 4 байта", 4: "Хватит ли места между lower и upper?", 5: "Нет — строка уедет на другую страницу", 7: "Зона строк растёт вниз-вверх: upper уменьшается", 8: "Указатель записан; lower растёт, если слот новый", 9: "Сами байты строки — по смещению upper", 13: "DELETE лишь ставит xmax: байты остаются", 16: "Указатель удалённой строки освобождается", 17: "Живые строки сдвигаются, место объединяется", 18: "Хвост неиспользуемых указателей отрезается" },
+      rules: [{ head: "указатели", body: "растут сверху", cls: "eq" }, { head: "строки", body: "растут снизу", cls: "gt" }, { head: "DELETE", body: "место не возвращает", cls: "lt" }],
+      legend: [{ cls: "iv-seg--hdr", label: "заголовок страницы (24 Б)" }, { cls: "iv-seg--ptr", label: "указатель на строку (4 Б)" }, { cls: "iv-seg--tup", label: "живая строка" }, { cls: "iv-seg--dead", label: "удалена, место занято" }, { cls: "iv-seg--free", label: "свободное место" }],
+      presets: [
+        { label: "пример главы", set: { "data-ops": "+a:2000,+b:2000,+c:2000,+d:2000,+e:2000", "data-page": "8192" }, hint: "4 строки влезли, пятая — нет" },
+        { label: "узкие строки", set: { "data-ops": "+a:100,+b:100,+c:100,+d:100,+e:100,+f:100", "data-page": "8192" }, hint: "указатели тоже стоят места" },
+        { label: "DELETE без VACUUM", set: { "data-ops": "+a:2000,+b:2000,+c:2000,-1,-2,+d:2000,+e:2000", "data-page": "8192" }, hint: "удалённое место не вернулось" },
+        { label: "DELETE + VACUUM", set: { "data-ops": "+a:2000,+b:2000,+c:2000,-1,-2,vacuum,+d:2000,+e:2000", "data-page": "8192" }, hint: "после VACUUM место снова есть" },
+        { label: "впритык", set: { "data-ops": "+a:2000,+b:2000,+c:2000,+d:2056", "data-page": "8192" }, hint: "free = 0, но влезло" }
+      ],
+      parse: function (root) {
+        var page = parseInt(root.getAttribute("data-page"), 10);
+        if (!(page >= 256)) page = 8192;
+        var ops = parseOps(root.getAttribute("data-ops") || "+a:2000,+b:2000,+c:2000,+d:2000,+e:2000", page);
+        return { ops: ops, page: page, steps: bPgPage(ops, page) };
+      },
+      inputs: [{ attr: "data-ops", label: "Операции (+имя:байты, -слот, vacuum)" }, { attr: "data-page", label: "Размер страницы" }],
+      values: function () { return []; },
+      title: function (ctx) { return "Страница " + ctx.page + " Б, " + ctx.ops.length + " операций"; },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Операция", "lower", "upper"],
+      sumValues: function (s) { return [{ text: s.vars.op, cls: "gt" }, { text: s.vars.lower }, { text: s.vars.upper }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", hot: !!s.hot, icon: idx + 1, head: s.hot ? "Внимание" : "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: s.vars.op, b: "lower " + s.vars.lower, c: "upper " + s.vars.upper, cls: "gt" }; },
+      varsOf: function (s) { return { op: s.vars.op, size: s.vars.size, slot: s.vars.slot, need: s.vars.need, lower: s.vars.lower, upper: s.vars.upper }; },
+      customViz: pgPageViz
+    }
+  };
+
+  Object.keys(INFRA).forEach(function (t) { window.ALGO_VIZ.register(t, INFRA[t], CODE[INFRA[t].codeKey]); });
 })();

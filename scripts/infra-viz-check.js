@@ -32,6 +32,49 @@ const eq = (name, got, want) => { if (JSON.stringify(got) !== JSON.stringify(wan
   eq("register: тип отрисован", a.classList.contains("algo-viz--ready") && /viz:один/.test(a.textContent), true);
   eq("register: чужой тип по-прежнему «Неизвестный»", /Неизвестный тип/.test(b.textContent), true);
 }
+// --- виджет pg-page (jsdom) ---
+function buildPg(attrs) {
+  const at = Object.keys(attrs).map((k) => `${k}="${attrs[k]}"`).join(" ");
+  const html = `<!DOCTYPE html><html><body><div class="algo-viz" id="w" tabindex="0" data-viz="pg-page" ${at}></div>
+    <script>${read("algo-viz.js")}</script><script>${read("infra-viz.js")}</script></body></html>`;
+  const dom = new JSDOM(html, { runScripts: "dangerously", pretendToBeVisual: true });
+  dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
+  const el = dom.window.document.getElementById("w");
+  const key = () => el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+  return { el, key, win: dom.window };
+}
+{
+  const { el, key } = buildPg({ "data-ops": "+a:2000,+b:2000,-1,vacuum" });
+  let sawTup = false, sawDead = false;
+  for (let i = 0; i < 60; i++) {
+    key();
+    if (el.querySelector(".iv-seg--tup")) sawTup = true;
+    if (el.querySelector(".iv-seg--dead")) sawDead = true;
+  }
+  eq("pg-page: построен без ошибок", el.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(el.textContent), true);
+  eq("pg-page: дошёл до итога", /Итог:/.test(el.textContent), true);
+  eq("pg-page: рисунок страницы на месте", !!el.querySelector(".iv-page"), true);
+  eq("pg-page: по ходу рисовались живая и удалённая строки", [sawTup, sawDead], [true, true]);
+}
+{
+  const { el, key } = buildPg({ "data-ops": "+a:2000,+b:2000,+c:2000,-1,-2,vacuum,+d:2000,+e:2000", "data-page": "8192" });
+  for (let i = 0; i < 120; i++) key();
+  eq("pg-page: DELETE+VACUUM заканчивается 3 живыми строками", /Итог: 3 живых/.test(el.textContent), true);
+  eq("pg-page: в финале нарисованы 3 живых tuple", el.querySelectorAll(".iv-seg--tup").length, 3);
+}
+{
+  // каждый пресет из конфига строится и доходит до итога без ошибок
+  const src = read("infra-viz.js");
+  const re = /\{ label: "([^"]+)", set: \{ "data-ops": "([^"]+)", "data-page": "(\d+)" \}/g;
+  let m, n = 0;
+  while ((m = re.exec(src))) {
+    n++;
+    const { el, key } = buildPg({ "data-ops": m[2], "data-page": m[3] });
+    for (let i = 0; i < 200; i++) key();
+    eq("pg-page пресет «" + m[1] + "»: без ошибок, до итога", el.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(el.textContent) && /Итог:/.test(el.textContent), true);
+  }
+  eq("pg-page: найдено 5 пресетов", n, 5);
+}
 // --- генератор pg-page ---
 const infra = require(path.join(root, "assets", "infra-viz.js"));
 const last = (steps) => steps[steps.length - 1];
