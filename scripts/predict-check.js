@@ -29,6 +29,7 @@ try {
 
 const root = path.resolve(__dirname, "..");
 const js = fs.readFileSync(path.join(root, "assets", "algo-viz.js"), "utf8");
+const infraJs = fs.readFileSync(path.join(root, "assets", "infra-viz.js"), "utf8");
 const tagOf = (file, type) => {
   const t = fs.readFileSync(path.join(root, "src", file), "utf8");
   const m = t.match(new RegExp(`<div class="algo-viz" data-viz="${type}"[^>]*></div>`));
@@ -44,7 +45,7 @@ const dom = new JSDOM(
   `<!DOCTYPE html><html><body>
      ${tagOf("sliding-window.md", "sliding-window-fixed").replace("<div ", '<div id="win" ')}
      ${tagOf("monotonic-stack.md", "monotonic-stack").replace("<div ", '<div id="stk" ')}
-     <script>${js}</script>
+     <script>${js}</script><script>${infraJs}</script>
    </body></html>`,
   { runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true, url: "http://localhost:3000/sliding-window.html" }
 );

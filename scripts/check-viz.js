@@ -14,28 +14,34 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const js = fs.readFileSync(path.join(root, "assets", "algo-viz.js"), "utf8");
+const infraJs = fs.readFileSync(path.join(root, "assets", "infra-viz.js"), "utf8");
+// Конфиги и листинги инфраструктурных типов живут в infra-viz.js в том же формате (отступ 4 пробела)
+const all = js + "\n" + infraJs;
 const errors = [];
 
 // --- ключи DASH ---
-const dashKeys = new Set([...js.matchAll(/^    "([a-z0-9-]+)":\s*\{/gm)].map((m) => m[1]));
+const dashKeys = new Set([...all.matchAll(/^    "([a-z0-9-]+)":\s*\{/gm)].map((m) => m[1]));
 
 // --- реестр CODE: ключ -> массив строк ---
-const codeStart = js.indexOf("var CODE = {");
-const codeBody = js.slice(codeStart, js.indexOf("\n  };", codeStart));
 const CODE = {};
-const keyRe = /^    "([a-z0-9-]+)":\s*\[([\s\S]*?)\],?\s*$/gm;
-let m;
-while ((m = keyRe.exec(codeBody))) {
-  CODE[m[1]] = [...m[2].matchAll(/"(?:[^"\\]|\\.)*"/g)].map((x) => x[0]);
+function collectCode(src) {
+  const codeStart = src.indexOf("var CODE = {");
+  if (codeStart < 0) return; // у infra-viz.js блока CODE может ещё не быть
+  const codeBody = src.slice(codeStart, src.indexOf("\n  };", codeStart));
+  const keyRe = /^    "([a-z0-9-]+)":\s*\[([\s\S]*?)\],?\s*$/gm;
+  let m;
+  while ((m = keyRe.exec(codeBody))) CODE[m[1]] = [...m[2].matchAll(/"(?:[^"\\]|\\.)*"/g)].map((x) => x[0]);
 }
+collectCode(js);
+collectCode(infraJs);
 
 // --- разбор конфигов DASH: codeKey и lineNotes ---
 const cfgRe = /^    "([a-z0-9-]+)":\s*\{/gm;
 const configs = [];
 let c;
-while ((c = cfgRe.exec(js))) configs.push({ key: c[1], at: c.index });
+while ((c = cfgRe.exec(all))) configs.push({ key: c[1], at: c.index });
 configs.forEach((cfg, i) => {
-  const body = js.slice(cfg.at, i + 1 < configs.length ? configs[i + 1].at : js.length);
+  const body = all.slice(cfg.at, i + 1 < configs.length ? configs[i + 1].at : all.length);
   cfg.codeKey = (body.match(/codeKey:\s*"([^"]+)"/) || [])[1];
   const ln = body.match(/lineNotes:\s*\{([^}]*)\}/);
   cfg.lineNotes = ln ? [...ln[1].matchAll(/(\d+):/g)].map((x) => +x[1]) : [];
