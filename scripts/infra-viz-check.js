@@ -45,16 +45,22 @@ function buildPg(attrs) {
 }
 {
   const { el, key } = buildPg({ "data-ops": "+a:2000,+b:2000,-1,vacuum" });
-  let sawTup = false, sawDead = false;
+  let sawTup = false, sawDead = false, sawDeadPtr = false, sawDeadRow = false, sawUnused = false, sawHole = false;
   for (let i = 0; i < 60; i++) {
     key();
     if (el.querySelector(".iv-seg--tup")) sawTup = true;
     if (el.querySelector(".iv-seg--dead")) sawDead = true;
+    if (el.querySelector(".iv-seg--deadptr")) sawDeadPtr = true;
+    if (el.querySelector(".iv-slots__dead")) sawDeadRow = true;
+    if (el.querySelector(".iv-seg--unused")) sawUnused = true;
+    if (el.querySelector(".iv-seg--hole")) sawHole = true;
   }
   eq("pg-page: построен без ошибок", el.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(el.textContent), true);
   eq("pg-page: дошёл до итога", /Итог:/.test(el.textContent), true);
   eq("pg-page: рисунок страницы на месте", !!el.querySelector(".iv-page"), true);
   eq("pg-page: по ходу рисовались живая и удалённая строки", [sawTup, sawDead], [true, true]);
+  // VACUUM как в Postgres: dead-указатель (полоса и строка таблицы), потом unused; «дыр» не бывает
+  eq("pg-page: рисовались dead-указатель (полоса и таблица) и unused, дыры — нет", [sawDeadPtr, sawDeadRow, sawUnused, sawHole], [true, true, true, false]);
 }
 {
   const { el, key } = buildPg({ "data-ops": "+a:2000,+b:2000,+c:2000,-1,-2,vacuum,+d:2000,+e:2000", "data-page": "8192" });
@@ -146,11 +152,23 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   eq("reuse: d кладётся под compact-нутые b,c, они не двигаются", L.slots.map((s) => [s.name, s.off]), [["d", 7808], ["b", 8064], ["c", 7936]]);
   const l7 = st.filter((s) => s.line === 7).pop(), l8 = st.filter((s) => s.line === 8).pop();
   eq("reuse: reserved.off на строке 8 = на строке 7", l8.reserved.off, l7.reserved.off);
-  // finding 2: на кадре 16 tuple ещё не сдвинуты — upper не растёт; растёт на 17
+  // порядок VACUUM как в Postgres 16 (pageinspect): строка 16 — compact: байты удалённых строк
+  // выброшены, живые сжаты к концу, upper вырос, а указатели удалённых — dead (lp_flags 3);
+  // строка 17 — dead → unused (lp_flags 0), upper уже не меняется; строка 18 — хвост unused.
   const v = run("+a:100,+b:100,+c:100,-1,vacuum");
-  const f16 = v.filter((s) => s.line === 16)[0], f17 = v.filter((s) => s.line === 17)[0];
-  eq("vacuum: на строке 16 upper = min off живых", f16.upper, 7808);
-  eq("vacuum: на строке 17 upper вырос", f17.upper, 7936);
+  const f16 = v.filter((s) => s.line === 16)[0], f17 = v.filter((s) => s.line === 17)[0], f18 = v.filter((s) => s.line === 18)[0];
+  eq("vacuum 16 (compact): upper вырос, №1 dead без байтов, b/c сжаты к концу", [f16.upper, f16.slots.map((s) => [s.state, s.off, s.len])],
+    [7936, [["dead", 0, 0], ["normal", 8064, 128], ["normal", 7936, 128]]]);
+  eq("vacuum 16: удалённых (deleted) строк на странице не осталось", f16.slots.some((s) => s.state === "deleted"), false);
+  eq("vacuum 17 (freeDeadPointers): №1 dead → unused, upper тот же", [f17.upper, f17.slots[0].state], [7936, "unused"]);
+  eq("vacuum 18: хвост живой — lower не изменился", [f18.lower, f18.slots.length], [36, 3]);
+  // то же на числах главы: 4 строки по 2024, удалены 1 и 2 — как «Посмотри сам» после SELECT (dead) и VACUUM (unused)
+  const g = run("+a:2000,+b:2000,+c:2000,+d:2000,-1,-2,vacuum");
+  const g16 = g.filter((s) => s.line === 16)[0], g17 = g.filter((s) => s.line === 17)[0];
+  eq("live: compact — upper 4144, №1/№2 dead, c/d на 6168/4144", [g16.lower, g16.upper, g16.slots.map((s) => [s.state, s.off])],
+    [40, 4144, [["dead", 0], ["dead", 0], ["normal", 6168], ["normal", 4144]]]);
+  eq("live: freeDeadPointers — №1/№2 unused, lower 40, upper 4144", [g17.lower, g17.upper, g17.slots.map((s) => s.state)],
+    [40, 4144, ["unused", "unused", "normal", "normal"]]);
   // finding 3: compact сохраняет физический порядок, а не порядок слотов
   const o = run("+a:100,+b:100,+c:100,-2,vacuum,+d:100,-1,vacuum");
   eq("compact: физический порядок (c выше d), не слотовый", last(o).slots.map((s) => [s.name, s.off]), [["a", 0], ["d", 7936], ["c", 8064]]);
@@ -203,16 +221,23 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     const steps = run(ops.join(","));
     steps.forEach((s, i) => {
       if (bad) return;
-      const live = s.slots.filter((x) => x.state !== "unused");
+      // строки на странице — у normal и deleted; у dead и unused байтов нет (lp_off = lp_len = 0)
+      const live = s.slots.filter((x) => x.state === "normal" || x.state === "deleted");
+      const empty = s.slots.filter((x) => x.state === "dead" || x.state === "unused");
       const minOff = live.length ? Math.min.apply(null, live.map((x) => x.off)) : 8192;
       const rs = live.map((x) => [x.off, x.off + x.len]).sort((a, b) => a[0] - b[0]);
       let overlap = false;
       for (let j = 1; j < rs.length; j++) if (rs[j][0] < rs[j - 1][1]) overlap = true;
       const reservedUp = s.reserved && s.line === 7;
-      if (s.lower !== 24 + 4 * s.slots.length || (!reservedUp && s.upper !== minOff) || s.lower > s.upper || overlap || rs.some((r) => r[1] > 8192))
-        bad = { ops: ops.join(","), step: i, line: s.line, lower: s.lower, upper: s.upper, minOff, overlap };
+      // строки лежат вплотную от upper до конца страницы — «дыр» нет ни на одном кадре
+      const packed = reservedUp || live.reduce((a, x) => a + x.len, 0) === 8192 - s.upper;
+      // dead живёт только на кадре compact (16): до него — deleted, после — unused
+      const deadOk = s.slots.every((x) => x.state !== "dead" || s.line === 16) && (s.line !== 16 || s.slots.every((x) => x.state !== "deleted"));
+      const emptyOk = empty.every((x) => x.off === 0 || s.line < 16);
+      if (s.lower !== 24 + 4 * s.slots.length || (!reservedUp && s.upper !== minOff) || s.lower > s.upper || overlap || rs.some((r) => r[1] > 8192) || !packed || !deadOk || !emptyOk)
+        bad = { ops: ops.join(","), step: i, line: s.line, lower: s.lower, upper: s.upper, minOff, overlap, packed, deadOk, emptyOk };
     });
   }
-  eq("инварианты lower/upper/пересечения на 500 случайных последовательностях", bad, null);
+  eq("инварианты lower/upper/пересечения/плотность/dead на 500 случайных последовательностях", bad, null);
 }
 process.exit(failed ? 1 : 0);
