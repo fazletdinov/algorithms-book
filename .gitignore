@@ -21,3 +21,4 @@ dump.rdb
 # node_modules — только для локального прогона jsdom-смоуков (в CI ставится
 # на лету через npm install --no-save).
 node_modules/
+.worktrees/
