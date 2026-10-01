@@ -467,6 +467,8 @@ FROM pg_stat_user_indexes WHERE idx_scan = 0 ORDER BY relname;
 
 ## 🔗 Связанные главы
 
+- **[Как Postgres хранит данные](postgres-storage.md)** — что такое страница, которую считает
+  `Buffers`, почему `DELETE` не уменьшает таблицу и что `VACUUM` делает с указателями.
 - **[Карта: структуры в реальных системах](real-world-map.md)** — что ещё лежит внутри Postgres,
   Redis, LSM-движков и git.
 - **[B-дерево](btree-structure.md)** — устройство того, по чему ходит `Index Scan`.
