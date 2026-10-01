@@ -337,7 +337,9 @@
     panel.appendChild(wrap);
     return function (s) {
       wrap.innerHTML = "";
-      var head = H.mkEl("div", "iv-scan__reads", "Чтений страницы таблицы: " + s.total + " из " + pages(s.P));
+      // «62 из 12 страниц» читалось как дробь — а у Index Scan чтений и правда бывает больше, чем страниц.
+      // Неразрывные пробелы: на телефоне строка переносится после «·», а не посреди «в таблице».
+      var head = H.mkEl("div", "iv-scan__reads", "Чтений страницы таблицы: " + s.total + " · в\u00a0таблице\u00a0" + pages(s.P).replace(" ", "\u00a0"));
       head.setAttribute("data-reads", String(s.total));
       wrap.appendChild(head);
       var foundSet = {}; s.found.forEach(function (r) { foundSet[r] = true; });
@@ -469,7 +471,7 @@
       rules: [{ head: "чтений", body: "= страниц в таблице", cls: "eq" }, { head: "порядок", body: "физический, подряд", cls: "gt" }],
       legend: scanCommon.legendNoMap,
       presets: [
-        { label: "пример главы: 5% разбросаны", set: { "data-pages": "12", "data-rows": "8", "data-match": "r5" }, hint: "5 строк, все страницы" },
+        // не «пример главы»: эту кнопку движок ставит сам с атрибутами главы — второй такой же была бы дубликатом
         { label: "те же строки подряд", set: { "data-pages": "12", "data-rows": "8", "data-match": "0-4" }, hint: "стоимость не изменилась" },
         { label: "70% строк", set: { "data-pages": "12", "data-rows": "8", "data-match": "r67" }, hint: "тут Seq выигрывает" },
         { label: "ничего не подошло", set: { "data-pages": "12", "data-rows": "8", "data-match": "" }, hint: "всё равно читает всё" }
@@ -497,7 +499,7 @@
       rules: [{ head: "чтений", body: "= смен страницы подряд", cls: "eq" }, { head: "порядок", body: "по ключу, а не по страницам", cls: "lt" }],
       legend: scanCommon.legendNoMap,
       presets: [
-        { label: "пример главы: 5% разбросаны", set: { "data-pages": "12", "data-rows": "8", "data-match": "r5" }, hint: "5 строк — ≈5 чтений" },
+        // не «пример главы»: эту кнопку движок ставит сам с атрибутами главы — второй такой же была бы дубликатом
         { label: "те же строки подряд", set: { "data-pages": "12", "data-rows": "8", "data-match": "0-4" }, hint: "подряд — 1 чтение" },
         { label: "70% строк", set: { "data-pages": "12", "data-rows": "8", "data-match": "r67" }, hint: "70% строк — больше, чем в таблице!" },
         { label: "ничего не подошло", set: { "data-pages": "12", "data-rows": "8", "data-match": "" }, hint: "ничего — ноль чтений" }
@@ -525,7 +527,7 @@
       rules: [{ head: "чтений", body: "= различных страниц", cls: "eq" }, { head: "потолок", body: "страниц в таблице", cls: "gt" }],
       legend: scanCommon.legend,
       presets: [
-        { label: "пример главы: 5% разбросаны", set: { "data-pages": "12", "data-rows": "8", "data-match": "r5" }, hint: "5 строк — ≈5 страниц" },
+        // не «пример главы»: эту кнопку движок ставит сам с атрибутами главы — второй такой же была бы дубликатом
         { label: "те же строки подряд", set: { "data-pages": "12", "data-rows": "8", "data-match": "0-4" }, hint: "подряд — 1 страница" },
         { label: "70% строк", set: { "data-pages": "12", "data-rows": "8", "data-match": "r67" }, hint: "70% строк — не больше 12" },
         { label: "ничего не подошло", set: { "data-pages": "12", "data-rows": "8", "data-match": "" }, hint: "ничего — ноль" }

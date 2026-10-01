@@ -339,6 +339,8 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   types.forEach((t) => {
     const el = run(t, 'data-pages="12" data-rows="8" data-match="r5"');
     eq(`${t}: счётчик чтений на экране = модель`, +el.querySelector(".iv-scan__reads").getAttribute("data-reads"), want[t]);
+    // «62 из 12 страниц» читалось как дробь: число чтений и размер таблицы — две разные величины
+    eq(`${t}: заголовок — «N · в таблице 12 страниц», без «из»`, /^Чтений страницы таблицы: \d+ · в\sтаблице\s12\sстраниц$/.test(el.querySelector(".iv-scan__reads").textContent), true);
   });
   // граница: пустой набор и нечисловые размеры не ломают
   types.forEach((t) => {
@@ -351,7 +353,8 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     const body = src.slice(src.indexOf(`    "${t}": {`));
     const block = (body.match(/presets: \[\n([\s\S]*?)\n      \],/) || [])[1] || "";
     const presets = [...block.matchAll(/set: \{([^}]*)\}/g)].map((m) => Object.fromEntries([...m[1].matchAll(/"(data-[a-z-]+)":\s*"([^"]*)"/g)].map((x) => [x[1], x[2]])));
-    eq(`${t}: 4 пресета с ровно тремя полями`, [presets.length, presets.every((p) => Object.keys(p).sort().join() === "data-match,data-pages,data-rows")], [4, true]);
+    // «пример главы» движок ставит сам; свой пресет с теми же атрибутами был бы второй одинаковой кнопкой
+    eq(`${t}: 3 пресета с ровно тремя полями, ни один не «пример главы»`, [presets.length, presets.every((p) => Object.keys(p).sort().join() === "data-match,data-pages,data-rows"), /label: "пример главы/.test(block)], [3, true, false]);
     presets.forEach((p, i) => {
       const el = run(t, Object.keys(p).map((k) => `${k}="${p[k]}"`).join(" "));
       eq(`${t}: пресет ${i + 1} строится`, el.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(el.textContent) && /Итог:/.test(el.textContent), true);
