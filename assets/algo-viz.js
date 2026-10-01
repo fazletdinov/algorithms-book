@@ -16577,7 +16577,11 @@
   // assets/infra-viz.js грузится ПОСЛЕ этого файла, а init() стартует на DOMContentLoaded,
   // то есть когда оба скрипта уже выполнились и регистрация успела.
   window.ALGO_VIZ = {
+    // Тихая перезапись подменила бы встроенный виджет, а следом сломала бы его главу, —
+    // поэтому кривой вызов и повтор типа падают сразу, при загрузке infra-viz.js.
     register: function (type, cfg, code) {
+      if (!cfg || !cfg.codeKey || !Array.isArray(code)) throw new Error("ALGO_VIZ.register: нужен cfg.codeKey и код листинга: " + type);
+      if (DASH[type] || CODE[cfg.codeKey]) throw new Error("ALGO_VIZ.register: тип уже есть: " + type);
       DASH[type] = cfg;
       CODE[cfg.codeKey] = code;
     },

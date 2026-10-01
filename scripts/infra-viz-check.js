@@ -4,7 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 let JSDOM;
-try { ({ JSDOM } = require("jsdom")); } catch (e) { console.log("⏭  infra-viz-check: jsdom не установлен (npm i --no-save jsdom)"); process.exit(1); }
+try { ({ JSDOM } = require("jsdom")); } catch (e) { console.log("✗ infra-viz-check: нужен jsdom (npm i --no-save jsdom) — проверка не выполнена"); process.exit(1); }
 const root = path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(root, "assets", f), "utf8");
 let failed = 0;
@@ -31,6 +31,18 @@ const eq = (name, got, want) => { if (JSON.stringify(got) !== JSON.stringify(wan
   const a = dom.window.document.getElementById("a"), b = dom.window.document.getElementById("b");
   eq("register: тип отрисован", a.classList.contains("algo-viz--ready") && /viz:один/.test(a.textContent), true);
   eq("register: чужой тип по-прежнему «Неизвестный»", /Неизвестный тип/.test(b.textContent), true);
+}
+// --- register: дубликаты и кривые вызовы падают громко ---
+{
+  const dom = new JSDOM(`<!DOCTYPE html><html><body><script>${read("algo-viz.js")}</script></body></html>`, { runScripts: "dangerously" });
+  const R = dom.window.ALGO_VIZ.register;
+  const throws = (f) => { try { f(); return false; } catch (e) { return true; } };
+  eq("register: встроенный тип (lsm-put) не перезаписывается", throws(() => R("lsm-put", { codeKey: "x-lsm-put" }, ["//"])), true);
+  eq("register: чужой листинг (codeKey встроенного) не перезаписывается", throws(() => R("x-new-1", { codeKey: "lsm-put" }, ["//"])), true);
+  R("x-twice", { codeKey: "x-twice" }, ["//"]);
+  eq("register: повтор того же нового типа бросает", throws(() => R("x-twice", { codeKey: "x-twice-2" }, ["//"])), true);
+  eq("register: без codeKey бросает", throws(() => R("x-nokey", {}, ["//"])), true);
+  eq("register: без листинга бросает", throws(() => R("x-nocode", { codeKey: "x-nocode" })), true);
 }
 // --- виджет pg-page (jsdom) ---
 function buildPg(attrs) {
@@ -121,6 +133,19 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   // что влезли, за 4 идёт 7 («нет»), у пятой — 5 («да»). Без кадра 4 в этой ветке вопрос пропадал.
   const after4 = st5.map((s, i) => (s.line === 4 ? st5[i + 1].line : null)).filter((x) => x !== null);
   eq("кадр на проверке if есть у каждой вставки: 4 раза «нет» (→7), 1 раз «да» (→5)", after4, [7, 7, 7, 7, 5]);
+}
+{
+  // чип slot = значение переменной листинга (правило 3): до `slot = p.setPointer(...)` (строка 8)
+  // это -1 или номер переиспользуемого указателя; номер нового появляется только с кадра строки 8.
+  // Две вставки, а не одна: номер №2 отличает «номер нового указателя» от константы 1.
+  const slotAt = (steps, n) => steps.filter((s) => s.line === n).map((s) => s.vars.slot);
+  const fresh = run("+a:100,+b:100");
+  eq("slot: новый указатель — на кадрах 4 и 7 ещё -1", [slotAt(fresh, 4), slotAt(fresh, 7)], [[-1, -1], [-1, -1]]);
+  eq("slot: новый указатель — на кадре 8 уже №1, №2", slotAt(fresh, 8), [1, 2]);
+  // освобождён №2 из середины (хвост живой — VACUUM его не отрежет): вставка берёт именно его
+  const reuse = run("+a:100,+b:100,+c:100,-2,vacuum,+d:100");
+  const tail = reuse.slice(reuse.map((s) => s.line).lastIndexOf(2));
+  eq("slot: переиспользуемый указатель — на кадрах 4, 7, 8 это №2", [slotAt(tail, 4), slotAt(tail, 7), slotAt(tail, 8)], [[2], [2], [2]]);
 }
 {
   // граница: после 3 строк свободно 8192-24-3*(2024+4)=2084; строка с need=2084 влезает: 4+maxAlign(24+d)=2084 → d=2056

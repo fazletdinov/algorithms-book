@@ -76,9 +76,9 @@
         var reserveOff = upper() - size; // новая строка кладётся под нижнюю, остальные не двигаются
         var newSlot = slot < 0 ? { n: slots.length + 1, state: "normal", name: op.name, off: reserveOff, len: size } : null;
         var target = newSlot || slots[slot];
-        steps.push(snap({ line: 4, vars: v(label, { size: size, slot: target.n, need: need }), info: "need " + need + " ≤ свободно " + (upper() - lower()) + " — нет, место есть, вставка пройдёт" }));
+        steps.push(snap({ line: 4, vars: v(label, { size: size, slot: slot < 0 ? -1 : slot + 1, need: need }), info: "need " + need + " ≤ свободно " + (upper() - lower()) + " — нет, место есть, вставка пройдёт" }));
         // upper сдвигается ДО появления указателя и tuple: резерв места
-        steps.push({ slots: snap({}).slots, lower: lower(), upper: reserveOff, reserved: { off: reserveOff, len: size }, line: 7, vars: v(label, { size: size, slot: target.n, need: need, upper: reserveOff }), info: "upper -= " + size + ": место под строку отрезано от свободной зоны" });
+        steps.push({ slots: snap({}).slots, lower: lower(), upper: reserveOff, reserved: { off: reserveOff, len: size }, line: 7, vars: v(label, { size: size, slot: slot < 0 ? -1 : slot + 1, need: need, upper: reserveOff }), info: "upper -= " + size + ": место под строку отрезано от свободной зоны" });
         if (newSlot) slots.push(newSlot); else { target.state = "normal"; target.name = op.name; target.len = size; target.off = reserveOff; }
         steps.push({ slots: snap({}).slots.map(function (s) { return s.n === target.n ? { n: s.n, state: s.state, name: s.name, off: s.off, len: s.len, ptrOnly: true } : s; }), lower: lower(), upper: upper(), reserved: { off: target.off, len: size }, line: 8, vars: v(label, { size: size, slot: target.n, need: need }), info: "setPointer: указатель №" + target.n + " → смещение " + target.off + (newSlot ? "; lower вырос на " + ITEM : "; lower не изменился") });
         steps.push(snap({ line: 9, vars: v(label, { size: size, slot: target.n, need: need }), info: "Данные записаны по смещению " + target.off + ". Строка «" + op.name + "» лежит в слоте №" + target.n }));
@@ -200,7 +200,7 @@
       "        return 0, false // не влезло: строка уйдёт на другую страницу",
       "    }",
       "    p.upper -= size",
-      "    p.setPointer(slot, p.upper)",
+      "    slot = p.setPointer(slot, p.upper) // -1 → номер нового указателя",
       "    copy(p.buf[p.upper:], data)",
       "    return slot, true",
       "}",
@@ -223,7 +223,7 @@
       complexity: { time: "вставка O(1)", space: "8192 Б на страницу", good: "★ 1 чтение = 1 страница" },
       varOrder: ["size", "slot", "need", "lower", "upper"],
       varDesc: { size: "Размер строки (выровнено до 8)", slot: "Слот (указатель)", need: "Сколько байт нужно", lower: "Конец массива указателей", upper: "Начало зоны строк" },
-      lineNotes: { 1: "Заголовок tuple 24 Б + данные, округление вверх до кратного 8", 2: "Ищем освободившийся указатель — переиспользуем", 3: "4 байта под указатель Postgres требует всегда — даже когда переиспользует старый", 4: "Хватит ли места между lower и upper?", 5: "Нет — строка уедет на другую страницу", 7: "Зона строк растёт вниз-вверх: upper уменьшается", 8: "Указатель записан; lower растёт, если слот новый", 9: "Сами байты строки — по смещению upper", 13: "DELETE лишь ставит xmax: байты остаются", 16: "Байты удалённых строк выброшены, живые сдвинуты к концу; указатели остаются — dead", 17: "dead → unused: номер можно отдать новой строке (в Postgres — только после чистки индексов)", 18: "Хвост неиспользуемых указателей отрезается" },
+      lineNotes: { 1: "Заголовок tuple 24 Б + данные, округление вверх до кратного 8", 2: "Ищем освободившийся указатель — переиспользуем", 3: "4 байта под указатель Postgres требует всегда — даже когда переиспользует старый", 4: "Хватит ли места между lower и upper?", 5: "Нет — строка уедет на другую страницу", 7: "Зона строк растёт снизу вверх: upper уменьшается", 8: "Указатель записан; lower растёт, если слот новый", 9: "Сами байты строки — по смещению upper", 13: "DELETE лишь ставит xmax: байты остаются", 16: "Байты удалённых строк выброшены, живые сдвинуты к концу; указатели остаются — dead", 17: "dead → unused: номер можно отдать новой строке (в Postgres — только после чистки индексов)", 18: "Хвост неиспользуемых указателей отрезается (кроме №1)" },
       rules: [{ head: "указатели", body: "растут сверху", cls: "eq" }, { head: "строки", body: "растут снизу", cls: "gt" }, { head: "DELETE", body: "место не возвращает", cls: "lt" }],
       legend: [{ cls: "iv-seg--hdr", label: "заголовок страницы (24 Б)" }, { cls: "iv-seg--ptr", label: "указатель на строку (4 Б)" }, { cls: "iv-seg--tup", label: "живая строка" }, { cls: "iv-seg--dead", label: "удалена, место занято" }, { cls: "iv-seg--deadptr", label: "указатель dead — строки нет, номер ещё занят" }, { cls: "iv-seg--unused", label: "указатель unused — ждёт новую строку" }, { cls: "iv-seg--free", label: "свободное место" }],
       presets: [

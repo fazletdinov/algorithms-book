@@ -6,7 +6,9 @@
 //  3) индексы в lineNotes не выходят за пределы листинга CODE (иначе подпись о несуществующей строке);
 //  4) пресет граничного случая задаёт ровно поля ввода своего типа (иначе кнопка молча не работает);
 //  5) у неонового виджета (без customViz) в главе ядра есть легенда: смысл цветов иначе живёт
-//     только в абзаце над виджетом, который при листании уезжает с экрана.
+//     только в абзаце над виджетом, который при листании уезжает с экрана;
+//  6) тип и его листинг объявлены один раз на оба файла (algo-viz.js + infra-viz.js): иначе
+//     проверка видела бы одну запись, а в браузере ALGO_VIZ.register бросил бы при загрузке.
 // Синтаксис самих *.js проверяется отдельно через `node --check` (см. CI).
 "use strict";
 const fs = require("fs");
@@ -21,6 +23,27 @@ const errors = [];
 
 // --- ключи DASH ---
 const dashKeys = new Set([...all.matchAll(/^    "([a-z0-9-]+)":\s*\{/gm)].map((m) => m[1]));
+
+// --- дубликаты: Set и перезапись в CODE схлопнули бы их молча, а в рантайме register бросит ---
+// Считаем по файлам отдельно: ключ в обоих файлах или дважды в одном — ошибка.
+function countKeys(src, re) {
+  const n = {};
+  for (const m of src.matchAll(re)) n[m[1]] = (n[m[1]] || 0) + 1;
+  return n;
+}
+function codeBlock(src) {
+  const at = src.indexOf("var CODE = {");
+  return at < 0 ? "" : src.slice(at, src.indexOf("\n  };", at));
+}
+function checkDuplicates(what, re, pick) {
+  const a = countKeys(pick(js), re), b = countKeys(pick(infraJs), re);
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    if (a[k] && b[k]) errors.push(`Дубликат типа "${k}" в algo-viz.js и infra-viz.js (${what})`);
+    else if ((a[k] || 0) > 1 || (b[k] || 0) > 1) errors.push(`Дубликат типа "${k}" внутри одного файла (${what})`);
+  }
+}
+checkDuplicates("конфиг DASH/INFRA", /^    "([a-z0-9-]+)":\s*\{/gm, (src) => src);
+checkDuplicates("листинг CODE", /^    "([a-z0-9-]+)":\s*\[/gm, codeBlock);
 
 // --- реестр CODE: ключ -> массив строк ---
 const CODE = {};
