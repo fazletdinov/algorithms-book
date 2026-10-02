@@ -1,0 +1,1027 @@
+{
+  "parse": [
+    {
+      "name": "multibulk SET",
+      "raw": "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\nbar\r\n",
+      "args": [
+        "SET",
+        "foo",
+        "bar"
+      ],
+      "err": false,
+      "eof": false,
+      "consumed": 31
+    },
+    {
+      "name": "multibulk GET",
+      "raw": "*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n",
+      "args": [
+        "GET",
+        "foo"
+      ],
+      "err": false,
+      "eof": false,
+      "consumed": 22
+    },
+    {
+      "name": "inline PING",
+      "raw": "PING\r\n",
+      "args": [
+        "PING"
+      ],
+      "err": false,
+      "eof": false,
+      "consumed": 6
+    },
+    {
+      "name": "inline SET",
+      "raw": "SET foo bar\r\n",
+      "args": [
+        "SET",
+        "foo",
+        "bar"
+      ],
+      "err": false,
+      "eof": false,
+      "consumed": 13
+    },
+    {
+      "name": "inline несколько пробелов",
+      "raw": "SET   foo    bar\r\n",
+      "args": [
+        "SET",
+        "foo",
+        "bar"
+      ],
+      "err": false,
+      "eof": false,
+      "consumed": 18
+    },
+    {
+      "name": "inline только пробелы",
+      "raw": "   \r\n",
+      "args": [],
+      "err": false,
+      "eof": false,
+      "consumed": 5
+    },
+    {
+      "name": "пустая строка",
+      "raw": "\r\n",
+      "args": null,
+      "err": false,
+      "eof": false,
+      "consumed": 2
+    },
+    {
+      "name": "LF без CR",
+      "raw": "PING\n",
+      "args": [
+        "PING"
+      ],
+      "err": false,
+      "eof": false,
+      "consumed": 5
+    },
+    {
+      "name": "в значении \\r\\n",
+      "raw": "*3\r\n$3\r\nSET\r\n$1\r\nk\r\n$4\r\na\r\nb\r\n",
+      "args": [
+        "SET",
+        "k",
+        "a\r\nb"
+      ],
+      "err": false,
+      "eof": false,
+      "consumed": 30
+    },
+    {
+      "name": "пустое значение $0",
+      "raw": "*2\r\n$4\r\nECHO\r\n$0\r\n\r\n",
+      "args": [
+        "ECHO",
+        ""
+      ],
+      "err": false,
+      "eof": false,
+      "consumed": 20
+    },
+    {
+      "name": "массив из нуля",
+      "raw": "*0\r\n",
+      "args": [],
+      "err": false,
+      "eof": false,
+      "consumed": 4
+    },
+    {
+      "name": "две команды подряд",
+      "raw": "*1\r\n$4\r\nPING\r\n*1\r\n$4\r\nPING\r\n",
+      "args": [
+        "PING"
+      ],
+      "err": false,
+      "eof": false,
+      "consumed": 14
+    },
+    {
+      "name": "хвост после inline",
+      "raw": "PING\r\nGET x\r\n",
+      "args": [
+        "PING"
+      ],
+      "err": false,
+      "eof": false,
+      "consumed": 6
+    },
+    {
+      "name": "плохой заголовок *x",
+      "raw": "*x\r\n",
+      "args": null,
+      "err": true,
+      "eof": false,
+      "consumed": 4
+    },
+    {
+      "name": "отрицательный заголовок *-1",
+      "raw": "*-1\r\n",
+      "args": null,
+      "err": true,
+      "eof": false,
+      "consumed": 5
+    },
+    {
+      "name": "слишком длинный массив",
+      "raw": "*2000000\r\n",
+      "args": null,
+      "err": true,
+      "eof": false,
+      "consumed": 10
+    },
+    {
+      "name": "нет $",
+      "raw": "*1\r\nGET\r\n",
+      "args": null,
+      "err": true,
+      "eof": false,
+      "consumed": 9
+    },
+    {
+      "name": "плохая длина $x",
+      "raw": "*1\r\n$x\r\nGET\r\n",
+      "args": null,
+      "err": true,
+      "eof": false,
+      "consumed": 8
+    },
+    {
+      "name": "отрицательная длина $-1",
+      "raw": "*1\r\n$-1\r\n",
+      "args": null,
+      "err": true,
+      "eof": false,
+      "consumed": 9
+    },
+    {
+      "name": "слишком длинная строка",
+      "raw": "*1\r\n$999999999\r\nabc\r\n",
+      "args": null,
+      "err": true,
+      "eof": false,
+      "consumed": 16
+    },
+    {
+      "name": "нет \\n в заголовке",
+      "raw": "*2",
+      "args": null,
+      "err": false,
+      "eof": true,
+      "consumed": 2
+    },
+    {
+      "name": "оборвано на заголовке",
+      "raw": "*2\r\n$3\r\nGET\r\n",
+      "args": null,
+      "err": false,
+      "eof": true,
+      "consumed": 13
+    },
+    {
+      "name": "оборвано внутри строки",
+      "raw": "*2\r\n$3\r\nGET\r\n$3\r\nfo",
+      "args": null,
+      "err": false,
+      "eof": true,
+      "consumed": 19
+    },
+    {
+      "name": "не хватает завершающего \\r\\n",
+      "raw": "*1\r\n$3\r\nGET",
+      "args": null,
+      "err": false,
+      "eof": true,
+      "consumed": 11
+    },
+    {
+      "name": "последние два байта не \\r\\n",
+      "raw": "*1\r\n$3\r\nGETxx",
+      "args": [
+        "GET"
+      ],
+      "err": false,
+      "eof": false,
+      "consumed": 13
+    },
+    {
+      "name": "знак в длине +",
+      "raw": "*+1\r\n$+3\r\nGET\r\n",
+      "args": [
+        "GET"
+      ],
+      "err": false,
+      "eof": false,
+      "consumed": 15
+    },
+    {
+      "name": "пустой ввод",
+      "raw": "",
+      "args": null,
+      "err": false,
+      "eof": true,
+      "consumed": 0
+    }
+  ],
+  "reply": [
+    {
+      "name": "служебные",
+      "preload": {},
+      "steps": [
+        {
+          "args": [
+            "PING"
+          ],
+          "reply": "+PONG\r\n"
+        },
+        {
+          "args": [
+            "PING",
+            "привет"
+          ],
+          "reply": "$12\r\nпривет\r\n"
+        },
+        {
+          "args": [
+            "ping",
+            "hi"
+          ],
+          "reply": "$2\r\nhi\r\n"
+        },
+        {
+          "args": [
+            "PING",
+            "a",
+            "b"
+          ],
+          "reply": "-ERR wrong number of arguments for 'ping' command\r\n"
+        },
+        {
+          "args": [
+            "ECHO",
+            "world"
+          ],
+          "reply": "$5\r\nworld\r\n"
+        },
+        {
+          "args": [
+            "ECHO"
+          ],
+          "reply": "-ERR wrong number of arguments for 'echo' command\r\n"
+        },
+        {
+          "args": [
+            "FOO"
+          ],
+          "reply": "-ERR unknown command 'FOO'\r\n"
+        },
+        {
+          "args": [
+            "foo",
+            "x"
+          ],
+          "reply": "-ERR unknown command 'foo'\r\n"
+        }
+      ]
+    },
+    {
+      "name": "SET/GET/DEL",
+      "preload": {
+        "foo": "bar"
+      },
+      "steps": [
+        {
+          "args": [
+            "GET",
+            "foo"
+          ],
+          "reply": "$3\r\nbar\r\n"
+        },
+        {
+          "args": [
+            "GET",
+            "missing"
+          ],
+          "reply": "$-1\r\n"
+        },
+        {
+          "args": [
+            "SET",
+            "n",
+            "5"
+          ],
+          "reply": "+OK\r\n"
+        },
+        {
+          "args": [
+            "GET",
+            "n"
+          ],
+          "reply": "$1\r\n5\r\n"
+        },
+        {
+          "args": [
+            "get",
+            "n"
+          ],
+          "reply": "$1\r\n5\r\n"
+        },
+        {
+          "args": [
+            "SET",
+            "k"
+          ],
+          "reply": "-ERR wrong number of arguments for 'set' command\r\n"
+        },
+        {
+          "args": [
+            "GET"
+          ],
+          "reply": "-ERR wrong number of arguments for 'get' command\r\n"
+        },
+        {
+          "args": [
+            "DEL",
+            "n"
+          ],
+          "reply": ":1\r\n"
+        },
+        {
+          "args": [
+            "DEL",
+            "n"
+          ],
+          "reply": ":0\r\n"
+        },
+        {
+          "args": [
+            "DEL",
+            "foo",
+            "missing",
+            "n"
+          ],
+          "reply": ":1\r\n"
+        },
+        {
+          "args": [
+            "DEL"
+          ],
+          "reply": "-ERR wrong number of arguments for 'del' command\r\n"
+        }
+      ]
+    }
+  ],
+  "ttl": [
+    {
+      "name": "ленивое удаление по GET",
+      "script": "SET session abc; EXPIRE session 3; +2; TTL session; +2; GET session; TTL session",
+      "steps": [
+        {
+          "token": "SET session abc",
+          "reply": "+OK\r\n",
+          "data": {
+            "session": "abc"
+          },
+          "expire": {}
+        },
+        {
+          "token": "EXPIRE session 3",
+          "reply": ":1\r\n",
+          "data": {
+            "session": "abc"
+          },
+          "expire": {
+            "session": 3000
+          }
+        },
+        {
+          "token": "+2",
+          "reply": "",
+          "data": {
+            "session": "abc"
+          },
+          "expire": {
+            "session": 3000
+          }
+        },
+        {
+          "token": "TTL session",
+          "reply": ":1\r\n",
+          "data": {
+            "session": "abc"
+          },
+          "expire": {
+            "session": 3000
+          }
+        },
+        {
+          "token": "+2",
+          "reply": "",
+          "data": {
+            "session": "abc"
+          },
+          "expire": {
+            "session": 3000
+          }
+        },
+        {
+          "token": "GET session",
+          "reply": "$-1\r\n",
+          "data": {},
+          "expire": {}
+        },
+        {
+          "token": "TTL session",
+          "reply": ":-2\r\n",
+          "data": {},
+          "expire": {}
+        }
+      ]
+    },
+    {
+      "name": "просрочен, но лежит в памяти",
+      "script": "SET a 1; EXPIRE a 1; +5; SET b 2; DEL b",
+      "steps": [
+        {
+          "token": "SET a 1",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        },
+        {
+          "token": "EXPIRE a 1",
+          "reply": ":1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 1000
+          }
+        },
+        {
+          "token": "+5",
+          "reply": "",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 1000
+          }
+        },
+        {
+          "token": "SET b 2",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1",
+            "b": "2"
+          },
+          "expire": {
+            "a": 1000
+          }
+        },
+        {
+          "token": "DEL b",
+          "reply": ":1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 1000
+          }
+        }
+      ]
+    },
+    {
+      "name": "SET снимает TTL",
+      "script": "SET a 1; EXPIRE a 2; SET a 2; +5; TTL a; GET a",
+      "steps": [
+        {
+          "token": "SET a 1",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        },
+        {
+          "token": "EXPIRE a 2",
+          "reply": ":1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 2000
+          }
+        },
+        {
+          "token": "SET a 2",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "2"
+          },
+          "expire": {}
+        },
+        {
+          "token": "+5",
+          "reply": "",
+          "data": {
+            "a": "2"
+          },
+          "expire": {}
+        },
+        {
+          "token": "TTL a",
+          "reply": ":-1\r\n",
+          "data": {
+            "a": "2"
+          },
+          "expire": {}
+        },
+        {
+          "token": "GET a",
+          "reply": "$1\r\n2\r\n",
+          "data": {
+            "a": "2"
+          },
+          "expire": {}
+        }
+      ]
+    },
+    {
+      "name": "TTL отбрасывает дробную часть",
+      "script": "SET a 1; EXPIRE a 3; +0.5; TTL a; +2.4; TTL a; +0.1; TTL a",
+      "steps": [
+        {
+          "token": "SET a 1",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        },
+        {
+          "token": "EXPIRE a 3",
+          "reply": ":1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 3000
+          }
+        },
+        {
+          "token": "+0.5",
+          "reply": "",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 3000
+          }
+        },
+        {
+          "token": "TTL a",
+          "reply": ":2\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 3000
+          }
+        },
+        {
+          "token": "+2.4",
+          "reply": "",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 3000
+          }
+        },
+        {
+          "token": "TTL a",
+          "reply": ":0\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 3000
+          }
+        },
+        {
+          "token": "+0.1",
+          "reply": "",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 3000
+          }
+        },
+        {
+          "token": "TTL a",
+          "reply": ":-2\r\n",
+          "data": {},
+          "expire": {}
+        }
+      ]
+    },
+    {
+      "name": "EXPIRE 0 удаляет",
+      "script": "SET a 1; EXPIRE a 0; GET a; TTL a",
+      "steps": [
+        {
+          "token": "SET a 1",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        },
+        {
+          "token": "EXPIRE a 0",
+          "reply": ":1\r\n",
+          "data": {},
+          "expire": {}
+        },
+        {
+          "token": "GET a",
+          "reply": "$-1\r\n",
+          "data": {},
+          "expire": {}
+        },
+        {
+          "token": "TTL a",
+          "reply": ":-2\r\n",
+          "data": {},
+          "expire": {}
+        }
+      ]
+    },
+    {
+      "name": "EXPIRE отрицательный",
+      "script": "SET a 1; EXPIRE a -5; GET a",
+      "steps": [
+        {
+          "token": "SET a 1",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        },
+        {
+          "token": "EXPIRE a -5",
+          "reply": ":1\r\n",
+          "data": {},
+          "expire": {}
+        },
+        {
+          "token": "GET a",
+          "reply": "$-1\r\n",
+          "data": {},
+          "expire": {}
+        }
+      ]
+    },
+    {
+      "name": "DEL считает только живые",
+      "script": "SET a 1; EXPIRE a 1; +2; DEL a; DEL a",
+      "steps": [
+        {
+          "token": "SET a 1",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        },
+        {
+          "token": "EXPIRE a 1",
+          "reply": ":1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 1000
+          }
+        },
+        {
+          "token": "+2",
+          "reply": "",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 1000
+          }
+        },
+        {
+          "token": "DEL a",
+          "reply": ":0\r\n",
+          "data": {},
+          "expire": {}
+        },
+        {
+          "token": "DEL a",
+          "reply": ":0\r\n",
+          "data": {},
+          "expire": {}
+        }
+      ]
+    },
+    {
+      "name": "граница now == exp",
+      "script": "SET a 1; EXPIRE a 2; +1.999; GET a; +0.001; GET a",
+      "steps": [
+        {
+          "token": "SET a 1",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        },
+        {
+          "token": "EXPIRE a 2",
+          "reply": ":1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 2000
+          }
+        },
+        {
+          "token": "+1.999",
+          "reply": "",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 2000
+          }
+        },
+        {
+          "token": "GET a",
+          "reply": "$1\r\n1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 2000
+          }
+        },
+        {
+          "token": "+0.001",
+          "reply": "",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 2000
+          }
+        },
+        {
+          "token": "GET a",
+          "reply": "$-1\r\n",
+          "data": {},
+          "expire": {}
+        }
+      ]
+    },
+    {
+      "name": "EXPIRE на отсутствующем",
+      "script": "EXPIRE nope 5; TTL nope; GET nope",
+      "steps": [
+        {
+          "token": "EXPIRE nope 5",
+          "reply": ":0\r\n",
+          "data": {},
+          "expire": {}
+        },
+        {
+          "token": "TTL nope",
+          "reply": ":-2\r\n",
+          "data": {},
+          "expire": {}
+        },
+        {
+          "token": "GET nope",
+          "reply": "$-1\r\n",
+          "data": {},
+          "expire": {}
+        }
+      ]
+    },
+    {
+      "name": "TTL без срока",
+      "script": "SET a 1; TTL a",
+      "steps": [
+        {
+          "token": "SET a 1",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        },
+        {
+          "token": "TTL a",
+          "reply": ":-1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        }
+      ]
+    },
+    {
+      "name": "EXPIRE дважды сбрасывает срок",
+      "script": "SET a 1; EXPIRE a 2; +1; EXPIRE a 5; +3; TTL a",
+      "steps": [
+        {
+          "token": "SET a 1",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        },
+        {
+          "token": "EXPIRE a 2",
+          "reply": ":1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 2000
+          }
+        },
+        {
+          "token": "+1",
+          "reply": "",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 2000
+          }
+        },
+        {
+          "token": "EXPIRE a 5",
+          "reply": ":1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 6000
+          }
+        },
+        {
+          "token": "+3",
+          "reply": "",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 6000
+          }
+        },
+        {
+          "token": "TTL a",
+          "reply": ":2\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 6000
+          }
+        }
+      ]
+    },
+    {
+      "name": "EXPIRE на просроченном",
+      "script": "SET a 1; EXPIRE a 1; +2; EXPIRE a 10; GET a",
+      "steps": [
+        {
+          "token": "SET a 1",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        },
+        {
+          "token": "EXPIRE a 1",
+          "reply": ":1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 1000
+          }
+        },
+        {
+          "token": "+2",
+          "reply": "",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 1000
+          }
+        },
+        {
+          "token": "EXPIRE a 10",
+          "reply": ":0\r\n",
+          "data": {},
+          "expire": {}
+        },
+        {
+          "token": "GET a",
+          "reply": "$-1\r\n",
+          "data": {},
+          "expire": {}
+        }
+      ]
+    },
+    {
+      "name": "TTL на просроченном",
+      "script": "SET a 1; EXPIRE a 1; +2; TTL a; GET a",
+      "steps": [
+        {
+          "token": "SET a 1",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        },
+        {
+          "token": "EXPIRE a 1",
+          "reply": ":1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 1000
+          }
+        },
+        {
+          "token": "+2",
+          "reply": "",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 1000
+          }
+        },
+        {
+          "token": "TTL a",
+          "reply": ":-2\r\n",
+          "data": {},
+          "expire": {}
+        },
+        {
+          "token": "GET a",
+          "reply": "$-1\r\n",
+          "data": {},
+          "expire": {}
+        }
+      ]
+    }
+  ]
+}
