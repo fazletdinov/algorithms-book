@@ -478,12 +478,12 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
 }
 {
   const types = { "pg-join-nl": infra.bJoinNL, "pg-join-hash": infra.bJoinHash, "pg-join-merge": infra.bJoinMerge };
-  const run = (type, attrs) => {
+  const run = (type, attrs, steps = 500) => {
     const div = `<div class="algo-viz" id="w" tabindex="0" data-viz="${type}" ${attrs}></div>`;
     const dom = new JSDOM(`<!DOCTYPE html><html><body>${div}<script>${read("algo-viz.js")}</script>${infraScripts()}</body></html>`, { runScripts: "dangerously", pretendToBeVisual: true });
     dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
     const el = dom.window.document.getElementById("w");
-    for (let i = 0; i < 500; i++) el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    for (let i = 0; i < steps; i++) el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
     return el;
   };
   const attrs = 'data-users="1-6" data-orders="r14" data-filter="0"';
@@ -511,5 +511,28 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   const classes = [...legBlock.matchAll(/cls: "([^"]+)"/g)].map((m) => m[1]);
   eq("join: легенда содержит 5 классов", classes.length, 5);
   classes.forEach((c) => eq(`join: legdot-правило с цветом для ${c}`, new RegExp("\\.algo-tp__legdot--" + c.replace(/[-_]/g, (x) => "\\" + x) + "\\s*\\{[^}]*#[0-9a-fA-F]{6}").test(css), true));
+  // легенда по типам, ряд хеш-таблицы, видимый текст метрик, прочитанные пользователи у NL
+  {
+    const want = { "pg-join-nl": 4, "pg-join-hash": 5, "pg-join-merge": 4 };
+    const us2 = infra.parseIds("1-6", 1, 12, false), os2 = infra.parseIds("r14", 1, 12, true).map((u, i) => ({ n: i + 1, u }));
+    Object.keys(want).forEach((t) => {
+      const fin = last(types[t](us2, os2));
+      [500, 3].forEach((n) => {
+        const el = run(t, 'data-users="1-6" data-orders="r14" data-filter="0"', n);
+        const dots = el.querySelectorAll(".algo-tp__legdot").length;
+        const labels = [...el.querySelectorAll(".algo-tp__leglabel")].map((x) => x.textContent);
+        eq(`${t} (шагов ${n}): точек легенды ${want[t]}, «лежит в хеш-таблице» только у Hash`, [dots, labels.includes("лежит в хеш-таблице")], [want[t], t === "pg-join-hash"]);
+        eq(`${t} (шагов ${n}): ряд хеш-таблицы только у Hash`, el.querySelectorAll(".iv-join__row--hash").length, t === "pg-join-hash" ? 1 : 0);
+      });
+      const txt = run(t, 'data-users="1-6" data-orders="r14" data-filter="0"').querySelector(".iv-join__metrics").textContent;
+      eq(`${t}: видимая строка метрик называет прочитанное и пары по модели`, [txt.includes("заказов прочитано: " + fin.oRead + " "), txt.includes("пар в результате: " + fin.out.length)], [true, true]);
+    });
+    const nl = run("pg-join-nl", 'data-users="1-4" data-orders="2,2,3,7" data-filter="0"');
+    const cells = [...nl.querySelectorAll(".iv-join__row--users .iv-join__cell")].map((c) => c.className.replace("iv-join__cell", "").trim());
+    eq("pg-join-nl: на итоге пользователи без заказов (1, 4) «прочитаны», 2 и 3 — в результате", cells, ["iv-join__cell--read", "iv-join__cell--match", "iv-join__cell--match", "iv-join__cell--read"]);
+    const mid = run("pg-join-nl", 'data-users="1-4" data-orders="2,2,3,7" data-filter="0"', 4);
+    const mc = [...mid.querySelectorAll(".iv-join__row--users .iv-join__cell")].map((c) => c.className.replace("iv-join__cell", "").trim());
+    eq("pg-join-nl: в середине прогона пользователи после текущего ещё не читались", mc.slice(2).every((c) => c === "iv-join__cell--idle"), true);
+  }
 }
 process.exit(failed ? 1 : 0);

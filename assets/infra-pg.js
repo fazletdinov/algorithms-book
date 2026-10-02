@@ -632,10 +632,13 @@
       wrap.appendChild(m);
       var matchedU = {}, matchedN = {};
       s.out.forEach(function (p) { matchedU[p.u] = true; matchedN[p.n] = true; });
+      // Генератор NL не двигает uRead: внешняя строка «прочитана», когда по ней уже сходили в индекс
+      // (индекс меньше текущего) или алгоритм закончил — иначе пользователь без заказов выглядит нетронутым.
+      function userRead(i) { return kind === "nl" ? (i < s.cu || !!s.done) : i < s.uRead; }
       var rowU = H.mkEl("div", "iv-join__row iv-join__row--users");
       rowU.appendChild(H.mkEl("div", "iv-join__label", (kind === "nl" ? "внешняя таблица" : "таблица") + " users (id)"));
       s.U.forEach(function (id, i) {
-        var cls = "iv-join__cell" + (i === s.cu ? " iv-join__cell--cur" : matchedU[id] ? " iv-join__cell--match" : i < s.uRead ? " iv-join__cell--read" : " iv-join__cell--idle");
+        var cls = "iv-join__cell" + (i === s.cu ? " iv-join__cell--cur" : matchedU[id] ? " iv-join__cell--match" : userRead(i) ? " iv-join__cell--read" : " iv-join__cell--idle");
         rowU.appendChild(H.mkEl("div", cls, String(id)));
       });
       if (!s.U.length) rowU.appendChild(H.mkEl("div", "iv-join__empty", "пусто"));
@@ -821,9 +824,9 @@
       legend: joinLegend,
       presets: [
         { label: "в users всего 3 строки", set: { "data-users": "1-12", "data-orders": "r24", "data-filter": "4" }, hint: "заказов прочитано все 24, хеш — 3 строки" },
-        { label: "у части пользователей нет заказов", set: { "data-users": "1-6", "data-orders": "1,1,2,2,5,5", "data-filter": "0" }, hint: "читает все заказы, даже ненужные" },
+        { label: "у части пользователей нет заказов", set: { "data-users": "1-6", "data-orders": "1,1,2,2,5,5", "data-filter": "0" }, hint: "читает все 6 заказов; у пользователей 3, 4, 6 заказов нет — хешу это не мешает" },
         { label: "заказы без пользователя", set: { "data-users": "1-3", "data-orders": "1,2,3,7,8,9", "data-filter": "0" }, hint: "заказы без пары пропускает, но читает" },
-        { label: "много заказов у одного", set: { "data-users": "1-4", "data-orders": "2,2,2,2,2,2,2,3", "data-filter": "0" }, hint: "одно ведро — длинная работа на пробе" }
+        { label: "много заказов у одного", set: { "data-users": "1-4", "data-orders": "2,2,2,2,2,2,2,3", "data-filter": "0" }, hint: "семь заказов подряд ищут одного и того же пользователя" }
       ],
       parse: joinCommonParse("hash"),
       inputs: [{ attr: "data-users", label: "Таблица users, id (N, a-b, rK)" }, { attr: "data-orders", label: "Заказы, user_id (N, a-b, rK)" }, { attr: "data-filter", label: "Фильтр u.id < K (0 — без)" }],
@@ -849,8 +852,8 @@
       legend: joinLegendNoHash,
       presets: [
         { label: "в users всего 3 строки", set: { "data-users": "1-12", "data-orders": "r24", "data-filter": "4" }, hint: "читает, пока не кончится сторона" },
-        { label: "у части пользователей нет заказов", set: { "data-users": "1-6", "data-orders": "1,1,2,2,5,5", "data-filter": "0" }, hint: "ныряет мимо пустых" },
-        { label: "заказы без пользователя", set: { "data-users": "1-3", "data-orders": "1,2,3,7,8,9", "data-filter": "0" }, hint: "остановился на последнем пользователе, хвост заказов не прочитан" },
+        { label: "у части пользователей нет заказов", set: { "data-users": "1-6", "data-orders": "1,1,2,2,5,5", "data-filter": "0" }, hint: "у пользователей 3 и 4 заказов нет — i просто сдвигается" },
+        { label: "заказы без пользователя", set: { "data-users": "1-3", "data-orders": "1,2,3,7,8,9", "data-filter": "0" }, hint: "пользователи кончились раньше заказов — часть заказов не прочитана" },
         { label: "много заказов у одного", set: { "data-users": "1-4", "data-orders": "2,2,2,2,2,2,2,3", "data-filter": "0" }, hint: "один пользователь — j идёт подряд" }
       ],
       parse: joinCommonParse("merge"),
