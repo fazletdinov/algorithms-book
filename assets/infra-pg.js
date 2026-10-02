@@ -289,9 +289,26 @@
     return st.steps;
   }
 
+  // Два коротких пути сверены с живым Postgres 16 (и с nodeHashjoin.c): первый заказ он берёт ЕЩЁ ДО
+  // build — проверить, что заказы вообще есть. Нет заказов — хеш не строится, users не читается
+  // («never executed» у Hash). Хеш пуст — заказы дальше не читаются (Seq Scan по заказам: rows=1).
   function bJoinHash(users, orders) {
     var st = joinState(users, orders, "строк в хеш-таблице");
-    st.snap(1, { u: "—", o: "—" }, "Hash Join: сначала строим хеш-таблицу по users (меньшая сторона, после фильтра; строк: " + users.length + "), потом ОДНИМ проходом читаем ВСЕ заказы (orders; строк: " + orders.length + ").");
+    if (!orders.length) {
+      st.snap(1, { u: "—", o: "—" }, "Hash Join: хеш строится по users, потом по нему прогоняются заказы. Но заказов нет: Postgres ещё до build пробует взять первый заказ, не находит его — и хеш по users не строит вовсе.");
+      st.snap(11, { u: "—", o: "—" }, "Итог: 0 пар; заказов нет — хеш не строился, таблица users не читалась.", { done: true });
+      return st.steps;
+    }
+    // Сторону для хеша Postgres выбирает по стоимости, а не по одному числу строк (вживую: 12 users и
+    // 11 заказов — хеш по users, 12 users и 3 заказа — по заказам). Виджет хеширует users всегда.
+    var side = users.length > orders.length ? " Здесь users больше, чем заказов, и Postgres мог бы построить хеш по заказам: сторону он выбирает по стоимости. Виджет строит хеш по users всегда." : "";
+    st.snap(1, { u: "—", o: "—" }, !users.length ? "Hash Join: хеш строится по users, потом по нему прогоняются заказы (строк: " + orders.length + "). Но в users после фильтра не осталось ни одной строки." : "Hash Join: сначала строим хеш-таблицу по users (меньшая сторона, после фильтра; строк: " + users.length + "), потом ОДНИМ проходом читаем ВСЕ заказы (orders; строк: " + orders.length + ")." + side);
+    if (!users.length) {
+      st.oRead = 1;
+      st.snap(5, { u: "—", o: "—" }, "Хеш-таблица пуста: в users нет ни одной строки, и ни один заказ пары не найдёт — проход по заказам Postgres не делает. Прочитан только первый заказ: его Postgres берёт ещё до build, проверить, что заказы вообще есть.", { hot: true });
+      st.snap(11, { u: "—", o: "—" }, "Итог: 0 пар; хеш-таблица пуста, поэтому заказов прочитано: 1 из " + orders.length + " — только тот, что взят до build.", { done: true });
+      return st.steps;
+    }
     users.forEach(function (u, ui) {
       st.cu = ui;
       st.snap(2, { u: u, o: "—" }, "build: хеш по users, u = " + u, {});
@@ -318,13 +335,17 @@
     return st.steps;
   }
 
+  // Счётчики — сколько строк слияние вытянуло из каждого входа, как actual rows у дочерних узлов
+  // Merge Join (сверено с живым Postgres 16 и nodeMergejoin.c). Первой читается users: она пуста —
+  // заказы не читаются вовсе («never executed»). Кончились заказы сразу после пары — Postgres
+  // читает ещё одну строку users (extraU): сверяет её с ключом только что пройденной группы заказов.
   function bJoinMerge(users, orders) {
     var O = byIndexOrder(orders), st = joinState(users, O, "сравнений");
-    var i = 0, j = 0;
-    function reads() { st.uRead = Math.min(i + 1, users.length); st.oRead = Math.min(j + 1, O.length); st.cu = i < users.length ? i : -1; st.co = j < O.length ? j : -1; }
+    var i = 0, j = 0, extraU = 0;
+    function reads() { st.uRead = Math.min(i + 1 + extraU, users.length); st.oRead = users.length ? Math.min(j + 1, O.length) : 0; st.cu = i < users.length ? i : -1; st.co = j < O.length ? j : -1; }
     st.snap(1, { i: "—", j: "—" }, "Merge Join: оба входа отсортированы по ключу (users — по первичному ключу, заказы — по индексу user_id); идём по ним двумя указателями.");
     reads();
-    st.snap(2, { i: i, j: j }, "i = 0, j = 0: стоим на первых строках обеих сторон", {});
+    st.snap(2, { i: i, j: j }, !users.length ? "i = 0, j = 0. В users нет ни одной строки — Postgres видит это на первом же чтении и заказы не трогает" : !O.length ? "i = 0, j = 0: прочитана первая строка users, а заказов нет — сравнивать не с чем" : "i = 0, j = 0: стоим на первых строках обеих сторон", {});
     while (i < users.length && j < O.length) {
       st.metric++;
       st.snap(4, { i: i, j: j }, "users[" + i + "] = " + users[i] + ", orders[" + j + "].user_id = " + O[j].u + ": " + users[i] + (users[i] < O[j].u ? " < " : users[i] > O[j].u ? " > " : " = ") + O[j].u, {});
@@ -340,13 +361,19 @@
         } else {
           st.out.push({ u: users[i], n: O[j].n });
           st.snap(9, { i: i, j: j }, "Пара (user " + users[i] + ", заказ №" + O[j].n + ") в результате: " + st.out.length, {});
-          j++; reads();
-          st.snap(10, { i: i, j: j }, "j++: следующий заказ того же пользователя (или другого)", {});
+          j++;
+          if (j === O.length && i + 1 < users.length) extraU = 1;
+          reads();
+          st.snap(10, { i: i, j: j }, extraU ? "j++: заказов больше нет. Но Postgres не останавливается сразу: он читает следующую строку users (id " + users[i + 1] + ") — в общем случае у неё мог бы оказаться тот же ключ, и только что пройденные заказы пришлось бы пройти заново. Ключ другой — соединение закончено" : "j++: следующий заказ того же пользователя (или другого)", {});
         }
       }
     }
     st.cu = -1; st.co = -1;
-    st.snap(13, { i: "—", j: "—" }, "Итог: " + pairsText(st.out.length) + "; прочитано пользователей: " + st.uRead + " из " + users.length + ", заказов: " + st.oRead + " из " + O.length + (st.oRead < O.length ? " — одна из сторон кончилась, и остаток другой читать не пришлось" : "") + ".", { done: true });
+    var note = !users.length ? " — в users ни одной строки, заказы не читались вовсе"
+      : !O.length ? " — заказов нет, хватило первой строки users"
+      : st.uRead < users.length || st.oRead < O.length ? " — одна из сторон кончилась, и остаток другой читать не пришлось" : "";
+    if (extraU) note += (note ? "; " : " — ") + "одну строку users Postgres прочитал уже после того, как кончились заказы";
+    st.snap(13, { i: "—", j: "—" }, "Итог: " + pairsText(st.out.length) + "; прочитано пользователей: " + st.uRead + " из " + users.length + ", заказов: " + st.oRead + " из " + O.length + note + ".", { done: true });
     return st.steps;
   }
   exportsForTest.parseIds = parseIds;
@@ -660,7 +687,8 @@
       });
       if (!s.O.length) rowO.appendChild(H.mkEl("div", "iv-join__empty", "пусто"));
       wrap.appendChild(rowO);
-      wrap.appendChild(H.mkEl("div", "iv-join__pairs", s.out.length ? "Пары: " + s.out.map(function (p) { return "(" + p.u + ", №" + p.n + ")"; }).join(" ") : "Пар пока нет"));
+      // «пока» — только до итога: на последнем кадре пустого соединения пар уже не будет
+      wrap.appendChild(H.mkEl("div", "iv-join__pairs", s.out.length ? "Пары: " + s.out.map(function (p) { return "(" + p.u + ", №" + p.n + ")"; }).join(" ") : s.done ? "Пар нет" : "Пар пока нет"));
     };
   }
 

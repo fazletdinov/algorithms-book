@@ -268,7 +268,11 @@ Chrome с прошагиванием до конца, итоговые стат�
   `pg-scan-seq`/`pg-scan-index`/`pg-scan-bitmap` (вкладками в главе «Postgres: EXPLAIN как pprof»)
   — модель «P страниц × R строк», `data-match` — подходящие строки в порядке ключа индекса
   (токены `N`, `a-b`, `rK`); число чтений сверено с живым Postgres 16, карта Bitmap точная
-  (`exact`), `ctid` в тексте шагов нумерует указатели с 1, как в Postgres. `viz-render-check`
+  (`exact`), `ctid` в тексте шагов нумерует указатели с 1, как в Postgres. Типы
+  `pg-join-nl`/`pg-join-hash`/`pg-join-merge` (вкладками там же, в разделе о соединениях) —
+  внутреннее соединение `users.id = orders.user_id` на `data-users`/`data-orders` в токенах `N`,
+  `a-b`, `rK` с фильтром `data-filter` = `u.id < K`; счётчики сверены с живым Postgres 16, включая
+  лишнюю строку `users`, которую Merge Join читает, когда заказы кончились сразу после пары. `viz-render-check`
   идёт ~25 минут, `check-viz-names` — ~8 (замер 2026-10-01, оба параллельно) — гонять в фоне;
   `predict-check` — секунды: он строит два встроенных виджета, а файлы `infra-*.js` только загружает.
 

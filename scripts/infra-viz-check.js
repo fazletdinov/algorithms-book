@@ -431,6 +431,39 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   const early = infra.bJoinMerge([1, 2], [{ n: 1, u: 1 }, { n: 2, u: 2 }, { n: 3, u: 5 }, { n: 4, u: 6 }, { n: 5, u: 7 }]);
   eq("Merge: остановился, когда кончились пользователи — заказов прочитано 3 из 5", [last(early).uRead, last(early).oRead], [2, 3]);
   eq("Merge: пустой вход — только старт и итог", seq(infra.bJoinMerge([], [{ n: 1, u: 1 }])), "1,2,13");
+  // Сверка с живым Postgres 16 (pglab, 2026-10-02): j_users(id PK), j_orders(id PK, user_id) + индекс по
+  // user_id, данные — из тех же parseIds. Алгоритм навязан флагами enable_*; у NL ещё и LATERAL … OFFSET 0,
+  // чтобы внешней была users, как в модели (на крошечных таблицах планировщик иногда ставит наружу orders).
+  // NL: loops внутреннего Index Scan / actual rows узла Nested Loop; Hash: rows узла Hash / actual rows
+  // Seq Scan по заказам; Merge: actual rows обоих дочерних узлов. «never executed» — 0.
+  const liveJoin = [
+    ["1-8", "r14", 0, [8, 12], [8, 14], [8, 13]],
+    ["1-12", "r24", 0, [12, 24], [12, 24], [12, 24]],
+    ["1-12", "r24", 4, [3, 6], [3, 24], [3, 7]],
+    ["1-6", "1,1,2,2,5,5", 0, [6, 6], [6, 6], [6, 6]],
+    ["1-3", "1,2,3,7,8,9", 0, [3, 3], [3, 6], [3, 4]],
+    ["1-4", "2,2,2,2,2,2,2,3", 0, [4, 8], [4, 8], [4, 8]],
+    ["1-12", "r24", 1, [0, 0], [0, 1], [0, 0]],
+    ["1-3", "", 0, [3, 0], [0, 0], [1, 0]]
+  ];
+  liveJoin.forEach(([u, o, f, nl, h, m]) => {
+    const us = infra.parseIds(u, 1, 12, false).filter((id) => !f || id < f), os = infra.parseIds(o, 1, 12, true).map((x, i) => ({ n: i + 1, u: x }));
+    const a = last(infra.bJoinNL(us, os)), b = last(infra.bJoinHash(us, os)), c = last(infra.bJoinMerge(us, os));
+    eq(`живой Postgres, users ${u}, заказы ${o || "нет"}, фильтр ${f}: NL ${nl.join("/")} · Hash ${h.join("/")} · Merge ${m.join("/")}`, [[a.metric.value, a.oRead], [b.built.length, b.oRead], [c.uRead, c.oRead]], [nl, h, m]);
+  });
+  // Merge: заказы кончились сразу после пары — следующую строку users Postgres всё же читает, и это видно
+  // на том же кадре j++ (line 10), а не только в итоге; кончились по ветке «больше» — не читает
+  {
+    const st = infra.bJoinMerge([1, 2, 3, 4, 5, 6], [1, 1, 2, 2, 5, 5].map((x, i) => ({ n: i + 1, u: x })));
+    const lastJ = st.filter((s) => s.line === 10).pop();
+    eq("Merge: кадр j++ на конце заказов — прочитана ещё одна строка users, текст это объясняет", [lastJ.uRead, /id 6/.test(lastJ.info), lastJ.cu], [6, true, 4]);
+    const skip = last(infra.bJoinMerge([5, 6], [{ n: 1, u: 1 }, { n: 2, u: 2 }]));
+    eq("Merge: заказы кончились по ветке «больше» — лишней строки users нет", [skip.uRead, skip.oRead], [1, 2]);
+  }
+  // Hash: короткие пути без лишних кадров probe
+  eq("Hash: заказов нет — хеш не строится, только старт и итог", [seq(infra.bJoinHash([1, 2], [])), last(infra.bJoinHash([1, 2], [])).built.length], ["1,11", 0]);
+  eq("Hash: хеш пуст — старт, кадр line 5 и итог", seq(infra.bJoinHash([], [{ n: 1, u: 1 }, { n: 2, u: 3 }])), "1,5,11");
+  eq("Hash: users больше заказов — честная оговорка про сторону хеша", [/мог бы построить хеш по заказам/.test(infra.bJoinHash([1, 2, 3], [{ n: 1, u: 1 }])[0].info), /мог бы/.test(infra.bJoinHash([1], [{ n: 1, u: 1 }, { n: 2, u: 1 }])[0].info)], [true, false]);
   eq("NL по порядку индекса: O отсортирован по (user_id, n)", infra.bJoinNL([1, 2, 3, 4, 5], cases.shuffled.orders)[0].O.map((o) => o.u + ":" + o.n), cases.shuffled.orders.slice().sort((a, b) => a.u - b.u || a.n - b.n).map((o) => o.u + ":" + o.n));
   eq("Hash по порядку таблицы: O как в таблице", infra.bJoinHash([1, 2, 3, 4, 5], cases.shuffled.orders)[0].O.map((o) => o.n), cases.shuffled.orders.map((o) => o.n));
   // чипы: вне области видимости — «—»
@@ -530,6 +563,9 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     const nl = run("pg-join-nl", 'data-users="1-4" data-orders="2,2,3,7" data-filter="0"');
     const cells = [...nl.querySelectorAll(".iv-join__row--users .iv-join__cell")].map((c) => c.className.replace("iv-join__cell", "").trim());
     eq("pg-join-nl: на итоге пользователи без заказов (1, 4) «прочитаны», 2 и 3 — в результате", cells, ["iv-join__cell--read", "iv-join__cell--match", "iv-join__cell--match", "iv-join__cell--read"]);
+    // пустое соединение: «пока» — только до итога (хеш пуст при u.id < 1 — сверено с живым Postgres)
+    const empty = run("pg-join-hash", 'data-users="1-12" data-orders="r24" data-filter="1"');
+    eq("pg-join-hash: пустой хеш — на итоге «Пар нет», прочитан 1 заказ", [empty.querySelector(".iv-join__pairs").textContent, +empty.querySelector(".iv-join__metrics").getAttribute("data-oread")], ["Пар нет", 1]);
     const mid = run("pg-join-nl", 'data-users="1-4" data-orders="2,2,3,7" data-filter="0"', 4);
     const mc = [...mid.querySelectorAll(".iv-join__row--users .iv-join__cell")].map((c) => c.className.replace("iv-join__cell", "").trim());
     eq("pg-join-nl: в середине прогона пользователи после текущего ещё не читались", mc.slice(2).every((c) => c === "iv-join__cell--idle"), true);
