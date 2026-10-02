@@ -5,14 +5,19 @@
 #   make redis-lab-down  — погасить и стереть
 #   redislab/measure.sh  — воспроизвести замеры из главы
 #
-# Порт наружу — 26379 и только на loopback: в лаборатории включена команда DEBUG
-# (нужна для DEBUG SET-ACTIVE-EXPIRE), а с DEBUG порт нельзя выставлять в сеть.
-# Версия образа пришпилена: ответы и поведение сняты именно с 7.4. Если Docker Desktop
-# не отвечает, а системный Docker работает: DOCKER_CONTEXT=default make redis-lab.
+# Команда DEBUG нужна замерам (DEBUG SET-ACTIVE-EXPIRE) и включена в режиме local: её
+# принимают только соединения изнутри контейнера (docker exec приходит с 127.0.0.1), а
+# через опубликованный порт клиент с хоста приходит с адреса docker-моста и получает отказ.
+# Порт наружу — 26379 и только на loopback; 26379 — ниже эфемерного диапазона Linux
+# 32768–60999, как у pglab (порт оттуда может оказаться занят чужим исходящим соединением).
+# Тег образа держит минорную версию 7.4, но не патч: замеры главы сняты с Redis 7.4.11
+# (образ sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499), а
+# точную версию своего запуска печатает redislab/measure.sh в первой строке. Если Docker
+# Desktop не отвечает, а системный Docker работает: DOCKER_CONTEXT=default make redis-lab.
 services:
   redis:
     image: redis:7.4-alpine
     container_name: algo-redislab
-    command: ["redis-server", "--save", "", "--appendonly", "no", "--enable-debug-command", "yes"]
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--enable-debug-command", "local"]
     ports:
       - "127.0.0.1:26379:6379"
