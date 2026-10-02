@@ -87,9 +87,11 @@
       snap(28, "buf := make([]byte, " + (bl + 2) + "): " + bytes(bl) + " данных + 2 на \\r\\n");
       var need = bl + 2;
       if (raw.length - pos < need) {
+        // io.ReadFull: ни одного байта — io.EOF, часть — io.ErrUnexpectedEOF
+        var got = raw.length - pos;
         mark = [pos, raw.length]; pos = raw.length;
-        snap(29, "ReadFull: байт не хватило — ошибка (io.ErrUnexpectedEOF)");
-        return finish(30, "поток оборвался внутри значения", { args: null, err: null, eof: true });
+        snap(29, got === 0 ? "ReadFull: до конца ввода не пришло ни байта значения — ошибка io.EOF" : "ReadFull: пришло " + bytes(got) + " из " + need + " — ошибка io.ErrUnexpectedEOF");
+        return finish(30, got === 0 ? "поток кончился перед значением" : "поток оборвался внутри значения", { args: null, err: null, eof: true });
       }
       var value = raw.substr(pos, bl), tail = raw.substr(pos + bl, 2);
       mark = [pos, pos + need]; pos += need;
@@ -143,11 +145,12 @@
   var MAX_EXPIRE_SEC = 1000000;
 
   function parseScript(str) {
-    var tokens = [], bad = [];
+    var tokens = [], bad = [], capped = false;
     String(str == null ? "" : str).split(";").forEach(function (raw) {
       var t = raw.trim();
       if (!t) return;
-      if (tokens.length >= 14) return;
+      // лишнее не выбрасываем молча: первое отброшенное действие попадает в «не понял» с причиной
+      if (tokens.length >= 14) { if (!capped) { bad.push(t + " и дальше — не больше 14 действий"); capped = true; } return; }
       // не больше трёх знаков: часы — целые миллисекунды, а у настоящего кода наносекунды, и «+0.9995» разошлось бы
       var m = /^\+(\d+(?:\.\d{1,3})?)$/.exec(t);
       if (m) { var ms = Math.round(parseFloat(m[1]) * 1000); if (ms > 0 && ms <= 3600000) tokens.push({ op: "advance", ms: ms }); else bad.push(t); return; }
@@ -334,7 +337,7 @@
       else if (s.res.eof) r.appendChild(H.mkEl("span", "iv-redis__empty", "команда не дочитана — ответа нет"));
       else if (!s.res.args || !s.res.args.length) r.appendChild(H.mkEl("span", "iv-redis__empty", "пустая команда — ответа нет"));
       else {
-        var rep = respReply(s.res.args, { data: Object.assign({}, ctx.store) });
+        var rep = respReply(s.res.args, { data: copy(ctx.store) }); // копия без прототипа: «__proto__» — обычный ключ, как в Go-map
         if (rep) {
           r.appendChild(H.mkEl("span", "iv-redis__rawreply", escapeWire(rep.raw)));
           r.appendChild(H.mkEl("span", "iv-redis__kind", replyTypeText(rep.kind)));
@@ -512,7 +515,7 @@
       parse: function (root) {
         var wAttr = root.getAttribute("data-wire"), sAttr = root.getAttribute("data-store");
         var raw = unescapeWire(wAttr == null ? "*3\\r\\n$3\\r\\nSET\\r\\n$3\\r\\nfoo\\r\\n$3\\r\\nbar\\r\\n" : wAttr).replace(/[^\x00-\x7f]/g, "?").slice(0, 300);
-        var store = {};
+        var store = newMap(); // без прототипа: data-store="__proto__=x" — обычный ключ
         String(sAttr == null ? "foo=bar" : sAttr).split(",").forEach(function (p) { var i = p.indexOf("="); if (i > 0) store[p.slice(0, i).trim()] = p.slice(i + 1).trim(); });
         return { raw: raw, store: store, steps: bRespParse(raw) };
       },

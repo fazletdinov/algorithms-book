@@ -657,6 +657,19 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     eq("respReply: ZADD/ZSCORE/ZRANGE/ZRANK/SAVE (и строчными) — null, ответ не моделируется", ["ZADD", "zscore", "ZRANGE", "zrank", "SAVE", "save"].map((c) => redis.respReply([c, "k"], { data: {} })), [null, null, null, null, null, null]);
     eq("respReply: настоящая неизвестная команда — по-прежнему ошибка", redis.respReply(["FOO"], { data: {} }).raw, "-ERR unknown command 'FOO'\r\n");
   }
+  // «__proto__» — обычный ключ, как в Go-map (хранилище без прототипа), прототип Object не задет
+  {
+    const s = { data: Object.create(null) };
+    const r = [["SET", "__proto__", "x"], ["GET", "__proto__"], ["DEL", "__proto__"], ["GET", "__proto__"]].map((a) => redis.respReply(a, s).raw);
+    eq("respReply: SET/GET/DEL __proto__ как у любого ключа, прототип цел", [r, ({}).x], [["+OK\r\n", "$1\r\nx\r\n", ":1\r\n", "$-1\r\n"], undefined]);
+  }
+  // обрыв в ReadFull: ни байта значения — io.EOF, часть — io.ErrUnexpectedEOF (как у io.ReadFull в Go)
+  {
+    const at29 = (raw) => redis.bRespParse(raw).filter((s) => s.line === 29).slice(-1)[0].info;
+    eq("ReadFull: 0 байт значения → io.EOF, не ErrUnexpectedEOF", [/io\.EOF/.test(at29("*1\r\n$3\r\n")), /ErrUnexpectedEOF/.test(at29("*1\r\n$3\r\n"))], [true, false]);
+    eq("ReadFull: часть значения (GE, GET без \\r\\n) → io.ErrUnexpectedEOF", [at29("*1\r\n$3\r\nGE"), at29("*1\r\n$3\r\nGET")].map((t) => /io\.ErrUnexpectedEOF/.test(t)), [true, true]);
+    eq("ReadFull: 0 байт — итог «перед значением», часть — «внутри значения»", [redis.bRespParse("*1\r\n$3\r\n").slice(-1)[0].info, redis.bRespParse("*1\r\n$3\r\nGE").slice(-1)[0].info].map((t) => /перед значением/.test(t) ? "перед" : /внутри значения/.test(t) ? "внутри" : t), ["перед", "внутри"]);
+  }
   // кадры: точные последовательности строк листинга
   const seq = (raw) => redis.bRespParse(raw).map((s) => s.line).join(",");
   eq("кадры inline PING", seq("PING\r\n"), "1,2,5,8,9");
@@ -735,6 +748,10 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     eq("redis-resp: SAVE/ZADD/zrank — «не моделирует», а не «unknown command»", unmodeled.map((t) => /ответ этой команды виджет не моделирует/.test(t) && !/unknown command/.test(t)), [true, true, true]);
     eq("redis-resp: EXPIRE — «зависит от часов»", /зависит от часов/.test(replyText('data-wire="EXPIRE foo 5\\r\\n" data-store="foo=bar"')), true);
     eq("redis-resp: FOO — ответ сервера «unknown command»", /unknown command 'FOO'/.test(replyText('data-wire="FOO\\r\\n" data-store=""')), true);
+    // data-store с ключом «__proto__»/«constructor» — обычные ключи (Go-map), а не прототип объекта
+    eq("redis-resp: data-store=\"__proto__=x\" → GET __proto__ отвечает $1 x", /\$1\\r\\nx\\r\\n/.test(replyText('data-wire="GET __proto__\\r\\n" data-store="__proto__=x"')), true);
+    eq("redis-resp: data-store=\"constructor=v\" → GET constructor отвечает $1 v", /\$1\\r\\nv\\r\\n/.test(replyText('data-wire="GET constructor\\r\\n" data-store="constructor=v"')), true);
+    eq("redis-resp: без такого ключа GET __proto__ — «пусто» ($-1)", /\$-1\\r\\n/.test(replyText('data-wire="GET __proto__\\r\\n" data-store="foo=bar"')), true);
   }
   const bad = run('data-wire="*x\\r\\n" data-store=""');
   eq("redis-resp: ошибка протокола — без падения и с итогом", bad.classList.contains("algo-viz--ready") && /Итог:/.test(bad.textContent) && !/Ошибка визуализации/.test(bad.textContent), true);
@@ -854,6 +871,11 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   // разбор скрипта
   eq("parseScript: плохие токены отделены, остальное разобрано", (() => { const r = redis.parseScript("SET a 1; FOO; +x; GET a; EXPIRE a q; +0; +4000"); return [r.tokens.length, r.bad.length]; })(), [2, 5]);
   eq("parseScript: не больше 14 токенов", redis.parseScript(Array.from({ length: 30 }, () => "GET a").join("; ")).tokens.length, 14);
+  {
+    const over = redis.parseScript(Array.from({ length: 16 }, (_, i) => "GET k" + i).join("; "));
+    eq("parseScript: лишние действия не молча — одна пометка в bad с первым отброшенным", [over.tokens.length, over.bad.length, /^GET k14 .*не больше 14 действий/.test(over.bad[0] || "")], [14, 1, true]);
+    eq("parseScript: ровно 14 действий — пометки нет", redis.parseScript(Array.from({ length: 14 }, () => "GET a").join("; ")).bad, []);
+  }
   eq("parseScript: дробные секунды в мс", redis.parseScript("+0.5; +1.25").tokens.map((t) => t.ms), [500, 1250]);
   eq("parseScript: пусто", redis.parseScript(""), { tokens: [], bad: [] });
   eq("только +N: единственный кадр — итоговый, сдвиг виден", (() => { const f = redis.bTtl(redis.parseScript("+2").tokens); return [f.length, f[0].done, f[0].t, /Прошло 2 с/.test(f[0].info)]; })(), [1, true, 2000, true]);
