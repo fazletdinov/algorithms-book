@@ -105,7 +105,9 @@
     return { args: r.args, err: r.err, eof: r.eof, consumed: r.consumed };
   }
 
-  // Ответы Dispatch для команд без часов; тексты — как у golden (реальные).
+  // Ответы Dispatch для команд без часов; тексты — как у golden (реальные). null — команду Dispatch
+  // знает, но виджет её ответ не моделирует: EXPIRE/TTL зависят от часов, ZSET-команды и SAVE — вне
+  // модели (без null неизвестной показалась бы команда, которую настоящий мини-Redis выполняет).
   function respReply(args, store) {
     function simple(s) { return { kind: "simple", raw: "+" + s + "\r\n" }; }
     function err(s) { return { kind: "error", raw: "-" + s + "\r\n" }; }
@@ -121,7 +123,7 @@
       case "SET": if (a.length !== 2) return arity("set"); store.data[a[0]] = a[1]; return simple("OK");
       case "GET": if (a.length !== 1) return arity("get"); return has(a[0]) ? bulk(store.data[a[0]]) : { kind: "nil", raw: "$-1\r\n" };
       case "DEL": if (a.length === 0) return arity("del"); var n = 0; a.forEach(function (k) { if (has(k)) { delete store.data[k]; n++; } }); return int(n);
-      case "EXPIRE": case "TTL": return null;
+      case "EXPIRE": case "TTL": case "ZADD": case "ZSCORE": case "ZRANGE": case "ZRANK": case "SAVE": return null;
       default: return err("ERR unknown command '" + args[0] + "'");
     }
   }
@@ -336,7 +338,7 @@
         if (rep) {
           r.appendChild(H.mkEl("span", "iv-redis__rawreply", escapeWire(rep.raw)));
           r.appendChild(H.mkEl("span", "iv-redis__kind", replyTypeText(rep.kind)));
-        } else r.appendChild(H.mkEl("span", "iv-redis__empty", "ответ зависит от часов — смотри виджет про TTL ниже"));
+        } else r.appendChild(H.mkEl("span", "iv-redis__empty", /^(EXPIRE|TTL)$/i.test(s.res.args[0]) ? "ответ зависит от часов — смотри виджет про TTL ниже" : "ответ этой команды виджет не моделирует"));
       }
       wrap.appendChild(r);
     };

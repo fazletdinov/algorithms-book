@@ -648,6 +648,15 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   eq("unescapeWire/escapeWire обратимы", redis.unescapeWire(redis.escapeWire("a\r\nb\t\\x")), "a\r\nb\t\\x");
   eq("encodeCommand собирает multibulk", redis.encodeCommand(["SET", "foo", "bar"]), "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\nbar\r\n");
   eq("encodeCommand считает байты, а не символы", redis.encodeCommand(["ECHO", "привет"]), "*2\r\n$4\r\nECHO\r\n$12\r\nпривет\r\n");
+  // команду, которую знает настоящий Dispatch, виджет не вправе назвать неизвестной: список — из dispatch.go
+  {
+    const known = [...fs.readFileSync(path.join(root, "exercises", "miniredis", "dispatch.go"), "utf8").matchAll(/^\tcase "([A-Z]+)":/gm)].map((m) => m[1]);
+    eq("dispatch.go: найдены все 12 команд Dispatch", known.length, 12);
+    const unknown = known.filter((c) => { const r = redis.respReply([c, "k", "1", "m"], { data: {} }); return r && /unknown command/.test(r.raw); });
+    eq("respReply: ни одна команда Dispatch не названа «unknown command»", unknown, []);
+    eq("respReply: ZADD/ZSCORE/ZRANGE/ZRANK/SAVE (и строчными) — null, ответ не моделируется", ["ZADD", "zscore", "ZRANGE", "zrank", "SAVE", "save"].map((c) => redis.respReply([c, "k"], { data: {} })), [null, null, null, null, null, null]);
+    eq("respReply: настоящая неизвестная команда — по-прежнему ошибка", redis.respReply(["FOO"], { data: {} }).raw, "-ERR unknown command 'FOO'\r\n");
+  }
   // кадры: точные последовательности строк листинга
   const seq = (raw) => redis.bRespParse(raw).map((s) => s.line).join(",");
   eq("кадры inline PING", seq("PING\r\n"), "1,2,5,8,9");
@@ -720,6 +729,13 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     eq("остаток конвейера: 1/2/5 символов", [1, 2, 5].map((k) => (rest(k).match(/Остаток \(([^)]*)\)/) || [])[1]), ["1 символ", "2 символа", "5 символов"]);
   }
   eq("redis-resp: ответ показан (+OK)", /\+OK/.test(el.querySelector(".iv-redis__reply").textContent), true);
+  {
+    const replyText = (attrs) => run(attrs).querySelector(".iv-redis__reply").textContent;
+    const unmodeled = ['data-wire="*1\\r\\n$4\\r\\nSAVE\\r\\n" data-store=""', 'data-wire="ZADD z 1 a\\r\\n" data-store=""', 'data-wire="zrank z a\\r\\n" data-store=""'].map(replyText);
+    eq("redis-resp: SAVE/ZADD/zrank — «не моделирует», а не «unknown command»", unmodeled.map((t) => /ответ этой команды виджет не моделирует/.test(t) && !/unknown command/.test(t)), [true, true, true]);
+    eq("redis-resp: EXPIRE — «зависит от часов»", /зависит от часов/.test(replyText('data-wire="EXPIRE foo 5\\r\\n" data-store="foo=bar"')), true);
+    eq("redis-resp: FOO — ответ сервера «unknown command»", /unknown command 'FOO'/.test(replyText('data-wire="FOO\\r\\n" data-store=""')), true);
+  }
   const bad = run('data-wire="*x\\r\\n" data-store=""');
   eq("redis-resp: ошибка протокола — без падения и с итогом", bad.classList.contains("algo-viz--ready") && /Итог:/.test(bad.textContent) && !/Ошибка визуализации/.test(bad.textContent), true);
   const hostile = run('data-wire="<img src=x onerror=alert(1)>\\r\\n" data-store=""');
