@@ -226,6 +226,132 @@
     st.snap(10, { tid: "—", page: "—" }, "Итог: " + pages(st.total) + " прочитано ради " + rows(matches.length, "строки", "строк") + " — каждая нужная страница по одному разу, никогда больше " + P + ".", { done: true });
     return st.steps;
   }
+  // ===== Соединения: Nested Loop / Hash / Merge ================================
+  // Внутреннее соединение users.id = orders.user_id на маленьких таблицах. Модель считает работу
+  // строками и обращениями, а не временем: на 20 строках время ничего не показывает.
+  function parseIds(str, lo, hi, dups) {
+    var out = [];
+    function add(v) { if (v >= lo && v <= hi && out.length < 40) out.push(v); }
+    String(str || "").split(",").forEach(function (raw) {
+      var t = raw.trim(), m = /^(\d+)-(\d+)$/.exec(t);
+      if (m) { for (var v = Math.max(+m[1], lo); v <= Math.min(+m[2], hi); v++) add(v); return; }
+      m = /^r(\d+)$/.exec(t);
+      if (m) { var rnd = core.mulberry32(+m[1] * 7919 + hi), k = Math.min(+m[1], 40); for (var i = 0; i < k; i++) add(lo + Math.floor(rnd() * (hi - lo + 1))); return; }
+      if (/^\d+$/.test(t)) add(+t);
+    });
+    if (dups) return out;
+    var seen = {}, uniq = [];
+    out.forEach(function (v) { if (!seen[v]) { seen[v] = true; uniq.push(v); } });
+    return uniq.sort(function (a, b) { return a - b; });
+  }
+  function joinPairs(users, orders) {
+    var ps = [];
+    users.forEach(function (u) { orders.forEach(function (o) { if (o.u === u) ps.push({ u: u, n: o.n }); }); });
+    return ps.sort(function (a, b) { return a.u - b.u || a.n - b.n; });
+  }
+  function byIndexOrder(orders) { return orders.slice().sort(function (a, b) { return a.u - b.u || a.n - b.n; }); }
+  function orderText(o) { return "№" + o.n + "·user " + o.u; }
+
+  function joinState(users, orders, metricLabel) {
+    var st = { out: [], uRead: 0, oRead: 0, metric: 0, built: [], cu: -1, co: -1, steps: [] };
+    st.snap = function (line, vars, info, extra) {
+      var s = { line: line, vars: vars, info: info, U: users.slice(), O: orders.slice(), cu: st.cu, co: st.co, out: st.out.slice(), uRead: st.uRead, oRead: st.oRead, built: st.built.slice(), metric: { label: metricLabel, value: st.metric } };
+      for (var k in extra) s[k] = extra[k];
+      st.steps.push(s);
+    };
+    return st;
+  }
+
+  function bJoinNL(users, orders) {
+    var O = byIndexOrder(orders), st = joinState(users, O, "обращений к индексу");
+    st.snap(1, { u: "—", o: "—" }, "Nested Loop: для КАЖДОЙ внешней строки идём в индекс по заказам. Внешних строк: " + users.length + ", заказов в таблице: " + orders.length + ".");
+    users.forEach(function (u, ui) {
+      st.cu = ui; st.co = -1;
+      st.snap(2, { u: u, o: "—" }, "u = " + u + ": следующая строка внешней таблицы", {});
+      var mine = []; O.forEach(function (o, oi) { if (o.u === u) mine.push(oi); });
+      if (!mine.length) {
+        st.metric++;
+        st.snap(3, { u: u, o: "—" }, "Lookup(" + u + "): обращение к индексу — у пользователя " + u + " заказов нет, внутренний цикл не выполнится", { hot: true });
+        return;
+      }
+      mine.forEach(function (oi, k) {
+        if (k === 0) st.metric++;
+        st.co = oi; st.oRead++;
+        st.snap(3, { u: u, o: orderText(O[oi]) }, (k === 0 ? "Lookup(" + u + "): обращение к индексу. " : "") + "Нашли заказ " + orderText(O[oi]), {});
+        st.out.push({ u: u, n: O[oi].n });
+        st.snap(4, { u: u, o: orderText(O[oi]) }, "Пара (user " + u + ", заказ №" + O[oi].n + ") в результате: " + st.out.length, {});
+      });
+    });
+    st.cu = -1; st.co = -1;
+    st.snap(7, { u: "—", o: "—" }, "Итог: " + st.out.length + " пар; обращений к индексу " + st.metric + " — по одному на каждую внешнюю строку, нашлись ли у неё заказы или нет.", { done: true });
+    return st.steps;
+  }
+
+  function bJoinHash(users, orders) {
+    var st = joinState(users, orders, "строк в хеш-таблице");
+    st.snap(1, { u: "—", o: "—" }, "Hash Join: сначала строим хеш-таблицу по внешней таблице (" + users.length + " строк), потом ОДНИМ проходом читаем все заказы (" + orders.length + ").");
+    users.forEach(function (u, ui) {
+      st.cu = ui;
+      st.snap(2, { u: u, o: "—" }, "build: u = " + u, {});
+      st.built.push(u); st.uRead++; st.metric = st.built.length;
+      st.snap(3, { u: u, o: "—" }, "h[" + u + "] = [user " + u + "]: строк в хеш-таблице " + st.built.length, {});
+    });
+    st.cu = -1;
+    st.snap(5, { u: "—", o: "—" }, "Хеш-таблица готова. Теперь probe: каждый заказ — один поиск по хешу.");
+    var inHash = {}; users.forEach(function (u, ui) { inHash[u] = ui; });
+    orders.forEach(function (o, oi) {
+      st.co = oi; st.cu = -1; st.oRead++;
+      st.snap(6, { u: "—", o: orderText(o) }, "probe: заказ " + orderText(o) + ". Прочитано заказов: " + st.oRead + " из " + orders.length, {});
+      if (inHash[o.u] === undefined) {
+        st.snap(7, { u: "—", o: orderText(o) }, "h[" + o.u + "]: в хеш-таблице такого пользователя нет — заказ пропускаем, но прочитать его всё равно пришлось", { hot: true });
+        return;
+      }
+      st.cu = inHash[o.u];
+      st.snap(7, { u: o.u, o: orderText(o) }, "h[" + o.u + "] → user " + o.u, {});
+      st.out.push({ u: o.u, n: o.n });
+      st.snap(8, { u: o.u, o: orderText(o) }, "Пара (user " + o.u + ", заказ №" + o.n + ") в результате: " + st.out.length, {});
+    });
+    st.cu = -1; st.co = -1;
+    st.snap(11, { u: "—", o: "—" }, "Итог: " + st.out.length + " пар; прочитано ВСЕ " + orders.length + " заказов — столько, сколько совпадений ни было.", { done: true });
+    return st.steps;
+  }
+
+  function bJoinMerge(users, orders) {
+    var O = byIndexOrder(orders), st = joinState(users, O, "сравнений");
+    var i = 0, j = 0;
+    function reads() { st.uRead = Math.min(i + 1, users.length); st.oRead = Math.min(j + 1, O.length); st.cu = i < users.length ? i : -1; st.co = j < O.length ? j : -1; }
+    st.snap(1, { i: "—", j: "—" }, "Merge Join: оба входа отсортированы по ключу (users — по первичному ключу, заказы — по индексу user_id); идём по ним двумя указателями.");
+    reads();
+    st.snap(2, { i: i, j: j }, "i = 0, j = 0: стоим на первых строках обеих сторон", {});
+    while (i < users.length && j < O.length) {
+      st.metric++;
+      st.snap(4, { i: i, j: j }, "users[" + i + "] = " + users[i] + ", orders[" + j + "].user_id = " + O[j].u + ": " + users[i] + (users[i] < O[j].u ? " < " : users[i] > O[j].u ? " > " : " = ") + O[j].u, {});
+      if (users[i] < O[j].u) {
+        i++; reads();
+        st.snap(5, { i: i, j: j }, "Пользователь " + users[i - 1] + " меньше — заказов у него больше не будет, i++", {});
+      } else {
+        st.metric++;
+        st.snap(6, { i: i, j: j }, users[i] > O[j].u ? "users[i] > orders[j].user_id — заказ без пользователя" : "Не больше и не меньше — значит равны", {});
+        if (users[i] > O[j].u) {
+          j++; reads();
+          st.snap(7, { i: i, j: j }, "Заказ пропускаем, j++", {});
+        } else {
+          st.out.push({ u: users[i], n: O[j].n });
+          st.snap(9, { i: i, j: j }, "Пара (user " + users[i] + ", заказ №" + O[j].n + ") в результате: " + st.out.length, {});
+          j++; reads();
+          st.snap(10, { i: i, j: j }, "j++: следующий заказ того же пользователя (или другого)", {});
+        }
+      }
+    }
+    st.cu = -1; st.co = -1;
+    st.snap(13, { i: "—", j: "—" }, "Итог: " + st.out.length + " пар; прочитано пользователей " + st.uRead + " из " + users.length + ", заказов " + st.oRead + " из " + O.length + (st.oRead < O.length ? " — одна из сторон кончилась, и остаток другой читать не пришлось" : "") + ".", { done: true });
+    return st.steps;
+  }
+  exportsForTest.parseIds = parseIds;
+  exportsForTest.joinPairs = joinPairs;
+  exportsForTest.bJoinNL = bJoinNL;
+  exportsForTest.bJoinHash = bJoinHash;
+  exportsForTest.bJoinMerge = bJoinMerge;
   exportsForTest.parseMatch = parseMatch;
   exportsForTest.bScanSeq = bScanSeq;
   exportsForTest.bScanIndex = bScanIndex;

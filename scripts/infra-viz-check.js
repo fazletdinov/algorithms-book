@@ -398,4 +398,63 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   const book = fs.readFileSync(path.join(root, "book.toml"), "utf8");
   eq("book.toml: algo-viz.js → infra-core.js → infra-pg.js подряд", /"assets\/algo-viz\.js", "assets\/infra-core\.js", "assets\/infra-pg\.js"/.test(book), true);
 }
+// --- соединения ---
+{
+  const mk = (us, os) => ({ users: us, orders: os.map((u, i) => ({ n: i + 1, u })) });
+  const key = (ps) => ps.map((p) => p.u + ":" + p.n).sort().join(",");
+  const brute = (users, orders) => infra.joinPairs(users, orders);
+  const cases = {
+    plain: mk([1, 2, 3], [2, 2, 9]),
+    noOrders: mk([1, 2], []),
+    noUsers: mk([], [1, 2]),
+    manyOne: mk([1, 2, 3, 4], [2, 2, 2, 2, 2, 2, 2, 3]),
+    orphans: mk([1, 2, 3], [1, 2, 3, 7, 8, 9]),
+    shuffled: mk([1, 2, 3, 4, 5], [5, 1, 3, 3, 9, 2, 5, 1])
+  };
+  const gens = { NL: infra.bJoinNL, Hash: infra.bJoinHash, Merge: infra.bJoinMerge };
+  Object.keys(cases).forEach((name) => Object.keys(gens).forEach((g) => {
+    const c = cases[name], st = gens[g](c.users, c.orders), l = last(st);
+    eq(`join ${g}(${name}): те же пары, что у перебора`, key(l.out), key(brute(c.users, c.orders)));
+    eq(`join ${g}(${name}): последний кадр done, line в листинге`, [!!l.done, st.every((s) => s.line >= 0 && s.line <= (g === "NL" ? 8 : g === "Hash" ? 12 : 14))], [true, true]);
+  }));
+  // точные последовательности строк
+  const seq = (st) => st.map((s) => s.line).join(",");
+  eq("NL: кадры на users [1,2,3], orders [u2,u2,u9]", seq(infra.bJoinNL([1, 2, 3], [{ n: 1, u: 2 }, { n: 2, u: 2 }, { n: 3, u: 9 }])), "1,2,3,2,3,4,3,4,2,3,7");
+  eq("Hash: кадры на users [1,2], orders [u2,u5]", seq(infra.bJoinHash([1, 2], [{ n: 1, u: 2 }, { n: 2, u: 5 }])), "1,2,3,2,3,5,6,7,8,6,7,11");
+  eq("Merge: кадры на users [1,2], orders [u2,u1]", seq(infra.bJoinMerge([1, 2], [{ n: 1, u: 2 }, { n: 2, u: 1 }])), "1,2,4,6,9,10,4,5,4,6,9,10,13");
+  // счётчики: фокус обзора
+  const plain = cases.plain;
+  eq("NL: одно обращение к индексу на каждую внешнюю строку (и у пустых)", last(infra.bJoinNL(plain.users, plain.orders)).metric.value, 3);
+  eq("NL: прочитано заказов = число совпавших", last(infra.bJoinNL(plain.users, plain.orders)).oRead, 2);
+  eq("Hash: прочитаны ВСЕ заказы независимо от совпадений", [last(infra.bJoinHash(plain.users, plain.orders)).oRead, last(infra.bJoinHash(cases.orphans.users, cases.orphans.orders)).oRead], [3, 6]);
+  eq("Hash: в хеш-таблице все внешние строки", last(infra.bJoinHash(plain.users, plain.orders)).built, [1, 2, 3]);
+  const early = infra.bJoinMerge([1, 2], [{ n: 1, u: 1 }, { n: 2, u: 2 }, { n: 3, u: 5 }, { n: 4, u: 6 }, { n: 5, u: 7 }]);
+  eq("Merge: остановился, когда кончились пользователи — заказов прочитано 3 из 5", [last(early).uRead, last(early).oRead], [2, 3]);
+  eq("Merge: пустой вход — только старт и итог", seq(infra.bJoinMerge([], [{ n: 1, u: 1 }])), "1,2,13");
+  eq("NL по порядку индекса: O отсортирован по (user_id, n)", infra.bJoinNL([1, 2, 3, 4, 5], cases.shuffled.orders)[0].O.map((o) => o.u + ":" + o.n), cases.shuffled.orders.slice().sort((a, b) => a.u - b.u || a.n - b.n).map((o) => o.u + ":" + o.n));
+  eq("Hash по порядку таблицы: O как в таблице", infra.bJoinHash([1, 2, 3, 4, 5], cases.shuffled.orders)[0].O.map((o) => o.n), cases.shuffled.orders.map((o) => o.n));
+  // чипы: вне области видимости — «—»
+  eq("Merge: на done чипы i и j — «—»", [last(early).vars.i, last(early).vars.j], ["—", "—"]);
+  eq("NL: на done чип o — «—»", last(infra.bJoinNL(plain.users, plain.orders)).vars.o, "—");
+  eq("Hash: на done чипы u и o — «—»", [last(infra.bJoinHash(plain.users, plain.orders)).vars.u, last(infra.bJoinHash(plain.users, plain.orders)).vars.o], ["—", "—"]);
+  // разбор токенов
+  eq("parseIds: пользователи — диапазон, дубликаты, сортировка, границы", infra.parseIds("3-5,4,1,99,x", 1, 12, false), [1, 3, 4, 5]);
+  eq("parseIds: заказы — порядок и повторы сохраняются", infra.parseIds("2,2,1,2", 1, 12, true), [2, 2, 1, 2]);
+  eq("parseIds: rK детерминирован, в границах, нужной длины", [infra.parseIds("r14", 1, 8, true).length, infra.parseIds("r14", 1, 8, true).every((v) => v >= 1 && v <= 8), JSON.stringify(infra.parseIds("r14", 1, 8, true)) === JSON.stringify(infra.parseIds("r14", 1, 8, true))], [14, true, true]);
+  eq("parseIds: пусто и не больше 40", [infra.parseIds("", 1, 8, true), infra.parseIds("r999", 1, 8, true).length], [[], 40]);
+  // фаззинг: три алгоритма дают те же пары, что перебор; кадры не делят ссылок
+  let seed = 12345; const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  let bad = 0;
+  for (let t = 0; t < 300; t++) {
+    const nu = Math.floor(rnd() * 8), no = Math.floor(rnd() * 14);
+    const us = [...new Set(Array.from({ length: nu }, () => 1 + Math.floor(rnd() * 10)))].sort((a, b) => a - b);
+    const os = Array.from({ length: no }, (_, i) => ({ n: i + 1, u: 1 + Math.floor(rnd() * 10) }));
+    Object.keys(gens).forEach((g) => {
+      const st = gens[g](us, os);
+      if (key(last(st).out) !== key(brute(us, os)) || !last(st).done || st.filter((s) => s.done).length !== 1) bad++;
+      if (st.length > 1 && st[0].out === st[1].out) bad++;
+    });
+  }
+  eq("фаззинг 300 случаев × 3 алгоритма: пары = перебор, один done, кадры не делят out", bad, 0);
+}
 process.exit(failed ? 1 : 0);
