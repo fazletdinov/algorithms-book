@@ -85,7 +85,7 @@
 .iv-redis__ch { min-width:16px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:3px; border:2px solid transparent; font:600 12px/1 ui-monospace,monospace; color:#fff; }
 .iv-redis__ch--rest { background:var(--iv-r-rest); }
 .iv-redis__ch--eaten { background:var(--iv-r-eaten); }
-.iv-redis__ch--ctl { color:#fde68a; }
+.iv-redis__ch--ctl { color:#fde68a; box-shadow:inset 0 0 0 2px var(--iv-r-ctl); } /* кольцо внутри: не спорит с янтарной рамкой --cur */
 .iv-redis__ch--cur { border-color:var(--iv-r-cur); }
 .iv-redis__args, .iv-redis__reply { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:8px; color:var(--iv-r-fg); }
 .iv-redis__arg { padding:2px 8px; border-radius:4px; background:#0f766e; font:600 12px/1.4 ui-monospace,monospace; color:#fff; }

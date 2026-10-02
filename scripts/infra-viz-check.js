@@ -694,6 +694,31 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   const el = run(`data-wire="${wire}" data-store="foo=bar"`);
   eq("redis-resp: построен без ошибок и дошёл до итога", [el.classList.contains("algo-viz--ready") && !/Ошибка визуализации|Неизвестный тип/.test(el.textContent), /Итог:/.test(el.textContent)], [true, true]);
   eq("redis-resp: байтовая лента — по ячейке на символ", el.querySelectorAll(".iv-redis__strip .iv-redis__ch").length, redis.unescapeWire(wire).length);
+  // чипы hdr/blen — только в своей области видимости (внутри тела for), в том числе на кадре заголовка for
+  {
+    const st2 = redis.bRespParse("*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n");
+    const at = (line, iter) => st2.filter((s) => s.line === line)[iter];
+    eq("чипы: заголовок for 2-го круга — hdr и blen «—»", [at(16, 1).vars.hdr, at(16, 1).vars.blen, at(16, 1).vars.i], ["—", "—", "1"]);
+    eq("чипы: строки 17/18/21 2-го круга — blen «—»", [17, 18, 21].map((l) => at(l, 1).vars.blen), ["—", "—", "—"]);
+    eq("чипы: строка 17 — hdr уже есть", at(17, 1).vars.hdr, "\"$3\"");
+    eq("чипы: строка 24 — blen задан", at(24, 1).vars.blen, "3");
+    let leak = 0;
+    ["*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n", "*3\r\n$1\r\na\r\n$x\r\n", "*2\r\n$2\r\nab\r\n$"].forEach((raw) => redis.bRespParse(raw).forEach((s, k, all) => {
+      if (s.done) return;
+      // blen живёт с строки 24 до конца круга, на 16–21 его быть не должно (hdr — с 17)
+      if (s.line >= 16 && s.line <= 21 && s.vars.blen !== "—") leak++;
+      if (s.line === 16 && s.vars.hdr !== "—") leak++;
+    }));
+    eq("чипы: blen не виден на строках 16–21, hdr — на 16", leak, 0);
+  }
+  // окончания: число слов согласовано
+  {
+    const pick = (n) => { const e = run(`data-wire="${"A".repeat(n)}" data-store=""`); return (e.textContent.match(/Разбор запроса: \d+ символ\S* на проводе/) || [""])[0]; };
+    eq("заголовок: 1/2/5/11/21 символов", [1, 2, 5, 11, 21].map(pick), ["Разбор запроса: 1 символ на проводе", "Разбор запроса: 2 символа на проводе", "Разбор запроса: 5 символов на проводе", "Разбор запроса: 11 символов на проводе", "Разбор запроса: 21 символ на проводе"]);
+    eq("chars(): формы", [1, 2, 5, 11, 21, 22, 25].map(redis.chars), ["1 символ", "2 символа", "5 символов", "11 символов", "21 символ", "22 символа", "25 символов"]);
+    const rest = (k) => redis.bRespParse("*1\r\n$4\r\nPING\r\n" + "x".repeat(k)).slice(-1)[0].info;
+    eq("остаток конвейера: 1/2/5 символов", [1, 2, 5].map((k) => (rest(k).match(/Остаток \(([^)]*)\)/) || [])[1]), ["1 символ", "2 символа", "5 символов"]);
+  }
   eq("redis-resp: ответ показан (+OK)", /\+OK/.test(el.querySelector(".iv-redis__reply").textContent), true);
   const bad = run('data-wire="*x\\r\\n" data-store=""');
   eq("redis-resp: ошибка протокола — без падения и с итогом", bad.classList.contains("algo-viz--ready") && /Итог:/.test(bad.textContent) && !/Ошибка визуализации/.test(bad.textContent), true);
