@@ -9,6 +9,7 @@ import (
 	"errors"
 	"flag"
 	"io"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -167,6 +168,7 @@ func goldenTTLCases() []goldenTTL {
 		{"EXPIRE дважды сбрасывает срок", []string{"SET a 1", "EXPIRE a 2", "+1", "EXPIRE a 5", "+3", "TTL a"}},
 		{"EXPIRE на просроченном", []string{"SET a 1", "EXPIRE a 1", "+2", "EXPIRE a 10", "GET a"}},
 		{"TTL на просроченном", []string{"SET a 1", "EXPIRE a 1", "+2", "TTL a", "GET a"}},
+		{"DEL на живом ключе со сроком", []string{"SET a 1", "EXPIRE a 5", "DEL a", "TTL a"}},
 	}
 	out := make([]goldenTTL, 0, len(scripts))
 	for _, sc := range scripts {
@@ -180,7 +182,7 @@ func goldenTTLCases() []goldenTTL {
 				if err != nil {
 					panic(err)
 				}
-				advance(time.Duration(sec * float64(time.Second)))
+				advance(time.Duration(math.Round(sec*1000)) * time.Millisecond)
 			} else {
 				step.Reply = replyBytes(Dispatch(store, strings.Fields(tok)))
 			}

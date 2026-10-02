@@ -1022,6 +1022,42 @@
           "expire": {}
         }
       ]
+    },
+    {
+      "name": "DEL на живом ключе со сроком",
+      "script": "SET a 1; EXPIRE a 5; DEL a; TTL a",
+      "steps": [
+        {
+          "token": "SET a 1",
+          "reply": "+OK\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {}
+        },
+        {
+          "token": "EXPIRE a 5",
+          "reply": ":1\r\n",
+          "data": {
+            "a": "1"
+          },
+          "expire": {
+            "a": 5000
+          }
+        },
+        {
+          "token": "DEL a",
+          "reply": ":1\r\n",
+          "data": {},
+          "expire": {}
+        },
+        {
+          "token": "TTL a",
+          "reply": ":-2\r\n",
+          "data": {},
+          "expire": {}
+        }
+      ]
     }
   ]
 }
