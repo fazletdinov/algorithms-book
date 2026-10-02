@@ -133,6 +133,157 @@
   exportsForTest.respReply = respReply;
   exportsForTest.chars = chars;
 
+  // ===== TTL: ленивое удаление ================================================
+  // Часы — целые миллисекунды: дробные секунды сценария («+0.5») округляются один раз при разборе.
+  function fmtT(ms) { return (ms / 1000).toString().replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "") + " с"; }
+
+  function parseScript(str) {
+    var tokens = [], bad = [];
+    String(str == null ? "" : str).split(";").forEach(function (raw) {
+      var t = raw.trim();
+      if (!t) return;
+      if (tokens.length >= 14) return;
+      var m = /^\+(\d+(?:\.\d+)?)$/.exec(t);
+      if (m) { var sec = parseFloat(m[1]); if (sec > 0 && sec <= 3600) tokens.push({ op: "advance", ms: Math.round(sec * 1000) }); else bad.push(t); return; }
+      var w = t.split(/\s+/), name = w[0].toUpperCase(), a = w.slice(1);
+      var ok = (name === "SET" && a.length === 2) || ((name === "GET" || name === "DEL" || name === "TTL") && a.length === 1) || (name === "EXPIRE" && a.length === 2 && /^[+-]?\d+$/.test(a[1]));
+      if (ok) tokens.push({ op: "cmd", name: name, args: a }); else bad.push(t);
+    });
+    return { tokens: tokens, bad: bad };
+  }
+
+  // Карты без прототипа: ключ «__proto__» или «constructor» в сценарии — обычный ключ, как в Go-map.
+  function newMap() { return Object.create(null); }
+  function copy(o) { var r = newMap(); for (var k in o) r[k] = o[k]; return r; }
+
+  // Одна функция и считает, и (если передан frame) выпускает кадры: так модель и рисунок не разойдутся.
+  function ttlExec(tokens, frame) {
+    var st = { t: 0, data: newMap(), expire: newMap() }, results = [], log = [], pendingAdv = 0, lastLine = 0;
+    function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+    // чипы — строки; «—» = переменной в этой области видимости Go нет
+    function chips(o) { var r = { key: "—", v: "—", exists: "—", exp: "—", hasTTL: "—", ok: "—", sec: "—", value: "—" }; for (var k in o) r[k] = String(o[k]); return r; }
+    function qv(s) { return "\"" + s + "\""; }
+    function rows() {
+      return Object.keys(st.data).map(function (k) {
+        var e = has(st.expire, k) ? st.expire[k] : null;
+        return { key: k, value: st.data[k], expireAt: e, state: e === null ? "nottl" : st.t >= e ? "stale" : "live" };
+      });
+    }
+    var cur = { cmd: "", rep: "" }; // журнал пополняется на ПОСЛЕДНЕМ кадре команды
+    function emit(line, vars, info, extra) {
+      if (extra && extra.last) log.push({ cmd: cur.cmd, reply: cur.rep });
+      lastLine = line;
+      if (!frame) return;
+      var rs = rows();
+      var adv = pendingAdv ? "Прошло " + fmtT(pendingAdv) + ", часы: " + fmtT(st.t) + ". " : "";
+      pendingAdv = 0;
+      var s = { line: line, vars: chips(vars), info: adv + info, t: st.t, rows: rs, log: log.slice(), mem: { keys: rs.length, stale: rs.filter(function (r) { return r.state === "stale"; }).length }, bad: [] };
+      if (extra && extra.hot) s.hot = true;
+      frame(s);
+    }
+    // live: кадры по строкам листинга 2..12; чипы — только переменные live (у вызывающей функции свои, они тут вне области)
+    function live(key) {
+      var ex = has(st.data, key), v = ex ? st.data[key] : "";
+      emit(2, { key: key, v: qv(v), exists: ex }, ex ? "v, exists := s.data[" + key + "] — ключ в data есть" : "v, exists := s.data[" + key + "] — ключа в data нет");
+      emit(3, { key: key, v: qv(v), exists: ex }, ex ? "!exists — нет" : "!exists — да");
+      if (!ex) { emit(4, { key: key, v: qv(v), exists: ex }, "ключа нет — вернули «нет»"); return { ok: false, v: "" }; }
+      var hasT = has(st.expire, key), exp = hasT ? st.expire[key] : null, expS = exp === null ? "—" : fmtT(exp);
+      emit(6, { key: key, v: qv(v), exists: ex, exp: expS, hasTTL: hasT }, hasT ? "срок: " + fmtT(exp) + ", часы: " + fmtT(st.t) : "срока у ключа нет");
+      var expired = hasT && st.t >= exp;
+      emit(7, { key: key, v: qv(v), exists: ex, exp: expS, hasTTL: hasT }, hasT ? (expired ? "hasTTL && !Before(exp) — да: часы " + fmtT(st.t) + " ≥ срок " + fmtT(exp) : "hasTTL && !Before(exp) — нет: срок ещё не вышел") : "hasTTL && !Before(exp) — нет: срока нет");
+      if (!expired) { emit(12, { key: key, v: qv(v), exists: ex, exp: expS, hasTTL: hasT }, "ключ жив — вернули значение"); return { ok: true, v: v }; }
+      delete st.data[key];
+      emit(8, { key: key, v: qv(v), exists: ex, exp: expS, hasTTL: true }, "ленивое удаление: ключ убирается из data ТОЛЬКО сейчас, потому что к нему обратились", { hot: true });
+      delete st.expire[key];
+      emit(9, { key: key, v: qv(v), exists: ex, exp: expS, hasTTL: true }, "и из expire");
+      emit(10, { key: key, v: qv(v), exists: ex, exp: expS, hasTTL: true }, "для вызывающего ключа больше нет");
+      return { ok: false, v: "" };
+    }
+    function reply(kind, text) { return kind === "int" ? ":" + text + "\r\n" : kind === "simple" ? "+" + text + "\r\n" : kind === "nil" ? "$-1\r\n" : "$" + byteLen(text) + "\r\n" + text + "\r\n"; }
+
+    tokens.forEach(function (tk) {
+      if (tk.op === "advance") { st.t += tk.ms; pendingAdv += tk.ms; results.push({ reply: "", data: copy(st.data), expire: copy(st.expire) }); return; }
+      var a = tk.args, key = a[0];
+      cur.cmd = tk.name + " " + a.join(" "); cur.rep = "";
+      if (tk.name === "SET") {
+        st.data[key] = a[1];
+        emit(16, { key: key, value: qv(a[1]) }, "s.data[" + key + "] = " + qv(a[1]));
+        delete st.expire[key];
+        cur.rep = reply("simple", "OK");
+        emit(17, { key: key, value: qv(a[1]) }, "срок (если был) снимается: новый SET — это новое значение без TTL. Ответ: +OK", { last: true });
+      } else if (tk.name === "GET") {
+        emit(21, { key: key }, "GET " + key + ": вызываем live(" + key + ")");
+        var g = live(key);
+        cur.rep = g.ok ? reply("bulk", g.v) : reply("nil");
+        emit(22, { key: key, v: qv(g.v), ok: g.ok }, g.ok ? "GET отвечает значением " + qv(g.v) : "GET отвечает «пусто» ($-1)", { last: true });
+      } else if (tk.name === "EXPIRE") {
+        var sec = parseInt(a[1], 10), S = String(sec);
+        emit(26, { key: key, sec: S }, "EXPIRE " + key + " " + sec + ": вызываем live(" + key + ")");
+        var e = live(key);
+        emit(27, { key: key, sec: S, ok: e.ok }, e.ok ? "!ok — нет" : "!ok — да");
+        if (!e.ok) { cur.rep = reply("int", "0"); emit(28, { key: key, sec: S, ok: false }, "ключа нет — EXPIRE отвечает 0", { last: true }); }
+        else {
+          emit(30, { key: key, sec: S, ok: true }, sec <= 0 ? "sec <= 0 — да" : "sec <= 0 — нет");
+          cur.rep = reply("int", "1");
+          if (sec <= 0) {
+            delete st.data[key];
+            emit(31, { key: key, sec: S, ok: true }, "ключ удаляется сразу");
+            delete st.expire[key];
+            emit(32, { key: key, sec: S, ok: true }, "и срок тоже");
+            emit(33, { key: key, sec: S, ok: true }, "EXPIRE отвечает 1", { last: true });
+          } else {
+            st.expire[key] = st.t + sec * 1000;
+            emit(35, { key: key, sec: S, ok: true }, "срок: часы " + fmtT(st.t) + " + " + sec + " с = " + fmtT(st.expire[key]));
+            emit(36, { key: key, sec: S, ok: true }, "EXPIRE отвечает 1", { last: true });
+          }
+        }
+      } else if (tk.name === "TTL") {
+        emit(40, { key: key }, "TTL " + key + ": вызываем live(" + key + ")");
+        var tl = live(key);
+        emit(41, { key: key, ok: tl.ok }, tl.ok ? "!ok — нет" : "!ok — да");
+        if (!tl.ok) { cur.rep = reply("int", "-2"); emit(42, { key: key, ok: false }, "ключа нет — TTL отвечает -2", { last: true }); }
+        else {
+          var h = has(st.expire, key), ex2 = h ? st.expire[key] : null, ex2S = h ? fmtT(ex2) : "—";
+          emit(44, { key: key, ok: true, exp: ex2S, hasTTL: h }, h ? "срок: " + fmtT(ex2) : "срока нет");
+          emit(45, { key: key, ok: true, exp: ex2S, hasTTL: h }, h ? "!hasTTL — нет" : "!hasTTL — да");
+          if (!h) { cur.rep = reply("int", "-1"); emit(46, { key: key, ok: true, exp: ex2S, hasTTL: false }, "срока нет — TTL отвечает -1", { last: true }); }
+          else { var left = Math.trunc((ex2 - st.t) / 1000); cur.rep = reply("int", String(left)); emit(48, { key: key, ok: true, exp: ex2S, hasTTL: true }, "осталось " + ((ex2 - st.t) / 1000) + " с, а мини-Redis отвечает целым: " + left + " (дробная часть отбрасывается)", { last: true }); }
+        }
+      } else if (tk.name === "DEL") {
+        emit(52, { key: key }, "DEL " + key + ": вызываем live(" + key + ")");
+        var d = live(key);
+        emit(53, { key: key, ok: d.ok }, d.ok ? "!ok — нет" : "!ok — да");
+        if (!d.ok) { cur.rep = reply("int", "0"); emit(54, { key: key, ok: false }, "ключа нет (или он уже просрочен) — DEL отвечает 0", { last: true }); }
+        else {
+          delete st.data[key];
+          emit(56, { key: key, ok: true }, "delete(s.data, " + key + ")");
+          delete st.expire[key];
+          emit(57, { key: key, ok: true }, "delete(s.expire, " + key + ")");
+          cur.rep = reply("int", "1");
+          emit(58, { key: key, ok: true }, "DEL отвечает 1", { last: true });
+        }
+      }
+      results.push({ reply: cur.rep, data: copy(st.data), expire: copy(st.expire) });
+    });
+    // итоговый кадр: чипы обнулены; строка — последняя выполненная (0, если команд не было)
+    if (frame) {
+      var rsF = rows(), stale = rsF.filter(function (r) { return r.state === "stale"; }).length;
+      var advF = pendingAdv ? "Прошло " + fmtT(pendingAdv) + ", часы: " + fmtT(st.t) + ". " : "";
+      frame({ line: lastLine, vars: chips({}), info: advF + "Итог: ключей в памяти: " + rsF.length + ", просрочено: " + stale + (stale ? " — они лежат, пока к ним не обратятся" : ""), t: st.t, rows: rsF, log: log.slice(), mem: { keys: rsF.length, stale: stale }, bad: [], done: true });
+    }
+    return results;
+  }
+  function ttlSim(tokens) { return ttlExec(tokens, null); }
+
+  function bTtl(tokens) {
+    var steps = [];
+    ttlExec(tokens, function (s) { steps.push(s); });
+    return steps;
+  }
+  exportsForTest.parseScript = parseScript;
+  exportsForTest.ttlSim = ttlSim;
+  exportsForTest.bTtl = bTtl;
+
   if (typeof window === "undefined" || !window.ALGO_VIZ) return;
 
   var respLegend = [
@@ -187,6 +338,49 @@
     };
   }
 
+  var ttlLegend = [
+    { cls: "iv-redis__row--live", label: "жив, у него есть срок" },
+    { cls: "iv-redis__row--nottl", label: "жив, срока нет" },
+    { cls: "iv-redis__row--stale", label: "срок вышел, но лежит в памяти" }
+  ];
+
+  var TTL_STATE_WORD = { live: "жив", nottl: "жив, без срока", stale: "просрочен" };
+
+  function ttlViz(panel) {
+    var H = window.ALGO_VIZ;
+    var wrap = H.mkEl("div", "iv-redis");
+    panel.appendChild(wrap);
+    return function (s) {
+      wrap.innerHTML = "";
+      // состав памяти — главное, ради чего виджет: просроченный ключ тут ещё есть
+      wrap.appendChild(H.mkEl("div", "iv-redis__clock", "Часы: " + fmtT(s.t) + " · ключей в памяти: " + s.mem.keys + ", просрочено: " + s.mem.stale));
+      var tbl = H.mkEl("div", "iv-redis__rows");
+      tbl.appendChild(H.mkEl("div", "iv-redis__label", "Ключи в памяти (s.data и s.expire)"));
+      if (!s.rows.length) tbl.appendChild(H.mkEl("span", "iv-redis__empty", "пусто"));
+      s.rows.forEach(function (r) {
+        var row = H.mkEl("div", "iv-redis__row iv-redis__row--" + r.state);
+        row.appendChild(H.mkEl("span", "iv-redis__rkey", r.key));
+        row.appendChild(H.mkEl("span", "iv-redis__rval", "\"" + r.value + "\""));
+        row.appendChild(H.mkEl("span", "iv-redis__rexp", r.expireAt === null ? "срока нет" : "срок " + fmtT(r.expireAt)));
+        row.appendChild(H.mkEl("span", "iv-redis__rstate", TTL_STATE_WORD[r.state]));
+        tbl.appendChild(row);
+      });
+      wrap.appendChild(tbl);
+      var lg = H.mkEl("div", "iv-redis__log");
+      lg.appendChild(H.mkEl("div", "iv-redis__label", "Журнал: команда → ответ"));
+      if (!s.log.length) lg.appendChild(H.mkEl("span", "iv-redis__empty", "команд ещё не было"));
+      s.log.forEach(function (e) {
+        var lr = H.mkEl("div", "iv-redis__logrow");
+        lr.appendChild(H.mkEl("span", "iv-redis__arg", e.cmd));
+        lr.appendChild(H.mkEl("span", "iv-redis__kind", "→"));
+        lr.appendChild(H.mkEl("span", "iv-redis__rawreply", escapeWire(e.reply)));
+        lg.appendChild(lr);
+      });
+      wrap.appendChild(lg);
+      if (s.bad && s.bad.length) wrap.appendChild(H.mkEl("div", "iv-redis__note", "не понял: " + s.bad.join("; ")));
+    };
+  }
+
   var CODE = {
     "redis-resp": [
       "func ReadCommand(r *bufio.Reader) ([]string, error) {",
@@ -224,6 +418,68 @@
       "        args = append(args, string(buf[:blen]))",
       "    }",
       "    return args, nil",
+      "}"
+    ],
+    "redis-ttl": [
+      "// сокращено: без проверки числа аргументов и без блокировки mu",
+      "func (s *Store) live(key string) (string, bool) {",
+      "    v, exists := s.data[key]",
+      "    if !exists {",
+      "        return \"\", false",
+      "    }",
+      "    exp, hasTTL := s.expire[key]",
+      "    if hasTTL && !s.now().Before(exp) {",
+      "        delete(s.data, key) // ленивое удаление: только при обращении",
+      "        delete(s.expire, key)",
+      "        return \"\", false",
+      "    }",
+      "    return v, true",
+      "}",
+      "// SET key value",
+      "func set(s *Store, key, value string) {",
+      "    s.data[key] = value",
+      "    delete(s.expire, key) // новый SET снимает TTL",
+      "}",
+      "// GET key",
+      "func get(s *Store, key string) (string, bool) {",
+      "    v, ok := s.live(key)",
+      "    return v, ok",
+      "}",
+      "// EXPIRE key seconds",
+      "func expire(s *Store, key string, sec int) int {",
+      "    _, ok := s.live(key)",
+      "    if !ok {",
+      "        return 0",
+      "    }",
+      "    if sec <= 0 {",
+      "        delete(s.data, key)",
+      "        delete(s.expire, key)",
+      "        return 1",
+      "    }",
+      "    s.expire[key] = s.now().Add(time.Duration(sec) * time.Second)",
+      "    return 1",
+      "}",
+      "// TTL key",
+      "func ttl(s *Store, key string) int64 {",
+      "    _, ok := s.live(key)",
+      "    if !ok {",
+      "        return -2",
+      "    }",
+      "    exp, hasTTL := s.expire[key]",
+      "    if !hasTTL {",
+      "        return -1",
+      "    }",
+      "    return int64(exp.Sub(s.now()).Seconds()) // дробная часть отбрасывается",
+      "}",
+      "// DEL key",
+      "func del(s *Store, key string) int {",
+      "    _, ok := s.live(key)",
+      "    if !ok {",
+      "        return 0",
+      "    }",
+      "    delete(s.data, key)",
+      "    delete(s.expire, key)",
+      "    return 1",
       "}"
     ]
   };
@@ -264,7 +520,43 @@
       stepCard: function (s) { return { a: "съедено " + s.pos, b: "аргументов " + s.args.length, c: "", cls: "gt" }; },
       varsOf: function (s) { return { line: s.vars.line, n: s.vars.n, i: s.vars.i, hdr: s.vars.hdr, blen: s.vars.blen }; },
       customViz: respViz
+    },
+    "redis-ttl": {
+      badge: "Redis · TTL и ленивое удаление",
+      desc: "Ключ с TTL не исчезает сам: мини-Redis проверяет срок только когда к ключу обращаются (GET, TTL, EXPIRE, DEL) и тогда же удаляет его. До этого просроченный ключ лежит в памяти.",
+      valuesLabel: "", codeKey: "redis-ttl", fillRange: false,
+      complexity: { time: "O(1) на команду", space: "O(ключей), включая просроченные", good: "★ без фонового обхода, но память занята до обращения" },
+      varOrder: ["key", "v", "exists", "exp", "hasTTL", "ok", "sec", "value"],
+      varDesc: { key: "Ключ", v: "Значение из data", exists: "Есть ли ключ в data", exp: "Срок ключа (часы мини-Redis)", hasTTL: "Есть ли у ключа срок", ok: "Жив ли ключ по live", sec: "Секунды для EXPIRE", value: "Новое значение SET" },
+      lineNotes: { 3: "Ключа нет в data — жив быть не может", 7: "Срок вышел, когда часы ≥ срока", 8: "Ленивое удаление: только сейчас, при обращении", 17: "Новый SET снимает TTL", 22: "GET отдаёт то, что решил live", 30: "EXPIRE с нулём или минусом удаляет ключ", 35: "Срок = часы + секунды", 48: "Дробная часть секунд отбрасывается" },
+      rules: [{ head: "обратились", body: "live проверяет срок и удаляет", cls: "eq" }, { head: "не трогали", body: "просроченный лежит в памяти", cls: "gt" }, { head: "TTL", body: "целые секунды, дробная часть отброшена", cls: "lt" }],
+      legend: ttlLegend,
+      presets: [
+        { label: "просрочен, но лежит в памяти", set: { "data-script": "SET a 1; EXPIRE a 1; +5; SET b 2; DEL b" }, hint: "a просрочен, но никто не спросил" },
+        { label: "SET снимает TTL", set: { "data-script": "SET a 1; EXPIRE a 2; SET a 2; +5; TTL a; GET a" }, hint: "срок пропал — ключ вечен" },
+        { label: "TTL отбрасывает дробную часть", set: { "data-script": "SET a 1; EXPIRE a 3; +0.5; TTL a" }, hint: "осталось 2.5 с, ответ 2" },
+        { label: "EXPIRE 0 удаляет", set: { "data-script": "SET a 1; EXPIRE a 0; GET a" }, hint: "ключ исчез сразу" },
+        { label: "DEL считает только живые", set: { "data-script": "SET a 1; EXPIRE a 1; +2; DEL a; DEL a" }, hint: "первый DEL тоже 0: ключ уже просрочен" }
+      ],
+      parse: function (root) {
+        var attr = root.getAttribute("data-script");
+        var ps = parseScript(attr == null ? "SET session abc; EXPIRE session 3; +2; TTL session; +2; GET session; TTL session" : attr);
+        var steps = bTtl(ps.tokens);
+        steps.forEach(function (s) { s.bad = ps.bad; });
+        return { tokens: ps.tokens, bad: ps.bad, steps: steps };
+      },
+      inputs: [{ attr: "data-script", label: "Сценарий (команды и +секунды через «;»)" }],
+      values: function () { return []; },
+      title: function (ctx) { var n = ctx.tokens.length; return "Сценарий: " + n + " " + core.plural(n, "действие", "действия", "действий"); },
+      pointers: function () { return { lo: -1, hi: -1 }; },
+      sumCells: ["Часы", "В памяти"],
+      sumValues: function (s) { return [{ text: fmtT(s.t) }, { text: s.mem.keys, cls: s.mem.stale ? "lt" : "gt" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", hot: !!s.hot, icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { return { a: "часы: " + fmtT(s.t), b: "просрочено: " + s.mem.stale, c: "", cls: s.mem.stale ? "lt" : "gt" }; },
+      varsOf: function (s) { var r = {}; for (var k in s.vars) r[k] = s.vars[k]; return r; },
+      customViz: ttlViz
     }
   };
-  Object.keys(INFRA).forEach(function (t) { window.ALGO_VIZ.register(t, INFRA[t], CODE[INFRA[t].codeKey]); });
+  Object.keys(INFRA)
+.forEach(function (t) { window.ALGO_VIZ.register(t, INFRA[t], CODE[INFRA[t].codeKey]); });
 })();

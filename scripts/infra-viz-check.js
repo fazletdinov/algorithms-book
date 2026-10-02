@@ -743,4 +743,167 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     eq(`redis-resp: пресет ${i + 1} строится`, e.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(e.textContent) && /Итог:/.test(e.textContent), true);
   });
 }
+// --- Redis TTL: модель против настоящего кода (golden) и кадры ---
+{
+  const redis = require(path.join(root, "assets", "infra-redis.js"));
+  const golden = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "redis-golden.json"), "utf8"));
+  // Go сериализует карты с отсортированными ключами, модель хранит порядок вставки: сравниваем как множества
+  const canon = (o) => Object.keys(o).sort().map((k) => [k, o[k]]);
+  golden.ttl.forEach((sc) => {
+    const ps = redis.parseScript(sc.script);
+    eq(`ttl golden «${sc.name}»: скрипт разобран без остатка`, ps.bad, []);
+    const sim = redis.ttlSim(ps.tokens);
+    eq(`ttl golden «${sc.name}»: ответ/data/expire на каждом токене`, sim.map((r) => ({ reply: r.reply, data: canon(r.data), expire: canon(r.expire) })), sc.steps.map((s) => ({ reply: s.reply, data: canon(s.data), expire: canon(s.expire) })));
+    const st = redis.bTtl(ps.tokens), fin = st[st.length - 1];
+    eq(`ttl «${sc.name}»: один done, последним`, [!!fin.done, st.filter((s) => s.done).length], [true, 1]);
+    eq(`ttl «${sc.name}»: строки в пределах листинга`, st.every((s) => s.line >= 0 && s.line <= 59), true);
+    eq(`ttl «${sc.name}»: итог совпадает с golden`, fin.rows.map((r) => r.key).sort(), Object.keys(sc.steps[sc.steps.length - 1].data).sort());
+  });
+  const seq = (script) => redis.bTtl(redis.parseScript(script).tokens).filter((s) => !s.done).map((s) => s.line).join(",");
+  eq("кадры SET", seq("SET a 1"), "16,17");
+  eq("кадры GET отсутствующего", seq("GET a"), "21,2,3,4,22");
+  eq("кадры GET живого без TTL", seq("SET a 1; GET a").split(",").slice(2).join(","), "21,2,3,6,7,12,22");
+  eq("кадры GET просроченного (ленивое удаление)", seq("SET a 1; EXPIRE a 1; +2; GET a").split(",").slice(12).join(","), "21,2,3,6,7,8,9,10,22");
+  eq("кадры EXPIRE на отсутствующем", seq("EXPIRE a 5"), "26,2,3,4,27,28");
+  eq("кадры EXPIRE 0", seq("SET a 1; EXPIRE a 0").split(",").slice(2).join(","), "26,2,3,6,7,12,27,30,31,32,33");
+  eq("кадры TTL без срока", seq("SET a 1; TTL a").split(",").slice(2).join(","), "40,2,3,6,7,12,41,44,45,46");
+  eq("кадры DEL живого", seq("SET a 1; DEL a").split(",").slice(2).join(","), "52,2,3,6,7,12,53,56,57,58");
+  // главное свойство: просроченный ключ лежит в памяти до обращения
+  const st = redis.bTtl(redis.parseScript("SET a 1; EXPIRE a 1; +5; SET b 2; DEL b").tokens);
+  const lastRows = st[st.length - 1].rows;
+  eq("просрочен, но лежит в памяти и никто не тронул", [lastRows.map((r) => r.key + ":" + r.state).join(","), st[st.length - 1].mem], ["a:stale", { keys: 1, stale: 1 }]);
+  const lazy = redis.bTtl(redis.parseScript("SET a 1; EXPIRE a 1; +5; GET a").tokens);
+  const first = lazy.find((s) => s.line === 21);
+  eq("перед ленивым удалением ключ виден как «просрочен»", [first.rows[0].state, first.t], ["stale", 5000]);
+  eq("после GET ключа в памяти нет", lazy[lazy.length - 1].mem, { keys: 0, stale: 0 });
+  // чипы: «—» вне области видимости
+  const sg = redis.bTtl(redis.parseScript("SET a 1; GET a").tokens);
+  eq("чипы: в set живы key/value, остальные «—»", [sg[0].vars.key, sg[0].vars.value, sg[0].vars.ok, sg[0].vars.exists], ["a", "\"1\"", "—", "—"]);
+  eq("чипы: на итоговом кадре всё «—»", Object.values(sg[sg.length - 1].vars).every((v) => v === "—"), true);
+  // чипы по областям видимости Go — на конкретных кадрах, а не общим инвариантом
+  {
+    const frames = redis.bTtl(redis.parseScript("SET a 1; EXPIRE a 3; GET a; TTL a; EXPIRE a 5; EXPIRE a 0; SET b 2; DEL b; TTL zz").tokens);
+    const order = ["key", "v", "exists", "exp", "hasTTL", "ok", "sec", "value"];
+    const live = (s) => order.filter((k) => s.vars[k] !== "—").join(",");
+    const nth = (line, n, from) => frames.filter((s) => s.line === line)[n || 0];
+    // кадры GET: первая команда GET — после двух EXPIRE; берём по номеру вхождения строки внутри нужной команды
+    const getStart = frames.findIndex((s) => s.line === 21);
+    const inGet = (line) => frames.slice(getStart).find((s) => s.line === line);
+    eq("set (16): key,value", live(nth(16, 0)), "key,value");
+    eq("get (21): только key — результат live ещё не вернулся", live(frames[getStart]), "key");
+    eq("live (2) из get: key,v,exists", live(inGet(2)), "key,v,exists");
+    eq("live (4) из get-промаха — ключа нет", live(frames.find((s, i) => i > getStart && s.line === 3)), "key,v,exists");
+    eq("live (6): появились exp,hasTTL", live(inGet(6)), "key,v,exists,exp,hasTTL");
+    eq("live (12): те же", live(inGet(12)), "key,v,exists,exp,hasTTL");
+    eq("get (22): key,v,ok — exists/exp/hasTTL уже вне области", live(inGet(22)), "key,v,ok");
+    eq("expire (26): key,sec — ok ещё нет", live(nth(26, 0)), "key,sec");
+    eq("expire (27): ok появился", live(nth(27, 0)), "key,ok,sec");
+    eq("expire (35): key,ok,sec", live(nth(35, 0)), "key,ok,sec");
+    eq("expire (31) при sec<=0: key,ok,sec", live(nth(31, 0)), "key,ok,sec");
+    const ttlStart = frames.findIndex((s) => s.line === 40);
+    eq("ttl (40): только key", live(frames[ttlStart]), "key");
+    eq("ttl (41): key,ok", live(frames.slice(ttlStart).find((s) => s.line === 41)), "key,ok");
+    eq("ttl (44): появились exp,hasTTL", live(frames.slice(ttlStart).find((s) => s.line === 44)), "key,exp,hasTTL,ok");
+    eq("ttl (48): key,exp,hasTTL,ok", live(frames.slice(ttlStart).find((s) => s.line === 48)), "key,exp,hasTTL,ok");
+    eq("ttl (42) на промахе: key,ok", live(frames.find((s) => s.line === 42)), "key,ok");
+    const delStart = frames.findIndex((s) => s.line === 52);
+    eq("del (52): только key", live(frames[delStart]), "key");
+    eq("del (53): key,ok", live(frames[delStart + frames.slice(delStart).findIndex((s) => s.line === 53)]), "key,ok");
+    eq("del (58): key,ok", live(frames.find((s) => s.line === 58)), "key,ok");
+    eq("chip hasTTL — строка true/false, не булево", [inGet(6).vars.hasTTL, typeof inGet(6).vars.exists], ["true", "string"]);
+  }
+  // 🎯: на каждой строке-условии следующий кадр — L+1 ровно когда условие истинно (тексты «— да/— нет»)
+  const IF_LINES = [3, 7, 27, 30, 41, 45, 53];
+  function ifCoherence(script) {
+    const fr = redis.bTtl(redis.parseScript(script).tokens); let n = 0, badc = 0;
+    fr.forEach((s, i) => {
+      if (IF_LINES.indexOf(s.line) < 0 || s.done) return;
+      n++;
+      const yes = /— да/.test(s.info), no = /— нет/.test(s.info);
+      if (yes === no) badc++;
+      if (yes !== (fr[i + 1].line === s.line + 1)) badc++;
+    });
+    return [n > 0, badc];
+  }
+  eq("🎯: условия согласованы с переходом на L+1", ifCoherence("SET a 1; EXPIRE a 1; +2; GET a; EXPIRE a 0; EXPIRE a 3; SET a 1; EXPIRE a 0; TTL a; SET a 1; TTL a; EXPIRE a 3; TTL a; +1; TTL a; DEL a; DEL a; DEL b"), [true, 0]);
+  // ключ __proto__ — обычный ключ (модель не должна падать на прототипе)
+  {
+    const f = redis.bTtl(redis.parseScript("SET __proto__ x; GET __proto__; TTL __proto__; EXPIRE __proto__ 5; DEL __proto__; GET __proto__").tokens);
+    const afterGet = f.filter((s) => s.line === 22)[0];
+    eq("__proto__: SET/GET — ключ в rows, ответ GET — значение", [f[1].rows.map((r) => r.key + "=" + r.value).join(), afterGet.vars.ok, afterGet.vars.v, redis.ttlSim(redis.parseScript("SET __proto__ x; GET __proto__").tokens)[1].reply], ["__proto__=x", "true", "\"x\"", "$1\r\nx\r\n"]);
+    const sim = redis.ttlSim(redis.parseScript("SET __proto__ x; EXPIRE __proto__ 5; DEL __proto__; GET __proto__").tokens);
+    eq("__proto__: EXPIRE/DEL/GET как у любого ключа, прототип цел", [sim[1].reply, sim[2].reply, sim[3].reply, Object.keys(sim[1].expire), ({}).x], [":1\r\n", ":1\r\n", "$-1\r\n", ["__proto__"], undefined]);
+    eq("__proto__: к концу ключей нет", f[f.length - 1].mem, { keys: 0, stale: 0 });
+  }
+  // разбор скрипта
+  eq("parseScript: плохие токены отделены, остальное разобрано", (() => { const r = redis.parseScript("SET a 1; FOO; +x; GET a; EXPIRE a q; +0; +4000"); return [r.tokens.length, r.bad.length]; })(), [2, 5]);
+  eq("parseScript: не больше 14 токенов", redis.parseScript(Array.from({ length: 30 }, () => "GET a").join("; ")).tokens.length, 14);
+  eq("parseScript: дробные секунды в мс", redis.parseScript("+0.5; +1.25").tokens.map((t) => t.ms), [500, 1250]);
+  eq("parseScript: пусто", redis.parseScript(""), { tokens: [], bad: [] });
+  eq("только +N: единственный кадр — итоговый, сдвиг виден", (() => { const f = redis.bTtl(redis.parseScript("+2").tokens); return [f.length, f[0].done, f[0].t, /Прошло 2 с/.test(f[0].info)]; })(), [1, true, 2000, true]);
+  eq("+N виден в первом кадре следующей команды", (() => { const f = redis.bTtl(redis.parseScript("SET a 1; +2; GET a").tokens); const g = f.find((s) => s.line === 21); return [g.t, /^Прошло 2 с, часы: 2 с\./.test(g.info)]; })(), [2000, true]);
+  // фаззинг
+  let seed = 777; const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const cmds = ["SET a 1", "SET b 2", "GET a", "GET b", "DEL a", "DEL b", "EXPIRE a 2", "EXPIRE b 1", "EXPIRE a 0", "TTL a", "TTL b", "+1", "+0.5", "+3"];
+  let bad = 0, badIf = 0;
+  for (let t = 0; t < 300; t++) {
+    const n = 1 + Math.floor(rnd() * 12);
+    const script = Array.from({ length: n }, () => cmds[Math.floor(rnd() * cmds.length)]).join("; ");
+    const st2 = redis.bTtl(redis.parseScript(script).tokens), fin = st2[st2.length - 1];
+    if (!fin.done || st2.filter((s) => s.done).length !== 1) bad++;
+    if (st2.some((s) => s.line < 0 || s.line > 58)) bad++;
+    if (st2.some((s) => s.mem.keys !== s.rows.length || s.mem.stale !== s.rows.filter((r) => r.state === "stale").length)) bad++;
+    for (let i = 1; i < st2.length; i++) if (st2[i].t < st2[i - 1].t) bad++;
+    badIf += ifCoherence(script)[1];
+  }
+  eq("фаззинг 300 скриптов: один done, строки в листинге, счётчики согласованы, часы не идут назад", bad, 0);
+  eq("фаззинг 300 скриптов: переходы на условиях согласованы с текстом", badIf, 0);
+}
+{
+  const redis = require(path.join(root, "assets", "infra-redis.js"));
+  const run = (attrs, steps) => {
+    const div = `<div class="algo-viz" id="w" tabindex="0" data-viz="redis-ttl" ${attrs}></div>`;
+    const dom = new JSDOM(`<!DOCTYPE html><html><body>${div}<script>${read("algo-viz.js")}</script>${infraScripts()}</body></html>`, { runScripts: "dangerously", pretendToBeVisual: true });
+    dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
+    const el = dom.window.document.getElementById("w");
+    for (let i = 0; i < (steps == null ? 400 : steps); i++) el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    return el;
+  };
+  const ok = (e) => e.classList.contains("algo-viz--ready") && !/Ошибка визуализации|Неизвестный тип/.test(e.textContent);
+  const script = "SET a 1; EXPIRE a 1; +5; SET b 2; DEL b";
+  const el = run(`data-script="${script}"`);
+  const fin = redis.bTtl(redis.parseScript(script).tokens).slice(-1)[0];
+  eq("redis-ttl: построен без ошибок и дошёл до итога", [ok(el), /Итог:/.test(el.textContent)], [true, true]);
+  eq("redis-ttl: рядов таблицы = ключей в памяти итога", el.querySelectorAll(".iv-redis__rows .iv-redis__row").length, fin.mem.keys);
+  eq("redis-ttl: видимая строка про память", /ключей в памяти: 1, просрочено: 1/.test(el.textContent), true);
+  eq("redis-ttl: на итоге есть просроченный ряд и пункт легенды про него", [el.querySelectorAll(".iv-redis__row--stale").length, /срок вышел, но лежит в памяти/.test(el.textContent)], [1, true]);
+  eq("redis-ttl: журнал — по строке на команду", el.querySelectorAll(".iv-redis__log .iv-redis__logrow").length, 4);
+  const def = run("");
+  eq("redis-ttl: без атрибута — сценарий по умолчанию", [ok(def), /Итог:/.test(def.textContent)], [true, true]);
+  const junk = run('data-script="FOO; ;;"');
+  eq("redis-ttl: мусорный ввод не падает, заметка «не понял»", [ok(junk), /не понял: FOO/.test(junk.textContent)], [true, true]);
+  const hostile = run('data-script="SET &lt;img src=x onerror=alert(1)&gt; 1"');
+  eq("redis-ttl: HTML во вводе не создаёт элементов", hostile.querySelectorAll("img").length, 0);
+  const emptyScript = run('data-script=""');
+  eq("redis-ttl: пустой ввод — без падения", ok(emptyScript), true);
+  const src = readInfra(), css = read("infra-viz.css");
+  const legBlock = (src.match(/var ttlLegend = \[([\s\S]*?)\n  \];/) || [])[1] || "";
+  const classes = [...legBlock.matchAll(/cls: "([^"]+)"/g)].map((m) => m[1]);
+  eq("redis-ttl: в легенде 3 класса", classes.length, 3);
+  classes.forEach((c) => eq(`redis-ttl: legdot-правило с цветом для ${c}`, new RegExp("\\.algo-tp__legdot--" + c.replace(/[-_]/g, (x) => "\\" + x) + "\\s*\\{[^}]*#[0-9a-fA-F]{6}").test(css), true));
+  const body = src.slice(src.indexOf('    "redis-ttl": {'));
+  const block = (body.match(/presets: \[\n([\s\S]*?)\n      \],/) || [])[1] || "";
+  const presets = [...block.matchAll(/set: \{([^}]*)\}/g)].map((m) => Object.fromEntries([...m[1].matchAll(/"(data-[a-z-]+)":\s*"((?:[^"\\]|\\.)*)"/g)].map((x) => [x[1], JSON.parse('"' + x[2] + '"')])));
+  eq("redis-ttl: 5 пресетов, ровно поле data-script, нет дубля «пример главы»", [presets.length, presets.every((p) => Object.keys(p).join() === "data-script"), /label: "пример главы/.test(block)], [5, true, false]);
+  presets.forEach((p, i) => {
+    const e = run(`data-script="${p["data-script"]}"`);
+    eq(`redis-ttl: пресет ${i + 1} строится`, ok(e) && /Итог:/.test(e.textContent), true);
+  });
+  // подписи пресетов — правда для их данных (посчитано моделью)
+  const reply = (s) => redis.ttlSim(redis.parseScript(s).tokens).map((r) => r.reply);
+  eq("пресет «SET снимает TTL»: TTL → -1, GET → значение", reply("SET a 1; EXPIRE a 2; SET a 2; +5; TTL a; GET a").slice(4), [":-1\r\n", "$1\r\n2\r\n"]);
+  eq("пресет «дробная часть»: осталось 2.5 с, ответ 2", [redis.bTtl(redis.parseScript("SET a 1; EXPIRE a 3; +0.5; TTL a").tokens).find((s) => s.line === 48).info.indexOf("осталось 2.5 с") >= 0, reply("SET a 1; EXPIRE a 3; +0.5; TTL a")[3]], [true, ":2\r\n"]);
+  eq("пресет «EXPIRE 0»: ключ исчез сразу", reply("SET a 1; EXPIRE a 0; GET a").slice(1), [":1\r\n", "$-1\r\n"]);
+  eq("пресет «DEL считает только живые»: оба DEL — 0", reply("SET a 1; EXPIRE a 1; +2; DEL a; DEL a").slice(3), [":0\r\n", ":0\r\n"]);
+}
 process.exit(failed ? 1 : 0);
