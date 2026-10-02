@@ -366,7 +366,10 @@
           j++;
           if (j === O.length && i + 1 < users.length) extraU = 1;
           reads();
-          st.snap(10, { i: i, j: j }, extraU ? "j++: заказов больше нет. Но Postgres не останавливается сразу: он читает следующую строку users (id " + users[i + 1] + ") — в общем случае у неё мог бы оказаться тот же ключ, и только что пройденные заказы пришлось бы пройти заново. Ключ другой — соединение закончено" : "j++: следующий заказ того же пользователя (или другого)", {});
+          // подпись под кодом — по ситуации кадра: статичная «следующий заказ» спорила бы со статусом
+          // на конце заказов (и с лишним чтением users, и без него)
+          var endO = j === O.length;
+          st.snap(10, { i: i, j: j }, extraU ? "j++: заказов больше нет. Но Postgres не останавливается сразу: он читает следующую строку users (id " + users[i + 1] + ") — в общем случае у неё мог бы оказаться тот же ключ, и только что пройденные заказы пришлось бы пройти заново. Ключ другой — соединение закончено" : endO ? "j++: заказов больше нет" : "j++: следующий заказ того же пользователя (или другого)", { note: extraU ? "Заказов больше нет; Postgres ещё читает users[i+1] — сверить с ключом группы" : endO ? "Заказов больше нет — цикл закончится" : "Следующий заказ: тот же пользователь или уже другой" });
         }
       }
     }
@@ -588,7 +591,7 @@
       "        h[u.ID] = append(h[u.ID], u)",
       "    }",
       "    var out []Pair",
-      "    for _, o := range orders { // probe: ВСЕ заказы, один проход",
+      "    for _, o := range orders { // probe: ВСЕ заказы (Postgres: при пустом хеше — только первый)",
       "        for _, u := range h[o.UserID] {",
       "            out = append(out, Pair{u, o})",
       "        }",
@@ -607,7 +610,7 @@
       "            j++",
       "        } else {",
       "            out = append(out, Pair{users[i], orders[j]})",
-      "            j++ // тот же пользователь: следующий заказ",
+      "            j++ // следующий заказ; на конце заказов Postgres ещё заглянет в users[i+1]",
       "        }",
       "    }",
       "    return out",
@@ -667,7 +670,8 @@
       var rowU = H.mkEl("div", "iv-join__row iv-join__row--users");
       rowU.appendChild(H.mkEl("div", "iv-join__label", (kind === "nl" ? "внешняя таблица" : "таблица") + " users (id)"));
       s.U.forEach(function (id, i) {
-        var cls = "iv-join__cell" + (i === s.cu ? " iv-join__cell--cur" : matchedU[id] ? " iv-join__cell--match" : userRead(i) ? " iv-join__cell--read" : " iv-join__cell--idle");
+        // состояние и «текущая» независимы: --cur — только рамка, иначе пользователь уже в результате сереет
+        var cls = "iv-join__cell" + (matchedU[id] ? " iv-join__cell--match" : userRead(i) ? " iv-join__cell--read" : " iv-join__cell--idle") + (i === s.cu ? " iv-join__cell--cur" : "");
         rowU.appendChild(H.mkEl("div", cls, String(id)));
       });
       if (!s.U.length) rowU.appendChild(H.mkEl("div", "iv-join__empty", "пусто"));
@@ -682,7 +686,7 @@
       var rowO = H.mkEl("div", "iv-join__row iv-join__row--orders");
       rowO.appendChild(H.mkEl("div", "iv-join__label", kind === "hash" ? "заказы (user_id), порядок таблицы" : "заказы (user_id), порядок индекса"));
       s.O.forEach(function (o, i) {
-        var cls = "iv-join__cell" + (i === s.co ? " iv-join__cell--cur" : matchedN[o.n] ? " iv-join__cell--match" : i < s.oRead ? " iv-join__cell--read" : " iv-join__cell--idle");
+        var cls = "iv-join__cell" + (matchedN[o.n] ? " iv-join__cell--match" : i < s.oRead ? " iv-join__cell--read" : " iv-join__cell--idle") + (i === s.co ? " iv-join__cell--cur" : "");
         var cell = H.mkEl("div", cls, String(o.u));
         cell.title = "заказ №" + o.n + ", user_id " + o.u;
         rowO.appendChild(cell);

@@ -7,9 +7,11 @@ let JSDOM;
 try { ({ JSDOM } = require("jsdom")); } catch (e) { console.log("✗ infra-viz-check: нужен jsdom (npm i --no-save jsdom) — проверка не выполнена"); process.exit(1); }
 const root = path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(root, "assets", f), "utf8");
-const infraFiles = () => fs.readdirSync(path.join(root, "assets")).filter((n) => /^infra-.*\.js$/.test(n)).sort((a, b) => (a === "infra-core.js" ? -1 : b === "infra-core.js" ? 1 : a.localeCompare(b)));
-const readInfra = () => infraFiles().map(read).join("\n");
-const infraScripts = () => infraFiles().map((f) => `<script>${read(f)}</script>`).join("");
+// порядок и состав файлов — из общего места, как у остальных скриптов проверок
+const infraLib = require("./lib/infra-files.js");
+const infraFiles = () => infraLib.infraFiles(root);
+const readInfra = () => infraLib.readInfra(root).map((f) => f.src).join("\n");
+const infraScripts = () => infraLib.infraScriptTags(root);
 let failed = 0;
 const eq = (name, got, want) => { if (JSON.stringify(got) !== JSON.stringify(want)) { failed++; console.error(`✗ ${name}\n  got:  ${JSON.stringify(got)}\n  want: ${JSON.stringify(want)}`); } else console.log(`✓ ${name}`); };
 
@@ -396,7 +398,11 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   const dom = new JSDOM(html, { runScripts: "dangerously", pretendToBeVisual: true });
   eq("браузер: ядро доступно как window.ALGO_VIZ_INFRA", typeof dom.window.ALGO_VIZ_INFRA.plural, "function");
   const book = fs.readFileSync(path.join(root, "book.toml"), "utf8");
-  eq("book.toml: algo-viz.js → infra-core.js → infra-pg.js подряд", /"assets\/algo-viz\.js", "assets\/infra-core\.js", "assets\/infra-pg\.js"/.test(book), true);
+  // Скрипты находят файлы тем по маске сами, а книга — только по списку в book.toml: файл темы, который
+  // забыли туда вписать, проверки видят, а читатель — нет. Поэтому ожидание выводится из той же маски.
+  const js = ((book.match(/additional-js\s*=\s*\[([^\]]*)\]/) || [])[1] || "").match(/"[^"]+"/g) || [];
+  const list = js.map((x) => x.slice(1, -1)), at = list.indexOf("assets/algo-viz.js"), want = infraFiles().map((f) => "assets/" + f);
+  eq(`book.toml: сразу за algo-viz.js — все файлы маски assets/infra-*.js в порядке загрузки (${want.join(", ")})`, [at >= 0, list.slice(at + 1, at + 1 + want.length), want.filter((f) => !list.includes(f))], [true, want, []]);
 }
 // --- соединения ---
 {
@@ -478,6 +484,16 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     }));
     eq(`Merge: подпись под кодом на if/else if совпадает с веткой кадра (кадров line 4: ${n4}, line 6: ${n6})`, [bad, n4 > 0, n6 > 0], [0, true, true]);
     eq("Merge: users пуста — «текущего» заказа нет ни на одном кадре", infra.bJoinMerge([], [{ n: 1, u: 1 }, { n: 2, u: 3 }]).map((s) => s.co), [-1, -1, -1]);
+  }
+  // Merge, строка 10 (j++): подпись под кодом — по ситуации кадра, а не одна статичная
+  {
+    const l10 = (us, os) => infra.bJoinMerge(us, os.map((x, i) => ({ n: i + 1, u: x }))).filter((s) => s.line === 10);
+    const extra = l10([1, 2, 3, 4, 5, 6], [1, 1, 2, 2, 5, 5]).pop();
+    const end = l10([1, 2], [1, 2]).pop();
+    const mid = l10([1, 2], [1, 1, 2])[0];
+    eq("Merge line 10: лишнее чтение users — подпись про users[i+1]", extra.note, "Заказов больше нет; Postgres ещё читает users[i+1] — сверить с ключом группы");
+    eq("Merge line 10: заказы кончились без лишнего чтения — статус и подпись про конец", [end.info, end.note, end.co], ["j++: заказов больше нет", "Заказов больше нет — цикл закончится", -1]);
+    eq("Merge line 10: обычный j++ — подпись «следующий заказ»", [mid.note, /следующий заказ/.test(mid.info)], ["Следующий заказ: тот же пользователь или уже другой", true]);
   }
   // Hash: короткие пути без лишних кадров probe
   eq("Hash: заказов нет — хеш не строится, только старт и итог", [seq(infra.bJoinHash([1, 2], [])), last(infra.bJoinHash([1, 2], [])).built.length], ["1,11", 0]);
@@ -585,6 +601,26 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     // Merge, users пуста: на кадре line 2 первая ячейка заказов не «текущая» — заказы не читаются
     const mEmpty = run("pg-join-merge", 'data-users="1-12" data-orders="r24" data-filter="1"', 1);
     eq("pg-join-merge: users пуста — у заказов нет «текущей» ячейки, прочитано 0", [mEmpty.querySelectorAll(".iv-join__row--orders .iv-join__cell--cur").length, +mEmpty.querySelector(".iv-join__metrics").getAttribute("data-oread")], [0, 0]);
+    // подпись под кодом на кадре лишнего чтения (пресет «у части пользователей нет заказов»)
+    {
+      const ms = infra.bJoinMerge(infra.parseIds("1-6", 1, 12, false), infra.parseIds("1,1,2,2,5,5", 1, 12, true).map((x, i) => ({ n: i + 1, u: x })));
+      const k = ms.map((s) => s.line === 10 && /не останавливается/.test(s.info)).lastIndexOf(true);
+      const el = run("pg-join-merge", 'data-users="1-6" data-orders="1,1,2,2,5,5" data-filter="0"', k);
+      eq("pg-join-merge: на кадре лишнего чтения подпись под кодом — про users[i+1], а не «следующий заказ»", [k > 0, el.querySelector(".algo-tp__codenotetx").textContent], [true, "Заказов больше нет; Postgres ещё читает users[i+1] — сверить с ключом группы"]);
+    }
+    // «текущая» — рамка поверх состояния, а не вместо него: пользователь уже в результате не сереет
+    {
+      const us = infra.parseIds("1-4", 1, 12, false), os = infra.parseIds("2,2,2,2,2,2,2,3", 1, 12, true).map((x, i) => ({ n: i + 1, u: x }));
+      const hs = infra.bJoinHash(us, os);
+      const k = hs.findIndex((s) => s.cu === 1 && s.out.some((p) => p.u === 2) && s.line === 7);
+      const el = run("pg-join-hash", 'data-users="1-4" data-orders="2,2,2,2,2,2,2,3" data-filter="0"', k);
+      const u2 = el.querySelectorAll(".iv-join__row--users .iv-join__cell")[1].className;
+      eq("pg-join-hash «много заказов у одного»: user 2 текущий и уже в результате — и --match, и --cur", [k > 0, /--match\b/.test(u2), /--cur\b/.test(u2), /--idle\b/.test(u2)], [true, true, true, false]);
+      const k8 = hs.findIndex((s) => s.line === 8);
+      const el8 = run("pg-join-hash", 'data-users="1-4" data-orders="2,2,2,2,2,2,2,3" data-filter="0"', k8);
+      const o = el8.querySelectorAll(".iv-join__row--orders .iv-join__cell")[hs[k8].co].className;
+      eq("pg-join-hash: текущий заказ, только что давший пару, — и --match, и --cur", [/--match\b/.test(o), /--cur\b/.test(o)], [true, true]);
+    }
     // пустое соединение: «пока» — только до итога (хеш пуст при u.id < 1 — сверено с живым Postgres)
     const empty = run("pg-join-hash", 'data-users="1-12" data-orders="r24" data-filter="1"');
     eq("pg-join-hash: пустой хеш — на итоге «Пар нет», прочитан 1 заказ", [empty.querySelector(".iv-join__pairs").textContent, +empty.querySelector(".iv-join__metrics").getAttribute("data-oread")], ["Пар нет", 1]);
