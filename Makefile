@@ -8,8 +8,11 @@
 #   make build   — сборка книги в ./book
 #   make check   — то же, что проверяет CI (gofmt, эталоны, книга, ссылки)
 #   make pg-lab  — Postgres-лаборатория к главе «Postgres: EXPLAIN как pprof»
+#   make redis-lab — Redis-лаборатория к главе «Капстоун: мини-Redis»
+#                  (redis-cli внутри — make redis-cli, погасить — make redis-lab-down,
+#                  замеры главы — redislab/measure.sh all)
 
-.PHONY: serve book runner docker-runner build check help pg-lab pg-psql pg-lab-down
+.PHONY: serve book runner docker-runner build check help pg-lab pg-psql pg-lab-down redis-lab redis-cli redis-lab-down
 .DEFAULT_GOAL := help
 
 ## serve: книга + runner вместе (Ctrl+C гасит оба)
@@ -65,6 +68,28 @@ pg-psql:
 ## pg-lab-down: погасить лабораторию и стереть её данные
 pg-lab-down:
 	cd pglab && docker compose down -v
+
+## redis-lab: поднять Redis-лабораторию к главе «Капстоун: мини-Redis»
+redis-lab:
+	cd redislab && docker compose up -d
+	@# Ждём PONG от самого redis-server (redis-cli внутри контейнера): «контейнер
+	@# запущен» ещё не значит «сервер принимает команды».
+	@for i in $$(seq 1 60); do \
+	  if docker exec algo-redislab redis-cli ping 2>/dev/null | grep -qx PONG; then \
+	    echo "▶ Redis готов: make redis-cli  (или redis-cli -p 26379); замеры главы — redislab/measure.sh all"; \
+	    exit 0; \
+	  fi; \
+	  sleep 1; \
+	done; \
+	echo "✗ Redis не ответил PONG за 60 секунд — смотри: docker logs algo-redislab"; exit 1
+
+## redis-cli: redis-cli внутри контейнера Redis-лаборатории
+redis-cli:
+	docker exec -it algo-redislab redis-cli
+
+## redis-lab-down: погасить Redis-лабораторию и стереть её данные
+redis-lab-down:
+	cd redislab && docker compose down -v
 
 ## check: локально прогнать то, что проверяет CI
 check:

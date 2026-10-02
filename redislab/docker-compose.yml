@@ -1,0 +1,18 @@
+# Лаборатория к главе «Капстоун: мини-Redis»: настоящий Redis для сверки с нашим мини-Redis.
+#
+#   make redis-lab       — поднять
+#   make redis-cli       — redis-cli внутри контейнера
+#   make redis-lab-down  — погасить и стереть
+#   redislab/measure.sh  — воспроизвести замеры из главы
+#
+# Порт наружу — 26379 и только на loopback: в лаборатории включена команда DEBUG
+# (нужна для DEBUG SET-ACTIVE-EXPIRE), а с DEBUG порт нельзя выставлять в сеть.
+# Версия образа пришпилена: ответы и поведение сняты именно с 7.4. Если Docker Desktop
+# не отвечает, а системный Docker работает: DOCKER_CONTEXT=default make redis-lab.
+services:
+  redis:
+    image: redis:7.4-alpine
+    container_name: algo-redislab
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--enable-debug-command", "yes"]
+    ports:
+      - "127.0.0.1:26379:6379"
