@@ -842,6 +842,33 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   eq("parseScript: пусто", redis.parseScript(""), { tokens: [], bad: [] });
   eq("только +N: единственный кадр — итоговый, сдвиг виден", (() => { const f = redis.bTtl(redis.parseScript("+2").tokens); return [f.length, f[0].done, f[0].t, /Прошло 2 с/.test(f[0].info)]; })(), [1, true, 2000, true]);
   eq("+N виден в первом кадре следующей команды", (() => { const f = redis.bTtl(redis.parseScript("SET a 1; +2; GET a").tokens); const g = f.find((s) => s.line === 21); return [g.t, /^Прошло 2 с, часы: 2 с\./.test(g.info)]; })(), [2000, true]);
+  // границы разбора: ввод, на котором модель разошлась бы с настоящим кодом, — «не понял»
+  {
+    const P = redis.parseScript;
+    eq("EXPIRE 10000000000 и 99999999999999999999 и 1e21 — в bad", [P("SET a 1; EXPIRE a 10000000000; TTL a"), P("EXPIRE a 99999999999999999999"), P("EXPIRE a 1000000000000000000000")].map((r) => [r.tokens.length, r.bad.length]), [[2, 1], [0, 1], [0, 1]]);
+    eq("EXPIRE: граница 1000000 принимается, 1000001 и -1000001 нет", [P("EXPIRE a 1000000; EXPIRE a -1000000").bad.length, P("EXPIRE a 1000001").bad.length, P("EXPIRE a -1000001").bad.length], [0, 1, 1]);
+    const b = redis.parseScript("SET a 1; EXPIRE a 1000000; +2.5; TTL a");
+    const r = redis.ttlSim(b.tokens);
+    eq("n = 1000000: ответы как независимый расчёт", [r[1].reply, r[3].reply, r[1].expire.a], [":1\r\n", ":" + Math.trunc((1000000 * 1000 - 2500) / 1000) + "\r\n", 1000000000]);
+    eq("+0.9995 и +0.0004 — в bad, ms 0 токеном не становится", [P("+0.9995"), P("+0.0004")].map((x) => [x.tokens.length, x.bad.length]), [[0, 1], [0, 1]]);
+    eq("+0.001/+1.999/+2.4 — 1/1999/2400 мс", P("+0.001; +1.999; +2.4").tokens.map((x) => x.ms), [1, 1999, 2400]);
+    eq("+3600 принимается, +3600.001 нет", [P("+3600").tokens.length, P("+3600.001").bad.length], [1, 1]);
+  }
+  // местоимение итогового кадра согласовано с числом просроченных
+  {
+    const fin = (sc) => redis.bTtl(redis.parseScript(sc).tokens).slice(-1)[0].info;
+    eq("итог: один просроченный — «он лежит… к нему»", /— он лежит, пока к нему не обратятся/.test(fin("SET a 1; EXPIRE a 1; +5")), true);
+    eq("итог: два просроченных — «они лежат… к ним»", /— они лежат, пока к ним не обратятся/.test(fin("SET a 1; SET b 1; EXPIRE a 1; EXPIRE b 1; +5")), true);
+    eq("итог: нет просроченных — без приписки", /лежит|лежат/.test(fin("SET a 1")), false);
+  }
+  // t === expireAt — уже stale; запись SET попадает в журнал на ПОСЛЕДНЕМ кадре (17), не на первом (16)
+  {
+    const f = redis.bTtl(redis.parseScript("SET a 1; EXPIRE a 1; +1; SET b 2").tokens);
+    const edge = f.find((s) => s.line === 16 && s.t === 1000);
+    eq("граница: t === expireAt → stale", [edge.t, edge.rows.find((r) => r.key === "a").expireAt, edge.rows.find((r) => r.key === "a").state], [1000, 1000, "stale"]);
+    const g = redis.bTtl(redis.parseScript("SET a 1").tokens);
+    eq("журнал SET: на кадре 16 пуст, на 17 — запись", [g[0].line, g[0].log.length, g[1].line, g[1].log.length], [16, 0, 17, 1]);
+  }
   // фаззинг
   let seed = 777; const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
   const cmds = ["SET a 1", "SET b 2", "GET a", "GET b", "DEL a", "DEL b", "EXPIRE a 2", "EXPIRE b 1", "EXPIRE a 0", "TTL a", "TTL b", "+1", "+0.5", "+3"];

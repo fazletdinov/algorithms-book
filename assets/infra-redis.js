@@ -137,16 +137,20 @@
   // Часы — целые миллисекунды: дробные секунды сценария («+0.5») округляются один раз при разборе.
   function fmtT(ms) { return (ms / 1000).toString().replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "") + " с"; }
 
+  // Больше — Duration·Second переполняет int64 у настоящего кода, и ответы расходятся; такой ввод — «не понял»
+  var MAX_EXPIRE_SEC = 1000000;
+
   function parseScript(str) {
     var tokens = [], bad = [];
     String(str == null ? "" : str).split(";").forEach(function (raw) {
       var t = raw.trim();
       if (!t) return;
       if (tokens.length >= 14) return;
-      var m = /^\+(\d+(?:\.\d+)?)$/.exec(t);
-      if (m) { var sec = parseFloat(m[1]); if (sec > 0 && sec <= 3600) tokens.push({ op: "advance", ms: Math.round(sec * 1000) }); else bad.push(t); return; }
+      // не больше трёх знаков: часы — целые миллисекунды, а у настоящего кода наносекунды, и «+0.9995» разошлось бы
+      var m = /^\+(\d+(?:\.\d{1,3})?)$/.exec(t);
+      if (m) { var ms = Math.round(parseFloat(m[1]) * 1000); if (ms > 0 && ms <= 3600000) tokens.push({ op: "advance", ms: ms }); else bad.push(t); return; }
       var w = t.split(/\s+/), name = w[0].toUpperCase(), a = w.slice(1);
-      var ok = (name === "SET" && a.length === 2) || ((name === "GET" || name === "DEL" || name === "TTL") && a.length === 1) || (name === "EXPIRE" && a.length === 2 && /^[+-]?\d+$/.test(a[1]));
+      var ok = (name === "SET" && a.length === 2) || ((name === "GET" || name === "DEL" || name === "TTL") && a.length === 1) || (name === "EXPIRE" && a.length === 2 && /^[+-]?\d{1,7}$/.test(a[1]) && Math.abs(parseInt(a[1], 10)) <= MAX_EXPIRE_SEC);
       if (ok) tokens.push({ op: "cmd", name: name, args: a }); else bad.push(t);
     });
     return { tokens: tokens, bad: bad };
@@ -269,7 +273,7 @@
     if (frame) {
       var rsF = rows(), stale = rsF.filter(function (r) { return r.state === "stale"; }).length;
       var advF = pendingAdv ? "Прошло " + fmtT(pendingAdv) + ", часы: " + fmtT(st.t) + ". " : "";
-      frame({ line: lastLine, vars: chips({}), info: advF + "Итог: ключей в памяти: " + rsF.length + ", просрочено: " + stale + (stale ? " — они лежат, пока к ним не обратятся" : ""), t: st.t, rows: rsF, log: log.slice(), mem: { keys: rsF.length, stale: stale }, bad: [], done: true });
+      frame({ line: lastLine, vars: chips({}), info: advF + "Итог: ключей в памяти: " + rsF.length + ", просрочено: " + stale + (stale === 1 ? " — он лежит, пока к нему не обратятся" : stale ? " — они лежат, пока к ним не обратятся" : ""), t: st.t, rows: rsF, log: log.slice(), mem: { keys: rsF.length, stale: stale }, bad: [], done: true });
     }
     return results;
   }
@@ -557,6 +561,5 @@
       customViz: ttlViz
     }
   };
-  Object.keys(INFRA)
-.forEach(function (t) { window.ALGO_VIZ.register(t, INFRA[t], CODE[INFRA[t].codeKey]); });
+  Object.keys(INFRA).forEach(function (t) { window.ALGO_VIZ.register(t, INFRA[t], CODE[INFRA[t].codeKey]); });
 })();
