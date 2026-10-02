@@ -455,6 +455,25 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
       if (st.length > 1 && st[0].out === st[1].out) bad++;
     });
   }
+  // тексты: согласование и стороны соединения
+  {
+    const forms = { 1: "пара", 2: "пары", 5: "пар", 11: "пар", 21: "пара" };
+    [1, 2, 5, 11, 21].forEach((n) => {
+      const us = [1], os = Array.from({ length: n }, (_, i) => ({ n: i + 1, u: 1 }));
+      Object.keys(gens).forEach((g) => eq(`текст ${g}: итог на ${n} пар согласован`, last(gens[g](us, os)).info.indexOf("Итог: " + n + " " + forms[n] + ";") === 0, true));
+    });
+    const wrong = /(^|[^\d])(1 (пар|строк|заказов|пользователей)|[234] (пар|строк|заказов|пользователей)|[05-9] (пара|пары)|1 (пары)|[234] пара)(?![а-я])/;
+    let badText = 0, internal = 0;
+    for (let nu = 0; nu <= 5; nu++) for (let no = 0; no <= 5; no++) {
+      const us = Array.from({ length: nu }, (_, i) => i + 1), os = Array.from({ length: no }, (_, i) => ({ n: i + 1, u: 1 + (i % 3) }));
+      Object.keys(gens).forEach((g) => gens[g](us, os).forEach((s) => {
+        if (wrong.test(s.info)) badText++;
+        if (g !== "NL" && /внешн/i.test(s.info)) internal++;
+      }));
+    }
+    eq("тексты: нет «1 пар», «2 заказов» и т.п. ни на одном кадре", badText, 0);
+    eq("тексты: в Hash/Merge нет слова «внешн-» (там сторона — по таблице)", internal, 0);
+  }
   eq("фаззинг 300 случаев × 3 алгоритма: пары = перебор, один done, кадры не делят out", bad, 0);
 }
 process.exit(failed ? 1 : 0);

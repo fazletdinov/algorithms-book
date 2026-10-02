@@ -250,6 +250,8 @@
     return ps.sort(function (a, b) { return a.u - b.u || a.n - b.n; });
   }
   function byIndexOrder(orders) { return orders.slice().sort(function (a, b) { return a.u - b.u || a.n - b.n; }); }
+  // Число в «Итог» стоит перед существительным, поэтому согласуем; в остальных фразах число идёт после двоеточия.
+  function pairsText(n) { return n + " " + core.plural(n, "пара", "пары", "пар"); }
   function orderText(o) { return "№" + o.n + "·user " + o.u; }
 
   function joinState(users, orders, metricLabel) {
@@ -271,7 +273,7 @@
       var mine = []; O.forEach(function (o, oi) { if (o.u === u) mine.push(oi); });
       if (!mine.length) {
         st.metric++;
-        st.snap(3, { u: u, o: "—" }, "Lookup(" + u + "): обращение к индексу — у пользователя " + u + " заказов нет, внутренний цикл не выполнится", { hot: true });
+        st.snap(3, { u: u, o: "—" }, "Lookup(" + u + "): обращение к индексу — заказов у пользователя " + u + " нет, внутренний цикл не выполнится", { hot: true });
         return;
       }
       mine.forEach(function (oi, k) {
@@ -283,21 +285,21 @@
       });
     });
     st.cu = -1; st.co = -1;
-    st.snap(7, { u: "—", o: "—" }, "Итог: " + st.out.length + " пар; обращений к индексу " + st.metric + " — по одному на каждую внешнюю строку, нашлись ли у неё заказы или нет.", { done: true });
+    st.snap(7, { u: "—", o: "—" }, "Итог: " + pairsText(st.out.length) + "; обращений к индексу: " + st.metric + " — по одному на каждую внешнюю строку, нашлись ли у неё заказы или нет.", { done: true });
     return st.steps;
   }
 
   function bJoinHash(users, orders) {
     var st = joinState(users, orders, "строк в хеш-таблице");
-    st.snap(1, { u: "—", o: "—" }, "Hash Join: сначала строим хеш-таблицу по внешней таблице (" + users.length + " строк), потом ОДНИМ проходом читаем все заказы (" + orders.length + ").");
+    st.snap(1, { u: "—", o: "—" }, "Hash Join: сначала строим хеш-таблицу по users (меньшая сторона, после фильтра; строк: " + users.length + "), потом ОДНИМ проходом читаем ВСЕ заказы (orders; строк: " + orders.length + ").");
     users.forEach(function (u, ui) {
       st.cu = ui;
-      st.snap(2, { u: u, o: "—" }, "build: u = " + u, {});
+      st.snap(2, { u: u, o: "—" }, "build: хеш по users, u = " + u, {});
       st.built.push(u); st.uRead++; st.metric = st.built.length;
-      st.snap(3, { u: u, o: "—" }, "h[" + u + "] = [user " + u + "]: строк в хеш-таблице " + st.built.length, {});
+      st.snap(3, { u: u, o: "—" }, "h[" + u + "] = [user " + u + "]: в хеш-таблице строк: " + st.built.length, {});
     });
     st.cu = -1;
-    st.snap(5, { u: "—", o: "—" }, "Хеш-таблица готова. Теперь probe: каждый заказ — один поиск по хешу.");
+    st.snap(5, { u: "—", o: "—" }, "Хеш-таблица готова. Теперь probe: проход по ВСЕМ заказам (orders), каждый — один поиск по хешу.");
     var inHash = {}; users.forEach(function (u, ui) { inHash[u] = ui; });
     orders.forEach(function (o, oi) {
       st.co = oi; st.cu = -1; st.oRead++;
@@ -312,7 +314,7 @@
       st.snap(8, { u: o.u, o: orderText(o) }, "Пара (user " + o.u + ", заказ №" + o.n + ") в результате: " + st.out.length, {});
     });
     st.cu = -1; st.co = -1;
-    st.snap(11, { u: "—", o: "—" }, "Итог: " + st.out.length + " пар; прочитано ВСЕ " + orders.length + " заказов — столько, сколько совпадений ни было.", { done: true });
+    st.snap(11, { u: "—", o: "—" }, "Итог: " + pairsText(st.out.length) + "; прочитаны все заказы (orders), всего " + orders.length + " — сколько бы совпадений ни нашлось.", { done: true });
     return st.steps;
   }
 
@@ -344,7 +346,7 @@
       }
     }
     st.cu = -1; st.co = -1;
-    st.snap(13, { i: "—", j: "—" }, "Итог: " + st.out.length + " пар; прочитано пользователей " + st.uRead + " из " + users.length + ", заказов " + st.oRead + " из " + O.length + (st.oRead < O.length ? " — одна из сторон кончилась, и остаток другой читать не пришлось" : "") + ".", { done: true });
+    st.snap(13, { i: "—", j: "—" }, "Итог: " + pairsText(st.out.length) + "; прочитано пользователей: " + st.uRead + " из " + users.length + ", заказов: " + st.oRead + " из " + O.length + (st.oRead < O.length ? " — одна из сторон кончилась, и остаток другой читать не пришлось" : "") + ".", { done: true });
     return st.steps;
   }
   exportsForTest.parseIds = parseIds;
