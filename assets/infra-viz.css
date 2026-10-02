@@ -76,3 +76,23 @@
 .algo-tp__legdot--iv-join__cell--hash { background:#a78bfa; }
 .algo-tp__legdot--iv-join__cell--cur { background:#334155; box-shadow:0 0 0 2px #f59e0b; }
 @media (max-width:520px) { .iv-join__cell { min-width:20px; height:22px; font-size:11px; } }
+
+/* Redis: разбор RESP (redis-resp). Карточка всегда тёмная */
+.iv-redis { --iv-r-eaten:#1d4ed8; --iv-r-cur:#f59e0b; --iv-r-ctl:#a78bfa; --iv-r-rest:#334155; --iv-r-fg:#e2e8f0; }
+.iv-redis__label { flex:0 0 100%; font:600 11px/1.2 system-ui,sans-serif; color:var(--iv-r-fg); opacity:.85; margin-bottom:4px; }
+.iv-redis__strip { display:flex; flex-wrap:wrap; gap:2px; margin-bottom:8px; }
+.iv-redis__br { flex:0 0 100%; height:0; }
+.iv-redis__ch { min-width:16px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:3px; border:2px solid transparent; font:600 12px/1 ui-monospace,monospace; color:#fff; }
+.iv-redis__ch--rest { background:var(--iv-r-rest); }
+.iv-redis__ch--eaten { background:var(--iv-r-eaten); }
+.iv-redis__ch--ctl { color:#fde68a; }
+.iv-redis__ch--cur { border-color:var(--iv-r-cur); }
+.iv-redis__args, .iv-redis__reply { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:8px; color:var(--iv-r-fg); }
+.iv-redis__arg { padding:2px 8px; border-radius:4px; background:#0f766e; font:600 12px/1.4 ui-monospace,monospace; color:#fff; }
+.iv-redis__rawreply { padding:2px 8px; border-radius:4px; background:#7c3aed; font:600 12px/1.4 ui-monospace,monospace; color:#fff; word-break:break-all; }
+.iv-redis__kind, .iv-redis__empty { font:12px/1.3 system-ui,sans-serif; opacity:.85; }
+.algo-tp__legdot--iv-redis__ch--eaten { background:#1d4ed8; }
+.algo-tp__legdot--iv-redis__ch--rest { background:#334155; }
+.algo-tp__legdot--iv-redis__ch--ctl { background:#334155; box-shadow:0 0 0 2px #a78bfa; }
+.algo-tp__legdot--iv-redis__ch--cur { background:#334155; box-shadow:0 0 0 2px #f59e0b; }
+@media (max-width:520px) { .iv-redis__ch { min-width:14px; height:20px; font-size:11px; } }

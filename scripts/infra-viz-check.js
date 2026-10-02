@@ -629,4 +629,93 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     eq("pg-join-nl: в середине прогона пользователи после текущего ещё не читались", mc.slice(2).every((c) => c === "iv-join__cell--idle"), true);
   }
 }
+// --- Redis: эталон из настоящего кода (golden) ---
+{
+  const redis = require(path.join(root, "assets", "infra-redis.js"));
+  const golden = JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "redis-golden.json"), "utf8"));
+  golden.parse.forEach((c) => {
+    const r = redis.respParse(c.raw);
+    eq(`resp golden «${c.name}»`, { args: r.args, err: !!r.err, eof: !!r.eof, consumed: r.consumed }, { args: c.args, err: c.err, eof: c.eof, consumed: c.consumed });
+  });
+  golden.reply.forEach((sc) => {
+    const store = { data: Object.assign({}, sc.preload) };
+    sc.steps.forEach((s) => {
+      const r = redis.respReply(s.args, store);
+      eq(`reply golden «${sc.name}»: ${s.args.join(" ")}`, r && r.raw, s.reply);
+    });
+  });
+  eq("golden: есть разбор, ответы и TTL", [golden.parse.length > 20, golden.reply.length >= 2, golden.ttl.length >= 10], [true, true, true]);
+  eq("unescapeWire/escapeWire обратимы", redis.unescapeWire(redis.escapeWire("a\r\nb\t\\x")), "a\r\nb\t\\x");
+  eq("encodeCommand собирает multibulk", redis.encodeCommand(["SET", "foo", "bar"]), "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\nbar\r\n");
+  eq("encodeCommand считает байты, а не символы", redis.encodeCommand(["ECHO", "привет"]), "*2\r\n$4\r\nECHO\r\n$12\r\nпривет\r\n");
+  // кадры: точные последовательности строк листинга
+  const seq = (raw) => redis.bRespParse(raw).map((s) => s.line).join(",");
+  eq("кадры inline PING", seq("PING\r\n"), "1,2,5,8,9");
+  eq("кадры пустой строки", seq("\r\n"), "1,2,5,6");
+  eq("кадры EOF без \\n", seq("*2"), "1,2,3");
+  eq("кадры *x", seq("*x\r\n"), "1,2,5,8,11,12,13");
+  eq("кадры GET foo", seq("*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n"), "1,2,5,8,11,12,15,16,17,18,21,24,25,28,29,32,16,17,18,21,24,25,28,29,32,34");
+  eq("кадры оборвано внутри строки", seq("*1\r\n$3\r\nGE"), "1,2,5,8,11,12,15,16,17,18,21,24,25,28,29,30");
+  eq("кадры *0", seq("*0\r\n"), "1,2,5,8,11,12,15,34");
+  eq("кадры нет $", seq("*1\r\nGET\r\n"), "1,2,5,8,11,12,15,16,17,18,21,22");
+  // чипы: «—» вне области видимости и на done; значения живые
+  const st = redis.bRespParse("*1\r\n$3\r\nGET\r\n");
+  eq("чипы: до объявления n и после done", [st[0].vars.n, st[st.length - 1].vars.line, st[st.length - 1].vars.blen], ["—", "—", "—"]);
+  eq("чип line после readLine", st[0].vars.line, "\"*1\"");
+  eq("последние два байта не проверяются: кадр hot", redis.bRespParse("*1\r\n$3\r\nGETxx").some((s) => s.line === 29 && s.hot), true);
+  eq("конвейер: остаток не съеден", (() => { const r = redis.respParse("*1\r\n$4\r\nPING\r\n*1\r\n$4\r\nPING\r\n"); return r.consumed < 28; })(), true);
+  // фаззинг: модель на случайных входах не падает, один done, pos монотонен
+  let seed = 4242; const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const alpha = ["*", "$", "\r", "\n", "1", "2", "3", "x", "-", "+", "A", " "];
+  let bad = 0;
+  for (let t = 0; t < 500; t++) {
+    let raw = ""; const len = Math.floor(rnd() * 24);
+    for (let i = 0; i < len; i++) raw += alpha[Math.floor(rnd() * alpha.length)];
+    const steps = redis.bRespParse(raw);
+    const fin = steps[steps.length - 1];
+    if (!fin.done || steps.filter((s) => s.done).length !== 1) bad++;
+    for (let i = 1; i < steps.length; i++) if (steps[i].pos < steps[i - 1].pos) bad++;
+    if (fin.res.consumed > raw.length) bad++;
+    if (steps.some((s) => s.line < 0 || s.line > 35)) bad++;
+  }
+  eq("фаззинг 500 входов: один done, pos монотонен, строки в листинге", bad, 0);
+}
+{
+  const redis = require(path.join(root, "assets", "infra-redis.js"));
+  const run = (attrs) => {
+    const div = `<div class="algo-viz" id="w" tabindex="0" data-viz="redis-resp" ${attrs}></div>`;
+    const dom = new JSDOM(`<!DOCTYPE html><html><body>${div}<script>${read("algo-viz.js")}</script>${infraScripts()}</body></html>`, { runScripts: "dangerously", pretendToBeVisual: true });
+    dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
+    const el = dom.window.document.getElementById("w");
+    for (let i = 0; i < 300; i++) el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    return el;
+  };
+  const wire = "*3\\r\\n$3\\r\\nSET\\r\\n$3\\r\\nfoo\\r\\n$3\\r\\nbar\\r\\n";
+  const el = run(`data-wire="${wire}" data-store="foo=bar"`);
+  eq("redis-resp: построен без ошибок и дошёл до итога", [el.classList.contains("algo-viz--ready") && !/Ошибка визуализации|Неизвестный тип/.test(el.textContent), /Итог:/.test(el.textContent)], [true, true]);
+  eq("redis-resp: байтовая лента — по ячейке на символ", el.querySelectorAll(".iv-redis__strip .iv-redis__ch").length, redis.unescapeWire(wire).length);
+  eq("redis-resp: ответ показан (+OK)", /\+OK/.test(el.querySelector(".iv-redis__reply").textContent), true);
+  const bad = run('data-wire="*x\\r\\n" data-store=""');
+  eq("redis-resp: ошибка протокола — без падения и с итогом", bad.classList.contains("algo-viz--ready") && /Итог:/.test(bad.textContent) && !/Ошибка визуализации/.test(bad.textContent), true);
+  const hostile = run('data-wire="<img src=x onerror=alert(1)>\\r\\n" data-store=""');
+  eq("redis-resp: HTML во вводе не создаёт элементов", hostile.querySelectorAll("img").length, 0);
+  const empty = run('data-wire="" data-store=""');
+  eq("redis-resp: пустой ввод — без падения", empty.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(empty.textContent), true);
+  // легенда: правило legdot с цветом для каждого класса (урок плана 2), 4 пункта
+  const src = readInfra(), css = read("infra-viz.css");
+  const legBlock = (src.match(/var respLegend = \[([\s\S]*?)\n  \];/) || [])[1] || "";
+  const classes = [...legBlock.matchAll(/cls: "([^"]+)"/g)].map((m) => m[1]);
+  eq("redis-resp: в легенде 4 класса", classes.length, 4);
+  classes.forEach((c) => eq(`redis-resp: legdot-правило с цветом для ${c}`, new RegExp("\\.algo-tp__legdot--" + c.replace(/[-_]/g, (x) => "\\" + x) + "\\s*\\{[^}]*#[0-9a-fA-F]{6}").test(css), true));
+  // пресеты: ровно два поля, нет дубля «пример главы», каждый строится
+  const body = src.slice(src.indexOf('    "redis-resp": {'));
+  const block = (body.match(/presets: \[\n([\s\S]*?)\n      \],/) || [])[1] || "";
+  // значения — литералы JS-строк: раскодируем, чтобы в атрибут попал тот же текст, что увидит движок
+  const presets = [...block.matchAll(/set: \{([^}]*)\}/g)].map((m) => Object.fromEntries([...m[1].matchAll(/"(data-[a-z-]+)":\s*"((?:[^"\\]|\\.)*)"/g)].map((x) => [x[1], JSON.parse('"' + x[2] + '"')])));
+  eq("redis-resp: 6 пресетов, ровно два поля, нет дубля «пример главы»", [presets.length, presets.every((p) => Object.keys(p).sort().join() === "data-store,data-wire"), /label: "пример главы/.test(block)], [6, true, false]);
+  presets.forEach((p, i) => {
+    const e = run(Object.keys(p).map((k) => `${k}="${p[k]}"`).join(" "));
+    eq(`redis-resp: пресет ${i + 1} строится`, e.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(e.textContent) && /Итог:/.test(e.textContent), true);
+  });
+}
 process.exit(failed ? 1 : 0);
