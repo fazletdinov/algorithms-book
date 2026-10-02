@@ -342,19 +342,21 @@
   function bJoinMerge(users, orders) {
     var O = byIndexOrder(orders), st = joinState(users, O, "сравнений");
     var i = 0, j = 0, extraU = 0;
-    function reads() { st.uRead = Math.min(i + 1 + extraU, users.length); st.oRead = users.length ? Math.min(j + 1, O.length) : 0; st.cu = i < users.length ? i : -1; st.co = j < O.length ? j : -1; }
+    function reads() { st.uRead = Math.min(i + 1 + extraU, users.length); st.oRead = users.length ? Math.min(j + 1, O.length) : 0; st.cu = i < users.length ? i : -1; st.co = users.length && j < O.length ? j : -1; } // users пуста — заказ не читается, «текущего» нет
     st.snap(1, { i: "—", j: "—" }, "Merge Join: оба входа отсортированы по ключу (users — по первичному ключу, заказы — по индексу user_id); идём по ним двумя указателями.");
     reads();
     st.snap(2, { i: i, j: j }, !users.length ? "i = 0, j = 0. В users нет ни одной строки — Postgres видит это на первом же чтении и заказы не трогает" : !O.length ? "i = 0, j = 0: прочитана первая строка users, а заказов нет — сравнивать не с чем" : "i = 0, j = 0: стоим на первых строках обеих сторон", {});
     while (i < users.length && j < O.length) {
       st.metric++;
-      st.snap(4, { i: i, j: j }, "users[" + i + "] = " + users[i] + ", orders[" + j + "].user_id = " + O[j].u + ": " + users[i] + (users[i] < O[j].u ? " < " : users[i] > O[j].u ? " > " : " = ") + O[j].u, {});
+      // s.note — подпись под кодом ИМЕННО этого кадра: статичная lineNotes на строках if/else if
+      // описывала бы одну ветку и спорила со статусом на другой
+      st.snap(4, { i: i, j: j }, "users[" + i + "] = " + users[i] + ", orders[" + j + "].user_id = " + O[j].u + ": " + users[i] + (users[i] < O[j].u ? " < " : users[i] > O[j].u ? " > " : " = ") + O[j].u, { note: users[i] < O[j].u ? "Да, меньше: у этого пользователя заказов больше не будет — сдвинем i" : "Нет, не меньше — дальше проверка else if" });
       if (users[i] < O[j].u) {
         i++; reads();
         st.snap(5, { i: i, j: j }, "Пользователь " + users[i - 1] + " меньше — заказов у него больше не будет, i++", {});
       } else {
         st.metric++;
-        st.snap(6, { i: i, j: j }, users[i] > O[j].u ? "users[i] > orders[j].user_id — заказ без пользователя" : "Не больше и не меньше — значит равны", {});
+        st.snap(6, { i: i, j: j }, users[i] > O[j].u ? "users[i] > orders[j].user_id — заказ без пользователя" : "Не больше и не меньше — значит равны", { note: users[i] > O[j].u ? "Да, больше: у заказа нет пользователя — сдвинем j" : "Нет, не больше: ключи равны — пара, ветка else" });
         if (users[i] > O[j].u) {
           j++; reads();
           st.snap(7, { i: i, j: j }, "Заказ пропускаем, j++", {});
@@ -825,7 +827,7 @@
       presets: [
         { label: "в users всего 3 строки", set: { "data-users": "1-12", "data-orders": "r24", "data-filter": "4" }, hint: "3 обращения к индексу" },
         { label: "у части пользователей нет заказов", set: { "data-users": "1-6", "data-orders": "1,1,2,2,5,5", "data-filter": "0" }, hint: "обращение и у тех, у кого пусто" },
-        { label: "заказы без пользователя", set: { "data-users": "1-3", "data-orders": "1,2,3,7,8,9", "data-filter": "0" }, hint: "лишние заказы индекс не трогает" },
+        { label: "заказы без пользователя", set: { "data-users": "2-4", "data-orders": "1,2,3,7,8,9", "data-filter": "0" }, hint: "заказы 1, 7, 8, 9 индекс не трогает" },
         { label: "много заказов у одного", set: { "data-users": "1-4", "data-orders": "2,2,2,2,2,2,2,3", "data-filter": "0" }, hint: "все заказы одного — подряд по индексу" }
       ],
       parse: joinCommonParse("nl"),
@@ -853,7 +855,7 @@
       presets: [
         { label: "в users всего 3 строки", set: { "data-users": "1-12", "data-orders": "r24", "data-filter": "4" }, hint: "заказов прочитано все 24, хеш — 3 строки" },
         { label: "у части пользователей нет заказов", set: { "data-users": "1-6", "data-orders": "1,1,2,2,5,5", "data-filter": "0" }, hint: "читает все 6 заказов; у пользователей 3, 4, 6 заказов нет — хешу это не мешает" },
-        { label: "заказы без пользователя", set: { "data-users": "1-3", "data-orders": "1,2,3,7,8,9", "data-filter": "0" }, hint: "заказы без пары пропускает, но читает" },
+        { label: "заказы без пользователя", set: { "data-users": "2-4", "data-orders": "1,2,3,7,8,9", "data-filter": "0" }, hint: "заказы 1, 7, 8, 9 без пары: читает и пропускает" },
         { label: "много заказов у одного", set: { "data-users": "1-4", "data-orders": "2,2,2,2,2,2,2,3", "data-filter": "0" }, hint: "семь заказов подряд ищут одного и того же пользователя" }
       ],
       parse: joinCommonParse("hash"),
@@ -870,18 +872,18 @@
     },
     "pg-join-merge": {
       badge: "Postgres · Merge Join",
-      desc: "Оба входа отсортированы по ключу; два указателя идут навстречу друг другу, пока одна из сторон не кончится.",
+      desc: "Оба входа отсортированы по ключу; по каждому идём вперёд своим указателем, пока одна из сторон не кончится.",
       valuesLabel: "", codeKey: "pg-join-merge", fillRange: false,
       complexity: { time: "O(users + заказов)", space: "O(1)", good: "★ без хеша; входы уже отсортированы индексами" },
       varOrder: ["i", "j"],
       varDesc: { i: "Позиция в users", j: "Позиция в заказах" },
-      lineNotes: { 3: "Идём, пока не кончилась хотя бы одна из сторон", 4: "Меньше — у пользователя заказов больше нет, сдвигаем i", 6: "Больше — заказ без пользователя, сдвигаем j", 9: "Равны — пара в результат", 10: "Следующий заказ: тот же пользователь или уже другой" },
+      lineNotes: { 3: "Идём, пока не кончилась хотя бы одна из сторон", 4: "Сравниваем ключи: меньше ли id пользователя, чем user_id заказа", 5: "Меньше — у пользователя заказов больше нет, сдвигаем i", 6: "Сравниваем ключи: больше ли id пользователя, чем user_id заказа", 7: "Больше — заказ без пользователя, сдвигаем j", 9: "Равны — пара в результат", 10: "Следующий заказ: тот же пользователь или уже другой" },
       rules: [{ head: "остановка", body: "кончилась любая сторона", cls: "gt" }, { head: "вход", body: "уже отсортирован", cls: "eq" }],
       legend: joinLegendNoHash,
       presets: [
         { label: "в users всего 3 строки", set: { "data-users": "1-12", "data-orders": "r24", "data-filter": "4" }, hint: "читает, пока не кончится сторона" },
         { label: "у части пользователей нет заказов", set: { "data-users": "1-6", "data-orders": "1,1,2,2,5,5", "data-filter": "0" }, hint: "у пользователей 3 и 4 заказов нет — i просто сдвигается" },
-        { label: "заказы без пользователя", set: { "data-users": "1-3", "data-orders": "1,2,3,7,8,9", "data-filter": "0" }, hint: "пользователи кончились раньше заказов — часть заказов не прочитана" },
+        { label: "заказы без пользователя", set: { "data-users": "2-4", "data-orders": "1,2,3,7,8,9", "data-filter": "0" }, hint: "заказ 1 без пользователя — j++; 8 и 9 не прочитаны: пользователи кончились раньше" },
         { label: "много заказов у одного", set: { "data-users": "1-4", "data-orders": "2,2,2,2,2,2,2,3", "data-filter": "0" }, hint: "один пользователь — j идёт подряд" }
       ],
       parse: joinCommonParse("merge"),

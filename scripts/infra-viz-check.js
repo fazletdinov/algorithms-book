@@ -441,7 +441,7 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     ["1-12", "r24", 0, [12, 24], [12, 24], [12, 24]],
     ["1-12", "r24", 4, [3, 6], [3, 24], [3, 7]],
     ["1-6", "1,1,2,2,5,5", 0, [6, 6], [6, 6], [6, 6]],
-    ["1-3", "1,2,3,7,8,9", 0, [3, 3], [3, 6], [3, 4]],
+    ["2-4", "1,2,3,7,8,9", 0, [3, 2], [3, 6], [3, 4]],
     ["1-4", "2,2,2,2,2,2,2,3", 0, [4, 8], [4, 8], [4, 8]],
     ["1-12", "r24", 1, [0, 0], [0, 1], [0, 0]],
     ["1-3", "", 0, [3, 0], [0, 0], [1, 0]]
@@ -459,6 +459,25 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     eq("Merge: кадр j++ на конце заказов — прочитана ещё одна строка users, текст это объясняет", [lastJ.uRead, /id 6/.test(lastJ.info), lastJ.cu], [6, true, 4]);
     const skip = last(infra.bJoinMerge([5, 6], [{ n: 1, u: 1 }, { n: 2, u: 2 }]));
     eq("Merge: заказы кончились по ветке «больше» — лишней строки users нет", [skip.uRead, skip.oRead], [1, 2]);
+  }
+  // Merge: пресет «заказы без пользователя» доходит до ветки else if (line 7: j++), а подпись под кодом
+  // на строках if (4) и else if (6) — от ветки, взятой на ЭТОМ кадре (s.note), а не одна на все кадры
+  {
+    const src = readInfra(), body = src.slice(src.indexOf(`    "pg-join-merge": {`));
+    const block = (body.match(/presets: \[\n([\s\S]*?)\n      \],/) || [])[1] || "";
+    const line = block.split("\n").find((l) => /label: "заказы без пользователя"/.test(l)) || "";
+    const uAttr = (line.match(/"data-users": "([^"]*)"/) || [])[1], oAttr = (line.match(/"data-orders": "([^"]*)"/) || [])[1];
+    const st = infra.bJoinMerge(infra.parseIds(uAttr, 1, 12, false), infra.parseIds(oAttr, 1, 12, true).map((x, i) => ({ n: i + 1, u: x })));
+    eq("Merge, пресет «заказы без пользователя»: ветка else if (line 7) выполняется", st.some((s) => s.line === 7), true);
+    let bad = 0, n4 = 0, n6 = 0;
+    const all = [st, infra.bJoinMerge([1, 2, 3, 4, 5, 6], [1, 1, 2, 2, 5, 5].map((x, i) => ({ n: i + 1, u: x }))), infra.bJoinMerge([2, 5], [1, 2, 3, 5, 5, 9].map((x, i) => ({ n: i + 1, u: x })))];
+    all.forEach((frames) => frames.forEach((s, k) => {
+      const next = frames[k + 1] && frames[k + 1].line;
+      if (s.line === 4) { n4++; if (!s.note || /^Да/.test(s.note) !== (next === 5)) bad++; }
+      if (s.line === 6) { n6++; if (!s.note || /^Да/.test(s.note) !== (next === 7) || (next === 9 && /без пользователя/.test(s.note))) bad++; }
+    }));
+    eq(`Merge: подпись под кодом на if/else if совпадает с веткой кадра (кадров line 4: ${n4}, line 6: ${n6})`, [bad, n4 > 0, n6 > 0], [0, true, true]);
+    eq("Merge: users пуста — «текущего» заказа нет ни на одном кадре", infra.bJoinMerge([], [{ n: 1, u: 1 }, { n: 2, u: 3 }]).map((s) => s.co), [-1, -1, -1]);
   }
   // Hash: короткие пути без лишних кадров probe
   eq("Hash: заказов нет — хеш не строится, только старт и итог", [seq(infra.bJoinHash([1, 2], [])), last(infra.bJoinHash([1, 2], [])).built.length], ["1,11", 0]);
@@ -563,6 +582,9 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     const nl = run("pg-join-nl", 'data-users="1-4" data-orders="2,2,3,7" data-filter="0"');
     const cells = [...nl.querySelectorAll(".iv-join__row--users .iv-join__cell")].map((c) => c.className.replace("iv-join__cell", "").trim());
     eq("pg-join-nl: на итоге пользователи без заказов (1, 4) «прочитаны», 2 и 3 — в результате", cells, ["iv-join__cell--read", "iv-join__cell--match", "iv-join__cell--match", "iv-join__cell--read"]);
+    // Merge, users пуста: на кадре line 2 первая ячейка заказов не «текущая» — заказы не читаются
+    const mEmpty = run("pg-join-merge", 'data-users="1-12" data-orders="r24" data-filter="1"', 1);
+    eq("pg-join-merge: users пуста — у заказов нет «текущей» ячейки, прочитано 0", [mEmpty.querySelectorAll(".iv-join__row--orders .iv-join__cell--cur").length, +mEmpty.querySelector(".iv-join__metrics").getAttribute("data-oread")], [0, 0]);
     // пустое соединение: «пока» — только до итога (хеш пуст при u.id < 1 — сверено с живым Postgres)
     const empty = run("pg-join-hash", 'data-users="1-12" data-orders="r24" data-filter="1"');
     eq("pg-join-hash: пустой хеш — на итоге «Пар нет», прочитан 1 заказ", [empty.querySelector(".iv-join__pairs").textContent, +empty.querySelector(".iv-join__metrics").getAttribute("data-oread")], ["Пар нет", 1]);
