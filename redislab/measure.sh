@@ -37,7 +37,8 @@ US=$(printf '\037') # разделитель полей в записях эта
 rcli() { docker exec "$C" redis-cli "$@" </dev/null; }
 
 # Голые байты в Redis и ответ байт за байтом. Каждый вызов — своё соединение: после
-# ошибки протокола Redis закрывает сокет, и следующий случай не должен от этого страдать.
+# ошибки протокола остаток пакета Redis не обрабатывает, а через ~1 с этого клиента уже
+# нет в CLIENT LIST (см. conn_probe ниже), — следующий случай не должен от этого страдать.
 # Аргумент — строка в экранировании printf '%b' (\r\n — четыре символа), как в эталоне.
 nc_send() { printf '%b' "$1" | docker exec -i "$C" nc -w1 localhost 6379; }
 show_bytes() {
@@ -62,7 +63,7 @@ check_lab() {
 		exit 1
 	fi
 	if [ "$1" != active ] && [ ! -r "$GOLDEN" ]; then
-		echo "✗ Нет эталона $GOLDEN — из exercises/: go test -tags solution -run TestGolden -update ./miniredis/" >&2
+		echo "✗ Нет эталона $GOLDEN — из exercises/: go test -tags solution -run TestGolden -count=1 ./miniredis/ -update" >&2
 		exit 1
 	fi
 }

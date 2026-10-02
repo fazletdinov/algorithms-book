@@ -53,11 +53,15 @@ func readLine(r *bufio.Reader) (string, error) {
 // падает на make([]byte, blen+2) — blen+2 переполняет int и оборачивается в отрицательное
 // число, make паникует "makeslice: len out of range". handleConn (cmd/miniredis/main.go) не
 // оборачивает ReadCommand в recover() — необработанная паника в горутине одного соединения
-// убивает ВЕСЬ процесс, включая чужие подключения. Настоящий Redis защищается ровно так же:
-// proto-max-bulk-len (по умолчанию 512MB в redis.conf) и proto-max-multibulk-len ограничивают
-// ровно эти два числа, прежде чем сервер поверит клиенту и полезет аллоцировать под них память.
+// убивает ВЕСЬ процесс, включая чужие подключения. Настоящий Redis тоже не верит этим числам
+// вслепую, но из настроек proto-* у него есть только одна (замер на Redis 7.4.11 —
+// redislab/measure.sh wire): proto-max-bulk-len, по умолчанию 536870912 (512 МБ), — отсюда
+// maxBulkLen. Отдельной настройки на число элементов массива нет: *2147483647 Redis принял,
+// *2147483648 отверг («invalid multibulk length»). maxMultibulkLen — наш собственный
+// осторожный выбор, а не число из Redis: make([]string, 0, n) в parseMultibulk сразу
+// выделяет память под n элементов.
 const (
-	maxBulkLen      = 512 * 1024 * 1024 // как redis.conf: proto-max-bulk-len по умолчанию
+	maxBulkLen      = 512 * 1024 * 1024 // = proto-max-bulk-len Redis по умолчанию (536870912)
 	maxMultibulkLen = 1024 * 1024       // консервативная граница на число элементов *N
 )
 

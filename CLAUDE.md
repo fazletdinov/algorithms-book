@@ -48,6 +48,25 @@ make pg-lab-down   # погасить и стереть данные (volume)
 «Когда алгоритм не нужен»: время из `\timing` самого psql, по TCP внутри контейнера (то есть
 лучший случай для N+1 — без сетевой задержки).
 
+### Redis-лаборатория (запускать из корня)
+```bash
+make redis-lab        # настоящий Redis к главе «Капстоун: мини-Redis», ждёт PONG до 60 с
+make redis-cli        # redis-cli внутри контейнера
+make redis-lab-down   # погасить и стереть (volume)
+redislab/measure.sh wire|ttl|active|all   # замеры главы: провод, TTL, активное удаление
+```
+Определение — `redislab/docker-compose.yml`: образ `redis:7.4-alpine` (замеры главы сняты с
+Redis 7.4.11; точную версию печатает первая строка `measure.sh`), контейнер `algo-redislab`, без
+снапшотов и AOF. Порт наружу — **26379** и только на `127.0.0.1` (ниже эфемерного диапазона, как
+у `pglab/`): команда `DEBUG` включена (нужна для `DEBUG SET-ACTIVE-EXPIRE`) в режиме `local` —
+её принимают только соединения изнутри контейнера (`docker exec`), клиент через опубликованный
+порт получает отказ. `measure.sh` берёт сценарии из `scripts/fixtures/redis-golden.json` (вторая
+копия разошлась бы с эталоном), печатает каждый запрос и сырой ответ (`od -c`), каждый раздел
+начинает с `FLUSHALL`, а `DEBUG SET-ACTIVE-EXPIRE 1` возвращает через `trap`. В CI НЕ участвует,
+как и `pglab/`. Docker Desktop завис — `DOCKER_CONTEXT=default make redis-lab` (переменную docker
+читает сам, `measure.sh` тоже). Паузы в `ttl` — настоящие: шаг ровно на границе срока может от
+прогона к прогону дать разный ответ — это свойство замера.
+
 ### In-book runner — «решай прямо в книге» (запускать из `exercises/`)
 ```bash
 cd exercises
@@ -240,8 +259,8 @@ esm.sh, и в `?deps=` закреплён ВЕСЬ граф `@codemirror/*` + `@
 Chrome с прошагиванием до конца, итоговые статусы прочитаны (0 ошибок). После нажатия фокус возвращается на новую
 кнопку через `setTimeout` — `focus()` на ещё не вставленном узле молча не срабатывает.
 
-- **Инфраструктурные виджеты** — ядро `assets/infra-core.js` плюс файлы тем (сейчас `infra-pg.js`;
-  `infra-redis.js`/`infra-kafka.js` встанут рядом) и общий `infra-viz.css`. В `book.toml` порядок
+- **Инфраструктурные виджеты** — ядро `assets/infra-core.js` плюс файлы тем (сейчас `infra-pg.js` и
+  `infra-redis.js`; `infra-kafka.js` встанет рядом) и общий `infra-viz.css`. В `book.toml` порядок
   `algo-viz.js` → `infra-core.js` → файлы тем: ядро ничего не регистрирует, только отдаёт
   помощники (`plural`, `clampInt`, `mulberry32`, `shuffled`) — `window.ALGO_VIZ_INFRA` в браузере,
   `require("./infra-core.js")` в node; темы берут их оттуда, а не копируют. Скрипты проверок
@@ -276,7 +295,24 @@ Chrome с прошагиванием до конца, итоговые стат�
   `pg-join-nl`/`pg-join-hash`/`pg-join-merge` (вкладками там же, в разделе о соединениях) —
   внутреннее соединение `users.id = orders.user_id` на `data-users`/`data-orders` в токенах `N`,
   `a-b`, `rK` с фильтром `data-filter` = `u.id < K`; счётчики сверены с живым Postgres 16, включая
-  лишнюю строку `users`, которую Merge Join читает, когда заказы кончились сразу после пары. `viz-render-check`
+  лишнюю строку `users`, которую Merge Join читает, когда заказы кончились сразу после пары. Типы
+  `redis-resp`/`redis-ttl` (глава «Капстоун: мини-Redis», `ext`, этапы 1 и 3) — в `assets/infra-redis.js`,
+  первом файле темы после разделения: `redis-resp` — разбор запроса `ReadCommand` байт за байтом
+  (`data-wire` с видимыми `\r\n`, только ASCII; `data-store` = `k=v,…`; ответ показывается лишь для
+  `PING/ECHO/SET/GET/DEL`), `redis-ttl` — ленивое удаление через `Store.live` (`data-script`:
+  команды и `+N` секунд через «;», часы идут только по `+N`, один ключ на команду). Модель сверена
+  с НАСТОЯЩИМ кодом мини-Redis, а не с пересказом: `exercises/miniredis/golden_solution_test.go`
+  (тег `solution`) гоняет реальные `ReadCommand`/`Dispatch` и TTL-сценарии на управляемых часах и
+  пишет `scripts/fixtures/redis-golden.json`. Обновление —
+  `cd exercises && go test -tags solution -run TestGolden -count=1 ./miniredis/ -update` (флаг
+  ПОСЛЕ пути пакета: перед ним `go test` отдаёт путь тестовому бинарнику и падает «no Go files»);
+  без `-update` тест сверяет файл и падает, если тот устарел, — так CI держит его свежим в
+  `go test -tags solution ./...`. `infra-viz-check` требует совпадения JS-модели с golden на
+  каждом случае: расходятся — чинится модель (golden — правда о коде). Различия мини-Redis и
+  настоящего Redis в модель НЕ вносятся: они измерены на `redislab/` и описаны в главе как
+  различия (TTL: мини-Redis отбрасывает дробную часть, Redis 7.4.11 округляет до ближайшей
+  секунды; на ошибку протокола Redis отвечает `-ERR Protocol error: …`, мини-Redis молча
+  закрывает соединение). `viz-render-check`
   идёт ~25 минут, `check-viz-names` — ~8 (замер 2026-10-01, оба параллельно) — гонять в фоне;
   `predict-check` — секунды: он строит два встроенных виджета, а файлы `infra-*.js` только загружает.
 
@@ -600,10 +636,16 @@ solution-файл появляется — обновлять исключени
 `ReadCommand` паникой `"makeslice: len out of range"` — фаззер нашёл это за секунды. Так как
 `handleConn` (`cmd/miniredis/main.go`) не оборачивает `ReadCommand` в `recover()`, паника в
 одной горутине убивала весь процесс — не только вызвавшее её соединение. Исправлено границами
-`maxBulkLen`/`maxMultibulkLen` в `resp.go` (аналог `proto-max-bulk-len`/`proto-max-multibulk-len`
-настоящего Redis); упавший вход остался в затравке `FuzzReadCommand` как регрессионный тест.
-Раздел в `src/miniredis.md` также оставляет читателю парную самостоятельную задачу — так же
-ограничить `readLine` (аналог `proto-inline-max-size`) и дописать для неё свою затравку.
+в `resp.go`: `maxBulkLen` = `proto-max-bulk-len` настоящего Redis (536870912; на Redis 7.4.11
+это ЕДИНСТВЕННАЯ настройка `proto-*` — проверено `CONFIG GET` по точному имени в `redislab/`) и
+`maxMultibulkLen` = 1048576 — НАШ осторожный выбор, а не число Redis: настройки на число
+элементов массива у Redis нет (`*2147483647` он принимает, `*2147483648` отвергает с
+`invalid multibulk length`). Упавший вход остался в затравке `FuzzReadCommand` как
+регрессионный тест. Раздел в `src/miniredis.md` также оставляет читателю парную
+самостоятельную задачу — так же ограничить `readLine` и дописать для неё свою затравку; у Redis
+7.4.11 аналог — не настройка, а встроенный порог на байты без `\n`: 65536 — ждёт, 65537 —
+`too big inline request`, при этом законченную строку в 70 009 байт он обработал (`:0`), так что
+это и не чистый предел длины строки.
 
 `prefixsum` и `stack` (главы [«Префиксные суммы»](../src/prefix-sums.md) и
 [«Стек и монотонный стек»](../src/monotonic-stack.md), обе в ядре, Группа 2) закрыли дыру,
