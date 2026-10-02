@@ -540,8 +540,126 @@
       "    }",
       "    return out",
       "}"
+    ],
+    "pg-join-nl": [
+      "func NestedLoop(users []User, idx *Index) []Pair {",
+      "    var out []Pair",
+      "    for _, u := range users { // внешняя таблица (после фильтра)",
+      "        for _, o := range idx.Lookup(u.ID) { // поиск по индексу orders(user_id)",
+      "            out = append(out, Pair{u, o})",
+      "        }",
+      "    }",
+      "    return out",
+      "}"
+    ],
+    "pg-join-hash": [
+      "func HashJoin(users []User, orders []Order) []Pair {",
+      "    h := map[int][]User{}",
+      "    for _, u := range users { // build: хеш по users (меньшая сторона, после фильтра)",
+      "        h[u.ID] = append(h[u.ID], u)",
+      "    }",
+      "    var out []Pair",
+      "    for _, o := range orders { // probe: ВСЕ заказы, один проход",
+      "        for _, u := range h[o.UserID] {",
+      "            out = append(out, Pair{u, o})",
+      "        }",
+      "    }",
+      "    return out",
+      "}"
+    ],
+    "pg-join-merge": [
+      "func MergeJoin(users []User, orders []Order) []Pair { // оба входа отсортированы по ключу",
+      "    var out []Pair",
+      "    i, j := 0, 0",
+      "    for i < len(users) && j < len(orders) {",
+      "        if users[i].ID < orders[j].UserID {",
+      "            i++",
+      "        } else if users[i].ID > orders[j].UserID {",
+      "            j++",
+      "        } else {",
+      "            out = append(out, Pair{users[i], orders[j]})",
+      "            j++ // тот же пользователь: следующий заказ",
+      "        }",
+      "    }",
+      "    return out",
+      "}"
     ]
   };
+
+  // ===== Соединения: рисунок и общие части трёх типов ==========================
+  // Легенда ПО ТИПАМ: «лежит в хеш-таблице» бывает только у Hash, у остальных читатель искал бы её зря.
+  var joinLegendAll = [
+    { cls: "iv-join__cell--idle", label: "ещё не читалась" },
+    { cls: "iv-join__cell--cur", label: "текущая строка" },
+    { cls: "iv-join__cell--read", label: "уже прочитана" },
+    { cls: "iv-join__cell--match", label: "вошла в результат" },
+    { cls: "iv-join__cell--hash", label: "лежит в хеш-таблице" }
+  ];
+  var joinLegend = joinLegendAll;
+  var joinLegendNoHash = joinLegendAll.filter(function (e) { return e.cls !== "iv-join__cell--hash"; });
+
+  function joinCommonParse(kind) {
+    return function (root) {
+      var uAttr = root.getAttribute("data-users"), oAttr = root.getAttribute("data-orders");
+      var users = parseIds(uAttr == null ? "1-8" : uAttr, 1, 12, false);
+      var K = core.clampInt(root.getAttribute("data-filter"), 0, 13, 0);
+      if (K > 0) users = users.filter(function (id) { return id < K; });
+      var orders = parseIds(oAttr == null ? "r14" : oAttr, 1, 12, true).map(function (u, i) { return { n: i + 1, u: u }; });
+      var gen = { nl: bJoinNL, hash: bJoinHash, merge: bJoinMerge }[kind];
+      return { users: users, orders: orders, filter: K, steps: gen(users, orders) };
+    };
+  }
+  var joinCommon = {
+    values: function () { return []; },
+    pointers: function () { return { lo: -1, hi: -1 }; },
+    sumCells: ["Пар в результате", "Заказов прочитано"],
+    sumValues: function (s) { return [{ text: s.out.length, cls: "gt" }, { text: s.oRead }]; },
+    status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Готово", text: s.info }; return { kind: "info", hot: !!s.hot, icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+    stepCard: function (s) { return { a: s.metric.label + ": " + s.metric.value, b: "пар " + s.out.length, c: "заказов прочитано " + s.oRead, cls: "gt" }; }
+  };
+
+  // Всё идёт через mkEl/textContent. «Внешняя» — только у Nested Loop (ведущая таблица); у Hash и Merge
+  // то же слово означало бы другую сторону, чем в Postgres, поэтому там просто «таблица users».
+  function joinViz(panel, ctx, kind) {
+    var H = window.ALGO_VIZ;
+    var wrap = H.mkEl("div", "iv-join");
+    panel.appendChild(wrap);
+    return function (s) {
+      wrap.innerHTML = "";
+      var m = H.mkEl("div", "iv-join__metrics", (kind === "nl" ? "Внешних строк: " : "Строк users: ") + s.U.length + " · заказов прочитано: " + s.oRead + " (в таблице заказов: " + s.O.length + ") · " + s.metric.label + ": " + s.metric.value + " · пар в результате: " + s.out.length);
+      m.setAttribute("data-pairs", String(s.out.length));
+      m.setAttribute("data-oread", String(s.oRead));
+      wrap.appendChild(m);
+      var matchedU = {}, matchedN = {};
+      s.out.forEach(function (p) { matchedU[p.u] = true; matchedN[p.n] = true; });
+      var rowU = H.mkEl("div", "iv-join__row iv-join__row--users");
+      rowU.appendChild(H.mkEl("div", "iv-join__label", (kind === "nl" ? "внешняя таблица" : "таблица") + " users (id)"));
+      s.U.forEach(function (id, i) {
+        var cls = "iv-join__cell" + (i === s.cu ? " iv-join__cell--cur" : matchedU[id] ? " iv-join__cell--match" : i < s.uRead ? " iv-join__cell--read" : " iv-join__cell--idle");
+        rowU.appendChild(H.mkEl("div", cls, String(id)));
+      });
+      if (!s.U.length) rowU.appendChild(H.mkEl("div", "iv-join__empty", "пусто"));
+      wrap.appendChild(rowU);
+      if (kind === "hash") {
+        var rowH = H.mkEl("div", "iv-join__row iv-join__row--hash");
+        rowH.appendChild(H.mkEl("div", "iv-join__label", "хеш-таблица (ключи)"));
+        s.built.forEach(function (id) { rowH.appendChild(H.mkEl("div", "iv-join__cell iv-join__cell--hash", String(id))); });
+        if (!s.built.length) rowH.appendChild(H.mkEl("div", "iv-join__empty", "пока пуста"));
+        wrap.appendChild(rowH);
+      }
+      var rowO = H.mkEl("div", "iv-join__row iv-join__row--orders");
+      rowO.appendChild(H.mkEl("div", "iv-join__label", kind === "hash" ? "заказы (user_id), порядок таблицы" : "заказы (user_id), порядок индекса"));
+      s.O.forEach(function (o, i) {
+        var cls = "iv-join__cell" + (i === s.co ? " iv-join__cell--cur" : matchedN[o.n] ? " iv-join__cell--match" : i < s.oRead ? " iv-join__cell--read" : " iv-join__cell--idle");
+        var cell = H.mkEl("div", cls, String(o.u));
+        cell.title = "заказ №" + o.n + ", user_id " + o.u;
+        rowO.appendChild(cell);
+      });
+      if (!s.O.length) rowO.appendChild(H.mkEl("div", "iv-join__empty", "пусто"));
+      wrap.appendChild(rowO);
+      wrap.appendChild(H.mkEl("div", "iv-join__pairs", s.out.length ? "Пары: " + s.out.map(function (p) { return "(" + p.u + ", №" + p.n + ")"; }).join(" ") : "Пар пока нет"));
+    };
+  }
 
   var INFRA = {
     "pg-page": {
@@ -662,6 +780,90 @@
       stepCard: scanCommon.stepCard,
       varsOf: function (s) { return { tid: s.vars.tid, page: s.vars.page }; },
       customViz: scanViz
+    },
+    "pg-join-nl": {
+      badge: "Postgres · Nested Loop",
+      desc: "Для каждой строки внешней таблицы — поиск подходящих заказов по индексу. Цена — одно обращение к индексу на внешнюю строку.",
+      valuesLabel: "", codeKey: "pg-join-nl", fillRange: false,
+      complexity: { time: "O(внешних · log заказов)", space: "O(1)", good: "★ выигрывает, когда внешних строк мало" },
+      varOrder: ["u", "o"],
+      varDesc: { u: "Текущая внешняя строка", o: "Найденный заказ" },
+      lineNotes: { 2: "Внешняя таблица — только строки, прошедшие фильтр", 3: "Одно обращение к индексу на КАЖДУЮ внешнюю строку, даже если заказов нет", 4: "Каждая найденная пара сразу в результат" },
+      rules: [{ head: "обращений", body: "= внешних строк", cls: "eq" }, { head: "хеш и сортировка", body: "не нужны", cls: "gt" }],
+      legend: joinLegendNoHash,
+      presets: [
+        { label: "в users всего 3 строки", set: { "data-users": "1-12", "data-orders": "r24", "data-filter": "4" }, hint: "3 обращения к индексу" },
+        { label: "у части пользователей нет заказов", set: { "data-users": "1-6", "data-orders": "1,1,2,2,5,5", "data-filter": "0" }, hint: "обращение и у тех, у кого пусто" },
+        { label: "заказы без пользователя", set: { "data-users": "1-3", "data-orders": "1,2,3,7,8,9", "data-filter": "0" }, hint: "лишние заказы индекс не трогает" },
+        { label: "много заказов у одного", set: { "data-users": "1-4", "data-orders": "2,2,2,2,2,2,2,3", "data-filter": "0" }, hint: "все заказы одного — подряд по индексу" }
+      ],
+      parse: joinCommonParse("nl"),
+      inputs: [{ attr: "data-users", label: "Таблица users, id (N, a-b, rK)" }, { attr: "data-orders", label: "Заказы, user_id (N, a-b, rK)" }, { attr: "data-filter", label: "Фильтр u.id < K (0 — без)" }],
+      values: joinCommon.values,
+      title: function (ctx) { return "Nested Loop · внешних строк: " + ctx.users.length + " · заказов: " + ctx.orders.length; },
+      pointers: joinCommon.pointers,
+      sumCells: joinCommon.sumCells,
+      sumValues: joinCommon.sumValues,
+      status: joinCommon.status,
+      stepCard: joinCommon.stepCard,
+      varsOf: function (s) { return { u: s.vars.u, o: s.vars.o }; },
+      customViz: function (panel, ctx) { return joinViz(panel, ctx, "nl"); }
+    },
+    "pg-join-hash": {
+      badge: "Postgres · Hash Join",
+      desc: "Сначала хеш-таблица по users (меньшая сторона, build), потом один проход по ВСЕМ заказам с поиском по хешу (probe).",
+      valuesLabel: "", codeKey: "pg-join-hash", fillRange: false,
+      complexity: { time: "O(users + заказов)", space: "O(users)", good: "★ один проход по каждой стороне" },
+      varOrder: ["u", "o"],
+      varDesc: { u: "Пользователь из хеш-таблицы", o: "Текущий заказ (probe)" },
+      lineNotes: { 2: "build: хеш по users (после фильтра)", 3: "Положили строку в хеш по ключу user id", 6: "probe: читаем ВСЕ заказы, сколько бы ни совпало", 7: "Один поиск по хешу на заказ; нет в хеше — заказ пропускаем, но он уже прочитан", 8: "Совпадение — пара в результат" },
+      rules: [{ head: "прочитано заказов", body: "= все заказы", cls: "eq" }, { head: "память", body: "хеш по users", cls: "lt" }],
+      legend: joinLegend,
+      presets: [
+        { label: "в users всего 3 строки", set: { "data-users": "1-12", "data-orders": "r24", "data-filter": "4" }, hint: "заказов прочитано все 24, хеш — 3 строки" },
+        { label: "у части пользователей нет заказов", set: { "data-users": "1-6", "data-orders": "1,1,2,2,5,5", "data-filter": "0" }, hint: "читает все заказы, даже ненужные" },
+        { label: "заказы без пользователя", set: { "data-users": "1-3", "data-orders": "1,2,3,7,8,9", "data-filter": "0" }, hint: "заказы без пары пропускает, но читает" },
+        { label: "много заказов у одного", set: { "data-users": "1-4", "data-orders": "2,2,2,2,2,2,2,3", "data-filter": "0" }, hint: "одно ведро — длинная работа на пробе" }
+      ],
+      parse: joinCommonParse("hash"),
+      inputs: [{ attr: "data-users", label: "Таблица users, id (N, a-b, rK)" }, { attr: "data-orders", label: "Заказы, user_id (N, a-b, rK)" }, { attr: "data-filter", label: "Фильтр u.id < K (0 — без)" }],
+      values: joinCommon.values,
+      title: function (ctx) { return "Hash Join · users: " + ctx.users.length + " · заказов: " + ctx.orders.length; },
+      pointers: joinCommon.pointers,
+      sumCells: joinCommon.sumCells,
+      sumValues: joinCommon.sumValues,
+      status: joinCommon.status,
+      stepCard: joinCommon.stepCard,
+      varsOf: function (s) { return { u: s.vars.u, o: s.vars.o }; },
+      customViz: function (panel, ctx) { return joinViz(panel, ctx, "hash"); }
+    },
+    "pg-join-merge": {
+      badge: "Postgres · Merge Join",
+      desc: "Оба входа отсортированы по ключу; два указателя идут навстречу друг другу, пока одна из сторон не кончится.",
+      valuesLabel: "", codeKey: "pg-join-merge", fillRange: false,
+      complexity: { time: "O(users + заказов)", space: "O(1)", good: "★ без хеша; входы уже отсортированы индексами" },
+      varOrder: ["i", "j"],
+      varDesc: { i: "Позиция в users", j: "Позиция в заказах" },
+      lineNotes: { 3: "Идём, пока не кончилась хотя бы одна из сторон", 4: "Меньше — у пользователя заказов больше нет, сдвигаем i", 6: "Больше — заказ без пользователя, сдвигаем j", 9: "Равны — пара в результат", 10: "Следующий заказ: тот же пользователь или уже другой" },
+      rules: [{ head: "остановка", body: "кончилась любая сторона", cls: "gt" }, { head: "вход", body: "уже отсортирован", cls: "eq" }],
+      legend: joinLegendNoHash,
+      presets: [
+        { label: "в users всего 3 строки", set: { "data-users": "1-12", "data-orders": "r24", "data-filter": "4" }, hint: "читает, пока не кончится сторона" },
+        { label: "у части пользователей нет заказов", set: { "data-users": "1-6", "data-orders": "1,1,2,2,5,5", "data-filter": "0" }, hint: "ныряет мимо пустых" },
+        { label: "заказы без пользователя", set: { "data-users": "1-3", "data-orders": "1,2,3,7,8,9", "data-filter": "0" }, hint: "остановился на последнем пользователе, хвост заказов не прочитан" },
+        { label: "много заказов у одного", set: { "data-users": "1-4", "data-orders": "2,2,2,2,2,2,2,3", "data-filter": "0" }, hint: "один пользователь — j идёт подряд" }
+      ],
+      parse: joinCommonParse("merge"),
+      inputs: [{ attr: "data-users", label: "Таблица users, id (N, a-b, rK)" }, { attr: "data-orders", label: "Заказы, user_id (N, a-b, rK)" }, { attr: "data-filter", label: "Фильтр u.id < K (0 — без)" }],
+      values: joinCommon.values,
+      title: function (ctx) { return "Merge Join · users: " + ctx.users.length + " · заказов: " + ctx.orders.length; },
+      pointers: joinCommon.pointers,
+      sumCells: joinCommon.sumCells,
+      sumValues: joinCommon.sumValues,
+      status: joinCommon.status,
+      stepCard: joinCommon.stepCard,
+      varsOf: function (s) { return { i: s.vars.i, j: s.vars.j }; },
+      customViz: function (panel, ctx) { return joinViz(panel, ctx, "merge"); }
     }
   };
 

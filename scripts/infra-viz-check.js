@@ -476,4 +476,40 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   }
   eq("фаззинг 300 случаев × 3 алгоритма: пары = перебор, один done, кадры не делят out", bad, 0);
 }
+{
+  const types = { "pg-join-nl": infra.bJoinNL, "pg-join-hash": infra.bJoinHash, "pg-join-merge": infra.bJoinMerge };
+  const run = (type, attrs) => {
+    const div = `<div class="algo-viz" id="w" tabindex="0" data-viz="${type}" ${attrs}></div>`;
+    const dom = new JSDOM(`<!DOCTYPE html><html><body>${div}<script>${read("algo-viz.js")}</script>${infraScripts()}</body></html>`, { runScripts: "dangerously", pretendToBeVisual: true });
+    dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
+    const el = dom.window.document.getElementById("w");
+    for (let i = 0; i < 500; i++) el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    return el;
+  };
+  const attrs = 'data-users="1-6" data-orders="r14" data-filter="0"';
+  const us = infra.parseIds("1-6", 1, 12, false), os = infra.parseIds("r14", 1, 12, true).map((u, i) => ({ n: i + 1, u }));
+  Object.keys(types).forEach((t) => {
+    const el = run(t, attrs), fin = last(types[t](us, os));
+    eq(`${t}: построен без ошибок и дошёл до итога`, [el.classList.contains("algo-viz--ready") && !/Ошибка визуализации|Неизвестный тип/.test(el.textContent), /Итог:/.test(el.textContent)], [true, true]);
+    eq(`${t}: ячейки таблицы users и заказов`, [el.querySelectorAll(".iv-join__row--users .iv-join__cell").length, el.querySelectorAll(".iv-join__row--orders .iv-join__cell").length], [us.length, os.length]);
+    eq(`${t}: пар в результате на экране = модель`, +el.querySelector(".iv-join__metrics").getAttribute("data-pairs"), fin.out.length);
+    eq(`${t}: прочитано заказов на экране = модель`, +el.querySelector(".iv-join__metrics").getAttribute("data-oread"), fin.oRead);
+    const bad = run(t, 'data-users="abc" data-orders="" data-filter="zzz"');
+    eq(`${t}: мусорные атрибуты — без ошибок`, bad.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(bad.textContent), true);
+    const src = readInfra(), body = src.slice(src.indexOf(`    "${t}": {`));
+    const block = (body.match(/presets: \[\n([\s\S]*?)\n      \],/) || [])[1] || "";
+    const presets = [...block.matchAll(/set: \{([^}]*)\}/g)].map((m) => Object.fromEntries([...m[1].matchAll(/"(data-[a-z-]+)":\s*"([^"]*)"/g)].map((x) => [x[1], x[2]])));
+    eq(`${t}: 4 пресета, ровно три поля, нет дубля «пример главы»`, [presets.length, presets.every((p) => Object.keys(p).sort().join() === "data-filter,data-orders,data-users"), /label: "пример главы/.test(block)], [4, true, false]);
+    presets.forEach((p, i) => {
+      const e = run(t, Object.keys(p).map((k) => `${k}="${p[k]}"`).join(" "));
+      eq(`${t}: пресет ${i + 1} строится`, e.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(e.textContent) && /Итог:/.test(e.textContent), true);
+    });
+  });
+  // легенда: правило legdot с цветом для КАЖДОГО класса из легенды в исходнике (урок плана 2)
+  const src = readInfra(), css = read("infra-viz.css");
+  const legBlock = (src.match(/var joinLegendAll = \[([\s\S]*?)\n  \];/) || [])[1] || "";
+  const classes = [...legBlock.matchAll(/cls: "([^"]+)"/g)].map((m) => m[1]);
+  eq("join: легенда содержит 5 классов", classes.length, 5);
+  classes.forEach((c) => eq(`join: legdot-правило с цветом для ${c}`, new RegExp("\\.algo-tp__legdot--" + c.replace(/[-_]/g, (x) => "\\" + x) + "\\s*\\{[^}]*#[0-9a-fA-F]{6}").test(css), true));
+}
 process.exit(failed ? 1 : 0);

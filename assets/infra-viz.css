@@ -56,3 +56,23 @@
 .algo-tp__legdot--iv-scan__page--bit { background:#334155; border:2px solid #a78bfa; border-radius:2px; }
 .algo-tp__legdot--iv-scan__cell--match { background:#16a34a; border-color:#16a34a; border-radius:2px; }
 .algo-tp__legdot--iv-scan__cell--found { background:#4ade80; border-color:#4ade80; border-radius:2px; }
+
+/* Соединения (pg-join-*): карточка всегда тёмная */
+.iv-join { --iv-j-idle:#334155; --iv-j-cur:#f59e0b; --iv-j-read:#1d4ed8; --iv-j-match:#16a34a; --iv-j-hash:#a78bfa; --iv-j-fg:#e2e8f0; }
+.iv-join__metrics { font:600 13px/1.4 system-ui,sans-serif; color:var(--iv-j-fg); margin-bottom:8px; }
+.iv-join__row { display:flex; flex-wrap:wrap; align-items:center; gap:3px; margin-bottom:6px; }
+.iv-join__label { flex:0 0 100%; font:600 11px/1.2 system-ui,sans-serif; color:var(--iv-j-fg); opacity:.85; }
+.iv-join__cell { min-width:24px; height:24px; padding:0 4px; display:flex; align-items:center; justify-content:center; border-radius:4px; border:2px solid transparent; font:600 12px/1 ui-monospace,monospace; color:#fff; background:var(--iv-j-idle); }
+.iv-join__cell--read { background:var(--iv-j-read); }
+.iv-join__cell--match { background:var(--iv-j-match); }
+.iv-join__cell--hash { background:var(--iv-j-hash); }
+.iv-join__cell--cur { border-color:var(--iv-j-cur); }
+.iv-join__empty { font:12px/1 system-ui,sans-serif; color:var(--iv-j-fg); opacity:.7; }
+.iv-join__pairs { font:12px/1.4 ui-monospace,monospace; color:var(--iv-j-fg); margin-top:4px; word-break:break-word; }
+/* точки легенды вне .iv-join: цвета литералами, равными токенам выше */
+.algo-tp__legdot--iv-join__cell--idle { background:#334155; }
+.algo-tp__legdot--iv-join__cell--read { background:#1d4ed8; }
+.algo-tp__legdot--iv-join__cell--match { background:#16a34a; }
+.algo-tp__legdot--iv-join__cell--hash { background:#a78bfa; }
+.algo-tp__legdot--iv-join__cell--cur { background:#334155; box-shadow:0 0 0 2px #f59e0b; }
+@media (max-width:520px) { .iv-join__cell { min-width:20px; height:22px; font-size:11px; } }
