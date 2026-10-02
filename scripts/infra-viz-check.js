@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Проверка infra-viz: хук регистрации (jsdom) и генераторы (чистый node).
+// Проверка infra-core.js + infra-pg.js: хук регистрации (jsdom) и генераторы (чистый node).
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -7,6 +7,9 @@ let JSDOM;
 try { ({ JSDOM } = require("jsdom")); } catch (e) { console.log("✗ infra-viz-check: нужен jsdom (npm i --no-save jsdom) — проверка не выполнена"); process.exit(1); }
 const root = path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(root, "assets", f), "utf8");
+const infraFiles = () => fs.readdirSync(path.join(root, "assets")).filter((n) => /^infra-.*\.js$/.test(n)).sort((a, b) => (a === "infra-core.js" ? -1 : b === "infra-core.js" ? 1 : a.localeCompare(b)));
+const readInfra = () => infraFiles().map(read).join("\n");
+const infraScripts = () => infraFiles().map((f) => `<script>${read(f)}</script>`).join("");
 let failed = 0;
 const eq = (name, got, want) => { if (JSON.stringify(got) !== JSON.stringify(want)) { failed++; console.error(`✗ ${name}\n  got:  ${JSON.stringify(got)}\n  want: ${JSON.stringify(want)}`); } else console.log(`✓ ${name}`); };
 
@@ -48,7 +51,7 @@ const eq = (name, got, want) => { if (JSON.stringify(got) !== JSON.stringify(wan
 function buildPg(attrs) {
   const at = Object.keys(attrs).map((k) => `${k}="${attrs[k]}"`).join(" ");
   const html = `<!DOCTYPE html><html><body><div class="algo-viz" id="w" tabindex="0" data-viz="pg-page" ${at}></div>
-    <script>${read("algo-viz.js")}</script><script>${read("infra-viz.js")}</script></body></html>`;
+    <script>${read("algo-viz.js")}</script>${infraScripts()}</body></html>`;
   const dom = new JSDOM(html, { runScripts: "dangerously", pretendToBeVisual: true });
   dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
   const el = dom.window.document.getElementById("w");
@@ -82,7 +85,7 @@ function buildPg(attrs) {
 }
 {
   // каждый пресет из конфига строится и доходит до итога без ошибок
-  const src = read("infra-viz.js");
+  const src = readInfra();
   const re = /\{ label: "([^"]+)", set: \{ "data-ops": "([^"]+)", "data-page": "(\d+)" \}/g;
   let m, n = 0;
   while ((m = re.exec(src))) {
@@ -119,7 +122,7 @@ function buildPg(attrs) {
   eq("pg-page: много узких строк — сумма ≤ 100%", narrow.every((x) => x.sum <= 100.0001), true);
 }
 // --- генератор pg-page ---
-const infra = require(path.join(root, "assets", "infra-viz.js"));
+const infra = require(path.join(root, "assets", "infra-pg.js"));
 const last = (steps) => steps[steps.length - 1];
 const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
 {
@@ -322,7 +325,7 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   const P = 12, R = 8, pg = (r) => Math.floor(r / R);
   const run = (type, attrs) => {
     const div = `<div class="algo-viz" id="w" tabindex="0" data-viz="${type}" ${attrs}></div>`;
-    const dom = new JSDOM(`<!DOCTYPE html><html><body>${div}<script>${read("algo-viz.js")}</script><script>${read("infra-viz.js")}</script></body></html>`, { runScripts: "dangerously", pretendToBeVisual: true });
+    const dom = new JSDOM(`<!DOCTYPE html><html><body>${div}<script>${read("algo-viz.js")}</script>${infraScripts()}</body></html>`, { runScripts: "dangerously", pretendToBeVisual: true });
     dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
     const el = dom.window.document.getElementById("w");
     for (let i = 0; i < 400; i++) el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
@@ -348,7 +351,7 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
     eq(`${t}: пустой набор и мусорные размеры — без ошибок`, el.classList.contains("algo-viz--ready") && !/Ошибка визуализации/.test(el.textContent), true);
   });
   // пресеты: каждый строится без ошибок у каждого типа
-  const src = read("infra-viz.js");
+  const src = readInfra();
   types.forEach((t) => {
     const body = src.slice(src.indexOf(`    "${t}": {`));
     const block = (body.match(/presets: \[\n([\s\S]*?)\n      \],/) || [])[1] || "";
@@ -380,5 +383,19 @@ const run = (s, size) => infra.bPgPage(infra.parseOps(s), size || 8192);
   eq("index: «ради 1 строки» и «ради 5 строк»", [/ради 1 строки/.test(last(infra.bScanIndex(P, R, [3])).info), /ради 5 строк/.test(last(infra.bScanIndex(P, R, list)).info)], [true, true]);
   eq("seq: R=1 — «по 1 строке» и «Проверили 1 строку»", [/по 1 строке/.test(infra.bScanSeq(3, 1, [0])[0].info), /Проверили 1 строку/.test(infra.bScanSeq(3, 1, [0])[3].info)], [true, true]);
   eq("seq: R=3 — «Проверили 3 строки»", /Проверили 3 строки/.test(infra.bScanSeq(2, 3, [0])[3].info), true);
+}
+// --- разделение на ядро и тему ---
+{
+  eq("файлы: ядро и pg есть, старого infra-viz.js нет", [fs.existsSync(path.join(root, "assets", "infra-core.js")), fs.existsSync(path.join(root, "assets", "infra-pg.js")), fs.existsSync(path.join(root, "assets", "infra-viz.js"))], [true, true, false]);
+  const core = require(path.join(root, "assets", "infra-core.js"));
+  eq("core: экспорт в node", Object.keys(core).sort(), ["clampInt", "mulberry32", "plural", "shuffled"]);
+  eq("core.plural: 1/2/5/11/21", [1, 2, 5, 11, 21].map((n) => core.plural(n, "а", "б", "в")), ["а", "б", "в", "в", "а"]);
+  eq("core.clampInt: мусор, границы", [core.clampInt("abc", 1, 24, 12), core.clampInt("0", 1, 24, 12), core.clampInt("999", 1, 24, 12), core.clampInt("7", 1, 24, 12)], [12, 1, 24, 7]);
+  eq("core.shuffled: перестановка 0..n-1, детерминирована", [core.shuffled(10, 5).slice().sort((a, b) => a - b), core.shuffled(10, 5)], [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], core.shuffled(10, 5)]);
+  const html = `<!DOCTYPE html><html><body><div id="w" class="algo-viz" data-viz="pg-page" data-ops="+a:100"></div><script>${read("algo-viz.js")}</script>${infraScripts()}</body></html>`;
+  const dom = new JSDOM(html, { runScripts: "dangerously", pretendToBeVisual: true });
+  eq("браузер: ядро доступно как window.ALGO_VIZ_INFRA", typeof dom.window.ALGO_VIZ_INFRA.plural, "function");
+  const book = fs.readFileSync(path.join(root, "book.toml"), "utf8");
+  eq("book.toml: algo-viz.js → infra-core.js → infra-pg.js подряд", /"assets\/algo-viz\.js", "assets\/infra-core\.js", "assets\/infra-pg\.js"/.test(book), true);
 }
 process.exit(failed ? 1 : 0);

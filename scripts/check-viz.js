@@ -7,7 +7,7 @@
 //  4) пресет граничного случая задаёт ровно поля ввода своего типа (иначе кнопка молча не работает);
 //  5) у неонового виджета (без customViz) в главе ядра есть легенда: смысл цветов иначе живёт
 //     только в абзаце над виджетом, который при листании уезжает с экрана;
-//  6) тип и его листинг объявлены один раз на оба файла (algo-viz.js + infra-viz.js): иначе
+//  6) тип и его листинг объявлены один раз на все файлы (algo-viz.js + assets/infra-*.js): иначе
 //     проверка видела бы одну запись, а в браузере ALGO_VIZ.register бросил бы при загрузке.
 // Синтаксис самих *.js проверяется отдельно через `node --check` (см. CI).
 "use strict";
@@ -16,8 +16,10 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const js = fs.readFileSync(path.join(root, "assets", "algo-viz.js"), "utf8");
-const infraJs = fs.readFileSync(path.join(root, "assets", "infra-viz.js"), "utf8");
-// Конфиги и листинги инфраструктурных типов живут в infra-viz.js в том же формате (отступ 4 пробела)
+const { readInfra, infraScriptTags } = require("./lib/infra-files.js");
+const infraFiles = readInfra(root);
+const infraJs = infraFiles.map((f) => f.src).join("\n");
+// Конфиги и листинги инфраструктурных типов живут в assets/infra-*.js в том же формате (отступ 4 пробела)
 const all = js + "\n" + infraJs;
 const errors = [];
 
@@ -25,7 +27,7 @@ const errors = [];
 const dashKeys = new Set([...all.matchAll(/^    "([a-z0-9-]+)":\s*\{/gm)].map((m) => m[1]));
 
 // --- дубликаты: Set и перезапись в CODE схлопнули бы их молча, а в рантайме register бросит ---
-// Считаем по файлам отдельно: ключ в обоих файлах или дважды в одном — ошибка.
+// Считаем по файлам отдельно: ключ в двух файлах или дважды в одном — ошибка.
 function countKeys(src, re) {
   const n = {};
   for (const m of src.matchAll(re)) n[m[1]] = (n[m[1]] || 0) + 1;
@@ -36,10 +38,12 @@ function codeBlock(src) {
   return at < 0 ? "" : src.slice(at, src.indexOf("\n  };", at));
 }
 function checkDuplicates(what, re, pick) {
-  const a = countKeys(pick(js), re), b = countKeys(pick(infraJs), re);
-  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
-    if (a[k] && b[k]) errors.push(`Дубликат типа "${k}" в algo-viz.js и infra-viz.js (${what})`);
-    else if ((a[k] || 0) > 1 || (b[k] || 0) > 1) errors.push(`Дубликат типа "${k}" внутри одного файла (${what})`);
+  const files = [{ name: "algo-viz.js", src: js }, ...infraFiles].map((f) => ({ name: f.name, n: countKeys(pick(f.src), re) }));
+  const keys = new Set(files.flatMap((f) => Object.keys(f.n)));
+  for (const k of keys) {
+    const where = files.filter((f) => f.n[k]);
+    if (where.length > 1) errors.push(`Дубликат типа "${k}" в ${where.map((f) => f.name).join(" и ")} (${what})`);
+    else if (where[0].n[k] > 1) errors.push(`Дубликат типа "${k}" внутри одного файла ${where[0].name} (${what})`);
   }
 }
 checkDuplicates("конфиг DASH/INFRA", /^    "([a-z0-9-]+)":\s*\{/gm, (src) => src);
@@ -49,14 +53,14 @@ checkDuplicates("листинг CODE", /^    "([a-z0-9-]+)":\s*\[/gm, codeBlock)
 const CODE = {};
 function collectCode(src) {
   const codeStart = src.indexOf("var CODE = {");
-  if (codeStart < 0) return; // у infra-viz.js блока CODE может ещё не быть
+  if (codeStart < 0) return; // у файла темы блока CODE может ещё не быть
   const codeBody = src.slice(codeStart, src.indexOf("\n  };", codeStart));
   const keyRe = /^    "([a-z0-9-]+)":\s*\[([\s\S]*?)\],?\s*$/gm;
   let m;
   while ((m = keyRe.exec(codeBody))) CODE[m[1]] = [...m[2].matchAll(/"(?:[^"\\]|\\.)*"/g)].map((x) => x[0]);
 }
 collectCode(js);
-collectCode(infraJs);
+infraFiles.forEach((f) => collectCode(f.src));
 
 // --- разбор конфигов DASH: codeKey и lineNotes ---
 const cfgRe = /^    "([a-z0-9-]+)":\s*\{/gm;

@@ -1,8 +1,10 @@
-/* Инфраструктурные визуализации (Postgres, Redis, Kafka). Регистрируются в движке через
- * window.ALGO_VIZ.register. Генераторы — чистые функции, экспортируются для node-теста. */
+/* Инфраструктурные визуализации темы Postgres. Регистрируются в движке через
+ * window.ALGO_VIZ.register; общие помощники — в infra-core.js. Генераторы — чистые функции,
+ * экспортируются для node-теста. */
 (function () {
   "use strict";
   var exportsForTest = {};
+  var core = (typeof module !== "undefined" && module.exports) ? require("./infra-core.js") : window.ALGO_VIZ_INFRA;
 
   var PAGE_HDR = 24, ITEM = 4, TUP_HDR = 24;
   function maxAlign(n) { return (n + 7) & ~7; }
@@ -125,13 +127,6 @@
   // Модель: P страниц по R строк; строка r лежит на странице floor(r/R). matches — id подходящих
   // строк в порядке КЛЮЧА индекса: именно в этом порядке idx.Lookup отдаёт ctid. Планировщик и
   // стоимость не моделируются — только «сколько раз прочитали страницу таблицы».
-  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-  function shuffled(n, seed) {
-    var a = [], rnd = mulberry32(seed), i, j, k, t;
-    for (i = 0; i < n; i++) a.push(i);
-    for (j = n - 1; j > 0; j--) { k = Math.floor(rnd() * (j + 1)); t = a[j]; a[j] = a[k]; a[k] = t; }
-    return a;
-  }
   // Токены через запятую: N | a-b | rK (K псевдослучайных строк в псевдослучайном порядке).
   function parseMatch(str, total) {
     var out = [], seen = {};
@@ -140,7 +135,7 @@
       var t = raw.trim(), m = /^(\d+)-(\d+)$/.exec(t);
       if (m) { for (var r = +m[1]; r <= +m[2] && r < total; r++) add(r); return; }
       m = /^r(\d+)$/.exec(t);
-      if (m) { shuffled(total, total * 31 + +m[1]).slice(0, +m[1]).forEach(function (x) { add(x); }); return; }
+      if (m) { core.shuffled(total, total * 31 + +m[1]).slice(0, +m[1]).forEach(function (x) { add(x); }); return; }
       if (/^\d+$/.test(t)) add(+t);
     });
     return out;
@@ -164,10 +159,9 @@
   function tidText(t) { return "(" + t.page + "," + (t.slot + 1) + ")"; }
   function rowsOnPage(page, R, matchSet) { var out = []; for (var s = 0; s < R; s++) if (matchSet[page * R + s]) out.push(page * R + s); return out; }
   function matchSetOf(matches) { var m = {}; matches.forEach(function (r) { m[r] = true; }); return m; }
-  function plural(n, one, few, many) { var a = n % 100, b = n % 10; return (a >= 11 && a <= 14) ? many : b === 1 ? one : (b >= 2 && b <= 4) ? few : many; }
-  function pages(n) { return n + " " + plural(n, "страница", "страницы", "страниц"); }
+  function pages(n) { return n + " " + core.plural(n, "страница", "страницы", "страниц"); }
   // Падеж зависит от фразы («ради 1 строки», «Проверили 1 строку», «по 1 строке»), поэтому формы 1 и 2–4 передаёт вызывающий.
-  function rows(n, one, few) { return n + " " + plural(n, one, few, "строк"); }
+  function rows(n, one, few) { return n + " " + core.plural(n, one, few, "строк"); }
 
   function bScanSeq(P, R, matches) {
     var st = scanState(P, R), ms = matchSetOf(matches);
@@ -305,14 +299,11 @@
     };
   }
 
-  // Размеры клампятся: поля ввода открыты читателю, а сетка из 10 000 ячеек ничему не учит.
-  function clampInt(v, lo, hi, def) { var n = parseInt(v, 10); return isNaN(n) ? def : Math.max(lo, Math.min(hi, n)); }
-
   // Три скана делят парсинг, итоги, статус и легенду: различаются только генератор, листинг и тексты.
   var scanCommon = {
     parse: function (kind) {
       return function (root) {
-        var P = clampInt(root.getAttribute("data-pages"), 1, 24, 12), R = clampInt(root.getAttribute("data-rows"), 1, 16, 8);
+        var P = core.clampInt(root.getAttribute("data-pages"), 1, 24, 12), R = core.clampInt(root.getAttribute("data-rows"), 1, 16, 8);
         var m = parseMatch(root.getAttribute("data-match") == null ? "r5" : root.getAttribute("data-match"), P * R);
         var gen = { seq: bScanSeq, index: bScanIndex, bitmap: bScanBitmap }[kind];
         return { P: P, R: R, matches: m, steps: gen(P, R, m) };
