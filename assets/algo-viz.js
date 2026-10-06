@@ -1436,7 +1436,7 @@
       "}"
     ],
     "ll-insert": [
-      "func insertAt(head *ListNode, pos, val int) *ListNode {",
+      "func insertAt(head *ListNode, val, pos int) *ListNode {",
       "    dummy := &ListNode{Next: head}",
       "    prev := dummy",
       "    for i := 0; i < pos && prev.Next != nil; i++ {",
