@@ -189,7 +189,9 @@
       card.reps = 0;
     } else if (grade === "hard") {
       card.ease = clamp(card.ease - 0.05, EASE_MIN, EASE_MAX);
-      card.iv = Math.max(1, Math.round((card.iv || 1) * 1.2));
+      // +20 %, но не меньше чем на день: round(1 × 1.2) = 1 возвращал карточку
+      // каждый день без конца.
+      card.iv = Math.max((card.iv || 0) + 1, Math.round((card.iv || 1) * 1.2));
       card.reps++;
     } else {
       card.ease = clamp(card.ease + 0.05, EASE_MIN, EASE_MAX);

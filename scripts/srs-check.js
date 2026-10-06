@@ -236,6 +236,15 @@ async function main() {
   click(hard, "С трудом");
   const afterHard = cards(hard)[id];
   if (afterHard.iv !== 24) errors.push(`после «С трудом» интервал = ${afterHard.iv}, ожидался 24 (20 × 1.2)`);
+
+  // «С трудом» обязано растить интервал и на коротких: round(1 × 1.2) = 1 возвращал
+  // карточку каждый день без конца.
+  for (const [iv, want] of [[0, 1], [1, 2], [2, 3], [3, 4]]) {
+    const d = await newDom({ algoSRS: JSON.stringify({ [id]: Object.assign({}, base, { iv, reps: iv ? 2 : 0 }) }) });
+    click(d, "С трудом");
+    const got = cards(d)[id].iv;
+    if (got !== want) errors.push(`«С трудом» при интервале ${iv}: стало ${got}, ожидалось ${want} (рост не меньше чем на день)`);
+  }
 }
 
 // --- 4. ease не убегает за границы ---

@@ -408,6 +408,9 @@ func fib(n int) int {
 ```go
 // после заполнения dp: dp[i] — минимум монет на сумму i
 func restoreCoins(coins, dp []int, amount int) []int {
+    if dp[amount] >= INF { // сумма недостижима: цикл ниже иначе не закончится
+        return nil
+    }
     res := []int{}
     for i := amount; i > 0; {
         for _, c := range coins {
@@ -418,7 +421,7 @@ func restoreCoins(coins, dp []int, amount int) []int {
             }
         }
     }
-    return res // например, amount=11, coins=[1,2,5] → [5, 5, 1]
+    return res // например, amount=11, coins=[1,2,5] → [1, 5, 5]
 }
 ```
 

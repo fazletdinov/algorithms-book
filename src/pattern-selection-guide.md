@@ -642,8 +642,8 @@
 связок (LRU, Word Ladder, Alien Dictionary, Meeting Rooms, Twitter, Skyline) — в главе
 [«Комбинации паттернов»](pattern-combinations.md); ниже — короткая навигация:
 
-### Sliding Window + Heap
-- Поиск максимума/минимума в скользящем окне
+### Sliding Window + монотонный дек
+- Максимум/минимум в скользящем окне за `O(n)`: дек хранит кандидатов по убыванию (для минимума — по возрастанию), [разбор](sliding-window.md#maxslidingwindow-и-дек-почему-всё-ещё-on); с кучей на каждый элемент добавился бы логарифм
 - Пример: [Sliding Window Maximum](https://leetcode.com/problems/sliding-window-maximum/)
 
 ### DFS + Backtracking
