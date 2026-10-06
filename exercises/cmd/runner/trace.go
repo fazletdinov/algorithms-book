@@ -14,7 +14,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -316,7 +315,7 @@ type traceResponse struct {
 // handleTrace копирует модуль во временный каталог (как handleRun),
 // инструментирует функцию читателя, генерирует харнесс, вызывающий её на
 // примере из data-trace-call, и прогоняет его.
-func handleTrace(w http.ResponseWriter, r *http.Request) {
+func (s *server) handleTrace(w http.ResponseWriter, r *http.Request) {
 	var req traceRequest
 	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "плохой JSON"})
@@ -353,6 +352,12 @@ func handleTrace(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, traceResponse{Unsupported: true, Reason: err.Error(), Steps: []traceStep{}, Source: stripped})
 		return
 	}
+
+	// Сборка харнесса — тот же компилятор, что у /api/run: очередь общая.
+	if !s.acquire(r.Context()) {
+		return
+	}
+	defer s.release()
 
 	tmp, err := os.MkdirTemp("", "algotracer-")
 	if err != nil {
@@ -392,7 +397,7 @@ func handleTrace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res := runTraceHarness(tmp, funcName, qualifiedCall)
+	res := runTraceHarness(r.Context(), tmp, funcName, qualifiedCall, s.traceLimits())
 	res.Source = stripped
 	writeJSON(w, http.StatusOK, res)
 }
@@ -487,47 +492,47 @@ func renderHarness(pkg, qualifiedCall string, void bool) ([]byte, error) {
 
 // runTraceHarness собирает и запускает харнесс в два отдельных шага (не
 // `go run`), чтобы чисто разводить ошибку сборки / панику / таймаут / успех
-// по разным веткам ответа.
-func runTraceHarness(tmp, funcName, qualifiedCall string) traceResponse {
+// по разным веткам ответа. lim.Deadline — срок самого запуска (сборка
+// ограничена отдельно), lim.MaxOutput — потолок трассы: шаг — строка stdout, и
+// бесконечный цикл иначе копил бы их в памяти сервера до конца срока.
+func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, lim runLimits) traceResponse {
 	binPath := filepath.Join(tmp, ".tracebin")
 
-	buildCtx, cancelBuild := context.WithTimeout(context.Background(), 20*time.Second)
+	buildCtx, cancelBuild := context.WithTimeout(ctx, 20*time.Second)
 	defer cancelBuild()
-	build := exec.CommandContext(buildCtx, "go", "build", "-o", binPath, "./tracecmd/")
+	build := groupCommand(buildCtx, "go", "build", "-o", binPath, "./tracecmd/")
 	build.Dir = tmp
 	build.Env = append(os.Environ(), "GOFLAGS=", "GOWORK=off")
 	if buildOut, err := build.CombinedOutput(); err != nil {
 		return traceResponse{Build: false, Output: strings.TrimSpace(string(buildOut)), Steps: []traceStep{}}
 	}
 
-	runCtx, cancelRun := context.WithTimeout(context.Background(), 5*time.Second)
+	runCtx, cancelRun := context.WithTimeout(ctx, lim.Deadline)
 	defer cancelRun()
-	run := exec.CommandContext(runCtx, binPath)
+	run := groupCommand(runCtx, binPath)
 	run.Dir = tmp
-	var stdout, stderr bytes.Buffer
-	run.Stdout = &stdout
-	run.Stderr = &stderr
+	stdout, stderr := &cappedBuffer{limit: lim.MaxOutput}, &cappedBuffer{limit: lim.MaxOutput}
+	run.Stdout, run.Stderr = stdout, stderr
 
 	start := time.Now()
 	runErr := run.Run()
 	duration := time.Since(start).Round(time.Millisecond).String()
 
-	steps, result := parseTraceOutput(stdout.String())
+	steps, result := parseTraceOutput(stdout.buf.String())
 
-	if runCtx.Err() == context.DeadlineExceeded {
-		return traceResponse{
-			Timeout:  true,
-			Reason:   "выполнение не уложилось в 5с — похоже на бесконечный цикл",
-			Steps:    steps,
-			Duration: duration,
+	if runCtx.Err() == context.DeadlineExceeded || stdout.truncated {
+		reason := fmt.Sprintf("выполнение не уложилось в %s — похоже на бесконечный цикл", lim.Deadline)
+		if stdout.truncated {
+			reason = fmt.Sprintf("трасса не поместилась в %d КиБ — похоже на очень длинный или бесконечный цикл; возьми вход поменьше", lim.MaxOutput>>10)
 		}
+		return traceResponse{Timeout: true, Reason: reason, Steps: steps, Duration: duration}
 	}
-	if msg, ok := findPanic(stderr.String()); ok {
+	if msg, ok := findPanic(stderr.buf.String()); ok {
 		return traceResponse{Build: true, Panic: true, Message: msg, Steps: steps, Duration: duration}
 	}
 	if runErr != nil {
 		// сбой без нашего recover() (например, убит сигналом) — покажем как есть
-		return traceResponse{Build: true, Panic: true, Message: strings.TrimSpace(stderr.String()), Steps: steps, Duration: duration}
+		return traceResponse{Build: true, Panic: true, Message: strings.TrimSpace(stderr.buf.String()), Steps: steps, Duration: duration}
 	}
 
 	return traceResponse{

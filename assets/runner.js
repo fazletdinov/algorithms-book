@@ -142,6 +142,15 @@
     }));
   }
 
+  // runStatus — строка состояния после прогона. Отдельная функция: её проверяет смоук без сервера.
+  function runStatus(res) {
+    if (res.ok) return { text: "✓ всё зелёное · " + res.duration, cls: "ok" };
+    if (res.timeout) return { text: "⏱ не уложилось по времени · " + res.duration, cls: "err" };
+    if (res.race) return { text: "🏁 гонка данных · " + res.duration, cls: "err" };
+    return { text: "✗ есть падения · " + res.duration, cls: "err" };
+  }
+  function killMark(res) { return res.timeout ? "⏱ " : "✂ "; }
+
   // ---- рендер одного виджета ----
 
   function initWidget(root) {
@@ -268,7 +277,8 @@
       })
         .then(function (res) {
           renderResult(out, res);
-          setStatus(res.ok ? "✓ всё зелёное · " + res.duration : (res.race ? "🏁 гонка данных · " : "✗ есть падения · ") + res.duration, res.ok ? "ok" : "err");
+          var st = runStatus(res);
+          setStatus(st.text, st.cls);
           // Решённым пакет считается, только если зелёными были ВСЕ его тесты:
           // зелёная одна функция из восьми — не повод заводить карточку
           // «перерешай пакет» в движке повторений. Признак берём у сервера.
@@ -321,10 +331,11 @@
 
   function renderResult(out, res) {
     out.innerHTML = "";
+    // Остановка по времени или по потолку вывода — не «упал тест»: сначала говорим, что случилось.
+    if (res.reason) out.appendChild(el("div", "algo-runner__verdict is-err", killMark(res) + res.reason));
     if (!res.build) {
-      var head = el("div", "algo-runner__verdict is-err", "✗ Ошибка компиляции");
-      out.appendChild(head);
-      out.appendChild(pre(res.output || "(нет вывода)"));
+      if (!res.reason) out.appendChild(el("div", "algo-runner__verdict is-err", "✗ Ошибка компиляции"));
+      if (res.output || !res.reason) out.appendChild(pre(res.output || "(нет вывода)"));
       return;
     }
     var verdict = el("div", "algo-runner__verdict " + (res.ok ? "is-ok" : "is-err"),
@@ -354,7 +365,7 @@
       var list = el("ul", "algo-runner__tests");
       res.tests.forEach(function (t) {
         var li = el("li", "algo-runner__test " + (t.pass ? "is-ok" : "is-err"));
-        li.appendChild(el("span", "algo-runner__test-mark", t.pass ? "✓" : "✗"));
+        li.appendChild(el("span", "algo-runner__test-mark", t.pass ? "✓" : (t.killed === "timeout" ? "⏱" : t.killed === "memory" ? "💾" : "✗")));
         li.appendChild(el("span", "algo-runner__test-name", t.name));
         if (!t.pass && t.output) {
           var det = document.createElement("details");
@@ -420,6 +431,8 @@
   // Смешанная тренировка (mixed.js) создаёт виджет уже после загрузки страницы —
   // DOMContentLoaded к тому моменту давно прошёл, поэтому она поднимает его явно.
   window.ALGO_RUNNER_INIT = initAll;
+  // Вид результата без сервера: смоук scripts/runner-render-check.js подаёт сюда готовые ответы.
+  window.ALGO_RUNNER_VIEW = { result: renderResult, status: runStatus };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initAll);

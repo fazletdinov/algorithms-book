@@ -9,6 +9,10 @@
 //	go run ./cmd/runner            # слушает http://localhost:8080
 //	go run ./cmd/runner -addr :9000
 //
+// Пределы прогона (run.go): тесту — 20 с (45 с с -race), сырому выводу — 4 МиБ,
+// прогоны идут по одному. Зависшее решение получает ответ с причиной, а не
+// держит тестовый бинарник до его собственных десяти минут.
+//
 // Безопасность: сервис ЛОКАЛЬНЫЙ и однопользовательский — он запускает твой же
 // код на твоей машине, поэтому песочница не нужна. Слушает только localhost, и
 // это НЕ настройка по умолчанию, а инвариант: адрес принудительно приводится к
@@ -40,7 +44,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -67,11 +70,12 @@ func main() {
 	moduleRoot = root
 	log.Printf("runner: модуль %s", moduleRoot)
 
+	srv := newServer()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/health", withCORS(handleHealth))
 	mux.HandleFunc("/api/stub", withCORS(handleStub))
-	mux.HandleFunc("/api/run", withCORS(handleRun))
-	mux.HandleFunc("/api/trace", withCORS(handleTrace))
+	mux.HandleFunc("/api/run", withCORS(srv.handleRun))
+	mux.HandleFunc("/api/trace", withCORS(srv.handleTrace))
 
 	// По умолчанию — жёстко localhost: /api/run исполняет присланный код, и
 	// доступный по сети runner означал бы удалённое выполнение кода на машине
@@ -159,6 +163,34 @@ func handleHealth(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "module": moduleRoot})
 }
 
+// server — состояние между запросами. Окно slot (ёмкость 1) пускает один прогон
+// за раз: два одновременных go test — два компилятора и два набора тестов в памяти.
+type server struct {
+	slot        chan struct{}
+	limits      func(race bool) runLimits
+	traceLimits func() runLimits
+}
+
+func newServer() *server {
+	return &server{
+		slot:        make(chan struct{}, 1),
+		limits:      defaultLimits,
+		traceLimits: func() runLimits { return runLimits{Deadline: 5 * time.Second, MaxOutput: maxRunOutput} },
+	}
+}
+
+// acquire ждёт очереди на прогон; false — клиент ушёл, не дождавшись.
+func (s *server) acquire(ctx context.Context) bool {
+	select {
+	case s.slot <- struct{}{}:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
+func (s *server) release() { <-s.slot }
+
 // validPkg проверяет имя пакета и что он существует в модуле.
 func validPkg(pkg string) (string, bool) {
 	if !pkgName.MatchString(pkg) {
@@ -209,8 +241,10 @@ const maxTestFilter = 32
 
 // testArgs собирает аргументы `go test`. Вынесено из runGoTest, чтобы
 // проверить фильтр тестом, не поднимая сервер и не компилируя модуль.
-func testArgs(pkg string, race bool, tests []string) ([]string, error) {
-	args := []string{"test", "-json", "-count=1"}
+// timeout — срок тестового бинарника: без -timeout он живёт 10 минут, и
+// зависшее решение держало бы его всё это время.
+func testArgs(pkg string, race bool, tests []string, timeout time.Duration) ([]string, error) {
+	args := []string{"test", "-json", "-count=1", "-timeout", timeout.String()}
 	if race {
 		args = append(args, "-race")
 	}
@@ -232,7 +266,7 @@ func testArgs(pkg string, race bool, tests []string) ([]string, error) {
 
 // handleRun копирует модуль во временный каталог, подменяет заготовку кодом
 // пользователя и прогоняет `go test`.
-func handleRun(w http.ResponseWriter, r *http.Request) {
+func (s *server) handleRun(w http.ResponseWriter, r *http.Request) {
 	var req runRequest
 	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "плохой JSON"})
@@ -242,13 +276,21 @@ func handleRun(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "неизвестный пакет"})
 		return
 	}
+	lim := s.limits(req.Race)
 	// Фильтр проверяем ДО копирования модуля: битый запрос не должен стоить
 	// копии каталога и компиляции.
-	args, err := testArgs(req.Pkg, req.Race, req.Tests)
+	args, err := testArgs(req.Pkg, req.Race, req.Tests, lim.TestTimeout)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
+
+	// Очередь — после проверок запроса и до копии модуля: битый запрос отвечает
+	// сразу, а ждущий не держит на диске ещё одну копию.
+	if !s.acquire(r.Context()) {
+		return
+	}
+	defer s.release()
 
 	tmp, err := os.MkdirTemp("", "algorunner-")
 	if err != nil {
@@ -271,126 +313,9 @@ func handleRun(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = os.Remove(filepath.Join(tmp, req.Pkg, req.Pkg+"_solution.go"))
 
-	res := runGoTest(tmp, args, req.Race)
+	res := runGoTest(r.Context(), tmp, args, lim)
 	res.Filtered = len(req.Tests) > 0
 	writeJSON(w, http.StatusOK, res)
-}
-
-// ---- go test ----
-
-type testResult struct {
-	OK       bool        `json:"ok"`       // все тесты прошли, сборка успешна, гонок нет
-	Build    bool        `json:"build"`    // компиляция удалась
-	Race     bool        `json:"race"`     // детектор -race нашёл гонку данных
-	Passed   int         `json:"passed"`   //
-	Failed   int         `json:"failed"`   //
-	Tests    []testEvent `json:"tests"`    // по тесту
-	Output   string      `json:"output"`   // сырой вывод (ошибка сборки / отчёт о гонке)
-	Duration string      `json:"duration"` //
-	// Filtered — гонялись не все тесты пакета, а только запрошенные. Тогда
-	// OK значит «эта функция готова», а не «пакет решён», и клиент не должен
-	// записывать пакет в решённые.
-	Filtered bool `json:"filtered,omitempty"`
-}
-
-type testEvent struct {
-	Name   string `json:"name"`
-	Pass   bool   `json:"pass"`
-	Output string `json:"output"`
-}
-
-func runGoTest(dir string, args []string, race bool) testResult {
-	// -race ощутимо медленнее и требует CGO, поэтому даём больше времени.
-	timeout := 30 * time.Second
-	if race {
-		timeout = 60 * time.Second
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	start := time.Now()
-	cmd := exec.CommandContext(ctx, "go", args...)
-	cmd.Dir = dir
-	// GOFLAGS= — не тащим внешние теги; GOWORK=off — изолируем тест во временной
-	// копии от go.work в корне репозитория (иначе модуль резолвится в настоящий
-	// ./exercises и правки пользователя игнорируются).
-	cmd.Env = append(os.Environ(), "GOFLAGS=", "GOWORK=off")
-	out, _ := cmd.CombinedOutput()
-	res := testResult{Duration: time.Since(start).Round(time.Millisecond).String()}
-
-	// go test -json пишет поток JSON-событий, НО отчёт детектора гонок (-race) и
-	// паники рантайма печатаются сырым текстом в stderr — они не валидный JSON.
-	// Поэтому разбираем построчно: валидный JSON → событие, иначе → в extra
-	// (там окажется «WARNING: DATA RACE», stack trace и т.п.), чтобы не потерять.
-	events := map[string]*testEvent{}
-	var order []string
-	var pkgOut, extra strings.Builder
-	for _, line := range bytes.Split(out, []byte("\n")) {
-		if len(bytes.TrimSpace(line)) == 0 {
-			continue
-		}
-		var ev struct {
-			Action string `json:"Action"`
-			Test   string `json:"Test"`
-			Output string `json:"Output"`
-		}
-		if err := json.Unmarshal(line, &ev); err != nil {
-			extra.Write(line)
-			extra.WriteByte('\n')
-			continue
-		}
-		if ev.Test == "" {
-			if ev.Action == "output" {
-				pkgOut.WriteString(ev.Output)
-			}
-			continue
-		}
-		te := events[ev.Test]
-		if te == nil {
-			te = &testEvent{Name: ev.Test}
-			events[ev.Test] = te
-			order = append(order, ev.Test)
-		}
-		switch ev.Action {
-		case "output":
-			te.Output += ev.Output
-		case "pass":
-			te.Pass = true
-		case "fail":
-			te.Pass = false
-		}
-	}
-
-	// Отчёт детектора гонок -race приходит как per-test output ("WARNING: DATA
-	// RACE"), поэтому ищем по всему сырому выводу, а не только в extra.
-	dataRace := bytes.Contains(out, []byte("DATA RACE"))
-	if len(order) == 0 {
-		// Нет событий по тестам — пакет не собрался (или паника до тестов).
-		res.Build = false
-		res.Output = strings.TrimSpace(pkgOut.String() + "\n" + extra.String())
-	} else {
-		res.Build = true
-		for _, name := range order {
-			te := events[name]
-			// показываем только верхнеуровневые тесты (без подтестов с '/')
-			if strings.Contains(name, "/") {
-				continue
-			}
-			res.Tests = append(res.Tests, *te)
-			if te.Pass {
-				res.Passed++
-			} else {
-				res.Failed++
-			}
-		}
-		// в общий вывод добавляем сырой текст (отчёт о гонке / паника), если был
-		res.Output = strings.TrimSpace(pkgOut.String() + "\n" + extra.String())
-	}
-
-	res.Race = dataRace
-	res.OK = res.Build && res.Failed == 0 && res.Passed > 0 && !dataRace
-	return res
 }
 
 // ---- helpers ----

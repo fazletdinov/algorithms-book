@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"slices"
 	"testing"
+	"time"
 )
 
 func TestTestArgs(t *testing.T) {
@@ -31,7 +32,7 @@ func TestTestArgs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			args, err := testArgs("dp", tt.race, tt.filter)
+			args, err := testArgs("dp", tt.race, tt.filter, 20*time.Second)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("ожидалась ошибка, получены аргументы %q", args)
@@ -46,6 +47,9 @@ func TestTestArgs(t *testing.T) {
 			}
 			if got := slices.Contains(args, "-race"); got != tt.race {
 				t.Errorf("-race = %v, ожидалось %v: %q", got, tt.race, args)
+			}
+			if i := slices.Index(args, "-timeout"); i < 0 || args[i+1] != "20s" {
+				t.Errorf("без -timeout 20s тестовый бинарник живёт 10 минут: %q", args)
 			}
 			i := slices.Index(args, "-run")
 			if tt.wantRun == "" {
@@ -64,7 +68,7 @@ func TestTestArgs(t *testing.T) {
 // Якоря ^(...)$ — не формальность: без них фильтр задачи CoinChange запустил
 // бы и тесты соседней функции CoinChangeTwo, а та ещё panic("TODO").
 func TestTestArgsFilterIsExact(t *testing.T) {
-	args, err := testArgs("dp", false, []string{"TestCoinChange"})
+	args, err := testArgs("dp", false, []string{"TestCoinChange"}, 20*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
