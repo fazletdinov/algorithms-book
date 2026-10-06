@@ -9,7 +9,8 @@
 //   1) карточки заводятся сами из трёх источников (главы, пакеты, промахи),
 //      причём глава/пакет — со сроком «завтра», а промах — «сейчас»;
 //   2) «Помню» даёт интервалы 1 → 3 → растущий геометрически, а не фиксированный;
-//   3) «Забыл» роняет интервал в 1 день и снижает ease, «с трудом» — растит слабо;
+//   3) «Забыл» роняет интервал в 1 день и снижает ease, «с трудом» — растит слабо, но
+//      растит, и ни в одном достижимом состоянии не откладывает дальше, чем «Помню»;
 //   4) ease не убегает за границы [1.3, 2.8] даже после серии одинаковых оценок;
 //   5) заметка «в чём была ошибка» сохраняется и показывается при следующем повторе.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
@@ -238,12 +239,70 @@ async function main() {
   if (afterHard.iv !== 24) errors.push(`после «С трудом» интервал = ${afterHard.iv}, ожидался 24 (20 × 1.2)`);
 
   // «С трудом» обязано растить интервал и на коротких: round(1 × 1.2) = 1 возвращал
-  // карточку каждый день без конца.
+  // карточку каждый день без конца. Число повторов — какое бывает у карточки с таким
+  // интервалом: новая (0), после первой оценки (1), дальше (2).
   for (const [iv, want] of [[0, 1], [1, 2], [2, 3], [3, 4]]) {
-    const d = await newDom({ algoSRS: JSON.stringify({ [id]: Object.assign({}, base, { iv, reps: iv ? 2 : 0 }) }) });
+    const d = await newDom({ algoSRS: JSON.stringify({ [id]: Object.assign({}, base, { iv, reps: Math.min(iv, 2) }) }) });
     click(d, "С трудом");
     const got = cards(d)[id].iv;
     if (got !== want) errors.push(`«С трудом» при интервале ${iv}: стало ${got}, ожидалось ${want} (рост не меньше чем на день)`);
+  }
+}
+
+// --- 3b. порядок оценок: «Забыл» ≤ «С трудом» ≤ «Помню» ---
+// Более слабая оценка не может отложить карточку дальше, чем более сильная. Перебираются ВСЕ
+// состояния, достижимые оценками из новой карточки (интервал до 60 дней): инверсия пряталась
+// ровно в одном — сразу после «Забыл» (интервал 1, повторов 0) «Помню» даёт день, а «С трудом»
+// давала два. Там же второе свойство: у карточки, которую уже повторяли, «С трудом» обязана
+// растить интервал — иначе она приходит каждый день без конца.
+// Один документ на весь перебор (свежий контейнер и повторное исполнение srs.js на каждую
+// оценку): по JSDOM на оценку это шло бы минуты.
+{
+  const LIMIT = 60;
+  const id = "ch:sliding-window.html";
+  const dom = await newDom({});
+  const w = dom.window;
+  const grade = (state, label) => {
+    w.document.body.innerHTML = '<div class="algo-today"></div>';
+    const card = Object.assign({}, state, { due: Date.now() - DAY, meta: { href: "sliding-window.html" } });
+    w.localStorage.setItem("algoSRS", JSON.stringify({ [id]: card }));
+    const script = w.document.createElement("script");
+    script.textContent = srsJs;
+    w.document.body.appendChild(script);
+    if (!click(dom, label)) return null;
+    if (label === "Забыл" && !click(dom, "Сохранить и отложить")) return null;
+    const c = cards(dom)[id];
+    return { iv: c.iv, ease: c.ease, reps: c.reps };
+  };
+  // расписание смотрит на число повторов только как на 0 / 1 / «2 и больше»
+  const key = (s) => s.iv + "|" + Math.min(s.reps, 2) + "|" + s.ease.toFixed(2);
+  const show = (s) => `интервал ${s.iv}, повторов ${s.reps}, ease ${s.ease.toFixed(2)}`;
+
+  const start = { iv: 0, ease: 2.5, reps: 0 };
+  const seen = new Set([key(start)]);
+  const queue = [start];
+  const inversions = [], stuck = [];
+  for (let head = 0; head < queue.length; head++) {
+    const st = queue[head];
+    const again = grade(st, "Забыл"), hard = grade(st, "С трудом"), good = grade(st, "Помню");
+    if (!again || !hard || !good) break; // кнопки не нашлось — click() уже записал ошибку
+    if (!(again.iv <= hard.iv && hard.iv <= good.iv)) {
+      inversions.push(`${show(st)}: «Забыл» → ${again.iv}, «С трудом» → ${hard.iv}, «Помню» → ${good.iv}`);
+    }
+    if (st.reps > 0 && hard.iv <= st.iv) stuck.push(`${show(st)}: «С трудом» → ${hard.iv}`);
+    for (const next of [again, hard, good]) {
+      if (next.iv > LIMIT || seen.has(key(next))) continue;
+      seen.add(key(next));
+      queue.push(next);
+    }
+  }
+  // сейчас состояний 1377; если перебор вдруг сжался в разы, он перестал что-либо проверять
+  if (queue.length < 500) errors.push(`перебор состояний расписания обошёл только ${queue.length} — ожидалось больше 500`);
+  if (inversions.length) {
+    errors.push(`слабая оценка откладывает дальше сильной в ${inversions.length} из ${queue.length} состояний, например: ${inversions.slice(0, 2).join("; ")}`);
+  }
+  if (stuck.length) {
+    errors.push(`«С трудом» не растит интервал у уже повторявшейся карточки в ${stuck.length} из ${queue.length} состояний, например: ${stuck.slice(0, 2).join("; ")}`);
   }
 }
 
@@ -276,7 +335,8 @@ if (errors.length) {
 }
 console.log(
   "✅ srs-check: карточки заводятся из глав/пакетов/промахов с верным сроком, интервалы 1→3→геометрия, " +
-    "«забыл» роняет в день и пишет заметку, ease держится в [1.3, 2.8]"
+    "«забыл» роняет в день и пишет заметку, «с трудом» не откладывает дальше «помню» ни в одном достижимом состоянии, " +
+    "ease держится в [1.3, 2.8]"
 );
 }
 

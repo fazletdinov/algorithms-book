@@ -408,7 +408,8 @@ func fib(n int) int {
 ```go
 // после заполнения dp: dp[i] — минимум монет на сумму i
 func restoreCoins(coins, dp []int, amount int) []int {
-    if dp[amount] >= INF { // сумма недостижима: цикл ниже иначе не закончится
+    // INF — как в coinChange. Сумма недостижима: без этой проверки цикл ниже не закончится.
+    if dp[amount] >= INF {
         return nil
     }
     res := []int{}
