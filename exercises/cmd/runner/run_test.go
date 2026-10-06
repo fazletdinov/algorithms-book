@@ -57,7 +57,7 @@ func TestCappedBuffer(t *testing.T) {
 }
 
 func TestServerOneRunAtATime(t *testing.T) {
-	s := newServer()
+	s := newServer(memLimiter{Mode: memNone})
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	if !s.acquire(ctx) || s.acquire(ctx) {

@@ -78,9 +78,13 @@ cd exercises && go run ./cmd/runner    # http://localhost:8080
 Без установленного Go — тот же runner в контейнере (из корня репозитория):
 
 ```bash
-docker run --rm -p 127.0.0.1:8080:8080 -v "$PWD:/w" -w /w/exercises \
-  golang:1.24 go run ./cmd/runner -listen-all
+docker run --rm --memory=2g --memory-swap=2g -p 127.0.0.1:8080:8080 \
+  -v "$PWD:/w" -w /w/exercises golang:1.24 go run ./cmd/runner -listen-all
 ```
+
+`--memory` — потолок памяти контейнера на случай решения с бесконечным ростом (обход без
+`visited`). У самого runner'а тоже есть предел — 2 ГиБ на прогон (флаг `-mem-mb`); какой
+действует, виджет показывает в шапке.
 
 Runner слушает **только localhost** и это инвариант, а не настройка: `/api/run`
 исполняет присланный код, поэтому доступный по сети runner означал бы удалённое

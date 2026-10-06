@@ -6,8 +6,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -20,11 +22,13 @@ const maxRunOutput = 4 << 20
 // runLimits — пределы одного прогона. TestTimeout уходит в `go test -timeout`:
 // бинарник сам падает с «panic: test timed out», называет тест и печатает стек.
 // Deadline — запасной срок на всё (сборка + тесты); по нему убивается группа.
+// Mem — предел памяти (mem.go); нулевое значение — без предела.
 type runLimits struct {
 	Race        bool
 	TestTimeout time.Duration
 	Deadline    time.Duration
 	MaxOutput   int
+	Mem         memLimiter
 }
 
 func defaultLimits(race bool) runLimits {
@@ -71,13 +75,16 @@ type testResult struct {
 	Timeout   bool   `json:"timeout,omitempty"`
 	Truncated bool   `json:"truncated,omitempty"`
 	Reason    string `json:"reason,omitempty"`
+	// MemLimit — прогон упёрся в предел памяти (mem.go); Timeout при этом ложен:
+	// остановила память, а не срок.
+	MemLimit bool `json:"memLimit,omitempty"`
 }
 
 type testEvent struct {
 	Name   string `json:"name"`
 	Pass   bool   `json:"pass"`
 	Output string `json:"output"`
-	// Killed — почему тест не завершился сам ("timeout"); пусто у обычных
+	// Killed — почему тест не завершился сам ("timeout", "memory"); пусто у обычных
 	// pass/fail.
 	Killed string `json:"killed,omitempty"`
 	done   bool   // пришло pass/fail/skip: тест завершился сам
@@ -97,11 +104,19 @@ func markUnfinished(res *testResult, why string) []string {
 	return names
 }
 
+// notStarted: ошибка Run — не код выхода процесса, то есть сама команда (`go`
+// или ограничитель памяти перед ним) не запустилась.
+func notStarted(err error) bool {
+	var exit *exec.ExitError
+	return err != nil && !errors.As(err, &exit)
+}
+
 func runGoTest(ctx context.Context, dir string, args []string, lim runLimits) testResult {
 	ctx, cancel := context.WithTimeout(ctx, lim.Deadline)
 	defer cancel()
 	out := &cappedBuffer{limit: lim.MaxOutput}
-	cmd := groupCommand(ctx, "go", args...)
+	unit := unitName()
+	cmd := lim.Mem.command(ctx, unit, lim.Race, args)
 	cmd.Dir = dir
 	// GOFLAGS= — не тащим внешние теги; GOWORK=off — изолируем тест во временной
 	// копии от go.work в корне репозитория (иначе модуль резолвится в настоящий
@@ -110,25 +125,44 @@ func runGoTest(ctx context.Context, dir string, args []string, lim runLimits) te
 	cmd.Stdout, cmd.Stderr = out, out
 
 	start := time.Now()
-	_ = cmd.Run() // код выхода не нужен: исход читается из событий и из ctx
+	runErr := cmd.Run() // код выхода не нужен (исход — в событиях и в ctx), важно только «не запустилась вовсе»
+	// Срок и длительность снимаем сразу: опрос области и разбор полного буфера идут
+	// секунды, и прогон, закончившийся у самого срока, получал бы «остановлен целиком».
+	ctxErr := ctx.Err()
+	duration := time.Since(start).Round(time.Millisecond).String()
+	bg := context.WithoutCancel(ctx) // срок прогона мог выйти, а итог области ещё нужен
+	hit := lim.Mem.hitLimit(bg, unit, out.buf.Bytes())
+	if lim.Mem.Mode == memCgroup {
+		cleanupUnit(bg, unit)
+	}
 	raw := out.buf.Bytes()
 	if out.truncated {
 		// Потолок режет поток посреди события: обрывок JSON ушёл бы в вывод как есть.
 		raw = raw[:bytes.LastIndexByte(raw, '\n')+1]
 	}
 	res := parseTestOutput(raw)
-	res.Duration = time.Since(start).Round(time.Millisecond).String()
+	res.Duration = duration
 	res.Truncated = out.truncated
 	switch {
+	case hit: // первой: у самого предела тест может ещё и не уложиться в срок, но причина — память
+		res.MemLimit, res.Timeout = true, false
+		who := strings.Join(markUnfinished(&res, "memory"), ", ")
+		if who == "" {
+			who = "прогон"
+		}
+		res.Reason = fmt.Sprintf("%s: упёрлось в предел памяти %s — похоже на бесконечный рост (например, обход без visited)", who, lim.Mem.limitText(lim.Race))
 	case res.Timeout: // сработал -timeout бинарника: тест уже назван
-	case ctx.Err() == context.DeadlineExceeded:
+	case ctxErr == context.DeadlineExceeded:
 		res.Timeout = true
 		markUnfinished(&res, "timeout")
 		res.Reason = fmt.Sprintf("прогон не уложился в %s и остановлен целиком — похоже на бесконечный цикл", lim.Deadline)
+	case ctxErr == nil && notStarted(runErr):
+		// Вывода нет вовсе: без причины это выглядело бы ошибкой компиляции.
+		res.Reason = fmt.Sprintf("прогон не запустился: %v", runErr)
 	case out.truncated:
 		res.Reason = fmt.Sprintf("вывод обрезан на %d КиБ — похоже на печать в бесконечном цикле; убери отладочный вывод и запусти снова", lim.MaxOutput>>10)
 	}
-	res.OK = res.Build && res.Failed == 0 && res.Passed > 0 && !res.Race && !res.Timeout && !res.Truncated
+	res.OK = res.Build && res.Failed == 0 && res.Passed > 0 && !res.Race && !res.Timeout && !res.Truncated && !res.MemLimit
 	return res
 }
 

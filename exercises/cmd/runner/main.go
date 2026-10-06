@@ -14,8 +14,15 @@
 // держит тестовый бинарник до его собственных десяти минут. Ctrl+C (и SIGTERM)
 // останавливает сервер вместе с идущим прогоном — см. serve.
 //
+// Предел памяти (mem.go) — 2 ГиБ на прогон, флаг -mem-mb (0 — без предела).
+// Способ выбирается при старте: область systemd с MemoryMax, если пользовательский
+// systemd её даёт; иначе prlimit на адреса тестового бинарника; иначе предела нет
+// — об этом пишет лог, а виджет показывает предупреждение. Действующий способ
+// отдаёт /api/health (поле limits).
+//
 // Безопасность: сервис ЛОКАЛЬНЫЙ и однопользовательский — он запускает твой же
-// код на твоей машине, поэтому песочница не нужна. Слушает только localhost, и
+// код на твоей машине, поэтому песочницы нет (пределы времени и памяти — не
+// изоляция: они только не дают решению подвесить машину). Слушает только localhost, и
 // это НЕ настройка по умолчанию, а инвариант: адрес принудительно приводится к
 // localhost, что бы ни передали в -addr. НО: /api/run исполняет присланный код,
 // поэтому CORS ограничен известными origin'ами книги (localhost + GitHub Pages)
@@ -27,11 +34,13 @@
 // «наружу» — это всё ещё изолированная сеть контейнера, а до хоста порт
 // доводит уже docker, которому и решать, кому его показывать:
 //
-//	docker run --rm -p 127.0.0.1:8080:8080 -v "$PWD:/w" -w /w/exercises \
-//	  golang:1.24 go run ./cmd/runner -listen-all
+//	docker run --rm --memory=2g --memory-swap=2g -p 127.0.0.1:8080:8080 \
+//	  -v "$PWD:/w" -w /w/exercises golang:1.24 go run ./cmd/runner -listen-all
 //
 // Публикация вида `-p 8080:8080` (без 127.0.0.1) отдаст исполнение
-// произвольного кода всей локальной сети — так делать не надо.
+// произвольного кода всей локальной сети — так делать не надо. В контейнере
+// systemd нет: работают prlimit и предел самого контейнера (--memory), упор в
+// него виден как «signal: killed».
 package main
 
 import (
@@ -66,6 +75,7 @@ var pkgName = regexp.MustCompile(`^[a-z][a-z0-9]*$`)
 func main() {
 	addr := flag.String("addr", ":8080", "адрес прослушивания (localhost)")
 	listenAll := flag.Bool("listen-all", false, "слушать на всех интерфейсах — ТОЛЬКО внутри контейнера/ВМ")
+	memMB := flag.Int("mem-mb", 2048, "предел памяти одного прогона, МиБ (0 — без предела)")
 	flag.Parse()
 
 	root, err := findModuleRoot()
@@ -75,9 +85,23 @@ func main() {
 	moduleRoot = root
 	log.Printf("runner: модуль %s", moduleRoot)
 
-	srv := newServer()
+	limiter := detectMemLimiter(context.Background(), int64(*memMB)<<20)
+	switch limiter.Mode {
+	case memCgroup:
+		log.Printf("runner: предел памяти прогона — %s (область systemd с MemoryMax, без подкачки)", humanBytes(limiter.Bytes))
+	case memRlimit:
+		log.Printf("runner: предел памяти прогона — %s адресов тестового бинарника (prlimit; области systemd --user с пределом нет)", humanBytes(limiter.Bytes))
+	default:
+		if *memMB > 0 {
+			log.Print("runner: ВНИМАНИЕ: предела памяти нет — ни systemd --user, ни prlimit; бесконечный рост в решении может занять всю память машины")
+		} else {
+			log.Print("runner: предел памяти выключен (-mem-mb 0)")
+		}
+	}
+
+	srv := newServer(limiter)
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/health", withCORS(handleHealth))
+	mux.HandleFunc("/api/health", withCORS(srv.handleHealth))
 	mux.HandleFunc("/api/stub", withCORS(handleStub))
 	mux.HandleFunc("/api/run", withCORS(srv.handleRun))
 	mux.HandleFunc("/api/trace", withCORS(srv.handleTrace))
@@ -204,8 +228,14 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 
 // ---- handlers ----
 
-func handleHealth(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "module": moduleRoot})
+// handleHealth, кроме «жив», сообщает действующие пределы: виджет показывает их в
+// шапке и предупреждает, когда предела памяти нет.
+func (s *server) handleHealth(w http.ResponseWriter, _ *http.Request) {
+	lim := s.limits(false)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "module": moduleRoot, "limits": map[string]any{
+		"memory": lim.Mem.Mode, "memoryBytes": lim.Mem.Bytes, "memoryText": humanBytes(lim.Mem.Bytes),
+		"testTimeout": lim.TestTimeout.String(), "raceTimeout": s.limits(true).TestTimeout.String(),
+	}})
 }
 
 // server — состояние между запросами. Окно slot (ёмкость 1) пускает один прогон
@@ -216,11 +246,17 @@ type server struct {
 	traceLimits func() runLimits
 }
 
-func newServer() *server {
+// newServer: mem — предел памяти, выбранный при старте (detectMemLimiter); он
+// один на прогоны и трассы.
+func newServer(mem memLimiter) *server {
 	return &server{
-		slot:        make(chan struct{}, 1),
-		limits:      defaultLimits,
-		traceLimits: func() runLimits { return runLimits{Deadline: 5 * time.Second, MaxOutput: maxRunOutput} },
+		slot: make(chan struct{}, 1),
+		limits: func(race bool) runLimits {
+			lim := defaultLimits(race)
+			lim.Mem = mem
+			return lim
+		},
+		traceLimits: func() runLimits { return runLimits{Deadline: 5 * time.Second, MaxOutput: maxRunOutput, Mem: mem} },
 	}
 }
 

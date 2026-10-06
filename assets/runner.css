@@ -21,10 +21,13 @@ html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
 }
 .algo-runner--ready { background: var(--bg, #fff); }
 
+/* flex-wrap: с плашкой пределов шапка на телефоне не помещается в строку — без
+   переноса плашки сжимались в столбики по слову («🏁 / - / race»). */
 .algo-runner__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 6px 10px;
   margin-bottom: 8px;
   font-size: 13px;
 }
@@ -45,6 +48,9 @@ html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
   background: color-mix(in srgb, var(--ar-err) 14%, transparent);
   color: var(--ar-err);
 }
+/* Действующие пределы прогона (память и срок теста); is-warn — предела памяти нет. */
+.algo-runner__limits { font-size: 11px; opacity: 0.8; }
+.algo-runner__limits.is-warn { color: var(--ar-warn); opacity: 1; font-weight: 700; }
 
 /* Мок-интервью гоняет только тесты одной функции — это надо видеть, иначе
    «всё зелёное» читается как «пакет решён». */

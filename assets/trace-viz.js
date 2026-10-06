@@ -7,7 +7,7 @@
  * один универсальный рендер, который работает для ЛЮБОЙ инструментированной
  * функции без ручной настройки под конкретный паттерн. Данные приходят от
  * /api/trace (см. cmd/runner/trace.go): { ok, unsupported?, build,
- * timeout?, panic?, reason?, message?, output?, result?, source,
+ * timeout?, memLimit?, panic?, reason?, message?, output?, result?, source,
  * steps: [{step, line, tag, vars}], duration }. source — код читателя ПОСЛЕ
  * stripBuildTag: steps[].line нумерует строки именно в нём.
  *
@@ -299,8 +299,9 @@
       container.appendChild(box);
       return;
     }
-    if (resp.timeout) {
-      renderTimeline(container, resp, banner("err", "⏱", resp.reason || "не уложились в таймаут"));
+    // Остановка по сроку или по пределу памяти: шаги до остановки показываем, причина — в reason.
+    if (resp.timeout || resp.memLimit) {
+      renderTimeline(container, resp, banner("err", resp.memLimit ? "💾" : "⏱", resp.reason || "не уложились в таймаут"));
       return;
     }
     if (resp.panic) {
@@ -320,7 +321,8 @@
       renderTimeline(container, resp, banner("ok", "✓", head));
       return;
     }
-    container.appendChild(banner("err", "✗", "Не удалось построить трассу"));
+    // reason без других признаков — харнесс собрался, но не запустился (сервер пишет, почему).
+    container.appendChild(banner("err", "✗", resp.reason || "Не удалось построить трассу"));
   }
 
   window.AlgoTraceViz = { render: render };

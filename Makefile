@@ -41,7 +41,9 @@ build:
 
 ## docker-runner: runner в контейнере (если Go локально не установлен)
 docker-runner:
-	docker run --rm -p 127.0.0.1:8080:8080 -v "$(CURDIR):/w" -w /w/exercises \
+	@# --memory/--memory-swap: в контейнере нет systemd, runner ограничивает прогон через
+	@# prlimit (адреса), а настоящую память всего контейнера держит docker.
+	docker run --rm --memory=2g --memory-swap=2g -p 127.0.0.1:8080:8080 -v "$(CURDIR):/w" -w /w/exercises \
 	  golang:1.24 go run ./cmd/runner -listen-all
 
 ## pg-lab: поднять Postgres-лабораторию к главе «Postgres: EXPLAIN как pprof»

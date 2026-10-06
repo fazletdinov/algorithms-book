@@ -299,6 +299,7 @@ type traceResponse struct {
 	Unsupported bool        `json:"unsupported,omitempty"`
 	Build       bool        `json:"build"`
 	Timeout     bool        `json:"timeout,omitempty"`
+	MemLimit    bool        `json:"memLimit,omitempty"`
 	Panic       bool        `json:"panic,omitempty"`
 	Reason      string      `json:"reason,omitempty"`
 	Message     string      `json:"message,omitempty"`
@@ -513,7 +514,8 @@ func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, l
 
 	runCtx, cancelRun := context.WithTimeout(ctx, lim.Deadline)
 	defer cancelRun()
-	run := groupCommand(runCtx, binPath)
+	unit := unitName()
+	run := lim.Mem.binary(runCtx, unit, binPath)
 	run.Dir = tmp
 	stdout, stderr := &cappedBuffer{limit: lim.MaxOutput}, &cappedBuffer{limit: lim.MaxOutput}
 	run.Stdout, run.Stderr = stdout, stderr
@@ -521,10 +523,20 @@ func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, l
 	start := time.Now()
 	runErr := run.Run()
 	duration := time.Since(start).Round(time.Millisecond).String()
+	expired := runCtx.Err() == context.DeadlineExceeded // сразу: опрос области ниже тоже занимает время
+	bg := context.WithoutCancel(ctx)                    // срок запуска мог выйти, а итог области ещё нужен
+	hit := lim.Mem.hitLimit(bg, unit, stderr.buf.Bytes())
+	if lim.Mem.Mode == memCgroup {
+		cleanupUnit(bg, unit)
+	}
 
 	steps, result := parseTraceOutput(stdout.buf.String())
 
-	if runCtx.Err() == context.DeadlineExceeded || stdout.truncated {
+	if hit {
+		reason := "выполнение упёрлось в предел памяти " + lim.Mem.limitText(false) + " — похоже на бесконечный рост (например, обход без visited)"
+		return traceResponse{Build: true, MemLimit: true, Reason: reason, Steps: steps, Duration: duration}
+	}
+	if expired || stdout.truncated {
 		reason := fmt.Sprintf("выполнение не уложилось в %s — похоже на бесконечный цикл", lim.Deadline)
 		if stdout.truncated {
 			reason = fmt.Sprintf("трасса не поместилась в %d КиБ — похоже на очень длинный или бесконечный цикл; возьми вход поменьше", lim.MaxOutput>>10)
@@ -534,6 +546,11 @@ func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, l
 	}
 	if msg, ok := findPanic(stderr.buf.String()); ok {
 		return traceResponse{Build: true, Panic: true, Message: msg, Steps: steps, Duration: duration}
+	}
+	if notStarted(runErr) {
+		// Не паника в коде читателя: бинарник (или ограничитель памяти перед ним) не
+		// стартовал. Виджет показывает reason последней веткой.
+		return traceResponse{Build: true, Reason: "трасса не запустилась: " + runErr.Error(), Steps: steps, Duration: duration}
 	}
 	if runErr != nil {
 		// сбой без нашего recover() (например, убит сигналом) — покажем как есть

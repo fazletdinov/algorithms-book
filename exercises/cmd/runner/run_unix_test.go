@@ -130,7 +130,7 @@ func TestHandleRunHangingSolution(t *testing.T) {
 		"spin/spin.go":      "package spin\n\nfunc Spin() int { panic(\"TODO\") }\n",
 		"spin/spin_test.go": "package spin\n\nimport \"testing\"\n\nfunc TestQuick(t *testing.T) {}\n\nfunc TestSpin(t *testing.T) { Spin() }\n",
 	})
-	srv := newServer()
+	srv := newServer(memLimiter{Mode: memNone})
 	srv.limits = func(bool) runLimits {
 		return runLimits{TestTimeout: 2 * time.Second, Deadline: 2 * time.Minute, MaxOutput: maxRunOutput}
 	}
@@ -157,7 +157,7 @@ func TestHandleRunShowsCompileError(t *testing.T) {
 	})
 	body := `{"pkg":"spin","code":"package spin\n\nfunc Spin() int { return undefinedName }\n"}`
 	rec := httptest.NewRecorder()
-	newServer().handleRun(rec, httptest.NewRequest(http.MethodPost, "/api/run", strings.NewReader(body)))
+	newServer(memLimiter{Mode: memNone}).handleRun(rec, httptest.NewRequest(http.MethodPost, "/api/run", strings.NewReader(body)))
 	for _, want := range []string{`"build":false`, `spin.go:3:26: undefined: undefinedName`} {
 		if !strings.Contains(rec.Body.String(), want) {
 			t.Errorf("в ответе нет %s:\n%.600s", want, rec.Body.String())
@@ -177,7 +177,7 @@ func TestServeStopKillsRunningTests(t *testing.T) {
 	})
 	pidFile := filepath.Join(t.TempDir(), "pid")
 	t.Setenv("RUNNER_PIDFILE", pidFile)
-	srv := newServer()
+	srv := newServer(memLimiter{Mode: memNone})
 	srv.limits = func(bool) runLimits { // сроки далеко: остановить прогон может только сервер
 		return runLimits{TestTimeout: time.Minute, Deadline: 2 * time.Minute, MaxOutput: maxRunOutput}
 	}
@@ -231,7 +231,7 @@ func TestHandlersWaitForSlot(t *testing.T) {
 	t.Cleanup(func() { moduleRoot = old })
 	const code = "package dp\n\nfunc ClimbStairs(n int) int {\n\tways := 0\n\tfor i := 0; i < n; i++ {\n\t\tways += i\n\t}\n\treturn ways\n}\n"
 	moduleRoot = writeModule(t, map[string]string{"dp/dp.go": code})
-	srv := newServer()
+	srv := newServer(memLimiter{Mode: memNone})
 	srv.acquire(context.Background()) // окно занято другим прогоном
 	gone, cancel := context.WithCancel(context.Background())
 	cancel()

@@ -145,11 +145,35 @@
   // runStatus — строка состояния после прогона. Отдельная функция: её проверяет смоук без сервера.
   function runStatus(res) {
     if (res.ok) return { text: "✓ всё зелёное · " + res.duration, cls: "ok" };
+    if (res.memLimit) return { text: "💾 предел памяти · " + res.duration, cls: "err" };
     if (res.timeout) return { text: "⏱ не уложилось по времени · " + res.duration, cls: "err" };
     if (res.race) return { text: "🏁 гонка данных · " + res.duration, cls: "err" };
     return { text: "✗ есть падения · " + res.duration, cls: "err" };
   }
-  function killMark(res) { return res.timeout ? "⏱ " : "✂ "; }
+  // Значок перед причиной: память, срок, обрезанный вывод; ✗ — прогон не запустился вовсе.
+  function killMark(res) { return res.memLimit ? "💾 " : res.timeout ? "⏱ " : res.truncated ? "✂ " : "✗ "; }
+
+  // limitsBadge — что показать в шапке про действующие пределы (ответ /api/health).
+  // race — виджет с data-race: у его тестов свой срок.
+  function limitsBadge(lim, race) {
+    if (!lim) return null;
+    // Срок — строка time.Duration: «20s» пишем как «20 с», а «1m30s» оставляем как есть
+    // (parseInt дал бы «1 с»).
+    var raw = String(race ? lim.raceTimeout : lim.testTimeout);
+    var t = /^\d+s$/.test(raw) ? parseInt(raw, 10) + " с" : raw;
+    if (lim.memory === "none") return { text: "⚠ без предела памяти · " + t, cls: "warn",
+      title: "Предел памяти не действует: он выключен флагом -mem-mb 0, либо runner не нашёл ни systemd --user, ни prlimit. Бесконечный рост — например, обход без visited — может занять всю память машины. Безопасный вариант: make docker-runner." };
+    if (lim.memory === "rlimit") return { text: "предел адресов " + lim.memoryText + " · " + t, cls: "",
+      title: "Память ограничена через адресное пространство тестового бинарника (prlimit): грубее настоящего предела, но бесконечный рост останавливает. Тестам с -race адресов даётся больше — детектору гонок нужна теневая память." };
+    return { text: "предел " + lim.memoryText + " · " + t, cls: "", title: "Прогон идёт в отдельной области с пределом памяти; тест, не уложившийся в срок, останавливается." };
+  }
+
+  // Пределы у сервера одни на все виджеты: один запрос на страницу.
+  var healthPromise = null;
+  function health() {
+    if (!healthPromise) healthPromise = api("/api/health", {});
+    return healthPromise;
+  }
 
   // ---- рендер одного виджета ----
 
@@ -247,6 +271,13 @@
         editor = ed;
         setStatus("сервер на связи", "ok");
         editorHost.addEventListener("input", saveSoon, true);
+        health().then(function (h) {
+          var b = limitsBadge(h.limits, race);
+          if (!b) return; // сервер старше плашки: поля limits в ответе нет
+          var s = el("span", "algo-runner__limits" + (b.cls ? " is-" + b.cls : ""), b.text);
+          s.title = b.title;
+          head.insertBefore(s, status);
+        }).catch(function () { /* плашка — справка: без неё виджет работает как раньше */ });
       })
       .catch(function (err) {
         serverDownView(out, err);
@@ -331,7 +362,7 @@
 
   function renderResult(out, res) {
     out.innerHTML = "";
-    // Остановка по времени или по потолку вывода — не «упал тест»: сначала говорим, что случилось.
+    // Остановка по времени, памяти или потолку вывода — не «упал тест»: сначала говорим, что случилось.
     if (res.reason) out.appendChild(el("div", "algo-runner__verdict is-err", killMark(res) + res.reason));
     if (!res.build) {
       if (!res.reason) out.appendChild(el("div", "algo-runner__verdict is-err", "✗ Ошибка компиляции"));
@@ -400,7 +431,7 @@
           "<p>Или только runner:</p>" +
           "<pre>cd exercises &amp;&amp; go run ./cmd/runner</pre>") +
       "<p>Go не установлен? Тот же runner через Docker, из корня репозитория:</p>" +
-      "<pre>docker run --rm -p 127.0.0.1:8080:8080 -v \"$PWD:/w\" \\\n  -w /w/exercises golang:1.24 go run ./cmd/runner -listen-all</pre>" +
+      "<pre>docker run --rm --memory=2g --memory-swap=2g -p 127.0.0.1:8080:8080 \\\n  -v \"$PWD:/w\" -w /w/exercises golang:1.24 go run ./cmd/runner -listen-all</pre>" +
       "<p class='algo-runner__hint'>Публикация именно на <code>127.0.0.1</code> и <code>-listen-all</code> " +
       "только внутри контейнера — снаружи runner не должен быть доступен никому: он исполняет " +
       "присланный код.</p>" +
@@ -432,7 +463,7 @@
   // DOMContentLoaded к тому моменту давно прошёл, поэтому она поднимает его явно.
   window.ALGO_RUNNER_INIT = initAll;
   // Вид результата без сервера: смоук scripts/runner-render-check.js подаёт сюда готовые ответы.
-  window.ALGO_RUNNER_VIEW = { result: renderResult, status: runStatus };
+  window.ALGO_RUNNER_VIEW = { result: renderResult, status: runStatus, limits: limitsBadge };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initAll);
