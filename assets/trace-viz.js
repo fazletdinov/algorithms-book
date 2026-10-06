@@ -6,7 +6,7 @@
  * канонических примеров через bespoke-конфиги DASH/buildDashboard, а этот —
  * один универсальный рендер, который работает для ЛЮБОЙ инструментированной
  * функции без ручной настройки под конкретный паттерн. Данные приходят от
- * /api/trace (см. cmd/runner/trace.go): { ok, unsupported?, build?,
+ * /api/trace (см. cmd/runner/trace.go): { ok, unsupported?, build,
  * timeout?, panic?, reason?, message?, output?, result?, source,
  * steps: [{step, line, tag, vars}], duration }. source — код читателя ПОСЛЕ
  * stripBuildTag: steps[].line нумерует строки именно в нём.
@@ -290,6 +290,8 @@
       container.appendChild(banner("warn", "△", resp.reason || "эта форма кода пока не поддерживает визуализацию"));
       return;
     }
+    // build сервер шлёт всегда. У неподдерживаемой формы он тоже false (харнесс не
+    // собирался вовсе) — поэтому unsupported проверяется выше, а не здесь.
     if (resp.build === false) {
       var box = el("div");
       box.appendChild(banner("err", "✗", "Код не скомпилировался для визуализации"));

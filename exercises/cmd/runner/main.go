@@ -11,7 +11,8 @@
 //
 // Пределы прогона (run.go): тесту — 20 с (45 с с -race), сырому выводу — 4 МиБ,
 // прогоны идут по одному. Зависшее решение получает ответ с причиной, а не
-// держит тестовый бинарник до его собственных десяти минут.
+// держит тестовый бинарник до его собственных десяти минут. Ctrl+C (и SIGTERM)
+// останавливает сервер вместе с идущим прогоном — см. serve.
 //
 // Безопасность: сервис ЛОКАЛЬНЫЙ и однопользовательский — он запускает твой же
 // код на твоей машине, поэтому песочница не нужна. Слушает только localhost, и
@@ -37,16 +38,20 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -88,10 +93,50 @@ func main() {
 			"/api/run исполняет присланный код: это безопасно только внутри контейнера/ВМ, "+
 			"порт которого опубликован на 127.0.0.1", listen)
 	}
-	log.Printf("runner: слушаю http://localhost%s — Ctrl+C для остановки", *addr)
-	if err := http.ListenAndServe(listen, mux); err != nil {
+	ln, err := net.Listen("tcp", listen)
+	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("runner: слушаю http://localhost%s — Ctrl+C для остановки", *addr)
+	// Ctrl+C и SIGTERM не убивают процесс сразу, а гасят ctx: только так сигнал
+	// доходит до прогонов, которые живут в своих группах процессов (см. serve).
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	err = serve(ctx, ln, mux)
+	stop()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Print("runner: остановлен")
+}
+
+// shutdownGrace — сколько serve ждёт обработчики после остановки. Группы
+// процессов убиты уже в момент отмены; срок нужен, чтобы Wait отпустил трубы
+// (WaitDelay — 2 с), а обработчик убрал временный каталог.
+const shutdownGrace = 5 * time.Second
+
+// serve обслуживает ln, пока жив ctx; ctx — база контекста каждого запроса.
+// Прогоны живут в своих группах процессов (groupCommand), и сигнал, который
+// терминал по Ctrl+C или `kill 0` из make serve шлёт группе runner'а, до них не
+// доходит: без этой связи зависший тест переживал сервер. Отмена ctx доходит
+// до r.Context() и убивает группу тем же путём, что уход клиента.
+func serve(ctx context.Context, ln net.Listener, h http.Handler) error {
+	srv := &http.Server{Handler: h, BaseContext: func(net.Listener) context.Context { return ctx }}
+	stopping, release := context.WithCancel(ctx)
+	drained := make(chan struct{})
+	go func() {
+		defer close(drained)
+		<-stopping.Done()
+		grace, cancel := context.WithTimeout(context.Background(), shutdownGrace)
+		defer cancel()
+		_ = srv.Shutdown(grace) // не уложились — выходим всё равно: группы уже убиты
+	}()
+	err := srv.Serve(ln)
+	release() // Serve мог упасть и сам — отпускаем горутину выше
+	<-drained
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return err
 }
 
 // findModuleRoot поднимается вверх от текущего каталога до go.mod с нужным

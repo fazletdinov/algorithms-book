@@ -26,6 +26,22 @@ func TestParseTestOutput(t *testing.T) {
 	if res.Timeout || res.Reason != "" || res.Tests[0].Killed != "" || res.Failed != 1 {
 		t.Fatalf("обычное падение: %+v", res)
 	}
+	// Ошибка компиляции. Поток снят с настоящего go test -json (одинаков на 1.24.0 и
+	// 1.26.5): текст компилятора идёт событиями build-output с ImportPath вместо
+	// Package, а output у пакета — одна строка FAIL. Без build-output читатель видел
+	// «Ошибка компиляции» и ни слова о том, где она.
+	res = parseTestOutput([]byte(strings.Join([]string{
+		`{"ImportPath":"probe/b [probe/b.test]","Action":"build-output","Output":"# probe/b [probe/b.test]\n"}`,
+		`{"ImportPath":"probe/b [probe/b.test]","Action":"build-output","Output":"b/b.go:3:28: undefined: undefinedName\n"}`,
+		`{"ImportPath":"probe/b [probe/b.test]","Action":"build-fail"}`,
+		`{"Time":"2026-10-06T13:04:32.862444448+03:00","Action":"start","Package":"probe/b"}`,
+		`{"Time":"2026-10-06T13:04:32.862478237+03:00","Action":"output","Package":"probe/b","Output":"FAIL\tprobe/b [build failed]\n"}`,
+		`{"Time":"2026-10-06T13:04:32.86248191+03:00","Action":"fail","Package":"probe/b","Elapsed":0,"FailedBuild":"probe/b [probe/b.test]"}`,
+	}, "\n")))
+	want = "# probe/b [probe/b.test]\nb/b.go:3:28: undefined: undefinedName\nFAIL\tprobe/b [build failed]"
+	if res.Build || res.Timeout || res.Output != want {
+		t.Fatalf("ошибка компиляции: build=%v timeout=%v output=%q", res.Build, res.Timeout, res.Output)
+	}
 }
 
 func TestCappedBuffer(t *testing.T) {

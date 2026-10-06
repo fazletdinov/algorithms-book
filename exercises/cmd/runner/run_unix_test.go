@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -144,6 +145,84 @@ func TestHandleRunHangingSolution(t *testing.T) {
 	}
 }
 
+// Сквозной случай «опечатка в решении». Как печатает ошибку эта версия go —
+// сырым текстом (до 1.24) или событиями build-output, — не важно: читатель
+// обязан получить строку компилятора, а не одно «[build failed]».
+func TestHandleRunShowsCompileError(t *testing.T) {
+	old := moduleRoot
+	t.Cleanup(func() { moduleRoot = old })
+	moduleRoot = writeModule(t, map[string]string{
+		"spin/spin.go":      "package spin\n\nfunc Spin() int { panic(\"TODO\") }\n",
+		"spin/spin_test.go": "package spin\n\nimport \"testing\"\n\nfunc TestSpin(t *testing.T) { Spin() }\n",
+	})
+	body := `{"pkg":"spin","code":"package spin\n\nfunc Spin() int { return undefinedName }\n"}`
+	rec := httptest.NewRecorder()
+	newServer().handleRun(rec, httptest.NewRequest(http.MethodPost, "/api/run", strings.NewReader(body)))
+	for _, want := range []string{`"build":false`, `spin.go:3:26: undefined: undefinedName`} {
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Errorf("в ответе нет %s:\n%.600s", want, rec.Body.String())
+		}
+	}
+}
+
+// Ctrl+C в терминале и `kill 0` в make serve шлют сигнал группе runner'а, а
+// прогон живёт в своей (groupCommand) и сам сигнала не получит. Остановка
+// сервера обязана дойти до него через базовый контекст запросов.
+func TestServeStopKillsRunningTests(t *testing.T) {
+	old := moduleRoot
+	t.Cleanup(func() { moduleRoot = old })
+	moduleRoot = writeModule(t, map[string]string{
+		"hang/hang.go":      "package hang\n",
+		"hang/hang_test.go": hangTest,
+	})
+	pidFile := filepath.Join(t.TempDir(), "pid")
+	t.Setenv("RUNNER_PIDFILE", pidFile)
+	srv := newServer()
+	srv.limits = func(bool) runLimits { // сроки далеко: остановить прогон может только сервер
+		return runLimits{TestTimeout: time.Minute, Deadline: 2 * time.Minute, MaxOutput: maxRunOutput}
+	}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, stop := context.WithCancel(context.Background())
+	defer stop()
+	served := make(chan error, 1)
+	go func() { served <- serve(ctx, ln, http.HandlerFunc(srv.handleRun)) }()
+	go func() { // клиент ждёт ответа всё время прогона, как виджет
+		resp, err := http.Post("http://"+ln.Addr().String()+"/api/run", "application/json",
+			strings.NewReader(`{"pkg":"hang","code":"package hang\n"}`))
+		if err == nil {
+			resp.Body.Close()
+		}
+	}()
+
+	pid := 0
+	for start := time.Now(); pid == 0 && time.Since(start) < 90*time.Second; time.Sleep(100 * time.Millisecond) {
+		b, _ := os.ReadFile(pidFile)
+		pid, _ = strconv.Atoi(string(b))
+	}
+	if pid == 0 {
+		t.Fatal("тестовый бинарник не стартовал за 90 с")
+	}
+	stop() // то, что в main делает SIGINT/SIGTERM
+	select {
+	case err := <-served:
+		if err != nil {
+			t.Errorf("serve вернул ошибку вместо штатной остановки: %v", err)
+		}
+	case <-time.After(shutdownGrace + 5*time.Second):
+		t.Error("serve не вернулся после остановки")
+	}
+	for start := time.Now(); !processGone(pid) && time.Since(start) < 3*time.Second; {
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !processGone(pid) {
+		syscall.Kill(pid, syscall.SIGKILL) // не оставляем сироту после красного теста
+		t.Fatalf("тестовый бинарник (pid %d) пережил остановку сервера", pid)
+	}
+}
+
 // Окно стоит в самих обработчиках: пока оно занято, запрос ждёт, а не запускает
 // второй компилятор рядом. Клиент здесь уже ушёл — обработчик обязан вернуться,
 // ничего не запустив и ничего не ответив.
@@ -176,5 +255,26 @@ func TestTraceHarnessStopsFlood(t *testing.T) {
 	resp := runTraceHarness(context.Background(), dir, "F", "p.F()", lim)
 	if !resp.Timeout || resp.Reason == "" || time.Since(start) > 40*time.Second || len(resp.Steps) > lim.MaxOutput/13 {
 		t.Fatalf("timeout=%v reason=%q шагов=%d за %s", resp.Timeout, resp.Reason, len(resp.Steps), time.Since(start))
+	}
+	// trace-viz.js проверяет build раньше, чем timeout: остановленный запуск — собранный код
+	if !resp.Build {
+		t.Error("остановка трассы помечена build=false — виджет показал бы её как ошибку компиляции")
+	}
+}
+
+// trace-viz.js узнаёт ошибку сборки по resp.build === false. С omitempty ложное
+// поле из ответа пропадало, и читатель видел голое «Не удалось построить трассу»
+// вместо вывода компилятора.
+func TestTraceBuildErrorReachesWidget(t *testing.T) {
+	dir := writeModule(t, map[string]string{"tracecmd/main.go": "package main\n\nfunc main() { undefinedName() }\n"})
+	resp := runTraceHarness(context.Background(), dir, "F", "p.F()", runLimits{Deadline: 5 * time.Second, MaxOutput: maxRunOutput})
+	body, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"build":false`, `main.go:3:15: undefined: undefinedName`} {
+		if !strings.Contains(string(body), want) {
+			t.Errorf("в ответе нет %s:\n%.600s", want, body)
+		}
 	}
 }

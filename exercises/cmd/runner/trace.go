@@ -290,10 +290,14 @@ type traceStep struct {
 	Vars map[string]any `json:"vars"`
 }
 
+// traceResponse — ответ /api/trace. Build («харнесс собрался») идёт БЕЗ
+// omitempty намеренно: trace-viz.js узнаёт ошибку сборки по build === false, а
+// опущенное поле для него — undefined, и читатель вместо вывода компилятора
+// видел «Не удалось построить трассу».
 type traceResponse struct {
 	OK          bool        `json:"ok"`
 	Unsupported bool        `json:"unsupported,omitempty"`
-	Build       bool        `json:"build,omitempty"`
+	Build       bool        `json:"build"`
 	Timeout     bool        `json:"timeout,omitempty"`
 	Panic       bool        `json:"panic,omitempty"`
 	Reason      string      `json:"reason,omitempty"`
@@ -525,7 +529,8 @@ func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, l
 		if stdout.truncated {
 			reason = fmt.Sprintf("трасса не поместилась в %d КиБ — похоже на очень длинный или бесконечный цикл; возьми вход поменьше", lim.MaxOutput>>10)
 		}
-		return traceResponse{Timeout: true, Reason: reason, Steps: steps, Duration: duration}
+		// Build: true — виджет проверяет build раньше, чем timeout.
+		return traceResponse{Build: true, Timeout: true, Reason: reason, Steps: steps, Duration: duration}
 	}
 	if msg, ok := findPanic(stderr.buf.String()); ok {
 		return traceResponse{Build: true, Panic: true, Message: msg, Steps: steps, Duration: duration}

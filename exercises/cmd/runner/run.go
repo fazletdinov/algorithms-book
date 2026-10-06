@@ -164,7 +164,10 @@ func parseTestOutput(out []byte) testResult {
 			timeout = m[1]
 		}
 		if ev.Test == "" {
-			if ev.Action == "output" {
+			// build-output — текст компилятора: с Go 1.24 он идёт событиями, а не
+			// сырыми строками, и без этой ветки от ошибки компиляции оставалось
+			// одно «FAIL … [build failed]».
+			if ev.Action == "output" || ev.Action == "build-output" {
 				pkgOut.WriteString(ev.Output)
 			}
 			continue
