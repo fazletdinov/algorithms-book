@@ -486,7 +486,7 @@ func findKthLargest(nums []int, k int) int {
 </div>
 
 <div class="algo-challenge" data-type="choice" data-options="n|n log n|log n|√n" data-answer="1" data-explain="Дерево решений из сравнений должно различить n! перестановок → высота ≥ log₂(n!) = Θ(n log n): столько сравнений в худшем случае нужно любой сортировке сравнениями.">
-<div class="algo-challenge__q">Сколько сравнений в худшем случае нужно любой сортировке <b>сравнениями</b>?</div>
+<div class="algo-challenge__q">По порядку роста: сколько сравнений в худшем случае нужно любой сортировке <b>сравнениями</b>?</div>
 </div>
 
 <div class="algo-challenge" data-type="choice" data-options="Так быстрее|Для устойчивости|Чтобы сэкономить память" data-answer="1" data-explain="При равных головах берём из ЛЕВОЙ половины — она шла раньше, значит порядок равных сохраняется.">
