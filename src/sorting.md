@@ -45,7 +45,7 @@
       <li><b>Counting sort</b> — O(n + k) без сравнений, когда ключи — целые в узком диапазоне.</li>
       <li><b>QuickSelect</b> — не сортирует весь массив: k-й элемент по рангу за O(n) в среднем.</li>
     </ul>
-    <p>Сравнениями нельзя быстрее <b>Ω(n log n)</b> — это доказанная нижняя граница (см. «Почему это корректно»). Обойти её можно, только перестав сравнивать элементы (counting / radix).</p>
+    <p>Сортировке сравнениями в худшем случае нужно <b>Ω(n log n)</b> сравнений — это доказанная нижняя граница (см. «Почему это корректно»). Обойти её можно, только перестав сравнивать элементы (counting / radix).</p>
   </div>
 </div>
 
@@ -485,8 +485,8 @@ func findKthLargest(nums []int, k int) int {
 <div class="algo-challenge__q">Какая сортировка одновременно <b>устойчива</b> И работает <b>на месте</b>?</div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="O(n)|O(n log n)|O(log n)|O(√n)" data-answer="1" data-explain="Дерево решений из сравнений должно различить n! перестановок → высота ≥ log₂(n!) = Θ(n log n).">
-<div class="algo-challenge__q">Нижняя граница времени сортировки <b>сравнениями</b>?</div>
+<div class="algo-challenge" data-type="choice" data-options="n|n log n|log n|√n" data-answer="1" data-explain="Дерево решений из сравнений должно различить n! перестановок → высота ≥ log₂(n!) = Θ(n log n): столько сравнений в худшем случае нужно любой сортировке сравнениями.">
+<div class="algo-challenge__q">Сколько сравнений в худшем случае нужно любой сортировке <b>сравнениями</b>?</div>
 </div>
 
 <div class="algo-challenge" data-type="choice" data-options="Так быстрее|Для устойчивости|Чтобы сэкономить память" data-answer="1" data-explain="При равных головах берём из ЛЕВОЙ половины — она шла раньше, значит порядок равных сохраняется.">
@@ -513,7 +513,7 @@ func findKthLargest(nums []int, k int) int {
 <div class="algo-challenge__q">Counting sort для <code>[-3, 5]</code> без смещения на <code>min</code> — что произойдёт?</div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="Merge sort|Pattern-defeating quicksort (pdqsort)|Heap sort|Пузырёк" data-answer="1" data-explain="slices.Sort → pdqsortOrdered: quicksort + insertion для мелких кусков + откат на heapsort от глубокой рекурсии.">
+<div class="algo-challenge" data-type="choice" data-options="Merge sort|Pattern-defeating quicksort (pdqsort)|Heap sort|Пузырёк" data-answer="1" data-explain="slices.Sort → pdqsortOrdered: quicksort + insertion для мелких кусков + откат на heapsort, когда кончился лимит перекошенных разбиений.">
 <div class="algo-challenge__q">Что под капотом у <code>slices.Sort</code> в Go?</div>
 </div>
 
