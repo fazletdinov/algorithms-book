@@ -1,9 +1,19 @@
 package treebfs
 
-import (
-	"reflect"
-	"testing"
-)
+import "testing"
+
+// eqFloats сравнивает по длине и элементам: nil и пустой срез равны, задача не про это.
+func eqFloats(a, b []float64) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
 
 func TestLevelOrder(t *testing.T) {
 	// Дерево:    1
@@ -31,7 +41,7 @@ func TestLevelOrder(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := LevelOrder(tt.root); !reflect.DeepEqual(got, tt.want) {
+			if got := LevelOrder(tt.root); !eqLevels(got, tt.want) {
 				t.Errorf("LevelOrder(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
@@ -68,7 +78,7 @@ func TestZigzagLevelOrder(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ZigzagLevelOrder(tt.root); !reflect.DeepEqual(got, tt.want) {
+			if got := ZigzagLevelOrder(tt.root); !eqLevels(got, tt.want) {
 				t.Errorf("ZigzagLevelOrder(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
@@ -90,7 +100,7 @@ func TestRightSideView(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := RightSideView(tt.root); !reflect.DeepEqual(got, tt.want) {
+			if got := RightSideView(tt.root); !eqInts(got, tt.want) {
 				t.Errorf("RightSideView(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
@@ -109,7 +119,7 @@ func TestLevelAverages(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := LevelAverages(tt.root); !reflect.DeepEqual(got, tt.want) {
+			if got := LevelAverages(tt.root); !eqFloats(got, tt.want) {
 				t.Errorf("LevelAverages(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})

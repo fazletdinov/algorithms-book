@@ -8,7 +8,8 @@
 //
 //	go test ./sampling/
 //
-// Тесты должны стать зелёными. Эталон лежит в sampling_solution.go; убедиться, что он проходит те же тесты:
+// Тесты должны стать зелёными. Эталон лежит в sampling_solution.go;
+// убедиться, что он проходит те же тесты:
 //
 //	go test -tags solution ./sampling/
 package sampling

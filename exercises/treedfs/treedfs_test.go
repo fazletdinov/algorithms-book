@@ -1,9 +1,6 @@
 package treedfs
 
-import (
-	"reflect"
-	"testing"
-)
+import "testing"
 
 // Дерево:    1
 //
@@ -31,7 +28,7 @@ func TestPreorderTraversal(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := PreorderTraversal(tt.root); !reflect.DeepEqual(got, tt.want) {
+			if got := PreorderTraversal(tt.root); !eqInts(got, tt.want) {
 				t.Errorf("PreorderTraversal(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
@@ -50,7 +47,7 @@ func TestInorderTraversal(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := InorderTraversal(tt.root); !reflect.DeepEqual(got, tt.want) {
+			if got := InorderTraversal(tt.root); !eqInts(got, tt.want) {
 				t.Errorf("InorderTraversal(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
@@ -69,7 +66,7 @@ func TestPostorderTraversal(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := PostorderTraversal(tt.root); !reflect.DeepEqual(got, tt.want) {
+			if got := PostorderTraversal(tt.root); !eqInts(got, tt.want) {
 				t.Errorf("PostorderTraversal(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})

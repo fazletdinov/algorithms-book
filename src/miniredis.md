@@ -566,7 +566,7 @@ printf 'PING\r\nPING\r\nPING\r\nPING\r\nPING\r\nPING\r\nPING\r\nPING\r\n' | nc l
 («наверное, работает под нагрузкой») в тест, который реально гоняет много горутин по одному
 `Store` и проверяет их под детектором гонок.
 
-`exercises/miniredis/miniredis_concurrent_test.go` (дан готовым, без TODO) добавляет
+`exercises/miniredis/miniredis_zconcurrent_test.go` (дан готовым, без TODO) добавляет
 `TestDispatchConcurrentDelRace`: 8 горутин одновременно шлют `DEL` по одному и тому же набору из
 200 ключей, конкурируя за одни и те же записи `store.data`/`store.expire`. Проверяется не
 «упало/не упало», а точный инвариант — суммарное число реально удалённых ключей по ВСЕМ

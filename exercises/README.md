@@ -94,13 +94,16 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 этого паттерна (`../../src/*.md`), а в самой главе — ссылки на задачи LeetCode для
 практики. Так три слоя связаны: тренажёр → теория → задачи.
 
-Помимо табличных тестов, у пакетов есть рандомизированные (`<пакет>_zrand_test.go`; буква `z` — чтобы файл шёл после табличного:
-`go test` исполняет тесты в порядке файлов, и первое падение должно быть на именованном случае):
+Помимо табличных тестов, у пакетов есть рандомизированные (`<пакет>_zrand_test.go`):
 тысячи случайных входов на фиксированном сиде сверяются с наивной моделью-эталоном —
 они ловят ошибки на границах, которые маленькие ручные кейсы пропускают. Есть они и
 у боевых мини-проектов (`ratelimiter`, `cache`, `leaderboard`, `streamstats`): там
 модель — «наивная, но очевидно корректная» версия той же структуры (полный лог
 запросов, пересортировка на каждый запрос и т.п.).
+
+Буква `z` в имени нужна для порядка: `go test` исполняет тесты в порядке файлов, и
+случайные должны идти после табличных — тогда первое падение на нетронутой заготовке
+приходится на именованный случай первой функции, а не на чужой случайный тест.
 
 | Пакет           | Функции                                      |
 |-----------------|----------------------------------------------|
@@ -173,7 +176,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `cache`         | `TTLCache.Get` / `Put` (боевой мини-проект: LRU-кэш с TTL — прод-версия LRU, модель hashicorp/golang-lru expirable) |
 | `ahocorasick`   | `NewAutomaton`, `Automaton.FindAll` / `ContainsAny`, `Censor` (Trie + ссылки неудачи KMP: все шаблоны за один проход) |
 | `consistenthash` | `NewRing`, `Ring.Add` / `Remove` / `Get`, `MovedFraction`, `JumpHash` (шардирование: кольцо с виртуальными узлами и jump hash против `hash % N`) |
-| `miniredis`     | `dispatchSet` / `dispatchGet` / `dispatchDel` / `dispatchExpire` / `dispatchTTL` / `dispatchZAdd` / `dispatchZScore` / `dispatchZRange` / `dispatchZRank` / `RateLimitReply` / `SaveSnapshot` / `LoadSnapshot` / `dispatchSave` (этапы 2-7: строки+TTL+sorted set+лимит запросов — `ratelimiter.TokenBucket` на соединение, без мьютекса — и снапшот на диск: атомарная запись через временный файл + `os.Rename`, проверенная гонкой SAVE/чтение, а не описанием) — капстоун книги, маршрут пройден (см. [главу](../src/miniredis.md)); протокол (`resp.go`), маршрутизация и `PING`/`ECHO` (`dispatch.go`), `Store`/`live()`/`zsetOrdered()` (`store.go`), сервер с созданием ведра на соединение (`cmd/miniredis`), тест конкурентной безопасности на 8 горутин под `-race` (`miniredis_concurrent_test.go`, этап 6), автозагрузка снапшота при старте и сохранение по SIGINT/SIGTERM (`cmd/miniredis`, этап 7) даны готовыми; бонус — `FuzzReadCommand` (`resp_fuzz_test.go`, coverage-guided `go test -fuzz`) нашёл реальный overflow в `resp.go`, исправленный `maxBulkLen`/`maxMultibulkLen` |
+| `miniredis`     | `dispatchSet` / `dispatchGet` / `dispatchDel` / `dispatchExpire` / `dispatchTTL` / `dispatchZAdd` / `dispatchZScore` / `dispatchZRange` / `dispatchZRank` / `RateLimitReply` / `SaveSnapshot` / `LoadSnapshot` / `dispatchSave` (этапы 2-7: строки+TTL+sorted set+лимит запросов — `ratelimiter.TokenBucket` на соединение, без мьютекса — и снапшот на диск: атомарная запись через временный файл + `os.Rename`, проверенная гонкой SAVE/чтение, а не описанием) — капстоун книги, маршрут пройден (см. [главу](../src/miniredis.md)); протокол (`resp.go`), маршрутизация и `PING`/`ECHO` (`dispatch.go`), `Store`/`live()`/`zsetOrdered()` (`store.go`), сервер с созданием ведра на соединение (`cmd/miniredis`), тест конкурентной безопасности на 8 горутин под `-race` (`miniredis_zconcurrent_test.go`, этап 6), автозагрузка снапшота при старте и сохранение по SIGINT/SIGTERM (`cmd/miniredis`, этап 7) даны готовыми; бонус — `FuzzReadCommand` (`resp_fuzz_test.go`, coverage-guided `go test -fuzz`) нашёл реальный overflow в `resp.go`, исправленный `maxBulkLen`/`maxMultibulkLen` |
 | `codereview`    | `SumSquaresConcurrent` (усечение при делении на `workers` + гонка на разделяемом `total` — чинится каналом с локальными суммами, без мьютекса), `HasDuplicate` (корректен, но O(n²) — ловится дедлайном по времени, не сравнением ответа), `ParseAndSum` (проглоченная ошибка `strconv.Atoi`) — **другой тип задачи**: не пишешь с нуля, а находишь и чинишь изъян в уже работающем коде (см. [главу](../src/code-review.md)) |
 | `profiling`     | `FormatScores` — отвечает верно, но на порядки медленнее нужного, и по коду это не видно; **другой тип задачи**: не читаешь код, а профилируешь (`go tool pprof`), находишь реальный источник (копирование строки при `+=`, не `fmt.Sprintf`, как подсказывает интуиция) и чинишь; проверка фикса — бюджет аллокаций через `testing.AllocsPerRun`, не сравнение ответа (см. [раздел приложения](../src/appendix-go-memory.md#-практика-найди-узкое-место-сам)) |
 

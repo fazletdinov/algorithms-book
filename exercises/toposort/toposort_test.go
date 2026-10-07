@@ -1,9 +1,19 @@
 package toposort
 
-import (
-	"reflect"
-	"testing"
-)
+import "testing"
+
+// equalInts сравнивает по длине и элементам: nil и пустой срез равны, задача не про это.
+func equalInts(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
 
 // isValidTopo проверяет, что order — корректная топологическая сортировка:
 // содержит все вершины 0..n-1 ровно один раз и для каждого ребра b->a
@@ -81,7 +91,7 @@ func TestFindOrderLexSmallest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := FindOrderLexSmallest(tt.numCourses, tt.prerequisites)
-			if !reflect.DeepEqual(got, tt.want) {
+			if !equalInts(got, tt.want) {
 				t.Errorf("FindOrderLexSmallest(%d, %v) = %v, ожидалось %v", tt.numCourses, tt.prerequisites, got, tt.want)
 			}
 		})
