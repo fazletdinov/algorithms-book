@@ -181,6 +181,10 @@ html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
   border-radius: 6px;
   margin: 6px 0;
   font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Длинная команда прокручивается в своём блоке. Без этого на телефоне она вылезала из
+     колонки на 231px: раньше из-за неё вбок ездила вся страница (.content), а когда на
+     узком экране у .content сняли прокрутку (algo-viz.css), хвост команды просто срезался. */
+  overflow-x: auto;
 }
 .algo-runner__err { margin-top: 6px; font-size: 11px; opacity: 0.7; }
 

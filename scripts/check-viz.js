@@ -8,7 +8,9 @@
 //  5) у неонового виджета (без customViz) в главе ядра есть легенда: смысл цветов иначе живёт
 //     только в абзаце над виджетом, который при листании уезжает с экрана;
 //  6) тип и его листинг объявлены один раз на все файлы (algo-viz.js + assets/infra-*.js): иначе
-//     проверка видела бы одну запись, а в браузере ALGO_VIZ.register бросил бы при загрузке.
+//     проверка видела бы одну запись, а в браузере ALGO_VIZ.register бросил бы при загрузке;
+//  7) SVG рёбер дерева (algo-tp__bstsvg) создаётся с width/height в пикселях: без них он
+//     сжимался вместе с хостом, а узлы оставались на своих местах.
 // Синтаксис самих *.js проверяется отдельно через `node --check` (см. CI).
 "use strict";
 const fs = require("fs");
@@ -135,6 +137,19 @@ for (const [type, files] of used) {
   legendCore++;
   if (!cfg.legend) errors.push(`Конфиг "${type}" (глава ядра ${files.filter((f) => coreChapters.has(f)).join(", ")}): неоновый виджет без легенды — цвета ячеек ничем не объяснены`);
 }
+
+// (7) SVG рёбер дерева рисуется в пикселях узлов. Узлы стоят в px от края хоста, а SVG без
+// width/height растягивался на ширину СЖАТОГО хоста (max-width: 100%) — на телефоне рёбра
+// трёх виджетов BST отрывались от узлов на десятки пикселей.
+let edgeSvgs = 0;
+js.split("\n").forEach((line, i) => {
+  if (!/"algo-tp__bstsvg"/.test(line)) return;
+  edgeSvgs++;
+  if (!(/setAttribute\("width", W\)/.test(line) && /setAttribute\("height", H\)/.test(line))) {
+    errors.push(`assets/algo-viz.js:${i + 1}: SVG рёбер (algo-tp__bstsvg) без width/height в пикселях`);
+  }
+});
+if (!edgeSvgs) errors.push("в assets/algo-viz.js не найдено ни одного SVG рёбер (algo-tp__bstsvg) — правило 7 ничего не проверило");
 
 if (errors.length) {
   errors.forEach((e) => console.error("::error::" + e));

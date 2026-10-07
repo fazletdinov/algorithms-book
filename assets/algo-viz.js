@@ -2449,9 +2449,10 @@
   // или `for …{` (строка кончается «{»: иначе условие переносится дальше или тело стоит в
   // той же строке), у которого есть шаг k+1. Спрашивают на переходе к шагу k: снимок
   // шага — состояние ПОСЛЕ его строки, и статус строки условия уже говорит «— да / — нет».
-  // Верный ответ — попал ли шаг k+1 в тело (строка L+1). Спрашиваем при первой встрече
-  // строки и когда её исход сменился (цикл кончился, условие впервые ложно): на каждой
-  // развилке — утомительно (в ядре 710 развилок против 294 таких «переворотов»).
+  // Верный ответ — попал ли шаг k+1 в тело блока (между строкой L и парной скобкой).
+  // Спрашиваем при первой встрече строки и когда её исход сменился (цикл кончился,
+  // условие впервые ложно): на каждой развилке — утомительно (в ядре 777 развилок против
+  // 321 такого «переворота»).
   function branchOf(line) {
     var t = String(line).replace(/\/\/.*$/, "").trim();
     if (!/\{$/.test(t)) return null;
@@ -2463,6 +2464,19 @@
     var parts = m[1].split(";");
     return { kind: "for", cond: (parts.length === 3 ? parts[1] : m[1]).trim() };
   }
+  // Конец блока, открытого строкой L: номер строки с парной «}» (-1 — не нашли).
+  // Скобки в строках, рунах и комментариях не считаются.
+  function blockEnd(code, L) {
+    var depth = 1;
+    for (var j = L + 1; j < code.length; j++) {
+      var t = String(code[j]).replace(/"(?:[^"\\]|\\.)*"/g, "").replace(/'(?:[^'\\]|\\.)*'/g, "").replace(/`[^`]*`/g, "").replace(/\/\/.*$/, "");
+      for (var i = 0; i < t.length; i++) {
+        if (t[i] === "{") depth++;
+        else if (t[i] === "}" && --depth === 0) return j;
+      }
+    }
+    return -1;
+  }
   function predictionQuestions(steps, code) {
     var qs = {}, last = {};
     for (var k = 1; k + 1 < steps.length; k++) {
@@ -2470,7 +2484,10 @@
       if (typeof L !== "number" || typeof M !== "number" || M === L || !code[L]) continue;
       var b = branchOf(code[L]);
       if (!b) continue;
-      var entered = M === L + 1;
+      // «Вошли в тело» — следующий шаг внутри блока строки L. Раньше считалось по L+1, и
+      // генератор, пропустивший первую строку тела, превращал верное «Да» в промах.
+      var E = blockEnd(code, L);
+      var entered = E < 0 ? M === L + 1 : (M > L && M < E);
       if (!(L in last) || last[L] !== entered) qs[k] = { at: k, line: L, kind: b.kind, cond: b.cond, entered: entered };
       last[L] = entered;
     }
@@ -2582,7 +2599,7 @@
     function nextIdx(i) { return i < 0 ? -1 : (i === n - 1 ? (hasCyc ? cyc : -1) : i + 1); }
     function val(i) { return i >= 0 ? list[i] : "nil"; }
     if (!n) return [{ slow: -1, fast: -1, done: true, line: 9, vars: { slow: "nil", fast: "nil" }, info: "Пустой список" }];
-    var steps = [], slow = 0, fast = 0, guard = 0;
+    var steps = [], slow = 0, fast = 0, guard = 0, walked = 0, ringB = null;
     steps.push({ slow: 0, fast: 0, line: 1, vars: { slow: val(0), fast: val(0) }, info: "slow и fast стартуют с головы — " + val(0) });
     while (guard++ < 4 * n + 6) {
       var fnext = nextIdx(fast);
@@ -2595,7 +2612,7 @@
         } else steps.push({ slow: slow, fast: -1, done: true, line: 9, vars: { slow: val(slow), fast: "nil" }, info: "return false — цикла нет (fast дошёл до конца списка)" });
         break;
       }
-      slow = nextIdx(slow);
+      slow = nextIdx(slow); walked++;
       steps.push({ slow: slow, fast: fast, line: 3, vars: { slow: val(slow), fast: val(fast) }, info: "slow = slow.Next → " + val(slow) + " (+1 шаг)" });
       fast = nextIdx(fnext);
       steps.push({ slow: slow, fast: fast, line: 4, vars: { slow: val(slow), fast: val(fast) }, info: "fast = fast.Next.Next → " + val(fast) + " (+2 шага)" });
@@ -2605,8 +2622,11 @@
       if (meet) {
         steps.push({ slow: slow, fast: fast, line: 6, vars: { slow: val(slow), fast: val(fast) }, info: "break — встреча в узле " + val(slow) + " (индекс " + slow + "): цикл есть, но это ещё не вход" });
         steps.push({ slow: slow, fast: fast, line: 9, vars: { slow: val(slow), fast: val(fast) }, info: "fast не nil — вышли по break, значит цикл есть" });
-        // a — от головы до входа, b — от входа до встречи, L — длина цикла: a ≡ L − b (mod L)
-        var a = cyc, L = n - cyc, b = ((slow - cyc) % L + L) % L;
+        // a — от головы до входа, b — сколько slow прошёл по кольцу до встречи, L — длина
+        // цикла: a ≡ L − b (mod L). b — из счётчика шагов slow, а не (slow − cyc) mod L: при
+        // цикле с головы slow делает полный круг (b = L), а по модулю выходил 0.
+        var a = cyc, L = n - cyc, b = walked - a;
+        ringB = b;
         slow = 0;
         steps.push({ slow: slow, fast: fast, phase2: true, line: 12, ptrNames: { lo: "slow", hi: "fast" }, vars: { slow: val(slow), fast: val(fast) }, info: "Фаза 2: slow — в голову, fast остаётся в точке встречи. a = " + a + " (голова → вход), b = " + b + " (вход → встреча), L = " + L + ": a ≡ L − b по модулю L, поэтому по одному шагу они сойдутся ровно на входе" });
         var g2 = 0;
@@ -2622,9 +2642,9 @@
         break;
       }
     }
-    // точка встречи фазы 1 нужна рисунку и в фазе 2 (fast уходит с неё)
+    // точка встречи фазы 1 нужна рисунку и в фазе 2 (fast уходит с неё); b — подписи под рисунком
     var meetAt = -1;
-    steps.forEach(function (st) { if (st.line === 12 && st.phase2) meetAt = st.fast; if (st.phase2) st.meetAt = meetAt; });
+    steps.forEach(function (st) { if (st.line === 12 && st.phase2) meetAt = st.fast; if (st.phase2) { st.meetAt = meetAt; st.ringB = ringB; } });
     return steps;
   }
   // Список с циклом рисунком «ро»: хвост строкой, узлы цикла — по окружности (прямая
@@ -2696,8 +2716,7 @@
         g.classList.toggle("algo-tp__rhonode--meet", ph2 && i === s.meetAt && i !== c);
       });
       if (ph2 && hasCyc) {
-        var bb = ((s.meetAt - c) % L + L) % L;
-        note.textContent = "a = " + c + " (голова → вход) · b = " + bb + " (вход → встреча) · L = " + L + " (длина кольца) · a ≡ L − b по модулю L";
+        note.textContent = "a = " + c + " (голова → вход) · b = " + s.ringB + " (вход → встреча) · L = " + L + " (длина кольца) · a ≡ L − b по модулю L";
       } else note.textContent = hasCyc ? "кольцо из " + L + " " + ruPlural(L, "узла", "узлов", "узлов") + ": " + list[n - 1] + " → " + list[c] : "цикла нет: последний узел смотрит в nil";
     };
   }
@@ -3259,7 +3278,7 @@
       host.style.position = "relative"; host.style.width = W + "px"; host.style.height = H + "px";
       function cx(x) { return x * CW + CW / 2; }
       function cy(y) { return y * CH + 22; }
-      var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__bstsvg");
+      var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("class", "algo-tp__bstsvg");
       for (var i = 0; i < n; i++) { if (parent[i] !== i) { var c1 = pos[i], c2 = pos[parent[i]]; var ln = document.createElementNS(SVGNS, "line"); ln.setAttribute("x1", cx(c1.x)); ln.setAttribute("y1", cy(c1.y)); ln.setAttribute("x2", cx(c2.x)); ln.setAttribute("y2", cy(c2.y)); ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); } }
       host.appendChild(trimLines(svg, 19));
       for (var j = 0; j < n; j++) { var p = pos[j]; var isRoot = parent[j] === j; var box = mkEl("div", "algo-tp__tnode" + (isRoot ? " algo-tp__tnode--root" : "") + (marks[j] ? " algo-tp__tnode--" + marks[j] : ""), j); box.style.position = "absolute"; box.style.left = (cx(p.x) - R) + "px"; box.style.top = (cy(p.y) - R) + "px"; host.appendChild(box); }
@@ -4028,7 +4047,7 @@
       host.style.position = "relative"; host.style.width = W + "px"; host.style.height = H + "px";
       function cx(x) { return x * CW + CW / 2; }
       function cy(d) { return d * CH + 24; }
-      var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__bstsvg");
+      var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("class", "algo-tp__bstsvg");
       tr.edges.forEach(function (e) { var ln = document.createElementNS(SVGNS, "line"); ln.setAttribute("x1", cx(e[0])); ln.setAttribute("y1", cy(e[1]) + RH); ln.setAttribute("x2", cx(e[2])); ln.setAttribute("y2", cy(e[3]) - RH); ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); });
       host.appendChild(trimLines(svg, 19));
       tr.nodes.forEach(function (n) {
@@ -9516,7 +9535,9 @@
       function cx(r) { return r * CW + CW / 2; }
       function cy(d) { return d * CH + 22; }
       var svg = document.createElementNS(SVGNS, "svg");
-      svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__bstsvg");
+      // width/height в px: узлы стоят в px от края хоста, а SVG без размеров сжимался вместе
+      // с хостом (max-width: 100%) — на телефоне рёбра уходили от узлов на десятки пикселей
+      svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("class", "algo-tp__bstsvg");
       tr.edges.forEach(function (e) {
         var ln = document.createElementNS(SVGNS, "line");
         ln.setAttribute("x1", cx(e[0])); ln.setAttribute("y1", cy(e[1]));
@@ -9757,7 +9778,7 @@
       function cx(r) { return r * CW + CW / 2; }
       function cy(d) { return d * CH + 22; }
       var svg = document.createElementNS(SVGNS, "svg");
-      svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__bstsvg");
+      svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("class", "algo-tp__bstsvg");
       tr.edges.forEach(function (e) { var ln = document.createElementNS(SVGNS, "line"); ln.setAttribute("x1", cx(e[0])); ln.setAttribute("y1", cy(e[1])); ln.setAttribute("x2", cx(e[2])); ln.setAttribute("y2", cy(e[3])); ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); });
       host.appendChild(trimLines(svg, 19));
       tr.nodes.forEach(function (n) {
@@ -9791,7 +9812,7 @@
         treeBox.style.position = "relative"; treeBox.style.width = W + "px"; treeBox.style.height = H + "px";
         function xy(i) { var p = heapPos(i); return [p.frac * W, p.d * CH + 22]; }
         var svg = document.createElementNS(SVGNS, "svg");
-        svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "algo-tp__bstsvg");
+        svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("class", "algo-tp__bstsvg");
         for (var i = 0; i < h.length; i++) {
           [2 * i + 1, 2 * i + 2].forEach(function (c) {
             if (c < h.length) { var a = xy(i), b = xy(c); var ln = document.createElementNS(SVGNS, "line"); ln.setAttribute("x1", a[0]); ln.setAttribute("y1", a[1]); ln.setAttribute("x2", b[0]); ln.setAttribute("y2", b[1]); ln.setAttribute("class", "algo-tp__bstedge"); svg.appendChild(ln); }
@@ -16355,6 +16376,7 @@
     //     srs.js заводит карточку viz:<тип>. Режим общий для всех виджетов книги.
     var PRED_KEY = "algoVizPredict", PRED_MISS = "algoVizMissed";
     var predQs = predictionQuestions(steps, codeLines);
+    root.__algoPredict = { qs: predQs, lines: steps.map(function (s) { return s.line; }), code: codeLines }; // для scripts/predict-check.js
     var predHas = Object.keys(predQs).length > 0;
     var predOn = false, predPending = null, predAnswered = {}, predVerdict = null, predRight = 0, predTotal = 0, predBox = null;
     try { predOn = localStorage.getItem(PRED_KEY) === "1"; } catch (e) { /* приватный режим */ }

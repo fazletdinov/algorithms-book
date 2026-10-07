@@ -1997,6 +1997,23 @@ body.algo-tp-fslock { overflow: hidden; }
   .algo-tp--compact .algo-tp__scrub { order: 1; flex-basis: calc(100% - 7em); min-width: 0; }
   .algo-tp--compact .algo-viz__counter { order: 2; }
 }
+/* Телефон: у 26 виджетов из 191 (Ханой, hash-resize, рюкзак…) холст со строкой шага выше
+   экрана 390×844, и «›» уезжала под сгиб — каждый шаг требовал прокрутки между кнопкой и
+   рисунком. Управление прилипает к низу окна, пока виджет на экране (в полноэкранном
+   режиме так было всегда). */
+@container algo-tp (max-width: 520px) {
+  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__ctrl { position: sticky; bottom: 0; z-index: 5; box-shadow: 0 -8px 16px -6px rgba(0, 0, 0, 0.55); }
+  /* Вопрос 🎯 открывается в строке шага, а она под холстом: у высокого холста вопрос
+     оказывался под прилипшим рядом, и «›» будто переставала работать. Пока вопрос открыт,
+     к низу окна прилипает он, а ряд встаёт на своё место — «›» в это время всё равно не
+     листает. Фон сплошной: вопрос лежит поверх холста. */
+  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__status--pred { position: sticky; bottom: 0; z-index: 5; background: var(--tp-panel); box-shadow: 0 -8px 16px -6px rgba(0, 0, 0, 0.55); }
+  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__status--pred ~ .algo-tp__ctrl { position: static; }
+}
+/* sticky отсчитывает низ от ближайшего предка-прокрутки, а у mdBook это .content
+   (overflow-y: auto без высоты). На узком экране снимаем у него прокрутку; flow-root
+   оставляет тот же контекст форматирования, что давал overflow. */
+@media (max-width: 620px) { .content { overflow: visible; display: flow-root; } }
 /* совсем узко (телефон 320–360px): ряд кнопок иначе не влезает, и ⛶ уезжала к ползунку */
 @container algo-tp (max-width: 320px) {
   .algo-tp--compact .algo-tp__ctrl { padding: 0.6em 0.45em; gap: 0.4em; }
