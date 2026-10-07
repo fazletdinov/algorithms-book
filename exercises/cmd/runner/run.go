@@ -96,6 +96,8 @@ type testResult struct {
 	started bool // сборка удалась, тестовый бинарник запущен
 }
 
+// testEvent — тест верхнего уровня. Output — его вывод вместе с выводом подтестов
+// (случаев таблицы) в порядке печати; случаи, прошедшие молча, опущены.
 type testEvent struct {
 	Name   string `json:"name"`
 	Pass   bool   `json:"pass"`
@@ -255,6 +257,12 @@ func noTestsReason(filter []string) string {
 	return "ни один тест не запустился — в пакете нет тестов с такими именами: " + strings.Join(filter, ", ")
 }
 
+// frameworkLine — служебная строка тестового бинарника («=== RUN   TestX/случай»,
+// «--- PASS: TestX/случай (0.00s)»), а не то, что напечатал тест или решение.
+func frameworkLine(s string) bool {
+	return strings.HasPrefix(s, "=== ") || strings.HasPrefix(s, "--- ")
+}
+
 // parseTestOutput собирает результат из вывода `go test -json`. Чистая функция:
 // поток событий проверяется тестом без запуска go. OK здесь не считается — его
 // знает только verdict (срок прогона и обрезка вывода в потоке не видны).
@@ -265,9 +273,24 @@ func parseTestOutput(out []byte) testResult {
 	// паники рантайма печатаются сырым текстом в stderr — они не валидный JSON.
 	// Поэтому разбираем построчно: валидный JSON → событие, иначе → в extra
 	// (там окажется «WARNING: DATA RACE», stack trace и т.п.), чтобы не потерять.
+	//
+	// В ответе строки только у тестов верхнего уровня: по ним идут счёт, фильтр tests
+	// и карточки повторений. Но случаи табличного теста — подтесты (t.Run), и сообщение
+	// упавшего случая `go test` приписывает подтесту «TestX/случай», а самому TestX —
+	// только «=== RUN» и «--- FAIL». Поэтому вывод подтестов вливается в вывод их теста,
+	// в порядке событий — как это печатает сам `go test`.
+	type subtest struct {
+		passed bool // пришло событие pass
+		loud   bool // печатал что-то кроме служебных строк
+	}
+	type chunk struct {
+		sub  *subtest // nil — печатал сам тест верхнего уровня
+		text string
+	}
 	type running struct {
 		testEvent
-		out strings.Builder // `Output += …` на каждое событие — квадрат: на 4 МиБ вывода одного теста уходили секунды
+		chunks []chunk // куски, а не `Output += …`: тот на 4 МиБ вывода одного теста давал квадрат и секунды
+		subs   map[string]*subtest
 	}
 	tests := map[string]*running{}
 	var order []string
@@ -308,18 +331,31 @@ func parseTestOutput(out []byte) testResult {
 			}
 			continue
 		}
-		te := tests[ev.Test]
+		top, _, nested := strings.Cut(ev.Test, "/")
+		te := tests[top]
 		if te == nil {
-			te = &running{testEvent: testEvent{Name: ev.Test}}
-			tests[ev.Test] = te
-			order = append(order, ev.Test)
+			te = &running{testEvent: testEvent{Name: top}, subs: map[string]*subtest{}}
+			tests[top] = te
+			order = append(order, top)
 		}
-		switch ev.Action {
-		case "output":
-			te.out.WriteString(ev.Output)
-		case "pass":
+		var sub *subtest
+		if nested {
+			if sub = te.subs[ev.Test]; sub == nil {
+				sub = &subtest{}
+				te.subs[ev.Test] = sub
+			}
+		}
+		switch {
+		case ev.Action == "output":
+			te.chunks = append(te.chunks, chunk{sub, ev.Output})
+			if sub != nil && !frameworkLine(ev.Output) {
+				sub.loud = true
+			}
+		case sub != nil: // исход подтеста на счёт и на исход его теста не влияет
+			sub.passed = sub.passed || ev.Action == "pass"
+		case ev.Action == "pass":
 			te.Pass, te.done = true, true
-		case "fail", "skip":
+		case ev.Action == "fail", ev.Action == "skip":
 			te.Pass, te.done = false, true
 		}
 	}
@@ -333,12 +369,18 @@ func parseTestOutput(out []byte) testResult {
 	res.NoTests = len(order) == 0 && pkgPassed
 	res.Build = len(order) > 0 || res.NoTests
 	for _, name := range order {
-		// показываем только верхнеуровневые тесты (без подтестов с '/')
-		if strings.Contains(name, "/") {
-			continue
-		}
 		te := tests[name]
-		te.Output = te.out.String()
+		var output strings.Builder
+		for _, c := range te.chunks {
+			// Случай, который прошёл молча, в подробностях только заслонял бы упавшие:
+			// от него остались бы «=== RUN» и «--- PASS». Если он что-то печатал
+			// (отладочная печать читателя) — показываем целиком.
+			if c.sub != nil && c.sub.passed && !c.sub.loud {
+				continue
+			}
+			output.WriteString(c.text)
+		}
+		te.Output = output.String()
 		res.Tests = append(res.Tests, te.testEvent)
 		if te.Pass {
 			res.Passed++

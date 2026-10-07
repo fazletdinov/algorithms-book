@@ -43,6 +43,27 @@ V.result(out, plain);
 expect(/^✗ есть падения/.test(V.status(plain).text) && /✗/.test(out.querySelector(".algo-runner__test").textContent), "обычное падение перестало выглядеть обычным");
 expect(/^✓/.test(V.status({ ok: true, duration: "1s" }).text), "зелёный статус сломан");
 
+// Упавший табличный тест — самый частый красный прогон: случаи таблицы идут подтестами (t.Run),
+// и сообщение случая `go test` приписывает подтесту. Сервер раньше отбрасывал вывод подтестов, и
+// в «подробностях» оставалось «=== RUN / --- FAIL» без «F(вход) = получено, ожидалось …».
+// Ответ снят с живого runner'а 2026-10-07 как есть: пакет twopointers, PairWithTargetSum всегда
+// отвечает «пары нет», фильтр tests — ["TestPairWithTargetSum"].
+const tableFail = { ok: false, build: true, race: false, passed: 0, failed: 1, duration: "228ms", filtered: true,
+  output: "FAIL\nFAIL\tgithub.com/fazletdinov/algorithms-book/exercises/twopointers\t0.001s",
+  tests: [{ name: "TestPairWithTargetSum", pass: false,
+    output: "=== RUN   TestPairWithTargetSum\n=== RUN   TestPairWithTargetSum/пара_в_середине\n" +
+      "    twopointers_test.go:39: PairWithTargetSum([1 2 3 4 6], 6) = [-1 -1], ожидалось [1 3]\n--- FAIL: TestPairWithTargetSum/пара_в_середине (0.00s)\n" +
+      "=== RUN   TestPairWithTargetSum/крайние_элементы\n" +
+      "    twopointers_test.go:39: PairWithTargetSum([2 5 9 11], 11) = [-1 -1], ожидалось [0 2]\n--- FAIL: TestPairWithTargetSum/крайние_элементы (0.00s)\n" +
+      "--- FAIL: TestPairWithTargetSum (0.00s)\n" }] };
+V.result(out, tableFail);
+const caseDetails = out.querySelector(".algo-runner__test.is-err details pre");
+expect(caseDetails && caseDetails.textContent.includes("PairWithTargetSum([1 2 3 4 6], 6) = [-1 -1], ожидалось [1 3]") &&
+  caseDetails.textContent.includes("--- FAIL: TestPairWithTargetSum/крайние_элементы"),
+  `табличный тест: в подробностях нет сообщения и имени упавшего случая — «${caseDetails && caseDetails.textContent.slice(0, 160)}»`);
+expect(out.querySelectorAll(".algo-runner__test").length === 1 && /0 ok \/ 1 fail/.test(out.textContent),
+  "табличный тест: в списке должен остаться один тест верхнего уровня, счёт — по тестам, а не по случаям");
+
 // Ошибка компиляции: вердикта мало — читатель должен видеть, ЧТО не так. Текст ответа снят с
 // настоящего обработчика (TestHandleRunShowsCompileError).
 V.result(out, { ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "62ms",
@@ -103,9 +124,10 @@ stopped("срок вышел на сборке", { ok: false, build: false, race
   reason: "прогон не уложился в 3s и остановлен целиком: не успела закончиться сборка — так бывает на первом запуске с -race, пока кэш компилятора пуст; запусти ещё раз — уже собранное осталось в кэше" },
   "⏱", "⏱ не уложилось по времени");
 // 6. Вывод упёрся в потолок: прогон остановлен сразу — счёт и список тестов остаются, значок ✂.
-const flood = { ok: false, build: true, race: false, passed: 0, failed: 1, duration: "209ms", truncated: true, output: "",
+// Вывод теста здесь укорочен: в настоящем ответе под этими строками ещё 1,5 МБ такой же печати.
+const flood = { ok: false, build: true, race: false, passed: 0, failed: 1, duration: "256ms", truncated: true, output: "",
   reason: "вывод обрезан на 4096 КиБ, прогон остановлен — похоже на печать в бесконечном цикле; убери отладочный вывод и запусти снова",
-  tests: [{ name: "TestSingleNumber", pass: false, output: "=== RUN   TestSingleNumber\n" }] };
+  tests: [{ name: "TestSingleNumber", pass: false, output: "=== RUN   TestSingleNumber\n=== RUN   TestSingleNumber/пример\n" + "x".repeat(100) + "\n" }] };
 V.result(out, flood);
 expect(/^✂ вывод обрезан на 4096 КиБ, прогон остановлен/.test(out.firstChild.textContent), `обрезка: первой строкой «${out.firstChild.textContent}»`);
 expect(/0 ok \/ 1 fail/.test(out.textContent) && /✗TestSingleNumber/.test(out.textContent), `обрезка: счёт и список тестов потеряны — «${out.textContent.slice(0, 200)}»`);
@@ -191,5 +213,5 @@ function widgetPage(limits) {
     "старый сервер без limits: плашки быть не должно, виджет при этом работает");
 
   if (fails.length) { console.error("❌ runner-render-check:\n  - " + fails.join("\n  - ")); process.exit(1); }
-  console.log("✅ runner-render-check: остановка показана причиной (срок ⏱, память 💾, обрезка ✂), прогон без единого теста — тоже (фильтр не совпал △, не запустился ✗, сборке не хватило памяти или срока), ошибка компиляции — строкой компилятора (и в трассе), плашка пределов в шапке, обычное падение и зелёный прогон — как раньше");
+  console.log("✅ runner-render-check: остановка показана причиной (срок ⏱, память 💾, обрезка ✂), прогон без единого теста — тоже (фильтр не совпал △, не запустился ✗, сборке не хватило памяти или срока), ошибка компиляции — строкой компилятора (и в трассе), упавший табличный тест — сообщением случая, плашка пределов в шапке, обычное падение и зелёный прогон — как раньше");
 })();

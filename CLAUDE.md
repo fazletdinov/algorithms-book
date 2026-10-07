@@ -141,7 +141,11 @@ pass/fail. Эталон НЕ показывается — читатель ре�
 `timeout`, `truncated` или `noTests` ложен. Текст ошибки компиляции с Go 1.24 идёт в `go test -json` не
 сырыми строками, а событиями `build-output` (с `ImportPath` вместо `Package`): `parseTestOutput`
 складывает их в `output` — без этого читатель видел «Ошибка компиляции» и одну строку
-`FAIL … [build failed]`, без `undefined: …`. У `/api/trace` те же группа и потолок (на потолке
+`FAIL … [build failed]`, без `undefined: …`. Случаи табличных тестов — подтесты (`t.Run`, так
+написаны тесты 42 пакетов из 72), и сообщение упавшего случая `go test -json` приписывает подтесту
+`TestX/случай`: `parseTestOutput` вливает вывод подтестов в `tests[].output` их теста в порядке
+событий, опуская случаи, прошедшие молча; счёт, имена `tests[]` и фильтр `tests` — по-прежнему по
+тестам верхнего уровня (`TestParseSubtestOutput`, `TestHandleRunShowsFailedCaseMessage`). У `/api/trace` те же группа и потолок (на потолке
 запуск тоже останавливается сразу), срок сборки харнесса 20 с (`runLimits.BuildTimeout`), срок
 запуска 5 с, переполненная трасса отвечает `timeout` с причиной «трасса не поместилась». Поле `build` в
 его ответе идёт БЕЗ `omitempty`: `trace-viz.js` узнаёт ошибку сборки по `resp.build === false`

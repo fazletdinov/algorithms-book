@@ -107,40 +107,53 @@ func TestRunGoTestKillsWholeTree(t *testing.T) {
 // `go test` все эти секунды ещё и копил вывод теста у себя в памяти, без потолка
 // (cmd/go: streamAndCacheOutput). Поэтому «цикл» здесь — 1 МиБ печати (в 16 раз
 // больше потолка этого прогона) и сон на 25 с: без остановки тест красный по
-// времени, но память не растёт.
+// времени, но память не растёт. Печатает либо сам тест, либо его подтест — так
+// устроены табличные тесты тренажёра, и потолок обязан держать оба случая.
 func TestRunGoTestCapsOutput(t *testing.T) {
-	dir := writeModule(t, map[string]string{"flood/flood_test.go": "package flood\n\nimport (\n\t\"fmt\"\n\t\"strings\"\n\t\"testing\"\n\t\"time\"\n)\n\n" +
-		"func TestQuick(t *testing.T) {}\n\n" +
-		"func TestFlood(t *testing.T) {\n\tfor i := 0; i < 10000; i++ {\n\t\tfmt.Println(strings.Repeat(\"x\", 100))\n\t}\n\ttime.Sleep(25 * time.Second)\n}\n"})
-	lim := runLimits{TestTimeout: time.Minute, Deadline: 2 * time.Minute, MaxOutput: 64 << 10}
-	args, _ := testArgs("flood", false, nil, lim.TestTimeout)
-	sysTmp := t.TempDir()
-	t.Setenv("TMPDIR", sysTmp) // сюда `go` положил бы рабочий каталог go-build…, не будь у прогона своего
-	start := time.Now()
-	res := runGoTest(context.Background(), dir, args, lim)
-	if took := time.Since(start); took > 10*time.Second {
-		t.Errorf("ответ пришёл через %s: прогон не остановлен на потолке вывода", took.Round(time.Millisecond))
-	}
-	// Убитый `go` свой рабочий каталог не убирает (в нём собранный тестовый бинарник —
-	// мегабайты): он обязан лежать в копии модуля и исчезать вместе с ней, а не
-	// копиться в системном каталоге с каждой такой остановкой.
-	if left, _ := filepath.Glob(filepath.Join(sysTmp, "go-build*")); len(left) != 0 {
-		t.Errorf("в системном временном каталоге остался рабочий каталог убитого go: %q", left)
-	}
-	kept := len(res.Output)
-	for _, te := range res.Tests {
-		kept += len(te.Output)
-	}
-	if !res.Truncated || res.OK || kept > lim.MaxOutput || !strings.Contains(res.Reason, "обрезан") {
-		t.Fatalf("truncated=%v ok=%v сохранено %d байт, reason=%q", res.Truncated, res.OK, kept, res.Reason)
-	}
-	// потолок режет поток посреди события — обрывок JSON читателю показывать незачем
-	if strings.Contains(res.Output, `"Action"`) {
-		t.Errorf("в выводе остался обрывок события go test -json: %.160q", res.Output)
-	}
-	// остановка по выводу — не срок и не память; тест, прошедший до неё, остаётся зелёным
-	if res.Timeout || res.MemLimit || res.Passed != 1 || res.Failed != 1 {
-		t.Errorf("timeout=%v memLimit=%v passed=%d failed=%d", res.Timeout, res.MemLimit, res.Passed, res.Failed)
+	const flood = "\tfor i := 0; i < 10000; i++ {\n\t\tfmt.Println(strings.Repeat(\"x\", 100))\n\t}\n\ttime.Sleep(25 * time.Second)\n"
+	for name, body := range map[string]string{
+		"печатает тест":    flood,
+		"печатает подтест": "\tt.Run(\"случай\", func(t *testing.T) {\n" + flood + "\t})\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			dir := writeModule(t, map[string]string{"flood/flood_test.go": "package flood\n\nimport (\n\t\"fmt\"\n\t\"strings\"\n\t\"testing\"\n\t\"time\"\n)\n\n" +
+				"func TestQuick(t *testing.T) {}\n\nfunc TestFlood(t *testing.T) {\n" + body + "}\n"})
+			lim := runLimits{TestTimeout: time.Minute, Deadline: 2 * time.Minute, MaxOutput: 64 << 10}
+			args, _ := testArgs("flood", false, nil, lim.TestTimeout)
+			sysTmp := t.TempDir()
+			t.Setenv("TMPDIR", sysTmp) // сюда `go` положил бы рабочий каталог go-build…, не будь у прогона своего
+			start := time.Now()
+			res := runGoTest(context.Background(), dir, args, lim)
+			if took := time.Since(start); took > 10*time.Second {
+				t.Errorf("ответ пришёл через %s: прогон не остановлен на потолке вывода", took.Round(time.Millisecond))
+			}
+			// Убитый `go` свой рабочий каталог не убирает (в нём собранный тестовый бинарник —
+			// мегабайты): он обязан лежать в копии модуля и исчезать вместе с ней, а не
+			// копиться в системном каталоге с каждой такой остановкой.
+			if left, _ := filepath.Glob(filepath.Join(sysTmp, "go-build*")); len(left) != 0 {
+				t.Errorf("в системном временном каталоге остался рабочий каталог убитого go: %q", left)
+			}
+			kept := len(res.Output)
+			for _, te := range res.Tests {
+				kept += len(te.Output)
+			}
+			if !res.Truncated || res.OK || kept > lim.MaxOutput || !strings.Contains(res.Reason, "обрезан") {
+				t.Fatalf("truncated=%v ok=%v сохранено %d байт, reason=%q", res.Truncated, res.OK, kept, res.Reason)
+			}
+			// напечатанное до потолка читателю показывается: в потоке событий на него приходится
+			// меньше половины байт, остальное — обёртка JSON
+			if kept < lim.MaxOutput/4 {
+				t.Errorf("до ответа дошло %d байт вывода из %d до потолка: печать потеряна", kept, lim.MaxOutput)
+			}
+			// потолок режет поток посреди события — обрывок JSON читателю показывать незачем
+			if strings.Contains(res.Output, `"Action"`) {
+				t.Errorf("в выводе остался обрывок события go test -json: %.160q", res.Output)
+			}
+			// остановка по выводу — не срок и не память; тест, прошедший до неё, остаётся зелёным
+			if res.Timeout || res.MemLimit || res.Passed != 1 || res.Failed != 1 {
+				t.Errorf("timeout=%v memLimit=%v passed=%d failed=%d", res.Timeout, res.MemLimit, res.Passed, res.Failed)
+			}
+		})
 	}
 }
 
@@ -240,6 +253,73 @@ func TestHandleRunFilterMatchesNothing(t *testing.T) {
 		if !strings.Contains(rec.Body.String(), want) {
 			t.Errorf("в ответе нет %s:\n%.600s", want, rec.Body.String())
 		}
+	}
+}
+
+// Сквозной случай «неверное решение, табличный тест» — самый частый красный прогон
+// в книге. Сообщение упавшего случая обязано дойти до ответа в выводе своего теста;
+// счёт и имена остаются по тестам верхнего уровня — на них стоят фильтр tests и
+// карточки повторений.
+func TestHandleRunShowsFailedCaseMessage(t *testing.T) {
+	old := moduleRoot
+	t.Cleanup(func() { moduleRoot = old })
+	moduleRoot = writeModule(t, map[string]string{
+		"twice/twice.go": "package twice\n\nfunc Twice(x int) int { panic(\"TODO\") }\n",
+		"twice/twice_test.go": "package twice\n\nimport \"testing\"\n\nfunc TestQuick(t *testing.T) {}\n\nfunc TestTwice(t *testing.T) {\n" +
+			"\tfor _, tt := range []struct {\n\t\tname    string\n\t\tx, want int\n\t}{{\"один\", 1, 2}, {\"два\", 2, 4}, {\"три\", 3, 6}} {\n" +
+			"\t\tt.Run(tt.name, func(t *testing.T) {\n\t\t\tif got := Twice(tt.x); got != tt.want {\n" +
+			"\t\t\t\tt.Errorf(\"Twice(%d) = %d, ожидалось %d\", tt.x, got, tt.want)\n\t\t\t}\n\t\t})\n\t}\n}\n",
+	})
+	const message = "twice_test.go:14: Twice(2) = 5, ожидалось 4"
+	code, err := json.Marshal("package twice\n\nfunc Twice(x int) int {\n\tif x == 2 {\n\t\treturn 5\n\t}\n\treturn 2 * x\n}\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		name, filter   string
+		passed, failed int
+		tests          []string
+	}{
+		{"весь пакет", "", 1, 1, []string{"TestQuick", "TestTwice"}},
+		{"фильтр по имени теста гонит все его случаи", `,"tests":["TestTwice"]`, 0, 1, []string{"TestTwice"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			body := `{"pkg":"twice","code":` + string(code) + tt.filter + `}`
+			newServer(memLimiter{Mode: memNone}).handleRun(rec, httptest.NewRequest(http.MethodPost, "/api/run", strings.NewReader(body)))
+			var res struct {
+				Passed, Failed int
+				Tests          []struct {
+					Name   string
+					Pass   bool
+					Output string
+				}
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
+				t.Fatalf("%v:\n%.600s", err, rec.Body.String())
+			}
+			var names []string
+			failedOutput := ""
+			for _, te := range res.Tests {
+				names = append(names, te.Name)
+				if te.Name == "TestTwice" {
+					failedOutput = te.Output
+				}
+			}
+			if res.Passed != tt.passed || res.Failed != tt.failed || strings.Join(names, " ") != strings.Join(tt.tests, " ") {
+				t.Errorf("passed=%d failed=%d tests=%q — ожидалось %d/%d и %q", res.Passed, res.Failed, names, tt.passed, tt.failed, tt.tests)
+			}
+			if !strings.Contains(failedOutput, message) || !strings.Contains(failedOutput, "--- FAIL: TestTwice/два") {
+				t.Errorf("в выводе TestTwice нет сообщения упавшего случая %q:\n%s", message, failedOutput)
+			}
+			if n := strings.Count(rec.Body.String(), message); n != 1 {
+				t.Errorf("сообщение случая встречается в ответе %d раз, ожидался один:\n%.900s", n, rec.Body.String())
+			}
+			// прошедшие молча случаи в подробности не идут
+			if strings.Contains(failedOutput, "TestTwice/один") || strings.Contains(failedOutput, "TestTwice/три") {
+				t.Errorf("в выводе TestTwice остались прошедшие случаи:\n%s", failedOutput)
+			}
+		})
 	}
 }
 
