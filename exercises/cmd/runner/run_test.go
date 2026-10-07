@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -44,28 +45,16 @@ func TestParseTestOutput(t *testing.T) {
 	if res.Build || res.NoTests || res.Timeout || res.Output != want {
 		t.Fatalf("ошибка компиляции: build=%v noTests=%v timeout=%v output=%q", res.Build, res.NoTests, res.Timeout, res.Output)
 	}
-	// Фильтр -run не совпал ни с одним тестом. Поток снят с настоящего
-	// `go test -json -run '^(TestNope)$'` (одинаков на 1.24.0 и 1.26.5): пакет собрался,
-	// бинарник отработал, событий с полем Test нет. Раньше это была «Ошибка компиляции».
-	res = parseTestOutput([]byte(strings.Join([]string{
-		`{"Time":"2026-10-07T15:42:58.654286468+03:00","Action":"start","Package":"probe/ok"}`,
-		`{"Time":"2026-10-07T15:42:58.655402624+03:00","Action":"output","Package":"probe/ok","Output":"testing: warning: no tests to run\n"}`,
-		`{"Time":"2026-10-07T15:42:58.65544329+03:00","Action":"output","Package":"probe/ok","Output":"PASS\n"}`,
-		`{"Time":"2026-10-07T15:42:58.655528425+03:00","Action":"output","Package":"probe/ok","Output":"ok  \tprobe/ok\t0.001s [no tests to run]\n"}`,
-		`{"Time":"2026-10-07T15:42:58.65554106+03:00","Action":"pass","Package":"probe/ok","Elapsed":0.001}`,
-	}, "\n")))
+	// Фильтр -run не совпал ни с одним тестом: пакет собрался, бинарник отработал,
+	// событий с полем Test нет. Раньше это была «Ошибка компиляции».
+	res = parseTestOutput([]byte(streamNoTestsRun))
 	if !res.Build || !res.NoTests || res.Passed != 0 || res.Failed != 0 || len(res.Tests) != 0 {
 		t.Fatalf("фильтр не совпал: build=%v noTests=%v passed=%d failed=%d tests=%+v", res.Build, res.NoTests, res.Passed, res.Failed, res.Tests)
 	}
 	// Бинарник собрался и упал до первого теста (паника в переменной уровня пакета):
-	// событий тестов тоже нет, но это не «тестов не нашлось» — пакет кончился fail.
-	res = parseTestOutput([]byte(strings.Join([]string{
-		`{"Time":"2026-10-07T15:42:58.870743104+03:00","Action":"start","Package":"probe/initpanic"}`,
-		`{"Time":"2026-10-07T15:42:58.873917388+03:00","Action":"output","Package":"probe/initpanic","Output":"panic: boom at init\n"}`,
-		`{"Time":"2026-10-07T15:42:58.874106936+03:00","Action":"output","Package":"probe/initpanic","Output":"FAIL\tprobe/initpanic\t0.003s\n"}`,
-		`{"Time":"2026-10-07T15:42:58.874123215+03:00","Action":"fail","Package":"probe/initpanic","Elapsed":0.003}`,
-	}, "\n")))
-	if res.Build || res.NoTests || !strings.Contains(res.Output, "panic: boom at init") {
+	// событий тестов тоже нет, но это и не «не собрался», и не «тестов не нашлось».
+	res = parseTestOutput([]byte(streamInitPanic))
+	if !res.Build || res.NoTests || !strings.HasPrefix(res.Output, "panic: boom at init\n\ngoroutine 1 [running]:") {
 		t.Fatalf("паника до тестов: build=%v noTests=%v output=%q", res.Build, res.NoTests, res.Output)
 	}
 }
@@ -164,6 +153,30 @@ const (
 {"Action":"output","Package":"probe/hangsub","Output":"FAIL\tprobe/hangsub\t2.004s\n"}
 {"Action":"fail","Package":"probe/hangsub","Elapsed":2.005}
 `
+	// Решение печатает разделители `fmt.Println("---", a, b)` и «=== сумма: …» — строки,
+	// начинающиеся так же, как служебные строки go test.
+	streamMarkerLookalikes = `{"Action":"start","Package":"probe/sep"}
+{"Action":"run","Package":"probe/sep","Test":"TestSum"}
+{"Action":"output","Package":"probe/sep","Test":"TestSum","Output":"=== RUN   TestSum\n"}
+{"Action":"run","Package":"probe/sep","Test":"TestSum/один"}
+{"Action":"output","Package":"probe/sep","Test":"TestSum/один","Output":"=== RUN   TestSum/один\n"}
+{"Action":"output","Package":"probe/sep","Test":"TestSum/один","Output":"--- 1 1\n"}
+{"Action":"output","Package":"probe/sep","Test":"TestSum/один","Output":"=== сумма: 2\n"}
+{"Action":"output","Package":"probe/sep","Test":"TestSum/один","Output":"--- PASS: TestSum/один (0.00s)\n"}
+{"Action":"pass","Package":"probe/sep","Test":"TestSum/один","Elapsed":0}
+{"Action":"run","Package":"probe/sep","Test":"TestSum/два"}
+{"Action":"output","Package":"probe/sep","Test":"TestSum/два","Output":"=== RUN   TestSum/два\n"}
+{"Action":"output","Package":"probe/sep","Test":"TestSum/два","Output":"--- 2 2\n"}
+{"Action":"output","Package":"probe/sep","Test":"TestSum/два","Output":"=== сумма: 4\n"}
+{"Action":"output","Package":"probe/sep","Test":"TestSum/два","Output":"    sep_test.go:25: Sum(2, 2) = 0, ожидалось 4\n"}
+{"Action":"output","Package":"probe/sep","Test":"TestSum/два","Output":"--- FAIL: TestSum/два (0.00s)\n"}
+{"Action":"fail","Package":"probe/sep","Test":"TestSum/два","Elapsed":0}
+{"Action":"output","Package":"probe/sep","Test":"TestSum","Output":"--- FAIL: TestSum (0.00s)\n"}
+{"Action":"fail","Package":"probe/sep","Test":"TestSum","Elapsed":0}
+{"Action":"output","Package":"probe/sep","Output":"FAIL\n"}
+{"Action":"output","Package":"probe/sep","Output":"FAIL\tprobe/sep\t0.001s\n"}
+{"Action":"fail","Package":"probe/sep","Elapsed":0.001}
+`
 )
 
 // Тесты тренажёра табличные: случаи идут подтестами (t.Run), и `go test` приписывает
@@ -207,6 +220,14 @@ func TestParseSubtestOutput(t *testing.T) {
 			"=== RUN   TestNested/пропуск\n    loud_test.go:36: не на этой платформе\n--- SKIP: TestNested/пропуск (0.00s)\n" +
 			"--- FAIL: TestNested (0.00s)\n",
 	})
+	// Печать прошедшего случая, похожая на служебные строки («--- 1 1», «=== сумма: 2»),
+	// — всё равно печать: случай не «прошёл молча».
+	check("разделители в печати решения", parseTestOutput([]byte(streamMarkerLookalikes)), 0, 1, map[string]string{
+		"TestSum": "=== RUN   TestSum\n" +
+			"=== RUN   TestSum/один\n--- 1 1\n=== сумма: 2\n--- PASS: TestSum/один (0.00s)\n" +
+			"=== RUN   TestSum/два\n--- 2 2\n=== сумма: 4\n    sep_test.go:25: Sum(2, 2) = 0, ожидалось 4\n--- FAIL: TestSum/два (0.00s)\n" +
+			"--- FAIL: TestSum (0.00s)\n",
+	})
 
 	// Зависший случай: тест назван по верхнему уровню, как раньше, а в его выводе теперь
 	// видно, какой случай не кончился.
@@ -219,116 +240,212 @@ func TestParseSubtestOutput(t *testing.T) {
 	}
 }
 
-// Потоки для TestVerdictWithoutTests. Сбой systemd-run, убитый компоновщик и ошибка
-// компиляции сняты с настоящих прогонов (Go 1.26.5, systemd 255; путь к компоновщику
-// укорочен); два потока «бинарник запущен» — начало настоящего потока с другими
-// именами пакета и теста.
+// Потоки для TestVerdict сняты с настоящих прогонов (Go 1.24.0 и 1.26.5 — событие в
+// событие; systemd 255). Поле Time убрано, пути к каталогу Go и к пробному модулю
+// укорочены, стеки горутин обрезаны. Два потока «бинарник запущен» — начало
+// настоящего потока.
 const (
 	// systemd-run без пользовательской шины: область не создана, код выхода 1, stdout пуст.
 	streamNoBus = "Failed to connect to bus: No such file or directory\n"
 	// Область на 32 МиБ: ядро убило компоновщик, `go` успел это напечатать.
 	streamLinkKilled = `{"ImportPath":"probe/ok.test","Action":"build-output","Output":"probe/ok.test: /usr/local/go/pkg/tool/linux_amd64/link: signal: killed\n"}
 {"ImportPath":"probe/ok.test","Action":"build-fail"}
-{"Time":"2026-10-07T15:49:06.140093205+03:00","Action":"start","Package":"probe/ok"}
-{"Time":"2026-10-07T15:49:06.140121302+03:00","Action":"output","Package":"probe/ok","Output":"FAIL\tprobe/ok [build failed]\n"}
-{"Time":"2026-10-07T15:49:06.140127843+03:00","Action":"fail","Package":"probe/ok","Elapsed":0,"FailedBuild":"probe/ok.test"}
-`
-	// Тестовый бинарник запущен, первый тест идёт и не кончается.
-	streamTestRunning = `{"Time":"2026-10-07T15:49:06.383119528+03:00","Action":"start","Package":"probe/hang"}
-{"Time":"2026-10-07T15:49:06.384448983+03:00","Action":"run","Package":"probe/hang","Test":"TestHang"}
-{"Time":"2026-10-07T15:49:06.384468479+03:00","Action":"output","Package":"probe/hang","Test":"TestHang","Output":"=== RUN   TestHang\n"}
-`
-	// Тестовый бинарник запущен, а до первого теста дело не дошло (init, TestMain).
-	streamBinaryStarted = `{"Time":"2026-10-07T15:49:06.383119528+03:00","Action":"start","Package":"probe/hang"}
+{"Action":"start","Package":"probe/ok"}
+{"Action":"output","Package":"probe/ok","Output":"FAIL\tprobe/ok [build failed]\n"}
+{"Action":"fail","Package":"probe/ok","Elapsed":0,"FailedBuild":"probe/ok.test"}
 `
 	streamCompileError = `{"ImportPath":"probe/b [probe/b.test]","Action":"build-output","Output":"# probe/b [probe/b.test]\n"}
 {"ImportPath":"probe/b [probe/b.test]","Action":"build-output","Output":"b/b.go:3:28: undefined: undefinedName\n"}
 {"ImportPath":"probe/b [probe/b.test]","Action":"build-fail"}
-{"Time":"2026-10-06T13:04:32.862444448+03:00","Action":"start","Package":"probe/b"}
-{"Time":"2026-10-06T13:04:32.862478237+03:00","Action":"output","Package":"probe/b","Output":"FAIL\tprobe/b [build failed]\n"}
-{"Time":"2026-10-06T13:04:32.86248191+03:00","Action":"fail","Package":"probe/b","Elapsed":0,"FailedBuild":"probe/b [probe/b.test]"}
+{"Action":"start","Package":"probe/b"}
+{"Action":"output","Package":"probe/b","Output":"FAIL\tprobe/b [build failed]\n"}
+{"Action":"fail","Package":"probe/b","Elapsed":0,"FailedBuild":"probe/b [probe/b.test]"}
+`
+	// Тестовый бинарник запущен, первый тест идёт и не кончается.
+	streamTestRunning = `{"Action":"start","Package":"probe/hang"}
+{"Action":"run","Package":"probe/hang","Test":"TestHang"}
+{"Action":"output","Package":"probe/hang","Test":"TestHang","Output":"=== RUN   TestHang\n"}
+`
+	// Тестовый бинарник запущен, а до первого теста дело не дошло (init, TestMain).
+	streamBinaryStarted = `{"Action":"start","Package":"probe/hang"}
+`
+	// Один тест, зелёный прогон.
+	streamOnePass = `{"Action":"start","Package":"probe/ok"}
+{"Action":"run","Package":"probe/ok","Test":"TestOne"}
+{"Action":"output","Package":"probe/ok","Test":"TestOne","Output":"=== RUN   TestOne\n"}
+{"Action":"output","Package":"probe/ok","Test":"TestOne","Output":"--- PASS: TestOne (0.00s)\n"}
+{"Action":"pass","Package":"probe/ok","Test":"TestOne","Elapsed":0}
+{"Action":"output","Package":"probe/ok","Output":"PASS\n"}
+{"Action":"output","Package":"probe/ok","Output":"ok  \tprobe/ok\t0.001s\n"}
+{"Action":"pass","Package":"probe/ok","Elapsed":0.001}
+`
+	// `go test -run '^(TestNope)$'`: пакет собрался, бинарник отработал, событий с полем Test нет.
+	streamNoTestsRun = `{"Action":"start","Package":"probe/ok"}
+{"Action":"output","Package":"probe/ok","Output":"testing: warning: no tests to run\n"}
+{"Action":"output","Package":"probe/ok","Output":"PASS\n"}
+{"Action":"output","Package":"probe/ok","Output":"ok  \tprobe/ok\t0.001s [no tests to run]\n"}
+{"Action":"pass","Package":"probe/ok","Elapsed":0.001}
+`
+	// Паника в переменной уровня пакета: бинарник собран и запущен, упал до первого теста.
+	streamInitPanic = `{"Action":"start","Package":"probe/initpanic"}
+{"Action":"output","Package":"probe/initpanic","Output":"panic: boom at init\n"}
+{"Action":"output","Package":"probe/initpanic","Output":"\n"}
+{"Action":"output","Package":"probe/initpanic","Output":"goroutine 1 [running]:\n"}
+{"Action":"output","Package":"probe/initpanic","Output":"probe/initpanic.init.func1(...)\n"}
+{"Action":"output","Package":"probe/initpanic","Output":"\t/tmp/probe/initpanic/initpanic_test.go:5\n"}
+{"Action":"output","Package":"probe/initpanic","Output":"probe/initpanic.init()\n"}
+{"Action":"output","Package":"probe/initpanic","Output":"\t/tmp/probe/initpanic/initpanic_test.go:5 +0x25\n"}
+{"Action":"output","Package":"probe/initpanic","Output":"FAIL\tprobe/initpanic\t0.003s\n"}
+{"Action":"fail","Package":"probe/initpanic","Elapsed":0.003}
+`
+	// TestMain: `m.Run(); os.Exit(1)` — единственный тест прошёл, а итог пакета — fail.
+	streamExitAfterTests = `{"Action":"start","Package":"probe/exitmain"}
+{"Action":"run","Package":"probe/exitmain","Test":"TestDone"}
+{"Action":"output","Package":"probe/exitmain","Test":"TestDone","Output":"=== RUN   TestDone\n"}
+{"Action":"output","Package":"probe/exitmain","Test":"TestDone","Output":"--- PASS: TestDone (0.00s)\n"}
+{"Action":"pass","Package":"probe/exitmain","Test":"TestDone","Elapsed":0}
+{"Action":"output","Package":"probe/exitmain","Output":"PASS\n"}
+{"Action":"output","Package":"probe/exitmain","Output":"FAIL\tprobe/exitmain\t0.001s\n"}
+{"Action":"fail","Package":"probe/exitmain","Elapsed":0.001}
+`
+	// Горутина решения упала, когда тест уже вернулся и прошёл: паника приписана пакету.
+	streamPanicAfterTests = `{"Action":"start","Package":"probe/latepanic"}
+{"Action":"run","Package":"probe/latepanic","Test":"TestLeak"}
+{"Action":"output","Package":"probe/latepanic","Test":"TestLeak","Output":"=== RUN   TestLeak\n"}
+{"Action":"output","Package":"probe/latepanic","Test":"TestLeak","Output":"--- PASS: TestLeak (0.00s)\n"}
+{"Action":"pass","Package":"probe/latepanic","Test":"TestLeak","Elapsed":0}
+{"Action":"output","Package":"probe/latepanic","Output":"PASS\n"}
+{"Action":"output","Package":"probe/latepanic","Output":"panic: горутина решения упала после теста\n"}
+{"Action":"output","Package":"probe/latepanic","Output":"\n"}
+{"Action":"output","Package":"probe/latepanic","Output":"goroutine 7 [running]:\n"}
+{"Action":"output","Package":"probe/latepanic","Output":"FAIL\tprobe/latepanic\t0.053s\n"}
+{"Action":"fail","Package":"probe/latepanic","Elapsed":0.053}
+`
+	// Синтетический (не снят с прогона): тест упал сам, пакет кончился fail.
+	streamOneFail = `{"Action":"start","Package":"probe/a"}
+{"Action":"run","Package":"probe/a","Test":"TestA"}
+{"Action":"fail","Package":"probe/a","Test":"TestA","Elapsed":0}
+{"Action":"fail","Package":"probe/a","Elapsed":0.001}
 `
 )
 
-// Прогон кончился без единого события теста. Виновата тогда сборка или запуск, а не
-// решение: «Ошибка компиляции», «бесконечный цикл» и «обход без visited» здесь были
-// неправдой. Рядом с каждой веткой — контроль: тот же конец прогона при запущенном
-// бинарнике объясняется по-прежнему.
-func TestVerdictWithoutTests(t *testing.T) {
+// Вердикт прогона: стадия, вид остановки, причина и ok — по потоку событий и по тому,
+// чем кончилась команда. Пока тестовый бинарник не запущен, виновата сборка или запуск,
+// а не решение: «Ошибка компиляции», «бесконечный цикл» и «обход без visited» там
+// были неправдой. Рядом с каждой такой веткой — контроль: тот же конец прогона при
+// запущенном бинарнике объясняется по-прежнему. ok истинно только у прогона, который
+// кончился итогом pass у пакета и запустил все запрошенные тесты: на него опирается
+// машинная оценка карточек.
+func TestVerdict(t *testing.T) {
 	const (
 		growth    = " — похоже на бесконечный рост (например, обход без visited)"
 		coldCache = ", пока кэш компилятора пуст; запусти ещё раз — уже собранное осталось в кэше"
+		starved   = "сборка упёрлась в предел памяти 128 МиБ, до тестов дело не дошло — предел мал для компилятора: перезапусти runner с -mem-mb побольше"
+		loop      = "прогон не уложился в 45s и остановлен целиком — похоже на бесконечный цикл"
+		flooded   = "вывод обрезан: поток вывода тестов дорос до 4096 КиБ, прогон остановлен — похоже на печать в бесконечном цикле; убери отладочный вывод и запусти снова"
 	)
 	exit1 := errors.New("exit status 1")
 	killed := errors.New("signal: killed")
-	cgroup := runLimits{Deadline: 45 * time.Second, Mem: memLimiter{Mode: memCgroup, Bytes: 128 << 20}}
-	rlimit := runLimits{Deadline: 45 * time.Second, Mem: memLimiter{Mode: memRlimit, Bytes: 2 << 30}}
-	race := runLimits{Race: true, Deadline: 70 * time.Second, Mem: memLimiter{Mode: memCgroup, Bytes: 2 << 30}}
+	deadline := runEnd{ctxErr: context.DeadlineExceeded, runErr: killed}
+	cgroup := runLimits{Deadline: 45 * time.Second, MaxOutput: maxRunOutput, Mem: memLimiter{Mode: memCgroup, Bytes: 128 << 20}}
+	rlimit := runLimits{Deadline: 45 * time.Second, MaxOutput: maxRunOutput, Mem: memLimiter{Mode: memRlimit, Bytes: 2 << 30}}
+	race := runLimits{Race: true, Deadline: 70 * time.Second, MaxOutput: maxRunOutput, Mem: memLimiter{Mode: memCgroup, Bytes: 2 << 30}}
 	for _, tt := range []struct {
-		name              string
-		stream            string
-		end               runEnd
-		lim               runLimits
-		memLimit, timeout bool
-		reason            string
-		killed            string // пометка незавершённого теста, если он в потоке есть
+		name   string
+		stream string
+		end    runEnd
+		filter []string
+		lim    runLimits
+		want   testResult // сверяются Stage, Reason, OK и признаки остановки
+		killed string     // пометка незавершённого теста, если он в потоке есть
 	}{
+		// Команда не запустилась: ни одного события go test.
 		{name: "ограничитель не создал область", stream: streamNoBus, end: runEnd{runErr: exit1}, lim: cgroup,
-			reason: "прогон не запустился: Failed to connect to bus: No such file or directory"},
+			want: testResult{Stage: stageLaunch, Reason: "прогон не запустился: Failed to connect to bus: No such file or directory"}},
 		{name: "ограничителя нет в PATH", end: runEnd{runErr: errors.New(`exec: "systemd-run": executable file not found in $PATH`)}, lim: cgroup,
-			reason: `прогон не запустился: exec: "systemd-run": executable file not found in $PATH`},
-		{name: "контроль: ошибка компиляции — не «не запустился»", stream: streamCompileError, end: runEnd{runErr: exit1}, lim: cgroup},
-		{name: "контроль: обычное падение теста — тоже", end: runEnd{runErr: exit1}, lim: cgroup,
-			stream: `{"Action":"run","Test":"TestA"}` + "\n" + `{"Action":"fail","Test":"TestA"}` + "\n" + `{"Action":"fail"}` + "\n"},
+			want: testResult{Stage: stageLaunch, Reason: `прогон не запустился: exec: "systemd-run": executable file not found in $PATH`}},
 
-		{name: "память кончилась на сборке: убит компоновщик", stream: streamLinkKilled, end: runEnd{hitMem: true, runErr: exit1}, lim: cgroup, memLimit: true,
-			reason: "сборка упёрлась в предел памяти 128 МиБ, до тестов дело не дошло — предел мал для компилятора: перезапусти runner с -mem-mb побольше"},
+		// До тестового бинарника дело не дошло.
+		{name: "ошибка компиляции — не «не запустился»", stream: streamCompileError, end: runEnd{runErr: exit1}, lim: cgroup,
+			want: testResult{Stage: stageBuild}},
+		{name: "память кончилась на сборке: убит компоновщик", stream: streamLinkKilled, end: runEnd{hitMem: true, runErr: exit1}, lim: cgroup,
+			want: testResult{Stage: stageBuild, MemLimit: true, Reason: starved}},
 		// область на 16 МиБ: ядро убивает сам `go`, он не успевает напечатать ничего
-		{name: "память кончилась на сборке: убит сам go", end: runEnd{hitMem: true, runErr: killed}, lim: cgroup, memLimit: true,
-			reason: "сборка упёрлась в предел памяти 128 МиБ, до тестов дело не дошло — предел мал для компилятора: перезапусти runner с -mem-mb побольше"},
+		{name: "память кончилась на сборке: убит сам go", end: runEnd{hitMem: true, runErr: killed}, lim: cgroup,
+			want: testResult{Stage: stageBuild, MemLimit: true, Reason: starved}},
 		// prlimit ставится одному тестовому бинарнику: сборку под ним убивает ядро (docker --memory)
-		{name: "память кончилась на сборке без своего предела", stream: streamLinkKilled, end: runEnd{hitMem: true, runErr: exit1}, lim: rlimit, memLimit: true,
-			reason: "сборке не хватило памяти машины или контейнера, до тестов дело не дошло — освободи память или подними предел контейнера (docker --memory)"},
-		{name: "контроль: память кончилась в запущенном бинарнике", stream: streamBinaryStarted, end: runEnd{hitMem: true, runErr: exit1}, lim: cgroup, memLimit: true,
-			reason: "прогон: упёрлось в предел памяти 128 МиБ" + growth},
-		{name: "контроль: память кончилась в тесте", stream: streamTestRunning, end: runEnd{hitMem: true, runErr: exit1}, lim: cgroup, memLimit: true,
-			reason: "TestHang: упёрлось в предел памяти 128 МиБ" + growth, killed: "memory"},
+		{name: "память кончилась на сборке без своего предела", stream: streamLinkKilled, end: runEnd{hitMem: true, runErr: exit1}, lim: rlimit,
+			want: testResult{Stage: stageBuild, MemLimit: true,
+				Reason: "сборке не хватило памяти машины или контейнера, до тестов дело не дошло — освободи память или подними предел контейнера (docker --memory)"}},
+		{name: "память кончилась на сборке, а запасной срок тоже вышел: причина — память", end: runEnd{hitMem: true, ctxErr: context.DeadlineExceeded, runErr: killed}, lim: cgroup,
+			want: testResult{Stage: stageBuild, MemLimit: true, Reason: starved}},
+		{name: "срок вышел на сборке", end: deadline, lim: cgroup,
+			want: testResult{Stage: stageBuild, Timeout: true,
+				Reason: "прогон не уложился в 45s и остановлен целиком: не успела закончиться сборка — так бывает на первом запуске" + coldCache}},
+		{name: "срок вышел на сборке с -race", end: deadline, lim: race,
+			want: testResult{Stage: stageBuild, Timeout: true,
+				Reason: "прогон не уложился в 1m10s и остановлен целиком: не успела закончиться сборка — так бывает на первом запуске с -race" + coldCache}},
+		// ушёл клиент или останавливается сервер: это не «не запустился», причин не выдумываем
+		{name: "отмена до первого события", end: runEnd{ctxErr: context.Canceled, runErr: killed}, lim: cgroup,
+			want: testResult{Stage: stageBuild}},
 
-		{name: "срок вышел на сборке", end: runEnd{ctxErr: context.DeadlineExceeded, runErr: killed}, lim: cgroup, timeout: true,
-			reason: "прогон не уложился в 45s и остановлен целиком: не успела закончиться сборка — так бывает на первом запуске" + coldCache},
-		{name: "срок вышел на сборке с -race", end: runEnd{ctxErr: context.DeadlineExceeded, runErr: killed}, lim: race, timeout: true,
-			reason: "прогон не уложился в 1m10s и остановлен целиком: не успела закончиться сборка — так бывает на первом запуске с -race" + coldCache},
-		{name: "контроль: срок вышел в запущенном бинарнике", stream: streamBinaryStarted, end: runEnd{ctxErr: context.DeadlineExceeded, runErr: killed}, lim: cgroup, timeout: true,
-			reason: "прогон не уложился в 45s и остановлен целиком — похоже на бесконечный цикл"},
-		{name: "контроль: срок вышел в тесте", stream: streamTestRunning, end: runEnd{ctxErr: context.DeadlineExceeded, runErr: killed}, lim: cgroup, timeout: true,
-			reason: "прогон не уложился в 45s и остановлен целиком — похоже на бесконечный цикл", killed: "timeout"},
-		// ушёл клиент или останавливается сервер: это не «не запустился»
-		{name: "контроль: отмена до первого события", end: runEnd{ctxErr: context.Canceled, runErr: killed}, lim: cgroup},
+		// Бинарник запущен: остановки объясняются по-прежнему.
+		{name: "память кончилась в запущенном бинарнике", stream: streamBinaryStarted, end: runEnd{hitMem: true, runErr: exit1}, lim: cgroup,
+			want: testResult{Stage: stageTests, MemLimit: true, Reason: "прогон: упёрлось в предел памяти 128 МиБ" + growth}},
+		{name: "память кончилась в тесте", stream: streamTestRunning, end: runEnd{hitMem: true, runErr: exit1}, lim: cgroup, killed: "memory",
+			want: testResult{Stage: stageTests, MemLimit: true, Reason: "TestHang: упёрлось в предел памяти 128 МиБ" + growth}},
+		{name: "срок вышел в запущенном бинарнике", stream: streamBinaryStarted, end: deadline, lim: cgroup,
+			want: testResult{Stage: stageTests, Timeout: true, Reason: loop}},
+		{name: "срок вышел в тесте", stream: streamTestRunning, end: deadline, lim: cgroup, killed: "timeout",
+			want: testResult{Stage: stageTests, Timeout: true, Reason: loop}},
+		// потолок вывода гасит контекст сам — это не уход клиента
+		{name: "вывод упёрся в потолок", stream: streamTestRunning, end: runEnd{ctxErr: context.Canceled, runErr: killed, truncated: true}, lim: cgroup,
+			want: testResult{Stage: stageTests, Truncated: true, Reason: flooded}},
+		{name: "вывод упёрся в потолок, а запасной срок тоже вышел: причина — срок", stream: streamTestRunning, lim: cgroup, killed: "timeout",
+			end:  runEnd{ctxErr: context.DeadlineExceeded, runErr: killed, truncated: true},
+			want: testResult{Stage: stageTests, Timeout: true, Truncated: true, Reason: loop}},
+		{name: "отмена при запущенном бинарнике", stream: streamBinaryStarted, end: runEnd{ctxErr: context.Canceled, runErr: killed}, lim: cgroup,
+			want: testResult{Stage: stageTests}},
+
+		// Бинарник кончился сам, и ни один тест в этом не виноват.
+		{name: "бинарник упал до первого теста", stream: streamInitPanic, end: runEnd{runErr: exit1}, lim: cgroup,
+			want: testResult{Stage: stageTests, Reason: "тестовый бинарник упал до первого теста: panic: boom at init"}},
+		{name: "тесты прошли, а бинарник вышел с ошибкой", stream: streamExitAfterTests, end: runEnd{runErr: exit1}, lim: cgroup,
+			want: testResult{Stage: stageTests, Reason: "тестовый бинарник завершился с ошибкой, хотя тесты не падали"}},
+		{name: "тесты прошли, а после них упала горутина решения", stream: streamPanicAfterTests, end: runEnd{runErr: exit1}, lim: cgroup,
+			want: testResult{Stage: stageTests, Reason: "тестовый бинарник завершился с ошибкой, хотя тесты не падали: panic: горутина решения упала после теста"}},
+
+		// Обычные исходы и фильтр tests.
+		{name: "зелёный прогон", stream: streamOnePass, lim: cgroup, want: testResult{Stage: stageTests, OK: true}},
+		{name: "обычное падение теста", stream: streamOneFail, end: runEnd{runErr: exit1}, lim: cgroup, want: testResult{Stage: stageTests}},
+		{name: "фильтр совпал целиком", stream: streamOnePass, filter: []string{"TestOne"}, lim: cgroup, want: testResult{Stage: stageTests, OK: true}},
+		{name: "фильтр не совпал ни с одним тестом", stream: streamNoTestsRun, filter: []string{"TestNope", "TestZzz"}, lim: cgroup,
+			want: testResult{Stage: stageTests, NoTests: true, Reason: "ни один тест не запустился — в пакете нет тестов с такими именами: TestNope, TestZzz"}},
+		{name: "в пакете нет тестов", stream: streamNoTestsRun, lim: cgroup,
+			want: testResult{Stage: stageTests, NoTests: true, Reason: "ни один тест не запустился — в пакете нет тестов"}},
+		// запрошенный тест не запускался — зелёным такой прогон быть не может
+		{name: "фильтр совпал частично", stream: streamOnePass, filter: []string{"TestOne", "TestNope", "TestZzz"}, lim: cgroup,
+			want: testResult{Stage: stageTests, Reason: "не запустились запрошенные тесты: TestNope, TestZzz — в пакете нет тестов с такими именами"}},
+		// бинарник мог и не дойти до TestB (паника в TestA): «нет такого теста» тут было бы догадкой
+		{name: "фильтр совпал частично, а запущенный тест упал", stream: streamOneFail, end: runEnd{runErr: exit1}, filter: []string{"TestA", "TestB"}, lim: cgroup,
+			want: testResult{Stage: stageTests}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			res := parseTestOutput([]byte(tt.stream))
-			verdict(&res, tt.end, tt.lim)
-			if res.Reason != tt.reason || res.MemLimit != tt.memLimit || res.Timeout != tt.timeout || res.OK || res.NoTests {
-				t.Fatalf("memLimit=%v timeout=%v ok=%v noTests=%v\nпричина:   %q\nожидалась: %q", res.MemLimit, res.Timeout, res.OK, res.NoTests, res.Reason, tt.reason)
+			verdict(&res, tt.end, tt.filter, tt.lim)
+			got := testResult{Stage: res.Stage, Reason: res.Reason, OK: res.OK, MemLimit: res.MemLimit, Timeout: res.Timeout, Truncated: res.Truncated, NoTests: res.NoTests}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("stage=%q ok=%v memLimit=%v timeout=%v truncated=%v noTests=%v\nпричина:   %q\nожидалось: stage=%q ok=%v memLimit=%v timeout=%v truncated=%v noTests=%v\nпричина:   %q",
+					got.Stage, got.OK, got.MemLimit, got.Timeout, got.Truncated, got.NoTests, got.Reason,
+					tt.want.Stage, tt.want.OK, tt.want.MemLimit, tt.want.Timeout, tt.want.Truncated, tt.want.NoTests, tt.want.Reason)
 			}
-			if tt.stream == streamTestRunning && (len(res.Tests) != 1 || res.Tests[0].Killed != tt.killed) {
-				t.Fatalf("незавершённый тест не помечен %q: %+v", tt.killed, res.Tests)
+			if res.Build != (res.Stage == stageTests) {
+				t.Errorf("build=%v при stage=%q: build истинно ровно тогда, когда тестовый бинарник запущен", res.Build, res.Stage)
+			}
+			if tt.killed != "" && (len(res.Tests) != 1 || res.Tests[0].Killed != tt.killed) {
+				t.Errorf("незавершённый тест не помечен %q: %+v", tt.killed, res.Tests)
 			}
 		})
-	}
-}
-
-// Пакет собрался, а запускать нечего: причину называет обработчик — имена из
-// фильтра знает только он.
-func TestNoTestsReason(t *testing.T) {
-	for want, filter := range map[string][]string{
-		"ни один тест не запустился — в пакете нет тестов с такими именами: TestNope":          {"TestNope"},
-		"ни один тест не запустился — в пакете нет тестов с такими именами: TestNope, TestZzz": {"TestNope", "TestZzz"},
-		"ни один тест не запустился — в пакете нет тестов":                                     nil,
-	} {
-		if got := noTestsReason(filter); got != want {
-			t.Errorf("noTestsReason(%q) = %q, ожидалось %q", filter, got, want)
-		}
 	}
 }
 
@@ -386,7 +503,7 @@ func TestServerOneRunAtATime(t *testing.T) {
 // Срок вышел до запуска: исход — «остановлен по времени», а не «ошибка компиляции».
 func TestRunGoTestDeadlineIsReported(t *testing.T) {
 	lim := runLimits{TestTimeout: time.Second, Deadline: time.Nanosecond, MaxOutput: maxRunOutput}
-	res := runGoTest(context.Background(), t.TempDir(), []string{"test", "./x/"}, lim)
+	res := runGoTest(context.Background(), t.TempDir(), []string{"test", "./x/"}, nil, lim)
 	if !res.Timeout || res.OK || !strings.Contains(res.Reason, "остановлен целиком") {
 		t.Fatalf("%+v", res)
 	}

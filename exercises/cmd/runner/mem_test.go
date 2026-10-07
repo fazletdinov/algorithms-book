@@ -77,7 +77,7 @@ func TestRunGoTestReportsLaunchFailure(t *testing.T) {
 	t.Setenv("PATH", t.TempDir()) // ни systemd-run, ни go
 	lim := runLimits{TestTimeout: time.Second, Deadline: time.Minute, MaxOutput: maxRunOutput,
 		Mem: memLimiter{Mode: memCgroup, Bytes: 1 << 30}}
-	res := runGoTest(context.Background(), t.TempDir(), []string{"test", "./x/"}, lim)
+	res := runGoTest(context.Background(), t.TempDir(), []string{"test", "./x/"}, nil, lim)
 	if res.OK || res.Timeout || res.MemLimit || !strings.HasPrefix(res.Reason, `прогон не запустился: exec: "systemd-run"`) {
 		t.Fatalf("%+v", res)
 	}

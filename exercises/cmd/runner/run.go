@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 )
@@ -22,8 +23,8 @@ const maxRunOutput = 4 << 20
 // бинарник сам падает с «panic: test timed out», называет тест и печатает стек.
 // Deadline — запасной срок на всё (сборка + тесты); по нему убивается группа.
 // BuildTimeout — срок сборки харнесса трассы: она идёт отдельной командой, и
-// Deadline у трассы — срок одного запуска. Mem — предел памяти (mem.go); нулевое
-// значение — без предела.
+// Deadline у трассы — срок одного запуска; ноль — defaultBuildTimeout. Mem — предел
+// памяти (mem.go); нулевое значение — без предела.
 type runLimits struct {
 	Race         bool
 	TestTimeout  time.Duration
@@ -32,6 +33,9 @@ type runLimits struct {
 	MaxOutput    int
 	Mem          memLimiter
 }
+
+// defaultBuildTimeout — срок сборки харнесса трассы, когда runLimits.BuildTimeout не задан.
+const defaultBuildTimeout = 20 * time.Second
 
 func defaultLimits(race bool) runLimits {
 	lim := runLimits{Race: race, TestTimeout: 20 * time.Second, MaxOutput: maxRunOutput}
@@ -64,9 +68,20 @@ func (c *cappedBuffer) Write(p []byte) (int, error) {
 	return c.buf.Write(p)
 }
 
+// Стадия, до которой дошёл прогон (testResult.Stage).
+const (
+	stageLaunch = "launch" // команда не запустилась: ни одного события go test, `go` или ограничитель памяти перед ним вышел с ошибкой
+	stageBuild  = "build"  // до тестового бинарника дело не дошло: ошибка компиляции либо остановка на сборке
+	stageTests  = "tests"  // сборка удалась, тестовый бинарник запущен
+)
+
 type testResult struct {
-	OK       bool        `json:"ok"`       // все тесты прошли, сборка успешна, гонок и остановок нет
-	Build    bool        `json:"build"`    // компиляция удалась
+	Stage string `json:"stage"` // всегда одно из трёх значений выше
+	// OK — зелёный прогон: пакет кончился итогом pass, ни один тест не упал, все
+	// запрошенные фильтром тесты запускались, гонок и остановок нет. Ему верит
+	// машинная оценка карточек, поэтому «прошли те, что успели» зелёным не считается.
+	OK       bool        `json:"ok"`
+	Build    bool        `json:"build"`    // сборка удалась и тестовый бинарник запущен (Stage == "tests")
 	Race     bool        `json:"race"`     // детектор -race нашёл гонку данных
 	Passed   int         `json:"passed"`   //
 	Failed   int         `json:"failed"`   //
@@ -90,10 +105,10 @@ type testResult struct {
 	// tests не совпал ни с одним именем. Build при этом истинен, OK ложен.
 	NoTests bool `json:"noTests,omitempty"`
 
-	// Докуда дошёл прогон по потоку событий. В ответ не идут — по ним verdict
-	// называет причину, когда до тестов дело не дошло.
-	events  bool // go test напечатал хоть одно событие: команда запустилась
-	started bool // сборка удалась, тестовый бинарник запущен
+	// Что ещё видно по потоку событий. В ответ не идут — по ним verdict выставляет
+	// стадию, причину и OK.
+	events    bool // go test напечатал хоть одно событие: команда запустилась
+	pkgPassed bool // итог пакета — pass: бинарник отработал до конца и вышел с нулём
 }
 
 // testEvent — тест верхнего уровня. Output — его вывод вместе с выводом подтестов
@@ -127,7 +142,8 @@ func markUnfinished(res *testResult, why string) []string {
 // резолвится в настоящий ./exercises и правки пользователя игнорируются). GOTMPDIR
 // — рабочий каталог go (go-build…, в нём собранный бинарник) внутрь копии: `go`,
 // убитый SIGKILL по сроку или на потолке вывода, его за собой не убирает, и в
-// системном /tmp с каждой такой остановки оставались мегабайты.
+// системном /tmp с каждой такой остановки оставались мегабайты (замер 2026-10-07:
+// за несколько сотен убитых прогонов в тестах — 348 каталогов на ~630 МБ).
 func goEnv(dir string) []string {
 	env := append(os.Environ(), "GOFLAGS=", "GOWORK=off")
 	if tmp := filepath.Join(dir, ".gotmp"); os.MkdirAll(tmp, 0o755) == nil {
@@ -136,7 +152,7 @@ func goEnv(dir string) []string {
 	return env
 }
 
-func runGoTest(ctx context.Context, dir string, args []string, lim runLimits) testResult {
+func runGoTest(ctx context.Context, dir string, args, filter []string, lim runLimits) testResult {
 	ctx, cancel := context.WithTimeout(ctx, lim.Deadline)
 	defer cancel()
 	// Потолок вывода — остановка сразу (cancel убивает группу): иначе читатель ждал
@@ -167,7 +183,7 @@ func runGoTest(ctx context.Context, dir string, args []string, lim runLimits) te
 	}
 	res := parseTestOutput(raw)
 	res.Duration = duration
-	verdict(&res, runEnd{hitMem: hit, ctxErr: ctxErr, runErr: runErr, truncated: out.truncated}, lim)
+	verdict(&res, runEnd{hitMem: hit, ctxErr: ctxErr, runErr: runErr, truncated: out.truncated}, filter, lim)
 	return res
 }
 
@@ -179,16 +195,23 @@ type runEnd struct {
 	truncated bool  // вывод упёрся в потолок
 }
 
-// verdict дописывает в разобранный поток исход прогона: вид остановки, причину и
-// OK. Чистая функция — ветки проверяются таблицей, без запуска go. Пока тестовый
-// бинарник не запущен (res.started ложно), остановлена сборка, а не решение: винить
-// «бесконечный цикл» и «обход без visited» тогда не в чем.
-func verdict(res *testResult, end runEnd, lim runLimits) {
+// verdict дописывает в разобранный поток исход прогона: стадию, вид остановки,
+// причину и OK. Чистая функция — ветки проверяются таблицей (TestVerdict), без запуска
+// go; у причин один владелец — она. filter — имена из запроса tests: по ним
+// называются тесты, которые не запустились. Пока тестовый бинарник не запущен
+// (res.Build ложно), остановлена сборка, а не решение: винить «бесконечный цикл» и
+// «обход без visited» тогда не в чем.
+func verdict(res *testResult, end runEnd, filter []string, lim runLimits) {
 	res.Truncated = end.truncated
+	res.Stage = stageBuild
+	if res.Build {
+		res.Stage = stageTests
+	}
+	missing := notRun(filter, res.Tests) // запрошенные тесты, которых нет среди запущенных
 	switch {
 	case end.hitMem: // первой: у самого предела тест может ещё и не уложиться в срок, но причина — память
 		res.MemLimit, res.Timeout = true, false
-		if !res.started {
+		if !res.Build {
 			res.Reason = starvedBuild(lim.Mem)
 			break
 		}
@@ -201,21 +224,61 @@ func verdict(res *testResult, end runEnd, lim runLimits) {
 	case end.ctxErr == context.DeadlineExceeded:
 		res.Timeout = true
 		stopped := fmt.Sprintf("прогон не уложился в %s и остановлен целиком", lim.Deadline)
-		if !res.started {
+		if !res.Build {
 			res.Reason = stopped + ": не успела закончиться сборка — " + slowBuildHint(lim.Race)
 			break
 		}
 		markUnfinished(res, "timeout")
 		res.Reason = stopped + " — похоже на бесконечный цикл"
-	case end.ctxErr == nil && end.runErr != nil && !res.events:
+	case end.truncated: // раньше отмены: на потолке контекст гасит сам runGoTest
+		res.Reason = fmt.Sprintf("вывод обрезан: поток вывода тестов дорос до %d КиБ, прогон остановлен — похоже на печать в бесконечном цикле; убери отладочный вывод и запусти снова", lim.MaxOutput>>10)
+	case end.ctxErr != nil:
+		// Ушёл клиент или останавливается сервер: прогон оборван не по своей вине,
+		// причин не выдумываем.
+	case end.runErr != nil && !res.events:
 		// Ни одного события go test: не запустился он сам или ограничитель памяти
 		// перед ним (systemd-run не создал область). Без причины это выглядело бы
 		// ошибкой компиляции с чужим текстом вместо вывода компилятора.
+		res.Stage = stageLaunch
 		res.Reason = "прогон не запустился: " + launchCause(end.runErr, res.Output)
-	case end.truncated:
-		res.Reason = fmt.Sprintf("вывод обрезан на %d КиБ, прогон остановлен — похоже на печать в бесконечном цикле; убери отладочный вывод и запусти снова", lim.MaxOutput>>10)
+	case res.NoTests:
+		res.Reason = noTestsReason(filter)
+	case res.Build && !res.pkgPassed && res.Failed == 0:
+		// Бинарник запущен, пакет кончился не pass, и ни один тест в этом не виноват:
+		// решение упало при инициализации либо бинарник вышел с ошибкой между тестами
+		// или после них. Это не ошибка компиляции и не зелёный прогон.
+		res.Reason = "тестовый бинарник упал до первого теста"
+		if len(res.Tests) > 0 {
+			res.Reason = "тестовый бинарник завершился с ошибкой, хотя тесты не падали"
+		}
+		if crash := crashRe.FindString(res.Output); crash != "" {
+			res.Reason += ": " + crash
+		}
+	case res.pkgPassed && len(missing) > 0:
+		// Бинарник дошёл до конца, значит, недостающих тестов в пакете нет: иначе он
+		// запустил бы и их. В красном прогоне так сказать нельзя — тест мог не
+		// запуститься из-за паники в предыдущем, — там причину не выдумываем.
+		res.Reason = "не запустились запрошенные тесты: " + strings.Join(missing, ", ") + " — в пакете нет тестов с такими именами"
 	}
-	res.OK = res.Build && res.Failed == 0 && res.Passed > 0 && !res.Race && !res.Timeout && !res.Truncated && !res.MemLimit
+	// Зелёный — только прогон, который кончился итогом pass у пакета и запустил всё,
+	// что просили: «прошли те, что успели» и «прошли те, что нашлись» зелёным не считаются.
+	res.OK = res.pkgPassed && res.Passed > 0 && res.Failed == 0 && len(missing) == 0 &&
+		!res.Race && !res.Timeout && !res.Truncated && !res.MemLimit
+}
+
+// crashRe — строка, которой рантайм Go сообщает о падении процесса. По ней паника
+// решения отличается от сбоя запуска: systemd-run и prlimit так не печатают.
+var crashRe = regexp.MustCompile(`(?m)^(panic|fatal error): .*$`)
+
+// notRun — имена из filter, которых нет среди запущенных тестов.
+func notRun(filter []string, ran []testEvent) []string {
+	var missing []string
+	for _, name := range filter {
+		if !slices.ContainsFunc(ran, func(te testEvent) bool { return te.Name == name }) {
+			missing = append(missing, name)
+		}
+	}
+	return missing
 }
 
 // Причины остановки до тестов — общие для прогона и трассы (trace.go).
@@ -229,7 +292,9 @@ func launchCause(runErr error, out string) string {
 	return runErr.Error()
 }
 
-// slowBuildHint — что сказать, когда срок вышел на сборке.
+// slowBuildHint — что сказать, когда срок вышел на сборке. «Собранное осталось в
+// кэше» проверено (2026-10-07): пустой GOCACHE, -race, срок 3 с — две попытки убиты
+// на сборке (в кэше 577, потом 1067 файлов), третья прошла за 1,2 с.
 func slowBuildHint(race bool) string {
 	first := "на первом запуске"
 	if race { // под детектор гонок стандартная библиотека собирается заново
@@ -249,7 +314,6 @@ func starvedBuild(m memLimiter) string {
 }
 
 // noTestsReason — пакет собрался, а запускать оказалось нечего (testResult.NoTests).
-// Зовёт обработчик: имена из фильтра знает только он.
 func noTestsReason(filter []string) string {
 	if len(filter) == 0 {
 		return "ни один тест не запустился — в пакете нет тестов"
@@ -257,11 +321,11 @@ func noTestsReason(filter []string) string {
 	return "ни один тест не запустился — в пакете нет тестов с такими именами: " + strings.Join(filter, ", ")
 }
 
-// frameworkLine — служебная строка тестового бинарника («=== RUN   TestX/случай»,
+// frameworkLineRe — служебная строка тестового бинарника («=== RUN   TestX/случай»,
 // «--- PASS: TestX/случай (0.00s)»), а не то, что напечатал тест или решение.
-func frameworkLine(s string) bool {
-	return strings.HasPrefix(s, "=== ") || strings.HasPrefix(s, "--- ")
-}
+// Сопоставляется точно, а не по началу «=== » / «--- »: так же начинается обычный
+// разделитель в отладочной печати — `fmt.Println("---", x)`.
+var frameworkLineRe = regexp.MustCompile(`^(=== (RUN|PAUSE|CONT|NAME)\s|--- (PASS|FAIL|SKIP): )`)
 
 // parseTestOutput собирает результат из вывода `go test -json`. Чистая функция:
 // поток событий проверяется тестом без запуска go. OK здесь не считается — его
@@ -296,7 +360,7 @@ func parseTestOutput(out []byte) testResult {
 	var order []string
 	var pkgOut, extra strings.Builder
 	timeout := ""
-	pkgStarted, pkgPassed, buildFailed := false, false, false
+	pkgStarted, buildFailed := false, false
 	for _, line := range bytes.Split(out, []byte("\n")) {
 		if len(bytes.TrimSpace(line)) == 0 {
 			continue
@@ -327,7 +391,7 @@ func parseTestOutput(out []byte) testResult {
 			case "start":
 				pkgStarted = true
 			case "pass":
-				pkgPassed = true
+				res.pkgPassed = true
 			}
 			continue
 		}
@@ -348,7 +412,7 @@ func parseTestOutput(out []byte) testResult {
 		switch {
 		case ev.Action == "output":
 			te.chunks = append(te.chunks, chunk{sub, ev.Output})
-			if sub != nil && !frameworkLine(ev.Output) {
+			if sub != nil && !frameworkLineRe.MatchString(ev.Output) {
 				sub.loud = true
 			}
 		case sub != nil: // исход подтеста на счёт и на исход его теста не влияет
@@ -360,14 +424,13 @@ func parseTestOutput(out []byte) testResult {
 		}
 	}
 
-	// Событие start у пакета приходит и после неудачной сборки (за ним — «FAIL …
-	// [build failed]»), поэтому одного его мало.
-	res.started = len(order) > 0 || pkgStarted && !buildFailed
-	// Событий тестов нет, а пакет прошёл: он собрался, но запускать было нечего —
-	// фильтр -run не совпал ни с одним именем. Без pass у пакета это по-прежнему «не
-	// собрался» (или бинарник упал до первого теста: паника в init, TestMain).
-	res.NoTests = len(order) == 0 && pkgPassed
-	res.Build = len(order) > 0 || res.NoTests
+	// Тестовый бинарник запущен — значит, сборка удалась. Событие start у пакета
+	// приходит и после неудачной сборки (за ним — «FAIL … [build failed]»), поэтому
+	// одного его мало.
+	res.Build = len(order) > 0 || pkgStarted && !buildFailed
+	// Событий тестов нет, а пакет прошёл: запускать было нечего — фильтр -run не совпал
+	// ни с одним именем. Без pass у пакета бинарник упал до первого теста сам.
+	res.NoTests = len(order) == 0 && res.pkgPassed
 	for _, name := range order {
 		te := tests[name]
 		var output strings.Builder

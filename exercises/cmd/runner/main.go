@@ -259,9 +259,7 @@ func newServer(mem memLimiter) *server {
 			lim.Mem = mem
 			return lim
 		},
-		traceLimits: func() runLimits {
-			return runLimits{Deadline: 5 * time.Second, BuildTimeout: 20 * time.Second, MaxOutput: maxRunOutput, Mem: mem}
-		},
+		traceLimits: func() runLimits { return runLimits{Deadline: 5 * time.Second, MaxOutput: maxRunOutput, Mem: mem} },
 	}
 }
 
@@ -399,11 +397,8 @@ func (s *server) handleRun(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = os.Remove(filepath.Join(tmp, req.Pkg, req.Pkg+"_solution.go"))
 
-	res := runGoTest(r.Context(), tmp, args, lim)
+	res := runGoTest(r.Context(), tmp, args, req.Tests, lim)
 	res.Filtered = len(req.Tests) > 0
-	if res.NoTests {
-		res.Reason = noTestsReason(req.Tests)
-	}
 	writeJSON(w, http.StatusOK, res)
 }
 

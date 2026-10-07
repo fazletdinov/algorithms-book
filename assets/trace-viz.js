@@ -300,8 +300,11 @@
       return;
     }
     // Остановка по сроку или по пределу памяти: шаги до остановки показываем, причина — в reason.
+    // Без шагов ленты нет: срок мог выйти ещё на сборке, и «функция не сделала ни шага» было бы неправдой.
     if (resp.timeout || resp.memLimit) {
-      renderTimeline(container, resp, banner("err", resp.memLimit ? "💾" : "⏱", resp.reason || "не уложились в таймаут"));
+      var stopped = banner("err", resp.memLimit ? "💾" : "⏱", resp.reason || "не уложились в таймаут");
+      if (resp.steps && resp.steps.length) renderTimeline(container, resp, stopped);
+      else container.appendChild(stopped);
       return;
     }
     if (resp.panic) {

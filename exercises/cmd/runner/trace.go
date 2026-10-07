@@ -502,13 +502,18 @@ func renderHarness(pkg, qualifiedCall string, void bool) ([]byte, error) {
 
 // runTraceHarness собирает и запускает харнесс в два отдельных шага (не
 // `go run`), чтобы чисто разводить ошибку сборки / панику / таймаут / успех
-// по разным веткам ответа. lim.BuildTimeout — срок сборки, lim.Deadline — срок
-// самого запуска, lim.MaxOutput — потолок трассы: шаг — строка stdout, и
-// бесконечный цикл иначе копил бы их в памяти сервера до конца срока.
+// по разным веткам ответа. lim.BuildTimeout — срок сборки (ноль —
+// defaultBuildTimeout), lim.Deadline — срок самого запуска, lim.MaxOutput — потолок
+// трассы: шаг — строка stdout, и бесконечный цикл иначе копил бы их в памяти
+// сервера до конца срока.
 func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, lim runLimits) traceResponse {
 	binPath := filepath.Join(tmp, ".tracebin")
 
-	buildCtx, cancelBuild := context.WithTimeout(ctx, lim.BuildTimeout)
+	buildTimeout := lim.BuildTimeout
+	if buildTimeout <= 0 {
+		buildTimeout = defaultBuildTimeout
+	}
+	buildCtx, cancelBuild := context.WithTimeout(ctx, buildTimeout)
 	defer cancelBuild()
 	build := groupCommand(buildCtx, "go", "build", "-o", binPath, "./tracecmd/")
 	build.Dir = tmp
@@ -519,7 +524,7 @@ func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, l
 		// проверяет build раньше, чем timeout и reason.
 		switch buildCtx.Err() {
 		case context.DeadlineExceeded:
-			reason := fmt.Sprintf("сборка трассы не уложилась в %s — %s", lim.BuildTimeout, slowBuildHint(false))
+			reason := fmt.Sprintf("сборка трассы не уложилась в %s — %s", buildTimeout, slowBuildHint(false))
 			return traceResponse{Build: true, Timeout: true, Reason: reason, Steps: []traceStep{}}
 		case context.Canceled: // ушёл клиент либо останавливается сервер: это не срок, Timeout тут был бы неправдой
 			return traceResponse{Build: true, Reason: "сборка трассы прервана: runner останавливается или запрос отменён", Steps: []traceStep{}}
@@ -563,10 +568,12 @@ func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, l
 	if msg, ok := findPanic(stderr.buf.String()); ok {
 		return traceResponse{Build: true, Panic: true, Message: msg, Steps: steps, Duration: duration}
 	}
-	if runErr != nil && !started {
+	if runErr != nil && !started && !crashRe.Match(stderr.buf.Bytes()) {
 		// Не паника в коде читателя: до main харнесса дело не дошло — не стартовал
 		// бинарник или ограничитель памяти перед ним (systemd-run не создал область и
-		// вышел со своим кодом). Виджет показывает reason последней веткой.
+		// вышел со своим кодом). Виджет показывает reason последней веткой. Паника
+		// рантайма без строки старта — другое: решение упало при инициализации
+		// (переменная уровня пакета, init), и это сбой в коде читателя — ветка ниже.
 		return traceResponse{Build: true, Reason: "трасса не запустилась: " + launchCause(runErr, stderr.buf.String()), Steps: steps, Duration: duration}
 	}
 	if runErr != nil {

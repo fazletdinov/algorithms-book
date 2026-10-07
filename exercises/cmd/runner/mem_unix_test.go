@@ -50,7 +50,7 @@ func runEater(t *testing.T, mem memLimiter, race bool, eatMiB string) testResult
 	}
 	lim := runLimits{Race: race, TestTimeout: time.Minute, Deadline: deadline, MaxOutput: maxRunOutput, Mem: mem}
 	args, _ := testArgs("eat", race, nil, lim.TestTimeout)
-	return runGoTest(context.Background(), dir, args, lim)
+	return runGoTest(context.Background(), dir, args, nil, lim)
 }
 
 func wantStopped(t *testing.T, res testResult, limit string) {
@@ -121,13 +121,19 @@ func TestMemLimitRlimitStopsEater(t *testing.T) {
 // Предела не хватило на саму сборку (-mem-mb слишком мал): убит компоновщик или сам
 // `go`, а не решение. Раньше причина и здесь говорила про бесконечный рост и обход
 // без visited. Пожиратель до запуска не доходит.
+//
+// Замер 2026-10-07 (Go 1.26.5, systemd 255, тёплый кэш компилятора): в области на
+// 16 МиБ ядро убивает сам `go` (Run возвращает «signal: killed», вывода нет); на 24–32
+// МиБ — то его, то компилятор или компоновщик («…/link: signal: killed», и `go` успевает
+// напечатать build-fail); на 64 МиБ крошечный тест уже проходит. Ответ во всех случаях
+// один — этот. Тест берёт 16 МиБ: там исход один и тот же от прогона к прогону.
 func TestMemLimitCgroupStarvedBuild(t *testing.T) {
 	needCgroup(t)
 	res := runEater(t, memLimiter{Mode: memCgroup, Bytes: 16 << 20}, false, "0")
 	want := "сборка упёрлась в предел памяти 16 МиБ, до тестов дело не дошло — предел мал для компилятора: перезапусти runner с -mem-mb побольше"
-	if !res.MemLimit || res.OK || res.Build || res.Timeout || res.Reason != want || len(res.Tests) != 0 {
-		t.Fatalf("memLimit=%v ok=%v build=%v timeout=%v tests=%+v\nпричина:   %q\nожидалась: %q\nвывод: %.400s",
-			res.MemLimit, res.OK, res.Build, res.Timeout, res.Tests, res.Reason, want, res.Output)
+	if !res.MemLimit || res.OK || res.Build || res.Stage != stageBuild || res.Timeout || res.Reason != want || len(res.Tests) != 0 {
+		t.Fatalf("memLimit=%v ok=%v build=%v stage=%q timeout=%v tests=%+v\nпричина:   %q\nожидалась: %q\nвывод: %.400s",
+			res.MemLimit, res.OK, res.Build, res.Stage, res.Timeout, res.Tests, res.Reason, want, res.Output)
 	}
 }
 
@@ -170,7 +176,7 @@ func TestMemLimitKilledAfterLastTest(t *testing.T) {
 		"func TestDone(t *testing.T) {}\n\nfunc TestMain(m *testing.M) {\n\tm.Run()\n\tsyscall.Kill(os.Getpid(), syscall.SIGKILL)\n}\n"})
 	lim := runLimits{TestTimeout: time.Minute, Deadline: 2 * time.Minute, MaxOutput: maxRunOutput}
 	args, _ := testArgs("late", false, nil, lim.TestTimeout)
-	res := runGoTest(context.Background(), dir, args, lim)
+	res := runGoTest(context.Background(), dir, args, nil, lim)
 	want := "прогон: упёрлось в предел памяти машины — похоже на бесконечный рост (например, обход без visited)"
 	if !res.MemLimit || res.OK || res.Passed != 1 || res.Reason != want {
 		t.Fatalf("memLimit=%v ok=%v passed=%d reason=%q\nвывод: %.400s", res.MemLimit, res.OK, res.Passed, res.Reason, res.Output)

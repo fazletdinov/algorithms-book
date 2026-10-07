@@ -27,7 +27,7 @@ if (!V) { console.error("❌ runner-render-check: runner.js не отдаёт AL
 const fails = [];
 const expect = (ok, msg) => { if (!ok) fails.push(msg); };
 
-const hang = { ok: false, build: true, timeout: true, passed: 1, failed: 1, duration: "20.1s",
+const hang = { stage: "tests", ok: false, build: true, timeout: true, passed: 1, failed: 1, duration: "20.1s",
   reason: "тест TestFibRandom не уложился в 20s — похоже на бесконечный цикл",
   tests: [{ name: "TestFib", pass: true, output: "" }, { name: "TestFibRandom", pass: false, killed: "timeout", output: "panic: …" }] };
 V.result(out, hang);
@@ -35,10 +35,10 @@ expect(/TestFibRandom не уложился в 20s/.test(out.firstChild.textCont
 expect(/⏱/.test(out.querySelector(".algo-runner__test.is-err").textContent), "зависший тест не помечен ⏱");
 expect(/^⏱/.test(V.status(hang).text), `статус зависания: «${V.status(hang).text}»`);
 
-V.result(out, { ok: false, build: false, timeout: true, duration: "45s", output: "", reason: "прогон не уложился в 45s и остановлен целиком" });
+V.result(out, { stage: "build", ok: false, build: false, timeout: true, duration: "45s", output: "", reason: "прогон не уложился в 45s и остановлен целиком" });
 expect(!/Ошибка компиляции/.test(out.textContent), "остановка по сроку показана как ошибка компиляции");
 
-const plain = { ok: false, build: true, passed: 0, failed: 1, duration: "0.4s", tests: [{ name: "TestA", pass: false, output: "got 1" }] };
+const plain = { stage: "tests", ok: false, build: true, passed: 0, failed: 1, duration: "0.4s", tests: [{ name: "TestA", pass: false, output: "got 1" }] };
 V.result(out, plain);
 expect(/^✗ есть падения/.test(V.status(plain).text) && /✗/.test(out.querySelector(".algo-runner__test").textContent), "обычное падение перестало выглядеть обычным");
 expect(/^✓/.test(V.status({ ok: true, duration: "1s" }).text), "зелёный статус сломан");
@@ -48,7 +48,7 @@ expect(/^✓/.test(V.status({ ok: true, duration: "1s" }).text), "зелёный
 // в «подробностях» оставалось «=== RUN / --- FAIL» без «F(вход) = получено, ожидалось …».
 // Ответ снят с живого runner'а 2026-10-07 как есть: пакет twopointers, PairWithTargetSum всегда
 // отвечает «пары нет», фильтр tests — ["TestPairWithTargetSum"].
-const tableFail = { ok: false, build: true, race: false, passed: 0, failed: 1, duration: "228ms", filtered: true,
+const tableFail = { stage: "tests", ok: false, build: true, race: false, passed: 0, failed: 1, duration: "228ms", filtered: true,
   output: "FAIL\nFAIL\tgithub.com/fazletdinov/algorithms-book/exercises/twopointers\t0.001s",
   tests: [{ name: "TestPairWithTargetSum", pass: false,
     output: "=== RUN   TestPairWithTargetSum\n=== RUN   TestPairWithTargetSum/пара_в_середине\n" +
@@ -66,14 +66,14 @@ expect(out.querySelectorAll(".algo-runner__test").length === 1 && /0 ok \/ 1 fai
 
 // Ошибка компиляции: вердикта мало — читатель должен видеть, ЧТО не так. Текст ответа снят с
 // настоящего обработчика (TestHandleRunShowsCompileError).
-V.result(out, { ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "62ms",
+V.result(out, { stage: "build", ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "62ms",
   output: "# probe/spin [probe/spin.test]\nspin/spin.go:3:26: undefined: undefinedName\nFAIL\tprobe/spin [build failed]" });
 expect(/^✗ Ошибка компиляции/.test(out.firstChild.textContent), "ошибка компиляции: вердикт не стоит первой строкой");
 expect(/spin\.go:3:26: undefined: undefinedName/.test(out.textContent), "ошибка компиляции: строки компилятора на экране нет");
 
 // Упор в предел памяти — третий вид остановки, со своим значком: читатель должен отличать
 // «не уложилось по времени» от «растёт без конца».
-const mem = { ok: false, build: true, memLimit: true, passed: 0, failed: 1, duration: "3.1s",
+const mem = { stage: "tests", ok: false, build: true, memLimit: true, passed: 0, failed: 1, duration: "3.1s",
   reason: "TestBFSOrder: упёрлось в предел памяти 2 ГиБ — похоже на бесконечный рост (например, обход без visited)",
   tests: [{ name: "TestBFSOrder", pass: false, killed: "memory", output: "" }] };
 V.result(out, mem);
@@ -82,7 +82,7 @@ expect(/💾/.test(out.querySelector(".algo-runner__test").textContent) && /^�
 
 // Прогон не запустился вовсе (ограничитель памяти пропал после старта сервера): вывода нет,
 // событий тестов нет — без причины это читалось бы как «Ошибка компиляции / (нет вывода)».
-V.result(out, { ok: false, build: false, passed: 0, failed: 0, tests: null, duration: "0s", output: "",
+V.result(out, { stage: "launch", ok: false, build: false, passed: 0, failed: 0, tests: null, duration: "0s", output: "",
   reason: "прогон не запустился: exec: \"systemd-run\": executable file not found in $PATH" });
 expect(/^✗ прогон не запустился: exec: "systemd-run"/.test(out.firstChild.textContent), `прогон не запустился: «${out.firstChild.textContent}»`);
 expect(!/Ошибка компиляции|нет вывода/.test(out.textContent), "прогон не запустился, а показана ошибка компиляции");
@@ -100,7 +100,7 @@ const stopped = (name, res, mark, status) => {
   expect(V.status(res).text === status + " · " + res.duration, `${name}: статус «${V.status(res).text}»`);
 };
 // 1. Фильтр tests не совпал ни с одним тестом: пакет собрался, запускать нечего.
-const noTests = { ok: false, build: true, race: false, passed: 0, failed: 0, tests: null, duration: "149ms", filtered: true, noTests: true,
+const noTests = { stage: "tests", ok: false, build: true, race: false, passed: 0, failed: 0, tests: null, duration: "149ms", filtered: true, noTests: true,
   output: "testing: warning: no tests to run\nPASS\nok  \tprobe/spin\t0.001s [no tests to run]",
   reason: "ни один тест не запустился — в пакете нет тестов с такими именами: TestNope, TestZzz" };
 stopped("фильтр не совпал", noTests, "△", "△ ни один тест не запустился");
@@ -110,27 +110,60 @@ expect(!/0 ok|PASS|no tests to run/.test(out.textContent), `фильтр не с
 V.result(out, Object.assign({}, noTests, { filtered: false, reason: "ни один тест не запустился — в пакете нет тестов" }));
 expect(/^△ ни один тест не запустился — в пакете нет тестов$/.test(out.textContent), `пакет без тестов: «${out.textContent}»`);
 // 2. Ограничитель памяти перед go запустился, но область не создал.
-stopped("ограничитель не сработал", { ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "4ms",
+stopped("ограничитель не сработал", { stage: "launch", ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "4ms",
   output: "Failed to connect to bus: No such file or directory",
   reason: "прогон не запустился: Failed to connect to bus: No such file or directory" }, "✗", "✗ прогон не запустился");
+// Причина здесь и есть единственная строка вывода: показывать её второй раз под причиной незачем.
+expect(out.textContent.split("Failed to connect to bus").length === 2, `ограничитель не сработал: текст systemd показан не один раз — «${out.textContent}»`);
+// А вывод длиннее одной строки под причиной остаётся: в нём то, чего в причине нет.
+V.result(out, { stage: "launch", ok: false, build: false, passed: 0, failed: 0, tests: null, duration: "9ms",
+  output: "go: errors parsing go.mod:\ngo.mod:3: unknown directive: got", reason: "прогон не запустился: go: errors parsing go.mod:" });
+expect(/unknown directive/.test(out.textContent), "прогон не запустился: вторая строка вывода потеряна");
+// «Не запустился» виджет узнаёт по полю stage, а не по тому, что других признаков нет (объект составной, не снят с сервера).
+expect(!/не запустился/.test(V.status({ stage: "build", ok: false, build: false, reason: "причина без признаков", duration: "1s" }).text),
+  "статус «не запустился» выведен без stage: \"launch\"");
 // 3. Упор в память до запуска тестов: убита сборка (runner с -mem-mb 32; ядро убило компилятор).
-const starved = { ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "116ms", memLimit: true,
+const starved = { stage: "build", ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "116ms", memLimit: true,
   output: "github.com/fazletdinov/algorithms-book/exercises/bits: /usr/local/go/pkg/tool/linux_amd64/compile: signal: killed\nFAIL\tgithub.com/fazletdinov/algorithms-book/exercises/bits [build failed]",
   reason: "сборка упёрлась в предел памяти 32 МиБ, до тестов дело не дошло — предел мал для компилятора: перезапусти runner с -mem-mb побольше" };
 stopped("память кончилась на сборке", starved, "💾", "💾 предел памяти");
 expect(/compile: signal: killed/.test(out.textContent), "память кончилась на сборке: вывод go под причиной потерян");
 // 4. Запасной срок вышел, пока шла сборка (пустой кэш компилятора, -race, срок 3 с).
-stopped("срок вышел на сборке", { ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "3.004s", timeout: true, output: "",
+stopped("срок вышел на сборке", { stage: "build", ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "3.004s", timeout: true, output: "",
   reason: "прогон не уложился в 3s и остановлен целиком: не успела закончиться сборка — так бывает на первом запуске с -race, пока кэш компилятора пуст; запусти ещё раз — уже собранное осталось в кэше" },
   "⏱", "⏱ не уложилось по времени");
 // 6. Вывод упёрся в потолок: прогон остановлен сразу — счёт и список тестов остаются, значок ✂.
 // Вывод теста здесь укорочен: в настоящем ответе под этими строками ещё 1,5 МБ такой же печати.
-const flood = { ok: false, build: true, race: false, passed: 0, failed: 1, duration: "256ms", truncated: true, output: "",
-  reason: "вывод обрезан на 4096 КиБ, прогон остановлен — похоже на печать в бесконечном цикле; убери отладочный вывод и запусти снова",
+const flood = { stage: "tests", ok: false, build: true, race: false, passed: 0, failed: 1, duration: "256ms", truncated: true, output: "",
+  reason: "вывод обрезан: поток вывода тестов дорос до 4096 КиБ, прогон остановлен — похоже на печать в бесконечном цикле; убери отладочный вывод и запусти снова",
   tests: [{ name: "TestSingleNumber", pass: false, output: "=== RUN   TestSingleNumber\n=== RUN   TestSingleNumber/пример\n" + "x".repeat(100) + "\n" }] };
 V.result(out, flood);
-expect(/^✂ вывод обрезан на 4096 КиБ, прогон остановлен/.test(out.firstChild.textContent), `обрезка: первой строкой «${out.firstChild.textContent}»`);
+expect(/^✂ вывод обрезан: поток вывода тестов дорос до 4096 КиБ, прогон остановлен/.test(out.firstChild.textContent), `обрезка: первой строкой «${out.firstChild.textContent}»`);
 expect(/0 ok \/ 1 fail/.test(out.textContent) && /✗TestSingleNumber/.test(out.textContent), `обрезка: счёт и список тестов потеряны — «${out.textContent.slice(0, 200)}»`);
+expect(V.status(flood).text === "✂ вывод обрезан · 256ms", `обрезка: статус «${V.status(flood).text}» рядом с причиной «прогон остановлен»`);
+
+// Тесты не падали, а прогон не зелёный. Ответы сняты 2026-10-07 с настоящего обработчика и runGoTest
+// на крошечных модулях, как есть. Раньше первые два были зелёными (ok: true), третий — «Ошибкой компиляции».
+const notCounted = (name, res, extra) => {
+  V.result(out, res);
+  expect(out.firstChild.textContent === "✗ " + res.reason, `${name}: первой строкой не причина, а «${out.firstChild.textContent}»`);
+  expect(!/Ошибка компиляции|Часть тестов упала|Все тесты прошли/.test(out.textContent), `${name}: на экране чужой заголовок — «${out.textContent.slice(0, 200)}»`);
+  expect(V.status(res).text === "✗ прогон не засчитан · " + res.duration, `${name}: статус «${V.status(res).text}»`);
+  expect(extra.test(out.textContent), `${name}: на экране нет ${extra} — «${out.textContent.slice(0, 240)}»`);
+};
+// Фильтр tests = ["TestSpin", "TestNope"] на верном решении: TestSpin прошёл, TestNope в пакете нет.
+notCounted("фильтр совпал частично", { stage: "tests", ok: false, build: true, race: false, passed: 1, failed: 0, duration: "146ms", filtered: true,
+  tests: [{ name: "TestSpin", pass: true, output: "=== RUN   TestSpin\n--- PASS: TestSpin (0.00s)\n" }], output: "PASS\nok  \tprobe/spin\t0.001s",
+  reason: "не запустились запрошенные тесты: TestNope — в пакете нет тестов с такими именами" }, /Прогон не засчитан\s+·\s+1 ok \/ 0 fail/);
+// Единственный тест прошёл, а тестовый бинарник вышел с ошибкой (os.Exit(1) в TestMain после прогона).
+notCounted("бинарник вышел с ошибкой после тестов", { stage: "tests", ok: false, build: true, race: false, passed: 1, failed: 0, duration: "150ms",
+  tests: [{ name: "TestDone", pass: true, output: "=== RUN   TestDone\n--- PASS: TestDone (0.00s)\n" }], output: "PASS\nFAIL\tprobe/late\t0.001s",
+  reason: "тестовый бинарник завершился с ошибкой, хотя тесты не падали" }, /Прогон не засчитан\s+·\s+1 ok \/ 0 fail/);
+// Решение паникует в переменной уровня пакета: бинарник собран, запущен и упал до первого теста.
+notCounted("бинарник упал до первого теста", { stage: "tests", ok: false, build: true, race: false, passed: 0, failed: 0, tests: null, duration: "148ms",
+  output: "panic: boom at init\n\ngoroutine 1 [running]:\nprobe/spin.init.func1(...)\n\t/tmp/algorunner-737340176/spin/spin.go:3\nprobe/spin.init()\n\t/tmp/algorunner-737340176/spin/spin.go:3 +0x25\nFAIL\tprobe/spin\t0.003s",
+  reason: "тестовый бинарник упал до первого теста: panic: boom at init" }, /goroutine 1 \[running\]/);
+expect(!/0 ok/.test(out.textContent), `бинарник упал до первого теста: счёт без единого теста — «${out.textContent.slice(0, 120)}»`);
 
 // Плашка действующих пределов в шапке — из ответа /api/health.
 const L = (memory, memoryText, race) => V.limits({ memory, memoryText, testTimeout: "20s", raceTimeout: "45s" }, race);
@@ -175,13 +208,15 @@ T.render(trace, { ok: false, build: true, timeout: true, steps: [], source: "pac
   reason: "сборка трассы не уложилась в 20s — так бывает на первом запуске, пока кэш компилятора пуст; запусти ещё раз — уже собранное осталось в кэше" });
 expect(/⏱/.test(trace.textContent) && /сборка трассы не уложилась в 20s/.test(trace.textContent) && !/Паника|не скомпилировался/.test(trace.textContent),
   `трасса: срок сборки показан как «${trace.textContent.slice(0, 80)}»`);
+// Функция при этом не запускалась вовсе: «не сделала ни шага» под причиной было бы неправдой.
+expect(!/Трасса пуста/.test(trace.textContent), `трасса: срок сборки, а на экране «${trace.textContent}»`);
 T.render(trace, { ok: false, build: true, steps: [], source: "package p\n", reason: "сборка трассы прервана: runner останавливается или запрос отменён" });
 expect(/^✗\s*сборка трассы прервана/.test(trace.textContent) && !/⏱|Паника|не скомпилировался/.test(trace.textContent),
   `трасса: отмена сборки показана как «${trace.textContent.slice(0, 80)}»`);
 
 // Живой виджет на подставном сервере: плашка пределов встаёт в шапку перед статусом, а
 // /api/health запрашивается один раз на страницу, сколько бы виджетов на ней ни было.
-function widgetPage(limits) {
+function widgetPage(limits, runResponse) {
   const calls = { health: 0 };
   const page = new JSDOM(`<!DOCTYPE html><html><body><div class="algo-runner" data-pkg="dp"></div>` +
     `<div class="algo-runner" data-pkg="graphs" data-race="true"></div><script>${js}</script></body></html>`, {
@@ -190,7 +225,8 @@ function widgetPage(limits) {
       w.fetch = (url) => {
         const health = /\/api\/health$/.test(url);
         if (health) calls.health++;
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(health ? { ok: true, limits } : { pkg: "dp", code: "package dp\n" }) });
+        const body = health ? { ok: true, limits } : /\/api\/run$/.test(url) ? runResponse : { pkg: "dp", code: "package dp\n" };
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
       };
     },
   });
@@ -212,6 +248,16 @@ function widgetPage(limits) {
   expect(!old.doc.querySelector(".algo-runner__limits") && /сервер на связи/.test(old.doc.querySelector(".algo-runner__status").textContent),
     "старый сервер без limits: плашки быть не должно, виджет при этом работает");
 
+  // Событие algo-runner:result несёт stage и noTests: по ним соседи (смешанная тренировка, карточки)
+  // отличают «ни один тест не запустился» и «не запустился прогон» от красных тестов.
+  const ran = await widgetPage(undefined, noTests);
+  const seen = [];
+  ran.doc.addEventListener("algo-runner:result", (e) => seen.push(e.detail));
+  ran.doc.querySelector(".algo-runner__btn--run").click();
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  expect(seen.length === 1 && seen[0].pkg === "dp" && seen[0].ok === false && seen[0].filtered === true && seen[0].noTests === true && seen[0].stage === "tests",
+    `событие algo-runner:result: ${JSON.stringify(seen)}`);
+
   if (fails.length) { console.error("❌ runner-render-check:\n  - " + fails.join("\n  - ")); process.exit(1); }
-  console.log("✅ runner-render-check: остановка показана причиной (срок ⏱, память 💾, обрезка ✂), прогон без единого теста — тоже (фильтр не совпал △, не запустился ✗, сборке не хватило памяти или срока), ошибка компиляции — строкой компилятора (и в трассе), упавший табличный тест — сообщением случая, плашка пределов в шапке, обычное падение и зелёный прогон — как раньше");
+  console.log("✅ runner-render-check: остановка показана причиной (срок ⏱, память 💾, обрезка ✂), прогон без единого теста — тоже (фильтр не совпал △, не запустился ✗, сборке не хватило памяти или срока), ошибка компиляции — строкой компилятора (и в трассе), упавший табличный тест — сообщением случая, прогон без упавших тестов, но не зелёный — «не засчитан», событие результата несёт stage и noTests, плашка пределов в шапке, обычное падение и зелёный прогон — как раньше");
 })();

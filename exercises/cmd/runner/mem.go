@@ -162,7 +162,10 @@ const scopeSettle = 300 * time.Millisecond
 // сам главный процесс области (предела не хватило даже на `go`), Run возвращается
 // раньше, чем systemd это обработает: замер — через 4 мс область ещё `active` с
 // Result=success, через 12 мс — `failed` с `oom-kill`. Итогу живой области верить
-// нельзя, поэтому ждём, пока она перестанет быть active.
+// нельзя, поэтому ждём, пока она перестанет быть active. Без ожидания
+// TestMemLimitCgroupStarvedBuild (область 16 МиБ) красный в 17 прогонах из 60:
+// упор не распознан, и причина — «прогон не запустился: signal: killed»; с
+// ожиданием — 0 из 60 (замер 2026-10-07, systemd 255).
 func scopeOOMKilled(ctx context.Context, unit string) bool {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()

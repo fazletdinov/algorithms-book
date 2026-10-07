@@ -77,7 +77,7 @@ func TestRunGoTestKillsWholeTree(t *testing.T) {
 	args, _ := testArgs("hang", false, nil, lim.TestTimeout)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan testResult, 1)
-	go func() { done <- runGoTest(ctx, dir, args, lim) }()
+	go func() { done <- runGoTest(ctx, dir, args, nil, lim) }()
 
 	pid := 0
 	for start := time.Now(); pid == 0 && time.Since(start) < 90*time.Second; time.Sleep(100 * time.Millisecond) {
@@ -105,7 +105,9 @@ func TestRunGoTestKillsWholeTree(t *testing.T) {
 // Печать в бесконечном цикле: потолок вывода достигнут за миллисекунды, и ждать
 // после него нечего — прогон останавливается сразу, а не по сроку теста. Раньше
 // `go test` все эти секунды ещё и копил вывод теста у себя в памяти, без потолка
-// (cmd/go: streamAndCacheOutput). Поэтому «цикл» здесь — 1 МиБ печати (в 16 раз
+// (cmd/go: streamAndCacheOutput; замер 2026-10-07, Go 1.26.5: тест, напечатавший
+// 15 МиБ, — пик 86 МиБ у дерева go test, 150 МиБ — 714 МиБ за 2,7 с, и prlimit этого
+// роста не видит). Поэтому «цикл» здесь — 1 МиБ печати (в 16 раз
 // больше потолка этого прогона) и сон на 25 с: без остановки тест красный по
 // времени, но память не растёт. Печатает либо сам тест, либо его подтест — так
 // устроены табличные тесты тренажёра, и потолок обязан держать оба случая.
@@ -123,7 +125,7 @@ func TestRunGoTestCapsOutput(t *testing.T) {
 			sysTmp := t.TempDir()
 			t.Setenv("TMPDIR", sysTmp) // сюда `go` положил бы рабочий каталог go-build…, не будь у прогона своего
 			start := time.Now()
-			res := runGoTest(context.Background(), dir, args, lim)
+			res := runGoTest(context.Background(), dir, args, nil, lim)
 			if took := time.Since(start); took > 10*time.Second {
 				t.Errorf("ответ пришёл через %s: прогон не остановлен на потолке вывода", took.Round(time.Millisecond))
 			}
@@ -176,11 +178,26 @@ func TestRunGoTestReportsLimiterFailure(t *testing.T) {
 	brokenSystemdRun(t)
 	lim := runLimits{TestTimeout: time.Minute, Deadline: 2 * time.Minute, MaxOutput: maxRunOutput, Mem: memLimiter{Mode: memCgroup, Bytes: 1 << 30}}
 	args, _ := testArgs("ok", false, nil, lim.TestTimeout)
-	res := runGoTest(context.Background(), dir, args, lim)
+	res := runGoTest(context.Background(), dir, args, nil, lim)
 	want := "прогон не запустился: Failed to connect to bus: No such file or directory"
-	if res.Reason != want || res.OK || res.Build || res.Timeout || res.MemLimit || res.NoTests {
-		t.Fatalf("reason=%q ok=%v build=%v timeout=%v memLimit=%v noTests=%v output=%q",
-			res.Reason, res.OK, res.Build, res.Timeout, res.MemLimit, res.NoTests, res.Output)
+	if res.Reason != want || res.Stage != stageLaunch || res.OK || res.Build || res.Timeout || res.MemLimit || res.NoTests {
+		t.Fatalf("reason=%q stage=%q ok=%v build=%v timeout=%v memLimit=%v noTests=%v output=%q",
+			res.Reason, res.Stage, res.OK, res.Build, res.Timeout, res.MemLimit, res.NoTests, res.Output)
+	}
+}
+
+// Все тесты прошли, а тестовый бинарник вышел с ошибкой (здесь — os.Exit(1) в TestMain
+// после прогона; у читателя — горутина решения, упавшая после последнего теста): итога
+// pass у пакета нет, и зелёным такой прогон быть не может. Раньше ok было истинным.
+func TestRunGoTestNeedsPackagePass(t *testing.T) {
+	dir := writeModule(t, map[string]string{"late/late_test.go": "package late\n\nimport (\n\t\"os\"\n\t\"testing\"\n)\n\n" +
+		"func TestDone(t *testing.T) {}\n\nfunc TestMain(m *testing.M) {\n\tm.Run()\n\tos.Exit(1)\n}\n"})
+	lim := runLimits{TestTimeout: time.Minute, Deadline: 2 * time.Minute, MaxOutput: maxRunOutput}
+	args, _ := testArgs("late", false, nil, lim.TestTimeout)
+	res := runGoTest(context.Background(), dir, args, nil, lim)
+	want := "тестовый бинарник завершился с ошибкой, хотя тесты не падали"
+	if res.OK || res.Passed != 1 || res.Failed != 0 || res.Reason != want || res.Stage != stageTests || res.MemLimit || res.Timeout {
+		t.Fatalf("ok=%v passed=%d failed=%d stage=%q reason=%q\nвывод: %.300s", res.OK, res.Passed, res.Failed, res.Stage, res.Reason, res.Output)
 	}
 }
 
@@ -215,43 +232,104 @@ func handleTraceJSON(t *testing.T, srv *server, code string) string {
 	return rec.Body.String()
 }
 
-// «Не запустилась» — только когда харнесс не дошёл до main. Код читателя, который
-// завершил процесс сам, не паникуя, — по-прежнему сбой во время выполнения: первой
-// строкой main харнесс сообщает, что стартовал.
+// «Не запустилась» — только когда не сработал запуск. Сбой в коде читателя —
+// по-прежнему «Паника»: и когда решение завершило процесс само, не паникуя (первой
+// строкой main харнесс сообщает, что стартовал), и когда оно упало ещё до main —
+// в переменной уровня пакета (по тексту паники рантайма: systemd-run и prlimit так
+// не печатают).
 func TestHandleTraceTellsCrashFromLaunchFailure(t *testing.T) {
 	const loop = "package dp\n\nimport (\n\t\"fmt\"\n\t\"os\"\n)\n\nfunc ClimbStairs(n int) int {\n\tways := 0\n\tfor i := 0; i < n; i++ {\n\t\tways += i\n%s\t}\n\treturn ways\n}\n\nvar _, _ = fmt.Sprint, os.Exit\n"
 	srv := newServer(memLimiter{Mode: memNone})
 	if got := handleTraceJSON(t, srv, fmt.Sprintf(loop, "")); !strings.Contains(got, `"ok":true`) || !strings.Contains(got, `"result":"3"`) {
 		t.Fatalf("обычная трасса не построилась:\n%.600s", got)
 	}
-	crash := fmt.Sprintf(loop, "\t\tif i == 1 {\n\t\t\tfmt.Fprintln(os.Stderr, \"fatal: решение вышло само\")\n\t\t\tos.Exit(3)\n\t\t}\n")
-	got := handleTraceJSON(t, srv, crash)
-	for _, want := range []string{`"panic":true`, `"message":"fatal: решение вышло само"`, `"build":true`} {
-		if !strings.Contains(got, want) {
-			t.Errorf("в ответе нет %s:\n%.600s", want, got)
-		}
-	}
-	if strings.Contains(got, "не запустилась") {
-		t.Errorf("сбой в коде читателя назван «трасса не запустилась»:\n%.600s", got)
+	for name, tt := range map[string]struct{ code, message string }{
+		"решение вышло само": {fmt.Sprintf(loop, "\t\tif i == 1 {\n\t\t\tfmt.Fprintln(os.Stderr, \"fatal: решение вышло само\")\n\t\t\tos.Exit(3)\n\t\t}\n"),
+			`"message":"fatal: решение вышло само"`},
+		"паника до main": {fmt.Sprintf(loop, "") + "\nvar _ = boom()\n\nfunc boom() int { panic(\"упало при инициализации\") }\n",
+			`"message":"panic: упало при инициализации\n\ngoroutine 1 [running]:`},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := handleTraceJSON(t, srv, tt.code)
+			for _, want := range []string{`"panic":true`, tt.message, `"build":true`} {
+				if !strings.Contains(got, want) {
+					t.Errorf("в ответе нет %s:\n%.600s", want, got)
+				}
+			}
+			if strings.Contains(got, "не запустилась") {
+				t.Errorf("сбой в коде читателя назван «трасса не запустилась»:\n%.600s", got)
+			}
+		})
 	}
 }
 
-// Сквозной случай «фильтр не совпал ни с одним тестом»: пакет собрался, запускать
-// нечего. Закрепляет поле noTests, которое читает runner.js.
-func TestHandleRunFilterMatchesNothing(t *testing.T) {
+// postRun шлёт запрос настоящему обработчику /api/run на модуле files; code — решение
+// читателя для пакета spin, tail — остаток тела запроса (например, `,"tests":[…]`).
+func postRun(t *testing.T, files map[string]string, code, tail string) string {
+	t.Helper()
 	old := moduleRoot
 	t.Cleanup(func() { moduleRoot = old })
-	moduleRoot = writeModule(t, map[string]string{
-		"spin/spin.go":      "package spin\n\nfunc Spin() int { panic(\"TODO\") }\n",
-		"spin/spin_test.go": "package spin\n\nimport \"testing\"\n\nfunc TestSpin(t *testing.T) { Spin() }\n",
-	})
-	body := `{"pkg":"spin","code":"package spin\n\nfunc Spin() int { return 1 }\n","tests":["TestNope","TestZzz"]}`
+	moduleRoot = writeModule(t, files)
+	quoted, err := json.Marshal(code)
+	if err != nil {
+		t.Fatal(err)
+	}
 	rec := httptest.NewRecorder()
+	body := `{"pkg":"spin","code":` + string(quoted) + tail + `}`
 	newServer(memLimiter{Mode: memNone}).handleRun(rec, httptest.NewRequest(http.MethodPost, "/api/run", strings.NewReader(body)))
-	for _, want := range []string{`"ok":false`, `"build":true`, `"noTests":true`, `"filtered":true`, `"passed":0`, `"failed":0`,
-		`"reason":"ни один тест не запустился — в пакете нет тестов с такими именами: TestNope, TestZzz"`} {
-		if !strings.Contains(rec.Body.String(), want) {
-			t.Errorf("в ответе нет %s:\n%.600s", want, rec.Body.String())
+	return rec.Body.String()
+}
+
+var spinModule = map[string]string{
+	"spin/spin.go":      "package spin\n\nfunc Spin() int { panic(\"TODO\") }\n",
+	"spin/spin_test.go": "package spin\n\nimport \"testing\"\n\nfunc TestSpin(t *testing.T) {\n\tif Spin() != 1 {\n\t\tt.Fatal(\"не 1\")\n\t}\n}\n",
+}
+
+// Фильтр tests на настоящем обработчике. Закрепляет поля noTests и stage, которые
+// читает runner.js, и главное правило для машинной оценки: ok истинно, только если
+// запустились ВСЕ запрошенные тесты. Раньше запрос ["TestSpin", "TestNope"] на верном
+// решении был зелёным, хотя TestNope не существует.
+func TestHandleRunFilter(t *testing.T) {
+	const solved = "package spin\n\nfunc Spin() int { return 1 }\n"
+	for _, tt := range []struct {
+		name, tests string
+		want        []string
+		reason      string // пусто — поля reason в ответе быть не должно
+	}{
+		{"ни одно имя не совпало", `["TestNope","TestZzz"]`, []string{`"ok":false`, `"build":true`, `"stage":"tests"`, `"noTests":true`, `"filtered":true`, `"passed":0`, `"failed":0`},
+			"ни один тест не запустился — в пакете нет тестов с такими именами: TestNope, TestZzz"},
+		{"часть имён не совпала", `["TestSpin","TestNope"]`, []string{`"ok":false`, `"build":true`, `"stage":"tests"`, `"filtered":true`, `"passed":1`, `"failed":0`},
+			"не запустились запрошенные тесты: TestNope — в пакете нет тестов с такими именами"},
+		{"все имена совпали", `["TestSpin"]`, []string{`"ok":true`, `"build":true`, `"stage":"tests"`, `"filtered":true`, `"passed":1`, `"failed":0`}, ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got := postRun(t, spinModule, solved, `,"tests":`+tt.tests)
+			if tt.reason != "" {
+				tt.want = append(tt.want, `"reason":"`+tt.reason+`"`)
+			} else if strings.Contains(got, `"reason"`) {
+				t.Errorf("у зелёного прогона появилась причина:\n%.600s", got)
+			}
+			for _, want := range tt.want {
+				if !strings.Contains(got, want) {
+					t.Errorf("в ответе нет %s:\n%.600s", want, got)
+				}
+			}
+			if tt.name != "ни одно имя не совпало" && strings.Contains(got, `"noTests"`) {
+				t.Errorf("noTests — только когда не запустился ни один тест:\n%.600s", got)
+			}
+		})
+	}
+}
+
+// Решение паникует при инициализации (переменная уровня пакета): тестовый бинарник
+// собран и запущен, но падает до первого теста. Раньше это шло как build: false без
+// причины — виджет писал «Ошибка компиляции» над стеком паники.
+func TestHandleRunCrashBeforeFirstTest(t *testing.T) {
+	got := postRun(t, spinModule, "package spin\n\nvar ready = func() int { panic(\"boom at init\") }()\n\nfunc Spin() int { return ready }\n", "")
+	for _, want := range []string{`"ok":false`, `"build":true`, `"stage":"tests"`, `"passed":0`, `"failed":0`,
+		`"reason":"тестовый бинарник упал до первого теста: panic: boom at init"`, `goroutine 1 [running]:`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("в ответе нет %s:\n%.700s", want, got)
 		}
 	}
 }
@@ -339,7 +417,7 @@ func TestHandleRunHangingSolution(t *testing.T) {
 	body := `{"pkg":"spin","code":"package spin\n\nfunc Spin() int { for {} }\n"}`
 	rec := httptest.NewRecorder()
 	srv.handleRun(rec, httptest.NewRequest(http.MethodPost, "/api/run", strings.NewReader(body)))
-	for _, want := range []string{`"ok":false`, `"timeout":true`, `"passed":1`, `"killed":"timeout"`,
+	for _, want := range []string{`"ok":false`, `"timeout":true`, `"passed":1`, `"killed":"timeout"`, `"stage":"tests"`,
 		`"reason":"тест TestSpin не уложился в 2s — похоже на бесконечный цикл"`} {
 		if !strings.Contains(rec.Body.String(), want) {
 			t.Errorf("в ответе нет %s:\n%.600s", want, rec.Body.String())
@@ -360,7 +438,7 @@ func TestHandleRunShowsCompileError(t *testing.T) {
 	body := `{"pkg":"spin","code":"package spin\n\nfunc Spin() int { return undefinedName }\n"}`
 	rec := httptest.NewRecorder()
 	newServer(memLimiter{Mode: memNone}).handleRun(rec, httptest.NewRequest(http.MethodPost, "/api/run", strings.NewReader(body)))
-	for _, want := range []string{`"build":false`, `spin.go:3:26: undefined: undefinedName`} {
+	for _, want := range []string{`"build":false`, `"stage":"build"`, `spin.go:3:26: undefined: undefinedName`} {
 		if !strings.Contains(rec.Body.String(), want) {
 			t.Errorf("в ответе нет %s:\n%.600s", want, rec.Body.String())
 		}
@@ -470,7 +548,8 @@ func TestTraceHarnessStopsFlood(t *testing.T) {
 // вместо вывода компилятора.
 func TestTraceBuildErrorReachesWidget(t *testing.T) {
 	dir := writeModule(t, map[string]string{"tracecmd/main.go": "package main\n\nfunc main() { undefinedName() }\n"})
-	lim := runLimits{Deadline: 5 * time.Second, BuildTimeout: time.Minute, MaxOutput: maxRunOutput}
+	// BuildTimeout не задан: ноль — срок сборки по умолчанию, а не «срок уже вышел»
+	lim := runLimits{Deadline: 5 * time.Second, MaxOutput: maxRunOutput}
 	resp := runTraceHarness(context.Background(), dir, "F", "p.F()", lim)
 	body, err := json.Marshal(resp)
 	if err != nil {

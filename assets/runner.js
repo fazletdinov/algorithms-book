@@ -133,12 +133,14 @@
 
   // announce сообщает о прогоне событием на самом виджете. Так мок-интервью
   // (mixed.js) узнаёт, что тесты позеленели, не лазая во внутренности редактора
-  // и не завязываясь на его разметку.
+  // и не завязываясь на его разметку. stage и noTests — чтобы слушатель отличал
+  // «красные тесты» от «прогон не запустился» и «ни один тест не запустился».
   function announce(root, pkg, res) {
     if (typeof CustomEvent !== "function") return;
     root.dispatchEvent(new CustomEvent("algo-runner:result", {
       bubbles: true,
-      detail: { pkg: pkg, ok: !!res.ok, filtered: !!res.filtered, passed: res.passed || 0, failed: res.failed || 0 },
+      detail: { pkg: pkg, ok: !!res.ok, filtered: !!res.filtered, passed: res.passed || 0, failed: res.failed || 0,
+        noTests: !!res.noTests, stage: res.stage || "" },
     }));
   }
 
@@ -147,15 +149,16 @@
     if (res.ok) return { text: "✓ всё зелёное · " + res.duration, cls: "ok" };
     if (res.memLimit) return { text: "💾 предел памяти · " + res.duration, cls: "err" };
     if (res.timeout) return { text: "⏱ не уложилось по времени · " + res.duration, cls: "err" };
+    if (res.truncated) return { text: "✂ вывод обрезан · " + res.duration, cls: "err" };
     // Ни один тест не шёл — «есть падения» было бы неправдой: падать было нечему.
     if (res.noTests) return { text: "△ ни один тест не запустился · " + res.duration, cls: "err" };
-    if (notStarted(res)) return { text: "✗ прогон не запустился · " + res.duration, cls: "err" };
+    // Стадию называет сервер (stage): команда — go или ограничитель памяти перед ним — не запустилась.
+    if (res.stage === "launch") return { text: "✗ прогон не запустился · " + res.duration, cls: "err" };
     if (res.race) return { text: "🏁 гонка данных · " + res.duration, cls: "err" };
+    // Тесты не падали, а прогон не зелёный: бинарник упал сам либо запустились не все запрошенные тесты.
+    if (res.build && !res.failed) return { text: "✗ прогон не засчитан · " + res.duration, cls: "err" };
     return { text: "✗ есть падения · " + res.duration, cls: "err" };
   }
-  // Причина без сборки и без вида остановки — сервер пишет её в одном случае: команда
-  // (go или ограничитель памяти перед ним) не запустилась.
-  function notStarted(res) { return !res.build && !!res.reason && !res.memLimit && !res.timeout && !res.truncated; }
   // Значок перед причиной: память, срок, обрезанный вывод, «тестов не нашлось»; ✗ — прогон не запустился вовсе.
   function killMark(res) { return res.memLimit ? "💾 " : res.timeout ? "⏱ " : res.truncated ? "✂ " : res.noTests ? "△ " : "✗ "; }
 
@@ -370,22 +373,29 @@
     out.innerHTML = "";
     // Остановка по времени, памяти или потолку вывода — не «упал тест»: сначала говорим, что случилось.
     if (res.reason) out.appendChild(el("div", "algo-runner__verdict is-err", killMark(res) + res.reason));
-    if (!res.build) {
-      if (!res.reason) out.appendChild(el("div", "algo-runner__verdict is-err", "✗ Ошибка компиляции"));
-      if (res.output || !res.reason) out.appendChild(pre(res.output || "(нет вывода)"));
-      return;
-    }
-    // Пакет собрался, а запускать было нечего: счёт «0 ok / 0 fail» и «PASS» из вывода
-    // go test тут только путали бы — ни один тест не шёл.
-    if (res.noTests) {
-      if (res.filtered) {
-        out.appendChild(el("div", "algo-runner__hint",
-          "Прогони пакет целиком: тесты с такими именами в нём не нашлись — скорее всего, у этой функции нет отдельных тестов."));
+    if (!(res.tests && res.tests.length)) {
+      // Ни один тест не шёл — счёта и списка нет: «0 ok / 0 fail» только путало бы.
+      if (res.noTests) {
+        // Пакет собрался, а запускать было нечего; «PASS» из вывода go test тут тоже лишний.
+        if (res.filtered) {
+          out.appendChild(el("div", "algo-runner__hint",
+            "Прогони пакет целиком: тесты с такими именами в нём не нашлись — скорее всего, у этой функции нет отдельных тестов."));
+        }
+        return;
       }
+      // Причину сервер называет сам; без неё несобранный пакет — это ошибка компиляции.
+      if (!res.reason && !res.build) out.appendChild(el("div", "algo-runner__verdict is-err", "✗ Ошибка компиляции"));
+      // Вывод под причиной нужен, когда в нём есть что-то сверх неё: у «не запустился»
+      // причина нередко и есть его единственная строка.
+      var text = (res.output || "").trim();
+      var repeats = !!res.reason && res.reason.slice(-text.length) === text;
+      if (!res.reason || (text && !repeats)) out.appendChild(pre(res.output || "(нет вывода)"));
       return;
     }
+    // Не зелёный прогон без упавших тестов: бинарник завершился с ошибкой сам либо
+    // запустились не все запрошенные тесты — «часть тестов упала» было бы неправдой.
     var verdict = el("div", "algo-runner__verdict " + (res.ok ? "is-ok" : "is-err"),
-      (res.ok ? "✓ Все тесты прошли" : "✗ Часть тестов упала") +
+      (res.ok ? "✓ Все тесты прошли" : res.failed ? "✗ Часть тестов упала" : "✗ Прогон не засчитан") +
       "  ·  " + res.passed + " ok / " + res.failed + " fail  ·  " + res.duration);
     out.appendChild(verdict);
 
