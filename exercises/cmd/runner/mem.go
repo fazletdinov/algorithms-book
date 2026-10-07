@@ -144,13 +144,8 @@ var memMarkers = []string{
 // hitLimit сообщает, упёрся ли прогон в предел памяти. В области cgroup systemd
 // гасит `go` раньше, чем тот напечатает причину, — поэтому первым спрашиваем итог области.
 func (m memLimiter) hitLimit(ctx context.Context, unit string, out []byte) bool {
-	if m.Mode == memCgroup {
-		ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-		defer cancel()
-		res, _ := exec.CommandContext(ctx, "systemctl", "--user", "show", unit+".scope", "-p", "Result", "--value").Output()
-		if strings.TrimSpace(string(res)) == "oom-kill" {
-			return true
-		}
+	if m.Mode == memCgroup && scopeOOMKilled(ctx, unit) {
+		return true
 	}
 	for _, mk := range memMarkers {
 		if bytes.Contains(out, []byte(mk)) {
@@ -158,4 +153,23 @@ func (m memLimiter) hitLimit(ctx context.Context, unit string, out []byte) bool 
 		}
 	}
 	return false
+}
+
+// scopeSettle — сколько ждём, пока systemd заметит конец области.
+const scopeSettle = 300 * time.Millisecond
+
+// scopeOOMKilled спрашивает у systemd итог области. Когда ядро убивает по памяти
+// сам главный процесс области (предела не хватило даже на `go`), Run возвращается
+// раньше, чем systemd это обработает: замер — через 4 мс область ещё `active` с
+// Result=success, через 12 мс — `failed` с `oom-kill`. Итогу живой области верить
+// нельзя, поэтому ждём, пока она перестанет быть active.
+func scopeOOMKilled(ctx context.Context, unit string) bool {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	for start := time.Now(); ; time.Sleep(10 * time.Millisecond) {
+		res, _ := exec.CommandContext(ctx, "systemctl", "--user", "show", unit+".scope", "-p", "ActiveState", "-p", "Result").Output()
+		if !bytes.Contains(res, []byte("ActiveState=active\n")) || time.Since(start) > scopeSettle {
+			return bytes.Contains(res, []byte("Result=oom-kill\n"))
+		}
+	}
 }

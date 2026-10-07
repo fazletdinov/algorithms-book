@@ -293,7 +293,9 @@ type traceStep struct {
 // traceResponse — ответ /api/trace. Build («харнесс собрался») идёт БЕЗ
 // omitempty намеренно: trace-viz.js узнаёт ошибку сборки по build === false, а
 // опущенное поле для него — undefined, и читатель вместо вывода компилятора
-// видел «Не удалось построить трассу».
+// видел «Не удалось построить трассу». Поэтому false оно только у ошибки
+// компилятора (и у Unsupported): сборка, остановленная сроком или отменой, несёт
+// true и причину в Reason.
 type traceResponse struct {
 	OK          bool        `json:"ok"`
 	Unsupported bool        `json:"unsupported,omitempty"`
@@ -452,6 +454,9 @@ import (
 var _ = rand.Int
 
 func main() {
+	// Первой строкой: по ней сервер отличает сбой в коде читателя от случая, когда
+	// до main дело не дошло (ограничитель памяти перед бинарником не сработал).
+	fmt.Println("__TRACE_START__")
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Fprintf(os.Stderr, "__TRACE_PANIC__ %v\n", r)
@@ -497,18 +502,28 @@ func renderHarness(pkg, qualifiedCall string, void bool) ([]byte, error) {
 
 // runTraceHarness собирает и запускает харнесс в два отдельных шага (не
 // `go run`), чтобы чисто разводить ошибку сборки / панику / таймаут / успех
-// по разным веткам ответа. lim.Deadline — срок самого запуска (сборка
-// ограничена отдельно), lim.MaxOutput — потолок трассы: шаг — строка stdout, и
+// по разным веткам ответа. lim.BuildTimeout — срок сборки, lim.Deadline — срок
+// самого запуска, lim.MaxOutput — потолок трассы: шаг — строка stdout, и
 // бесконечный цикл иначе копил бы их в памяти сервера до конца срока.
 func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, lim runLimits) traceResponse {
 	binPath := filepath.Join(tmp, ".tracebin")
 
-	buildCtx, cancelBuild := context.WithTimeout(ctx, 20*time.Second)
+	buildCtx, cancelBuild := context.WithTimeout(ctx, lim.BuildTimeout)
 	defer cancelBuild()
 	build := groupCommand(buildCtx, "go", "build", "-o", binPath, "./tracecmd/")
 	build.Dir = tmp
-	build.Env = append(os.Environ(), "GOFLAGS=", "GOWORK=off")
+	build.Env = goEnv(tmp)
 	if buildOut, err := build.CombinedOutput(); err != nil {
+		// Сборку остановил срок или отмена, а не компилятор: с build === false виджет
+		// написал бы «код не скомпилировался» над обрывком вывода. Build: true — он
+		// проверяет build раньше, чем timeout и reason.
+		switch buildCtx.Err() {
+		case context.DeadlineExceeded:
+			reason := fmt.Sprintf("сборка трассы не уложилась в %s — %s", lim.BuildTimeout, slowBuildHint(false))
+			return traceResponse{Build: true, Timeout: true, Reason: reason, Steps: []traceStep{}}
+		case context.Canceled: // ушёл клиент либо останавливается сервер: это не срок, Timeout тут был бы неправдой
+			return traceResponse{Build: true, Reason: "сборка трассы прервана: runner останавливается или запрос отменён", Steps: []traceStep{}}
+		}
 		return traceResponse{Build: false, Output: strings.TrimSpace(string(buildOut)), Steps: []traceStep{}}
 	}
 
@@ -517,7 +532,8 @@ func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, l
 	unit := unitName()
 	run := lim.Mem.binary(runCtx, unit, binPath)
 	run.Dir = tmp
-	stdout, stderr := &cappedBuffer{limit: lim.MaxOutput}, &cappedBuffer{limit: lim.MaxOutput}
+	// Трасса упёрлась в потолок — читать дальше нечего: запуск останавливается сразу, не по сроку.
+	stdout, stderr := &cappedBuffer{limit: lim.MaxOutput, onFull: cancelRun}, &cappedBuffer{limit: lim.MaxOutput}
 	run.Stdout, run.Stderr = stdout, stderr
 
 	start := time.Now()
@@ -530,7 +546,7 @@ func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, l
 		cleanupUnit(bg, unit)
 	}
 
-	steps, result := parseTraceOutput(stdout.buf.String())
+	steps, result, started := parseTraceOutput(stdout.buf.String())
 
 	if hit {
 		reason := "выполнение упёрлось в предел памяти " + lim.Mem.limitText(false) + " — похоже на бесконечный рост (например, обход без visited)"
@@ -547,10 +563,11 @@ func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, l
 	if msg, ok := findPanic(stderr.buf.String()); ok {
 		return traceResponse{Build: true, Panic: true, Message: msg, Steps: steps, Duration: duration}
 	}
-	if notStarted(runErr) {
-		// Не паника в коде читателя: бинарник (или ограничитель памяти перед ним) не
-		// стартовал. Виджет показывает reason последней веткой.
-		return traceResponse{Build: true, Reason: "трасса не запустилась: " + runErr.Error(), Steps: steps, Duration: duration}
+	if runErr != nil && !started {
+		// Не паника в коде читателя: до main харнесса дело не дошло — не стартовал
+		// бинарник или ограничитель памяти перед ним (systemd-run не создал область и
+		// вышел со своим кодом). Виджет показывает reason последней веткой.
+		return traceResponse{Build: true, Reason: "трасса не запустилась: " + launchCause(runErr, stderr.buf.String()), Steps: steps, Duration: duration}
 	}
 	if runErr != nil {
 		// сбой без нашего recover() (например, убит сигналом) — покажем как есть
@@ -569,10 +586,10 @@ func runTraceHarness(ctx context.Context, tmp, funcName, qualifiedCall string, l
 }
 
 // parseTraceOutput разбирает stdout харнеса построчно: строки "__TRACE__ "
-// несут JSON-снимок шага, "__TRACE_RESULT__ " — возвращённое значение.
-func parseTraceOutput(stdout string) ([]traceStep, string) {
-	steps := make([]traceStep, 0)
-	result := ""
+// несут JSON-снимок шага, "__TRACE_RESULT__ " — возвращённое значение,
+// "__TRACE_START__" — main харнесса начал работу (started).
+func parseTraceOutput(stdout string) (steps []traceStep, result string, started bool) {
+	steps = make([]traceStep, 0)
 	for line := range strings.SplitSeq(stdout, "\n") {
 		if rest, ok := strings.CutPrefix(line, "__TRACE__ "); ok {
 			var s traceStep
@@ -581,9 +598,11 @@ func parseTraceOutput(stdout string) ([]traceStep, string) {
 			}
 		} else if rest, ok := strings.CutPrefix(line, "__TRACE_RESULT__ "); ok {
 			result = strings.TrimSpace(rest)
+		} else if line == "__TRACE_START__" {
+			started = true
 		}
 	}
-	return steps, result
+	return steps, result, started
 }
 
 func findPanic(stderr string) (string, bool) {

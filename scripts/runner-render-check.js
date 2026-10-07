@@ -2,7 +2,8 @@
 // Смоук вида результата runner'а (assets/runner.js) без сервера: готовые ответы /api/run
 // подаются в ALGO_RUNNER_VIEW. Зависание раньше выглядело как немое «✗ есть падения» —
 // здесь закреплено, что читатель видит причину первой строкой (срок, предел памяти, обрезка,
-// «не запустился»), а при ошибке компиляции — строку компилятора. Вторая половина — ответы
+// «не запустился», «ни один тест не запустился»), а при ошибке компиляции — строку компилятора;
+// прогон, не дошедший до тестов, не выдаётся ни за неё, ни за упавшие тесты. Вторая половина — ответы
 // /api/trace в AlgoTraceViz (trace-viz.js): ошибку сборки он узнаёт по build === false, и это
 // поле проверяется раньше остальных веток. Третья — плашка действующих пределов из
 // /api/health: сама функция и живой виджет на подставном fetch.
@@ -65,6 +66,50 @@ V.result(out, { ok: false, build: false, passed: 0, failed: 0, tests: null, dura
 expect(/^✗ прогон не запустился: exec: "systemd-run"/.test(out.firstChild.textContent), `прогон не запустился: «${out.firstChild.textContent}»`);
 expect(!/Ошибка компиляции|нет вывода/.test(out.textContent), "прогон не запустился, а показана ошибка компиляции");
 
+// Прогон кончился без единого события теста. Раньше каждый из этих ответов шёл под
+// заголовком «✗ Ошибка компиляции» либо «✗ Часть тестов упала», а статус говорил «есть падения».
+// Ответы сняты с настоящего сервера 2026-10-07 как есть: 1 и 4 — обработчик и runGoTest на крошечном
+// модуле, 2, 3 и 6 — живой runner на пакете bits; путь к каталогу Go укорочен.
+const NOT_THE_CAUSE = /Ошибка компиляции|Часть тестов упала|Паника|нет вывода/;
+const stopped = (name, res, mark, status) => {
+  V.result(out, res);
+  const first = out.firstChild.textContent;
+  expect(first === mark + " " + res.reason, `${name}: первой строкой не причина, а «${first}»`);
+  expect(!NOT_THE_CAUSE.test(out.textContent), `${name}: на экране чужой заголовок — «${out.textContent.slice(0, 160)}»`);
+  expect(V.status(res).text === status + " · " + res.duration, `${name}: статус «${V.status(res).text}»`);
+};
+// 1. Фильтр tests не совпал ни с одним тестом: пакет собрался, запускать нечего.
+const noTests = { ok: false, build: true, race: false, passed: 0, failed: 0, tests: null, duration: "149ms", filtered: true, noTests: true,
+  output: "testing: warning: no tests to run\nPASS\nok  \tprobe/spin\t0.001s [no tests to run]",
+  reason: "ни один тест не запустился — в пакете нет тестов с такими именами: TestNope, TestZzz" };
+stopped("фильтр не совпал", noTests, "△", "△ ни один тест не запустился");
+expect(/Прогони пакет целиком/.test(out.textContent), "фильтр не совпал: нет совета прогнать пакет целиком");
+expect(!/0 ok|PASS|no tests to run/.test(out.textContent), `фильтр не совпал: на экране счёт или сырой вывод go test — «${out.textContent}»`);
+// Без фильтра совет «прогони целиком» был бы бессмыслицей: целиком и гоняли.
+V.result(out, Object.assign({}, noTests, { filtered: false, reason: "ни один тест не запустился — в пакете нет тестов" }));
+expect(/^△ ни один тест не запустился — в пакете нет тестов$/.test(out.textContent), `пакет без тестов: «${out.textContent}»`);
+// 2. Ограничитель памяти перед go запустился, но область не создал.
+stopped("ограничитель не сработал", { ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "4ms",
+  output: "Failed to connect to bus: No such file or directory",
+  reason: "прогон не запустился: Failed to connect to bus: No such file or directory" }, "✗", "✗ прогон не запустился");
+// 3. Упор в память до запуска тестов: убита сборка (runner с -mem-mb 32; ядро убило компилятор).
+const starved = { ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "116ms", memLimit: true,
+  output: "github.com/fazletdinov/algorithms-book/exercises/bits: /usr/local/go/pkg/tool/linux_amd64/compile: signal: killed\nFAIL\tgithub.com/fazletdinov/algorithms-book/exercises/bits [build failed]",
+  reason: "сборка упёрлась в предел памяти 32 МиБ, до тестов дело не дошло — предел мал для компилятора: перезапусти runner с -mem-mb побольше" };
+stopped("память кончилась на сборке", starved, "💾", "💾 предел памяти");
+expect(/compile: signal: killed/.test(out.textContent), "память кончилась на сборке: вывод go под причиной потерян");
+// 4. Запасной срок вышел, пока шла сборка (пустой кэш компилятора, -race, срок 3 с).
+stopped("срок вышел на сборке", { ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "3.004s", timeout: true, output: "",
+  reason: "прогон не уложился в 3s и остановлен целиком: не успела закончиться сборка — так бывает на первом запуске с -race, пока кэш компилятора пуст; запусти ещё раз — уже собранное осталось в кэше" },
+  "⏱", "⏱ не уложилось по времени");
+// 6. Вывод упёрся в потолок: прогон остановлен сразу — счёт и список тестов остаются, значок ✂.
+const flood = { ok: false, build: true, race: false, passed: 0, failed: 1, duration: "209ms", truncated: true, output: "",
+  reason: "вывод обрезан на 4096 КиБ, прогон остановлен — похоже на печать в бесконечном цикле; убери отладочный вывод и запусти снова",
+  tests: [{ name: "TestSingleNumber", pass: false, output: "=== RUN   TestSingleNumber\n" }] };
+V.result(out, flood);
+expect(/^✂ вывод обрезан на 4096 КиБ, прогон остановлен/.test(out.firstChild.textContent), `обрезка: первой строкой «${out.firstChild.textContent}»`);
+expect(/0 ok \/ 1 fail/.test(out.textContent) && /✗TestSingleNumber/.test(out.textContent), `обрезка: счёт и список тестов потеряны — «${out.textContent.slice(0, 200)}»`);
+
 // Плашка действующих пределов в шапке — из ответа /api/health.
 const L = (memory, memoryText, race) => V.limits({ memory, memoryText, testTimeout: "20s", raceTimeout: "45s" }, race);
 expect(L("cgroup", "2 ГиБ").text === "предел 2 ГиБ · 20 с", `предел cgroup: «${L("cgroup", "2 ГиБ").text}»`);
@@ -98,6 +143,19 @@ T.render(trace, { ok: false, build: true, steps: [], duration: "0s", source: "pa
   reason: "трасса не запустилась: exec: \"prlimit\": executable file not found in $PATH" });
 expect(/трасса не запустилась: exec: "prlimit"/.test(trace.textContent) && !/Паника/.test(trace.textContent),
   `трасса не запустилась, а на экране «${trace.textContent.slice(0, 80)}»`);
+// 2. Ограничитель перед харнессом запустился, но область не создал: раньше текст systemd шёл как «Паника во время выполнения».
+T.render(trace, { ok: false, build: true, steps: [], duration: "2ms", source: "package p\n",
+  reason: "трасса не запустилась: Failed to connect to bus: No such file or directory" });
+expect(/^✗\s*трасса не запустилась: Failed to connect to bus/.test(trace.textContent) && !/Паника|не скомпилировался/.test(trace.textContent),
+  `трасса: ограничитель не сработал, а на экране «${trace.textContent.slice(0, 80)}»`);
+// 5. Срок вышел на сборке харнесса: раньше — build: false, то есть «Код не скомпилировался» с пустым выводом.
+T.render(trace, { ok: false, build: true, timeout: true, steps: [], source: "package p\n",
+  reason: "сборка трассы не уложилась в 20s — так бывает на первом запуске, пока кэш компилятора пуст; запусти ещё раз — уже собранное осталось в кэше" });
+expect(/⏱/.test(trace.textContent) && /сборка трассы не уложилась в 20s/.test(trace.textContent) && !/Паника|не скомпилировался/.test(trace.textContent),
+  `трасса: срок сборки показан как «${trace.textContent.slice(0, 80)}»`);
+T.render(trace, { ok: false, build: true, steps: [], source: "package p\n", reason: "сборка трассы прервана: runner останавливается или запрос отменён" });
+expect(/^✗\s*сборка трассы прервана/.test(trace.textContent) && !/⏱|Паника|не скомпилировался/.test(trace.textContent),
+  `трасса: отмена сборки показана как «${trace.textContent.slice(0, 80)}»`);
 
 // Живой виджет на подставном сервере: плашка пределов встаёт в шапку перед статусом, а
 // /api/health запрашивается один раз на страницу, сколько бы виджетов на ней ни было.
@@ -133,5 +191,5 @@ function widgetPage(limits) {
     "старый сервер без limits: плашки быть не должно, виджет при этом работает");
 
   if (fails.length) { console.error("❌ runner-render-check:\n  - " + fails.join("\n  - ")); process.exit(1); }
-  console.log("✅ runner-render-check: остановка показана причиной (срок ⏱, память 💾, обрезка ✂), ошибка компиляции — строкой компилятора (и в трассе), плашка пределов в шапке, обычное падение и зелёный прогон — как раньше");
+  console.log("✅ runner-render-check: остановка показана причиной (срок ⏱, память 💾, обрезка ✂), прогон без единого теста — тоже (фильтр не совпал △, не запустился ✗, сборке не хватило памяти или срока), ошибка компиляции — строкой компилятора (и в трассе), плашка пределов в шапке, обычное падение и зелёный прогон — как раньше");
 })();

@@ -9,10 +9,13 @@
 //	go run ./cmd/runner            # слушает http://localhost:8080
 //	go run ./cmd/runner -addr :9000
 //
-// Пределы прогона (run.go): тесту — 20 с (45 с с -race), сырому выводу — 4 МиБ,
-// прогоны идут по одному. Зависшее решение получает ответ с причиной, а не
-// держит тестовый бинарник до его собственных десяти минут. Ctrl+C (и SIGTERM)
-// останавливает сервер вместе с идущим прогоном — см. serve.
+// Пределы прогона (run.go): тесту — 20 с (45 с с -race), сырому выводу — 4 МиБ
+// (на этом потолке прогон останавливается сразу), прогоны идут по одному.
+// Зависшее решение получает ответ с причиной, а не держит тестовый бинарник до
+// его собственных десяти минут; прогон, не дошедший до тестов (не хватило срока
+// или памяти на сборку, не сработал ограничитель), — свою причину, а не «ошибку
+// компиляции». Ctrl+C (и SIGTERM) останавливает сервер вместе с идущим прогоном —
+// см. serve.
 //
 // Предел памяти (mem.go) — 2 ГиБ на прогон, флаг -mem-mb (0 — без предела).
 // Способ выбирается при старте: область systemd с MemoryMax, если пользовательский
@@ -256,7 +259,9 @@ func newServer(mem memLimiter) *server {
 			lim.Mem = mem
 			return lim
 		},
-		traceLimits: func() runLimits { return runLimits{Deadline: 5 * time.Second, MaxOutput: maxRunOutput, Mem: mem} },
+		traceLimits: func() runLimits {
+			return runLimits{Deadline: 5 * time.Second, BuildTimeout: 20 * time.Second, MaxOutput: maxRunOutput, Mem: mem}
+		},
 	}
 }
 
@@ -396,6 +401,9 @@ func (s *server) handleRun(w http.ResponseWriter, r *http.Request) {
 
 	res := runGoTest(r.Context(), tmp, args, lim)
 	res.Filtered = len(req.Tests) > 0
+	if res.NoTests {
+		res.Reason = noTestsReason(req.Tests)
+	}
 	writeJSON(w, http.StatusOK, res)
 }
 

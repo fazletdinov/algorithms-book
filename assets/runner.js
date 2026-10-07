@@ -147,11 +147,17 @@
     if (res.ok) return { text: "✓ всё зелёное · " + res.duration, cls: "ok" };
     if (res.memLimit) return { text: "💾 предел памяти · " + res.duration, cls: "err" };
     if (res.timeout) return { text: "⏱ не уложилось по времени · " + res.duration, cls: "err" };
+    // Ни один тест не шёл — «есть падения» было бы неправдой: падать было нечему.
+    if (res.noTests) return { text: "△ ни один тест не запустился · " + res.duration, cls: "err" };
+    if (notStarted(res)) return { text: "✗ прогон не запустился · " + res.duration, cls: "err" };
     if (res.race) return { text: "🏁 гонка данных · " + res.duration, cls: "err" };
     return { text: "✗ есть падения · " + res.duration, cls: "err" };
   }
-  // Значок перед причиной: память, срок, обрезанный вывод; ✗ — прогон не запустился вовсе.
-  function killMark(res) { return res.memLimit ? "💾 " : res.timeout ? "⏱ " : res.truncated ? "✂ " : "✗ "; }
+  // Причина без сборки и без вида остановки — сервер пишет её в одном случае: команда
+  // (go или ограничитель памяти перед ним) не запустилась.
+  function notStarted(res) { return !res.build && !!res.reason && !res.memLimit && !res.timeout && !res.truncated; }
+  // Значок перед причиной: память, срок, обрезанный вывод, «тестов не нашлось»; ✗ — прогон не запустился вовсе.
+  function killMark(res) { return res.memLimit ? "💾 " : res.timeout ? "⏱ " : res.truncated ? "✂ " : res.noTests ? "△ " : "✗ "; }
 
   // limitsBadge — что показать в шапке про действующие пределы (ответ /api/health).
   // race — виджет с data-race: у его тестов свой срок.
@@ -367,6 +373,15 @@
     if (!res.build) {
       if (!res.reason) out.appendChild(el("div", "algo-runner__verdict is-err", "✗ Ошибка компиляции"));
       if (res.output || !res.reason) out.appendChild(pre(res.output || "(нет вывода)"));
+      return;
+    }
+    // Пакет собрался, а запускать было нечего: счёт «0 ok / 0 fail» и «PASS» из вывода
+    // go test тут только путали бы — ни один тест не шёл.
+    if (res.noTests) {
+      if (res.filtered) {
+        out.appendChild(el("div", "algo-runner__hint",
+          "Прогони пакет целиком: тесты с такими именами в нём не нашлись — скорее всего, у этой функции нет отдельных тестов."));
+      }
       return;
     }
     var verdict = el("div", "algo-runner__verdict " + (res.ok ? "is-ok" : "is-err"),

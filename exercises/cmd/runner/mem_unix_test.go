@@ -118,6 +118,19 @@ func TestMemLimitRlimitStopsEater(t *testing.T) {
 	wantStopped(t, runEater(t, memLimiter{Mode: memRlimit, Bytes: 1 << 30}, false, "900"), "1 ГиБ")
 }
 
+// Предела не хватило на саму сборку (-mem-mb слишком мал): убит компоновщик или сам
+// `go`, а не решение. Раньше причина и здесь говорила про бесконечный рост и обход
+// без visited. Пожиратель до запуска не доходит.
+func TestMemLimitCgroupStarvedBuild(t *testing.T) {
+	needCgroup(t)
+	res := runEater(t, memLimiter{Mode: memCgroup, Bytes: 16 << 20}, false, "0")
+	want := "сборка упёрлась в предел памяти 16 МиБ, до тестов дело не дошло — предел мал для компилятора: перезапусти runner с -mem-mb побольше"
+	if !res.MemLimit || res.OK || res.Build || res.Timeout || res.Reason != want || len(res.Tests) != 0 {
+		t.Fatalf("memLimit=%v ok=%v build=%v timeout=%v tests=%+v\nпричина:   %q\nожидалась: %q\nвывод: %.400s",
+			res.MemLimit, res.OK, res.Build, res.Timeout, res.Tests, res.Reason, want, res.Output)
+	}
+}
+
 // Контроль самой проверки: без предела маленький пожиратель дорастает, тест зелёный.
 func TestEaterFinishesWithoutLimit(t *testing.T) {
 	if res := runEater(t, memLimiter{Mode: memNone}, false, "64"); !res.OK || res.MemLimit {
@@ -193,7 +206,7 @@ func traceEater(t *testing.T, mem memLimiter, eatMiB string) traceResponse {
 	t.Helper()
 	dir := writeModule(t, map[string]string{"tracecmd/main.go": eatMain})
 	t.Setenv("RUNNER_EAT_MIB", eatMiB)
-	lim := runLimits{Deadline: time.Minute, MaxOutput: maxRunOutput, Mem: mem}
+	lim := runLimits{Deadline: time.Minute, BuildTimeout: time.Minute, MaxOutput: maxRunOutput, Mem: mem}
 	return runTraceHarness(context.Background(), dir, "F", "p.F()", lim)
 }
 
@@ -258,7 +271,7 @@ func goOnlyPath(t *testing.T) {
 func TestTraceReportsLaunchFailure(t *testing.T) {
 	dir := writeModule(t, map[string]string{"tracecmd/main.go": "package main\n\nfunc main() {}\n"})
 	goOnlyPath(t)
-	lim := runLimits{Deadline: time.Minute, MaxOutput: maxRunOutput, Mem: memLimiter{Mode: memRlimit, Bytes: 1 << 30}}
+	lim := runLimits{Deadline: time.Minute, BuildTimeout: time.Minute, MaxOutput: maxRunOutput, Mem: memLimiter{Mode: memRlimit, Bytes: 1 << 30}}
 	resp := runTraceHarness(context.Background(), dir, "F", "p.F()", lim)
 	if !resp.Build || resp.OK || resp.Panic || resp.MemLimit || !strings.HasPrefix(resp.Reason, `трасса не запустилась: exec: "prlimit"`) {
 		t.Fatalf("build=%v ok=%v panic=%v memLimit=%v reason=%q message=%q output=%.300q",
