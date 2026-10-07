@@ -16422,6 +16422,10 @@
     root.__algoPredict = { qs: predQs, own: ownInput, lines: steps.map(function (s) { return s.line; }), code: codeLines,
       chips: function (k) { var c = cfg.varsOf(steps[k], ctx), o = {}; cfg.varOrder.forEach(function (n) { o[n] = c[n]; }); return o; } };
     var predHas = Object.keys(predQs).length > 0;
+    // Кнопка выключена по двум разным причинам: у виджета развилок нет вовсе или свой ввод
+    // убрал все вопросы (выведенное «нет» там не спрашивается). Подсказка не должна путать их.
+    var predOwnEmpty = ownInput && !predHas && Object.keys(predictionQuestions(steps, codeLines, false)).length > 0;
+    var predOwnWhere = cfg.presets ? "на примере главы и пресетах" : "на примере главы";
     var predOn = false, predPending = null, predAnswered = {}, predVerdict = null, predRight = 0, predTotal = 0, predBox = null;
     try { predOn = localStorage.getItem(PRED_KEY) === "1"; } catch (e) { /* приватный режим */ }
     var bPred = mkBtn("🎯", "Предсказывать исход на развилках if / for");
@@ -16432,9 +16436,11 @@
       bPred.classList.toggle("algo-tp__predbtn--on", predOn && predHas);
       bPred.setAttribute("aria-pressed", String(predOn && predHas));
       bPred.disabled = !predHas;
-      bPred.title = (!predHas ? "В этом виджете развилок на шагах нет — листай как обычно"
-        : (predOn ? "🎯 включён: на развилках виджет спросит исход до показа шага (Y — да, N — нет)" : "Включить 🎯: предсказывать исход на развилках if / for"))
-        + (ownInput ? ". На своём вводе часть вопросов не задаётся: ответ «нет» проверен только на примере главы и пресетах" : "");
+      bPred.title = predOwnEmpty
+        ? "На своём вводе вопросов 🎯 нет: ответ «нет» проверен только " + predOwnWhere + (cfg.presets ? " — вернись к «пример главы»" : " — верни вход из главы")
+        : !predHas ? "В этом виджете развилок на шагах нет — листай как обычно"
+        : (predOn ? "🎯 включён: на развилках виджет спросит исход до показа шага (Y — да, N — нет)" : "Включить 🎯: предсказывать исход на развилках if / for")
+          + (ownInput ? ". На своём вводе часть вопросов не задаётся: ответ «нет» проверен только " + predOwnWhere : "");
       predScore.textContent = predTotal ? predRight + "/" + predTotal : "";
     }
     bPred.onclick = function () {
