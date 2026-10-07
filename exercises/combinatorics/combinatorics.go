@@ -8,7 +8,7 @@
 //
 //	go test ./combinatorics/
 //
-// Тесты должны стать зелёными. Чтобы посмотреть эталонное решение:
+// Тесты должны стать зелёными. Эталон лежит в combinatorics_solution.go; убедиться, что он проходит те же тесты:
 //
 //	go test -tags solution ./combinatorics/
 package combinatorics

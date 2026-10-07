@@ -32,7 +32,7 @@ func TestLevelOrder(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := LevelOrder(tt.root); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("LevelOrder() = %v, ожидалось %v", got, tt.want)
+				t.Errorf("LevelOrder(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
 	}
@@ -69,7 +69,7 @@ func TestZigzagLevelOrder(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := ZigzagLevelOrder(tt.root); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ZigzagLevelOrder() = %v, ожидалось %v", got, tt.want)
+				t.Errorf("ZigzagLevelOrder(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
 	}
@@ -91,7 +91,7 @@ func TestRightSideView(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := RightSideView(tt.root); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RightSideView() = %v, ожидалось %v", got, tt.want)
+				t.Errorf("RightSideView(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
 	}
@@ -110,7 +110,7 @@ func TestLevelAverages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := LevelAverages(tt.root); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("LevelAverages() = %v, ожидалось %v", got, tt.want)
+				t.Errorf("LevelAverages(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
 	}
@@ -132,7 +132,7 @@ func TestMinDepth(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := MinDepth(tt.root); got != tt.want {
-				t.Errorf("MinDepth() = %v, ожидалось %v", got, tt.want)
+				t.Errorf("MinDepth(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
 	}

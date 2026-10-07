@@ -73,7 +73,7 @@ func TestLevelOrderRandom(t *testing.T) {
 	for range 4000 {
 		root := randTree(rng, rng.Intn(20))
 		if got := LevelOrder(root); !eqLevels(got, levelsBrute(root)) {
-			t.Fatalf("LevelOrder = %v, want %v", got, levelsBrute(root))
+			t.Fatalf("LevelOrder(%s) = %v, want %v", treeString(root), got, levelsBrute(root))
 		}
 	}
 }
@@ -91,7 +91,7 @@ func TestZigzagLevelOrderRandom(t *testing.T) {
 			}
 		}
 		if got := ZigzagLevelOrder(root); !eqLevels(got, want) {
-			t.Fatalf("ZigzagLevelOrder = %v, want %v", got, want)
+			t.Fatalf("ZigzagLevelOrder(%s) = %v, want %v", treeString(root), got, want)
 		}
 	}
 }
@@ -106,7 +106,7 @@ func TestRightSideViewRandom(t *testing.T) {
 			want[i] = lv[len(lv)-1]
 		}
 		if got := RightSideView(root); !eqInts(got, want) {
-			t.Fatalf("RightSideView = %v, want %v", got, want)
+			t.Fatalf("RightSideView(%s) = %v, want %v", treeString(root), got, want)
 		}
 	}
 }
@@ -118,7 +118,7 @@ func TestLevelAveragesRandom(t *testing.T) {
 		levels := levelsBrute(root)
 		got := LevelAverages(root)
 		if len(got) != len(levels) {
-			t.Fatalf("LevelAverages: длина %d, want %d", len(got), len(levels))
+			t.Fatalf("LevelAverages(%s): длина %d, want %d", treeString(root), len(got), len(levels))
 		}
 		for i, lv := range levels {
 			sum := 0
@@ -127,7 +127,7 @@ func TestLevelAveragesRandom(t *testing.T) {
 			}
 			want := float64(sum) / float64(len(lv))
 			if math.Abs(got[i]-want) > 1e-9 {
-				t.Fatalf("LevelAverages[%d] = %v, want %v", i, got[i], want)
+				t.Fatalf("LevelAverages(%s)[%d] = %v, want %v", treeString(root), i, got[i], want)
 			}
 		}
 	}
@@ -158,7 +158,7 @@ func TestMinDepthRandom(t *testing.T) {
 	for range 4000 {
 		root := randTree(rng, rng.Intn(25))
 		if got, want := MinDepth(root), minDepthBrute(root); got != want {
-			t.Fatalf("MinDepth = %d, want %d", got, want)
+			t.Fatalf("MinDepth(%s) = %d, want %d", treeString(root), got, want)
 		}
 	}
 }

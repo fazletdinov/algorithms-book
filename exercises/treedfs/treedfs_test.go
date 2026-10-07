@@ -32,7 +32,7 @@ func TestPreorderTraversal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := PreorderTraversal(tt.root); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("PreorderTraversal() = %v, ожидалось %v", got, tt.want)
+				t.Errorf("PreorderTraversal(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
 	}
@@ -51,7 +51,7 @@ func TestInorderTraversal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := InorderTraversal(tt.root); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("InorderTraversal() = %v, ожидалось %v", got, tt.want)
+				t.Errorf("InorderTraversal(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
 	}
@@ -70,7 +70,7 @@ func TestPostorderTraversal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := PostorderTraversal(tt.root); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("PostorderTraversal() = %v, ожидалось %v", got, tt.want)
+				t.Errorf("PostorderTraversal(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
 	}
@@ -114,7 +114,7 @@ func TestMaxDepth(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := MaxDepth(tt.root); got != tt.want {
-				t.Errorf("MaxDepth() = %v, ожидалось %v", got, tt.want)
+				t.Errorf("MaxDepth(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
 	}
@@ -137,7 +137,7 @@ func TestHasPathSum(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := HasPathSum(tt.root, tt.target); got != tt.want {
-				t.Errorf("HasPathSum() = %v, ожидалось %v", got, tt.want)
+				t.Errorf("HasPathSum(%s, %d) = %v, ожидалось %v", treeString(tt.root), tt.target, got, tt.want)
 			}
 		})
 	}
@@ -165,7 +165,7 @@ func TestDiameterOfTree(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := DiameterOfTree(tt.root); got != tt.want {
-				t.Errorf("DiameterOfTree() = %v, ожидалось %v", got, tt.want)
+				t.Errorf("DiameterOfTree(%s) = %v, ожидалось %v", treeString(tt.root), got, tt.want)
 			}
 		})
 	}

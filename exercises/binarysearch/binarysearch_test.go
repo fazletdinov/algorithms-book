@@ -88,6 +88,7 @@ func TestSearchRotated(t *testing.T) {
 		{"без поворота", []int{1, 2, 3, 4, 5}, 4, 3},
 		{"один элемент", []int{5}, 5, 0},
 		{"пустой массив", []int{}, 5, -1},
+		{"два элемента, цель справа от поворота", []int{32, 31}, 31, 1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

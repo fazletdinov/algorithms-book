@@ -99,13 +99,13 @@ func TestTraversalsRandom(t *testing.T) {
 	for range 3000 {
 		root := randTree(rng, rng.Intn(20))
 		if got := PreorderTraversal(root); !eqInts(got, iterPre(root)) {
-			t.Fatalf("PreorderTraversal = %v, want %v", got, iterPre(root))
+			t.Fatalf("PreorderTraversal(%s) = %v, want %v", treeString(root), got, iterPre(root))
 		}
 		if got := InorderTraversal(root); !eqInts(got, iterIn(root)) {
-			t.Fatalf("InorderTraversal = %v, want %v", got, iterIn(root))
+			t.Fatalf("InorderTraversal(%s) = %v, want %v", treeString(root), got, iterIn(root))
 		}
 		if got := PostorderTraversal(root); !eqInts(got, iterPost(root)) {
-			t.Fatalf("PostorderTraversal = %v, want %v", got, iterPost(root))
+			t.Fatalf("PostorderTraversal(%s) = %v, want %v", treeString(root), got, iterPost(root))
 		}
 	}
 }
@@ -138,7 +138,7 @@ func TestMaxDepthRandom(t *testing.T) {
 	for range 3000 {
 		root := randTree(rng, rng.Intn(25))
 		if got, want := MaxDepth(root), bfsDepth(root); got != want {
-			t.Fatalf("MaxDepth = %d, want %d", got, want)
+			t.Fatalf("MaxDepth(%s) = %d, want %d", treeString(root), got, want)
 		}
 	}
 }
@@ -175,7 +175,7 @@ func TestHasPathSumRandom(t *testing.T) {
 			target = rng.Intn(40) - 20
 		}
 		if got, want := HasPathSum(root, target), set[target]; got != want {
-			t.Fatalf("HasPathSum(target=%d) = %v, want %v (sums=%v)", target, got, want, sums)
+			t.Fatalf("HasPathSum(%s, target=%d) = %v, want %v (sums=%v)", treeString(root), target, got, want, sums)
 		}
 	}
 }
@@ -239,7 +239,7 @@ func TestDiameterOfTreeRandom(t *testing.T) {
 	for range 3000 {
 		root := randTree(rng, rng.Intn(25))
 		if got, want := DiameterOfTree(root), bruteDiameter(root); got != want {
-			t.Fatalf("DiameterOfTree = %d, want %d", got, want)
+			t.Fatalf("DiameterOfTree(%s) = %d, want %d", treeString(root), got, want)
 		}
 	}
 }

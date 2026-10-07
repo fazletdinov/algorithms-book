@@ -24,10 +24,13 @@ func TopologicalSort(numCourses int, prerequisites [][]int) []int {
 	panic("TODO: реализуйте TopologicalSort")
 }
 
-// CanFinish сообщает, можно ли пройти все курсы, то есть существует ли
-// топологический порядок (граф является DAG — не содержит циклов).
+// CanFinish сообщает, можно ли пройти все курсы. Каждый элемент
+// prerequisites[i] = [a, b] означает, что курс b нужно пройти ПЕРЕД курсом a.
 //
 // Пример: numCourses=2, prerequisites=[[1,0]] -> true; [[1,0],[0,1]] -> false.
+//
+// Подсказка: это вопрос, существует ли топологический порядок, то есть нет ли
+// в графе зависимостей цикла.
 //
 // Ожидаемая сложность: O(V + E).
 func CanFinish(numCourses int, prerequisites [][]int) bool {

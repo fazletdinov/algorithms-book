@@ -31,6 +31,7 @@ func TestPairWithTargetSum(t *testing.T) {
 		{"крайние элементы", []int{2, 5, 9, 11}, 11, []int{0, 2}},
 		{"нет пары", []int{1, 2, 3}, 100, []int{-1, -1}},
 		{"пустой массив", []int{}, 5, []int{-1, -1}},
+		{"один элемент дважды брать нельзя", []int{1, 3, 4}, 6, []int{-1, -1}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -55,12 +56,13 @@ func TestRemoveDuplicates(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			orig := append([]int{}, tt.arr...)
 			got := RemoveDuplicates(tt.arr)
 			if got != tt.wantLen {
-				t.Fatalf("RemoveDuplicates вернул длину %d, ожидалось %d", got, tt.wantLen)
+				t.Fatalf("RemoveDuplicates(%v) вернул длину %d, ожидалось %d", orig, got, tt.wantLen)
 			}
 			if !reflect.DeepEqual(tt.arr[:got], tt.wantArr) {
-				t.Errorf("первые %d элементов = %v, ожидалось %v", got, tt.arr[:got], tt.wantArr)
+				t.Errorf("RemoveDuplicates(%v): первые %d элементов = %v, ожидалось %v", orig, got, tt.arr[:got], tt.wantArr)
 			}
 		})
 	}
@@ -106,7 +108,8 @@ func TestTripletsSumToZero(t *testing.T) {
 			got := TripletsSumToZero(tt.arr)
 			sortTriples(got)
 			sortTriples(tt.want)
-			if !reflect.DeepEqual(got, tt.want) {
+			// nil и пустой срез равны: задача не про это.
+			if !equalTriples(got, tt.want) {
 				t.Errorf("TripletsSumToZero(%v) = %v, ожидалось %v", tt.arr, got, tt.want)
 			}
 		})
@@ -125,12 +128,14 @@ func TestDutchFlagSort(t *testing.T) {
 		{"только двойки", []int{2, 2, 2}, []int{2, 2, 2}},
 		{"один элемент", []int{1}, []int{1}},
 		{"пустой", []int{}, []int{}},
+		{"после обмена с high пришёл ноль", []int{1, 2, 0}, []int{0, 1, 2}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			orig := append([]int{}, tt.arr...)
 			DutchFlagSort(tt.arr)
 			if !reflect.DeepEqual(tt.arr, tt.want) {
-				t.Errorf("после DutchFlagSort arr = %v, ожидалось %v", tt.arr, tt.want)
+				t.Errorf("DutchFlagSort(%v) → %v, ожидалось %v", orig, tt.arr, tt.want)
 			}
 		})
 	}

@@ -166,9 +166,10 @@ func TestDutchFlagSortRandom(t *testing.T) {
 		}
 		want := append([]int{}, arr...)
 		sort.Ints(want)
+		orig := append([]int{}, arr...)
 		DutchFlagSort(arr)
 		if !equalInts(arr, want) {
-			t.Fatalf("DutchFlagSort = %v, want %v", arr, want)
+			t.Fatalf("DutchFlagSort(%v) → %v, want %v", orig, arr, want)
 		}
 	}
 }
