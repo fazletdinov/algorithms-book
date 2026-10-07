@@ -14,6 +14,13 @@
 // «../../src/<глава>.md» есть у каждой заготовки — по ней смешанная тренировка
 // и знает правильный ответ на вопрос «каким шаблоном это решается».
 //
+// Когда глава пакета — не тот приём, которым решается именно эта функция, док-комментарий
+// функции говорит об этом служебными абзацами (их читает stubdoc.MarksOf):
+// «Шаблон: <слаг>» заменяет главу-ответ, «Также решается: <слаг>[, <слаг>]» называет
+// главы, чей ответ тоже верен, «Признак: <текст>» — по чему приём виден в условии.
+// Слаги обязаны быть настоящими главами (../src/<слаг>.md): опечатка в метке — ошибка
+// генератора, а не задача с невозможным верным ответом.
+//
 // В банк попадают только НАСТОЯЩИЕ упражнения: экспортированные функции
 // верхнего уровня с док-комментарием, тело которых — panic("TODO...").
 // Готовая инфраструктура (типы ListNode, хелперы) в банк не идёт.
@@ -48,13 +55,20 @@ var chapterRe = regexp.MustCompile(`src/([\w-]+)\.md`)
 const minStatement = 120
 
 type problem struct {
-	Pkg     string
-	Fn      string
-	Chapter string
-	Text    string   // условие: то, что видно ДО выбора шаблона
-	Hint    string   // подсказки: показываются ПОСЛЕ выбора
-	Tests   []string // тесты именно этой функции — мок-интервью гоняет только их
+	Pkg        string
+	Fn         string
+	Chapter    string
+	Text       string   // условие: то, что видно ДО выбора шаблона
+	Hint       string   // подсказки: показываются ПОСЛЕ выбора
+	Tests      []string // тесты именно этой функции — мок-интервью гоняет только их
+	Complexity string   // эталон сложности: абзац «Ожидаемая сложность:» без префикса и точки
+	Also       []string // главы, чей ответ тоже верен («Также решается:»); Chapter среди них нет
+	Sign       string   // по чему приём виден в условии («Признак:»), без префикса
 }
+
+// slugRe — имя главы: имя файла src/<слаг>.md. Узкое на всякий случай: слаг идёт в
+// путь файла, и «../README» им не должен оказаться.
+var slugRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 
 func main() {
 	root := flag.String("root", ".", "корень модуля exercises")
@@ -147,7 +161,11 @@ func collect(root string) ([]problem, int, error) {
 				" без неё смешанная тренировка не знает темы задачи", stub)
 		}
 
-		testsOf, err := stubdoc.AssignTests(filepath.Join(root, pkg), exportedFuncs(file))
+		topLevel, err := stubdoc.TopLevelFuncs(src)
+		if err != nil {
+			return nil, 0, fmt.Errorf("%s: %w", stub, err)
+		}
+		testsOf, err := stubdoc.AssignTests(filepath.Join(root, pkg), topLevel)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -157,8 +175,14 @@ func collect(root string) ([]problem, int, error) {
 			if !ok || fn.Recv != nil || fn.Doc == nil || !ast.IsExported(fn.Name.Name) {
 				continue
 			}
-			if !hasTODO(fn, src, fset) {
+			if !stubdoc.HasTODO(fn, src, fset) {
 				continue
+			}
+			// Метки проверяем до порога длины: опечатка в метке короткой задачи не
+			// должна дожидаться, пока условие дорастёт до банка.
+			answer, marks, err := answerOf(root, pkg+"."+fn.Name.Name, chapter, fn.Doc.Text())
+			if err != nil {
+				return nil, 0, err
 			}
 			text, hint := stubdoc.Statement(fn.Doc.Text())
 			// Порог — по исходному условию: он отсекает однострочные конструкторы, и
@@ -169,12 +193,15 @@ func collect(root string) ([]problem, int, error) {
 			}
 			text = neutral(text, fn.Name.Name)
 			out = append(out, problem{
-				Pkg:     pkg,
-				Fn:      fn.Name.Name,
-				Chapter: chapter,
-				Text:    text,
-				Hint:    hint,
-				Tests:   testsOf[fn.Name.Name],
+				Pkg:        pkg,
+				Fn:         fn.Name.Name,
+				Chapter:    answer,
+				Text:       text,
+				Hint:       hint,
+				Tests:      testsOf[fn.Name.Name],
+				Complexity: stubdoc.Complexity(fn.Doc.Text()),
+				Also:       marks.Also,
+				Sign:       marks.Sign,
 			})
 		}
 	}
@@ -187,31 +214,42 @@ func collect(root string) ([]problem, int, error) {
 	return out, skipped, nil
 }
 
-// hasTODO отличает упражнение от готовой инфраструктуры: у задачи тело —
-// panic("TODO...").
-func hasTODO(fn *ast.FuncDecl, src []byte, fset *token.FileSet) bool {
-	if fn.Body == nil {
-		return false
+// answerOf — глава-ответ функции и её служебные метки. «Шаблон:» заменяет главу
+// пакета; все слаги меток — настоящие главы, а «Также решается:» не повторяет
+// главу-ответ: иначе один и тот же вариант был бы и «верным», и «альтернативой».
+// id — «пакет.Функция» для сообщения об ошибке.
+func answerOf(root, id, pkgChapter, doc string) (string, stubdoc.Marks, error) {
+	marks, err := stubdoc.MarksOf(doc)
+	if err != nil {
+		return "", marks, fmt.Errorf("%s: %w", id, err)
 	}
-	start := fset.Position(fn.Body.Pos()).Offset
-	end := fset.Position(fn.Body.End()).Offset
-	if start < 0 || end > len(src) || start >= end {
-		return false
-	}
-	return bytes.Contains(src[start:end], []byte(`panic("TODO`))
-}
-
-// exportedFuncs — имена ВСЕХ экспортированных функций верхнего уровня заготовки,
-// не только задач банка: тест делится между функциями по самому длинному имени,
-// и конкурентом может оказаться функция, которую в банк не взяли.
-func exportedFuncs(file *ast.File) []string {
-	var names []string
-	for _, decl := range file.Decls {
-		if fn, ok := decl.(*ast.FuncDecl); ok && fn.Recv == nil && ast.IsExported(fn.Name.Name) {
-			names = append(names, fn.Name.Name)
+	answer := pkgChapter
+	if marks.Template != "" {
+		answer = marks.Template
+		if err := chapterExists(root, answer); err != nil {
+			return "", marks, fmt.Errorf("%s: «Шаблон: %s»: %w", id, answer, err)
 		}
 	}
-	return names
+	for _, slug := range marks.Also {
+		if err := chapterExists(root, slug); err != nil {
+			return "", marks, fmt.Errorf("%s: «Также решается: %s»: %w", id, slug, err)
+		}
+		if slug == answer {
+			return "", marks, fmt.Errorf("%s: «Также решается» называет главу-ответ %s", id, slug)
+		}
+	}
+	return answer, marks, nil
+}
+
+// chapterExists проверяет слаг по файлам книги: ../src/<слаг>.md от корня модуля.
+func chapterExists(root, slug string) error {
+	if !slugRe.MatchString(slug) {
+		return fmt.Errorf("%q — не имя главы", slug)
+	}
+	if _, err := os.Stat(filepath.Join(root, "..", "src", slug+".md")); err != nil {
+		return fmt.Errorf("нет главы src/%s.md", slug)
+	}
+	return nil
 }
 
 // neutral прячет имя функции в условии: «SieveOfEratosthenes возвращает…» или
@@ -260,7 +298,12 @@ func render(ps []problem) []byte {
  * ответа («Подсказка: используйте A*…», «Ожидаемая сложность: O(log n)»),
  * t — тесты именно этой функции (мок-интервью гоняет только их: panic("TODO")
  * в соседней функции иначе роняет весь тестовый бинарник). Пустой t значит
- * «своих тестов у функции нет» — такую задачу мок-интервью не выдаёт.
+ * «своих тестов у функции нет» — такую задачу мок-интервью не выдаёт,
+ * x — эталон сложности: абзац «Ожидаемая сложность:» без префикса и точки в конце
+ * (мок-интервью сверяет с ним оценку читателя; пустой — абзаца у функции нет),
+ * a — слаги глав, чей приём тоже решает задачу («Также решается:» в
+ * док-комментарии; главы c среди них нет), g — признак: по чему приём виден в
+ * условии («Признак:», без префикса). У задач без разметки a пуст, g — "".
  */
 window.ALGO_PROBLEMS = [
 `)
@@ -269,9 +312,13 @@ window.ALGO_PROBLEMS = [
 		for i, t := range p.Tests {
 			tests[i] = jsString(t)
 		}
-		fmt.Fprintf(&b, "  { p: %s, f: %s, c: %s, s: %s, h: %s, t: [%s] },\n",
+		also := make([]string, len(p.Also))
+		for i, a := range p.Also {
+			also[i] = jsString(a)
+		}
+		fmt.Fprintf(&b, "  { p: %s, f: %s, c: %s, s: %s, h: %s, t: [%s], x: %s, a: [%s], g: %s },\n",
 			jsString(p.Pkg), jsString(p.Fn), jsString(p.Chapter), jsString(p.Text), jsString(p.Hint),
-			strings.Join(tests, ", "))
+			strings.Join(tests, ", "), jsString(p.Complexity), strings.Join(also, ", "), jsString(p.Sign))
 	}
 	b.WriteString("];\n")
 	return b.Bytes()

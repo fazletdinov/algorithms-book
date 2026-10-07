@@ -106,6 +106,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/health", withCORS(srv.handleHealth))
 	mux.HandleFunc("/api/stub", withCORS(handleStub))
+	mux.HandleFunc("/api/solution", withCORS(handleSolution))
 	mux.HandleFunc("/api/run", withCORS(srv.handleRun))
 	mux.HandleFunc("/api/trace", withCORS(srv.handleTrace))
 
@@ -285,22 +286,6 @@ func validPkg(pkg string) (string, bool) {
 		return "", false
 	}
 	return dir, true
-}
-
-// handleStub отдаёт файл-заготовку <pkg>/<pkg>.go как стартовый код.
-func handleStub(w http.ResponseWriter, r *http.Request) {
-	pkg := r.URL.Query().Get("pkg")
-	dir, ok := validPkg(pkg)
-	if !ok {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "неизвестный пакет"})
-		return
-	}
-	code, err := os.ReadFile(filepath.Join(dir, pkg+".go"))
-	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "заготовка не найдена"})
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]string{"pkg": pkg, "code": string(code)})
 }
 
 type runRequest struct {
