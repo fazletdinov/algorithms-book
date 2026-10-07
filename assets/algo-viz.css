@@ -1005,7 +1005,8 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-hero__name { font-size: 1.4em; font-weight: 800; }
 .algo-hero__ru { font-size: 0.66em; font-weight: 600; opacity: 0.6; margin-left: 0.4em; }
 .algo-hero__tag { opacity: 0.75; margin-top: 0.3em; }
-.algo-hero__metrics { display: flex; gap: 0.7em; }
+/* перенос: на телефоне две карточки не помещаются в ряд, а вбок здесь не прокрутить */
+.algo-hero__metrics { display: flex; flex-wrap: wrap; gap: 0.7em; }
 .algo-hero__metric {
   text-align: center; padding: 0.5em 0.95em; border-radius: 9px;
   background: color-mix(in srgb, var(--fg, #000) 6%, transparent);
@@ -1042,6 +1043,8 @@ body.algo-tp-fslock { overflow: hidden; }
   border: 1px solid color-mix(in srgb, #e0a500 40%, transparent);
 }
 .algo-mental__icon { font-size: 1.6em; line-height: 1; }
+/* min-width: 0 — иначе длинное неразрывное слово не даёт тексту сжаться, и он вылезает из карточки */
+.algo-mental__body { min-width: 0; }
 .algo-mental__title { font-weight: 800; margin-bottom: 0.3em; }
 .algo-mental__body ul { margin: 0.3em 0; padding-left: 1.2em; }
 .algo-mental__body li { margin: 0.15em 0; }
@@ -2000,20 +2003,25 @@ body.algo-tp-fslock { overflow: hidden; }
 /* Телефон: у 26 виджетов из 191 (Ханой, hash-resize, рюкзак…) холст со строкой шага выше
    экрана 390×844, и «›» уезжала под сгиб — каждый шаг требовал прокрутки между кнопкой и
    рисунком. Управление прилипает к низу окна, пока виджет на экране (в полноэкранном
-   режиме так было всегда). */
-@container algo-tp (max-width: 520px) {
-  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__ctrl { position: sticky; bottom: 0; z-index: 5; box-shadow: 0 -8px 16px -6px rgba(0, 0, 0, 0.55); }
-  /* Вопрос 🎯 открывается в строке шага, а она под холстом: у высокого холста вопрос
-     оказывался под прилипшим рядом, и «›» будто переставала работать. Пока вопрос открыт,
-     к низу окна прилипает он, а ряд встаёт на своё место — «›» в это время всё равно не
-     листает. Фон сплошной: вопрос лежит поверх холста. */
-  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__status--pred { position: sticky; bottom: 0; z-index: 5; background: var(--tp-panel); box-shadow: 0 -8px 16px -6px rgba(0, 0, 0, 0.55); }
-  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__status--pred ~ .algo-tp__ctrl { position: static; }
+   режиме так было всегда).
+   Условий два, и они вложены: sticky отсчитывает низ от ближайшего предка-прокрутки, а у
+   mdBook это .content (overflow-y: auto без высоты), поэтому прилипнуть ряд может только
+   там, где у .content прокрутка снята, — при окне до 620px (flow-root оставляет тот же
+   контекст форматирования, что давал overflow). Одного условия на ширину виджета мало:
+   при окне пошире с открытым оглавлением виджет тоже узкий, а прилипать ему некуда.
+   Тени у ряда нет нарочно: она рисовалась бы и тогда, когда ряд стоит на своём месте. */
+@media (max-width: 620px) {
+  .content { overflow: visible; display: flow-root; }
+  @container algo-tp (max-width: 520px) {
+    .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__ctrl { position: sticky; bottom: 0; z-index: 5; }
+    /* Вопрос 🎯 открывается в строке шага, а она под холстом: у высокого холста вопрос
+       оказывался под прилипшим рядом, и «›» будто переставала работать. Пока вопрос открыт,
+       к низу окна прилипает он, а ряд встаёт на своё место — «›» в это время всё равно не
+       листает. Фон сплошной: вопрос лежит поверх холста. */
+    .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__status--pred { position: sticky; bottom: 0; z-index: 5; background: var(--tp-panel); }
+    .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__status--pred ~ .algo-tp__ctrl { position: static; }
+  }
 }
-/* sticky отсчитывает низ от ближайшего предка-прокрутки, а у mdBook это .content
-   (overflow-y: auto без высоты). На узком экране снимаем у него прокрутку; flow-root
-   оставляет тот же контекст форматирования, что давал overflow. */
-@media (max-width: 620px) { .content { overflow: visible; display: flow-root; } }
 /* совсем узко (телефон 320–360px): ряд кнопок иначе не влезает, и ⛶ уезжала к ползунку */
 @container algo-tp (max-width: 320px) {
   .algo-tp--compact .algo-tp__ctrl { padding: 0.6em 0.45em; gap: 0.4em; }

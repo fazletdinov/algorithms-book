@@ -2449,10 +2449,15 @@
   // или `for …{` (строка кончается «{»: иначе условие переносится дальше или тело стоит в
   // той же строке), у которого есть шаг k+1. Спрашивают на переходе к шагу k: снимок
   // шага — состояние ПОСЛЕ его строки, и статус строки условия уже говорит «— да / — нет».
-  // Верный ответ — попал ли шаг k+1 в тело блока (между строкой L и парной скобкой).
+  // Верный ответ — исход условия. Генератор может назвать его сам: s.branch = true | false
+  // на шаге-развилке. Иначе исход выводится: попал ли шаг k+1 в тело блока (между строкой L
+  // и парной скобкой). Вывод «да» надёжен — вошли в тело, значит, условие истинно. Вывод
+  // «нет» — нет: шаг вне тела бывает и при истинном условии, если тело не дало кадра
+  // (вложенный цикл без итераций, continue, return, запись без кадра). Поэтому генератор,
+  // у которого такое возможно, ОБЯЗАН ставить s.branch; сверку держит predict-check.js.
   // Спрашиваем при первой встрече строки и когда её исход сменился (цикл кончился,
   // условие впервые ложно): на каждой развилке — утомительно (в ядре 777 развилок против
-  // 321 такого «переворота»).
+  // 311 таких «переворотов»).
   function branchOf(line) {
     var t = String(line).replace(/\/\/.*$/, "").trim();
     if (!/\{$/.test(t)) return null;
@@ -2484,11 +2489,14 @@
       if (typeof L !== "number" || typeof M !== "number" || M === L || !code[L]) continue;
       var b = branchOf(code[L]);
       if (!b) continue;
-      // «Вошли в тело» — следующий шаг внутри блока строки L. Раньше считалось по L+1, и
-      // генератор, пропустивший первую строку тела, превращал верное «Да» в промах.
-      var E = blockEnd(code, L);
-      var entered = E < 0 ? M === L + 1 : (M > L && M < E);
-      if (!(L in last) || last[L] !== entered) qs[k] = { at: k, line: L, kind: b.kind, cond: b.cond, entered: entered };
+      var said = typeof steps[k].branch === "boolean", entered = steps[k].branch;
+      if (!said) {
+        // «Вошли в тело» — следующий шаг внутри блока строки L. Раньше считалось по L+1, и
+        // генератор, пропустивший первую строку тела, превращал верное «Да» в промах.
+        var E = blockEnd(code, L);
+        entered = E < 0 ? M === L + 1 : (M > L && M < E);
+      }
+      if (!(L in last) || last[L] !== entered) qs[k] = { at: k, line: L, kind: b.kind, cond: b.cond, entered: entered, said: said };
       last[L] = entered;
     }
     return qs;
@@ -2933,14 +2941,17 @@
     function vv(i, j, k, sum) { return { i: (i == null ? "—" : i), j: (j == null ? "—" : j), k: (k == null ? "—" : k), sum: (sum == null ? "—" : sum), found: found, "проверено": checked + " из " + total }; }
     if (n < 3) return [P({ lo: -1, hi: -1, done: true, line: 12, vars: vv(), info: "Меньше трёх элементов — троек нет" })];
     steps.push(P({ lo: -1, hi: -1, line: 2, vars: vv(), info: "res пуст — ищем тройки с суммой 0" }));
+    // Кадр на заголовке for i / for j ставится только для ИСПОЛНЕННОЙ итерации — условие на нём
+    // истинно (branch: true). По следующему шагу это не вывести: при j = n−1 цикл по k не
+    // делает ни одной итерации, тело не даёт кадра, и 🎯 засчитывал верное «Да» как промах.
     for (var i = 0; i < n; i++) {
-      steps.push(P({ lo: i, hi: -1, line: 3, vars: vv(i), info: "i = " + i + ": первый элемент тройки nums[" + i + "] = " + arr[i] }));
+      steps.push(P({ lo: i, hi: -1, line: 3, branch: true, vars: vv(i), info: "i = " + i + ": первый элемент тройки nums[" + i + "] = " + arr[i] }));
       for (var j = i + 1; j < n; j++) {
-        steps.push(P({ lo: i, mid: j, hi: -1, line: 4, vars: vv(i, j), info: "j = " + j + ": второй элемент nums[" + j + "] = " + arr[j] }));
+        steps.push(P({ lo: i, mid: j, hi: -1, line: 4, branch: true, vars: vv(i, j), info: "j = " + j + ": второй элемент nums[" + j + "] = " + arr[j] }));
         for (var k = j + 1; k < n; k++) {
           var sum = arr[i] + arr[j] + arr[k], zero = sum === 0; checked++;
           // проверка суммы и запись в res — разные строки: addUnique (L8) получает свой кадр
-          steps.push(P({ lo: i, mid: j, hi: k, line: 6, vars: vv(i, j, k, sum), info: arr[i] + " + " + arr[j] + " + " + arr[k] + " = " + sum + (zero ? " = 0 — тройка подходит" : " ≠ 0") }));
+          steps.push(P({ lo: i, mid: j, hi: k, line: 6, branch: zero, vars: vv(i, j, k, sum), info: arr[i] + " + " + arr[j] + " + " + arr[k] + " = " + sum + (zero ? " = 0 — тройка подходит" : " ≠ 0") }));
           if (zero) {
             var kk = key3(arr[i], arr[j], arr[k]), uniq = !seen[kk], shown = "[" + kk.split(",").join(", ") + "]";
             if (uniq) { seen[kk] = true; found++; res.push(shown); }
@@ -3191,11 +3202,13 @@
     function push(o) { o.pairs = pairs.slice(); o.smaller = smaller.slice(); steps.push(o); }
     if (!n) return [{ lo: -1, hi: -1, done: true, line: 7, vars: vv(), pairs: [], smaller: [], info: "Пустой массив" }];
     push({ lo: -1, hi: -1, line: 1, vars: vv(), info: "cnt = 0 — пока инверсий не нашли" });
+    // Кадры на заголовках for ставятся только для исполненной итерации — условие истинно
+    // (branch: true); у последнего i цикл по j пуст, тело кадра не даёт.
     for (var i = 0; i < n; i++) {
       smaller[i] = 0;
-      push({ lo: i, hi: -1, line: 2, vars: vv(i), info: "i = " + i + ": фиксируем левый элемент nums[" + i + "] = " + arr[i] + (i < n - 1 ? " и считаем, сколько справа меньше его" : " — справа никого, пар нет") });
+      push({ lo: i, hi: -1, line: 2, branch: true, vars: vv(i), info: "i = " + i + ": фиксируем левый элемент nums[" + i + "] = " + arr[i] + (i < n - 1 ? " и считаем, сколько справа меньше его" : " — справа никого, пар нет") });
       for (var j = i + 1; j < n; j++) {
-        push({ lo: i, hi: j, line: 3, vars: vv(i, j), info: "j = " + j + ": сравниваем с правым nums[" + j + "] = " + arr[j] });
+        push({ lo: i, hi: j, line: 3, branch: true, vars: vv(i, j), info: "j = " + j + ": сравниваем с правым nums[" + j + "] = " + arr[j] });
         var inv = arr[i] > arr[j];
         if (inv) { cnt++; smaller[i]++; pairs.push("(" + arr[i] + "," + arr[j] + ")"); }
         push({ lo: i, hi: j, improved: inv, line: 4, note: inv ? "Условие истинно — инверсия, cnt++" : "Условие ложно — пропускаем", vars: vv(i, j), info: inv ? "nums[" + i + "]=" + arr[i] + " > nums[" + j + "]=" + arr[j] + " — инверсия! cnt → " + cnt : "nums[" + i + "]=" + arr[i] + " ≤ nums[" + j + "]=" + arr[j] + " — не инверсия" });
@@ -5173,8 +5186,10 @@
     steps.push({ reach: snap(), line: 2, vars: vv(), info: "reach[i][j] = (i==j) или прямая связь — стартовая матрица достижимости" });
     for (var k = 0; k < n; k++) for (var i = 0; i < n; i++) for (var j = 0; j < n; j++) {
       var via = reach[i][k] && reach[k][j], was = reach[i][j]; checks++; if (via && !was) useful++;
-      // проверка — до записи; новая единица появляется отдельным кадром строки reach[i][j] = true
-      steps.push({ reach: snap(), ci: i, cj: j, ck: k, line: 6, vars: vv(k, i, j), info: "через " + labels[k] + ": reach[" + labels[i] + "][" + labels[k] + "] && reach[" + labels[k] + "][" + labels[j] + "] = " + via + (via && !was ? " → новый путь, запишем" : (was ? " (reach[" + labels[i] + "][" + labels[j] + "] и так уже 1)" : "")) });
+      // проверка — до записи; новая единица появляется отдельным кадром строки reach[i][j] = true.
+      // branch — исход условия: кадр записи ставится только для НОВОЙ единицы, и при
+      // «условие истинно, а reach[i][j] уже 1» 🎯 по следующему шагу выводил «нет»
+      steps.push({ reach: snap(), ci: i, cj: j, ck: k, line: 6, branch: via, vars: vv(k, i, j), info: "через " + labels[k] + ": reach[" + labels[i] + "][" + labels[k] + "] && reach[" + labels[k] + "][" + labels[j] + "] = " + via + (via && !was ? " → новый путь, запишем" : (was ? " (reach[" + labels[i] + "][" + labels[j] + "] и так уже 1)" : "")) });
       if (via && !was) { reach[i][j] = true; steps.push({ reach: snap(), ci: i, cj: j, ck: k, improved: true, line: 7, vars: vv(k, i, j), info: "reach[" + labels[i] + "][" + labels[j] + "] = true — новый путь " + labels[i] + " → " + labels[k] + " → " + labels[j] }); }
     }
     var seen = new Array(n).fill(false), count = 0;
@@ -5342,9 +5357,13 @@
     if (!n) return [{ lo: -1, hi: -1, done: true, line: 12, reach: [], vars: vv(), info: "Пустой массив" }];
     reach[0] = true;
     steps.push({ lo: -1, hi: -1, reach: snap(), line: 3, vars: vv(), info: "reachable[0] = true — старт достижим" }); // i объявится в цикле
+    // Оба кадра-развилки ставятся только при ИСТИННОМ условии (branch: true): заголовок for —
+    // для исполненной итерации, `if !reachable[i]` — когда клетка недостижима. Тело при этом
+    // может не дать кадра (continue; цикл по step без итераций), и по следующему шагу 🎯
+    // вывел бы «нет».
     for (var i = 0; i < n; i++) {
-      steps.push({ lo: i, hi: -1, reach: snap(), line: 4, vars: vv(i), info: "i = " + i });
-      if (!reach[i]) { steps.push({ lo: i, hi: -1, reach: snap(), line: 5, vars: vv(i), info: "reachable[" + i + "] = false → сюда не допрыгнуть, continue" }); continue; }
+      steps.push({ lo: i, hi: -1, reach: snap(), line: 4, branch: true, vars: vv(i), info: "i = " + i });
+      if (!reach[i]) { steps.push({ lo: i, hi: -1, reach: snap(), line: 5, branch: true, vars: vv(i), info: "reachable[" + i + "] = false → сюда не допрыгнуть, continue" }); continue; }
       for (var step = 1; step <= arr[i] && i + step < n; step++) {
         // повторная пометка — сама суть O(n²): клетку, уже помеченную раньше, помечаем снова
         var was = reach[i + step];
@@ -5380,15 +5399,18 @@
     var n = text.length, m = pat.length, steps = [], res = [];
     function vv(i, j) { return { i: (i == null ? "—" : i), j: (j == null ? "—" : j), "сравнение": (i != null && j != null && i + j < n ? ("'" + text[i + j] + "' vs '" + pat[j] + "'") : "—"), "найдено": res.length }; }
     if (!m || m > n) return [{ lo: -1, hi: -1, done: true, line: 12, patj: 0, vars: vv(), info: "Пустой или слишком длинный образец" }];
+    // branch — исход условия на кадре-развилке. Тела `j++` и `res = append(res, i)` кадров не
+    // дают, поэтому по следующему шагу 🎯 выводил «нет» там, где условие истинно («== → j++»,
+    // «j == m — вхождение»). Кадр `if j == m` ставится только при совпадении.
     for (var i = 0; i + m <= n; i++) {
       var j = 0;
-      steps.push({ lo: i, hi: i, patj: 0, line: 3, vars: vv(i, null), info: "i = " + i + ": прикладываем образец к окну [" + i + ".." + (i + m - 1) + "]" });
+      steps.push({ lo: i, hi: i, patj: 0, line: 3, branch: true, vars: vv(i, null), info: "i = " + i + ": прикладываем образец к окну [" + i + ".." + (i + m - 1) + "]" });
       while (j < m && text[i + j] === pat[j]) {
-        steps.push({ lo: i, hi: i + j, patj: j, match: true, line: 5, vars: vv(i, j), info: "text[" + (i + j) + "]='" + text[i + j] + "' == pat[" + j + "]='" + pat[j] + "' → j++" });
+        steps.push({ lo: i, hi: i + j, patj: j, match: true, line: 5, branch: true, vars: vv(i, j), info: "text[" + (i + j) + "]='" + text[i + j] + "' == pat[" + j + "]='" + pat[j] + "' → j++" });
         j++;
       }
-      if (j < m) { steps.push({ lo: i, hi: i + j, patj: j, line: 5, vars: vv(i, j), info: "text[" + (i + j) + "]='" + text[i + j] + "' ≠ pat[" + j + "]='" + pat[j] + "' — несовпадение, окно +1" }); }
-      else { res.push(i); steps.push({ lo: i, hi: i + m - 1, ptrNames: { hi: "i+m−1" }, patj: m, improved: true, line: 8, vars: (function () { var o = vv(i, null); o.j = m; return o; })(), info: "j == m — вхождение на позиции " + i + "!" }); }
+      if (j < m) { steps.push({ lo: i, hi: i + j, patj: j, line: 5, branch: false, vars: vv(i, j), info: "text[" + (i + j) + "]='" + text[i + j] + "' ≠ pat[" + j + "]='" + pat[j] + "' — несовпадение, окно +1" }); }
+      else { res.push(i); steps.push({ lo: i, hi: i + m - 1, ptrNames: { hi: "i+m−1" }, patj: m, improved: true, line: 8, branch: true, vars: (function () { var o = vv(i, null); o.j = m; return o; })(), info: "j == m — вхождение на позиции " + i + "!" }); }
     }
     steps.push({ lo: -1, hi: -1, done: true, found: res.length > 0, line: 12, patj: 0, vars: vv(), info: "return res = [" + res.join(", ") + "] — все вхождения" });
     return steps;
@@ -7420,7 +7442,7 @@
     // не заходила и на /users/me отвечала ложным 404 вместо /users/{id}.
     var reqSegs = request.split("/").filter(Boolean), steps = [], stack = [0], failed = {}, caps = [];
     function push(o) {
-      steps.push({ cur: stack[stack.length - 1], stack: stack.slice(), failed: Object.keys(failed).map(Number), line: o.line,
+      steps.push({ cur: stack[stack.length - 1], stack: stack.slice(), failed: Object.keys(failed).map(Number), line: o.line, branch: o.branch,
         vars: { seg: o.seg || "—", node: nodes[stack[stack.length - 1]].ch, caps: caps.length ? caps.join(", ") : "—" }, info: o.info, done: o.done, found: o.found, back: !!o.back });
     }
     push({ line: 0, info: "Запрос " + request + " → спускаемся по сегментам от корня «/»" });
@@ -7431,15 +7453,21 @@
         return false;
       }
       var seg = reqSegs[i], lit = nodes[id].children[seg], wild = nodes[id].children["{}"];
-      push({ line: 5, seg: seg, info: "Сегмент «" + seg + "»: есть ли у «" + nodes[id].ch + "» литеральный потомок «" + seg + "»?" });
+      // branch — исход условия на кадре-развилке (для 🎯). У `if h, v := c.match(…); h != nil`
+      // он известен только после возврата из рекурсии, а следующий кадр — уже её первый шаг:
+      // по нему 🎯 выводил «нет» и для найденного маршрута.
+      push({ line: 5, seg: seg, branch: lit != null, info: "Сегмент «" + seg + "»: есть ли у «" + nodes[id].ch + "» литеральный потомок «" + seg + "»?" });
       if (lit != null) {
         stack.push(lit);
+        var call = steps.length;
         push({ line: 6, seg: seg, info: "Литерал «" + seg + "» есть → спускаемся в него первым (литерал конкретнее wildcard)" });
-        if (match(lit, i + 1)) return true;
+        var hit = match(lit, i + 1);
+        steps[call].branch = hit;
+        if (hit) return true;
         stack.pop(); failed[lit] = true;
-        push({ line: 10, seg: seg, back: true, info: "Ветка «" + seg + "» вернула nil — тупик. Откат к «" + nodes[id].ch + "»" + (wild != null ? ": пробуем wildcard" : ", wildcard здесь нет") });
+        push({ line: 10, seg: seg, back: true, branch: wild != null, info: "Ветка «" + seg + "» вернула nil — тупик. Откат к «" + nodes[id].ch + "»" + (wild != null ? ": пробуем wildcard" : ", wildcard здесь нет") });
       } else {
-        push({ line: 10, seg: seg, info: "Литерала «" + seg + "» нет" + (wild != null ? " → пробуем wildcard" : ", wildcard тоже нет") });
+        push({ line: 10, seg: seg, branch: wild != null, info: "Литерала «" + seg + "» нет" + (wild != null ? " → пробуем wildcard" : ", wildcard тоже нет") });
       }
       if (wild != null) {
         stack.push(wild); caps.push(nodes[wild].ch.replace(/[{}]/g, "") + "=" + seg);
@@ -7494,7 +7522,11 @@
     function snap(changed, line, info, done) { return { values: bitsOf(state), lo: (changed == null ? -1 : changed), changed: (changed == null ? -1 : changed), line: line, done: done, vars: { locked: (state & LOCKED) ? 1 : 0, woken: (state & 2) ? 1 : 0, waiters: state >> WSHIFT }, info: info }; }
     steps.push(snap(null, 0, "state = 0 — мьютекс свободен, все биты нули"));
     state |= LOCKED;
-    steps.push(snap(0, 9, "G1.Lock(): CAS 0→locked удался → бит 0 (locked) = 1. Быстрый путь, без блокировки."));
+    // CAS удался — условие if истинно (branch: true); `return` кадра не даёт, и следующий
+    // кадр (Lock другой горутины, уже мимо быстрого пути) 🎯 принимал за исход «нет»
+    var fast = snap(0, 9, "G1.Lock(): CAS 0→locked удался → бит 0 (locked) = 1. Быстрый путь, без блокировки.");
+    fast.branch = true;
+    steps.push(fast);
     state += (1 << WSHIFT);
     steps.push(snap(WSHIFT, 12, "G2.Lock(): лок занят → атомарно +1 к счётчику ожидающих (бит 3). Флаги не тронуты."));
     // Пробуждение — два CAS, а не быстрый путь (сверено с internal/sync/mutex.go, Go 1.26):
@@ -10744,7 +10776,7 @@
       inputs: [{ attr: "data-list", label: "Список" }, { attr: "data-cycle", label: "цикл с индекса", sm: true }],
       presets: [
         { label: "длинный хвост", set: { "data-list": "1,2,3,4,5,6,7,8,9,10", "data-cycle": "3" }, hint: "a = 3, b = 4, L = 7: в фазе 2 slow и fast идут по одному шагу три раза и сходятся ровно на входе" },
-        { label: "цикл с головы", set: { "data-list": "1,2,3,4,5", "data-cycle": "0" }, hint: "a = 0: встреча и есть вход, фаза 2 не делает ни шага" },
+        { label: "цикл с головы", set: { "data-list": "1,2,3,4,5", "data-cycle": "0" }, hint: "a = 0: slow делает полный круг (b = L = 5), встреча и есть вход — фаза 2 не делает ни шага" },
         { label: "без цикла", set: { "data-list": "1,2,3,4", "data-cycle": "-1" }, hint: "fast упирается в nil — return nil" }
       ],
       values: function (ctx) { return ctx.list; },
@@ -15470,7 +15502,10 @@
           root.__algoOrig = {};
           inputs.forEach(function (o) { root.__algoOrig[o.attr] = root.getAttribute(o.attr) || ""; });
         }
-        var chips = [{ label: "пример главы", set: root.__algoOrig, hint: "Вход, с которым виджет стоит в главе" }].concat(cfg.presets);
+        // Пресет, совпавший с примером главы, не показываем: пресеты заданы на тип, и там, где
+        // виджет стоит в главе с тем же входом (вкладка «Длинный хвост»), две кнопки давали одно
+        var same = function (p) { return inputs.every(function (o) { return (p.set[o.attr] || "") === (root.__algoOrig[o.attr] || ""); }); };
+        var chips = [{ label: "пример главы", set: root.__algoOrig, hint: "Вход, с которым виджет стоит в главе" }].concat(cfg.presets.filter(function (p) { return !same(p); }));
         var pr = mkEl("div", "algo-tp__presets");
         pr.setAttribute("role", "group");
         pr.setAttribute("aria-label", "Граничные случаи");
@@ -16376,7 +16411,9 @@
     //     srs.js заводит карточку viz:<тип>. Режим общий для всех виджетов книги.
     var PRED_KEY = "algoVizPredict", PRED_MISS = "algoVizMissed";
     var predQs = predictionQuestions(steps, codeLines);
-    root.__algoPredict = { qs: predQs, lines: steps.map(function (s) { return s.line; }), code: codeLines }; // для scripts/predict-check.js
+    // для scripts/predict-check.js: вопросы, строки шагов, листинг и чипы шага (как на экране)
+    root.__algoPredict = { qs: predQs, lines: steps.map(function (s) { return s.line; }), code: codeLines,
+      chips: function (k) { var c = cfg.varsOf(steps[k], ctx), o = {}; cfg.varOrder.forEach(function (n) { o[n] = c[n]; }); return o; } };
     var predHas = Object.keys(predQs).length > 0;
     var predOn = false, predPending = null, predAnswered = {}, predVerdict = null, predRight = 0, predTotal = 0, predBox = null;
     try { predOn = localStorage.getItem(PRED_KEY) === "1"; } catch (e) { /* приватный режим */ }

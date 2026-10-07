@@ -14,10 +14,17 @@
 //      после развилки попал в тело блока — сверяется по подсвеченной строке кода;
 //   5) у виджета без развилок кнопка 🎯 выключена, а не молча бесполезна;
 //   6) автопроигрывание останавливается на вопросе, а не пролетает мимо;
-//   7) ключи всех виджетов книги: движок считает «вошли в тело» по парной скобке блока,
-//      проверка — независимо, по отступам листинга. Раньше ключ был «следующий шаг на
-//      строке L+1», и генератор, пропустивший первую строку тела, превращал верное «Да»
-//      читателя в «✗ Не угадал» и карточку в повторениях;
+//   7) ключи всех виджетов книги — на входах глав и на всех пресетах. Что именно держится:
+//      • ключ «да» выводится по вхождению следующего шага в тело блока — это надёжно
+//        (вошли в тело — условие истинно); движок считает по парной скобке, проверка —
+//        независимо, по отступам листинга;
+//      • ключ «нет» по следующему шагу НЕНАДЁЖЕН: шаг вне тела бывает и при ложном
+//        условии, и при истинном с телом без кадров (вложенный цикл без итераций,
+//        `continue`, `return`). Поэтому «нет» считается подтверждённым, только если его
+//        вычислил оракул по чипам шага или генератор назвал исход сам (s.branch);
+//      • где оракул вычислил условие, ключ обязан с ним совпасть — и «да», и «нет»;
+//      • остальные «нет» — долг: их число печатается и зажато потолком-храповиком
+//        (UNCONFIRMED_NO), верность не гарантирована;
 //   8) виджет входа в цикл печатает a, b и L — глава называет их «длинами из
 //      доказательства». b — сколько узлов slow прошёл по кольцу до встречи (0 ≤ b ≤ L):
 //      при цикле с головы это полный круг, b = L, а счёт по модулю L давал b = 0. Сверяются
@@ -51,6 +58,10 @@ const tagOf = (file, type) => {
 const cycTags = [...fs.readFileSync(path.join(root, "src", "fast-slow-pointers.md"), "utf8").matchAll(/<div class="algo-viz"[^>]*><\/div>/g)]
   .map((m) => m[0]).filter((t) => t.includes('data-viz="list-cycle-entry"'));
 if (!cycTags.length) throw new Error("в fast-slow-pointers.md нет виджета list-cycle-entry");
+// Вход не из главы: хвост кратен длине кольца (a = 3, L = 3). slow входит в кольцо и сразу
+// встречает fast на входе — по кольцу он не шёл, b = 0. Только этот случай отличает счётчик
+// шагов от правила «встреча на входе → b = L».
+cycTags.push('<div class="algo-viz" data-viz="list-cycle-entry" data-list="1,2,3,4,5,6" data-cycle="3"></div>');
 
 const errors = [];
 const vc = new VirtualConsole();
@@ -85,33 +96,130 @@ function insideByIndent(code, L, M) {
   for (let j = L + 1; j <= M; j++) if (code[j].trim() !== "" && indentOf(code[j]) <= indentOf(code[L])) return false;
   return true;
 }
-// 7) ключи ВСЕХ виджетов книги: каждый div.algo-viz из src/*.md строится со своими
-// атрибутами, движок отдаёт вопросы и строки шагов (root.__algoPredict), и каждый ключ
-// сверяется с отступами листинга.
-async function keyMismatches() {
+
+// Оракул: истинность условия развилки по ЧИПАМ шага (снимок шага — состояние после строки
+// заголовка, чипы — то, что читатель видит в момент вопроса). Умеет только то, в чём нельзя
+// ошибиться: сравнения < <= == != >= >, где операнд — имя чипа, целое или «чип ± целое»,
+// их отрицание !( … ), булев чип и !чип, цепочки && / || без скобок. Остальное — null:
+// «не знаю», а не догадка.
+function condOf(line) {
+  const t = String(line).replace(/\/\/.*$/, "").trim();
+  let m = t.match(/^(?:\}\s*else\s+)?if\s+(.+?)\s*\{$/);
+  if (m) return m[1].split(";").pop().trim(); // if v := f(); cond {
+  m = t.match(/^for\s+(.*?)\s*\{$/);
+  if (!m || !m[1] || /\brange\b/.test(m[1])) return null;
+  const parts = m[1].split(";");
+  return parts.length === 3 ? parts[1].trim() : parts.length === 1 ? parts[0].trim() : null;
+}
+const squash = (s) => String(s).replace(/\s+/g, "").replace(/−/g, "-");
+const chipOf = (tx, chips) => { const k = Object.keys(chips).find((n) => squash(n) === squash(tx)); return k == null ? null : squash(chips[k]); };
+function intOf(tx, chips) {
+  const t = squash(tx);
+  if (/^-?\d+$/.test(t)) return +t;
+  const v = chipOf(t, chips);
+  if (v != null) return /^-?\d+$/.test(v) ? +v : null;
+  const m = t.match(/^(.+)([+-])(\d+)$/); // dp[a-c]+1, i-1
+  if (!m) return null;
+  const a = intOf(m[1], chips);
+  return a == null ? null : m[2] === "+" ? a + +m[3] : a - +m[3];
+}
+function truthOf(cond, chips) {
+  let t = cond.trim(), neg = false;
+  const par = t.match(/^!\s*\((.*)\)$/);
+  if (par) { neg = true; t = par[1].trim(); }
+  if (/&&|\|\|/.test(t)) return null;
+  const m = t.match(/^(.+?)\s*(<=|>=|==|!=|<|>)\s*(.+)$/);
+  let r = null;
+  if (m) {
+    const a = intOf(m[1], chips), b = intOf(m[3], chips);
+    if (a != null && b != null) r = { "<": a < b, "<=": a <= b, ">": a > b, ">=": a >= b, "==": a === b, "!=": a !== b }[m[2]];
+  } else {
+    const bm = t.match(/^(!?)\s*(.+)$/), v = chipOf(bm[2], chips);
+    if (v === "true" || v === "false") r = (v === "true") !== !!bm[1];
+  }
+  return r == null ? null : r !== neg;
+}
+function oracle(line, chips) {
+  const c = condOf(line);
+  if (c == null) return null;
+  if (!/&&|\|\|/.test(c) || /[()]/.test(c)) return truthOf(c, chips);
+  // a && b || c: «и» ложно, если ложен хоть один член, истинно — если истинны все
+  const ors = c.split("||").map((part) => {
+    const vs = part.split("&&").map((x) => truthOf(x, chips));
+    return vs.includes(false) ? false : vs.every((v) => v === true) ? true : null;
+  });
+  return ors.includes(true) ? true : ors.every((v) => v === false) ? false : null;
+}
+// Чип врёт о состоянии после строки — известное и записанное отдельно расхождение, не ключ:
+// у heap-build кадр выхода из `for i := …; i >= 0; i--` показывает i до декремента (i = 0).
+const STALE_CHIP = new Set(["heap-build|3"]);
+// «Нет», выведенное по следующему шагу и ничем не подтверждённое (ни оракулом, ни явным
+// исходом генератора s.branch): шаг вне тела бывает и при ложном условии, и при истинном
+// с телом без кадров. Это долг, а не гарантия; храповик — число может только уменьшаться.
+const UNCONFIRMED_NO = { "главы": 218, "пресеты": 153 };
+
+// 7) ключи ВСЕХ виджетов книги на входах глав и на всех пресетах (пресет — на тип, поэтому
+// гоняется у первого виджета типа). Движок отдаёт вопросы, строки шагов и чипы
+// (root.__algoPredict). Три сверки: выведенный ключ — с отступами листинга; любой ключ —
+// с оракулом там, где оракул вычислил условие; явное «нет» — не при шаге внутри тела.
+async function keyAudit() {
   const tags = [];
   for (const f of fs.readdirSync(path.join(root, "src")).filter((n) => n.endsWith(".md")).sort()) {
-    for (const m of fs.readFileSync(path.join(root, "src", f), "utf8").matchAll(/<div class="algo-viz"[^>]*><\/div>/g)) tags.push({ f, tag: m[0] });
+    for (const m of fs.readFileSync(path.join(root, "src", f), "utf8").matchAll(/<div class="algo-viz"[^>]*><\/div>/g)) tags.push({ f, tag: m[0], type: m[0].match(/data-viz="([^"]+)"/)[1] });
   }
-  const d = new JSDOM(`<!DOCTYPE html><html><body>${tags.map((t, i) => t.tag.replace("<div ", `<div id="k${i}" `)).join("\n")}<script>${js}</script>${infraScriptTags(root)}</body></html>`, {
-    runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true, url: "http://localhost:3000/x.html",
-  });
-  const el = (i) => d.window.document.getElementById("k" + i);
-  for (let t0 = Date.now(); tags.some((_, i) => !el(i).classList.contains("algo-viz--ready")) && Date.now() - t0 < 60000;) await new Promise((r) => setTimeout(r, 200));
-  const bad = []; let asked = 0, widgets = 0;
-  tags.forEach((t, i) => {
-    const p = el(i).__algoPredict, type = t.tag.match(/data-viz="([^"]+)"/)[1];
-    if (!p) { bad.push(`${t.f}: ${type} — движок не отдал __algoPredict`); return; }
-    const ks = Object.keys(p.qs);
-    if (ks.length) widgets++;
-    for (const k of ks) {
-      asked++;
-      const q = p.qs[k], truth = insideByIndent(p.code, q.line, p.lines[+k + 1]);
-      if (q.entered !== truth) bad.push(`${t.f}: ${type}, шаг ${+k + 1}, строка ${q.line + 1} «${p.code[q.line].trim()}» — ключ «${q.entered ? "да" : "нет"}», а следующий шаг (строка ${p.lines[+k + 1] + 1}) ${truth ? "внутри" : "вне"} тела`);
+  const bad = [], cover = {}, loose = {};
+  ["главы", "пресеты"].forEach((s) => { cover[s] = { runs: 0, all: 0, yes: 0, yesSaid: 0, yesOracle: 0, noOracle: 0, noSaid: 0, noLoose: 0 }; loose[s] = {}; });
+  function audit(scope, t, label, node) {
+    const p = node.__algoPredict, c = cover[scope], where = `${t.f}: ${t.type}${label ? `, пресет «${label}»` : ""}`;
+    if (!p) { bad.push(`${where} — движок не отдал __algoPredict`); return; }
+    c.runs++;
+    for (const k of Object.keys(p.qs)) {
+      const q = p.qs[k], next = p.lines[+k + 1], code = p.code[q.line].trim(), key = q.entered ? "да" : "нет";
+      const at = `${where}, шаг ${+k + 1}, строка ${q.line + 1} «${code}»`, inside = insideByIndent(p.code, q.line, next);
+      if (!q.said && q.entered !== inside) bad.push(`${at} — ключ «${key}», а следующий шаг (строка ${next + 1}) ${inside ? "внутри" : "вне"} тела`);
+      if (q.said && !q.entered && inside) bad.push(`${at} — генератор назвал исход «нет», а следующий шаг (строка ${next + 1}) внутри тела`);
+      const chips = p.chips(+k), o = STALE_CHIP.has(`${t.type}|${q.line + 1}`) ? null : oracle(p.code[q.line], chips);
+      if (o != null && o !== q.entered) bad.push(`${at} — ключ «${key}», а по чипам ${JSON.stringify(chips)} условие ${o ? "истинно" : "ложно"}`);
+      c.all++;
+      if (q.entered) { c.yes++; if (q.said) c.yesSaid++; if (o === true) c.yesOracle++; }
+      else if (o === false) c.noOracle++;
+      else if (q.said) c.noSaid++;
+      else { c.noLoose++; loose[scope][t.type] = (loose[scope][t.type] || 0) + 1; }
     }
+  }
+  // Страницами по PAGE виджетов: в jsdom сборка и перезапуск виджета дорожают вместе с
+  // размером документа (все 198 на одной странице — ~30 с сборки и ~0,3 с на каждый пресет,
+  // по 24 — секунды на всё).
+  const seen = new Set(), PAGE = 24;
+  let presetTypes = 0;
+  for (let from = 0; from < tags.length; from += PAGE) {
+    const page = tags.slice(from, from + PAGE);
+    const d = new JSDOM(`<!DOCTYPE html><html><body>${page.map((t, i) => t.tag.replace("<div ", `<div id="k${i}" `)).join("\n")}<script>${js}</script>${infraScriptTags(root)}</body></html>`, {
+      runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true, url: "http://localhost:3000/x.html",
+    });
+    const el = (i) => d.window.document.getElementById("k" + i);
+    for (let t0 = Date.now(); page.some((_, i) => !el(i).classList.contains("algo-viz--ready")) && Date.now() - t0 < 60000;) await new Promise((r) => setTimeout(r, 20));
+    page.forEach((t, i) => {
+      audit("главы", t, "", el(i));
+      if (seen.has(t.type)) return;
+      seen.add(t.type);
+      const n = el(i).querySelectorAll(".algo-tp__preset").length; // первая кнопка — «пример главы»
+      if (n > 1) presetTypes++;
+      for (let p = 1; p < n; p++) {
+        const btn = el(i).querySelectorAll(".algo-tp__preset")[p], label = btn.textContent;
+        btn.dispatchEvent(new d.window.MouseEvent("click", { bubbles: true })); // пресет перестраивает виджет на том же узле
+        audit("пресеты", t, label, el(i));
+      }
+    });
+    d.window.close();
+  }
+  Object.keys(cover).forEach((s) => {
+    const have = cover[s].noLoose, cap = UNCONFIRMED_NO[s];
+    const byType = Object.keys(loose[s]).sort().map((k) => `${k} ${loose[s][k]}`).join(", ");
+    if (have > cap) bad.push(`${s}: неподтверждённых «нет» стало ${have} при потолке ${cap} — новой развилке нужен явный исход (s.branch) в генераторе. По типам: ${byType}`);
+    if (have < cap) bad.push(`${s}: неподтверждённых «нет» осталось ${have} — понизь потолок UNCONFIRMED_NO (сейчас ${cap}), он обязан сокращаться вместе с правками`);
   });
-  d.window.close();
-  return { bad, asked, widgets, total: tags.length };
+  return { bad, cover, widgets: tags.length, presetTypes };
 }
 
 // 8) вход в цикл: эталон — свой прогон Флойда со счётчиком шагов slow. До встречи slow
@@ -125,7 +233,7 @@ function floydLengths(list, c) {
   return { a: c, b: t - c, L: n - c };
 }
 function cycleEntryMismatches() {
-  const bad = new Set(); let runs = 0;
+  const bad = new Set(), kinds = new Set(); let runs = 0;
   cycTags.forEach((_, i) => {
     const at = () => doc.getElementById("cyc" + i);
     const presets = at().querySelectorAll(".algo-tp__preset").length; // первая кнопка — «пример главы»
@@ -136,6 +244,7 @@ function cycleEntryMismatches() {
       const el = at(), list = el.getAttribute("data-list").split(",").filter((x) => x.trim() !== "");
       const cyc = parseInt(el.getAttribute("data-cycle"), 10), want = floydLengths(list, cyc), name = `виджет ${i + 1}, «${label}» [${list.join(",")} | цикл с ${cyc}]`;
       if (want && !(want.b >= 0 && want.b <= want.L && (want.a + want.b) % want.L === 0)) bad.add(`${name}: эталон сломан — a = ${want.a}, b = ${want.b}, L = ${want.L}`);
+      if (want) kinds.add(want.b === want.L ? "полный круг" : want.b === 0 ? "встреча на входе без круга" : "встреча внутри кольца");
       const total = +el.querySelector(".algo-viz__counter").textContent.match(/\/\s*(\d+)/)[1];
       const seen = { "строка шага": 0, "подпись под рисунком": 0 };
       for (let k = 1; ; k++) {
@@ -153,13 +262,19 @@ function cycleEntryMismatches() {
       runs++;
     }
   });
+  // три разных исхода обязаны встретиться: иначе проверка не отличит счётчик от формулы
+  ["полный круг", "встреча на входе без круга", "встреча внутри кольца"].forEach((kind) => { if (!kinds.has(kind)) bad.add(`ни на одном входе нет случая «${kind}»`); });
   return { bad: [...bad], runs };
 }
 
 setTimeout(async () => {
-  const keys = await keyMismatches();
+  const keys = await keyAudit();
   keys.bad.forEach((b) => fails.push("ключ: " + b));
-  expect(keys.asked > 0, "ключи: в главах не нашлось ни одного вопроса 🎯 — сверка пуста");
+  expect(keys.cover["главы"].all > 0 && keys.cover["пресеты"].all > 0, "ключи: на входах глав или на пресетах не нашлось ни одного вопроса 🎯 — сверка пуста");
+  const coverage = Object.keys(keys.cover).map((s) => {
+    const c = keys.cover[s];
+    return `${s} — ${c.all} вопросов в ${c.runs} прогонах: «да» ${c.yes} (из них по явному исходу ${c.yesSaid}, остальные — по вхождению в тело; по чипам совпало ${c.yesOracle}), «нет» по чипам ${c.noOracle}, «нет» по явному исходу ${c.noSaid}, «нет» БЕЗ подтверждения ${c.noLoose}`;
+  }).join("; ");
 
   // до включения режима: с 🎯 «›» вставал бы на вопросах
   const cyc = cycleEntryMismatches();
@@ -239,6 +354,6 @@ setTimeout(async () => {
     console.error("❌ predict-check:\n  - " + fails.join("\n  - "));
     process.exit(1);
   }
-  console.log(`✅ predict-check: без режима листается как раньше; с 🎯 на развилках «›» ждёт ответа, ответ сверяется со следующим шагом (${asked} вопросов: ${right} верно, ${wrong} промахов записано), счёт и промахи сходятся, автопроигрывание встаёт на вопросе, у виджета без развилок кнопка выключена; ключи ${keys.asked} вопросов у ${keys.widgets} виджетов (построено ${keys.total}) сверены по отступам; a, b, L входа в цикл сошлись со своим прогоном Флойда на ${cyc.runs} входах`);
+  console.log(`✅ predict-check: без режима листается как раньше; с 🎯 на развилках «›» ждёт ответа, ответ сверяется со следующим шагом (${asked} вопросов: ${right} верно, ${wrong} промахов записано), счёт и промахи сходятся, автопроигрывание встаёт на вопросе, у виджета без развилок кнопка выключена; a, b, L входа в цикл сошлись со своим прогоном Флойда на ${cyc.runs} входах.\n   Ключи (${keys.widgets} виджетов глав; пресеты ${keys.presetTypes} типов): ${coverage}. Выведенные ключи сошлись с отступами листинга, вычислимые по чипам — с оракулом; «нет» без подтверждения не гарантированы (потолок-храповик).`);
   process.exit(0);
 }, 400);
