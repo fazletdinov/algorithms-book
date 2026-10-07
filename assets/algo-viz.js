@@ -2482,7 +2482,9 @@
     }
     return -1;
   }
-  function predictionQuestions(steps, code) {
+  // onlySure — прогон на своём вводе читателя: выведенное «нет» там никем не прочитано и не
+  // сверено, такой вопрос не задаётся (исход строки при этом запоминается, как обычно).
+  function predictionQuestions(steps, code, onlySure) {
     var qs = {}, last = {};
     for (var k = 1; k + 1 < steps.length; k++) {
       var L = steps[k].line, M = steps[k + 1].line;
@@ -2496,7 +2498,7 @@
         var E = blockEnd(code, L);
         entered = E < 0 ? M === L + 1 : (M > L && M < E);
       }
-      if (!(L in last) || last[L] !== entered) qs[k] = { at: k, line: L, kind: b.kind, cond: b.cond, entered: entered, said: said };
+      if ((!(L in last) || last[L] !== entered) && (!onlySure || said || entered)) qs[k] = { at: k, line: L, kind: b.kind, cond: b.cond, entered: entered, said: said };
       last[L] = entered;
     }
     return qs;
@@ -15484,9 +15486,18 @@
     });
     function rerun() { inputs.forEach(function (o) { root.setAttribute(o.attr, o.inp.value.trim()); }); root.classList.remove("algo-viz--ready"); buildDashboard(root, cfg); }
     inputs.forEach(function (o) { o.inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); rerun(); } }); });
+    // Свой ввод читателя — не пример главы и не пресет. Ключи 🎯 прочитаны и сверены только
+    // на них (predict-check.js), поэтому на своём вводе ВЫВЕДЕННОЕ «нет» не спрашивается.
+    var ownInput = false;
     // У фиксированного сценария (протокол, рантайм Go) вводить нечего: одинокая кнопка
     // «Запустить» над пустой карточкой перезапускала тот же сценарий и путала.
     if (inputs.length) {
+      if (!root.__algoOrig) {
+        root.__algoOrig = {};
+        inputs.forEach(function (o) { root.__algoOrig[o.attr] = root.getAttribute(o.attr) || ""; });
+      }
+      var runsOn = function (set) { return inputs.every(function (o) { return (root.getAttribute(o.attr) || "").trim() === (set[o.attr] || "").trim(); }); };
+      ownInput = !runsOn(root.__algoOrig) && !(cfg.presets || []).some(function (p) { return runsOn(p.set); });
       var runBtn = mkEl("button", "algo-tp__run", "⟲ Запустить"); runBtn.type = "button";
       runBtn.setAttribute("aria-label", "Запустить визуализацию заново с введёнными данными");
       runBtn.onclick = rerun;
@@ -15498,10 +15509,6 @@
       // check-viz.js). Первая кнопка возвращает пример главы: он запоминается на узле при
       // первой отрисовке и переживает перезапуски — rerun() строит виджет на том же root.
       if (cfg.presets) {
-        if (!root.__algoOrig) {
-          root.__algoOrig = {};
-          inputs.forEach(function (o) { root.__algoOrig[o.attr] = root.getAttribute(o.attr) || ""; });
-        }
         // Пресет, совпавший с примером главы, не показываем: пресеты заданы на тип, и там, где
         // виджет стоит в главе с тем же входом (вкладка «Длинный хвост»), две кнопки давали одно
         var same = function (p) { return inputs.every(function (o) { return (p.set[o.attr] || "") === (root.__algoOrig[o.attr] || ""); }); };
@@ -16410,9 +16417,9 @@
     //     (отбор развилок — predictionQuestions). Промах пишется в algoVizMissed, откуда
     //     srs.js заводит карточку viz:<тип>. Режим общий для всех виджетов книги.
     var PRED_KEY = "algoVizPredict", PRED_MISS = "algoVizMissed";
-    var predQs = predictionQuestions(steps, codeLines);
+    var predQs = predictionQuestions(steps, codeLines, ownInput);
     // для scripts/predict-check.js: вопросы, строки шагов, листинг и чипы шага (как на экране)
-    root.__algoPredict = { qs: predQs, lines: steps.map(function (s) { return s.line; }), code: codeLines,
+    root.__algoPredict = { qs: predQs, own: ownInput, lines: steps.map(function (s) { return s.line; }), code: codeLines,
       chips: function (k) { var c = cfg.varsOf(steps[k], ctx), o = {}; cfg.varOrder.forEach(function (n) { o[n] = c[n]; }); return o; } };
     var predHas = Object.keys(predQs).length > 0;
     var predOn = false, predPending = null, predAnswered = {}, predVerdict = null, predRight = 0, predTotal = 0, predBox = null;
@@ -16425,8 +16432,9 @@
       bPred.classList.toggle("algo-tp__predbtn--on", predOn && predHas);
       bPred.setAttribute("aria-pressed", String(predOn && predHas));
       bPred.disabled = !predHas;
-      bPred.title = !predHas ? "В этом виджете развилок на шагах нет — листай как обычно"
-        : (predOn ? "🎯 включён: на развилках виджет спросит исход до показа шага (Y — да, N — нет)" : "Включить 🎯: предсказывать исход на развилках if / for");
+      bPred.title = (!predHas ? "В этом виджете развилок на шагах нет — листай как обычно"
+        : (predOn ? "🎯 включён: на развилках виджет спросит исход до показа шага (Y — да, N — нет)" : "Включить 🎯: предсказывать исход на развилках if / for"))
+        + (ownInput ? ". На своём вводе часть вопросов не задаётся: ответ «нет» проверен только на примере главы и пресетах" : "");
       predScore.textContent = predTotal ? predRight + "/" + predTotal : "";
     }
     bPred.onclick = function () {

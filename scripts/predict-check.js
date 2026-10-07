@@ -23,14 +23,20 @@
 //        `continue`, `return`). Поэтому «нет» считается подтверждённым, только если его
 //        вычислил оракул по чипам шага или генератор назвал исход сам (s.branch);
 //      • где оракул вычислил условие, ключ обязан с ним совпасть — и «да», и «нет»;
-//      • остальные «нет» — долг: их число печатается и зажато потолком-храповиком
-//        (UNCONFIRMED_NO), верность не гарантирована;
+//      • остальные «нет» записаны поимённо в scripts/predict-unconfirmed.json (тип, вход,
+//        шаг, строка) — это список прочитанных: по тексту шага и коду генератора условие
+//        на них ложно. Нового «нет» без записи быть не может, лишней записи — тоже;
 //   8) виджет входа в цикл печатает a, b и L — глава называет их «длинами из
 //      доказательства». b — сколько узлов slow прошёл по кольцу до встречи (0 ≤ b ≤ L):
 //      при цикле с головы это полный круг, b = L, а счёт по модулю L давал b = 0. Сверяются
 //      оба места с числами (строка шага и подпись под рисунком) на примере главы и на
 //      каждом пресете. Проверка живёт здесь, а не в отдельном скрипте, потому что этот
-//      смоук уже строит виджеты настоящим движком и стоит в CI.
+//      смоук уже строит виджеты настоящим движком и стоит в CI;
+//   9) свой ввод читателя (не пример главы и не пресет): ключи там никто не читал, поэтому
+//      выведенное «нет» не спрашивается вовсе; «да» и явный исход — как обычно.
+//
+//   node scripts/predict-check.js --report   # напечатать текущий список неподтверждённых
+//                                            # «нет» в формате predict-unconfirmed.json
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -72,6 +78,8 @@ const dom = new JSDOM(
      ${tagOf("sliding-window.md", "sliding-window-fixed").replace("<div ", '<div id="win" ')}
      ${tagOf("monotonic-stack.md", "monotonic-stack").replace("<div ", '<div id="stk" ')}
      ${cycTags.map((t, i) => t.replace("<div ", `<div id="cyc${i}" `)).join("\n")}
+     ${tagOf("sliding-window.md", "sliding-window-fixed").replace("<div ", '<div id="own1" ')}
+     ${tagOf("string-algorithms.md", "string-match-naive").replace("<div ", '<div id="own2" ')}
      <script>${js}</script>${infraScriptTags(root)}
    </body></html>`,
   { runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true, url: "http://localhost:3000/sliding-window.html" }
@@ -153,10 +161,20 @@ function oracle(line, chips) {
 // Чип врёт о состоянии после строки — известное и записанное отдельно расхождение, не ключ:
 // у heap-build кадр выхода из `for i := …; i >= 0; i--` показывает i до декремента (i = 0).
 const STALE_CHIP = new Set(["heap-build|3"]);
-// «Нет», выведенное по следующему шагу и ничем не подтверждённое (ни оракулом, ни явным
-// исходом генератора s.branch): шаг вне тела бывает и при ложном условии, и при истинном
-// с телом без кадров. Это долг, а не гарантия; храповик — число может только уменьшаться.
-const UNCONFIRMED_NO = { "главы": 218, "пресеты": 153 };
+// «Нет», выведенное по следующему шагу и не подтверждённое ни оракулом, ни явным исходом
+// генератора (s.branch): шаг вне тела бывает и при ложном условии, и при истинном с телом
+// без кадров. Каждый такой вопрос записан поимённо в predict-unconfirmed.json — это список
+// ПРОЧИТАННЫХ ключей (по тексту шага и коду генератора условие на них ложно), а не разрешение
+// не читать. Храповик, как у viz-names-allow.json: неподтверждённого «нет» нет в списке —
+// ошибка (назови исход в генераторе или прочитай шаг и внеси запись); запись больше не
+// встречается — тоже ошибка, пока её не уберут. Список может только сокращаться.
+const UNCONFIRMED_PATH = path.join(__dirname, "predict-unconfirmed.json");
+const REPORT = process.argv.includes("--report");
+const unconfirmed = fs.existsSync(UNCONFIRMED_PATH) ? JSON.parse(fs.readFileSync(UNCONFIRMED_PATH, "utf8")) : {};
+// Вход прогона: у главы — файл и атрибуты виджета (в главе бывает несколько виджетов типа),
+// у пресета — его название (пресет задаёт все поля типа, глава на него не влияет).
+const inputOf = (t, label) => label ? `пресет «${label}»`
+  : `глава ${t.f} (${[...t.tag.matchAll(/\bdata-([a-z-]+)="([^"]*)"/g)].filter((m) => m[1] !== "viz" && m[1] !== "tab").map((m) => `${m[1]}=${m[2]}`).join("; ")})`;
 
 // 7) ключи ВСЕХ виджетов книги на входах глав и на всех пресетах (пресет — на тип, поэтому
 // гоняется у первого виджета типа). Движок отдаёт вопросы, строки шагов и чипы
@@ -168,7 +186,7 @@ async function keyAudit() {
     for (const m of fs.readFileSync(path.join(root, "src", f), "utf8").matchAll(/<div class="algo-viz"[^>]*><\/div>/g)) tags.push({ f, tag: m[0], type: m[0].match(/data-viz="([^"]+)"/)[1] });
   }
   const bad = [], cover = {}, loose = {};
-  ["главы", "пресеты"].forEach((s) => { cover[s] = { runs: 0, all: 0, yes: 0, yesSaid: 0, yesOracle: 0, noOracle: 0, noSaid: 0, noLoose: 0 }; loose[s] = {}; });
+  ["главы", "пресеты"].forEach((s) => { cover[s] = { runs: 0, all: 0, yes: 0, yesSaid: 0, yesOracle: 0, noOracle: 0, noSaid: 0, noLoose: 0 }; });
   function audit(scope, t, label, node) {
     const p = node.__algoPredict, c = cover[scope], where = `${t.f}: ${t.type}${label ? `, пресет «${label}»` : ""}`;
     if (!p) { bad.push(`${where} — движок не отдал __algoPredict`); return; }
@@ -184,7 +202,7 @@ async function keyAudit() {
       if (q.entered) { c.yes++; if (q.said) c.yesSaid++; if (o === true) c.yesOracle++; }
       else if (o === false) c.noOracle++;
       else if (q.said) c.noSaid++;
-      else { c.noLoose++; loose[scope][t.type] = (loose[scope][t.type] || 0) + 1; }
+      else { c.noLoose++; (loose[t.type] = loose[t.type] || []).push({ input: inputOf(t, label), preset: !!label, step: +k + 1, text: `шаг ${+k + 1}, строка ${q.line + 1}: ${code}` }); }
     }
   }
   // Страницами по PAGE виджетов: в jsdom сборка и перезапуск виджета дорожают вместе с
@@ -213,13 +231,24 @@ async function keyAudit() {
     });
     d.window.close();
   }
-  Object.keys(cover).forEach((s) => {
-    const have = cover[s].noLoose, cap = UNCONFIRMED_NO[s];
-    const byType = Object.keys(loose[s]).sort().map((k) => `${k} ${loose[s][k]}`).join(", ");
-    if (have > cap) bad.push(`${s}: неподтверждённых «нет» стало ${have} при потолке ${cap} — новой развилке нужен явный исход (s.branch) в генераторе. По типам: ${byType}`);
-    if (have < cap) bad.push(`${s}: неподтверждённых «нет» осталось ${have} — понизь потолок UNCONFIRMED_NO (сейчас ${cap}), он обязан сокращаться вместе с правками`);
+  // список как он есть сейчас: по типам; внутри — входы глав, потом пресеты, по номеру шага
+  const now = {};
+  Object.keys(loose).sort().forEach((type) => {
+    const rows = loose[type].sort((a, b) => a.preset - b.preset || a.input.localeCompare(b.input) || a.step - b.step);
+    now[type] = [...new Set(rows.map((r) => `${r.input} — ${r.text}`))];
   });
-  return { bad, cover, widgets: tags.length, presetTypes };
+  const listedCount = Object.values(unconfirmed).reduce((a, b) => a + b.length, 0);
+  if (!REPORT) {
+    for (const type of Object.keys(now)) {
+      const ok = new Set(unconfirmed[type] || []);
+      now[type].filter((e) => !ok.has(e)).forEach((e) => bad.push(`${type}: «${e}» — ключ «нет» выведен по следующему шагу и ничем не подтверждён. Назови исход в генераторе (s.branch) или прочитай шаг и внеси запись в scripts/predict-unconfirmed.json`));
+    }
+    for (const [type, list] of Object.entries(unconfirmed)) {
+      const have = new Set(now[type] || []);
+      list.filter((e) => !have.has(e)).forEach((e) => bad.push(`${type}: «${e}» больше не встречается (ключ подтверждён или вопрос исчез) — убери из scripts/predict-unconfirmed.json`));
+    }
+  }
+  return { bad, cover, widgets: tags.length, presetTypes, list: now, listedCount };
 }
 
 // 8) вход в цикл: эталон — свой прогон Флойда со счётчиком шагов slow. До встречи slow
@@ -267,18 +296,54 @@ function cycleEntryMismatches() {
   return { bad: [...bad], runs };
 }
 
+// 9) свой ввод читателя. Виджет own1 (окно фиксированного размера) — выведенные «нет»: на входе
+// главы и на пресете они спрашиваются, на своём вводе — нет, а «да» остаются. Виджет own2
+// (наивный поиск подстроки) — явное «нет» генератора: на своём вводе оно спрашивается.
+function ownInputMismatches() {
+  const bad = [];
+  const kinds = (id) => {
+    const p = doc.getElementById(id).__algoPredict, qs = Object.values(p.qs);
+    return { own: p.own, yes: qs.filter((q) => q.entered).length, noSaid: qs.filter((q) => !q.entered && q.said).length, noGuess: qs.filter((q) => !q.entered && !q.said).length };
+  };
+  const type = (id, values) => { // как читатель: вписал в поля и нажал «⟲ Запустить»
+    const el = doc.getElementById(id), inputs = el.querySelectorAll(".algo-tp__input");
+    if (inputs.length !== values.length) { bad.push(`${id}: полей ввода ${inputs.length}, а значений ${values.length}`); return; }
+    inputs.forEach((inp, i) => { inp.value = values[i]; });
+    click(el.querySelector(".algo-tp__run"));
+  };
+  const show = (k) => `own=${k.own}, «да» ${k.yes}, выведенных «нет» ${k.noGuess}, явных «нет» ${k.noSaid}`;
+  const orig = [...doc.getElementById("own1").querySelectorAll(".algo-tp__input")].map((inp) => inp.value);
+  let k = kinds("own1");
+  if (k.own || !k.noGuess) bad.push(`вход главы: ${show(k)} — выведенные «нет» здесь прочитаны и должны спрашиваться`);
+  click(doc.getElementById("own1").querySelectorAll(".algo-tp__preset")[1]);
+  k = kinds("own1");
+  if (k.own || !k.noGuess) bad.push(`пресет: ${show(k)} — выведенные «нет» здесь прочитаны и должны спрашиваться`);
+  type("own1", ["5,1,2,9,3,7", "2"]);
+  k = kinds("own1");
+  if (!k.own || k.noGuess || !k.yes) bad.push(`свой ввод: ${show(k)} — выведенное «нет» не должно спрашиваться, «да» — должно`);
+  type("own1", orig);
+  k = kinds("own1");
+  if (k.own || !k.noGuess) bad.push(`вернули вход главы вручную: ${show(k)} — это снова не «свой ввод»`);
+  type("own2", ["abcabd", "abd"]);
+  k = kinds("own2");
+  if (!k.own || !k.noSaid || k.noGuess) bad.push(`свой ввод, явный исход: ${show(k)} — «нет», названное генератором, должно спрашиваться и на своём вводе`);
+  return bad;
+}
+
 setTimeout(async () => {
   const keys = await keyAudit();
+  if (REPORT) { console.log(JSON.stringify(keys.list, null, 1)); process.exit(0); }
   keys.bad.forEach((b) => fails.push("ключ: " + b));
   expect(keys.cover["главы"].all > 0 && keys.cover["пресеты"].all > 0, "ключи: на входах глав или на пресетах не нашлось ни одного вопроса 🎯 — сверка пуста");
   const coverage = Object.keys(keys.cover).map((s) => {
     const c = keys.cover[s];
-    return `${s} — ${c.all} вопросов в ${c.runs} прогонах: «да» ${c.yes} (из них по явному исходу ${c.yesSaid}, остальные — по вхождению в тело; по чипам совпало ${c.yesOracle}), «нет» по чипам ${c.noOracle}, «нет» по явному исходу ${c.noSaid}, «нет» БЕЗ подтверждения ${c.noLoose}`;
+    return `${s} — ${c.all} вопросов в ${c.runs} прогонах: «да» ${c.yes} (из них по явному исходу ${c.yesSaid}, остальные — по вхождению в тело; по чипам совпало ${c.yesOracle}), «нет» по чипам ${c.noOracle}, «нет» по явному исходу ${c.noSaid}, «нет» по списку прочитанных ${c.noLoose}`;
   }).join("; ");
 
   // до включения режима: с 🎯 «›» вставал бы на вопросах
   const cyc = cycleEntryMismatches();
   cyc.bad.forEach((b) => fails.push("вход в цикл: " + b));
+  ownInputMismatches().forEach((b) => fails.push("свой ввод: " + b));
 
   const el = win();
   const total = +el.querySelector(".algo-viz__counter").textContent.match(/\/\s*(\d+)/)[1];
@@ -354,6 +419,6 @@ setTimeout(async () => {
     console.error("❌ predict-check:\n  - " + fails.join("\n  - "));
     process.exit(1);
   }
-  console.log(`✅ predict-check: без режима листается как раньше; с 🎯 на развилках «›» ждёт ответа, ответ сверяется со следующим шагом (${asked} вопросов: ${right} верно, ${wrong} промахов записано), счёт и промахи сходятся, автопроигрывание встаёт на вопросе, у виджета без развилок кнопка выключена; a, b, L входа в цикл сошлись со своим прогоном Флойда на ${cyc.runs} входах.\n   Ключи (${keys.widgets} виджетов глав; пресеты ${keys.presetTypes} типов): ${coverage}. Выведенные ключи сошлись с отступами листинга, вычислимые по чипам — с оракулом; «нет» без подтверждения не гарантированы (потолок-храповик).`);
+  console.log(`✅ predict-check: без режима листается как раньше; с 🎯 на развилках «›» ждёт ответа, ответ сверяется со следующим шагом (${asked} вопросов: ${right} верно, ${wrong} промахов записано), счёт и промахи сходятся, автопроигрывание встаёт на вопросе, у виджета без развилок кнопка выключена; a, b, L входа в цикл сошлись со своим прогоном Флойда на ${cyc.runs} входах.\n   Ключи (${keys.widgets} виджетов глав; пресеты ${keys.presetTypes} типов): ${coverage}. Выведенные ключи сошлись с отступами листинга, вычислимые по чипам — с оракулом; каждое «нет» без оракула и без явного исхода стоит в predict-unconfirmed.json (${keys.listedCount} записей, лишних и недостающих нет). На своём вводе читателя выведенное «нет» не спрашивается.`);
   process.exit(0);
 }, 400);

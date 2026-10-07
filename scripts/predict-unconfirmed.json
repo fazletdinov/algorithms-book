@@ -1,0 +1,521 @@
+{
+ "bellman-ford": [
+  "глава advanced-graph-algorithms.md (nodes=1,2,3,4; edges=2-1-1,2-3-1,3-4-1; start=2) — шаг 14, строка 5: if dist[e.u] != INF && dist[e.u]+e.w < dist[e.v] {",
+  "глава advanced-graph-algorithms.md (nodes=1,2,3,4; edges=2-1-1,2-3-1,3-4-1; start=2) — шаг 29, строка 11: if dist[e.u] != INF && dist[e.u]+e.w < dist[e.v] {",
+  "глава advanced-graph-algorithms.md (nodes=A,B,C,D; edges=C-D-4,B-D-8,B-C--3,A-C-5,A-B-4; start=A) — шаг 4, строка 5: if dist[e.u] != INF && dist[e.u]+e.w < dist[e.v] {",
+  "глава advanced-graph-algorithms.md (nodes=A,B,C,D; edges=C-D-4,B-D-8,B-C--3,A-C-5,A-B-4; start=A) — шаг 20, строка 5: if dist[e.u] != INF && dist[e.u]+e.w < dist[e.v] {",
+  "глава advanced-graph-algorithms.md (nodes=A,B,C,D; edges=C-D-4,B-D-8,B-C--3,A-C-5,A-B-4; start=A) — шаг 25, строка 5: if dist[e.u] != INF && dist[e.u]+e.w < dist[e.v] {",
+  "глава advanced-graph-algorithms.md (nodes=A,B,C,D; edges=C-D-4,B-D-8,B-C--3,A-C-5,A-B-4; start=A) — шаг 33, строка 5: if dist[e.u] != INF && dist[e.u]+e.w < dist[e.v] {",
+  "глава advanced-graph-algorithms.md (nodes=A,B,C,D; edges=C-D-4,B-D-8,B-C--3,A-C-5,A-B-4; start=A) — шаг 45, строка 11: if dist[e.u] != INF && dist[e.u]+e.w < dist[e.v] {"
+ ],
+ "binary-search-first": [
+  "глава go-stdlib-structures.md (array=1,3,3,3,5,7,9; target=3) — шаг 14, строка 5: if arr[mid] == target {",
+  "глава modified-binary-search.md (array=1,2,2,2,3,4,5; target=2) — шаг 14, строка 5: if arr[mid] == target {"
+ ],
+ "bloom-check": [
+  "глава probabilistic-structures.md (add=reddit,github,medium; check=discord) — шаг 3, строка 5: if b.bits[p] == 0 {",
+  "глава probabilistic-structures.md (add=reddit,github,medium; check=twitter) — шаг 3, строка 5: if b.bits[p] == 0 {"
+ ],
+ "bst-delete": [
+  "глава bst-structure.md (tree=8,3,12,2,5,10,14,1,4,6,9,11; delete=8) — шаг 2, строка 3: for node != nil && node.Val != val {        // ищем узел"
+ ],
+ "bst-insert": [
+  "глава bst-structure.md (tree=8,3,12,2,5,10,14,1,4,6,9,11; val=7) — шаг 4, строка 6: if val < node.Val {",
+  "глава bst-structure.md (tree=8,3,12,2,5,10,14,1,4,6,9,11; val=7) — шаг 10, строка 4: for node != nil {            // ищем место (лист)"
+ ],
+ "bst-search": [
+  "глава bst-structure.md (tree=8,3,12,2,5,10,14,1,4,6,9,11; target=11) — шаг 3, строка 4: if val == node.Val {"
+ ],
+ "build-lps": [
+  "глава string-algorithms.md (pattern=abcaby) — шаг 2, строка 5: if pattern[i] == pattern[length] {",
+  "глава string-algorithms.md (pattern=abcaby) — шаг 10, строка 5: if pattern[i] == pattern[length] {"
+ ],
+ "cas-loop": [
+  "глава go-stdlib-structures.md () — шаг 5, строка 4: if counter.CompareAndSwap(old, old+1) {"
+ ],
+ "cms-query": [
+  "глава probabilistic-structures.md (stream=#cats,#cats,#cats,#cats,#cats,#go,#go,#news,#rust; query=#rust) — шаг 7, строка 5: if c.count[r][col] < est {"
+ ],
+ "cyclic-sort": [
+  "глава cyclic-sort.md (array=3,1,5,4,2) — шаг 16, строка 5: if nums[i] != nums[correct] {",
+  "глава cyclic-sort.md (array=3,1,5,4,2) — шаг 34, строка 3: for i < len(nums) {",
+  "пресет «обратный порядок» — шаг 8, строка 5: if nums[i] != nums[correct] {",
+  "пресет «обратный порядок» — шаг 16, строка 5: if nums[i] != nums[correct] {",
+  "пресет «обратный порядок» — шаг 30, строка 3: for i < len(nums) {",
+  "пресет «один цикл» — шаг 20, строка 5: if nums[i] != nums[correct] {",
+  "пресет «один цикл» — шаг 38, строка 3: for i < len(nums) {",
+  "пресет «уже на местах» — шаг 4, строка 5: if nums[i] != nums[correct] {",
+  "пресет «уже на местах» — шаг 22, строка 3: for i < len(nums) {"
+ ],
+ "diameter-dfs": [
+  "глава tree-dfs.md (tree=1,2,3,4,5,null,null,6,null,null,7) — шаг 8, строка 10: if l+r > best { // путь через node"
+ ],
+ "dijkstra": [
+  "глава advanced-graph-algorithms.md (nodes=1,2,3,4; edges=2-1-1,2-3-1,3-4-1; start=2) — шаг 27, строка 4: for pq.Len() > 0 {",
+  "глава grids-and-shortest-paths.md (nodes=A,B,C,D,E; edges=A-C-1,A-B-4,C-B-2,B-D-1,C-D-5,D-E-3,B-E-7; start=0) — шаг 55, строка 4: for pq.Len() > 0 {"
+ ],
+ "dp-coins": [
+  "пресет «одна монета» — шаг 31, строка 7: if c <= a && dp[a-c]+1 < best {",
+  "пресет «сдачу не дать» — шаг 16, строка 7: if c <= a && dp[a-c]+1 < best {"
+ ],
+ "dp-lcs": [
+  "глава dynamic-programming.md (a=AGCAT; b=GAC) — шаг 4, строка 5: if a[i-1] == b[j-1] {",
+  "глава dynamic-programming.md (a=AGCAT; b=GAC) — шаг 10, строка 5: if a[i-1] == b[j-1] {",
+  "глава dynamic-programming.md (a=AGCAT; b=GAC) — шаг 17, строка 5: if a[i-1] == b[j-1] {",
+  "глава dynamic-programming.md (a=AGCAT; b=GAC) — шаг 34, строка 5: if a[i-1] == b[j-1] {",
+  "глава dynamic-programming.md (a=AGCAT; b=GAC) — шаг 40, строка 5: if a[i-1] == b[j-1] {"
+ ],
+ "gc-mark": [
+  "глава go-runtime.md () — шаг 20, строка 6: if c.color == white {",
+  "глава go-runtime.md () — шаг 24, строка 5: for _, c := range o.pointers {",
+  "глава go-runtime.md () — шаг 26, строка 3: for len(grey) > 0 {"
+ ],
+ "graph-bfs": [
+  "глава graphs.md (nodes=0,1,2,3,4,5; edges=0-1,0-2,1-3,2-3,2-4,4-5; start=0) — шаг 22, строка 11: if !visited[nb] {",
+  "глава graphs.md (nodes=0,1,2,3,4,5; edges=0-1,0-2,1-3,2-3,2-4,4-5; start=0) — шаг 32, строка 11: if !visited[nb] {",
+  "глава graphs.md (nodes=0,1,2,3,4,5; edges=0-1,0-2,1-3,2-3,2-4,4-5; start=0) — шаг 44, строка 11: if !visited[nb] {",
+  "глава graphs.md (nodes=0,1,2,3,4,5; edges=0-1,0-2,1-3,2-3,2-4,4-5; start=0) — шаг 62, строка 11: if !visited[nb] {",
+  "глава graphs.md (nodes=0,1,2,3,4,5; edges=0-1,0-2,1-3,2-3,2-4,4-5; start=0) — шаг 63, строка 6: for len(queue) > 0 {",
+  "глава pattern-combinations.md (nodes=0,1,2,3,4,5,6; edges=0-1,1-2,1-4,2-3,2-4,4-5,3-5,3-6,5-6; start=0) — шаг 18, строка 11: if !visited[nb] {",
+  "глава pattern-combinations.md (nodes=0,1,2,3,4,5,6; edges=0-1,1-2,1-4,2-3,2-4,4-5,3-5,3-6,5-6; start=0) — шаг 32, строка 11: if !visited[nb] {",
+  "глава pattern-combinations.md (nodes=0,1,2,3,4,5,6; edges=0-1,1-2,1-4,2-3,2-4,4-5,3-5,3-6,5-6; start=0) — шаг 38, строка 11: if !visited[nb] {",
+  "глава pattern-combinations.md (nodes=0,1,2,3,4,5,6; edges=0-1,1-2,1-4,2-3,2-4,4-5,3-5,3-6,5-6; start=0) — шаг 56, строка 11: if !visited[nb] {",
+  "глава pattern-combinations.md (nodes=0,1,2,3,4,5,6; edges=0-1,1-2,1-4,2-3,2-4,4-5,3-5,3-6,5-6; start=0) — шаг 68, строка 11: if !visited[nb] {",
+  "глава pattern-combinations.md (nodes=0,1,2,3,4,5,6; edges=0-1,1-2,1-4,2-3,2-4,4-5,3-5,3-6,5-6; start=0) — шаг 81, строка 6: for len(queue) > 0 {",
+  "пресет «несвязный» — шаг 18, строка 11: if !visited[nb] {",
+  "пресет «несвязный» — шаг 28, строка 11: if !visited[nb] {",
+  "пресет «несвязный» — шаг 29, строка 6: for len(queue) > 0 {",
+  "пресет «одна вершина» — шаг 9, строка 6: for len(queue) > 0 {",
+  "пресет «цикл» — шаг 22, строка 11: if !visited[nb] {",
+  "пресет «цикл» — шаг 32, строка 11: if !visited[nb] {",
+  "пресет «цикл» — шаг 43, строка 6: for len(queue) > 0 {"
+ ],
+ "grid-bfs": [
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 8, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 14, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 23, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 29, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 49, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 62, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 75, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 88, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 101, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 107, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 120, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 133, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 146, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 168, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 174, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 189, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {",
+  "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 207, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {"
+ ],
+ "hash-get": [
+  "глава hash-table-structure.md (keys=1,5,3,8,9,6; buckets=4; key=9,7) — шаг 12, строка 3: for _, e := range h.buckets[i] {  // сканируем цепочку",
+  "пресет «длинная цепочка» — шаг 24, строка 3: for _, e := range h.buckets[i] {  // сканируем цепочку",
+  "пресет «пустой бакет» — шаг 2, строка 3: for _, e := range h.buckets[i] {  // сканируем цепочку",
+  "пресет «пустой бакет» — шаг 11, строка 3: for _, e := range h.buckets[i] {  // сканируем цепочку"
+ ],
+ "hash-put": [
+  "глава hash-table-structure.md (keys=; buckets=4; key=1,5,3,8,9,6,5) — шаг 2, строка 3: for j := range h.buckets[i] {   // уже есть такой ключ?",
+  "глава hash-table-structure.md (keys=; buckets=4; key=1,5,3,8,9,6,5) — шаг 6, строка 4: if h.buckets[i][j].key == key {",
+  "глава hash-table-structure.md (keys=; buckets=4; key=1,5,3,8,9,6,5) — шаг 7, строка 3: for j := range h.buckets[i] {   // уже есть такой ключ?",
+  "глава hash-table-structure.md (keys=; buckets=4; key=1,5,3,8,9,6,5) — шаг 20, строка 3: for j := range h.buckets[i] {   // уже есть такой ключ?",
+  "пресет «без коллизий» — шаг 2, строка 3: for j := range h.buckets[i] {   // уже есть такой ключ?",
+  "пресет «все в один бакет» — шаг 2, строка 3: for j := range h.buckets[i] {   // уже есть такой ключ?",
+  "пресет «все в один бакет» — шаг 6, строка 4: if h.buckets[i][j].key == key {",
+  "пресет «все в один бакет» — шаг 7, строка 3: for j := range h.buckets[i] {   // уже есть такой ключ?",
+  "пресет «все в один бакет» — шаг 14, строка 3: for j := range h.buckets[i] {   // уже есть такой ключ?",
+  "пресет «все в один бакет» — шаг 23, строка 3: for j := range h.buckets[i] {   // уже есть такой ключ?",
+  "пресет «все в один бакет» — шаг 34, строка 3: for j := range h.buckets[i] {   // уже есть такой ключ?",
+  "пресет «много бакетов» — шаг 2, строка 3: for j := range h.buckets[i] {   // уже есть такой ключ?",
+  "пресет «много бакетов» — шаг 15, строка 4: if h.buckets[i][j].key == key {",
+  "пресет «много бакетов» — шаг 16, строка 3: for j := range h.buckets[i] {   // уже есть такой ключ?"
+ ],
+ "heap-build": [
+  "глава heap-structure.md (array=9,4,7,1,8,3,6,2,5) — шаг 66, строка 3: for i := len(a)/2 - 1; i >= 0; i-- {"
+ ],
+ "heap-push": [
+  "глава go-stdlib-structures.md (heap=10,40,25,90,50,30; val=15) — шаг 4, строка 6: if h.data[parent] <= h.data[i] {",
+  "глава heap-structure.md (heap=1,3,5,7,4,6; val=2) — шаг 4, строка 6: if h.data[parent] <= h.data[i] {"
+ ],
+ "heap-sort": [
+  "глава sorting.md (array=5,2,8,1,9,3,7) — шаг 5, строка 14: if l < size && a[l] > a[largest] {",
+  "глава sorting.md (array=5,2,8,1,9,3,7) — шаг 6, строка 17: if r < size && a[r] > a[largest] {",
+  "глава sorting.md (array=5,2,8,1,9,3,7) — шаг 20, строка 17: if r < size && a[r] > a[largest] {",
+  "глава sorting.md (array=5,2,8,1,9,3,7) — шаг 33, строка 14: if l < size && a[l] > a[largest] {",
+  "глава sorting.md (array=5,2,8,1,9,3,7) — шаг 37, строка 3: for i := n/2 - 1; i >= 0; i-- {",
+  "глава sorting.md (array=5,2,8,1,9,3,7) — шаг 50, строка 17: if r < size && a[r] > a[largest] {",
+  "глава sorting.md (array=5,2,8,1,9,3,7) — шаг 65, строка 14: if l < size && a[l] > a[largest] {",
+  "глава sorting.md (array=5,2,8,1,9,3,7) — шаг 66, строка 17: if r < size && a[r] > a[largest] {",
+  "глава sorting.md (array=5,2,8,1,9,3,7) — шаг 80, строка 14: if l < size && a[l] > a[largest] {",
+  "глава sorting.md (array=5,2,8,1,9,3,7) — шаг 96, строка 14: if l < size && a[l] > a[largest] {",
+  "глава sorting.md (array=5,2,8,1,9,3,7) — шаг 97, строка 17: if r < size && a[r] > a[largest] {",
+  "глава sorting.md (array=5,2,8,1,9,3,7) — шаг 111, строка 14: if l < size && a[l] > a[largest] {"
+ ],
+ "hll-add": [
+  "глава probabilistic-structures.md (elems=user_8143,user_2290,user_5561,user_9033,user_1204,user_7788,user_4415,user_6672,user_8143) — шаг 25, строка 5: if rho > h.reg[j] {"
+ ],
+ "insertion-sort": [
+  "глава sorting.md (array=5,2,4,1,3,6) — шаг 16, строка 5: for j >= 0 && a[j] > key {",
+  "глава sorting.md (array=5,2,4,1,3,6) — шаг 41, строка 5: for j >= 0 && a[j] > key {"
+ ],
+ "jump-game": [
+  "глава greedy.md (array=2,3,1,1,4) — шаг 12, строка 7: if i+v > maxReach {",
+  "глава greedy.md (array=3,2,1,0,4) — шаг 8, строка 7: if i+v > maxReach {",
+  "пресет «ноль в начале» — шаг 4, строка 7: if i+v > maxReach {",
+  "пресет «один элемент» — шаг 4, строка 7: if i+v > maxReach {",
+  "пресет «яма из нулей» — шаг 8, строка 7: if i+v > maxReach {"
+ ],
+ "k-way-merge": [
+  "глава k-way-merge.md (lists=1,4,5;1,3,4;2,6) — шаг 37, строка 10: if ci+1 < len(lists[li]) {",
+  "глава k-way-merge.md (lists=1,4,5;1,3,4;2,6) — шаг 46, строка 7: for h.Len() > 0 {",
+  "глава k-way-merge.md (lists=1,4,7;2,5,8;3,6,9) — шаг 42, строка 10: if ci+1 < len(lists[li]) {",
+  "глава k-way-merge.md (lists=1,4,7;2,5,8;3,6,9) — шаг 51, строка 7: for h.Len() > 0 {",
+  "глава pattern-combinations.md (lists=5,11;6,7,8;4,10) — шаг 32, строка 10: if ci+1 < len(lists[li]) {",
+  "глава pattern-combinations.md (lists=5,11;6,7,8;4,10) — шаг 41, строка 7: for h.Len() > 0 {"
+ ],
+ "kmp": [
+  "глава string-algorithms.md (text=abxabcabcaby; pattern=abcaby) — шаг 10, строка 5: if text[i] == pat[j] {",
+  "глава string-algorithms.md (text=abxabcabcaby; pattern=abcaby) — шаг 31, строка 5: if text[i] == pat[j] {"
+ ],
+ "knapsack": [
+  "глава dynamic-programming.md (items=1-1,3-4,4-5,5-7; capacity=7) — шаг 5, строка 6: if wt[i-1] <= c {                   // влезает?",
+  "глава dynamic-programming.md (items=1-1,3-4,4-5,5-7; capacity=7) — шаг 44, строка 6: if wt[i-1] <= c {                   // влезает?",
+  "глава dynamic-programming.md (items=1-1,3-4,4-5,5-7; capacity=7) — шаг 79, строка 6: if wt[i-1] <= c {                   // влезает?",
+  "глава dynamic-programming.md (items=1-1,3-4,4-5,5-7; capacity=7) — шаг 112, строка 6: if wt[i-1] <= c {                   // влезает?"
+ ],
+ "list-cycle": [
+  "пресет «без цикла» — шаг 10, строка 3: for fast != nil && fast.Next != nil {",
+  "пресет «один узел» — шаг 2, строка 3: for fast != nil && fast.Next != nil {"
+ ],
+ "list-cycle-entry": [
+  "глава fast-slow-pointers.md (list=1,2,3,4,5,6,7,8,9,10; cycle=3) — шаг 31, строка 10: if fast == nil || fast.Next == nil {",
+  "глава fast-slow-pointers.md (list=3,2,0,-4; cycle=1) — шаг 15, строка 10: if fast == nil || fast.Next == nil {",
+  "пресет «без цикла» — шаг 10, строка 3: for fast != nil && fast.Next != nil {",
+  "пресет «длинный хвост» — шаг 31, строка 10: if fast == nil || fast.Next == nil {",
+  "пресет «цикл с головы» — шаг 23, строка 10: if fast == nil || fast.Next == nil {"
+ ],
+ "list-middle": [
+  "глава fast-slow-pointers.md (list=1,2,3,4,5,6,7) — шаг 11, строка 3: for fast != nil && fast.Next != nil {"
+ ],
+ "list-reverse": [
+  "глава reverse-linked-list.md (list=1,2,3,4,5) — шаг 28, строка 4: for curr != nil {"
+ ],
+ "ll-delete": [
+  "глава linked-list-structure.md (list=4,8,15,16,23,42; target=16) — шаг 4, строка 5: if prev.Next.Val == target {",
+  "пресет «нет в списке» — шаг 4, строка 5: if prev.Next.Val == target {",
+  "пресет «нет в списке» — шаг 21, строка 4: for prev.Next != nil {",
+  "пресет «хвост» — шаг 4, строка 5: if prev.Next.Val == target {"
+ ],
+ "ll-insert": [
+  "глава linked-list-structure.md (list=3,7,1,8,5; val=9; pos=3) — шаг 9, строка 4: for i := 0; i < pos && prev.Next != nil; i++ {",
+  "пресет «в конец» — шаг 13, строка 4: for i := 0; i < pos && prev.Next != nil; i++ {",
+  "пресет «в начало» — шаг 3, строка 4: for i := 0; i < pos && prev.Next != nil; i++ {",
+  "пресет «пустой список» — шаг 3, строка 4: for i := 0; i < pos && prev.Next != nil; i++ {"
+ ],
+ "ll-search": [
+  "глава linked-list-structure.md (list=4,8,15,16,23,42; target=23) — шаг 2, строка 3: if node.Val == target {",
+  "пресет «нет в списке» — шаг 2, строка 3: if node.Val == target {"
+ ],
+ "lru": [
+  "глава go-stdlib-structures.md (cap=3; ops=put 1 1; put 2 2; put 3 3; get 1; put 4 4; get 2; get 3) — шаг 3, строка 8: if n, ok := c.m[key]; ok {        // ключ уже есть",
+  "глава pattern-combinations.md (cap=2; ops=put 1 1; put 2 2; get 1; put 3 3; get 2; put 4 4; get 1; get 3; get 4) — шаг 3, строка 8: if n, ok := c.m[key]; ok {        // ключ уже есть"
+ ],
+ "merge-intervals": [
+  "глава merge-intervals.md (intervals=1-3,2-6,8-10,15-18) — шаг 12, строка 7: if cur[0] <= last[1] {",
+  "глава merge-intervals.md (intervals=8-10,1-3,15-18,2-6,9-12,4-5,17-20) — шаг 17, строка 7: if cur[0] <= last[1] {",
+  "глава merge-intervals.md (intervals=8-10,1-3,15-18,2-6,9-12,4-5,17-20) — шаг 27, строка 7: if cur[0] <= last[1] {",
+  "пресет «вход не отсортирован» — шаг 12, строка 7: if cur[0] <= last[1] {",
+  "пресет «нет пересечений» — шаг 7, строка 7: if cur[0] <= last[1] {"
+ ],
+ "merge-intervals-naive": [
+  "глава merge-intervals.md (intervals=1-3,2-6,8-10,15-18) — шаг 7, строка 8: if a[0] <= b[1] && b[0] <= a[1] { // перекрытие"
+ ],
+ "merge-sort": [
+  "глава sorting.md (array=2,5,8,1,3,6,7; mid=3) — шаг 2, строка 4: if j >= hi || (i < mid && a[i] <= a[j]) {",
+  "глава sorting.md (array=2,5,8,1,3,6,7; mid=3) — шаг 6, строка 4: if j >= hi || (i < mid && a[i] <= a[j]) {",
+  "глава sorting.md (array=2,5,8,1,3,6,7; mid=3) — шаг 10, строка 4: if j >= hi || (i < mid && a[i] <= a[j]) {"
+ ],
+ "min-subarray-naive": [
+  "глава sliding-window.md (array=2,3,1,2,4,3; target=7) — шаг 6, строка 7: if sum >= target {",
+  "глава sliding-window.md (array=2,3,1,2,4,3; target=7) — шаг 22, строка 7: if sum >= target {",
+  "глава sliding-window.md (array=2,3,1,2,4,3; target=7) — шаг 38, строка 7: if sum >= target {",
+  "глава sliding-window.md (array=2,3,1,2,4,3; target=7) — шаг 51, строка 7: if sum >= target {",
+  "глава sliding-window.md (array=2,3,1,2,4,3; target=7) — шаг 64, строка 7: if sum >= target {",
+  "глава sliding-window.md (array=2,3,1,2,4,3; target=7) — шаг 74, строка 7: if sum >= target {",
+  "глава sliding-window.md (array=2,3,1,2,4,3; target=7) — шаг 75, строка 5: for j := i; j < len(nums); j++ {"
+ ],
+ "min-subarray-window": [
+  "глава sliding-window.md (array=2,3,1,2,4,3; target=7) — шаг 5, строка 6: for sum >= target {",
+  "глава sliding-window.md (array=2,3,1,2,4,3; target=7) — шаг 18, строка 6: for sum >= target {",
+  "глава sliding-window.md (array=2,3,1,2,4,3; target=7) — шаг 29, строка 6: for sum >= target {",
+  "глава sliding-window.md (array=2,3,1,2,4,3; target=7) — шаг 40, строка 6: for sum >= target {",
+  "пресет «весь массив» — шаг 5, строка 6: for sum >= target {",
+  "пресет «весь массив» — шаг 15, строка 6: for sum >= target {",
+  "пресет «не набирается» — шаг 5, строка 6: for sum >= target {",
+  "пресет «один элемент» — шаг 5, строка 6: for sum >= target {",
+  "пресет «один элемент» — шаг 23, строка 6: for sum >= target {"
+ ],
+ "mod-exp": [
+  "глава cryptography.md (base=65; exp=17; m=3233) — шаг 6, строка 5: if exp&1 == 1 {",
+  "глава go-stdlib-structures.md (base=65; exp=17; m=3233) — шаг 6, строка 5: if exp&1 == 1 {",
+  "глава number-theory.md (base=2; exp=10; m=1000) — шаг 2, строка 5: if exp&1 == 1 {",
+  "глава number-theory.md (base=2; exp=10; m=1000) — шаг 9, строка 5: if exp&1 == 1 {"
+ ],
+ "mst-kruskal": [
+  "глава advanced-graph-algorithms.md (nodes=A,B,C,D,E; edges=A-B-2,A-D-6,B-C-3,B-D-8,B-E-5,C-E-7,D-E-9) — шаг 17, строка 6: if uf.Union(e.u, e.v) { // разные компоненты?"
+ ],
+ "num-provinces": [
+  "глава graphs.md (nodes=0,1,2,3,4,5,6,7; edges=0-1,1-2,3-4,5-6,6-7,5-7) — шаг 12, строка 8: if isConnected[v][u] == 1 && !visited[u] {",
+  "глава graphs.md (nodes=0,1,2,3,4,5,6,7; edges=0-1,1-2,3-4,5-6,6-7,5-7) — шаг 14, строка 15: if !visited[i] {",
+  "глава graphs.md (nodes=0,1,2,3,4,5,6,7; edges=0-1,1-2,3-4,5-6,6-7,5-7) — шаг 23, строка 8: if isConnected[v][u] == 1 && !visited[u] {",
+  "глава graphs.md (nodes=0,1,2,3,4,5,6,7; edges=0-1,1-2,3-4,5-6,6-7,5-7) — шаг 38, строка 8: if isConnected[v][u] == 1 && !visited[u] {"
+ ],
+ "pg-join-hash": [
+  "глава postgres-plans.md (users=1-8; orders=r14; filter=0) — шаг 29, строка 8: for _, u := range h[o.UserID] {",
+  "глава postgres-plans.md (users=1-8; orders=r14; filter=0) — шаг 43, строка 8: for _, u := range h[o.UserID] {",
+  "пресет «в users всего 3 строки» — шаг 10, строка 8: for _, u := range h[o.UserID] {",
+  "пресет «в users всего 3 строки» — шаг 24, строка 8: for _, u := range h[o.UserID] {",
+  "пресет «в users всего 3 строки» — шаг 33, строка 8: for _, u := range h[o.UserID] {",
+  "пресет «в users всего 3 строки» — шаг 38, строка 8: for _, u := range h[o.UserID] {",
+  "пресет «в users всего 3 строки» — шаг 62, строка 8: for _, u := range h[o.UserID] {",
+  "пресет «заказы без пользователя» — шаг 10, строка 8: for _, u := range h[o.UserID] {",
+  "пресет «заказы без пользователя» — шаг 18, строка 8: for _, u := range h[o.UserID] {"
+ ],
+ "pg-join-merge": [
+  "глава postgres-plans.md (users=1-8; orders=r14; filter=0) — шаг 3, строка 5: if users[i].ID < orders[j].UserID {",
+  "глава postgres-plans.md (users=1-8; orders=r14; filter=0) — шаг 4, строка 7: } else if users[i].ID > orders[j].UserID {",
+  "глава postgres-plans.md (users=1-8; orders=r14; filter=0) — шаг 17, строка 5: if users[i].ID < orders[j].UserID {",
+  "глава postgres-plans.md (users=1-8; orders=r14; filter=0) — шаг 29, строка 5: if users[i].ID < orders[j].UserID {",
+  "глава postgres-plans.md (users=1-8; orders=r14; filter=0) — шаг 35, строка 5: if users[i].ID < orders[j].UserID {",
+  "глава postgres-plans.md (users=1-8; orders=r14; filter=0) — шаг 45, строка 5: if users[i].ID < orders[j].UserID {",
+  "глава postgres-plans.md (users=1-8; orders=r14; filter=0) — шаг 55, строка 5: if users[i].ID < orders[j].UserID {",
+  "пресет «в users всего 3 строки» — шаг 3, строка 5: if users[i].ID < orders[j].UserID {",
+  "пресет «в users всего 3 строки» — шаг 4, строка 7: } else if users[i].ID > orders[j].UserID {",
+  "пресет «в users всего 3 строки» — шаг 13, строка 5: if users[i].ID < orders[j].UserID {",
+  "пресет «в users всего 3 строки» — шаг 19, строка 5: if users[i].ID < orders[j].UserID {",
+  "пресет «заказы без пользователя» — шаг 3, строка 5: if users[i].ID < orders[j].UserID {",
+  "пресет «заказы без пользователя» — шаг 7, строка 7: } else if users[i].ID > orders[j].UserID {",
+  "пресет «заказы без пользователя» — шаг 12, строка 5: if users[i].ID < orders[j].UserID {",
+  "пресет «много заказов у одного» — шаг 5, строка 5: if users[i].ID < orders[j].UserID {",
+  "пресет «много заказов у одного» — шаг 6, строка 7: } else if users[i].ID > orders[j].UserID {",
+  "пресет «много заказов у одного» — шаг 35, строка 5: if users[i].ID < orders[j].UserID {",
+  "пресет «у части пользователей нет заказов» — шаг 3, строка 5: if users[i].ID < orders[j].UserID {",
+  "пресет «у части пользователей нет заказов» — шаг 4, строка 7: } else if users[i].ID > orders[j].UserID {",
+  "пресет «у части пользователей нет заказов» — шаг 13, строка 5: if users[i].ID < orders[j].UserID {",
+  "пресет «у части пользователей нет заказов» — шаг 27, строка 5: if users[i].ID < orders[j].UserID {"
+ ],
+ "pg-join-nl": [
+  "глава postgres-plans.md (users=1-8; orders=r14; filter=0) — шаг 15, строка 4: for _, o := range idx.Lookup(u.ID) { // поиск по индексу orders(user_id)",
+  "глава postgres-plans.md (users=1-8; orders=r14; filter=0) — шаг 35, строка 4: for _, o := range idx.Lookup(u.ID) { // поиск по индексу orders(user_id)",
+  "пресет «заказы без пользователя» — шаг 9, строка 4: for _, o := range idx.Lookup(u.ID) { // поиск по индексу orders(user_id)",
+  "пресет «много заказов у одного» — шаг 3, строка 4: for _, o := range idx.Lookup(u.ID) { // поиск по индексу orders(user_id)",
+  "пресет «много заказов у одного» — шаг 23, строка 4: for _, o := range idx.Lookup(u.ID) { // поиск по индексу orders(user_id)",
+  "пресет «у части пользователей нет заказов» — шаг 13, строка 4: for _, o := range idx.Lookup(u.ID) { // поиск по индексу orders(user_id)",
+  "пресет «у части пользователей нет заказов» — шаг 22, строка 4: for _, o := range idx.Lookup(u.ID) { // поиск по индексу orders(user_id)"
+ ],
+ "pg-page": [
+  "глава postgres-storage.md (ops=+a:2000,+b:2000,+c:2000,-1,-2,vacuum,+d:2000,+e:2000; page=8192) — шаг 5, строка 5: if need > p.upper-p.lower {",
+  "глава postgres-storage.md (ops=+a:2000,+b:2000,+c:2000,+d:2000,+e:2000; page=8192) — шаг 5, строка 5: if need > p.upper-p.lower {",
+  "пресет «DELETE + VACUUM» — шаг 5, строка 5: if need > p.upper-p.lower {",
+  "пресет «DELETE без VACUUM» — шаг 5, строка 5: if need > p.upper-p.lower {",
+  "пресет «впритык» — шаг 5, строка 5: if need > p.upper-p.lower {",
+  "пресет «узкие строки» — шаг 5, строка 5: if need > p.upper-p.lower {"
+ ],
+ "pg-scan-index": [
+  "пресет «70% строк» — шаг 29, строка 5: if tid.Page != cur {",
+  "пресет «70% строк» — шаг 57, строка 5: if tid.Page != cur {",
+  "пресет «70% строк» — шаг 110, строка 5: if tid.Page != cur {",
+  "пресет «70% строк» — шаг 158, строка 5: if tid.Page != cur {",
+  "пресет «70% строк» — шаг 191, строка 5: if tid.Page != cur {",
+  "пресет «те же строки подряд» — шаг 9, строка 5: if tid.Page != cur {"
+ ],
+ "quick-select": [
+  "глава sorting.md (array=7,2,9,4,3,8,1,5; k=4) — шаг 3, строка 5: if p == target {",
+  "глава sorting.md (array=7,2,9,4,3,8,1,5; k=4) — шаг 4, строка 7: } else if p < target {"
+ ],
+ "rabin-karp": [
+  "глава string-algorithms.md (text=abracadabra; pattern=abra) — шаг 7, строка 8: if wh == ph && text[i:i+m] == pat {"
+ ],
+ "redis-resp": [
+  "глава miniredis.md (wire=*3\\r\\n$3\\r\\nSET\\r\\n$3\\r\\nfoo\\r\\n$3\\r\\nbar\\r\\n; store=foo=bar) — шаг 2, строка 3: if err != nil {",
+  "глава miniredis.md (wire=*3\\r\\n$3\\r\\nSET\\r\\n$3\\r\\nfoo\\r\\n$3\\r\\nbar\\r\\n; store=foo=bar) — шаг 3, строка 6: if len(line) == 0 {",
+  "глава miniredis.md (wire=*3\\r\\n$3\\r\\nSET\\r\\n$3\\r\\nfoo\\r\\n$3\\r\\nbar\\r\\n; store=foo=bar) — шаг 4, строка 9: if line[0] != '*' {",
+  "глава miniredis.md (wire=*3\\r\\n$3\\r\\nSET\\r\\n$3\\r\\nfoo\\r\\n$3\\r\\nbar\\r\\n; store=foo=bar) — шаг 6, строка 13: if err != nil || n < 0 || n > maxMultibulkLen {",
+  "глава miniredis.md (wire=*3\\r\\n$3\\r\\nSET\\r\\n$3\\r\\nfoo\\r\\n$3\\r\\nbar\\r\\n; store=foo=bar) — шаг 10, строка 19: if err != nil {",
+  "глава miniredis.md (wire=*3\\r\\n$3\\r\\nSET\\r\\n$3\\r\\nfoo\\r\\n$3\\r\\nbar\\r\\n; store=foo=bar) — шаг 11, строка 22: if len(hdr) == 0 || hdr[0] != '$' {",
+  "глава miniredis.md (wire=*3\\r\\n$3\\r\\nSET\\r\\n$3\\r\\nfoo\\r\\n$3\\r\\nbar\\r\\n; store=foo=bar) — шаг 13, строка 26: if err != nil || blen < 0 || blen > maxBulkLen {",
+  "глава miniredis.md (wire=*3\\r\\n$3\\r\\nSET\\r\\n$3\\r\\nfoo\\r\\n$3\\r\\nbar\\r\\n; store=foo=bar) — шаг 15, строка 30: if _, err := io.ReadFull(r, buf); err != nil {",
+  "пресет «GET существующего ключа» — шаг 2, строка 3: if err != nil {",
+  "пресет «GET существующего ключа» — шаг 3, строка 6: if len(line) == 0 {",
+  "пресет «GET существующего ключа» — шаг 4, строка 9: if line[0] != '*' {",
+  "пресет «GET существующего ключа» — шаг 6, строка 13: if err != nil || n < 0 || n > maxMultibulkLen {",
+  "пресет «GET существующего ключа» — шаг 10, строка 19: if err != nil {",
+  "пресет «GET существующего ключа» — шаг 11, строка 22: if len(hdr) == 0 || hdr[0] != '$' {",
+  "пресет «GET существующего ключа» — шаг 13, строка 26: if err != nil || blen < 0 || blen > maxBulkLen {",
+  "пресет «GET существующего ключа» — шаг 15, строка 30: if _, err := io.ReadFull(r, buf); err != nil {",
+  "пресет «inline: просто PING» — шаг 2, строка 3: if err != nil {",
+  "пресет «inline: просто PING» — шаг 3, строка 6: if len(line) == 0 {",
+  "пресет «битый заголовок» — шаг 2, строка 3: if err != nil {",
+  "пресет «битый заголовок» — шаг 3, строка 6: if len(line) == 0 {",
+  "пресет «битый заголовок» — шаг 4, строка 9: if line[0] != '*' {",
+  "пресет «в значении есть \\r\\n» — шаг 2, строка 3: if err != nil {",
+  "пресет «в значении есть \\r\\n» — шаг 3, строка 6: if len(line) == 0 {",
+  "пресет «в значении есть \\r\\n» — шаг 4, строка 9: if line[0] != '*' {",
+  "пресет «в значении есть \\r\\n» — шаг 6, строка 13: if err != nil || n < 0 || n > maxMultibulkLen {",
+  "пресет «в значении есть \\r\\n» — шаг 10, строка 19: if err != nil {",
+  "пресет «в значении есть \\r\\n» — шаг 11, строка 22: if len(hdr) == 0 || hdr[0] != '$' {",
+  "пресет «в значении есть \\r\\n» — шаг 13, строка 26: if err != nil || blen < 0 || blen > maxBulkLen {",
+  "пресет «в значении есть \\r\\n» — шаг 15, строка 30: if _, err := io.ReadFull(r, buf); err != nil {",
+  "пресет «две команды подряд» — шаг 2, строка 3: if err != nil {",
+  "пресет «две команды подряд» — шаг 3, строка 6: if len(line) == 0 {",
+  "пресет «две команды подряд» — шаг 4, строка 9: if line[0] != '*' {",
+  "пресет «две команды подряд» — шаг 6, строка 13: if err != nil || n < 0 || n > maxMultibulkLen {",
+  "пресет «две команды подряд» — шаг 10, строка 19: if err != nil {",
+  "пресет «две команды подряд» — шаг 11, строка 22: if len(hdr) == 0 || hdr[0] != '$' {",
+  "пресет «две команды подряд» — шаг 13, строка 26: if err != nil || blen < 0 || blen > maxBulkLen {",
+  "пресет «две команды подряд» — шаг 15, строка 30: if _, err := io.ReadFull(r, buf); err != nil {",
+  "пресет «клиент не дописал» — шаг 2, строка 3: if err != nil {",
+  "пресет «клиент не дописал» — шаг 3, строка 6: if len(line) == 0 {",
+  "пресет «клиент не дописал» — шаг 4, строка 9: if line[0] != '*' {",
+  "пресет «клиент не дописал» — шаг 6, строка 13: if err != nil || n < 0 || n > maxMultibulkLen {",
+  "пресет «клиент не дописал» — шаг 10, строка 19: if err != nil {",
+  "пресет «клиент не дописал» — шаг 11, строка 22: if len(hdr) == 0 || hdr[0] != '$' {",
+  "пресет «клиент не дописал» — шаг 13, строка 26: if err != nil || blen < 0 || blen > maxBulkLen {",
+  "пресет «клиент не дописал» — шаг 15, строка 30: if _, err := io.ReadFull(r, buf); err != nil {"
+ ],
+ "redis-ttl": [
+  "глава miniredis.md (script=SET session abc; EXPIRE session 3; +2; TTL session; +2; GET session; TTL session) — шаг 7, строка 8: if hasTTL && !s.now().Before(exp) {",
+  "пресет «DEL считает только живые» — шаг 7, строка 8: if hasTTL && !s.now().Before(exp) {",
+  "пресет «EXPIRE 0 удаляет» — шаг 7, строка 8: if hasTTL && !s.now().Before(exp) {",
+  "пресет «SET снимает TTL» — шаг 7, строка 8: if hasTTL && !s.now().Before(exp) {",
+  "пресет «TTL отбрасывает дробную часть» — шаг 7, строка 8: if hasTTL && !s.now().Before(exp) {",
+  "пресет «просрочен, но лежит в памяти» — шаг 7, строка 8: if hasTTL && !s.now().Before(exp) {"
+ ],
+ "scheduler": [
+  "глава go-runtime.md () — шаг 4, строка 4: if g == nil {",
+  "глава go-runtime.md () — шаг 10, строка 7: if g == nil {"
+ ],
+ "search-range-naive": [
+  "глава modified-binary-search.md (array=5,7,7,8,8,10; target=8) — шаг 10, строка 4: if v == target {"
+ ],
+ "segtree-query": [
+  "глава segment-tree-structure.md (array=1,3,5,7,9,11,13,15; l=2; r=5) — шаг 2, строка 5: if ql <= lo && hi <= qr {",
+  "глава segment-tree-structure.md (array=1,3,5,7,9,11,13,15; l=2; r=5) — шаг 5, строка 2: if hi < ql || qr < lo {",
+  "глава segment-tree-structure.md (array=1,3,5,7,9,11,13,15; l=2; r=5) — шаг 12, строка 2: if hi < ql || qr < lo {",
+  "глава segment-tree-structure.md (array=1,3,5,7,9,11,13,15; l=2; r=5) — шаг 17, строка 5: if ql <= lo && hi <= qr {",
+  "глава segment-tree.md (array=2,1,5,3,4,7,6,8; l=1; r=4) — шаг 2, строка 5: if ql <= lo && hi <= qr {",
+  "глава segment-tree.md (array=2,1,5,3,4,7,6,8; l=1; r=4) — шаг 5, строка 2: if hi < ql || qr < lo {",
+  "глава segment-tree.md (array=2,1,5,3,4,7,6,8; l=1; r=4) — шаг 16, строка 2: if hi < ql || qr < lo {",
+  "глава segment-tree.md (array=2,1,5,3,4,7,6,8; l=1; r=4) — шаг 25, строка 5: if ql <= lo && hi <= qr {"
+ ],
+ "sieve": [
+  "глава number-theory.md (n=30) — шаг 2, строка 5: if isComposite[p] {",
+  "глава number-theory.md (n=30) — шаг 30, строка 5: if isComposite[p] {",
+  "глава number-theory.md (n=30) — шаг 37, строка 9: for m := p * p; m <= n; m += p {"
+ ],
+ "skip-search": [
+  "глава probabilistic-structures.md (keys=3,6,7,9,12,17,19,21,25,26; target=19) — шаг 5, строка 4: for node.next[lvl] != nil && node.next[lvl].key <= target {",
+  "глава probabilistic-structures.md (keys=3,6,7,9,12,17,19,21,25,26; target=19) — шаг 13, строка 4: for node.next[lvl] != nil && node.next[lvl].key <= target {",
+  "глава probabilistic-structures.md (keys=3,6,7,9,12,17,19,21,25,26; target=19) — шаг 19, строка 4: for node.next[lvl] != nil && node.next[lvl].key <= target {"
+ ],
+ "sliding-window-fixed": [
+  "глава sliding-window.md (array=2,3,5,1,8,2,6,4; k=3) — шаг 8, строка 3: for i := 0; i < k; i++ {",
+  "глава sliding-window.md (array=2,3,5,1,8,2,6,4; k=3) — шаг 27, строка 7: for i := k; i < len(arr); i++ {",
+  "пресет «k = 1» — шаг 4, строка 3: for i := 0; i < k; i++ {",
+  "пресет «k = 1» — шаг 30, строка 7: for i := k; i < len(arr); i++ {",
+  "пресет «k = n» — шаг 10, строка 3: for i := 0; i < k; i++ {",
+  "пресет «k = n» — шаг 12, строка 7: for i := k; i < len(arr); i++ {",
+  "пресет «отрицательные» — шаг 8, строка 3: for i := 0; i < k; i++ {",
+  "пресет «отрицательные» — шаг 28, строка 7: for i := k; i < len(arr); i++ {"
+ ],
+ "sliding-window-var": [
+  "глава sliding-window.md (string=AABACCBA; k=2) — шаг 5, строка 6: for len(freq) > k {",
+  "глава sliding-window.md (string=AABACCBA; k=2) — шаг 33, строка 6: for len(freq) > k {",
+  "глава sliding-window.md (string=AABACCBA; k=2) — шаг 45, строка 6: for len(freq) > k {",
+  "глава sliding-window.md (string=AABACCBA; k=2) — шаг 57, строка 6: for len(freq) > k {",
+  "глава sliding-window.md (string=AABACCBA; k=2) — шаг 59, строка 4: for right := 0; right < len(s); right++ {",
+  "пресет «k = 1» — шаг 5, строка 6: for len(freq) > k {",
+  "пресет «k = 1» — шаг 21, строка 6: for len(freq) > k {",
+  "пресет «k = 1» — шаг 45, строка 6: for len(freq) > k {",
+  "пресет «k = 1» — шаг 51, строка 4: for right := 0; right < len(s); right++ {",
+  "пресет «k ≥ различных» — шаг 5, строка 6: for len(freq) > k {",
+  "пресет «k ≥ различных» — шаг 27, строка 4: for right := 0; right < len(s); right++ {",
+  "пресет «все одинаковые» — шаг 5, строка 6: for len(freq) > k {",
+  "пресет «все одинаковые» — шаг 23, строка 4: for right := 0; right < len(s); right++ {"
+ ],
+ "sync-once": [
+  "глава go-stdlib-structures.md () — шаг 6, строка 9: if !o.done.Load() {           // double-check под локом"
+ ],
+ "three-sum": [
+  "глава two-pointers.md (array=-1,0,1,2,-1,-4) — шаг 31, строка 16: for left < right && nums[left] == nums[left-1] {",
+  "глава two-pointers.md (array=-1,0,1,2,-1,-4) — шаг 32, строка 19: for left < right && nums[right] == nums[right+1] {",
+  "глава two-pointers.md (array=-1,0,1,2,-1,-4) — шаг 46, строка 5: if i > 0 && nums[i] == nums[i-1] {",
+  "глава two-pointers.md (array=-1,0,1,2,-1,-4) — шаг 53, строка 4: for i := 0; i < len(nums)-2; i++ {",
+  "пресет «все нули» — шаг 22, строка 4: for i := 0; i < len(nums)-2; i++ {",
+  "пресет «дубли» — шаг 24, строка 5: if i > 0 && nums[i] == nums[i-1] {",
+  "пресет «дубли» — шаг 38, строка 4: for i := 0; i < len(nums)-2; i++ {",
+  "пресет «троек нет» — шаг 22, строка 4: for i := 0; i < len(nums)-2; i++ {"
+ ],
+ "top-k": [
+  "глава top-k-elements.md (array=5,3,8,1,9,2,7,4,6,10; k=3) — шаг 4, строка 5: if h.Len() > k {"
+ ],
+ "topo-kahn": [
+  "глава go-stdlib-structures.md (nodes=a,b,c,d; edges=b-a,c-a,a-d) — шаг 25, строка 5: for len(queue) > 0 {",
+  "глава pattern-combinations.md (nodes=w,e,r,t,f; edges=t-f,w-e,r-t,e-r) — шаг 31, строка 5: for len(queue) > 0 {",
+  "глава topological-sort.md (nodes=0,1,2,3; edges=0-1,0-2,1-3,2-3) — шаг 28, строка 5: for len(queue) > 0 {",
+  "глава topological-sort.md (nodes=A,B,C,D,E,F; edges=A-C,B-C,B-D,C-E,D-E,D-F) — шаг 40, строка 5: for len(queue) > 0 {",
+  "пресет «без рёбер» — шаг 13, строка 5: for len(queue) > 0 {",
+  "пресет «есть цикл» — шаг 4, строка 5: for len(queue) > 0 {",
+  "пресет «цепочка» — шаг 25, строка 5: for len(queue) > 0 {"
+ ],
+ "tree-bfs": [
+  "глава tree-bfs.md (tree=1,2,3,4,5,null,6) — шаг 26, строка 4: for len(queue) > 0 {",
+  "пресет «один узел» — шаг 7, строка 4: for len(queue) > 0 {",
+  "пресет «одна ветка» — шаг 25, строка 4: for len(queue) > 0 {",
+  "пресет «полное дерево» — шаг 28, строка 4: for len(queue) > 0 {"
+ ],
+ "trie-delete": [
+  "глава trie-structure.md (words=cat,car,card; delete=card) — шаг 6, строка 3: if node == nil || !node.isEnd {",
+  "глава trie-structure.md (words=cat,car,card; delete=card) — шаг 8, строка 9: if child.isEnd || child.hasChildren() {"
+ ],
+ "trie-insert": [
+  "глава trie-structure.md (words=cat,dog,do; insert=car) — шаг 4, строка 5: if node.children[c] == nil {"
+ ],
+ "trie-search": [
+  "глава trie-structure.md (words=cat,car,card,dog,do; query=car) — шаг 4, строка 5: if node.children[c] == nil {"
+ ],
+ "trie-shortest-root": [
+  "глава trie.md (words=cat,bat,rat; query=cattle) — шаг 4, строка 5: if node.children[c] == nil {",
+  "глава trie.md (words=cat,bat,rat; query=cattle) — шаг 6, строка 9: if node.isEnd {"
+ ],
+ "trie-words": [
+  "глава trie-structure.md (words=car,card,cat,dog; prefix=ca) — шаг 4, строка 6: if n.isEnd {"
+ ],
+ "two-heaps-median": [
+  "глава two-heaps.md (stream=5,15,1,3,8,7,9,10,20,6) — шаг 3, строка 7: if m.lo.Len() > m.hi.Len()+1 {",
+  "глава two-heaps.md (stream=5,15,1,3,8,7,9,10,20,6) — шаг 4, строка 9: } else if m.hi.Len() > m.lo.Len()+1 {",
+  "глава two-heaps.md (stream=5,15,1,3,8,7,9,10,20,6) — шаг 6, строка 2: if m.lo.Empty() || num <= m.lo.Top() {",
+  "глава two-heaps.md (stream=5,15,1,3,8,7,9,10,20,6) — шаг 21, строка 2: if m.lo.Empty() || num <= m.lo.Top() {",
+  "глава two-heaps.md (stream=5,15,1,3,8,7,9,10,20,6) — шаг 23, строка 7: if m.lo.Len() > m.hi.Len()+1 {",
+  "глава two-heaps.md (stream=5,15,1,3,8,7,9,10,20,6) — шаг 35, строка 9: } else if m.hi.Len() > m.lo.Len()+1 {",
+  "глава two-heaps.md (stream=5,15,1,3,8,7,9,10,20,6) — шаг 46, строка 9: } else if m.hi.Len() > m.lo.Len()+1 {",
+  "глава two-heaps.md (stream=5,15,1,3,8,7) — шаг 3, строка 7: if m.lo.Len() > m.hi.Len()+1 {",
+  "глава two-heaps.md (stream=5,15,1,3,8,7) — шаг 4, строка 9: } else if m.hi.Len() > m.lo.Len()+1 {",
+  "глава two-heaps.md (stream=5,15,1,3,8,7) — шаг 6, строка 2: if m.lo.Empty() || num <= m.lo.Top() {",
+  "глава two-heaps.md (stream=5,15,1,3,8,7) — шаг 21, строка 2: if m.lo.Empty() || num <= m.lo.Top() {",
+  "глава two-heaps.md (stream=5,15,1,3,8,7) — шаг 23, строка 7: if m.lo.Len() > m.hi.Len()+1 {"
+ ],
+ "two-pointers-dedup": [
+  "глава two-pointers.md (array=1,1,2,2,2,3,4,4) — шаг 23, строка 4: for fast := 1; fast < len(nums); fast++ {"
+ ],
+ "two-single": [
+  "глава bit-manipulation.md (array=1,2,1,3,2,5) — шаг 10, строка 9: if x&diff != 0 {",
+  "глава bit-manipulation.md (array=1,2,1,3,2,5) — шаг 14, строка 9: if x&diff != 0 {",
+  "глава bit-manipulation.md (array=1,2,1,3,2,5) — шаг 20, строка 9: if x&diff != 0 {"
+ ],
+ "union-find-find": [
+  "глава union-find-structure.md (parent=0,0,1,2,3; find=4) — шаг 6, строка 3: for uf.parent[root] != root {  // идём к корню",
+  "глава union-find-structure.md (parent=0,0,1,2,3; find=4) — шаг 10, строка 6: for uf.parent[x] != root {     // сжатие пути"
+ ]
+}
