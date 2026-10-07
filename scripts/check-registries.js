@@ -6,13 +6,14 @@
 // что есть на самом деле. Забыть их — не «сломать сборку», а тихо ухудшить книгу:
 // трекер перестаёт считать реальные главы, виджет молча не находит пакет,
 // «🎞 Визуализировать» отвечает 403. Именно так трекер прогресса однажды и отстал
-// от книги на 19 глав. Проверяем пять связей:
+// от книги на 19 глав. Проверяем шесть связей:
 //
 //  1) assets/progress.js  <-> src/SUMMARY.md      — трекер знает все главы книги;
 //  2) exercises/README.md <-> exercises/*/        — таблица пакетов полна;
 //  3) data-trace-calls в главах <-> traceTargets  — бэкенд разрешает то, что предлагает глава;
 //  4) data-pkg у algo-runner   <-> exercises/*/   — виджет ссылается на существующий пакет;
-//  5) число пакетов в CLAUDE.md <-> exercises/*/  — счётчик в документации не протух.
+//  5) число пакетов в CLAUDE.md <-> exercises/*/  — счётчик в документации не протух;
+//  6) имена файлов случайных тестов               — они идут после табличных.
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -230,6 +231,17 @@ if (!counted) {
   errors.push(
     `CLAUDE.md: заявлено ${counted} пакетов тренажёра, фактически ${packages.length}`
   );
+}
+
+// ---------- 6. случайные тесты идут после табличных ----------
+// go test исполняет тесты в порядке файлов: «_rand_test.go» шёл раньше «_test.go», и первым
+// падал тест самой трудной функции пакета. Имя «_zrand_test.go» сортируется после.
+for (const pkg of fs.readdirSync(exDir)) {
+  const dir = path.join(exDir, pkg);
+  if (pkg === "cmd" || !fs.statSync(dir).isDirectory()) continue;
+  for (const f of fs.readdirSync(dir)) {
+    if (f.endsWith("_rand_test.go")) errors.push(`exercises/${pkg}/${f}: случайные тесты называются <пакет>_zrand_test.go — иначе они исполняются раньше табличных`);
+  }
 }
 
 if (errors.length) {
