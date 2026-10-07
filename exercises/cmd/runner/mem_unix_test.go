@@ -40,7 +40,15 @@ func runEater(t *testing.T, mem memLimiter, race bool, eatMiB string) testResult
 	t.Helper()
 	dir := writeModule(t, map[string]string{"eat/eat_test.go": eatTest})
 	t.Setenv("RUNNER_EAT_MIB", eatMiB)
-	lim := runLimits{Race: race, TestTimeout: time.Minute, Deadline: 2 * time.Minute, MaxOutput: maxRunOutput, Mem: mem}
+	deadline := 2 * time.Minute
+	if race {
+		// Единственный вызов с -race — контроль «маленький прогон проходит»: убить
+		// ему нечего, а холодная сборка стандартной библиотеки под детектор (в CI
+		// кэша ещё нет, и она идёт параллельно с десятками пакетов на четырёх
+		// ядрах) легко съедает две минуты. Остальные прогоны идут без -race.
+		deadline = 5 * time.Minute
+	}
+	lim := runLimits{Race: race, TestTimeout: time.Minute, Deadline: deadline, MaxOutput: maxRunOutput, Mem: mem}
 	args, _ := testArgs("eat", race, nil, lim.TestTimeout)
 	return runGoTest(context.Background(), dir, args, lim)
 }
@@ -53,11 +61,21 @@ func wantStopped(t *testing.T, res testResult, limit string) {
 	}
 }
 
+// RUNNER_REQUIRE_CGROUP=1 превращает пропуск в провал. Без него сломанная проба
+// молча отправляет все cgroup-тесты в SKIP, набор печатает ok, а сервер уходит в
+// режим prlimit: путь, который закрывает исходный случай (28 ГБ), остаётся
+// непроверенным. Локально, где systemd есть, гоняй набор с этой переменной; в
+// CI она не задана: без пользовательской сессии systemd проба не пройдёт.
 func needCgroup(t *testing.T) {
 	t.Helper()
-	if !cgroupWorks(context.Background()) {
-		t.Skip("systemd-run --user --scope не ставит MemoryMax (нет пользовательского systemd или контроллера памяти)")
+	if cgroupWorks(context.Background()) {
+		return
 	}
+	const why = "systemd-run --user --scope не ставит MemoryMax (нет пользовательского systemd или контроллера памяти)"
+	if os.Getenv("RUNNER_REQUIRE_CGROUP") == "1" {
+		t.Fatalf("RUNNER_REQUIRE_CGROUP=1, но проба cgroup не прошла: %s", why)
+	}
+	t.Skip(why)
 }
 
 func needPrlimit(t *testing.T) {
