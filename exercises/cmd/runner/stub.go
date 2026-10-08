@@ -7,34 +7,48 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 
 	"github.com/fazletdinov/algorithms-book/exercises/cmd/internal/stubdoc"
 )
 
-// funcName — имя упражнения в запросе: «Sum» или «Тип.Метод», обе части
-// экспортированные. Строгое на всякий случай: имя идёт в разбор исходника, и ни
-// пути, ни пробелов, ни регистра «никто не просил» в нём быть не должно.
-var funcName = regexp.MustCompile(`^[A-Z][A-Za-z0-9_]*(\.[A-Z][A-Za-z0-9_]*)?$`)
+// funcName — имя упражнения в запросе: идентификатор Go либо «Тип.Метод». Строгое на
+// всякий случай: имя идёт в разбор исходника, и ни путей, ни пробелов в нём быть не
+// должно. Регистр не проверяется — неэкспортированные упражнения (dispatch… в
+// miniredis) такие же; что имя есть среди функций заготовки, проверяет handleSolution.
+var funcName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$`)
 
 // stubFunc — упражнение заготовки в ответе /api/stub.
 type stubFunc struct {
 	Name   string   `json:"name"`
-	Tests  []string `json:"tests"` // тесты именно этой функции; у метода и у функции без своих тестов — []
+	Tests  []string `json:"tests"` // тесты именно этой функции; нет своих — []
 	Hint   string   `json:"hint"`
 	Recipe string   `json:"recipe"`
 }
 
+// stubNote — убранный из plain текст, которого нет ни в hint, ни в recipe упражнений.
+type stubNote struct {
+	At   string `json:"at"` // «package», «type Имя» или «func Имя»
+	Text string `json:"text"`
+}
+
 // stubResponse — ответ /api/stub. Code — заготовка как в репозитории (старый
-// ответ, с подсказками); Plain — она же без подсказок и рецептов.
+// ответ, с подсказками); Plain — она же без подсказок и рецептов. Warning — почему
+// Plain, Funcs и Notes пусты: заготовка на диске недописана или не разбирается, а Code
+// отдаётся всегда.
 type stubResponse struct {
-	Pkg   string     `json:"pkg"`
-	Code  string     `json:"code"`
-	Plain string     `json:"plain"`
-	Funcs []stubFunc `json:"funcs"`
+	Pkg     string     `json:"pkg"`
+	Code    string     `json:"code"`
+	Plain   string     `json:"plain"`
+	Funcs   []stubFunc `json:"funcs"`
+	Notes   []stubNote `json:"notes"`
+	Warning string     `json:"warning,omitempty"`
 }
 
 // handleStub отдаёт файл-заготовку <pkg>/<pkg>.go как стартовый код, его вариант без
-// подсказок и список упражнений с их тестами.
+// подсказок и список упражнений с их тестами. Файл правит читатель, и недописанная
+// функция на диске — обычное состояние: код отдаётся при любом его содержимом, а если
+// разобрать не удалось, plain = code, funcs и notes пусты и в warning стоит причина.
 func handleStub(w http.ResponseWriter, r *http.Request) {
 	pkg := r.URL.Query().Get("pkg")
 	dir, ok := validPkg(pkg)
@@ -43,24 +57,34 @@ func handleStub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	code, err := os.ReadFile(filepath.Join(dir, pkg+".go"))
-	if err != nil {
+	if errors.Is(err, os.ErrNotExist) {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "заготовка не найдена"})
+		return
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "чтение заготовки: " + err.Error()})
 		return
 	}
 	resp, err := describeStub(dir, pkg, code)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		return
+		resp = stubResponse{Pkg: pkg, Code: string(code), Plain: string(code), Funcs: []stubFunc{}, Notes: []stubNote{}, Warning: err.Error()}
 	}
 	writeJSON(w, http.StatusOK, resp)
 }
 
 func describeStub(dir, pkg string, code []byte) (stubResponse, error) {
-	funcs, err := stubdoc.Funcs(code)
+	// Эталон нужен только чтобы найти упражнения без panic("TODO") (codereview,
+	// profiling); нет его — упражнения только с panic("TODO").
+	solution, _ := os.ReadFile(filepath.Join(dir, pkg+"_solution.go"))
+	funcs, err := stubdoc.Exercises(code, solution)
 	if err != nil {
 		return stubResponse{}, fmt.Errorf("разбор заготовки: %w", err)
 	}
 	plain, err := stubdoc.Plain(code)
+	if err != nil {
+		return stubResponse{}, fmt.Errorf("заготовка без подсказок: %w", err)
+	}
+	notes, err := stubdoc.Notes(code, funcs)
 	if err != nil {
 		return stubResponse{}, fmt.Errorf("заготовка без подсказок: %w", err)
 	}
@@ -74,7 +98,11 @@ func describeStub(dir, pkg string, code []byte) (stubResponse, error) {
 	if err != nil {
 		return stubResponse{}, fmt.Errorf("тесты пакета: %w", err)
 	}
-	return stubResponse{Pkg: pkg, Code: string(code), Plain: string(plain), Funcs: stubFuncs(funcs, testsOf)}, nil
+	resp := stubResponse{Pkg: pkg, Code: string(code), Plain: string(plain), Funcs: stubFuncs(funcs, testsOf), Notes: make([]stubNote, 0, len(notes))}
+	for _, n := range notes {
+		resp.Notes = append(resp.Notes, stubNote{At: n.At, Text: n.Text})
+	}
+	return resp, nil
 }
 
 // stubFuncs собирает ответ: у каждой функции — её тесты, у остальных — пустой
@@ -91,10 +119,12 @@ func stubFuncs(funcs []stubdoc.Func, testsOf map[string][]string) []stubFunc {
 	return out
 }
 
-// handleSolution отдаёт эталон ОДНОЙ функции заготовки: её объявление и то, без чего
-// оно не читается (см. stubdoc.Solution) — не файл <pkg>_solution.go. Спрашивать
-// можно только то, что заготовка просит написать: имя сверяется со списком её
-// упражнений, поэтому маршрут не читает ничего, кроме эталонов этих функций.
+// handleSolution отдаёт эталон ОДНОЙ функции: её объявление и то, без чего оно не
+// читается (см. stubdoc.Solution), — не файл <pkg>_solution.go. Спрашивать можно
+// только функцию, объявленную и в заготовке, и в эталоне. Это не защита файловой
+// системы (Solution и так берёт объявления только из <pkg>_solution.go), а граница
+// смысла: готовые вспомогательные функции эталона — не то, что просят написать.
+// Заготовка на диске может быть недописана — имена читаются по тому, что разобралось.
 func handleSolution(w http.ResponseWriter, r *http.Request) {
 	pkg := r.URL.Query().Get("pkg")
 	dir, ok := validPkg(pkg)
@@ -115,19 +145,11 @@ func handleSolution(w http.ResponseWriter, r *http.Request) {
 		notFound()
 		return
 	}
-	var funcs []stubdoc.Func
-	if err == nil {
-		funcs, err = stubdoc.Funcs(stub)
-	}
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "разбор заготовки: " + err.Error()})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "чтение заготовки: " + err.Error()})
 		return
 	}
-	known := false
-	for _, f := range funcs {
-		known = known || f.Name == fn
-	}
-	if !known {
+	if !slices.Contains(stubdoc.Declared(stub), fn) {
 		notFound()
 		return
 	}
@@ -137,7 +159,7 @@ func handleSolution(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "чтение эталона: " + err.Error()})
 		return
 	}
 	code, err := stubdoc.Solution(solution, fn)

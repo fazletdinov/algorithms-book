@@ -16,12 +16,15 @@ var ErrNotFound = errors.New("функции нет в эталоне")
 // Solution — текст эталона одной функции из <pkg>_solution.go: её объявление (с
 // док-комментарием, без тега сборки и import) и всё, без чего она не читается —
 // объявления того же файла, на которые она ссылается, транзитивно, в порядке файла.
-// name — «Sum» либо «Тип.Метод»; брать можно только экспортированные.
+// name — «Sum» либо «Тип.Метод».
 //
 // Что считается «без чего не читается»: неэкспортированные функции и методы, а
 // также любые типы, переменные и константы файла — метод не прочесть без полей его
 // типа, а конструктор без вложенного узла. Экспортированные функции и методы чужими
-// решениями не приходят: у каждой своя кнопка. Ссылку ищем по имени идентификатора,
+// решениями не приходят: у каждой своя кнопка. Исключение — методы неэкспортированного
+// типа, попавшего в ответ: куча без Less не компилируется и прячет идею решения (какая
+// это куча, решает именно Less), поэтому такой тип приходит со всеми своими методами.
+// Ссылку ищем по имени идентификатора,
 // без типов: локальная переменная с именем чужой функции даёт лишнее объявление, а
 // не пропущенное нужное.
 func Solution(src []byte, name string) (string, error) {
@@ -31,7 +34,7 @@ func Solution(src []byte, name string) (string, error) {
 	}
 	root := -1
 	for i, decl := range file.Decls {
-		if fn, ok := decl.(*ast.FuncDecl); ok && matchesName(fn, name) {
+		if fn, ok := decl.(*ast.FuncDecl); ok && funcKey(fn) == name {
 			root = i
 			break
 		}
@@ -40,24 +43,36 @@ func Solution(src []byte, name string) (string, error) {
 		return "", fmt.Errorf("%w: %q", ErrNotFound, name)
 	}
 
-	byName := map[string][]int{}
+	byName := map[string][]int{}    // имя -> объявления, которые приходят вместе со ссылкой на него
+	methodsOf := map[string][]int{} // тип -> его методы
 	for i, decl := range file.Decls {
 		for _, n := range implicitNames(decl) {
 			byName[n] = append(byName[n], i)
 		}
+		if fn, ok := decl.(*ast.FuncDecl); ok && fn.Recv != nil {
+			methodsOf[recvTypeName(fn)] = append(methodsOf[recvTypeName(fn)], i)
+		}
 	}
 	included := map[int]bool{root: true}
 	queue := []int{root}
+	include := func(j int) {
+		if !included[j] {
+			included[j] = true
+			queue = append(queue, j)
+		}
+	}
 	for len(queue) > 0 {
-		i := queue[0]
+		decl := file.Decls[queue[0]]
 		queue = queue[1:]
-		ast.Inspect(file.Decls[i], func(n ast.Node) bool {
+		for _, typ := range unexportedTypes(decl) {
+			for _, j := range methodsOf[typ] {
+				include(j)
+			}
+		}
+		ast.Inspect(decl, func(n ast.Node) bool {
 			if id, ok := n.(*ast.Ident); ok {
 				for _, j := range byName[id.Name] {
-					if !included[j] {
-						included[j] = true
-						queue = append(queue, j)
-					}
+					include(j)
 				}
 			}
 			return true
@@ -77,10 +92,19 @@ func Solution(src []byte, name string) (string, error) {
 	return strings.Join(parts, "\n\n") + "\n", nil
 }
 
-// matchesName — это объявление запрошенной экспортированной функции или метода.
-func matchesName(fn *ast.FuncDecl, name string) bool {
-	got, ok := exportedName(fn)
-	return ok && got == name
+// unexportedTypes — имена неэкспортированных типов, которые объявляет decl.
+func unexportedTypes(decl ast.Decl) []string {
+	gen, ok := decl.(*ast.GenDecl)
+	if !ok || gen.Tok != token.TYPE {
+		return nil
+	}
+	var names []string
+	for _, spec := range gen.Specs {
+		if ts, ok := spec.(*ast.TypeSpec); ok && !ast.IsExported(ts.Name.Name) {
+			names = append(names, ts.Name.Name)
+		}
+	}
+	return names
 }
 
 // implicitNames — под какими именами объявление приходит вместе с функцией,

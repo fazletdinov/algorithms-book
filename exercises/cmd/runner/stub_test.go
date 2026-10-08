@@ -183,10 +183,11 @@ func TestHandleStubJSONShape(t *testing.T) {
 		t.Errorf("в funcs нет MinStack.Top")
 	}
 
-	// Пакет без задач с panic(\"TODO\") — funcs: [], не null.
-	_, body = get(t, handleStub, "/api/stub", map[string]string{"pkg": "codereview"})
-	if !strings.Contains(string(body), `"funcs":[]`) {
-		t.Errorf("codereview: ожидалось \"funcs\":[]: %s", body)
+	// Пакет без упражнений — funcs и notes: [], не null.
+	useModule(t, map[string]string{"go.mod": "module probe\n", "p/p.go": "package p\n\nfunc Ready() int { return 1 }\n"})
+	_, body = get(t, handleStub, "/api/stub", map[string]string{"pkg": "p"})
+	if !strings.Contains(string(body), `"funcs":[]`) || !strings.Contains(string(body), `"notes":[]`) {
+		t.Errorf("ожидалось \"funcs\":[] и \"notes\":[]: %.300s", body)
 	}
 }
 
@@ -282,11 +283,82 @@ func TestHandleStubMissingStubFileIs404(t *testing.T) {
 	}
 }
 
-func TestHandleStubBrokenStubIs500(t *testing.T) {
-	useModule(t, map[string]string{"go.mod": "module probe\n", "bad/bad.go": "package bad\nfunc ("})
-	code, body := get(t, handleStub, "/api/stub", map[string]string{"pkg": "bad"})
-	if code != http.StatusInternalServerError {
-		t.Errorf("код %d, ожидался 500: %s", code, body)
+// Файл заготовки правит читатель: недописанная функция на диске — обычное состояние.
+// code отдаётся при любом содержимом, а если разобрать не вышло, виджет получает 200
+// с plain = code, пустыми funcs и notes и причиной в warning — не 500, из-за которого он
+// объявил бы runner мёртвым.
+func TestHandleStubKeepsServingCodeWhenStubCannotBeParsed(t *testing.T) {
+	const testFile = "package p\n\nimport \"testing\"\n\nfunc TestF(t *testing.T) {}\n"
+	const goodStub = "package p\n\n// F — условие.\nfunc F() int {\n\tpanic(\"TODO: реализуйте F\")\n}\n"
+	tests := []struct {
+		name        string
+		files       map[string]string
+		wantWarning string
+	}{
+		{"заготовка не разбирается", map[string]string{"p/p.go": "package p\nfunc ("}, "разбор заготовки"},
+		{"комментарий TODO после кода", map[string]string{"p/p.go": "package p\n\nfunc F() int {\n\treturn 0 // TODO: допишу\n}\n"}, "TODO после кода"},
+		{"тестовый файл не разбирается", map[string]string{"p/p.go": goodStub, "p/p_test.go": "package p\nfunc ("}, "тесты пакета"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			files := map[string]string{"go.mod": "module probe\n"}
+			for k, v := range tt.files {
+				files[k] = v
+			}
+			if _, ok := files["p/p_test.go"]; !ok {
+				files["p/p_test.go"] = testFile
+			}
+			useModule(t, files)
+			code, body := get(t, handleStub, "/api/stub", map[string]string{"pkg": "p"})
+			if code != http.StatusOK {
+				t.Fatalf("код %d, ожидался 200: %s", code, body)
+			}
+			var r struct {
+				stubReply
+				Notes   []map[string]string `json:"notes"`
+				Warning string              `json:"warning"`
+			}
+			if err := json.Unmarshal(body, &r); err != nil {
+				t.Fatal(err)
+			}
+			if r.Code != tt.files["p/p.go"] || r.Plain != r.Code {
+				t.Errorf("code и plain должны быть файлом как есть: code=%q plain=%q", r.Code, r.Plain)
+			}
+			if r.Funcs == nil || len(r.Funcs) != 0 || r.Notes == nil || len(r.Notes) != 0 {
+				t.Errorf("funcs и notes — пустые массивы, а не null: %s", body)
+			}
+			if !strings.Contains(r.Warning, tt.wantWarning) {
+				t.Errorf("warning = %q, ожидалось упоминание %q", r.Warning, tt.wantWarning)
+			}
+		})
+	}
+}
+
+func TestHandleStubWithoutProblemsHasNoWarning(t *testing.T) {
+	useRealModule(t)
+	_, body := get(t, handleStub, "/api/stub", map[string]string{"pkg": "slidingwindow"})
+	if strings.Contains(string(body), "warning") {
+		t.Errorf("исправная заготовка отвечает без warning: %.200s", body)
+	}
+}
+
+// Каталог cmd проходит проверку имени пакета, но заготовки в нём нет.
+func TestHandleStubAndSolutionForDirectoryWithoutStubAre404(t *testing.T) {
+	useRealModule(t)
+	if code, body := get(t, handleStub, "/api/stub", map[string]string{"pkg": "cmd"}); code != http.StatusNotFound {
+		t.Errorf("/api/stub?pkg=cmd: код %d, ожидался 404: %s", code, body)
+	}
+	if code, body := get(t, handleSolution, "/api/solution", map[string]string{"pkg": "cmd", "func": "Main"}); code != http.StatusNotFound {
+		t.Errorf("/api/solution?pkg=cmd: код %d, ожидался 404: %s", code, body)
+	}
+}
+
+// Заготовку нельзя прочитать — это не «разбор заготовки», а ошибка сервера с тем, что случилось.
+func TestHandleStubUnreadableStubIs500(t *testing.T) {
+	useModule(t, map[string]string{"go.mod": "module probe\n", "d/d.go/keep": "x"}) // d.go — каталог
+	code, body := get(t, handleStub, "/api/stub", map[string]string{"pkg": "d"})
+	if code != http.StatusInternalServerError || !strings.Contains(string(body), "чтение заготовки") {
+		t.Errorf("код %d: %s", code, body)
 	}
 }
 
@@ -358,7 +430,6 @@ func TestHandleSolutionRejectsBadInput(t *testing.T) {
 		{"slidingwindow", "../../../etc/passwd"},
 		{"slidingwindow", "/etc/passwd"},
 		{"slidingwindow", "..%2f..%2fgo.mod"},
-		{"slidingwindow", "maxSumSubarray"},
 		{"slidingwindow", "MaxSumSubarray."},
 		{"slidingwindow", ".MaxSumSubarray"},
 		{"slidingwindow", "A.B.C"},
@@ -376,28 +447,126 @@ func TestHandleSolutionRejectsBadInput(t *testing.T) {
 	}
 }
 
-// Эталон отдаётся только для функций, которые заготовка просит написать: готовая
-// инфраструктура и вспомогательные функции эталона — не задача читателя.
-func TestHandleSolutionOnlyForStubTasks(t *testing.T) {
+// Эталон отдаётся только для функции, объявленной и в заготовке, и в эталоне: вспомогательные
+// функции эталона — не то, что просят написать. Готовая функция, которая есть в обоих
+// файлах, и уже решённая читателем на диске — отдаются (кнопка «сдаюсь» не должна исчезать).
+func TestHandleSolutionWhitelist(t *testing.T) {
 	useModule(t, map[string]string{
 		"go.mod": "module probe\n",
 		"p/p.go": "//go:build !solution\n\npackage p\n\n" +
-			"func Task() int {\n\tpanic(\"TODO: реализуйте Task\")\n}\n\nfunc Ready() int { return 1 }\n",
+			"func Task() int { return 42 }\n\nfunc Ready() int { return 1 }\n\nfunc ReaderOnly() int { return 0 }\n",
 		"p/p_solution.go": "//go:build solution\n\npackage p\n\n" +
 			"func Task() int { return helper() }\n\nfunc helper() int { return 2 }\n\nfunc Ready() int { return 1 }\n\nfunc Extra() int { return 3 }\n",
-		"q/q.go": "//go:build !solution\n\npackage q\n\nfunc Task() int {\n\tpanic(\"TODO: реализуйте Task\")\n}\n",
+		"q/q.go":          "//go:build !solution\n\npackage q\n\nfunc Task() int {\n\tpanic(\"TODO: реализуйте Task\")\n}\n",
+		"r/r.go":          "package r\n\nfunc Task() int {\n\treturn 1 +\n}\n", // недописана на диске
+		"r/r_solution.go": "package r\n\nfunc Task() int { return 7 }\n",
 	})
-	code, body := get(t, handleSolution, "/api/solution", map[string]string{"pkg": "p", "func": "Task"})
-	if code != http.StatusOK || !strings.Contains(string(body), "func helper()") {
-		t.Errorf("Task: код %d, вспомогательная функция должна прийти вместе с ней: %s", code, body)
+	solution := func(pkg, fn string) (int, string) {
+		code, body := get(t, handleSolution, "/api/solution", map[string]string{"pkg": pkg, "func": fn})
+		return code, string(body)
 	}
-	for _, fn := range []string{"Ready", "Extra", "Helper"} {
-		if code, body := get(t, handleSolution, "/api/solution", map[string]string{"pkg": "p", "func": fn}); code != http.StatusNotFound {
+	if code, body := solution("p", "Task"); code != http.StatusOK || !strings.Contains(body, "func helper()") {
+		t.Errorf("Task (решена на диске): код %d, вспомогательная функция должна прийти вместе с ней: %s", code, body)
+	}
+	if code, body := solution("p", "Ready"); code != http.StatusOK {
+		t.Errorf("Ready есть в обоих файлах: код %d: %s", code, body)
+	}
+	for _, fn := range []string{"Extra", "helper", "ReaderOnly", "Missing", "task", "Task.Method"} {
+		if code, body := solution("p", fn); code != http.StatusNotFound {
 			t.Errorf("%s: код %d, ожидался 404: %s", fn, code, body)
 		}
 	}
 	// У пакета нет файла эталона — это «нет», а не ошибка сервера.
-	if code, body := get(t, handleSolution, "/api/solution", map[string]string{"pkg": "q", "func": "Task"}); code != http.StatusNotFound {
+	if code, body := solution("q", "Task"); code != http.StatusNotFound {
 		t.Errorf("пакет без эталона: код %d, ожидался 404: %s", code, body)
+	}
+	// Заготовка на диске не разбирается — имена читаются по тому, что разобралось.
+	if code, body := solution("r", "Task"); code != http.StatusOK {
+		t.Errorf("недописанная заготовка: код %d, ожидался 200: %s", code, body)
+	}
+}
+
+// codereview и profiling: заготовка — рабочий код с изъяном, panic("TODO") в ней нет,
+// но упражнения и эталоны у них есть.
+func TestHandleStubPackagesWithoutTODOStillHaveExercises(t *testing.T) {
+	useRealModule(t)
+	for pkg, want := range map[string]string{"codereview": "HasDuplicate", "profiling": "FormatScores"} {
+		_, body := get(t, handleStub, "/api/stub", map[string]string{"pkg": pkg})
+		var r stubReply
+		if err := json.Unmarshal(body, &r); err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, f := range r.Funcs {
+			found = found || f.Name == want
+		}
+		if !found {
+			t.Errorf("%s: в funcs нет %s: %.300s", pkg, want, body)
+		}
+		if code, body := get(t, handleSolution, "/api/solution", map[string]string{"pkg": pkg, "func": want}); code != http.StatusOK {
+			t.Errorf("%s.%s: код %d: %s", pkg, want, code, body)
+		}
+	}
+}
+
+// Неэкспортированные упражнения (dispatch… в miniredis) — такие же: с рецептом в funcs и эталоном.
+func TestHandleStubAndSolutionServeUnexportedExercises(t *testing.T) {
+	useRealModule(t)
+	_, body := get(t, handleStub, "/api/stub", map[string]string{"pkg": "miniredis"})
+	var r stubReply
+	if err := json.Unmarshal(body, &r); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, f := range r.Funcs {
+		if f.Name == "dispatchSet" {
+			found = true
+			if f.Recipe == "" {
+				t.Errorf("у dispatchSet нет рецепта")
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("в funcs нет dispatchSet")
+	}
+	code, body := get(t, handleSolution, "/api/solution", map[string]string{"pkg": "miniredis", "func": "dispatchSet"})
+	if code != http.StatusOK || !strings.Contains(string(body), "func dispatchSet(") {
+		t.Errorf("dispatchSet: код %d: %.200s", code, body)
+	}
+}
+
+// Всё, что убрано из plain и не попало в hint или recipe, — в notes; в теле типа
+// остаётся нейтральная метка.
+func TestHandleStubNotesAndTypeLabel(t *testing.T) {
+	useRealModule(t)
+	_, body := get(t, handleStub, "/api/stub", map[string]string{"pkg": "bigo"})
+	var r struct {
+		stubReply
+		Notes []struct{ At, Text string } `json:"notes"`
+	}
+	if err := json.Unmarshal(body, &r); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(r.Plain, "type MinStack struct {\n\t// TODO: поля\n}") {
+		t.Errorf("в теле типа должна остаться метка:\n%s", r.Plain)
+	}
+	if strings.Contains(r.Plain, "основной стек") {
+		t.Errorf("подсказка из тела типа не должна оставаться в plain")
+	}
+	found := false
+	for _, n := range r.Notes {
+		found = found || (n.At == "type MinStack" && strings.Contains(n.Text, "основной стек и стек минимумов"))
+	}
+	if !found {
+		t.Errorf("в notes нет текста блока TODO типа MinStack: %+v", r.Notes)
+	}
+
+	_, body = get(t, handleStub, "/api/stub", map[string]string{"pkg": "probabilistic"})
+	r.Notes = nil
+	if err := json.Unmarshal(body, &r); err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Notes) == 0 || r.Notes[0].At != "package" || !strings.HasPrefix(r.Notes[0].Text, "Подсказка: k позиций") {
+		t.Errorf("подсказка пакета probabilistic должна быть в notes: %+v", r.Notes)
 	}
 }

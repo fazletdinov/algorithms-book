@@ -147,17 +147,35 @@ func MarksOf(doc string) (Marks, error) {
 	return m, nil
 }
 
-// Func — упражнение заготовки: функция или метод с panic("TODO…") в теле.
+// Func — упражнение заготовки: функция или метод с panic("TODO…") в теле. Экспорт не
+// важен: десять dispatch… в miniredis неэкспортированы, но читателю заданы так же.
 type Func struct {
-	Name   string   // «Sum» или «Тип.Метод»
-	Tests  []string // заполняет вызывающий (AssignTests), и только у функций верхнего уровня
-	Hint   string   // «Признак: …» и абзацы-подсказки через \n; подсказок нет — ""
-	Recipe string   // блок «// TODO:» из тела одной строкой, без «//» и «TODO:»
+	Name   string // «Sum» или «Тип.Метод»
+	Hint   string // «Признак: …» и абзацы-подсказки через \n; подсказок нет — ""
+	Recipe string // блок «// TODO:» из тела одной строкой, без «//» и «TODO:»
 }
 
-// Funcs перечисляет упражнения заготовки в порядке файла: экспортированные функции
-// и методы экспортированных типов, у которых в теле panic("TODO…").
+// Funcs перечисляет упражнения заготовки в порядке файла: функции и методы, у
+// которых в теле panic("TODO…").
 func Funcs(src []byte) ([]Func, error) {
+	return exercises(src, nil)
+}
+
+// Exercises — то же, что Funcs, и ещё функции, объявленные И в заготовке, И в эталоне
+// (экспортированные): в codereview и profiling заготовка — рабочий код с изъяном, а
+// не panic("TODO"), но читателю она задана точно так же. solution == nil — как Funcs.
+func Exercises(stub, solution []byte) ([]Func, error) {
+	var inSolution map[string]bool
+	if solution != nil {
+		inSolution = map[string]bool{}
+		for _, name := range Declared(solution) {
+			inSolution[name] = true
+		}
+	}
+	return exercises(stub, inSolution)
+}
+
+func exercises(src []byte, inSolution map[string]bool) ([]Func, error) {
 	fset, file, err := parseSource(src)
 	if err != nil {
 		return nil, err
@@ -165,14 +183,17 @@ func Funcs(src []byte) ([]Func, error) {
 	var out []Func
 	for _, decl := range file.Decls {
 		fn, ok := decl.(*ast.FuncDecl)
-		if !ok || !HasTODO(fn, src, fset) {
-			continue
-		}
-		name, ok := exportedName(fn)
 		if !ok {
 			continue
 		}
-		f := Func{Name: name, Recipe: recipeOf(file, fn)}
+		name := funcKey(fn)
+		if !HasTODO(fn, src, fset) && !(fn.Body != nil && inSolution[name] && isExportedFunc(fn)) {
+			continue
+		}
+		f := Func{Name: name}
+		if fn.Body != nil {
+			f.Recipe = recipeOf(file, fn)
+		}
 		if fn.Doc != nil {
 			if f.Hint, err = hintOf(fn.Doc.Text()); err != nil {
 				return nil, fmt.Errorf("%s: %w", name, err)
@@ -181,6 +202,24 @@ func Funcs(src []byte) ([]Func, error) {
 		out = append(out, f)
 	}
 	return out, nil
+}
+
+// Declared — имена всех функций и методов файла («Sum», «Тип.Метод»). Файл, который
+// не разбирается целиком, читается по тому, что разобралось: недописанная заготовка
+// на диске — обычное состояние, а имена из неё нужны только для сверки.
+func Declared(src []byte) []string {
+	file, _ := parser.ParseFile(token.NewFileSet(), "stub.go", src, parser.SkipObjectResolution)
+	if file == nil {
+		return nil
+	}
+	var names []string
+	for _, decl := range file.Decls {
+		// «_» — след недописанного объявления: парсер подставляет это имя
+		if fn, ok := decl.(*ast.FuncDecl); ok && fn.Name.Name != "_" {
+			names = append(names, funcKey(fn))
+		}
+	}
+	return names
 }
 
 // hintOf — то, что читатель увидит за кнопкой подсказки: признак приёма, затем
@@ -263,20 +302,21 @@ func parseSource(src []byte) (*token.FileSet, *ast.File, error) {
 	return fset, file, nil
 }
 
-// exportedName — имя вида «Sum» либо «Тип.Метод»; false, если функция (или тип
-// метода) не экспортирована и читателю она не задана.
-func exportedName(fn *ast.FuncDecl) (string, bool) {
-	if !ast.IsExported(fn.Name.Name) {
-		return "", false
+// funcKey — имя вида «Sum» либо «Тип.Метод».
+func funcKey(fn *ast.FuncDecl) string {
+	if recv := recvTypeName(fn); recv != "" {
+		return recv + "." + fn.Name.Name
 	}
-	if fn.Recv == nil {
-		return fn.Name.Name, true
+	return fn.Name.Name
+}
+
+// isExportedFunc — экспортированная функция или метод экспортированного типа.
+func isExportedFunc(fn *ast.FuncDecl) bool {
+	if !ast.IsExported(fn.Name.Name) {
+		return false
 	}
 	recv := recvTypeName(fn)
-	if !ast.IsExported(recv) {
-		return "", false
-	}
-	return recv + "." + fn.Name.Name, true
+	return fn.Recv == nil || ast.IsExported(recv)
 }
 
 // recvTypeName — имя типа получателя: T для (t T), (t *T), (t *T[K, V]).

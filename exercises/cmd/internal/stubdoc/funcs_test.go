@@ -47,9 +47,6 @@ func TestFuncsSlidingWindow(t *testing.T) {
 	if first.Recipe != wantRecipe {
 		t.Errorf("Recipe = %q, ожидалось %q", first.Recipe, wantRecipe)
 	}
-	if first.Tests != nil {
-		t.Errorf("Tests заполняет вызывающий, а получено %v", first.Tests)
-	}
 }
 
 func TestFuncs(t *testing.T) {
@@ -92,12 +89,15 @@ func Sum(xs []int) int {
 // Ready — готовая функция, не задача.
 func Ready() int { return 1 }
 
-// helper — неэкспортированная, даже с panic("TODO.
-func helper() { panic("TODO: x") }
+// helper неэкспортирована, но задана читателю так же (как dispatch… в miniredis).
+func helper() {
+	// TODO: сделайте помощника.
+	panic("TODO: x")
+}
 
 type hidden struct{}
 
-// Exported на неэкспортированном типе — не задача читателя.
+// Exported — метод неэкспортированного типа.
 func (h *hidden) Exported() { panic("TODO: y") }
 
 func Bare() {
@@ -108,7 +108,7 @@ func Bare() {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := funcNames(fs), []string{"Stack.Push", "Stack.Len", "Sum", "Bare"}; !slices.Equal(got, want) {
+	if got, want := funcNames(fs), []string{"Stack.Push", "Stack.Len", "Sum", "helper", "hidden.Exported", "Bare"}; !slices.Equal(got, want) {
 		t.Fatalf("функции = %v, ожидалось %v", got, want)
 	}
 	byName := map[string]Func{}
@@ -128,10 +128,65 @@ func Bare() {
 	if got := byName["Sum"].Recipe; got != "пройдите по срезу, копите сумму. Второй абзац рецепта." {
 		t.Errorf("Sum: Recipe = %q", got)
 	}
-	for _, name := range []string{"Stack.Len", "Bare"} {
+	if got := byName["helper"].Recipe; got != "сделайте помощника." {
+		t.Errorf("helper: Recipe = %q", got)
+	}
+	for _, name := range []string{"Stack.Len", "Bare", "hidden.Exported"} {
 		if f := byName[name]; f.Hint != "" || f.Recipe != "" {
 			t.Errorf("%s без подсказок и рецепта: %+v", name, f)
 		}
+	}
+}
+
+func TestExercisesAddsFunctionsDeclaredInBothFiles(t *testing.T) {
+	const stub = `package p
+
+// Flawed — рабочая, но с изъяном; читателю задана.
+func Flawed() int { return 1 }
+
+func Plain() int { return 2 }
+
+func ReaderOnly() int { return 3 }
+
+func unexported() int { return 4 }
+
+func Todo() int {
+	panic("TODO: реализуйте Todo")
+}
+`
+	const solution = `package p
+
+func Flawed() int { return 10 }
+
+func Plain() int { return 20 }
+
+func unexported() int { return 40 }
+
+func Todo() int { return 5 }
+
+func SolutionOnly() int { return 6 }
+`
+	fs, err := Exercises([]byte(stub), []byte(solution))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// ReaderOnly нет в эталоне, SolutionOnly — в заготовке; неэкспортированные без
+	// panic("TODO не считаются.
+	if got, want := funcNames(fs), []string{"Flawed", "Plain", "Todo"}; !slices.Equal(got, want) {
+		t.Errorf("Exercises = %v, ожидалось %v", got, want)
+	}
+	if only, _ := Exercises([]byte(stub), nil); !slices.Equal(funcNames(only), []string{"Todo"}) {
+		t.Errorf("без эталона — как Funcs: %v", funcNames(only))
+	}
+}
+
+func TestDeclaredReadsBrokenSourceAsFarAsItGoes(t *testing.T) {
+	got := Declared([]byte("package p\n\nfunc A() {}\n\nfunc (s *S) B() {}\n\nfunc (\n"))
+	if !slices.Equal(got, []string{"A", "S.B"}) {
+		t.Errorf("Declared = %v", got)
+	}
+	if got := Declared([]byte("не go")); len(got) != 0 {
+		t.Errorf("Declared(мусор) = %v", got)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -84,9 +85,19 @@ func TestPlain(t *testing.T) {
 			want: "package p\n\nfunc F() {\n\t// Что здесь происходит.\n\tpanic(\"TODO: x\")\n}\n",
 		},
 		{
-			name: "TODO внутри тела типа",
+			name: "TODO в теле структуры: остаётся нейтральная метка, подсказки нет",
 			src:  "package p\n\ntype T struct {\n\t// TODO: ваши поля.\n\t// Подсказка: срез.\n}\n",
-			want: "package p\n\ntype T struct {\n}\n",
+			want: "package p\n\ntype T struct {\n\t// TODO: поля\n}\n",
+		},
+		{
+			name: "метка в теле структуры не меняется при повторном проходе",
+			src:  "package p\n\ntype T struct {\n\t// TODO: поля\n\tx int\n}\n",
+			want: "package p\n\ntype T struct {\n\t// TODO: поля\n\tx int\n}\n",
+		},
+		{
+			name: "TODO в теле не структуры просто убирается",
+			src:  "package p\n\ntype I interface {\n\t// TODO: методы.\n}\n",
+			want: "package p\n\ntype I interface {\n}\n",
 		},
 		{
 			name: "два блока TODO в одной функции",
@@ -146,6 +157,66 @@ func TestPlainRefusesTrailingTODO(t *testing.T) {
 func TestPlainRejectsBrokenSource(t *testing.T) {
 	if _, err := Plain([]byte("package p\nfunc (")); err == nil {
 		t.Fatal("ожидалась ошибка разбора")
+	}
+}
+
+func TestNotes(t *testing.T) {
+	const src = `//go:build !solution
+
+// Package p — пакет.
+//
+// Подсказка: идея пакета.
+package p
+
+// T — тип.
+//
+// Совет: поле.
+type T struct {
+	// TODO: добавьте поля — основной стек.
+	// Подсказка: срез.
+}
+
+// F делает дело.
+//
+// Шаблон: greedy
+//
+// Ожидаемая сложность: O(n).
+func F() int {
+	// TODO: сделайте раз.
+	panic("TODO: реализуйте F")
+}
+
+// R — готовая функция.
+//
+// Внимание: порядок.
+func R() int {
+	// TODO: когда-нибудь переписать.
+	return 1
+}
+
+// Limit — константа.
+//
+// Подсказка: про константу.
+const Limit = 1
+`
+	fs, err := Funcs([]byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := Notes([]byte(src), fs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Note{
+		{"package", "Подсказка: идея пакета."},
+		{"type T", "Совет: поле."},
+		{"type T", "добавьте поля — основной стек. Подсказка: срез."},
+		{"func R", "Внимание: порядок."},
+		{"func R", "когда-нибудь переписать."},
+		{"package", "Подсказка: про константу."},
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("Notes:\n%v\nожидалось:\n%v", got, want)
 	}
 }
 
