@@ -503,21 +503,16 @@
       }
     }
 
-    // held — отметки в памяти вкладки: хранилище может быть недоступно (см. load)
-    var held = load() || {};
-    show(!!held[ch.h], true);
+    show(!!(load() || {})[ch.h], true);
+    // хранилище недоступно — галочка держится на самом поле, пока открыта страница, и говорит об этом
     cb.onchange = function () {
-      var res = setDone(ch.h, cb.checked, held);
-      held = res.state;
-      show(!!held[ch.h], res.saved);
+      show(cb.checked, setDone(ch.h, cb.checked).saved);
     };
     // трекер в другой вкладке отметил или снял главу (или прогресс сбросили) — галочка это показывает
     window.addEventListener("storage", function (e) {
       if (e.key !== null && e.key !== KEY) return;
       var fresh = load();
-      if (!fresh) return;
-      held = fresh;
-      show(!!held[ch.h], true);
+      if (fresh) show(!!fresh[ch.h], true);
     });
     main.appendChild(box);
   }

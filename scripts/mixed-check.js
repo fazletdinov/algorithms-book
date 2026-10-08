@@ -356,8 +356,11 @@ async function mockInterview(bank) {
   cx.dispatchEvent(new dom.window.Event("input"));
   click(dom, w.querySelector(".algo-mixed__cx-check"));
   const ref = w.querySelector(".algo-mixed__cx-ref");
-  if (!ref) errors.push("собеседование: после ответа не показан эталон");
-  else if (ref.textContent !== "Эталон: " + p.x) errors.push(`собеседование: эталон «${ref.textContent}», а в банке у ${p.p}.${p.f} x = «${p.x}»`);
+  if (!ref) {
+    errors.push(`собеседование: после ответа не показан эталон, хотя в банке у ${p.p}.${p.f} x = «${p.x}»`);
+    return;
+  }
+  if (ref.textContent !== "Эталон: " + p.x) errors.push(`собеседование: эталон «${ref.textContent}», а в банке у ${p.p}.${p.f} x = «${p.x}»`);
   if (w.querySelector(".algo-mixed__summary")) errors.push("собеседование: итог подведён до самооценки");
   // промах по сложности заводит карточку сразу: движок повторений зовут без перехода на другую страницу
   let synced = 0;

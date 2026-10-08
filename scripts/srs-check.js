@@ -1157,7 +1157,11 @@ if (api) {
     if (!box.textContent.includes(Q)) errors.push(`карточка quiz: нет текста вопроса: «${box.textContent.slice(0, 120)}»`);
     if (/Скользящее окно/.test(box.textContent) || box.querySelector('a[href^="sliding-window"]')) errors.push("карточка quiz: до ответа назван шаблон или дана ссылка на его главу");
     if (!grades || grades.style.display !== "none") errors.push("карточка quiz: оценки доступны до «Показать ответ»");
-    if (!box.querySelector(".algo-today__later")) errors.push("карточка quiz: до ответа нет кнопки «Позже»");
+    // «Позже» доступно и до ответа: кнопка есть и не спрятана вместе с оценками
+    const laterBtn = box.querySelector(".algo-today__later");
+    let hidden = !laterBtn;
+    for (let n = laterBtn; n && n !== box; n = n.parentNode) if (n.style.display === "none") hidden = true;
+    if (hidden) errors.push("карточка quiz: до ответа нет кнопки «Позже» (или она спрятана вместе с оценками)");
     if (click(quiz, "Показать ответ")) {
       const ans = box.querySelector(".algo-today__answer a");
       if (!ans || ans.textContent !== "Скользящее окно" || ans.getAttribute("href") !== "sliding-window.html") errors.push(`карточка quiz: ответ не meta.pattern со ссылкой на главу: ${ans && ans.outerHTML}`);
@@ -1323,17 +1327,24 @@ if (api) {
         errors.push(`algoToday = ${raw}: после оценки ${JSON.stringify(rec2)}, ожидалась исправная запись с done 1`);
       }
     }
-    // элементы later не строками — пропускаются по одному, запись не считается мусором
+    // элементы later не строками — пропускаются по одному, запись не считается мусором. Массив с id
+    // внутри приводится к этому id как ключ: без отсева он занял бы место, и в порции оказался бы не id
     w.localStorage.setItem("algoSRS", JSON.stringify(debt(now)));
-    w.localStorage.setItem("algoToday", JSON.stringify({ day: today, done: 3, heavy: 0, later: [5, null, "task:t#3", {}] }));
+    w.localStorage.setItem("algoToday", JSON.stringify({ day: today, done: 3, heavy: 0, later: [5, null, ["task:t#19"], "task:t#3", {}] }));
     const mixed = r.today(now);
-    if (mixed.ids.length !== 9 || mixed.ids[8] !== "task:t#3") errors.push(`later с нестроковыми элементами: ${JSON.stringify(mixed)}, ожидалось 9 карточек, последняя task:t#3`);
+    if (mixed.ids.length !== 9 || mixed.ids[8] !== "task:t#3" || !mixed.ids.every((id) => typeof id === "string") || mixed.ids.indexOf("task:t#19") >= 0) {
+      errors.push(`later с нестроковыми элементами: ${JSON.stringify(mixed)}, ожидалось 9 id-строк, последняя task:t#3, без task:t#19`);
+    }
     // done больше предела (виджеты в главах оценивают и сверх порции; прежняя запись) — порция пуста, без ошибок
     for (const done of [12, 13, 50, 12.7]) {
       w.localStorage.setItem("algoToday", JSON.stringify({ day: today, done, heavy: 0, later: ["task:t#3"] }));
       const g = r.today(now);
       if (g.ids.length !== 0 || g.held !== 23) errors.push(`done = ${done}: порция ${JSON.stringify(g)}, ожидалось пусто и held 23`);
     }
+    // дробный done округляется вниз: при 11.5 остаётся одно место, а не «полместа», после которого счёт уходит в минус
+    w.localStorage.setItem("algoToday", JSON.stringify({ day: today, done: 11.5, heavy: 0, later: [] }));
+    const half = r.today(now);
+    if (half.ids.length !== 1 || half.held !== 22) errors.push(`done = 11.5: порция ${JSON.stringify(half)}, ожидалась одна карточка`);
     // предел тяжёлых исчерпан, места много: тяжёлые ждут, лёгкие идут
     w.localStorage.setItem("algoToday", JSON.stringify({ day: today, done: 1, heavy: 1, later: ["pkg:p0"] }));
     const noHeavy = r.today(now);
@@ -1458,6 +1469,8 @@ if (api) {
     click(mem, "Позже");
     const rec = todayRec(mem);
     if (!rec || JSON.stringify(rec.later) !== '["task:a#1","task:b#1"]') errors.push(`после восстановления записи later = ${JSON.stringify(rec)}, ожидалось [a, b]`);
+    // …и дальше день снова читается из хранилища, а не из устаревшей памяти вкладки
+    if (rm.today(now).ids.join() !== "task:c#1,task:a#1,task:b#1") errors.push(`после восстановления записи порядок ${rm.today(now).ids.join()}, ожидалось c, a, b`);
   }
 }
 
@@ -1492,6 +1505,16 @@ if (api) {
     add("task:n4#1", light("N4", 0, now - HOUR));
     w.dispatchEvent(new w.Event("focus"));
     state("окно получило фокус", 6);
+    // карточку на экране оценили в другой вкладке, и её срок успел выйти снова (вкладка стояла сутки):
+    // это уже новое повторение — вчерашний раскрытый ответ закрывается
+    const again = cards(dom);
+    Object.assign(again["mix:topk.KthLargest"], { due: now - 2 * HOUR, seen: now - DAY }); // срок другой, карточка по-прежнему первая
+    w.localStorage.setItem("algoSRS", JSON.stringify(again));
+    comeBack(w);
+    if (box.querySelector(".algo-today__answer") || ![...box.querySelectorAll("button")].some((b) => b.textContent === "Показать ответ")) {
+      errors.push("карточку оценили в другой вкладке, и её срок вышел снова, а ответ на экране остался раскрытым");
+    }
+    click(dom, "Показать ответ");
     // а вот карточку на экране оценили в другой вкладке: её ответ больше не нужен, виджет идёт дальше
     const moved = cards(dom);
     moved["mix:topk.KthLargest"].due = now + 3 * DAY;
