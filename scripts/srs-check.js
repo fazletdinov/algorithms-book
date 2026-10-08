@@ -34,7 +34,13 @@
 //  16) карточки quiz: и cx: — вопросы: ответ и оценки только после «Показать ответ»;
 //  17) оставленная вкладка: возврат, storage и algo-srs:change перестраивают порцию, не закрывая
 //      раскрытый ответ и форму заметки; промах на этой же странице обновляет счётчик без перехода;
-//  18) числа предела в текстах книги совпадают с константами движка.
+//  18) числа предела в текстах книги совпадают с константами движка;
+//  19) карточка пакета — одна функция банка (свои тесты, без соседей) с чистого листа в виджете runner'а;
+//      оценку ставят события ЭТОГО виджета: зелёный без подсказок — «Помню», с подсказкой — «С трудом»,
+//      «Сдаюсь» — «Забыл» (на любой странице; нет карточки — заводится на завтра); красный прогон, чужой
+//      узел и прогон списанного эталона ничего не меняют; функции идут по кругу, после «Забыл» — та же;
+//      годной функции нет — пакет целиком; черновик стирается после оценки; без runner'а «Позже» переносит
+//      карточку на начало завтра.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 // Пояс не UTC — до любого Date: день порции — МЕСТНАЯ дата, а раннер CI живёт в UTC, где местная полночь
@@ -159,6 +165,31 @@ function click(dom, label) {
   }
   btn.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
   return true;
+}
+
+// Карточка пакета решается в виджете «Реши прямо здесь» (runner.js), и оценку ставят его события
+// (algo-runner:result / :giveup / :state) — сервера в смоуке нет, они подаются руками на узел виджета.
+// ALGO_RUNNER_INIT подменён: карточка обязана позвать его, когда узел уже в документе (иначе runner.js
+// его не найдёт), — заглушка запоминает, сколько узлов карточки она увидела.
+const BANK = (() => { const s = {}; new Function("window", problemsJs)(s); return s.ALGO_PROBLEMS; })();
+const RUNNER_STUB = "window.__inits = 0; window.__initSaw = 0; window.ALGO_RUNNER_INIT = function () { window.__inits++; " +
+  "window.__initSaw = document.querySelectorAll('.algo-today .algo-runner').length; };";
+const runnerOf = (dom) => dom.window.document.querySelector(".algo-today .algo-runner");
+function fire(dom, type, detail, node) {
+  const n = node || runnerOf(dom);
+  if (!n) {
+    errors.push(`нет виджета runner на карточке — событие ${type} подать некуда`);
+    return;
+  }
+  n.dispatchEvent(new dom.window.CustomEvent(type, { bubbles: true, detail }));
+}
+const run = (pkg, fn, extra) => Object.assign({ pkg, ok: true, filtered: !!fn, passed: 1, failed: 0, noTests: false, stage: "tests",
+  fn: fn || "", unit: fn ? "func" : "pkg", draft: "review", hints: 0, gaveUp: false }, extra || {});
+// зелёный прогон того, что гоняет виджет карточки, и «Дальше» — так карточка пакета получает «Помню»
+function greenPkg(dom) {
+  const n = runnerOf(dom);
+  fire(dom, "algo-runner:result", run(n ? n.getAttribute("data-pkg") : "", n ? n.getAttribute("data-func") || "" : ""));
+  click(dom, "Дальше →");
 }
 
 async function main() {
@@ -1033,7 +1064,7 @@ if (api) {
 // --- 11. порция дня: не больше 12 карточек и одной с кодом, остальное ждёт ---
 {
   const now = NOON;
-  const dom = await newDom({ algoSRS: JSON.stringify(debt(now)) }, [CLOCK(now)], PAGE);
+  const dom = await newDom({ algoSRS: JSON.stringify(debt(now)) }, [CLOCK(now), RUNNER_STUB], PAGE);
   const w = dom.window, r = w.ALGO_SRS;
   const text = () => w.document.querySelector(".algo-today").textContent;
   if (!r || typeof r.today !== "function") {
@@ -1053,8 +1084,9 @@ if (api) {
 
     // (b) 12 оценок подряд — порция пуста, счётчик скрыт
     for (let i = 0; i < 12; i++) {
-      if (i === 11 && !/Пакет тренажёра/.test(text())) errors.push(`двенадцатой должна идти карточка с кодом: «${text().slice(0, 80)}»`);
-      click(dom, "Помню");
+      if (i < 11) { click(dom, "Помню"); continue; }
+      if (!/Пакет тренажёра/.test(text())) errors.push(`двенадцатой должна идти карточка с кодом: «${text().slice(0, 80)}»`);
+      greenPkg(dom); // у карточки с кодом кнопок оценки нет — её оценивает зелёный прогон виджета
     }
     const rec = todayRec(dom);
     if (!rec || rec.day !== dayKey(now) || rec.done !== 12 || rec.heavy !== 1 || JSON.stringify(rec.later) !== "[]") {
@@ -1460,7 +1492,7 @@ if (api) {
 
   // тяжёлая: отложенная остаётся сегодняшней тяжёлой, вторая её не подменяет
   const hv = { "task:a#1": light("A", 1, now - HOUR), "pkg:first": heavy("first", now - 3 * DAY), "pkg:second": heavy("second", now - 2 * DAY) };
-  const dom = await newDom({ algoSRS: JSON.stringify(hv) }, [CLOCK(now)], PAGE);
+  const dom = await newDom({ algoSRS: JSON.stringify(hv) }, [CLOCK(now), RUNNER_STUB], PAGE);
   const w = dom.window, r = w.ALGO_SRS;
   if (r && r.later) {
     const text = () => w.document.querySelector(".algo-today").textContent;
@@ -1473,8 +1505,8 @@ if (api) {
     click(dom, "Помню"); // A
     if (ids() !== "pkg:first" || !/first/.test(text())) errors.push(`тяжёлая после лёгких: ${ids()}`);
     click(dom, "Позже"); // единственная и тяжёлая
-    if (ids() !== "pkg:first" || !/first/.test(text()) || !w.document.querySelector(".algo-today__grades")) errors.push(`«Позже» на единственной тяжёлой заперло очередь: ${ids()}, «${text().slice(0, 80)}»`);
-    click(dom, "Помню");
+    if (ids() !== "pkg:first" || !/first/.test(text()) || !runnerOf(dom)) errors.push(`«Позже» на единственной тяжёлой заперло очередь: ${ids()}, «${text().slice(0, 80)}»`);
+    greenPkg(dom);
     const rec = todayRec(dom);
     if (!rec || rec.done !== 2 || rec.heavy !== 1 || rec.later.length) errors.push(`тяжёлая оценена: algoToday = ${JSON.stringify(rec)}`);
     if (r.today(now).ids.length !== 0 || r.today(now).held !== 1 || !/На сегодня всё/.test(text()) || !/ещё 1 придёт не раньше завтра/i.test(text())) {
@@ -1820,6 +1852,275 @@ if (api) {
   }
 }
 
+// --- 21–24. карточка пакета: одна функция с чистого листа, оценку ставит виджет «Реши прямо здесь» ---
+const fnsOf = (pkg) => BANK.filter((p) => p.p === pkg && p.t.length && !p.n.length).map((p) => p.f);
+const RUNNER = RUNNER_STUB;
+const todayText = (dom) => dom.window.document.querySelector(".algo-today").textContent;
+// строка итога под виджетом карточки: условие карточки само называет все три оценки, итог — одну
+const verdictOf = (dom) => (dom.window.document.querySelector(".algo-today__verdict") || { textContent: "" }).textContent;
+const hasBtn = (dom, label) => [...dom.window.document.querySelectorAll(".algo-today button")].some((b) => b.textContent === label);
+const DRAFT = "algoRunnerCode:review:";
+const startOfDay = (t) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
+
+// --- 21. «Сдаюсь» где угодно: карточка пакета получает «Забыл», без карточки — заводится на завтра ---
+{
+  const now = NOON;
+  const CH = MENU + "<main><h1>Глава</h1><p>текст</p></main>";
+  const giveupOn = (dom, pkg, fn) => fire(dom, "algo-runner:giveup", { pkg, fn }, dom.window.document.querySelector("main"));
+  const SW = fnsOf("slidingwindow");
+  // (d) карточки нет: заводится со сроком «завтра» и функцией, на которой сдались
+  const dom = await newDom({}, [CLOCK(now), problemsJs], CH);
+  const w = dom.window;
+  if (!w.ALGO_SRS || typeof w.ALGO_SRS.giveup !== "function") errors.push("ALGO_SRS.giveup не определён — «Сдаюсь» вне карточки некому завести");
+  giveupOn(dom, "slidingwindow", SW[3]);
+  let c = cards(dom)["pkg:slidingwindow"];
+  if (!c || c.due !== now + DAY || c.iv !== 0 || c.reps !== 0 || !c.meta || c.meta.pkg !== "slidingwindow" || c.meta.fn !== SW[3]) {
+    errors.push(`«Сдаюсь» без карточки: ${JSON.stringify(c)}, ожидалась карточка на завтра с meta.fn = ${SW[3]}`);
+  }
+  if (todayRec(dom)) errors.push(`«Сдаюсь» без карточки занял место в порции: ${JSON.stringify(todayRec(dom))}`);
+  // функция, тесты которой зовут соседей (n непусто), в meta.fn не попадает: с чистого листа её не решить
+  giveupOn(dom, "numbertheory", "LCM");
+  c = cards(dom)["pkg:numbertheory"];
+  if (!c || !c.meta || "fn" in c.meta) errors.push(`«Сдаюсь» на LCM (нужен GCD) записал meta.fn: ${JSON.stringify(c)}`);
+  // …и у существующей карточки тоже: «Забыл» ставится, функция в meta не попадает
+  const nt = { "pkg:numbertheory": { due: now - DAY, iv: 3, ease: 2.5, reps: 2, meta: { pkg: "numbertheory" } } };
+  const d1 = await newDom({ algoSRS: JSON.stringify(nt) }, [CLOCK(now), problemsJs], CH);
+  giveupOn(d1, "numbertheory", "LCM");
+  c = cards(d1)["pkg:numbertheory"];
+  if (!c || c.iv !== 1 || JSON.stringify(c.meta) !== '{"pkg":"numbertheory"}') errors.push(`«Сдаюсь» на LCM по существующей карточке: ${JSON.stringify(c)}, ожидалось «Забыл» и meta без fn и last`);
+
+  // карточка есть и срок вышел: «Забыл», черновик карточки стёрт, место дня занято
+  const due = { "pkg:slidingwindow": { due: now - DAY, iv: 8, ease: 2.5, reps: 3, meta: { pkg: "slidingwindow", last: SW[0] }, seen: now - 9 * DAY } };
+  const d2 = await newDom({ algoSRS: JSON.stringify(due), [DRAFT + "slidingwindow"]: "черновик" }, [CLOCK(now), problemsJs], CH);
+  giveupOn(d2, "slidingwindow", SW[1]); // по очереди за SW[0] идёт SW[1]
+  c = cards(d2)["pkg:slidingwindow"];
+  if (!c || c.iv !== 1 || c.back !== 3 || c.reps !== 0 || c.meta.last !== SW[1] || c.meta.fn !== SW[1]) {
+    errors.push(`«Сдаюсь» по карточке в сроке: ${JSON.stringify(c)}, ожидалось «Забыл» (iv 1, back 3), meta.last и meta.fn = ${SW[1]}`);
+  }
+  if (d2.window.localStorage.getItem(DRAFT + "slidingwindow") !== null) errors.push("после «Забыл» черновик карточки пакета не стёрт");
+  const rec = todayRec(d2);
+  if (!rec || rec.done !== 1 || rec.heavy !== 1) errors.push(`«Сдаюсь» по карточке в сроке не занял место дня: ${JSON.stringify(rec)}`);
+  // второе «Сдаюсь» в тот же заход — то же падение (report: early), карточка не ниже
+  const snap = d2.window.localStorage.getItem("algoSRS");
+  giveupOn(d2, "slidingwindow", SW[1]);
+  if (d2.window.localStorage.getItem("algoSRS") !== snap) errors.push("второе «Сдаюсь» в тот же заход опустило карточку ещё на ступень");
+  // не по очереди: meta.last не двигается, функция встаёт вне очереди
+  const d3 = await newDom({ algoSRS: JSON.stringify(due) }, [CLOCK(now), problemsJs], CH);
+  giveupOn(d3, "slidingwindow", SW[3]);
+  c = cards(d3)["pkg:slidingwindow"];
+  if (!c || c.meta.last !== SW[0] || c.meta.fn !== SW[3]) errors.push(`«Сдаюсь» не по очереди: meta ${JSON.stringify(c && c.meta)}, ожидалось last ${SW[0]}, fn ${SW[3]}`);
+
+  // эталон после ЗЕЛЁНОГО прогона той же функции на этой странице — сверка, а не «сдаюсь»
+  const d4 = await newDom({ algoSRS: JSON.stringify(due), [DRAFT + "slidingwindow"]: "черновик" }, [CLOCK(now), problemsJs], CH);
+  const main4 = d4.window.document.querySelector("main");
+  fire(d4, "algo-runner:result", run("slidingwindow", SW[1], { draft: "" }), main4);
+  const snap4 = d4.window.localStorage.getItem("algoSRS");
+  giveupOn(d4, "slidingwindow", SW[1]);
+  if (d4.window.localStorage.getItem("algoSRS") !== snap4) errors.push("эталон после зелёного прогона той же функции поставил «Забыл»");
+  if (d4.window.localStorage.getItem(DRAFT + "slidingwindow") === null) errors.push("эталон после зелёного прогона стёр черновик карточки");
+  // …а зелёный прогон ДРУГОЙ функции не защищает
+  giveupOn(d4, "slidingwindow", SW[2]);
+  if ((cards(d4)["pkg:slidingwindow"] || {}).iv !== 1) errors.push("зелёный прогон одной функции защитил от «Забыл» другую");
+
+  // карточка ждёт срока и уже упала (reps 0): early, ничего не меняется, черновик на месте
+  const fallen = { "pkg:slidingwindow": { due: now + DAY, iv: 1, ease: 2.3, reps: 0, back: 3, meta: { pkg: "slidingwindow" }, seen: now - HOUR } };
+  const d5 = await newDom({ algoSRS: JSON.stringify(fallen), [DRAFT + "slidingwindow"]: "черновик" }, [CLOCK(now), problemsJs], CH);
+  const res = d5.window.ALGO_SRS && d5.window.ALGO_SRS.giveup && d5.window.ALGO_SRS.giveup("slidingwindow", SW[0], now);
+  if (!res || res.status !== "early") errors.push(`giveup по упавшей карточке, ждущей срока: ${JSON.stringify(res)}, ожидалось early`);
+  if (cards(d5)["pkg:slidingwindow"].meta.fn !== undefined || d5.window.localStorage.getItem(DRAFT + "slidingwindow") !== "черновик") {
+    errors.push("early по «Сдаюсь» всё же записал meta.fn или стёр черновик");
+  }
+  // повреждённый algoSRS не перезаписывается
+  const d6 = await newDom({ algoSRS: "not json{" }, [CLOCK(now), problemsJs], CH);
+  giveupOn(d6, "slidingwindow", SW[0]);
+  if (d6.window.localStorage.getItem("algoSRS") !== "not json{") errors.push("«Сдаюсь» перезаписал повреждённый algoSRS");
+}
+
+// --- 22. (a) карточка пакета: функция банка, черновик review, оценка по событиям своего виджета ---
+{
+  const now = NOON;
+  const SW = fnsOf("slidingwindow");
+  if (SW.length < 4) errors.push(`у slidingwindow в банке ${SW.length} функций для карточки — проверка рассчитана на ≥ 4`);
+  const seed = { algoSRS: JSON.stringify({ "pkg:slidingwindow": heavy("slidingwindow", now - DAY) }), [DRAFT + "slidingwindow"]: "мой черновик" };
+  const dom = await newDom(seed, [CLOCK(now), problemsJs, RUNNER], PAGE);
+  const w = dom.window, ls = w.localStorage;
+  const node = runnerOf(dom);
+  if (!node || node.getAttribute("data-pkg") !== "slidingwindow" || node.getAttribute("data-func") !== SW[0] || node.getAttribute("data-draft") !== "review") {
+    errors.push(`карточка пакета: виджет ${node && node.outerHTML}, ожидался .algo-runner[data-pkg=slidingwindow][data-func=${SW[0]}][data-draft=review]`);
+  }
+  if (w.__inits < 1 || w.__initSaw < 1) errors.push(`ALGO_RUNNER_INIT не позван после вставки узла (вызовов ${w.__inits}, узлов в документе ${w.__initSaw})`);
+  const statement = (BANK.find((p) => p.p === "slidingwindow" && p.f === SW[0]) || {}).s || "";
+  const card = w.document.querySelector(".algo-today__card");
+  if (!statement || !card.textContent.includes(statement.split("\n")[0])) errors.push(`карточка пакета без условия функции из банка: «${card.textContent.slice(0, 160)}»`);
+  if (card.textContent.includes(SW[0])) errors.push(`карточка пакета называет функцию ${SW[0]} в тексте — имя показывает виджет`);
+  for (const b of ["Помню", "С трудом", "Забыл"]) if (hasBtn(dom, b)) errors.push(`у карточки пакета есть кнопка «${b}» — оценку ставят тесты`);
+  if (!hasBtn(dom, "Позже")) errors.push("у карточки пакета нет «Позже»");
+
+  // красный прогон и чужие события ничего не меняют
+  const snap = ls.getItem("algoSRS");
+  fire(dom, "algo-runner:result", run("slidingwindow", SW[0], { ok: false, failed: 1, passed: 0 }));
+  fire(dom, "algo-runner:result", run("slidingwindow", SW[0]), w.document.querySelector("main")); // не её узел
+  fire(dom, "algo-runner:result", run("slidingwindow", SW[0], { draft: "mixed" })); // не её черновик
+  fire(dom, "algo-runner:result", run("slidingwindow", SW[0], { gaveUp: true })); // списано с эталона
+  if (ls.getItem("algoSRS") !== snap) errors.push("красный прогон, чужой узел, чужой черновик или прогон после эталона изменили карточку");
+  if (ls.getItem(DRAFT + "slidingwindow") !== "мой черновик") errors.push("черновик карточки стёрт без оценки");
+  if (runnerOf(dom) !== node) errors.push("после красного прогона виджет карточки перестроен — набранный код пропал бы");
+
+  // зелёный без подсказок — «Помню»; карточка остаётся на экране до «Дальше»
+  fire(dom, "algo-runner:result", run("slidingwindow", SW[0]));
+  let c = cards(dom)["pkg:slidingwindow"];
+  if (!c || c.iv !== 1 || c.reps !== 1 || c.ease !== 2.55 || !c.meta || c.meta.last !== SW[0] || "fn" in c.meta) {
+    errors.push(`зелёный без подсказок: ${JSON.stringify(c)}, ожидалось «Помню» (iv 1, ease 2.55) и meta.last = ${SW[0]}`);
+  }
+  if (ls.getItem(DRAFT + "slidingwindow") !== null) errors.push("после оценки черновик карточки не стёрт");
+  const rec = todayRec(dom);
+  if (!rec || rec.done !== 1 || rec.heavy !== 1) errors.push(`оценка карточки пакета не заняла место дня: ${JSON.stringify(rec)}`);
+  if (runnerOf(dom) !== node || !/«Помню»/.test(verdictOf(dom)) || !hasBtn(dom, "Дальше →")) {
+    errors.push(`после «Помню» карточка ушла с экрана или не сказала, что записано: «${todayText(dom).slice(0, 240)}»`);
+  }
+  const seen1 = c && c.seen;
+  fire(dom, "algo-runner:result", run("slidingwindow", SW[0])); // второй зелёный — не вторая оценка
+  if ((cards(dom)["pkg:slidingwindow"] || {}).seen !== seen1 || (todayRec(dom) || {}).done !== 1) errors.push("второй зелёный прогон оценил карточку ещё раз");
+  if (w.document.querySelectorAll(".algo-today__verdict").length !== 1) errors.push(`после второго зелёного прогона строк итога ${w.document.querySelectorAll(".algo-today__verdict").length}, ожидалась одна`);
+  ls.setItem(DRAFT + "slidingwindow", "печатал после оценки"); // виджет ещё в документе и пишет черновик
+  // эталон после зелёного на карточке — сверка, а не «Забыл»
+  fire(dom, "algo-runner:giveup", { pkg: "slidingwindow", fn: SW[0] });
+  if ((cards(dom)["pkg:slidingwindow"] || {}).iv !== 1 || (cards(dom)["pkg:slidingwindow"] || {}).back) errors.push("«Сдаюсь» после зелёного на карточке поставил «Забыл»");
+  click(dom, "Дальше →");
+  if (!/На сегодня всё/.test(todayText(dom)) || runnerOf(dom)) errors.push(`«Дальше» не увело с оценённой карточки: «${todayText(dom).slice(0, 120)}»`);
+  if (ls.getItem(DRAFT + "slidingwindow") !== null) errors.push("черновик, записанный после оценки, пережил уход с карточки — следующий показ открылся бы с ним");
+
+  // следующий показ — следующая функция банка; «С трудом» при открытой подсказке
+  const d2 = await newDom({ algoSRS: ls.getItem("algoSRS") }, [CLOCK(now + 2 * DAY), problemsJs, RUNNER], PAGE);
+  const n2 = runnerOf(d2);
+  if (!n2 || n2.getAttribute("data-func") !== SW[1]) errors.push(`после «Помню» по ${SW[0]} следующий показ — ${n2 && n2.getAttribute("data-func")}, ожидалось ${SW[1]}`);
+  d2.window.__now = now + 2 * DAY;
+  fire(d2, "algo-runner:result", run("slidingwindow", SW[1], { hints: 1 }));
+  c = cards(d2)["pkg:slidingwindow"];
+  if (!c || c.ease !== 2.5 || c.iv !== 2 || c.meta.last !== SW[1] || !/«С трудом»/.test(verdictOf(d2))) {
+    errors.push(`зелёный с подсказкой: ${JSON.stringify(c)}, «${todayText(d2).slice(0, 200)}» — ожидалось «С трудом» (iv 2, ease 2.5), meta.last = ${SW[1]}`);
+  }
+
+  // «Сдаюсь» на карточке — «Забыл»: эталон остаётся на экране, функция придёт снова первой
+  const t3 = now + 5 * DAY;
+  const d3 = await newDom({ algoSRS: d2.window.localStorage.getItem("algoSRS"), [DRAFT + "slidingwindow"]: "код" }, [CLOCK(t3), problemsJs, RUNNER], PAGE);
+  const n3 = runnerOf(d3);
+  if (!n3 || n3.getAttribute("data-func") !== SW[2]) errors.push(`третий показ — ${n3 && n3.getAttribute("data-func")}, ожидалось ${SW[2]}`);
+  fire(d3, "algo-runner:result", run("slidingwindow", SW[2], { ok: false, failed: 1, passed: 0 }));
+  fire(d3, "algo-runner:giveup", { pkg: "slidingwindow", fn: SW[2] });
+  c = cards(d3)["pkg:slidingwindow"];
+  if (!c || c.iv !== 1 || c.reps !== 0 || c.meta.last !== SW[2] || c.meta.fn !== SW[2]) errors.push(`«Сдаюсь» на карточке: ${JSON.stringify(c)}, ожидалось «Забыл», meta.last и meta.fn = ${SW[2]}`);
+  if (runnerOf(d3) !== n3 || !/«Забыл»/.test(verdictOf(d3))) errors.push(`после «Сдаюсь» карточка с эталоном ушла с экрана: «${todayText(d3).slice(0, 200)}»`);
+  if (d3.window.localStorage.getItem(DRAFT + "slidingwindow") !== null) errors.push("после «Забыл» на карточке черновик не стёрт");
+  const snap3 = d3.window.localStorage.getItem("algoSRS");
+  fire(d3, "algo-runner:result", run("slidingwindow", SW[2], { gaveUp: true }));
+  if (d3.window.localStorage.getItem("algoSRS") !== snap3) errors.push("зелёный прогон списанного эталона после «Сдаюсь» изменил карточку");
+  // назавтра — та же функция вне очереди; после неё очередь идёт дальше
+  const d4 = await newDom({ algoSRS: snap3 }, [CLOCK(t3 + DAY + HOUR), problemsJs, RUNNER], PAGE);
+  if ((runnerOf(d4) || { getAttribute: () => null }).getAttribute("data-func") !== SW[2]) errors.push(`после «Забыл» назавтра не ${SW[2]}: ${runnerOf(d4) && runnerOf(d4).getAttribute("data-func")}`);
+  fire(d4, "algo-runner:result", run("slidingwindow", SW[2]));
+  c = cards(d4)["pkg:slidingwindow"];
+  if (!c || "fn" in c.meta || c.meta.last !== SW[2]) errors.push(`зелёный после «Забыл»: meta ${JSON.stringify(c && c.meta)}, ожидалось без fn и last = ${SW[2]}`);
+  const d5 = await newDom({ algoSRS: d4.window.localStorage.getItem("algoSRS") }, [CLOCK(t3 + 30 * DAY), problemsJs, RUNNER], PAGE);
+  if ((runnerOf(d5) || { getAttribute: () => null }).getAttribute("data-func") !== SW[3]) errors.push(`после функции вне очереди очередь не пошла дальше: ${runnerOf(d5) && runnerOf(d5).getAttribute("data-func")}, ожидалось ${SW[3]}`);
+
+  // перезагрузка открытой карточки возвращает тот же лист: та же функция, черновик не тронут
+  const d6 = await newDom({ algoSRS: JSON.stringify({ "pkg:slidingwindow": heavy("slidingwindow", now - DAY) }), [DRAFT + "slidingwindow"]: "полчаса работы" }, [CLOCK(now), problemsJs, RUNNER], PAGE);
+  if ((runnerOf(d6) || { getAttribute: () => null }).getAttribute("data-func") !== SW[0] || d6.window.localStorage.getItem(DRAFT + "slidingwindow") !== "полчаса работы") {
+    errors.push("перезагрузка открытой карточки сменила функцию или стёрла черновик");
+  }
+  // вторая вкладка оценила раньше: early — «записано» не пишется, черновик на месте
+  const other = cards(d6);
+  Object.assign(other["pkg:slidingwindow"], { due: now + DAY, iv: 1, reps: 1, seen: now });
+  d6.window.localStorage.setItem("algoSRS", JSON.stringify(other));
+  fire(d6, "algo-runner:result", run("slidingwindow", SW[0]));
+  if (d6.window.localStorage.getItem(DRAFT + "slidingwindow") !== "полчаса работы") errors.push("early: черновик стёрт, хотя оценки не было");
+  if (/«Помню»/.test(verdictOf(d6)) || !/другой вкладке/.test(verdictOf(d6))) errors.push(`early: «${todayText(d6).slice(0, 200)}» — ожидалось «уже оценили в другой вкладке», без «Помню»`);
+  click(d6, "Дальше →");
+  if (d6.window.localStorage.getItem(DRAFT + "slidingwindow") !== "полчаса работы") errors.push("early: черновик стёрт при уходе с карточки, хотя эта вкладка её не оценивала");
+  // запись отказала: unsaved — карточка в очереди, черновик на месте, следующий зелёный оценит
+  const d7 = await newDom({ algoSRS: JSON.stringify({ "pkg:slidingwindow": heavy("slidingwindow", now - DAY) }), [DRAFT + "slidingwindow"]: "код" }, [CLOCK(now), problemsJs, RUNNER], PAGE);
+  const orig = d7.window.Storage.prototype.setItem;
+  d7.window.Storage.prototype.setItem = function () { throw new Error("QuotaExceededError"); };
+  try {
+    fire(d7, "algo-runner:result", run("slidingwindow", SW[0]));
+  } finally {
+    d7.window.Storage.prototype.setItem = orig;
+  }
+  if (d7.window.localStorage.getItem(DRAFT + "slidingwindow") !== "код" || !/Не удалось сохранить/.test(todayText(d7))) errors.push(`unsaved: «${todayText(d7).slice(0, 200)}», черновик ${d7.window.localStorage.getItem(DRAFT + "slidingwindow")}`);
+  fire(d7, "algo-runner:result", run("slidingwindow", SW[0]));
+  if ((cards(d7)["pkg:slidingwindow"] || {}).iv !== 1) errors.push("после unsaved следующий зелёный прогон карточку не оценил");
+}
+
+// --- 23. (b) функции для карточки нет: виджет без data-func, оценку даёт зелёный прогон пакета целиком ---
+{
+  const now = NOON;
+  for (const [pkg, why] of [["hashtable", "пакет вне банка"], ["parallelbfs", "у всех его задач банка тесты зовут соседей"], ["lru", "у его задачи банка нет своих тестов"]]) {
+    const dom = await newDom({ algoSRS: JSON.stringify({ ["pkg:" + pkg]: heavy(pkg, now - DAY) }) }, [CLOCK(now), problemsJs, RUNNER], PAGE);
+    const node = runnerOf(dom);
+    if (!node || node.hasAttribute("data-func") || node.getAttribute("data-draft") !== "review") errors.push(`${pkg} (${why}): виджет ${node && node.outerHTML}, ожидался без data-func, с data-draft=review`);
+    if (!/пакет целиком/.test(todayText(dom))) errors.push(`${pkg}: карточка не говорит, что решать пакет целиком: «${todayText(dom).slice(0, 200)}»`);
+    const snap = dom.window.localStorage.getItem("algoSRS");
+    fire(dom, "algo-runner:result", run(pkg, "Put")); // зелёное одно упражнение — не пакет
+    if (dom.window.localStorage.getItem("algoSRS") !== snap) errors.push(`${pkg}: зелёный прогон одного упражнения оценил карточку пакета целиком`);
+    fire(dom, "algo-runner:result", run(pkg, ""));
+    const c = cards(dom)["pkg:" + pkg];
+    if (!c || c.iv !== 1 || "last" in c.meta) errors.push(`${pkg}: зелёный прогон пакета целиком: ${JSON.stringify(c)}, ожидалось «Помню» без meta.last`);
+  }
+  // книга без банка задач: тот же пакет целиком, условия нет, ничего не падает
+  const nob = await newDom({ algoSRS: JSON.stringify({ "pkg:slidingwindow": heavy("slidingwindow", now - DAY) }) }, [CLOCK(now), RUNNER], PAGE);
+  const nn = runnerOf(nob);
+  if (!nn || nn.hasAttribute("data-func") || nob.window.document.querySelector(".algo-today__q")) errors.push(`без банка задач: виджет ${nn && nn.outerHTML}, условие ${!!nob.window.document.querySelector(".algo-today__q")}`);
+  // старая карточка (meta без last и fn) — первая функция банка, отрисовка ничего не пишет
+  const old = { "pkg:slidingwindow": { due: now - DAY, iv: 3, ease: 2.6, reps: 2, meta: { pkg: "slidingwindow" }, note: "перепутал границу" } };
+  const od = await newDom({ algoSRS: JSON.stringify(old) }, [CLOCK(now), problemsJs, RUNNER], PAGE);
+  if ((runnerOf(od) || { getAttribute: () => null }).getAttribute("data-func") !== fnsOf("slidingwindow")[0]) errors.push("старая карточка пакета не открылась на первой функции банка");
+  if (od.window.localStorage.getItem("algoSRS") !== JSON.stringify(old)) errors.push("отрисовка старой карточки пакета изменила algoSRS");
+  if (!/перепутал границу/.test(todayText(od))) errors.push("у старой карточки пакета не показана заметка");
+  // мусорная meta (строка вместо объекта) — карточка рисуется, оценка заводит meta заново
+  const junk = { "pkg:slidingwindow": { due: now - DAY, iv: 0, ease: 2.5, reps: 0, meta: "мусор" } };
+  const jd = await newDom({ algoSRS: JSON.stringify(junk) }, [CLOCK(now), problemsJs, RUNNER], PAGE);
+  fire(jd, "algo-runner:result", run("slidingwindow", fnsOf("slidingwindow")[0]));
+  const jc = cards(jd)["pkg:slidingwindow"];
+  if (!jc || jc.iv !== 1 || !jc.meta || jc.meta.pkg !== "slidingwindow" || jc.meta.last !== fnsOf("slidingwindow")[0]) errors.push(`карточка с мусорной meta: ${JSON.stringify(jc)}`);
+}
+
+// --- 24. (c) runner не отвечает: карточка так и говорит, «Позже» переносит её на начало завтрашнего дня ---
+{
+  const now = NOON;
+  const two = { "pkg:first": Object.assign(heavy("first", now - 3 * DAY), { iv: 8, ease: 2.4, reps: 3, back: 3 }), "pkg:second": heavy("second", now - 2 * DAY) };
+  const dom = await newDom({ algoSRS: JSON.stringify(two) }, [CLOCK(now), RUNNER], PAGE);
+  const w = dom.window, r = w.ALGO_SRS;
+  if (r.today(now).ids.join() !== "pkg:first") errors.push(`runner не отвечает: старт ${r.today(now).ids.join()}`);
+  fire(dom, "algo-runner:state", { pkg: "first", up: false });
+  if (!/нужен runner/.test(todayText(dom))) errors.push(`runner не отвечает, а карточка молчит: «${todayText(dom).slice(0, 200)}»`);
+  click(dom, "Позже");
+  const c = cards(dom)["pkg:first"];
+  const want = Object.assign({}, two["pkg:first"], { due: startOfDay(now + DAY) });
+  if (JSON.stringify(c) !== JSON.stringify(want)) errors.push(`«Позже» без runner'а: ${JSON.stringify(c)}, ожидалось ${JSON.stringify(want)} — срок на начало завтра, остальное как было`);
+  if (todayRec(dom) && (todayRec(dom).done || todayRec(dom).heavy)) errors.push(`«Позже» без runner'а засчитано как оценка: ${JSON.stringify(todayRec(dom))}`);
+  if (r.today(now).ids.join() !== "pkg:second" || !/second/.test(todayText(dom))) errors.push(`после «Позже» без runner'а место для кода не освободилось: ${r.today(now).ids.join()}, «${todayText(dom).slice(0, 120)}»`);
+  if (!/завтра/.test(todayText(dom))) errors.push("«Позже» без runner'а не сказало, что карточка ушла на завтра");
+  // runner отвечает — обычное «Позже»: в конец порции, карточка не меняется
+  const up = await newDom({ algoSRS: JSON.stringify({ "pkg:first": heavy("first", now - 3 * DAY), "task:a#1": light("A", 1, now - HOUR) }) }, [CLOCK(now), RUNNER], PAGE);
+  up.window.ALGO_SRS.later("task:a#1", now);
+  up.window.ALGO_SRS.later("task:a#1", now); // перерисовки нет: виджет перестроим заново
+  const up2 = await newDom({ algoSRS: up.window.localStorage.getItem("algoSRS"), algoToday: up.window.localStorage.getItem("algoToday") }, [CLOCK(now), RUNNER], PAGE);
+  fire(up2, "algo-runner:state", { pkg: "first", up: true });
+  const snap = up2.window.localStorage.getItem("algoSRS");
+  const oldNode = runnerOf(up2);
+  click(up2, "Позже");
+  if (up2.window.localStorage.getItem("algoSRS") !== snap || up2.window.ALGO_SRS.today(now).ids.join() !== "task:a#1,pkg:first") errors.push(`«Позже» при живом runner'е: порция ${up2.window.ALGO_SRS.today(now).ids.join()}, algoSRS ${up2.window.localStorage.getItem("algoSRS") === snap ? "не тронут" : "изменён"}`);
+  // прогон, начатый до «Позже», закончился на убранном виджете — карточку, ушедшую в конец, он не оценивает
+  fire(up2, "algo-runner:result", run("first", ""), oldNode);
+  if (up2.window.localStorage.getItem("algoSRS") !== snap) errors.push("зелёный прогон убранного виджета оценил карточку, которую читатель отложил");
+  // runner.js на странице нет вовсе (ALGO_RUNNER_INIT не определён) — то же, что «не отвечает»
+  const none = await newDom({ algoSRS: JSON.stringify(two) }, [CLOCK(now)], PAGE);
+  if (!/нужен runner/.test(todayText(none))) errors.push(`без runner.js карточка не говорит, что ей нужен runner: «${todayText(none).slice(0, 200)}»`);
+  click(none, "Позже");
+  if ((cards(none)["pkg:first"] || {}).due !== startOfDay(now + DAY)) errors.push("без runner.js «Позже» не перенесло карточку на завтра");
+}
+
 if (errors.length) {
   console.error(`❌ srs-check: ${errors.length} проблем(ы):`);
   for (const e of errors) console.error("  - " + e);
@@ -1834,7 +2135,9 @@ console.log(
     "порция дня — не больше 12 карточек и одной с кодом (границы и порядок — на случайных наборах), «Позже» ставит в конец и не запирает очередь, " +
     "смена суток и мусор в algoToday начинают день заново, счёт дня растёт только по оценке карточки в сроке, " +
     "карточки quiz: и cx: отвечают после «Показать ответ», возврат на вкладку перестраивает порцию без потери ответа и заметки, " +
-    "промах на этой же странице обновляет счётчик, таймер в местную полночь приносит порцию нового дня"
+    "промах на этой же странице обновляет счётчик, таймер в местную полночь приносит порцию нового дня; " +
+    "карточка пакета — одна функция с чистого листа, оценку ставят события её виджета и «Сдаюсь» с любой страницы, " +
+    "без runner'а «Позже» переносит её на завтра"
 );
 // Явный выход: каждая страница с srs.js взводит таймер до местной полуночи, и окна jsdom держали бы
 // процесс до утра.

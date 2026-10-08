@@ -16,7 +16,11 @@
  *   ch:<глава>   — как только глава отмечена пройденной в трекере;
  *   expl:<глава> — как только читатель сформулировал предусловие и инвариант своими
  *                  словами в виджете «объясни сам» (explain.js);
- *   pkg:<пакет>  — как только тесты пакета позеленели в виджете «Реши прямо здесь»;
+ *   pkg:<пакет>  — как только тесты пакета позеленели в виджете «Реши прямо здесь» или читатель
+ *                  нажал там «Сдаюсь» (тогда — на завтра). Карточка — ОДНА функция с чистого листа:
+ *                  условие из банка задач и виджет runner'а с data-func; функции берутся по кругу (см.
+ *                  cardFns). Кнопок оценки нет — оценку ставят события виджета: зелёный прогон без
+ *                  подсказок — «Помню», с подсказкой — «С трудом», «Сдаюсь» — «Забыл» (где угодно);
  *   task:<id>    — как только задача в тексте не далась (промах из challenge.js);
  *   quiz:<вопрос> — промах в квизе распознавания шаблонов (quiz.js). Карточка — вопрос:
  *                  условие и «каким шаблоном это решается?»; шаблон (meta.pattern) ссылкой
@@ -92,6 +96,11 @@
  *   later(id, now) → boolean               — «Позже»: карточка из порции уходит в её конец; false — её
  *                                            в сегодняшней порции нет. Событий не шлёт: вид перерисовывает
  *                                            тот, кто вызвал;
+ *   giveup(pkg, fn, now) → { status, iv, due } — «Сдаюсь» в виджете runner'а: карточка pkg:<pkg> получает
+ *                                            «Забыл» (статусы как у report), а если её нет — заводится
+ *                                            на завтра (status "created"); fn — функция, на которой
+ *                                            сдались: годная для карточки придёт на ней первой (meta.fn).
+ *                                            Его же зовёт слушатель algo-runner:giveup на каждой странице;
  *   limits = { cards, heavy }              — пределы порции (их же называют тексты книги).
  * Запись algoSRS всегда по свежему чтению и с изменением только заведённых/оцениваемых карточек,
  * поэтому две вкладки не затирают друг друга; после записи на document уходит событие
@@ -100,9 +109,10 @@
  * Повреждённый algoSRS (не JSON, массив, число, строка, null) не перезаписывается ни sync, ни report:
  * сырое значение остаётся для ручного спасения или импорта (progress.js); порция при нём пуста.
  *
- * Ограничение, которое честно назвать: оценку ставит сам читатель, и движок
- * верит ей на слово. Для главы и пакета проверка объективная есть рядом (тесты
- * в тренажёре), для теории — только самооценка.
+ * Кто ставит оценку. Карточку пакета — тесты: кнопок оценки у неё нет. Задачу в тексте, 🎯 и
+ * смешанную тренировку их виджеты оценивают сами, через report, — ответ там проверяет машина.
+ * «Объясни сам» тоже зовёт report, но оценку в нём ставит читатель. У остальных карточек на этой
+ * странице — кнопки: оценку ставит читатель, и движок верит ему на слово.
  */
 (function () {
   "use strict";
@@ -119,6 +129,9 @@
   var CX_MISSED = "algoMockCxMissed";
   var VIZ_MISSED = "algoVizMissed";
   var TODAY = "algoToday"; // счётчик дня: { day, done, heavy, later } — в экспорт прогресса не входит
+  // Черновик виджета на карточке пакета (data-draft="review", ключ пишет runner.js). Владелец — карточка:
+  // стирается после оценки, а не при перестройке виджета, — иначе полчаса работы терялись бы на «Позже».
+  var REVIEW_DRAFT = "algoRunnerCode:review:";
 
   var CHANGE_EVENT = "algo-srs:change";
 
@@ -427,15 +440,23 @@
   // unsaved — ничего не записано (хранилище повреждено, переполнено или недоступно); события нет.
   // Оценка карточки с вышедшим сроком занимает место в порции дня (countDone) — кто бы её ни поставил,
   // кнопка на «Повторении» или виджет в главе; «Забыл» до срока место не занимает.
+  var NONE = { status: "none", iv: 0, due: 0 };
+  var UNSAVED = { status: "unsaved", iv: 0, due: 0 };
+
   function report(id, grade, now, opts) {
+    return gradeCard(id, grade, now, opts);
+  }
+
+  // gradeCard — report с двумя добавками для карточки пакета: change(card) правит карточку в той же
+  // записи, что и оценка (meta.last / meta.fn), saved() — после удавшейся записи, до события (стереть
+  // черновик). Ни то ни другое не зовётся при none, early и unsaved: там ничего не оценено.
+  function gradeCard(id, grade, now, opts, change, saved) {
     now = now == null ? Date.now() : now;
-    var none = { status: "none", iv: 0, due: 0 };
-    var unsaved = { status: "unsaved", iv: 0, due: 0 };
-    if (GRADES.indexOf(grade) < 0) return none;
+    if (GRADES.indexOf(grade) < 0) return NONE;
     var synced = sync(now);
-    if (synced.damaged || synced.unsaved) return unsaved;
+    if (synced.damaged || synced.unsaved) return UNSAVED;
     var card = synced.cards[id];
-    if (!card) return none;
+    if (!card) return NONE;
     if (synced.created.indexOf(id) >= 0) return { status: "created", iv: card.iv, due: card.due };
     var o = opts || {};
     if (dueOf(card) > now) {
@@ -444,7 +465,7 @@
       if (num(card.reps, 0) === 0) {
         if (!o.note || o.note === card.note) return early;
         var noted = update(id, function (c) { c.note = o.note; });
-        return noted && noted.ok ? early : noted ? unsaved : none;
+        return noted && noted.ok ? early : noted ? UNSAVED : NONE;
       }
     }
     var wasDue = false;
@@ -452,12 +473,117 @@
       wasDue = dueOf(c) <= now;
       if (grade === "again" && o.note) c.note = o.note;
       schedule(c, grade, now, o.rnd);
+      if (change) change(c);
     }, function () {
       if (wasDue) countDone(id, now);
+      if (saved) saved();
     });
-    if (!res) return none;
-    if (!res.ok) return unsaved;
+    if (!res) return NONE;
+    if (!res.ok) return UNSAVED;
     return { status: "graded", iv: res.card.iv, due: res.card.due };
+  }
+
+  // --- Карточка пакета: одна функция с чистого листа ---
+
+  // cardFns — функции пакета, годные для карточки, в порядке банка задач (assets/problems.js): у записи
+  // есть свои тесты (t) и нет соседних упражнений (n), без которых они не проходят. Запись с n на чистой
+  // заготовке неразрешима — тесты падают на panic("TODO") соседа. Пусто (пакета нет в банке, у всех его
+  // задач n, банк не загрузился) — карточка гоняет пакет целиком.
+  function cardFns(pkg) {
+    var list = window.ALGO_PROBLEMS || [];
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (p && p.p === pkg && Array.isArray(p.t) && p.t.length && !(Array.isArray(p.n) && p.n.length)) out.push(p);
+    }
+    return out;
+  }
+  function names(list) {
+    return list.map(function (p) { return p.f; });
+  }
+  // nextInTurn — функция после last по кругу; last нет в списке (новая карточка, банк поменялся) — первая.
+  function nextInTurn(fns, last) {
+    return fns[(fns.indexOf(last) + 1) % fns.length];
+  }
+  function metaOf(card) {
+    return isCard(card.meta) ? card.meta : {};
+  }
+  // cardFn — функция на сегодняшний показ: meta.fn (вне очереди, один раз — её ставит «Сдаюсь»), иначе
+  // следующая по кругу за meta.last. Выбор — от карточки и банка, без случайности: открытая карточка
+  // после перезагрузки возвращается к той же функции и тому же черновику.
+  function cardFn(pkg, meta) {
+    var list = cardFns(pkg);
+    if (!list.length) return null;
+    var fns = names(list);
+    var f = fns.indexOf(meta.fn) >= 0 ? meta.fn : nextInTurn(fns, meta.last);
+    return list[fns.indexOf(f)];
+  }
+  // advance — что запоминает оценка функции fn: meta.last — последняя пройденная ПО ОЧЕРЕДИ (от неё
+  // считается следующая); «Забыл» ставит fn вне очереди — завтра она придёт первой, а любая другая
+  // оценка fn её оттуда снимает. Функция, не годная для карточки, в meta не попадает.
+  function advance(card, pkg, fn, grade) {
+    var fns = names(cardFns(pkg));
+    if (!fn || fns.indexOf(fn) < 0) return;
+    if (!isCard(card.meta)) card.meta = { pkg: pkg };
+    var m = card.meta;
+    if (fn === nextInTurn(fns, m.last)) m.last = fn;
+    if (grade === "again") m.fn = fn;
+    else if (m.fn === fn) delete m.fn;
+  }
+  function dropDraft(pkg) {
+    try {
+      localStorage.removeItem(REVIEW_DRAFT + pkg);
+    } catch (e) {
+      /* хранилище недоступно — и черновика в нём нет */
+    }
+  }
+
+  // gradePkg — оценка карточки пакета исходом виджета: та же report, плюс meta и стёртый черновик.
+  function gradePkg(pkg, fn, grade, now) {
+    return gradeCard("pkg:" + pkg, grade, now, null,
+      function (c) { advance(c, pkg, fn, grade); },
+      function () { dropDraft(pkg); });
+  }
+
+  // giveup — «Сдаюсь» (показан эталон) в любом виджете «Реши прямо здесь»: для карточки пакета это
+  // «Забыл». Карточки нет — заводится со сроком «завтра»: сдался — значит, пакет пора повторить; функция,
+  // на которой сдались, придёт на ней первой. Карточку только что завёл sync (пакет решён на этой же
+  // странице) — оценивать нечего, запоминается только функция.
+  function giveup(pkg, fn, now) {
+    now = now == null ? Date.now() : now;
+    if (typeof pkg !== "string" || !pkg) return NONE;
+    var id = "pkg:" + pkg;
+    var fit = names(cardFns(pkg)).indexOf(fn) >= 0;
+    var synced = sync(now);
+    if (synced.damaged || synced.unsaved) return UNSAVED;
+    var card = synced.cards[id];
+    if (card && synced.created.indexOf(id) < 0) return gradePkg(pkg, fn, "again", now);
+    if (card) {
+      if (fit) update(id, function (c) { advance(c, pkg, fn, "again"); });
+      return { status: "created", iv: card.iv, due: card.due };
+    }
+    var meta = { pkg: pkg };
+    if (fit) meta.fn = fn;
+    var fresh = newCard(now + DAY, meta);
+    var store = readMap(KEY);
+    if (store.damaged) return UNSAVED;
+    // другая вкладка успела завести её между sync и этой записью — значит, карточка есть: «Забыл»
+    if (Object.prototype.hasOwnProperty.call(store.map, id)) return gradePkg(pkg, fn, "again", now);
+    store.map[id] = fresh;
+    if (!save(KEY, store.map)) return UNSAVED;
+    notify([id]);
+    return { status: "created", iv: fresh.iv, due: fresh.due };
+  }
+
+  // postpone — «Позже» у карточки с кодом, когда runner не отвечает: решать её сегодня нечем, и место
+  // для кода в порции держать незачем. Срок — начало завтрашних местных суток; интервал, ease, повторы и
+  // back не меняются, счёт дня не растёт (later() тут не годится: он оставляет карточку в сегодняшней
+  // порции). Запись — по свежему чтению, одна карточка. Отдаёт новый срок, 0 — не записано.
+  function postpone(id, now) {
+    var d = new Date(now);
+    var due = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+    var res = update(id, function (c) { c.due = due; });
+    return res && res.ok ? due : 0;
   }
 
   function kindOf(id) {
@@ -687,7 +813,22 @@
       };
     }
     if (kindOf(id) === "pkg") {
-      return { kind: "Пакет тренажёра", title: meta.pkg || id.slice(4), href: "", what: "Открой пакет и перереши с чистой заготовки: код забывается быстрее теории." };
+      // Карточка с кодом: условие функции из банка (уже без её имени — имя и подсказки покажет виджет за
+      // кнопками) и виджет runner'а. code — что гонять: функция или, если годной нет, пакет целиком.
+      var pkg = typeof meta.pkg === "string" && meta.pkg ? meta.pkg : id.slice(4);
+      var fnRec = cardFn(pkg, metaOf(card));
+      return {
+        kind: "Пакет тренажёра",
+        title: pkg,
+        href: "",
+        question: fnRec ? fnRec.s : "",
+        code: { pkg: pkg, fn: fnRec ? fnRec.f : "" },
+        what: fnRec
+          ? "Напиши эту функцию с чистого листа — без подглядывания в главу. Оценку ставят тесты: зелёные без подсказок — «Помню», " +
+            "с открытой подсказкой — «С трудом», «Сдаюсь» (показать эталон) — «Забыл»; красный прогон ничего не меняет."
+          : "Реши пакет целиком с чистой заготовки: у него нет функции, которую можно прогнать отдельно. Оценку ставит зелёный " +
+            "прогон «весь пакет» (с открытой подсказкой — «С трудом»), «Сдаюсь» на любом упражнении — «Забыл».",
+      };
     }
     return {
       kind: "Задача",
@@ -726,6 +867,8 @@
   // Перерисовки, которым нужно знать об изменении очереди (виджеты на «Повторении»). Счётчик в
   // панели обновляется отдельно — он есть на каждой странице, виджет только на «Повторении».
   var refreshers = [];
+
+  var LATER_TITLE = "в конец сегодняшней порции; карточка и её срок не меняются";
 
   function build(root) {
     // Карточка на экране: { id, due }. Пока она в порции и её срок прежний, чужое событие (другая
@@ -772,6 +915,9 @@
     }
 
     function render() {
+      // Карточка пакета, оценённая на экране, уходит: её черновик стёрт при оценке, но читатель мог
+      // печатать и после неё (виджет пишет черновик, пока он в документе) — стираем ещё раз.
+      if (current && current.graded) dropDraft(current.pkg);
       noteInput = null;
       current = null;
       var now = Date.now();
@@ -799,7 +945,10 @@
       var id = q.ids[0];
       var card = q.cards[id];
       var info = describe(id, card);
-      current = { id: id, due: dueOf(card) };
+      // hold — карточку на экране не перерисовывать чужими событиями (её оценил виджет на ней, читатель
+      // смотрит итог или эталон); settled — оценка этого показа уже поставлена; up — ответил ли runner
+      // (null — ещё неизвестно); graded — записана оценка, черновик пакета стирается при уходе.
+      var cur = current = { id: id, due: dueOf(card), hold: false, settled: false, graded: false, up: null, pkg: "" };
 
       var box = el("div", "algo-today__card");
       box.tabIndex = -1;
@@ -830,62 +979,171 @@
       }
 
       var actions = el("div", "algo-today__actions");
-      var bar = el("div", "algo-today__grades");
-      [
-        ["again", "Забыл", "вернётся завтра, а потом на ступень ниже той, с которой упала"],
-        ["hard", "С трудом", "интервал почти не растёт"],
-        ["good", "Помню", "интервал растёт"],
-      ].forEach(function (g) {
-        var b = el("button", "algo-quiz__btn algo-today__grade", g[1]);
-        b.type = "button";
-        b.title = g[2];
-        b.onclick = function () {
-          if (g[0] === "again") {
-            askNote(function (note) { apply(g[0], note); });
-            return;
-          }
-          apply(g[0]);
-        };
-        bar.appendChild(b);
-      });
-      // Карточка-вопрос: сначала попытка вспомнить, потом ответ, и только потом
-      // оценка. Оценить «Помню», не увидев ответа, — значит не проверить ничего.
-      if (info.answer) {
-        bar.style.display = "none";
-        var reveal = el("button", "algo-quiz__btn algo-today__reveal", "Показать ответ");
-        reveal.type = "button";
-        reveal.onclick = function () {
-          var ans = el("p", "algo-today__answer", "Ответ: " + (info.answer.text || ""));
-          if (info.answer.link) {
-            if (info.answer.text) ans.appendChild(document.createTextNode(". Глава: "));
-            var link = el("a", null, info.answer.link.text);
-            link.href = info.answer.link.href;
-            ans.appendChild(link);
-          }
-          ans.tabIndex = -1;
-          box.insertBefore(ans, actions);
-          actions.removeChild(reveal);
-          bar.style.display = "";
-          ans.focus(); // кнопка, на которой стоял фокус, только что убрана
-        };
-        actions.appendChild(reveal);
-      }
-      actions.appendChild(bar);
-
       // «Позже» — на каждой карточке и до ответа тоже: карточка уходит в конец сегодняшней порции,
       // её расписание не меняется. Единственная в порции остаётся на месте — очередь не запирается.
+      // Карточку с кодом без runner'а сегодня не решить: «Позже» переносит её на завтра (tomorrow).
       var laterBtn = el("button", "algo-quiz__btn algo-today__later", "Позже");
       laterBtn.type = "button";
-      laterBtn.title = "в конец сегодняшней порции; карточка и её срок не меняются";
+      laterBtn.title = LATER_TITLE;
       laterBtn.onclick = function () {
+        if (cur.up === false) {
+          tomorrow();
+          return;
+        }
         later(id, Date.now());
         render();
         if (current && current.id === id) toast("Других карточек в сегодняшней порции нет — эта осталась на месте.");
         focusCard();
       };
+
+      var mount = null;
+      if (info.code) {
+        mount = codeCard(info.code);
+      } else {
+        var bar = el("div", "algo-today__grades");
+        [
+          ["again", "Забыл", "вернётся завтра, а потом на ступень ниже той, с которой упала"],
+          ["hard", "С трудом", "интервал почти не растёт"],
+          ["good", "Помню", "интервал растёт"],
+        ].forEach(function (g) {
+          var b = el("button", "algo-quiz__btn algo-today__grade", g[1]);
+          b.type = "button";
+          b.title = g[2];
+          b.onclick = function () {
+            if (g[0] === "again") {
+              askNote(function (note) { apply(g[0], note); });
+              return;
+            }
+            apply(g[0]);
+          };
+          bar.appendChild(b);
+        });
+        // Карточка-вопрос: сначала попытка вспомнить, потом ответ, и только потом
+        // оценка. Оценить «Помню», не увидев ответа, — значит не проверить ничего.
+        if (info.answer) {
+          bar.style.display = "none";
+          var reveal = el("button", "algo-quiz__btn algo-today__reveal", "Показать ответ");
+          reveal.type = "button";
+          reveal.onclick = function () {
+            var ans = el("p", "algo-today__answer", "Ответ: " + (info.answer.text || ""));
+            if (info.answer.link) {
+              if (info.answer.text) ans.appendChild(document.createTextNode(". Глава: "));
+              var link = el("a", null, info.answer.link.text);
+              link.href = info.answer.link.href;
+              ans.appendChild(link);
+            }
+            ans.tabIndex = -1;
+            box.insertBefore(ans, actions);
+            actions.removeChild(reveal);
+            bar.style.display = "";
+            ans.focus(); // кнопка, на которой стоял фокус, только что убрана
+          };
+          actions.appendChild(reveal);
+        }
+        actions.appendChild(bar);
+      }
       actions.appendChild(laterBtn);
       box.appendChild(actions);
       root.appendChild(box);
+      // runner.js ищет виджеты в документе — поднимать его можно только после вставки карточки
+      if (mount) mount();
+
+      function tomorrow() {
+        var due = postpone(id, Date.now());
+        render();
+        toast(due
+          ? "Без runner'а карточку с кодом не решить — перенёс её на завтра; интервал не изменился."
+          : "Не удалось перенести карточку: хранилище браузера недоступно или переполнено.");
+        focusCard();
+      }
+
+      // codeCard — карточка пакета: виджет «Реши прямо здесь» (runner.js) с функцией карточки и своим
+      // черновиком. Оценку ставят его события: зелёный прогон — здесь, по событию СВОЕГО узла; «Сдаюсь» —
+      // общий слушатель страницы (onGiveup), он зовёт view на узле. Оценённая карточка остаётся на
+      // экране до «Дальше»: читатель смотрит итог прогона или эталон, а не следующую карточку.
+      function codeCard(code) {
+        cur.pkg = code.pkg;
+        var node = el("div", "algo-runner");
+        node.setAttribute("data-pkg", code.pkg);
+        if (code.fn) node.setAttribute("data-func", code.fn);
+        node.setAttribute("data-draft", "review");
+        box.appendChild(node);
+        var down = el("p", "algo-today__down");
+        down.hidden = true;
+        box.appendChild(down);
+
+        function runnerDown(text) {
+          cur.up = false;
+          down.textContent = text;
+          down.hidden = false;
+          laterBtn.title = "на завтра: без runner'а карточку не решить; интервал и срок повторений не меняются";
+        }
+        node.addEventListener("algo-runner:state", function (e) {
+          var d = e.detail || {};
+          if (d.up === false) {
+            runnerDown("Этой карточке нужен runner, а он не отвечает: подними его (как — написано в виджете) или нажми «Позже» — " +
+              "карточка перенесётся на завтра, её интервал не изменится.");
+          } else if (d.up === true) {
+            cur.up = true;
+            down.hidden = true;
+            laterBtn.title = LATER_TITLE;
+          }
+        });
+
+        var view = node.__algoTodayCard = {
+          settled: function () { return cur.settled; },
+          hold: function () { cur.hold = true; },
+          graded: function (res, grade) {
+            if (res.status === "graded") {
+              cur.graded = true;
+              settle(verdict(res, grade));
+            } else if (res.status === "early") {
+              settle("Эту карточку уже оценили в другой вкладке — оставил как есть.");
+            } else {
+              cur.hold = false;
+              if (res.status === "unsaved") toast("Не удалось сохранить оценку: хранилище браузера недоступно или переполнено. Карточка осталась в очереди.");
+            }
+          },
+        };
+        node.addEventListener("algo-runner:result", function (e) {
+          var d = e.detail || {};
+          // только зелёный прогон своего листа: виджет на экране, черновик карточки, тот же пакет, не
+          // списанный с эталона (после «Сдаюсь» оценка уже стоит), та же функция — или пакет целиком
+          if (cur.settled || !node.isConnected || d.draft !== "review" || d.pkg !== code.pkg || !d.ok || d.gaveUp) return;
+          if (code.fn ? d.fn !== code.fn : d.unit !== "pkg") return;
+          var grade = d.hints > 0 ? "hard" : "good";
+          view.hold();
+          view.graded(gradePkg(code.pkg, code.fn, grade, Date.now()), grade);
+        });
+
+        function settle(text) {
+          cur.settled = true;
+          box.insertBefore(el("p", "algo-today__verdict", text), actions);
+          var next = el("button", "algo-quiz__btn algo-today__next", "Дальше →");
+          next.type = "button";
+          next.onclick = function () {
+            render();
+            focusCard();
+          };
+          actions.replaceChild(next, laterBtn);
+        }
+        function verdict(res, grade) {
+          var days = Math.max(1, Math.round((res.due - Date.now()) / DAY));
+          var when = "следующее повторение через " + days + " " + plural(days, "день", "дня", "дней");
+          if (grade === "good") return "✓ Тесты зелёные без подсказок — «Помню»: " + when + ".";
+          if (grade === "hard") return "✓ Тесты зелёные, но с подсказкой — «С трудом»: " + when + ".";
+          var back = (loadCards()[id] || {}).back;
+          return "Эталон показан — это «Забыл»: " + when +
+            (back > 1 ? ", потом — через " + back + " " + plural(back, "день", "дня", "дней") : "") +
+            (code.fn ? "; эта функция придёт на карточке первой." : ".");
+        }
+
+        return function mount() {
+          if (typeof window.ALGO_RUNNER_INIT === "function") window.ALGO_RUNNER_INIT();
+          else runnerDown("Этой карточке нужен runner, а виджет тренажёра на странице не загрузился. Нажми «Позже» — " +
+            "карточка перенесётся на завтра, её интервал не изменится.");
+        };
+      }
 
       // Оценка идёт через report: он читает хранилище заново и меняет одну карточку, а не
       // пишет обратно всё, что виджет прочитал при отрисовке.
@@ -945,7 +1203,7 @@
       var now = Date.now();
       var q = queue(now);
       var keep = current && !q.damaged &&
-        (noteInput || (q.ids.indexOf(current.id) >= 0 && dueOf(q.cards[current.id]) === current.due));
+        (noteInput || current.hold || (q.ids.indexOf(current.id) >= 0 && dueOf(q.cards[current.id]) === current.due));
       if (!keep) {
         render();
         return;
@@ -1020,6 +1278,29 @@
     if (timer && typeof timer.unref === "function") timer.unref();
   }
 
+  // «Сдаюсь» в любом виджете runner'а на любой странице (глава, смешанная тренировка, «Повторение») —
+  // слушатель один, здесь: карточка пакета получает «Забыл» или заводится на завтра. Если это виджет
+  // карточки «Повторения», он узнаёт итог через view на своём узле. Эталон после ЗЕЛЁНОГО прогона той же
+  // функции на этой странице — сверка, а не «сдаюсь»: иначе «Помню», поставленное тестами, тут же
+  // сменялось бы на «Забыл», стоило читателю сравнить своё решение с эталоном.
+  var greenHere = {}; // «<pkg>.<fn>» и «<pkg>.*» (пакет целиком) — зелёные прогоны этой страницы
+  function onRunnerResult(e) {
+    var d = e.detail || {};
+    if (!d.ok || d.gaveUp || typeof d.pkg !== "string") return;
+    greenHere[d.pkg + "." + (d.unit === "pkg" ? "*" : d.fn)] = true;
+  }
+  function onGiveup(e) {
+    var d = e.detail || {};
+    if (typeof d.pkg !== "string" || !d.pkg) return;
+    var fn = typeof d.fn === "string" ? d.fn : "";
+    if (greenHere[d.pkg + ".*"] || greenHere[d.pkg + "." + fn]) return;
+    var view = e.target && e.target.__algoTodayCard;
+    if (view && view.settled()) return;
+    if (view) view.hold(); // до записи: событие algo-srs:change иначе стёрло бы карточку с эталоном
+    var res = giveup(d.pkg, fn, Date.now());
+    if (view) view.graded(res, "again");
+  }
+
   window.ALGO_SRS = {
     schedule: schedule,
     sync: sync,
@@ -1029,6 +1310,7 @@
     damaged: function () { return readMap(KEY).damaged; },
     today: today,
     later: later,
+    giveup: giveup,
     limits: { cards: DAY_LIMIT, heavy: HEAVY_LIMIT },
   };
 
@@ -1036,6 +1318,8 @@
     sync(Date.now());
     refreshBadge();
     document.addEventListener(CHANGE_EVENT, refreshViews);
+    document.addEventListener("algo-runner:result", onRunnerResult);
+    document.addEventListener("algo-runner:giveup", onGiveup);
     window.addEventListener("storage", function (e) {
       if (e.key === null || e.key === KEY || e.key === TODAY) refreshViews();
     });

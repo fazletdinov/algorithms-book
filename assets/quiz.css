@@ -504,10 +504,35 @@
   gap: 8px;
 }
 
-/* «Позже» не оценка: стоит отдельно от них и тише. */
-.algo-today__later {
+/* «Позже» не оценка: стоит отдельно от них и тише. «Дальше →» встаёт на его место, когда карточку
+   пакета оценили тесты. */
+.algo-today__later,
+.algo-today__next {
   margin-left: auto;
+}
+
+.algo-today__later {
   opacity: 0.8;
+}
+
+/* Карточка пакета: виджет runner'а внутри карточки, строка «нужен runner» и итог оценки под ним. */
+.algo-today__card .algo-runner {
+  margin: 0.4em 0 0.8em;
+}
+
+.algo-today__down,
+.algo-today__verdict {
+  margin: 0 0 0.7em;
+  font-size: 0.93em;
+}
+
+.algo-today__down {
+  padding: 0.4em 0.6em;
+  border-left: 3px solid #d97706;
+}
+
+.algo-today__verdict {
+  font-weight: 600;
 }
 
 .algo-today__noteform {
