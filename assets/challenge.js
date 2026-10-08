@@ -149,8 +149,18 @@
       q: (q ? q.textContent : "").trim().slice(0, 120),
     };
     save(MISSED, m);
-    // карточка промаха встаёт в очередь сразу: счётчик «Сегодня» обновляется без перехода на другую страницу
-    if (window.ALGO_SRS) window.ALGO_SRS.sync();
+  }
+
+  // report — исход задачи в расписание её карточки (srs.js): верно — «Помню», неверно — «Забыл».
+  // Только первая проверка за загрузку страницы: вторая попытка после подсказки или разбора — уже не
+  // воспоминание. Зовётся ПОСЛЕ markSolved/markMissed — у новой ошибки sync внутри report сначала заводит
+  // карточку промаха (на сегодня, без оценки), и счётчик «Сегодня» обновляется без перехода на другую
+  // страницу. У решённой задачи с карточкой оценивается и она: промах там в список не пишется, а карточка
+  // повторения есть.
+  function report(root, ok) {
+    if (!root || !root.__algoId || root.__algoReported) return;
+    root.__algoReported = true;
+    if (window.ALGO_SRS && window.ALGO_SRS.report) window.ALGO_SRS.report("task:" + root.__algoId, ok ? "good" : "again");
   }
 
   function buildFeedback(root) {
@@ -242,6 +252,7 @@
         if (fails >= 2) addReveal(fb, explain);
         input.classList.remove("algo-challenge__input--ok");
       }
+      report(root, ok);
     }
 
     btn.addEventListener("click", check);
@@ -291,6 +302,7 @@
         });
         showResult(fb, ok, explain);
         if (ok) markSolved(root); else markMissed(root);
+        report(root, ok);
       });
       buttons.push(b);
       list.appendChild(b);
@@ -393,6 +405,7 @@
         if (fails >= 2) addReveal(fb, explain);
         seq.classList.remove("is-ok");
       }
+      report(root, ok);
     });
 
     resetBtn.addEventListener("click", function () {

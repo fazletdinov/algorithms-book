@@ -147,6 +147,77 @@ console.log("ordering no-spoiler:");
   assert(!!doc.querySelector(".algo-challenge__reveal"), "ordering 2-й промах: кнопка разбора");
 }
 
+// ---- 5. исход задачи идёт в расписание её карточки (ALGO_SRS.report, настоящий srs.js) ----
+// Первая проверка за загрузку страницы оценивает карточку task:<страница>#<номер>: верно — «Помню»,
+// неверно — «Забыл», и у уже решённой задачи тоже; дальнейшие попытки той же загрузки карточку не трогают.
+console.log("report → srs:");
+{
+  const DAY = 24 * 60 * 60 * 1000;
+  const NOW = new Date(2026, 0, 14, 12, 0, 0).getTime();
+  const TASK = `<div class="algo-challenge" data-type="predict" data-answer="42" data-explain="разбор"><div class="algo-challenge__q">Сколько?</div></div>`;
+  const CHOICE = `<div class="algo-challenge" data-type="choice" data-options="верный|второй|третий" data-answer="0" data-explain="разбор"></div>`;
+  const ORDER = `<div class="algo-challenge" data-type="ordering" data-items="альфа|бета|гамма" data-explain="разбор"></div>`;
+  const srcSrs = fs.readFileSync(path.join(__dirname, "..", "assets", "srs.js"), "utf8");
+  const mature = () => ({ due: NOW - DAY, iv: 8, ease: 2.5, reps: 3, meta: { page: "big-o", anchor: "task-0", q: "Сколько?" }, seen: NOW - 9 * DAY });
+  async function page(body, seed) {
+    const dom = new JSDOM(`<body>${body}</body>`, { runScripts: "outside-only", url: "https://example.test/big-o.html" });
+    Object.keys(seed).forEach((k) => dom.window.localStorage.setItem(k, seed[k]));
+    dom.window.eval(`window.__now = ${NOW}; Date.now = function () { return window.__now; };`);
+    dom.window.eval(srcSrs);
+    dom.window.eval(src);
+    if (dom.window.document.readyState === "loading") {
+      await new Promise((r) => dom.window.document.addEventListener("DOMContentLoaded", r));
+    }
+    return dom;
+  }
+  const cardOf = (dom) => JSON.parse(dom.window.localStorage.getItem("algoSRS") || "{}")["task:big-o#0"];
+  const answer = (dom, v) => {
+    const doc = dom.window.document;
+    doc.querySelector(".algo-challenge__input").value = v;
+    doc.querySelector(".algo-challenge__btn").click();
+  };
+  const solvedSeed = () => ({ algoChallengeSolved: JSON.stringify({ "big-o#0": true }), algoSRS: JSON.stringify({ "task:big-o#0": mature() }) });
+
+  // решённая задача, карточка в сроке: неверный ответ — «Забыл»; вторая попытка в ту же загрузку — без оценки
+  let dom = await page(TASK, solvedSeed());
+  answer(dom, "7");
+  let c = cardOf(dom);
+  assert(c && c.iv === 1 && c.back === 3 && c.reps === 0, `решённая задача, неверно: «Забыл» (iv 1, back 3) — ${JSON.stringify(c)}`);
+  const snap = dom.window.localStorage.getItem("algoSRS");
+  answer(dom, "42");
+  assert(dom.window.localStorage.getItem("algoSRS") === snap, "вторая попытка в ту же загрузку карточку не трогает");
+  assert(!JSON.parse(dom.window.localStorage.getItem("algoChallengeMissed") || "{}")["big-o#0"], "промах по решённой задаче в список промахов не пишется (как раньше)");
+  // та же задача, верный ответ — «Помню»
+  dom = await page(TASK, solvedSeed());
+  answer(dom, "42");
+  c = cardOf(dom);
+  assert(c && c.iv === 20 && c.reps === 4, `решённая задача, верно: «Помню» (iv 8 → 20) — ${JSON.stringify(c)}`);
+  answer(dom, "7");
+  assert(cardOf(dom).iv === 20 && !cardOf(dom).back, "неверный ответ после верного в ту же загрузку не роняет карточку");
+  // новый промах: карточка заводится на сегодня (report отвечает created), второй промах той же загрузки — без оценки
+  dom = await page(TASK, {});
+  answer(dom, "7");
+  c = cardOf(dom);
+  assert(c && c.iv === 0 && c.due === NOW, `первый промах заводит карточку на сегодня, не оценивая её: ${JSON.stringify(c)}`);
+  answer(dom, "8");
+  assert(JSON.stringify(cardOf(dom)) === JSON.stringify(c), "второй промах в ту же загрузку не опускает только что заведённую карточку");
+  // выбор и порядок шагов — те же правила
+  dom = await page(CHOICE.replace("<div ", '<div data-id="big-o#0" '), solvedSeed());
+  [...dom.window.document.querySelectorAll(".algo-challenge__opt")].find((b) => b.textContent !== "верный").click();
+  assert(cardOf(dom).iv === 1, `choice, неверно: «Забыл» — ${JSON.stringify(cardOf(dom))}`);
+  dom = await page(ORDER.replace("<div ", '<div data-id="big-o#0" '), solvedSeed());
+  const doc = dom.window.document;
+  for (const t of ["альфа", "бета", "гамма"]) [...doc.querySelectorAll(".algo-challenge__pool .algo-challenge__chip")].find((x) => x.textContent.includes(t)).click();
+  [...doc.querySelectorAll(".algo-challenge__btn")].find((b) => b.textContent === "Проверить порядок").click();
+  assert(cardOf(dom).iv === 20, `ordering, верно: «Помню» — ${JSON.stringify(cardOf(dom))}`);
+  // пустой ответ — не проверка, оценки нет
+  dom = await page(TASK, solvedSeed());
+  answer(dom, "   ");
+  assert(dom.window.localStorage.getItem("algoSRS") === JSON.stringify({ "task:big-o#0": mature() }), "пустой ответ карточку не оценивает");
+  answer(dom, "7");
+  assert(cardOf(dom).iv === 1, "первая настоящая проверка после пустого ответа оценивает карточку");
+}
+
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURES`);
 process.exit(failures === 0 ? 0 : 1);
 }
