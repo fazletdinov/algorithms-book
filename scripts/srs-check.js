@@ -308,10 +308,20 @@ if (!api) {
     ["прежняя формула iv 1, ease 1.3, reps 2: Помню", { iv: 1, ease: 1.3, reps: 2 }, ["good"], "2"],
     ["прежняя формула iv 1, ease 1.3, reps 2: С трудом", { iv: 1, ease: 1.3, reps: 2 }, ["hard"], "2"],
     ["«С трудом» после «Забыл» снимает back: 1, затем 2", { iv: 22, ease: 2.7, reps: 4 }, ["again", "hard", "hard"], "1 (back 8), 1, 2"],
+    // round(4 / 2.55) = 2, но ниже 3 дней «Забыл» ступень не опускает: пол LADDER_LOW
+    ["4 дня при высоком ease: Забыл, Помню (пол ступени)", { iv: 4, ease: 2.55, reps: 2 }, ["again", "good"], "1 (back 3), 3"],
     ["ладдер «Помню» с новой карточки", { iv: 0, ease: 2.5, reps: 0 }, ["good", "good", "good", "good", "good"], "1, 3, 8, 22, 61"],
   ]) {
     const got = play(start, grades).join(", ");
     if (got !== want) errors.push(`${name}: интервалы «${got}», ожидалось «${want}»`);
+  }
+
+  // Неизвестная оценка (опечатка в вызове виджета) не должна молча стать «Помню».
+  {
+    const c = { iv: 8, ease: 2.5, reps: 3, due: 5, meta: {} };
+    const before = JSON.stringify(c);
+    const got = api.schedule(c, "excellent", 0, MID);
+    if (JSON.stringify(c) !== before || got !== 8) errors.push(`schedule с неизвестной оценкой изменил карточку: ${JSON.stringify(c)}, вернул ${got}`);
   }
 
   // Разброс: номинальный iv не двигается, сдвигается только срок, и только от 8 дней.
