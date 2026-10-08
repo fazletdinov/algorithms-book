@@ -874,6 +874,8 @@
   var refreshers = [];
 
   var LATER_TITLE = "в конец сегодняшней порции; карточка и её срок не меняются";
+  // С запасом больше задержки, с которой runner.js пишет черновик после ввода (400 мс).
+  var DRAFT_SETTLE_MS = 1000;
 
   function build(root) {
     // Карточка на экране: { id, due }. Пока она в порции и её срок прежний, чужое событие (другая
@@ -1101,6 +1103,9 @@
           graded: function (res, grade) {
             if (res.status === "graded") {
               cur.graded = true;
+              // Виджет пишет черновик через 400 мс после ввода, а прогон, нажатый сразу после правки,
+              // оценивается раньше: та запись придёт уже после стирания. Стираем ещё раз, когда она прошла.
+              setTimeout(function () { dropDraft(cur.pkg); }, DRAFT_SETTLE_MS);
               settle(verdict(res, grade));
             } else if (res.status === "early") {
               settle("Эту карточку уже оценили в другой вкладке — оставил как есть.");
@@ -1217,6 +1222,11 @@
     }
 
     refreshers.push(refresh);
+    // уход со страницы (перезагрузка, переход) с оценённой карточкой пакета на экране — как «Дальше»:
+    // черновик, дописанный после оценки, не должен открыться на следующем показе карточки
+    window.addEventListener("pagehide", function () {
+      if (current && current.graded) dropDraft(current.pkg);
+    });
     render();
   }
 

@@ -2067,6 +2067,22 @@ const startOfDay = (t) => { const d = new Date(t); return new Date(d.getFullYear
   if (d7.window.localStorage.getItem(DRAFT + "slidingwindow") !== "код" || !/Не удалось сохранить/.test(todayText(d7))) errors.push(`unsaved: «${todayText(d7).slice(0, 200)}», черновик ${d7.window.localStorage.getItem(DRAFT + "slidingwindow")}`);
   fire(d7, "algo-runner:result", run("slidingwindow", SW[0]));
   if ((cards(d7)["pkg:slidingwindow"] || {}).iv !== 1) errors.push("после unsaved следующий зелёный прогон карточку не оценил");
+
+  // Гонка, найденная в браузере: виджет пишет черновик через 400 мс после ввода, а прогон, нажатый сразу
+  // после правки, зеленеет за ~200 мс — черновик записывается ПОСЛЕ оценки и стирания. Карточка стирает
+  // его ещё раз, когда срок записи прошёл, и при уходе со страницы (pagehide), если оценена.
+  const d8 = await newDom({ algoSRS: JSON.stringify({ "pkg:slidingwindow": heavy("slidingwindow", now - DAY) }) }, [CLOCK(now), problemsJs, RUNNER], PAGE);
+  fire(d8, "algo-runner:result", run("slidingwindow", SW[0]));
+  d8.window.localStorage.setItem(DRAFT + "slidingwindow", "запоздавшая запись виджета");
+  await new Promise((r) => setTimeout(r, 1200));
+  if (d8.window.localStorage.getItem(DRAFT + "slidingwindow") !== null) errors.push("черновик, записанный виджетом через 400 мс после оценки, остался — следующий показ открылся бы с ним");
+  d8.window.localStorage.setItem(DRAFT + "slidingwindow", "печатал после оценки и перезагрузил");
+  d8.window.dispatchEvent(new d8.window.Event("pagehide"));
+  if (d8.window.localStorage.getItem(DRAFT + "slidingwindow") !== null) errors.push("уход со страницы с оценённой карточкой не стёр черновик");
+  // без оценки уход со страницы черновик не трогает: открытая карточка вернётся к нему
+  const d9 = await newDom({ algoSRS: JSON.stringify({ "pkg:slidingwindow": heavy("slidingwindow", now - DAY) }), [DRAFT + "slidingwindow"]: "работа" }, [CLOCK(now), problemsJs, RUNNER], PAGE);
+  d9.window.dispatchEvent(new d9.window.Event("pagehide"));
+  if (d9.window.localStorage.getItem(DRAFT + "slidingwindow") !== "работа") errors.push("уход со страницы стёр черновик неоценённой карточки");
 }
 
 // --- 23. (b) функции для карточки нет: виджет без data-func, оценку даёт зелёный прогон пакета целиком ---
