@@ -280,6 +280,12 @@ async function main() {
   if (!/Предсказание шага/.test(vizText) || !/строка 9: if windowSum > maxSum/.test(vizText) || !vizLink || vizLink.getAttribute("href") !== "sliding-window.html") {
     errors.push(`карточка viz: без вида, развилки или ссылки на страницу: «${vizText.slice(0, 160)}»`);
   }
+  // с якорем (algo-viz.js пишет его с промахом) ссылка ведёт прямо к виджету; без якоря — на страницу (выше)
+  const vizA = await newDom({
+    algoVizMissed: JSON.stringify({ "two-pointers-sum": { n: 1, page: "two-pointers.html", anchor: "viz-3", title: "Два указателя", line: 4, code: "if s == target {" } }),
+  });
+  const aLink = vizA.window.document.querySelector(".algo-today__title");
+  if (!aLink || aLink.getAttribute("href") !== "two-pointers.html#viz-3") errors.push(`карточка viz: с якорем ведёт на ${aLink && aLink.getAttribute("href")}, ожидалось two-pointers.html#viz-3`);
 
   if (click(mix, "Показать ответ")) {
     const ans = box.querySelector(".algo-today__answer a");

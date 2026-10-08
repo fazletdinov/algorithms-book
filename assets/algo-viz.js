@@ -16357,6 +16357,8 @@
         scrub.value = idx;
         scrub.setAttribute("aria-valuetext", "Шаг " + (idx + 1) + " из " + steps.length);
       }
+      // дошли до последнего шага навигацией (не пересчётом высоты) — итог прохода с 🎯
+      if (!inJob && idx === steps.length - 1) predPassEnd();
     }
     // --- Автопроигрывание: алгоритм сам листает шаги, строка кода подсвечивается на лету ---
     var timer = null;
@@ -16391,7 +16393,7 @@
     // смена скорости на лету — перезапускаем таймер с новым интервалом
     speedInp.addEventListener("input", function () { if (timer) { stopPlay(); startPlay(); } });
 
-    bFirst.onclick = function () { stopPlay(); predAnswered = {}; show(0); };
+    bFirst.onclick = function () { stopPlay(); predNewPass(); show(0); };
     bPrev.onclick = function () { stopPlay(); show(idx - 1); };
     bNext.onclick = function () { stopPlay(); tryAdvance(false); };
     bLast.onclick = function () { stopPlay(); show(steps.length - 1); };
@@ -16403,7 +16405,7 @@
       else if (predPending && (k === "n" || k === "н" || k === "2")) { predAnswer(false); }
       else if (e.key === "ArrowLeft") { stopPlay(); show(idx - 1); }
       else if (e.key === "ArrowRight") { stopPlay(); tryAdvance(false); }
-      else if (e.key === "Home") { stopPlay(); predAnswered = {}; show(0); }
+      else if (e.key === "Home") { stopPlay(); predNewPass(); show(0); }
       else if (e.key === "End") { stopPlay(); show(steps.length - 1); }
       else if (e.key === " " || e.key === "Spacebar") { bPlay.onclick(); }
       else if (e.key === "f" || e.key === "F" || e.key === "а" || e.key === "А") { setFs(!root.classList.contains("algo-tp--fs")); }
@@ -16428,6 +16430,32 @@
     var predOwnWhere = cfg.presets ? "на примере главы и пресетах" : "на примере главы";
     var predOn = false, predPending = null, predAnswered = {}, predVerdict = null, predRight = 0, predTotal = 0, predBox = null;
     try { predOn = localStorage.getItem(PRED_KEY) === "1"; } catch (e) { /* приватный режим */ }
+    // Проход с 🎯 — от первого шага до последнего на одном наборе ответов: его начинают сборка виджета
+    // (и перезапуск пресетом или «Запустить» — это новая сборка), ⏮ и Home. Исход прохода уходит в
+    // движок повторений (srs.js) карточкой viz:<тип>: промах — «Забыл», один раз за проход (пять промахов
+    // одного захода — одно падение); проход до последнего шага, где ВСЕ вопросы этого входа отвечены
+    // верно, без «Пропустить» и без перемотки мимо вопроса, — «Помню», тоже один раз. Определение
+    // считает движок по своим вопросам (predQs), а не по разметке главы.
+    var pass = null;
+    function predNewPass() {
+      predAnswered = {};
+      pass = { right: {}, missed: false, done: false };
+    }
+    predNewPass();
+    // rerun() строит виджет заново на том же узле, а обработчики клавиш прежней сборки остаются на нём:
+    // оценку ставит только текущая сборка, иначе End на перестроенном виджете закрыл бы старый проход.
+    var predBuild = root.__algoBuild = {};
+    function predReport(grade) {
+      if (root.__algoBuild !== predBuild || !window.ALGO_SRS || typeof window.ALGO_SRS.report !== "function") return;
+      window.ALGO_SRS.report("viz:" + (root.getAttribute("data-viz") || cfg.badge), grade);
+    }
+    function predPassEnd() {
+      if (!predHas || !pass || pass.done) return;
+      // каждый вопрос этого входа отвечен верно в этом проходе: пропущенный, перемотанный и промах сюда не попадают
+      for (var k in predQs) if (!pass.right[k]) return;
+      pass.done = true;
+      predReport("good");
+    }
     var bPred = mkBtn("🎯", "Предсказывать исход на развилках if / for");
     bPred.classList.add("algo-tp__predbtn");
     var predScore = mkEl("span", "algo-tp__predscore", "");
@@ -16505,7 +16533,8 @@
       var q = predPending;
       if (!q) return;
       var ok = yes === q.entered;
-      predAnswered[q.at] = true; predTotal++; if (ok) predRight++; else predMiss(q);
+      predAnswered[q.at] = true; predTotal++;
+      if (ok) { predRight++; pass.right[q.at] = true; } else predMiss(q);
       predClose();
       predVerdict = { at: q.at, ok: ok };
       stepTo(q.at);
@@ -16519,12 +16548,18 @@
         var e = m[type] || { n: 0 };
         e.n++; e.ts = Date.now();
         e.page = location.pathname.split("/").pop() || "";
+        // якорь — id корня (у виджета без своего id это viz-<номер>, см. anchorIds): карточка viz: ведёт
+        // по ссылке «страница#якорь» прямо к виджету, а не в начало главы
+        e.anchor = root.id || "";
         e.title = cfg.title(ctx); e.line = q.line + 1; e.code = codeLines[q.line].trim();
         m[type] = e;
         localStorage.setItem(PRED_MISS, JSON.stringify(m));
       } catch (err) { /* приватный режим: промах просто не запомнится */ }
-      // карточка промаха встаёт в очередь сразу: счётчик «Сегодня» обновляется без перехода на другую страницу
-      if (window.ALGO_SRS) window.ALGO_SRS.sync();
+      // «Забыл» — один раз за проход и после записи промаха: новую карточку заводит sync внутри report
+      // (на сегодня, без оценки), и счётчик «Сегодня» обновляется без перехода на другую страницу
+      if (pass.missed) return;
+      pass.missed = true;
+      predReport("again");
     }
     predSync();
     [bPred, predScore].forEach(function (x) { btns.appendChild(x); });
@@ -16633,6 +16668,7 @@
         var b = mkEl("button", "algo-viz-tabs__tab", p.getAttribute("data-tab") || ("Вариант " + (i + 1)));
         b.type = "button"; b.setAttribute("role", "tab");
         b.onclick = function () { select(i); };
+        p.__algoTab = function () { select(i); }; // ссылка «страница#якорь» открывает вкладку виджета (revealHash)
         bar.appendChild(b);
         return b;
       });
@@ -16684,9 +16720,36 @@
     el.classList.add("algo-viz--ready");
     el.appendChild(mkEl("div", "algo-tp__note", "⚠️ Неизвестный тип визуализации: " + t));
   }
+  // Якорь виджета: у корня без своего id — «viz-<номер>», номер — порядковый среди .algo-viz страницы в
+  // порядке документа (включая неактивные вкладки и свёрнутые <details>), поэтому от нажатий читателя он не
+  // меняется. Занятый id не перебивается: у такого виджета якоря нет. Промах 🎯 пишет якорь в
+  // algoVizMissed, и карточка viz: на «Повторении» ведёт прямо к виджету.
+  function anchorIds() {
+    Array.prototype.forEach.call(document.querySelectorAll(".algo-viz"), function (el, i) {
+      if (el.id) return;
+      var id = "viz-" + (i + 1);
+      if (!document.getElementById(id)) el.id = id;
+    });
+  }
+  // Ссылка «страница#якорь-виджета»: браузер сам до виджета не прокрутит — id ставит скрипт, а виджет
+  // может стоять в неактивной вкладке или в свёрнутом «Втором проходе». Открываем то и другое и
+  // прокручиваем после постройки (и ещё раз на load: шрифты и формулы сдвигают раскладку).
+  function revealHash() {
+    var id;
+    try { id = decodeURIComponent((location.hash || "").slice(1)); } catch (e) { return; }
+    var target = id && document.getElementById(id);
+    if (!target || !target.classList.contains("algo-viz")) return;
+    if (target.__algoTab) target.__algoTab();
+    for (var n = target.parentNode; n && n !== document; n = n.parentNode) if (n.tagName === "DETAILS") n.open = true;
+    if (target.scrollIntoView) target.scrollIntoView({ block: "start" });
+  }
   function init() {
+    anchorIds();
     initTabs();
     Array.prototype.forEach.call(document.querySelectorAll(".algo-viz:not(.algo-viz--ready)"), render);
+    revealHash();
+    if (document.readyState !== "complete") window.addEventListener("load", revealHash);
+    window.addEventListener("hashchange", revealHash);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();

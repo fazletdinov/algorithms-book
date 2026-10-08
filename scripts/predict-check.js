@@ -8,8 +8,11 @@
 //   2) включённый режим на развилке НЕ листает по «›» / «→», пока не ответишь, — иначе
 //      вопрос можно проскочить, не подумав, и режим превращается в декорацию;
 //   3) ответ листает на шаг развилки и помечает его «Верно» / «Не угадал»; счёт «k/n»
-//      совпадает с числом ответов, промах пишется в algoVizMissed (оттуда srs.js
-//      заводит карточку viz:<тип>);
+//      совпадает с числом ответов, промах пишется в algoVizMissed с якорем виджета (оттуда
+//      srs.js заводит карточку viz:<тип>, и её ссылка ведёт прямо к виджету); исход прохода —
+//      ALGO_SRS.report: промах — «Забыл» один раз за проход, проход до последнего шага со всеми
+//      вопросами отвеченными верно — «Помню» один раз; «Пропустить», перемотка мимо вопроса,
+//      перезапуск пресетом, пересчёт высоты и виджет без развилок «Помню» не дают;
 //   4) верный ответ — это правда о следующем шаге: «Да» верен ровно тогда, когда шаг
 //      после развилки попал в тело блока — сверяется по подсвеченной строке кода;
 //   5) у виджета без развилок кнопка 🎯 выключена, а не молча бесполезна;
@@ -38,6 +41,11 @@
 //      выведенное «нет» не спрашивается вовсе; «да» и явный исход — как обычно. Если свой ввод
 //      убрал ВСЕ вопросы, кнопка 🎯 выключена, а её подсказка говорит об этом («На своём вводе
 //      вопросов 🎯 нет»), а не «развилок на шагах нет» — так отвечает виджет без развилок вовсе.
+//
+//  10) то же с настоящим srs.js: карточка viz: в сроке — промах даёт «Забыл», чистый проход — «Помню»;
+//      первый промах без карточки заводит её на сегодня, без оценки;
+//  11) якорь: id корня viz-<номер на странице> по порядку документа (с неактивными вкладками), занятый id
+//      не перебивается; «страница#якорь» открывает вкладку и <details> виджета и прокручивает к нему.
 //
 //   node scripts/predict-check.js --report   # напечатать текущий список неподтверждённых
 //                                            # «нет» в формате predict-unconfirmed.json
@@ -354,6 +362,125 @@ function ownInputMismatches() {
   return bad;
 }
 
+// 10) исход 🎯 в настоящем движке повторений (srs.js): карточка viz:<тип> в сроке — промах даёт «Забыл»,
+// чистый проход от первого шага до последнего — «Помню»; промах пишет в algoVizMissed якорь виджета.
+const srsJs = fs.readFileSync(path.join(root, "assets", "srs.js"), "utf8");
+const DAY = 24 * 60 * 60 * 1000;
+function pageWith(body, url, seed, before) {
+  return new JSDOM(`<!DOCTYPE html><html><body>${body}<script>${js}</script>${infraScriptTags(root)}${before || ""}</body></html>`, {
+    runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true, url,
+    beforeParse(win) {
+      Object.keys(seed || {}).forEach((k) => win.localStorage.setItem(k, seed[k]));
+      win.__scrolled = [];
+      win.Element.prototype.scrollIntoView = function () { win.__scrolled.push(this.id); };
+    },
+  });
+}
+async function ready(d) {
+  for (let t0 = Date.now(); [...d.window.document.querySelectorAll(".algo-viz")].some((x) => !x.classList.contains("algo-viz--ready")) && Date.now() - t0 < 30000;) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
+}
+// walkIn — пройти виджет v окна d от первого шага до последнего с 🎯; answer(q) — ответ на вопрос q
+function walkIn(d, v, answer) {
+  const W = d.window;
+  const ev = (node, e) => node.dispatchEvent(e);
+  ev(v, new W.KeyboardEvent("keydown", { key: "Home", bubbles: true, cancelable: true }));
+  const total = +v.querySelector(".algo-viz__counter").textContent.match(/\/\s*(\d+)/)[1];
+  const at = () => +v.querySelector(".algo-viz__counter").textContent.match(/(\d+)\s*\//)[1];
+  for (let g = 0; g < 400 && at() < total; g++) {
+    ev(v.querySelector(".algo-tp__nextbtn"), new W.MouseEvent("click", { bubbles: true }));
+    const p = v.querySelector(".algo-tp__pred");
+    if (p) ev(p.querySelectorAll(".algo-tp__predans")[answer(v.__algoPredict.qs[at()]) ? 0 : 1], new W.MouseEvent("click", { bubbles: true }));
+  }
+}
+async function engineMismatches() {
+  const bad = [];
+  const T = tagOf("sliding-window.md", "sliding-window-fixed");
+  const mature = () => JSON.stringify({ "viz:sliding-window-fixed": { due: Date.now() - DAY, iv: 8, ease: 2.5, reps: 3,
+    meta: { page: "sliding-window.html", title: "t", line: 1, code: "if" }, seen: Date.now() - 9 * DAY } });
+  const card = (d) => JSON.parse(d.window.localStorage.getItem("algoSRS") || "{}")["viz:sliding-window-fixed"] || {};
+  const seed = () => ({ algoVizPredict: "1", algoSRS: mature() });
+  // промах — «Забыл», и в algoVizMissed — якорь, по которому карточка ведёт к виджету
+  let d = pageWith(T, "http://localhost:3000/sliding-window.html", seed(), `<script>${srsJs}</script>`);
+  await ready(d);
+  let v = d.window.document.querySelector(".algo-viz");
+  let missed = false;
+  walkIn(d, v, (q) => { if (missed) return q.entered; missed = true; return !q.entered; });
+  let c = card(d);
+  if (c.iv !== 1 || c.back !== 3 || c.reps !== 0) bad.push(`промах по карточке в сроке: ${JSON.stringify(c)}, ожидалось «Забыл» (iv 1, back 3)`);
+  const rec = JSON.parse(d.window.localStorage.getItem("algoVizMissed") || "{}")["sliding-window-fixed"] || {};
+  if (v.id !== "viz-1" || rec.anchor !== "viz-1") bad.push(`якорь промаха: у виджета id «${v.id}», в algoVizMissed — «${rec.anchor}», ожидалось viz-1`);
+  d.window.close();
+  // чистый проход — «Помню»
+  d = pageWith(T, "http://localhost:3000/sliding-window.html", seed(), `<script>${srsJs}</script>`);
+  await ready(d);
+  v = d.window.document.querySelector(".algo-viz");
+  walkIn(d, v, (q) => q.entered);
+  c = card(d);
+  if (c.iv !== 20 || c.reps !== 4) bad.push(`чистый проход по карточке в сроке: ${JSON.stringify(c)}, ожидалось «Помню» (iv 8 → 20)`);
+  d.window.close();
+  // карточки нет: первый промах заводит её сразу — на сегодня и без оценки (report после записи промаха)
+  d = pageWith(T, "http://localhost:3000/sliding-window.html", { algoVizPredict: "1" }, `<script>${srsJs}</script>`);
+  await ready(d);
+  missed = false;
+  walkIn(d, d.window.document.querySelector(".algo-viz"), (q) => { if (missed) return q.entered; missed = true; return !q.entered; });
+  c = card(d);
+  if (c.iv !== 0 || !(c.due <= Date.now()) || !c.meta || c.meta.anchor !== "viz-1") bad.push(`первый промах без карточки: ${JSON.stringify(c)}, ожидалась карточка на сегодня (iv 0) с якорем viz-1`);
+  d.window.close();
+  // Пересчёт высоты перебирает ВСЕ шаги через show(), в том числе последний: «Помню» ставит только
+  // настоящий приход на последний шаг. В jsdom ширина 0, и пересчёт не запускается — подменяем замер
+  // так, чтобы ширина менялась: тогда он идёт после каждого ответа (predClose → reserve).
+  d = pageWith(T, "http://localhost:3000/sliding-window.html", { algoVizPredict: "1" },
+    "<script>var __w = 300; Element.prototype.getBoundingClientRect = function () { __w++; return { width: __w, height: 20, top: 0, left: 0, right: __w, bottom: 20 }; };" +
+    "window.__rep = []; window.ALGO_SRS = { report: function (id, g) { window.__rep.push(g); return { status: 'graded' }; } };</script>");
+  await ready(d);
+  v = d.window.document.querySelector(".algo-viz");
+  const qs = Object.keys(v.__algoPredict.qs).map(Number), total = v.__algoPredict.lines.length;
+  if (Math.max(...qs) >= total - 1) bad.push("у примера главы вопрос на последнем шаге — проверка пересчёта высоты пуста");
+  const W = d.window, at = () => +v.querySelector(".algo-viz__counter").textContent.match(/(\d+)\s*\//)[1];
+  v.dispatchEvent(new W.KeyboardEvent("keydown", { key: "Home", bubbles: true, cancelable: true }));
+  for (let g = 0; g < 400 && at() < total - 1; g++) {
+    v.querySelector(".algo-tp__nextbtn").dispatchEvent(new W.MouseEvent("click", { bubbles: true }));
+    const p = v.querySelector(".algo-tp__pred");
+    if (p) p.querySelectorAll(".algo-tp__predans")[v.__algoPredict.qs[at()].entered ? 0 : 1].dispatchEvent(new W.MouseEvent("click", { bubbles: true }));
+  }
+  if (W.__rep.length) bad.push(`все вопросы отвечены, до последнего шага не дошли, а report уже ${JSON.stringify(W.__rep)} — оценил пересчёт высоты`);
+  v.querySelector(".algo-tp__nextbtn").dispatchEvent(new W.MouseEvent("click", { bubbles: true }));
+  if (W.__rep.join() !== "good") bad.push(`последний шаг после чистых ответов: report ${JSON.stringify(W.__rep)}, ожидался один «Помню»`);
+  W.close();
+  return bad;
+}
+
+// 11) якорь виджета: id корня — viz-<номер среди .algo-viz страницы>, если своего нет (номер — по порядку
+// в документе, включая неактивные вкладки; занятый id не перебивается). Ссылка «страница#якорь» приводит
+// к виджету: открывает его вкладку и свёрнутый <details>, прокручивает к нему.
+async function anchorMismatches() {
+  const bad = [];
+  const T = tagOf("sliding-window.md", "sliding-window-fixed");
+  const body = `<p id="viz-2">занятый id</p>${T}<div class="algo-viz-tabs">${T.replace("<div ", '<div data-tab="A" ')}` +
+    `${T.replace("<div ", '<div data-tab="B" ')}</div><details><summary>второй проход</summary>${T}</details>${T.replace("<div ", '<div id="own" ')}`;
+  const ids = (d) => [...d.window.document.querySelectorAll(".algo-viz")].map((x) => x.id || "—").join();
+  for (const [hash, want] of [["", null], ["#viz-3", "viz-3"], ["#viz-4", "viz-4"], ["#own", "own"], ["#viz-2", null]]) {
+    const d = pageWith(body, "http://localhost:3000/two-pointers.html" + hash, {});
+    const W = d.window;
+    await ready(d);
+    if (W.document.readyState !== "complete") await new Promise((r) => W.addEventListener("load", r));
+    if (ids(d) !== "viz-1,—,viz-3,viz-4,own") bad.push(`${hash || "без якоря"}: id виджетов ${ids(d)}, ожидалось viz-1,—,viz-3,viz-4,own`);
+    const [a, b] = W.document.querySelectorAll(".algo-viz-tabs > .algo-viz");
+    const det = W.document.querySelector("details");
+    const scrolled = W.__scrolled.filter(Boolean);
+    if (want === null && scrolled.length) bad.push(`${hash || "без якоря"}: прокрутка к ${scrolled.join()}, а якоря виджета нет`);
+    if (want && scrolled[scrolled.length - 1] !== want) bad.push(`${hash}: прокрутка к ${JSON.stringify(scrolled)}, ожидалось ${want}`);
+    if (hash === "#viz-3" && (!a.hidden || b.hidden)) bad.push(`#viz-3: вкладка B не открыта (A hidden=${a.hidden}, B hidden=${b.hidden})`);
+    if (hash !== "#viz-3" && (a.hidden || !b.hidden)) bad.push(`${hash || "без якоря"}: открыта не первая вкладка`);
+    if (hash === "#viz-4" && !det.open) bad.push("#viz-4: свёрнутый <details> с виджетом не раскрыт");
+    if (hash !== "#viz-4" && det.open) bad.push(`${hash || "без якоря"}: <details> раскрыт без нужды`);
+    W.close();
+  }
+  return bad;
+}
+
 setTimeout(async () => {
   const keys = await keyAudit();
   if (REPORT) { console.log(JSON.stringify(keys.list, null, 1)); process.exit(0); }
@@ -387,9 +514,10 @@ setTimeout(async () => {
   expect(w.localStorage.getItem("algoVizPredict") === "1", "включённый режим не запомнился в localStorage");
   key(el, "Home");
 
-  // промах заводит карточку сразу: движок повторений (srs.js) зовут без перехода на другую страницу
-  let synced = 0;
-  w.ALGO_SRS = { sync: () => { synced++; } };
+  // исход уходит в движок повторений (srs.js) сразу, через report: промах — «Забыл» один раз за проход
+  // (пять промахов одного прохода — одно падение), чистый проход — «Помню» один раз за проход
+  const reports = [];
+  w.ALGO_SRS = { report: (id, grade) => { reports.push(id + " " + grade); return { status: "graded" }; } };
 
   // 2)–4) проходим весь прогон, на каждый вопрос отвечая «Да»
   let asked = 0, right = 0, wrong = 0, guard = 0;
@@ -423,9 +551,60 @@ setTimeout(async () => {
   const score = el.querySelector(".algo-tp__predscore").textContent;
   expect(score === `${right}/${right + wrong}`, `счёт «${score}», а ответов ${right}/${right + wrong}`);
   const miss = JSON.parse(w.localStorage.getItem("algoVizMissed") || "{}")["sliding-window-fixed"];
-  expect(miss && miss.n === wrong && miss.line > 0 && miss.code && miss.page === "sliding-window.html",
-    `промахи не записаны как надо: ${JSON.stringify(miss)} при ${wrong} промахах`);
-  expect(synced === wrong, `ALGO_SRS.sync вызван ${synced} раз(а) при ${wrong} промахах — счётчик «Сегодня» не узнает о промахе до перехода`);
+  expect(miss && miss.n === wrong && miss.line > 0 && miss.code && miss.page === "sliding-window.html" && miss.anchor === "win",
+    `промахи не записаны как надо (с якорем виджета «win»): ${JSON.stringify(miss)} при ${wrong} промахах`);
+  expect(reports.join() === "viz:sliding-window-fixed again", `проход с ${wrong} промахами: report ${JSON.stringify(reports)}, ожидался один «Забыл»`);
+
+  // Проходы с 🎯 до последнего шага: «Помню» — только чистый, один раз за проход. answer(q) — что ответить
+  // на вопрос q: true / false, "skip" — «Пропустить», "scrub" — перемотать ползунком мимо вопроса.
+  const walk = (answer) => {
+    key(el, "Home");
+    for (let g = 0; counter(el) < total && g < 400; g++) {
+      next(el);
+      if (!pending(el)) continue;
+      const q = el.__algoPredict.qs[counter(el)];
+      const a = answer(q);
+      if (a === "skip") click(pending(el).querySelector(".algo-tp__predskip"));
+      else if (a === "scrub") { const s = el.querySelector(".algo-tp__scrub"); s.value = String(counter(el)); s.dispatchEvent(new w.Event("input")); }
+      else click(pending(el).querySelectorAll(".algo-tp__predans")[a ? 0 : 1]);
+    }
+    return counter(el) === total;
+  };
+  let firstQ = null;
+  const once = (fn) => (q) => { if (firstQ == null) firstQ = q.at; return q.at === firstQ ? fn(q) : q.entered; };
+  reports.length = 0;
+  expect(walk((q) => q.entered), "чистый проход не дошёл до последнего шага");
+  expect(reports.join() === "viz:sliding-window-fixed good", `чистый проход: report ${JSON.stringify(reports)}, ожидался один «Помню»`);
+  key(el, "ArrowLeft"); next(el); key(el, "End"); // туда-обратно у конца — тот же проход
+  expect(reports.length === 1, `после чистого прохода ‹ › и End дали ещё report: ${JSON.stringify(reports)}`);
+  for (const [what, how] of [["«Пропустить»", () => "skip"], ["перемотка ползунком мимо вопроса", () => "scrub"]]) {
+    reports.length = 0; firstQ = null;
+    walk(once(how));
+    expect(!reports.length, `проход с ${what} на первом вопросе: report ${JSON.stringify(reports)}, ожидалось ничего`);
+  }
+  // промах в начале — один «Забыл», и «Помню» в конце того же прохода уже нет
+  reports.length = 0; firstQ = null;
+  walk(once((q) => !q.entered));
+  expect(reports.join() === "viz:sliding-window-fixed again", `проход с одним промахом: report ${JSON.stringify(reports)}, ожидался только «Забыл»`);
+  // перезапуск пресетом у конца прохода — новый проход с нуля: ответы до перезапуска не засчитываются,
+  // и End после перезапуска «Помню» не даёт
+  reports.length = 0;
+  key(el, "Home");
+  for (let g = 0; g < 400 && counter(el) < total - 1; g++) {
+    next(el);
+    if (pending(el)) click(pending(el).querySelectorAll(".algo-tp__predans")[el.__algoPredict.qs[counter(el)].entered ? 0 : 1]);
+  }
+  click(el.querySelector(".algo-tp__preset")); // «пример главы» — тот же вход, виджет перестроен на том же узле
+  key(el, "End");
+  expect(counter(el) === total && !reports.length, `перезапуск пресетом и End: шаг ${counter(el)}/${total}, report ${JSON.stringify(reports)}`);
+  // у виджета без развилок 🎯 не оценивает ничего
+  const stk = doc.getElementById("stk"), stkTotal = +stk.querySelector(".algo-viz__counter").textContent.match(/\/\s*(\d+)/)[1];
+  reports.length = 0;
+  for (let g = 0; g < 400 && counter(stk) < stkTotal; g++) next(stk);
+  expect(counter(stk) === stkTotal && !reports.length, `виджет без развилок дошёл до конца (${counter(stk)}/${stkTotal}) и дал report ${JSON.stringify(reports)}`);
+
+  (await engineMismatches()).forEach((b) => fails.push("движок повторений: " + b));
+  (await anchorMismatches()).forEach((b) => fails.push("якорь виджета: " + b));
 
   // 6) автопроигрывание на 4× останавливается на первом вопросе
   key(el, "Home");
@@ -448,6 +627,6 @@ setTimeout(async () => {
     console.error("❌ predict-check:\n  - " + fails.join("\n  - "));
     process.exit(1);
   }
-  console.log(`✅ predict-check: без режима листается как раньше; с 🎯 на развилках «›» ждёт ответа, ответ сверяется со следующим шагом (${asked} вопросов: ${right} верно, ${wrong} промахов записано), счёт и промахи сходятся, автопроигрывание встаёт на вопросе, у виджета без развилок кнопка выключена; a, b, L входа в цикл сошлись со своим прогоном Флойда на ${cyc.runs} входах.\n   Ключи (${keys.widgets} виджетов глав; пресеты ${keys.presetTypes} типов): ${coverage}. Выведенные ключи сошлись с отступами листинга, вычислимые по чипам — с оракулом; каждое «нет» без оракула и без явного исхода стоит в predict-unconfirmed.json (${keys.listedCount} записей, лишних и недостающих нет). На своём вводе читателя выведенное «нет» не спрашивается.`);
+  console.log(`✅ predict-check: без режима листается как раньше; с 🎯 на развилках «›» ждёт ответа, ответ сверяется со следующим шагом (${asked} вопросов: ${right} верно, ${wrong} промахов записано), счёт и промахи сходятся, автопроигрывание встаёт на вопросе, у виджета без развилок кнопка выключена; исход прохода уходит в report — промах «Забыл», чистый проход «Помню», по разу за проход (и в настоящем srs.js); якорь viz-N открывает вкладку и <details> виджета; a, b, L входа в цикл сошлись со своим прогоном Флойда на ${cyc.runs} входах.\n   Ключи (${keys.widgets} виджетов глав; пресеты ${keys.presetTypes} типов): ${coverage}. Выведенные ключи сошлись с отступами листинга, вычислимые по чипам — с оракулом; каждое «нет» без оракула и без явного исхода стоит в predict-unconfirmed.json (${keys.listedCount} записей, лишних и недостающих нет). На своём вводе читателя выведенное «нет» не спрашивается.`);
   process.exit(0);
 }, 400);
