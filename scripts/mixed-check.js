@@ -167,6 +167,10 @@ async function main() {
   // промах заводит карточку сразу: движок повторений зовут без перехода на другую страницу
   let synced = 0;
   dom.window.ALGO_SRS = { sync: () => { synced++; } };
+  // Черновик смешанной стирается при выдаче НОВОЙ задачи, а не при постройке редактора: подкладываем
+  // его до ответа, как будто читатель уже печатал, — после ответа он обязан остаться.
+  const draftKey = "algoRunnerCode:mixed:" + problem.p;
+  dom.window.localStorage.setItem(draftKey, "мой черновик");
   click(dom, wrongBtn);
 
   const missed = JSON.parse(dom.window.localStorage.getItem("algoMixedMissed") || "{}");
@@ -185,9 +189,19 @@ async function main() {
       errors.push("нет ссылки на главу с теорией");
     }
   }
-  if (!widget.querySelector('.algo-runner[data-pkg="' + problem.p + '"]')) {
+  const ed = widget.querySelector('.algo-runner[data-pkg="' + problem.p + '"]');
+  if (!ed) {
     errors.push("после ответа не появился редактор с нужным пакетом");
+  } else {
+    // Обычный режим: редактор открывает упражнение задачи (единицу прогона выберет виджет: функция, тип
+    // или пакет), черновик — свой, отдельный от решения пакета в главе; подсказки и «Сдаюсь» на месте.
+    if (ed.getAttribute("data-func") !== problem.f) errors.push(`обычный режим: data-func = ${ed.getAttribute("data-func")}, а задача — ${problem.f}`);
+    if (ed.getAttribute("data-draft") !== "mixed") errors.push(`обычный режим: data-draft = ${ed.getAttribute("data-draft")}, ожидалось mixed`);
+    if (ed.hasAttribute("data-hints") || ed.hasAttribute("data-tests")) errors.push("обычный режим: у редактора data-hints или data-tests — подсказки спрятаны или тесты заданы вручную");
   }
+  if (dom.window.localStorage.getItem(draftKey) !== "мой черновик") errors.push("черновик смешанной стёрт постройкой редактора, а не выдачей новой задачи");
+  click(dom, nextBtn);
+  if (dom.window.localStorage.getItem(draftKey) !== null) errors.push("при выдаче новой задачи черновик прошлой не стёрт");
 
   // верный ответ по той же задаче должен убрать её из промахов
   const dom2 = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "mixed.js"], {
@@ -335,6 +349,10 @@ async function mockInterview(bank) {
   if (runner.getAttribute("data-fresh") !== "true") {
     errors.push("собеседование: редактор не с чистой заготовки — подсунет решение пакета из его главы");
   }
+  // Подсказки и эталон в собеседовании закрыты: среди подсказок — «Ожидаемая сложность», то есть ответ на шаг
+  // «сложность»; data-func — чтобы событие прогона называло функцию, а строка про needs знала соседей.
+  if (runner.getAttribute("data-hints") !== "off") errors.push("собеседование: у редактора нет data-hints=\"off\" — подсказки и эталон доступны");
+  if (runner.getAttribute("data-func") !== p.f) errors.push(`собеседование: data-func = ${runner.getAttribute("data-func")}, а задача — ${p.f}`);
   if (w.querySelector(".algo-mixed__cx-input")) errors.push("собеседование: вопрос о сложности ДО зелёных тестов");
 
   // красный прогон не должен двигать сессию дальше
@@ -415,9 +433,11 @@ function finish() {
   }
   console.log(
     "✅ mixed-check: условие показывается без темы и подсказок, 4 варианта из реальных глав, " +
-      "промах записывается и приоритетно возвращается, верный ответ раскрывает главу и редактор, " +
+      "промах записывается и приоритетно возвращается, верный ответ раскрывает главу и редактор (data-func задачи, " +
+      "черновик data-draft=\"mixed\" стирается выдачей новой задачи, а не постройкой редактора), " +
       "слабые места считаются по квизу и смешанной вместе; собеседование прячет подсказки и главу до итога, " +
-      "пускает к коду только после плана, гоняет тесты одной функции с чистой заготовки, спрашивает сложность до эталона"
+      "пускает к коду только после плана, гоняет тесты одной функции с чистой заготовки без подсказок и эталона " +
+      "(data-hints=\"off\"), спрашивает сложность до эталона"
   );
   // Явный выход: последняя проверка начинает собеседование, и его часы (setInterval
   // в mixed.js) держат цикл событий jsdom-окна живым — без exit процесс после «✅»

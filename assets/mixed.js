@@ -18,8 +18,9 @@
  *   2) после выбора шаблона — план словами (не короче PLAN_MIN символов); редактор
  *      появляется только после него. Это единственный жёсткий гейт режима, и он
  *      намеренный: на собеседовании код без проговорённого плана — красный флаг;
- *   3) редактор гоняет ТОЛЬКО тесты этой функции (поле t банка → data-tests) и
- *      открывается с чистой заготовки (data-fresh), а не с твоего решения пакета;
+ *   3) редактор гоняет ТОЛЬКО тесты этой функции (поле t банка → data-tests),
+ *      открывается с чистой заготовки (data-fresh), а не с твоего решения пакета,
+ *      и без подсказок и эталона (data-hints="off");
  *   4) после зелёных тестов — сложность своими словами, и только потом эталон из
  *      док-комментария (поле x банка); совпало ли — отмечаешь сам (эталоны записаны свободным
  *      текстом, «O(rows·cols)» против «O(R·C)» машинно не сравнить честно);
@@ -27,6 +28,11 @@
  *      карточкой cx:<pkg>.<fn> в движок повторений (srs.js).
  * Подсказки и ссылка на главу в этом режиме скрыты до итога: среди подсказок
  * бывает «Ожидаемая сложность: …», то есть ответ на шаг 4.
+ *
+ * В обычном режиме редактор открывает функцию задачи (data-func) со своим черновиком
+ * (data-draft="mixed": не решение пакета из главы); единицу прогона — функция, тип или
+ * пакет — выбирает runner.js, подсказки и эталон у него за кнопками. Черновик стирается
+ * при выдаче новой задачи, а не при постройке редактора.
  *
  * Данные — window.ALGO_PROBLEMS (assets/problems.js, генерируется из
  * док-комментариев заготовок командой `go run ./cmd/problembank`).
@@ -39,6 +45,7 @@
   var SEEN = "algoMixedSeen"; // {"<pkg>.<fn>": ts} — чтобы не выдавать одно и то же подряд
   var MOCK_LOG = "algoMockLog"; // [{k, ts, secs, limit, pattern, plan, green, cx}] — история собеседований
   var CX_MISSED = "algoMockCxMissed"; // {"<pkg>.<fn>": {n, chapter, fn, pkg}} — источник карточек cx: для srs.js
+  var MIXED_DRAFT = "algoRunnerCode:mixed:"; // черновик обычного режима — ключ виджета runner'а с data-draft="mixed"
   var OPTIONS = 4;
   var MOCK_LIMIT_MIN = 35;
   var PLAN_MIN = 80;
@@ -193,6 +200,7 @@
     });
 
     var lastKey = null;
+    var lastPkg = null;
     var mock = false;
     var session = null; // текущее собеседование: {p, start, timer, pattern, plan, green, cx}
 
@@ -264,7 +272,12 @@
     nextBtn.onclick = function () {
       stopSession();
       var p = pick(mock ? mockable : problems, lastKey);
+      // Черновик обычного режима живёт, пока задача на экране: новая задача стирает и черновик
+      // прошлой (он уже мусор), и прежний черновик своего пакета — она начинается с чистой заготовки.
+      if (lastPkg) drop(MIXED_DRAFT + lastPkg);
+      drop(MIXED_DRAFT + p.p);
       lastKey = key(p);
+      lastPkg = p.p;
       render(p);
       nextBtn.textContent = "Следующая задача";
       refreshStat();
@@ -356,13 +369,17 @@
       hintsBlock(p, res);
 
       res.appendChild(el("p", "algo-mixed__solve",
-        "Теперь реши её: ниже — заготовка пакета «" + p.p + "» и его настоящие тесты. " +
-        "Нужная функция — " + p.f + "."));
+        "Теперь реши её: ниже — заготовка пакета «" + p.p + "» без подсказок и его настоящие тесты. " +
+        "Нужная функция — " + p.f + ": «Прогнать тесты» гоняет её тесты (у функции без своих тестов — тесты типа или весь пакет), " +
+        "подсказки и эталон — за кнопками под редактором."));
       body.appendChild(res);
 
       var runner = document.createElement("div");
       runner.className = "algo-runner";
       runner.setAttribute("data-pkg", p.p);
+      runner.setAttribute("data-func", p.f);
+      // Свой черновик: решение пакета из главы не подсовывается готовым ответом и не затирается.
+      runner.setAttribute("data-draft", "mixed");
       body.appendChild(runner);
       // runner.js инициализируется по DOMContentLoaded — виджет, созданный
       // динамически, он сам не подхватит, поэтому просит инициализацию явно.
@@ -455,6 +472,10 @@
       runner.setAttribute("data-pkg", p.p);
       runner.setAttribute("data-tests", JSON.stringify(p.t));
       runner.setAttribute("data-fresh", "true");
+      // Имя функции — для события прогона и строки «тесты зовут ещё не решённые упражнения»; подсказок
+      // и эталона в собеседовании нет: среди подсказок — «Ожидаемая сложность», ответ на шаг 4.
+      runner.setAttribute("data-func", p.f);
+      runner.setAttribute("data-hints", "off");
       res.appendChild(runner);
 
       var giveUp = el("button", "algo-quiz__btn algo-mixed__giveup", "Завершить без решения");
