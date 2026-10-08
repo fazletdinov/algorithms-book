@@ -265,9 +265,13 @@ const unhandled = [];
 process.on("unhandledRejection", (e) => unhandled.push(String(e && e.stack || e)));
 
 // page поднимает один виджет. run — ответ /api/run (объект или функция от тела запроса), solution — ответ
-// /api/solution ({status, error} — ошибка), down — сервер не отвечает, noStorage — localStorage бросает.
-async function page({ attrs = 'data-pkg="p"', stub = STUB, run = GREEN, solution, seed = {}, down = false, noStorage = false } = {}) {
-  const calls = [], events = [], errors = [], confirms = [];
+// /api/solution ({status, error} — ошибка), down — сервер не отвечает, noStorage — localStorage бросает,
+// stubStatus — код ответа /api/stub, importer — подмена загрузки модулей CodeMirror
+// (window.ALGO_RUNNER_IMPORT), holdSlow — управляемые часы: таймеры от 5 с не идут сами, их
+// запускает held[i]() (срок загрузки CodeMirror — 8 с).
+async function page({ attrs = 'data-pkg="p"', stub = STUB, run = GREEN, solution, seed = {}, down = false, noStorage = false,
+  stubStatus = 200, importer, holdSlow = false } = {}) {
+  const calls = [], events = [], errors = [], confirms = [], held = [];
   const vc = new VirtualConsole();
   vc.on("jsdomError", (e) => errors.push("jsdomError: " + (e && e.message)));
   vc.on("error", (...a) => errors.push("console.error: " + a.join(" ")));
@@ -277,6 +281,14 @@ async function page({ attrs = 'data-pkg="p"', stub = STUB, run = GREEN, solution
       Object.keys(seed).forEach((k) => w.localStorage.setItem(k, seed[k]));
       if (noStorage) Object.defineProperty(w, "localStorage", { get() { throw new w.DOMException("denied", "SecurityError"); } });
       w.confirm = (m) => { confirms.push(m); return true; };
+      if (importer) w.ALGO_RUNNER_IMPORT = importer;
+      if (holdSlow) {
+        const realSetTimeout = w.setTimeout.bind(w);
+        w.setTimeout = (fn, ms, ...args) => {
+          if (ms >= 5000) { held.push(() => fn(...args)); return -held.length; }
+          return realSetTimeout(fn, ms, ...args);
+        };
+      }
       w.addEventListener("error", (e) => errors.push("window error: " + e.message));
       for (const t of ["algo-runner:result", "algo-runner:giveup", "algo-runner:state"]) {
         w.document.addEventListener(t, (e) => events.push(Object.assign({ type: t }, e.detail)));
@@ -287,7 +299,7 @@ async function page({ attrs = 'data-pkg="p"', stub = STUB, run = GREEN, solution
         calls.push({ url, body });
         if (down) return Promise.reject(new w.TypeError("Failed to fetch"));
         if (/\/api\/health$/.test(url)) return reply({ ok: true });
-        if (/\/api\/stub\?/.test(url)) return reply(stub);
+        if (/\/api\/stub\?/.test(url)) return reply(stub, stubStatus);
         if (/\/api\/run$/.test(url)) {
           try { return reply(typeof run === "function" ? run(body) : run); } catch (e) { return Promise.reject(new w.TypeError("Failed to fetch")); }
         }
@@ -321,7 +333,7 @@ async function page({ attrs = 'data-pkg="p"', stub = STUB, run = GREEN, solution
   const helpBtn = (re) => [...root.querySelectorAll(".algo-runner__help button")].find((b) => re.test(b.textContent));
   const press = (re) => { const b = helpBtn(re); if (b) b.click(); return !!b; };
   const solved = () => { try { return JSON.parse(dom.window.localStorage.getItem("algoFnSolved") || "{}"); } catch (e) { return "хранилище недоступно"; } };
-  return { dom, doc, root, q, pick, pv, optText, code, choose, runOnce, helpBtn, press, solved, lines, calls, events, errors, confirms };
+  return { dom, doc, root, q, pick, pv, optText, code, choose, runOnce, helpBtn, press, solved, lines, calls, events, errors, confirms, held };
 }
 
 async function unitsAndHints() {
@@ -529,7 +541,107 @@ async function unitsAndHints() {
   expect(w.code() === STUB.plain && w.pv() === "A", "без хранилища виджет не поднялся");
   if (w.q(".algo-runner__btn--run")) await w.runOnce();
   expect(/✓/.test(w.optText("A")) && !w.errors.length, `без хранилища: ✓ нет или ошибки — ${w.errors.join(" | ")}`);
+
+  await fixRoundOne(S);
   expect(!unhandled.length, `необработанные отказы промисов: ${unhandled.join(" | ")}`);
+}
+
+// Заход правок 1: каждый случай ловит свой мутант (список — в отчёте Task 5).
+async function fixRoundOne(S) {
+  const lastResult = (w) => w.events.filter((e) => e.type === "algo-runner:result").pop() || {};
+  const outText = (w) => (w.q(".algo-runner__out") || {}).textContent || "";
+
+  // gaveUp — по участникам единицы: эталон M.X, затем прогон типа с выбранным M.Y — тоже списанный.
+  let w = await page();
+  w.choose("M.X");
+  await w.runOnce();
+  w.press(/Сдаюсь/);
+  await tick();
+  w.choose("M.Y");
+  await w.runOnce();
+  let last = lastResult(w);
+  expect(last.fn === "M.Y" && last.unit === "type" && last.gaveUp === true, `эталон M.X, прогон типа из M.Y без gaveUp: ${JSON.stringify(last)}`);
+
+  // hints — тоже по участникам: рецепт M.X, открытый перед прогоном типа из M.Y, считается; подсказка A — нет.
+  w = await page();
+  w.press(/Признак и сложность/); // подсказка A — не участник единицы M
+  w.choose("M.X");
+  w.press(/Рецепт/);
+  w.choose("M.Y");
+  await w.runOnce();
+  last = lastResult(w);
+  expect(last.fn === "M.Y" && last.hints === 1, `рецепт M.X перед прогоном типа из M.Y: hints = ${last.hints}, ожидалось 1`);
+
+  // /api/stub ответил ошибкой — runner на связи: state up: true, инструкции «Runner не отвечает» нет.
+  for (const status of [404, 500]) {
+    w = await page({ stub: { error: "заготовка не найдена" }, stubStatus: status });
+    const states = w.events.filter((e) => e.type === "algo-runner:state").map((e) => e.up).join();
+    expect(states === "true" && !/Runner не отвечает/.test(w.root.textContent) && /Runner ответил ошибкой: заготовка не найдена/.test(w.lines()) && !w.errors.length,
+      `/api/stub → ${status}: state «${states}», текст «${w.root.textContent.slice(0, 120)}», ошибки ${w.errors.join(" | ")}`);
+  }
+
+  // Черновик не пишется после того, как виджет убрали со страницы (смешанная выдала новую задачу и
+  // стёрла его); контроль — без удаления пишется.
+  const typeDraft = (w, text) => {
+    const ta = w.q(".algo-runner__ta");
+    ta.value = text;
+    ta.dispatchEvent(new w.dom.window.Event("input", { bubbles: true }));
+  };
+  w = await page({ attrs: 'data-pkg="p" data-draft="mixed"' });
+  typeDraft(w, "набрано за миг до следующей задачи");
+  w.root.remove();
+  await tick(600);
+  expect(w.dom.window.localStorage.getItem("algoRunnerCode:mixed:p") === null, "черновик записан после удаления виджета — стёртое воскреснет у следующей задачи");
+  w = await page({ attrs: 'data-pkg="p" data-draft="mixed"' });
+  typeDraft(w, "набрано");
+  await tick(600);
+  expect(w.dom.window.localStorage.getItem("algoRunnerCode:mixed:p") === "набрано", "контроль: черновик на странице не сохранился");
+
+  // В своём черновике сосед, отмеченный в algoFnSolved (решал в главе), всё равно не написан.
+  w = await page({ attrs: 'data-pkg="p" data-func="D" data-draft="review"', run: RED, seed: S("A") });
+  await w.runOnce();
+  expect(/Тесты зовут и соседние упражнения: A — на этом листе их тоже нужно написать/.test(outText(w)),
+    `черновик review, A отмечена в главе: строки про соседа нет — «${outText(w).slice(0, 120)}»`);
+
+  // Подпись эталона говорит, что строк import в нём нет.
+  w = await page();
+  await w.runOnce();
+  w.press(/Сдаюсь/);
+  await tick();
+  expect(/строк import в нём нет — нужные пакеты допиши сам/.test((w.q(".algo-runner__solution") || {}).textContent || ""), "в подписи эталона нет пометки про import");
+
+  // CodeMirror: подставной загрузчик. Контроль — ответил сразу: редактор CodeMirror (textarea нет).
+  let built = 0;
+  const modules = (url) => {
+    if (/^https:\/\/esm\.sh\/@codemirror\/language@/.test(url)) return { StreamLanguage: { define: () => ({}) } };
+    if (/^https:\/\/esm\.sh\/@codemirror\/legacy-modes@/.test(url)) return { go: {} };
+    if (/^https:\/\/esm\.sh\/@codemirror\/theme-one-dark@/.test(url)) return { oneDark: {} };
+    const EditorView = function () { built++; this.state = { doc: { toString: () => "", length: 0 } }; };
+    EditorView.theme = () => ({});
+    return { EditorView, basicSetup: [] };
+  };
+  w = await page({ importer: (url) => Promise.resolve(modules(url)) });
+  expect(built === 1 && !w.q(".algo-runner__ta") && /сервер на связи/.test(w.q(".algo-runner__status").textContent),
+    `контроль: CodeMirror ответил сразу, а построено ${built}, textarea ${!!w.q(".algo-runner__ta")}`);
+  // CDN не отвечает: до срока — ожидание, по сроку (8 с, управляемые часы) — textarea, прогон работает.
+  built = 0;
+  w = await page({ importer: () => new Promise(() => {}), holdSlow: true });
+  expect(!w.q(".algo-runner__ta") && w.held.length === 1, `CDN молчит: до срока textarea ${!!w.q(".algo-runner__ta")}, отложенных таймеров ${w.held.length}`);
+  w.held.forEach((fire) => fire());
+  await tick();
+  expect(w.code() === STUB.plain && /сервер на связи/.test(w.q(".algo-runner__status").textContent), `CDN молчит: по сроку нет textarea с заготовкой — «${w.q(".algo-runner__status").textContent}»`);
+  const r = await w.runOnce();
+  expect(r && JSON.stringify(r.body.tests) === '["TestA"]', "CDN молчит: после срока прогон не ушёл");
+  // CodeMirror пришёл после срока — игнорируется: textarea остаётся одна, CodeMirror не строится.
+  let release;
+  const gate = new Promise((res) => { release = res; });
+  built = 0;
+  w = await page({ importer: (url) => gate.then(() => modules(url)), holdSlow: true });
+  w.held.forEach((fire) => fire());
+  await tick();
+  release();
+  await tick();
+  expect(built === 0 && w.root.querySelectorAll(".algo-runner__ta").length === 1, `CodeMirror после срока: построено ${built}, textarea ${w.root.querySelectorAll(".algo-runner__ta").length}`);
 }
 
 // Живой виджет на подставном сервере: плашка пределов встаёт в шапку перед статусом, а

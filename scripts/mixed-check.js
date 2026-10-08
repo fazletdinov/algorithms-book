@@ -200,8 +200,19 @@ async function main() {
     if (ed.hasAttribute("data-hints") || ed.hasAttribute("data-tests")) errors.push("обычный режим: у редактора data-hints или data-tests — подсказки спрятаны или тесты заданы вручную");
   }
   if (dom.window.localStorage.getItem(draftKey) !== "мой черновик") errors.push("черновик смешанной стёрт постройкой редактора, а не выдачей новой задачи");
+  // Новая задача начинается с чистого листа, даже если в её пакете лежит старый черновик смешанной
+  // (с прошлого раза). Чтобы следующая задача была из ДРУГОГО пакета (иначе её черновик стёр бы и
+  // шаг «прошлая задача»), задачи пакета текущей помечены показанными — выдача берёт непоказанные.
+  const ls = dom.window.localStorage;
+  const seenNow = JSON.parse(ls.getItem("algoMixedSeen") || "{}");
+  bank.filter((q) => q.p === problem.p).forEach((q) => { seenNow[q.p + "." + q.f] = 1; });
+  ls.setItem("algoMixedSeen", JSON.stringify(seenNow));
+  [...new Set(bank.map((q) => q.p))].forEach((p) => { if (p !== problem.p) ls.setItem("algoRunnerCode:mixed:" + p, "старый черновик " + p); });
   click(dom, nextBtn);
-  if (dom.window.localStorage.getItem(draftKey) !== null) errors.push("при выдаче новой задачи черновик прошлой не стёрт");
+  if (ls.getItem(draftKey) !== null) errors.push("при выдаче новой задачи черновик прошлой не стёрт");
+  const next = shownProblem(bank, widget.querySelector(".algo-mixed__card").textContent);
+  if (!next || next.p === problem.p) errors.push(`следующая задача не из другого пакета: ${next && next.p} — проверка ниже ничего не видит`);
+  else if (ls.getItem("algoRunnerCode:mixed:" + next.p) !== null) errors.push(`новая задача пакета ${next.p} откроется со старым черновиком смешанной, а не с чистой заготовки`);
 
   // верный ответ по той же задаче должен убрать её из промахов
   const dom2 = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "mixed.js"], {
