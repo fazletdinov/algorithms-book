@@ -11,7 +11,11 @@
 //   3) состояние ключуется по href (перегруппировка глав не сбрасывает отметки);
 //   4) «Сбросить прогресс» действительно всё снимает;
 //   5) отметка пишет algoProgressAt[href] (метку события для srs.js), снятие её убирает,
-//      сброс очищает.
+//      сброс очищает;
+//   6) галочка «Глава пройдена» в конце главы: есть на странице главы (ядро, расширение) и
+//      только там — ни у инструментов, ни на print.html; пишет те же ключи по свежему чтению,
+//      зовёт ALGO_SRS.sync(), слышит трекер другой вкладки, без хранилища не выдаёт отметку
+//      за сохранённую.
 // Состав списка сверяет с книгой отдельный scripts/check-registries.js.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в viz-render-check.js.
 "use strict";
@@ -28,6 +32,7 @@ try {
 
 const root = path.resolve(__dirname, "..");
 const js = fs.readFileSync(path.join(root, "assets", "progress.js"), "utf8");
+const srsJs = fs.readFileSync(path.join(root, "assets", "srs.js"), "utf8");
 
 const errors = [];
 const vc = new VirtualConsole();
@@ -220,14 +225,176 @@ setTimeout(function () {
     if (Object.keys(marks()).length) errors.push(`после сброса остались метки времени: ${JSON.stringify(marks())}`);
   }
 
-  if (errors.length) {
-    console.error(`❌ progress-render-check: ${errors.length} проблем(ы):`);
-    for (const e of errors) console.error("  - " + e);
-    process.exit(1);
+  // --- отметка, сделанная в другой вкладке (галочка в конце главы), доходит до открытого трекера ---
+  localStorage.setItem("algoProgress", JSON.stringify({ [coreHref]: true }));
+  dom.window.dispatchEvent(new dom.window.StorageEvent("storage", { key: "algoQuizBest" }));
+  if (items[idxCore].querySelector("input").checked) errors.push("storage по чужому ключу перечитал отметки трекера");
+  dom.window.dispatchEvent(new dom.window.StorageEvent("storage", { key: "algoProgress" }));
+  if (!items[idxCore].querySelector("input").checked || !label.textContent.includes(`1 / ${core.length}`)) {
+    errors.push(`storage: отметка из другой вкладки не показана в трекере: «${label.textContent}»`);
   }
-  console.log(
-    `✅ progress-render-check: трекер строит ${items.length} глав в ${groups.length} группах ` +
-      `(ядро ${core.length}, вне ядра ${nonCore.length}), процент считается только по ядру, ` +
-      `отметка обновляет счётчик группы/localStorage и пишет метку времени, снятие её убирает, сброс работает`
-  );
+
+  chapterDoneChecks().then(function () {
+    if (errors.length) {
+      console.error(`❌ progress-render-check: ${errors.length} проблем(ы):`);
+      for (const e of errors) console.error("  - " + e);
+      process.exit(1);
+    }
+    console.log(
+      `✅ progress-render-check: трекер строит ${items.length} глав в ${groups.length} группах ` +
+        `(ядро ${core.length}, вне ядра ${nonCore.length}), процент считается только по ядру, ` +
+        `отметка обновляет счётчик группы/localStorage и пишет метку времени, снятие её убирает, сброс работает; ` +
+        `галочка «Глава пройдена» стоит в конце каждой главы (и только главы), пишет те же ключи по свежему чтению, ` +
+        `зовёт sync и слышит другую вкладку`
+    );
+  }, function (e) {
+    console.error("❌ progress-render-check: неожиданная ошибка:", e);
+    process.exit(1);
+  });
 }, 200);
+
+// Страница так, как её собирает mdBook: скрипты стоят в конце body. before — скрипт до progress.js
+// (подставной ALGO_SRS), srs — подключить настоящий srs.js после него (как в book.toml).
+function pageDom(file, opts) {
+  opts = opts || {};
+  return new Promise(function (resolve) {
+    const d = new JSDOM(
+      `<!DOCTYPE html><html><body>${opts.menu || ""}<main><h1>Заголовок</h1><p>текст главы</p>${opts.main || ""}<p id="last">последний абзац</p></main>` +
+        `<script>${opts.before || ""}</script><script>${js}</script>${opts.srs ? `<script>${srsJs}</script>` : ""}</body></html>`,
+      {
+        runScripts: "dangerously",
+        virtualConsole: vc,
+        url: "https://example.test/" + file,
+        beforeParse(window) {
+          Object.keys(opts.seed || {}).forEach((k) => window.localStorage.setItem(k, opts.seed[k]));
+        },
+      }
+    );
+    d.window.addEventListener("load", () => resolve(d));
+  });
+}
+
+// Галочка «Глава пройдена» в конце главы: тот же реестр и те же ключи, что у трекера.
+async function chapterDoneChecks() {
+  const blocks = (d) => d.window.document.querySelectorAll(".algo-chapdone");
+  const read = (d, k) => JSON.parse(d.window.localStorage.getItem(k) || "{}");
+  const toggle = (d, on) => {
+    const cb = d.window.document.querySelector(".algo-chapdone input");
+    if (!cb) {
+      errors.push(`на ${d.window.location.pathname.slice(1)} нет галочки «Глава пройдена» — отметить нечем`);
+      return;
+    }
+    cb.checked = on;
+    cb.dispatchEvent(new d.window.Event("change", { bubbles: true }));
+  };
+  const SYNC_STUB = "window.__sync = 0; window.ALGO_SRS = { sync: function () { window.__sync++; return { cards: {}, created: [], removed: [] }; } };";
+  const H = "sliding-window.html";
+
+  // 1) глава ядра: блок один, в конце main; щелчок пишет оба ключа и зовёт sync
+  const d = await pageDom(H, { before: SYNC_STUB });
+  const w = d.window, doc = w.document, ls = w.localStorage;
+  if (blocks(d).length !== 1) {
+    errors.push(`на странице главы ${H} блоков «Глава пройдена»: ${blocks(d).length}, ожидался один`);
+  } else {
+    const b = blocks(d)[0];
+    const cb = b.querySelector('input[type="checkbox"]');
+    if (doc.querySelector("main").lastElementChild !== b) errors.push("блок «Глава пройдена» стоит не в конце main");
+    if (!/Глава пройдена/.test(b.textContent)) errors.push(`в блоке нет подписи «Глава пройдена»: «${b.textContent}»`);
+    if (!cb || cb.checked) errors.push("галочка неотмеченной главы отсутствует или уже стоит");
+    if (doc.querySelector(".algo-lvlnote")) errors.push("у главы ядра появилась плашка уровня");
+    toggle(d, true);
+    if (read(d, "algoProgress")[H] !== true) errors.push(`отметка в главе не записала algoProgress: ${ls.getItem("algoProgress")}`);
+    const at = read(d, "algoProgressAt")[H];
+    if (typeof at !== "number" || Math.abs(at - Date.now()) > 60 * 1000) errors.push(`отметка в главе не записала метку algoProgressAt: ${ls.getItem("algoProgressAt")}`);
+    if (w.__sync !== 1) errors.push(`после отметки ALGO_SRS.sync вызван ${w.__sync} раз(а), ожидался один`);
+    if (!b.classList.contains("algo-chapdone--done")) errors.push("отмеченный блок не получил класс algo-chapdone--done");
+    // чужая отметка, появившаяся в хранилище после загрузки страницы, переживает щелчок здесь
+    ls.setItem("algoProgress", JSON.stringify({ [H]: true, "big-o.html": true }));
+    toggle(d, false);
+    const after = read(d, "algoProgress");
+    if (after["big-o.html"] !== true || after[H] !== false) errors.push(`снятие отметки в главе затёрло чужое или не записалось: ${JSON.stringify(after)}`);
+    if (H in read(d, "algoProgressAt")) errors.push("снятие отметки в главе не убрало метку algoProgressAt");
+    if (w.__sync !== 2) errors.push(`после снятия отметки ALGO_SRS.sync вызван ${w.__sync} раз(а), ожидалось два — иначе карточка главы остаётся в очереди`);
+    if (b.classList.contains("algo-chapdone--done")) errors.push("после снятия отметки блок остался отмеченным");
+    // трекер в другой вкладке отметил главу — галочка здесь её показывает
+    ls.setItem("algoProgress", JSON.stringify({ [H]: true }));
+    w.dispatchEvent(new w.StorageEvent("storage", { key: "algoProgress" }));
+    if (!cb.checked || !b.classList.contains("algo-chapdone--done")) errors.push("storage: отметка из трекера другой вкладки не показана в главе");
+    ls.setItem("algoProgress", JSON.stringify({ [H]: false }));
+    w.dispatchEvent(new w.StorageEvent("storage", { key: "algoQuizBest" }));
+    if (!cb.checked) errors.push("storage по чужому ключу изменил галочку в главе");
+    w.dispatchEvent(new w.StorageEvent("storage", { key: null }));
+    if (cb.checked) errors.push("storage с key === null (очистка хранилища) не обновил галочку в главе");
+    // повторная инициализация (скрипт выполнен дважды) не плодит блоки
+    w.eval(js);
+    if (blocks(d).length !== 1) errors.push(`после повторной инициализации блоков ${blocks(d).length}`);
+  }
+
+  // 2) глава, отмеченная раньше (в трекере), открывается с галочкой
+  const pre = await pageDom(H, { seed: { algoProgress: JSON.stringify({ [H]: true }) } });
+  const preCb = pre.window.document.querySelector(".algo-chapdone input");
+  if (!preCb || !preCb.checked) errors.push("глава, отмеченная в трекере, открылась без галочки");
+
+  // 3) не глава — блока нет: инструменты, страницы вне реестра, вся книга одной страницей
+  for (const f of ["quiz.html", "cheatsheet.html", "pattern-selection-guide.html", "review.html", "mixed.html", "glossary.html", "index.html", "print.html", "toc.html"]) {
+    const p = await pageDom(f);
+    if (blocks(p).length) errors.push(`на ${f} есть блок «Глава пройдена» — это не глава`);
+  }
+
+  // 4) глава расширения: плашка уровня под заголовком на месте, блок — в конце
+  const ext = await pageDom("deque-structure.html");
+  const extDoc = ext.window.document;
+  const note = extDoc.querySelector(".algo-lvlnote");
+  if (!note || note.previousElementSibling !== extDoc.querySelector("main h1")) errors.push("у главы расширения пропала плашка уровня под заголовком");
+  if (blocks(ext).length !== 1 || extDoc.querySelector("main").lastElementChild !== blocks(ext)[0]) errors.push("у главы расширения нет блока «Глава пройдена» в конце");
+
+  // 5) хранилище недоступно: галочка держится в пределах вкладки и не выдаёт себя за сохранённую
+  const off = await pageDom("big-o.html");
+  const proto = off.window.Storage.prototype, origGet = proto.getItem, origSet = proto.setItem;
+  proto.getItem = function () { throw new Error("SecurityError"); };
+  proto.setItem = function () { throw new Error("SecurityError"); };
+  try {
+    toggle(off, true);
+  } finally {
+    proto.getItem = origGet;
+    proto.setItem = origSet;
+  }
+  const offBlock = off.window.document.querySelector(".algo-chapdone");
+  if (offBlock) {
+    if (!offBlock.querySelector("input").checked) errors.push("при недоступном хранилище галочка в главе снялась сама");
+    if (!/не сохранилась/.test(offBlock.textContent)) errors.push(`при недоступном хранилище блок не сказал, что отметка не сохранилась: «${offBlock.textContent}»`);
+  }
+  if (off.window.localStorage.getItem("algoProgress") !== null) errors.push("при недоступном хранилище algoProgress всё же записан");
+
+  // 6) вместе с настоящим srs.js: отметка сразу заводит карточку главы на завтра, снятие её убирает
+  const MENU =
+    '<div id="mdbook-menu-bar" class="menu-bar"><div class="left-buttons"></div><h1 class="menu-title">Книга</h1>' +
+    '<div class="right-buttons"><a href="print.html" title="Print">P</a></div></div>';
+  const miss = { "big-o#2": { n: 1, page: "big-o", anchor: "task-2", q: "Сколько копий сделает append?" } };
+  const real = await pageDom(H, { srs: true, menu: MENU, seed: { algoChallengeMissed: JSON.stringify(miss) } });
+  const badge = () => {
+    const a = real.window.document.querySelector(".algo-srs-badge");
+    return a && !a.hidden ? a.textContent.replace(/\s+/g, " ").trim() : null;
+  };
+  if (!/Сегодня:\s*1\b/.test(badge() || "")) errors.push(`глава с настоящим srs.js: счётчик «${badge()}», ожидалось 1 (промах)`);
+  toggle(real, true);
+  const card = read(real, "algoSRS")["ch:" + H];
+  if (!card || Math.abs(card.due - (Date.now() + 24 * 60 * 60 * 1000)) > 60 * 1000) errors.push(`отметка в главе не завела карточку главы на завтра: ${JSON.stringify(card)}`);
+  if (!/Сегодня:\s*1\b/.test(badge() || "")) errors.push(`после отметки главы счётчик «${badge()}» — карточка главы приходит завтра, сегодня должно остаться 1`);
+  toggle(real, false);
+  if (read(real, "algoSRS")["ch:" + H]) errors.push("снятая отметка оставила ни разу не оценённую карточку главы в очереди");
+  if (!read(real, "algoSRS")["task:big-o#2"]) errors.push("снятие отметки главы убрало чужую карточку");
+
+  // 7) трекер тоже зовёт sync: отметка на шпаргалке заводит карточку без перехода на другую страницу
+  const sheet = await pageDom("cheatsheet.html", { srs: true, menu: MENU, main: '<div class="algo-progress"></div>' });
+  const first = sheet.window.document.querySelector('.algo-prog__item input[aria-label*="Big-O"]');
+  if (!first) errors.push("на шпаргалке не нашлась галочка главы Big-O");
+  else {
+    first.checked = true;
+    first.dispatchEvent(new sheet.window.Event("change"));
+    if (!read(sheet, "algoSRS")["ch:big-o.html"]) errors.push("отметка в трекере не завела карточку главы сразу");
+    first.checked = false;
+    first.dispatchEvent(new sheet.window.Event("change"));
+    if (read(sheet, "algoSRS")["ch:big-o.html"]) errors.push("снятая в трекере отметка оставила неоценённую карточку главы");
+  }
+}

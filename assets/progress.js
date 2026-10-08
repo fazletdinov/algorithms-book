@@ -1,6 +1,8 @@
 /*
  * progress.js — личный трекер прогресса по главам (сохраняется в localStorage).
  * Контейнер: <div class="algo-progress"></div>
+ * Ту же отметку ставит галочка «Глава пройдена», которую этот файл сам добавляет в конец каждой
+ * главы из реестра (chapterDone): отмечать главу там, где она дочитана, а не на шпаргалке.
  */
 (function () {
   "use strict";
@@ -138,7 +140,8 @@
     try { raw = localStorage.getItem(KEY); } catch (e) { return null; } // null — хранилище недоступно: вызывающий оставляет то, что держит в памяти вкладки
     try { return JSON.parse(raw) || {}; } catch (e) { return {}; }
   }
-  function save(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* недоступно — отметки живут в памяти вкладки до перезагрузки */ } }
+  // save отвечает, записалось ли: недоступное хранилище — отметки живут в памяти вкладки до перезагрузки
+  function save(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); return true; } catch (e) { return false; } }
 
   // Метки пишутся по свежему чтению: трекер держит state, прочитанный при загрузке, а метки
   // принадлежат и другим вкладкам.
@@ -148,6 +151,25 @@
       if (on) marks[href] = Date.now(); else delete marks[href];
       localStorage.setItem(MARKED_AT_KEY, JSON.stringify(marks));
     } catch (e) { /* недоступно — карточка главы встанет от «сейчас» */ }
+  }
+
+  // Отметки изменились — движок повторений (srs.js, подключён позже) сверяется сразу: карточка
+  // отмеченной главы заводится, ни разу не оценённая карточка снятой — уходит, счётчик «Сегодня»
+  // обновляется без перехода на другую страницу.
+  function syncSRS() {
+    if (window.ALGO_SRS) window.ALGO_SRS.sync();
+  }
+
+  // setDone — единственное место, где пишется отметка главы: им пользуются и трекер, и галочка в
+  // конце главы. Запись по СВЕЖЕМУ чтению (отметки принадлежат и другим вкладкам); held — то, что
+  // вызывающий держит в памяти вкладки, на случай недоступного хранилища. saved — записалось ли.
+  function setDone(href, on, held) {
+    var state = load() || held || {};
+    state[href] = on;
+    var saved = save(state);
+    markAt(href, on);
+    syncSRS();
+    return { state: state, saved: saved };
   }
 
   function build(el) {
@@ -213,7 +235,7 @@
         var row = document.createElement("label"); row.className = "algo-prog__item";
         var cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!state[ch.h];
         cb.setAttribute("aria-label", "Отметить главу пройденной: " + ch.t);
-        cb.onchange = function () { state = load() || state; state[ch.h] = cb.checked; save(state); markAt(ch.h, cb.checked); showState(); refresh(); };
+        cb.onchange = function () { state = setDone(ch.h, cb.checked, state).state; showState(); refresh(); };
         var a = document.createElement("a"); a.href = ch.h; a.textContent = ch.t; a.className = "algo-prog__link";
         row.appendChild(cb); row.appendChild(a);
         // Ядро не помечаем: метка на четырёх пятых списка — это шум. Значок
@@ -284,7 +306,9 @@
         showState();
         refresh();
         importInput.value = "";
-        // карточки повторений и метки могли измениться: счётчик «Сегодня» (srs.js) узнает об этом без перехода на другую страницу
+        // карточки повторений и метки могли измениться: движок заводит карточки для пришедших отметок и
+        // промахов, а счётчик «Сегодня» и порция (srs.js) перестраиваются без перехода на другую страницу
+        syncSRS();
         document.dispatchEvent(new CustomEvent("algo-srs:change", { detail: { ids: [] } }));
       };
       reader.readAsText(file);
@@ -298,7 +322,15 @@
       try { localStorage.removeItem(MARKED_AT_KEY); } catch (e) { /* недоступно */ }
       boxes.forEach(function (cb) { cb.checked = false; cb.parentNode.classList.remove("algo-prog__item--done"); });
       refresh();
+      syncSRS();
     };
+    // Отметка из другой вкладки (галочка в конце главы, сброс) — трекер показывает её без перезагрузки.
+    window.addEventListener("storage", function (e) {
+      if (e.key !== null && e.key !== KEY) return;
+      state = load() || state;
+      showState();
+      refresh();
+    });
     // Имя не bar: так уже названа сама полоса прогресса выше, и повторный var
     // в той же функции молча перетирал бы её — refresh() тогда красит ширину
     // не тому элементу.
@@ -403,12 +435,18 @@
   // руками в сорока файлах: разметка в двух местах гарантированно разъедется,
   // и тогда трекер будет считать одно, а глава утверждать другое.
   // Ядро и инструменты не помечаем — молчание и означает «ты на пути».
-  function markPage() {
+  // Глава реестра, чья страница открыта; null — страница не из реестра (введение, глоссарий,
+  // «Повторение», print.html — вся книга одной страницей).
+  function currentChapter() {
     var file = (location.pathname.split("/").pop() || "index.html").split("#")[0];
-    var ch = null;
     for (var i = 0; i < CHAPTERS.length; i++) {
-      if (CHAPTERS[i].h === file) { ch = CHAPTERS[i]; break; }
+      if (CHAPTERS[i].h === file) return CHAPTERS[i];
     }
+    return null;
+  }
+
+  function markPage() {
+    var ch = currentChapter();
     if (!ch || ch.lvl === "core" || ch.lvl === "tool") return;
     var main = document.querySelector("main");
     if (!main || main.querySelector(".algo-lvlnote")) return;
@@ -424,8 +462,69 @@
     h1.parentNode.insertBefore(note, h1.nextSibling);
   }
 
+  // Галочка «Глава пройдена» в конце главы. Раньше отметить главу можно было только в трекере на
+  // шпаргалке — на другой странице, до которой ещё надо дойти; отметку забывали, и карточка главы
+  // не заводилась. Тот же реестр и та же запись, что у трекера (setDone). Нет на страницах-
+  // инструментах, на страницах вне реестра и на print.html; блок один на страницу.
+  function chapterDone() {
+    var ch = currentChapter();
+    if (!ch || ch.lvl === "tool") return;
+    var main = document.querySelector("main");
+    if (!main || main.querySelector(".algo-chapdone")) return;
+
+    var box = document.createElement("div"); box.className = "algo-chapdone";
+    var label = document.createElement("label"); label.className = "algo-chapdone__label";
+    var cb = document.createElement("input"); cb.type = "checkbox";
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode("Глава пройдена"));
+    var hint = document.createElement("span"); hint.className = "algo-chapdone__hint";
+    box.appendChild(label); box.appendChild(hint);
+
+    // Подсказка — строки и ссылки [текст, адрес].
+    function say(parts) {
+      hint.textContent = "";
+      parts.forEach(function (p) {
+        if (typeof p === "string") { hint.appendChild(document.createTextNode(p)); return; }
+        var a = document.createElement("a"); a.textContent = p[0]; a.href = p[1];
+        hint.appendChild(a);
+      });
+    }
+    var TRACKER = "cheatsheet.html#мой-прогресс", REVIEW = "review.html";
+    function show(on, saved) {
+      cb.checked = on;
+      box.classList.toggle("algo-chapdone--done", on);
+      if (!saved) {
+        say(["Отметка не сохранилась: хранилище браузера недоступно или переполнено — она действует, пока открыта эта страница."]);
+      } else if (on) {
+        say(["Глава в ", ["трекере прогресса", TRACKER], "; её карточка придёт на ", ["повторение", REVIEW], " по расписанию."]);
+      } else {
+        say(["Отметка попадёт в ", ["трекер прогресса", TRACKER], ", а карточка главы — в очередь на ", ["повторение", REVIEW],
+          " (новая карточка приходит на следующий день)."]);
+      }
+    }
+
+    // held — отметки в памяти вкладки: хранилище может быть недоступно (см. load)
+    var held = load() || {};
+    show(!!held[ch.h], true);
+    cb.onchange = function () {
+      var res = setDone(ch.h, cb.checked, held);
+      held = res.state;
+      show(!!held[ch.h], res.saved);
+    };
+    // трекер в другой вкладке отметил или снял главу (или прогресс сбросили) — галочка это показывает
+    window.addEventListener("storage", function (e) {
+      if (e.key !== null && e.key !== KEY) return;
+      var fresh = load();
+      if (!fresh) return;
+      held = fresh;
+      show(!!held[ch.h], true);
+    });
+    main.appendChild(box);
+  }
+
   function init() {
     markPage();
+    chapterDone();
     Array.prototype.forEach.call(document.querySelectorAll(".algo-progress:not(.algo-progress--ready)"), function (el) {
       el.classList.add("algo-progress--ready"); build(el);
     });
