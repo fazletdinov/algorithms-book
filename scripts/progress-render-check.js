@@ -188,6 +188,23 @@ setTimeout(function () {
     errors.push(`снятие отметки затёрло чужое: algoProgress = ${JSON.stringify(afterUncheck)}`);
   }
 
+  // --- хранилище недоступно (чтение бросает): отметки живут в памяти вкладки, а не обнуляются.
+  // Раньше load() отдавал {}, и клик по второй главе снимал галочку с первой ---
+  const idx4 = declaredLevels.findIndex((d, i) => d.lvl === "core" && ![idxCore, idxOther, idxThird].includes(i));
+  const idx5 = declaredLevels.findIndex((d, i) => d.lvl === "core" && ![idxCore, idxOther, idxThird, idx4].includes(i));
+  const proto = dom.window.Storage.prototype, origGet = proto.getItem;
+  proto.getItem = function () { throw new Error("SecurityError"); };
+  try {
+    mark(idx4);
+    mark(idx5);
+  } finally {
+    proto.getItem = origGet;
+  }
+  for (const [i, what] of [[idxCore, "первая отметка до отказа чтения"], [idxOther, "вторая отметка до отказа чтения"], [idx4, "отметка при недоступном хранилище"], [idx5, "вторая отметка при недоступном хранилище"]]) {
+    if (!items[i].querySelector("input").checked) errors.push(`при недоступном чтении потеряна галочка: ${what}`);
+  }
+  if (!label.textContent.includes(`4 / ${core.length}`)) errors.push(`при недоступном чтении процент «${label.textContent}», ожидалось 4 / ${core.length}`);
+
   // --- сброс ---
   const reset = [...el.querySelectorAll("button")].find((b) => /Сбросить/.test(b.textContent));
   if (!reset) {

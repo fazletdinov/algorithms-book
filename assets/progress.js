@@ -133,8 +133,12 @@
   // algoProgress ({href: true|false}) читают трекер, повторение и экспорт — менять его нельзя.
   var MARKED_AT_KEY = "algoProgressAt";
 
-  function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
-  function save(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* недоступно — работаем в рамках сессии */ } }
+  function load() {
+    var raw;
+    try { raw = localStorage.getItem(KEY); } catch (e) { return null; } // null — хранилище недоступно: вызывающий оставляет то, что держит в памяти вкладки
+    try { return JSON.parse(raw) || {}; } catch (e) { return {}; }
+  }
+  function save(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* недоступно — отметки живут в памяти вкладки до перезагрузки */ } }
 
   // Метки пишутся по свежему чтению: трекер держит state, прочитанный при загрузке, а метки
   // принадлежат и другим вкладкам.
@@ -147,7 +151,7 @@
   }
 
   function build(el) {
-    var state = load();
+    var state = load() || {};
 
     var barWrap = document.createElement("div"); barWrap.className = "algo-prog__barwrap";
     // Полоса прогресса передаёт долю и шириной, и ARIA-значением (для скринридеров).
@@ -209,7 +213,7 @@
         var row = document.createElement("label"); row.className = "algo-prog__item";
         var cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!state[ch.h];
         cb.setAttribute("aria-label", "Отметить главу пройденной: " + ch.t);
-        cb.onchange = function () { state = load(); state[ch.h] = cb.checked; save(state); markAt(ch.h, cb.checked); showState(); refresh(); };
+        cb.onchange = function () { state = load() || state; state[ch.h] = cb.checked; save(state); markAt(ch.h, cb.checked); showState(); refresh(); };
         var a = document.createElement("a"); a.href = ch.h; a.textContent = ch.t; a.className = "algo-prog__link";
         row.appendChild(cb); row.appendChild(a);
         // Ядро не помечаем: метка на четырёх пятых списка — это шум. Значок
@@ -276,7 +280,7 @@
           if (out === null) return;
           try { localStorage.setItem(k, out); } catch (e) { /* приватный режим */ }
         });
-        state = load();
+        state = load() || state;
         showState();
         refresh();
         importInput.value = "";
@@ -369,7 +373,7 @@
   // importValue решает, что записать в ключ k при импорте: сырой текст (null — оставить здешнее).
   // Ключи со своим правилом принимают только карту, а здешнее не-карту (повреждённое) лечат пришедшей
   // картой. Для остальных общее правило прежнее, но значение из файла, которое не разбирается как
-  // JSON (или другого вида, чем здешнее: карта против массива), не затирает исправное здешнее — это был
+  // JSON (или другого вида, чем здешнее: карта против массива), не затирает здешний объект или массив — это был
   // единственный найденный путь к повреждённому algoSRS. Ключи с сырым текстом (код читателя, рекорд
   // квиза) ведут себя как раньше.
   function importValue(k, currentRaw, incomingRaw) {

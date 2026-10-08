@@ -13,7 +13,7 @@
 //   3) «Забыл» — шаг назад по лестнице: завтра, потом предыдущая ступень (22 → 1 → 8 → 21),
 //      а не сброс в начало; «С трудом» растит слабо, но растит; перебор достижимых состояний
 //      (в том числе карточек прежней формулы) подтверждает порядок «Забыл» ≤ «С трудом» ≤
-//      «Помню», в сроках тоже, при любом сдвиге; повтор любой оценки не оставляет карточку
+//      «Помню», в сроках тоже при одном и том же сдвиге на три оценки; повтор любой оценки не оставляет карточку
 //      на месте; «Забыл» и «Помню» не дальше, чем было до «Забыл»;
 //   4) ease не убегает за границы [1.3, 2.8] даже после серии одинаковых оценок;
 //   5) заметка «в чём была ошибка» сохраняется и показывается при следующем повторе;
@@ -789,6 +789,7 @@ if (api) {
     if (badgeShown(dom)) errors.push(`${what}: виден счётчик «${badgeShown(dom)}»`);
     const t = w.document.querySelector(".algo-today").textContent;
     if (!/повреждены/.test(t) || !/Импорт/.test(t)) errors.push(`${what}: виджет не сообщил о повреждении и об импорте: «${t.slice(0, 120)}»`);
+    if (!/удалите ключ algoSRS/.test(t) || !/заведутся заново/.test(t)) errors.push(`${what}: виджет не подсказал удалить ключ без файла: «${t.slice(0, 120)}»`);
     if (!r) continue;
     const s = r.sync(now);
     if (!s.damaged || s.created.length) errors.push(`${what}: sync → ${JSON.stringify({ damaged: s.damaged, created: s.created })}`);
@@ -796,6 +797,11 @@ if (api) {
     if (res.status !== "unsaved") errors.push(`${what}: report → ${JSON.stringify(res)}, ожидался unsaved`);
     if (!(r.damaged && r.damaged()) || Object.keys(r.load()).length || r.due(now).length) errors.push(`${what}: damaged()/load()/due() не пусты`);
     if (w.localStorage.getItem("algoSRS") !== raw) errors.push(`${what}: sync/report перезаписали значение: ${w.localStorage.getItem("algoSRS")}`);
+    // то, что обещает сообщение виджета: без ключа карточки заводятся заново из отметок и промахов
+    w.localStorage.setItem("algoProgress", JSON.stringify({ "x.html": true }));
+    w.localStorage.removeItem("algoSRS");
+    const again = r.sync(now);
+    if (again.damaged || again.created.slice().sort().join() !== "ch:x.html,task:big-o#2") errors.push(`${what}: после удаления ключа sync завёл ${JSON.stringify(again.created)}, ожидались ch:x.html и task:big-o#2`);
   }
 
   // отдельная карточка-мусор в исправной карте пропускается, остальные работают
@@ -885,12 +891,14 @@ if (api) {
       "ch:absent.html": mk({ meta: { href: "absent.html" } }), // записи в algoProgress нет — уходит
       "ch:graded.html": mk({ iv: 3, reps: 1, seen: now - DAY, meta: { href: "graded.html" } }), // оценена — история, остаётся
       "pkg:somepkg": mk({ meta: { pkg: "somepkg" } }), // не глава — остаётся
+      "ch:handmade-iv.html": mk({ iv: 8, meta: { href: "handmade-iv.html" } }), // без seen, но с iv (собранный руками файл) — остаётся
+      "ch:handmade-reps.html": mk({ reps: 2, meta: { href: "handmade-reps.html" } }), // без seen, но с reps — остаётся
     }),
     algoProgress: JSON.stringify({ "marked.html": true, "unmarked.html": false, "graded.html": false }),
   };
   const dom = await newDom(seed, [], "<div></div>");
   const ids = Object.keys(cards(dom)).sort();
-  const want = ["ch:graded.html", "ch:marked.html", "pkg:somepkg"];
+  const want = ["ch:graded.html", "ch:handmade-iv.html", "ch:handmade-reps.html", "ch:marked.html", "pkg:somepkg"];
   if (JSON.stringify(ids) !== JSON.stringify(want)) errors.push(`карточки глав без отметки: осталось ${JSON.stringify(ids)}, ожидалось ${JSON.stringify(want)}`);
   // событие несёт и убранные карточки; повреждённый algoProgress ничего не убирает
   const r = dom.window.ALGO_SRS;
@@ -902,7 +910,7 @@ if (api) {
     errors.push(`sync: removed ${JSON.stringify(s.removed)}, события ${JSON.stringify(events)}`);
   }
   const broken = await newDom({ algoSRS: seed.algoSRS, algoProgress: "not json{" }, [], "<div></div>");
-  if (Object.keys(cards(broken)).length !== 5) errors.push(`повреждённый algoProgress убрал карточки глав: ${Object.keys(cards(broken))}`);
+  if (Object.keys(cards(broken)).length !== 7) errors.push(`повреждённый algoProgress убрал карточки глав: ${Object.keys(cards(broken))}`);
 }
 
 // --- 9. карточки прежних версий не теряются и не меняются ---
@@ -981,7 +989,7 @@ if (errors.length) {
 }
 console.log(
   "✅ srs-check: карточки заводятся на любой странице с опорой на метку события, счётчик «Сегодня: N» в панели, " +
-    "интервалы 1→3→8→22→61, «забыл» — шаг назад (22 → 1 → 8 → 21) с заметкой, порядок оценок и сроков при сдвиге " +
+    "интервалы 1→3→8→22→61, «забыл» — шаг назад (22 → 1 → 8 → 21) с заметкой, порядок оценок и сроков при одном и том же сдвиге " +
     "держится во всех достижимых состояниях (в том числе прежней формулы), две вкладки не затирают друг друга, " +
     "«с трудом» с back — ступень ниже back, «забыл» до срока один раз на падение, report() — исходы created/none/graded/early/unsaved, " +
     "повреждённый algoSRS не перезаписывается, прежние карточки не меняются, ease держится в [1.3, 2.8]"
