@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/fazletdinov/algorithms-book/exercises/cmd/internal/stubdoc"
 )
 
 func TestNeutral(t *testing.T) {
@@ -191,22 +193,42 @@ func TestCollectRealBankNewFields(t *testing.T) {
 		t.Errorf("задач с эталоном сложности %d, ожидалось 162 (абзацев «Ожидаемая сложность:» стало больше или меньше — "+
 			"сверь с docs заготовок и поправь число)", withComplexity)
 	}
-	// Тесты этих функций зовут соседнее упражнение пакета (cmd/internal/stubdoc: TestNeedsAreExactlyTheKnownPairs).
-	wantNeeds := []string{
-		"combinatorics.Permutations -> Binomial",
-		"cryptography.RSAPrivateExponent -> RSAEncrypt,RSADecrypt",
-		"intervals.InsertInterval -> MergeIntervals",
-		"parallelbfs.BFSLevelsConc -> BFSLevelsSeq",
-		"parallelbfs.BFSLevelsConcLocal -> BFSLevelsSeq",
-		"parallelnqueens.CountNQueensConc -> CountNQueensSeq",
-		"parallelsearch.CountOccurrencesConc -> CountOccurrencesSeq",
-		"parallelsort.MergeSortConc -> MergeSortSeq",
-		"sampling.BirthdayThreshold -> ExpectedCollisions",
-		"wordcount.FreqConc -> FreqSeq",
+	// n в банке — это needs из stubdoc (список пар лежит там: stubdoc/module_test.go, expectedNeeds);
+	// здесь сверяем, что банк отдал его без искажений, и что поле вообще заполнено.
+	for _, p := range ps {
+		want := stubdocNeeds(t, p.Pkg, p.Fn)
+		if !slices.Equal(p.Needs, want) {
+			t.Errorf("%s.%s: n = %v, а stubdoc говорит %v", p.Pkg, p.Fn, p.Needs, want)
+		}
 	}
-	if !slices.Equal(needs, wantNeeds) {
-		t.Errorf("зависимости тестов в банке:\n%v\nожидалось:\n%v", needs, wantNeeds)
+	if len(needs) < 10 {
+		t.Errorf("записей банка с непустым n: %d — меньше ожидаемого", len(needs))
 	}
+	for _, spot := range []string{"parallelbfs.BFSLevelsConc -> BFSLevelsSeq", "numbertheory.LCM -> GCD"} {
+		if !slices.Contains(needs, spot) {
+			t.Errorf("в банке нет зависимости %q: %v", spot, needs)
+		}
+	}
+}
+
+// stubdocNeeds — needs функции по данным stubdoc, посчитанные независимо от collect.
+func stubdocNeeds(t *testing.T, pkg, fn string) []string {
+	t.Helper()
+	dir := filepath.Join("..", "..", pkg)
+	stub, err := os.ReadFile(filepath.Join(dir, pkg+".go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	solution, _ := os.ReadFile(filepath.Join(dir, pkg+"_solution.go"))
+	exercises, err := stubdoc.Exercises(stub, solution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	links, err := stubdoc.LinkTests(dir, stub, solution, exercises)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return links[fn].Needs
 }
 
 func TestRenderNewFields(t *testing.T) {

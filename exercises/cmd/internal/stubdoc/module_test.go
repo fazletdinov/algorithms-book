@@ -248,7 +248,7 @@ func onlyDeletesLines(got, src string) bool {
 
 func TestSolutionOfEveryRealExercise(t *testing.T) {
 	checked := 0
-	for _, pkg := range stubPackages(t) {
+	for _, pkg := range allPackages(t) {
 		sol := readSolution(pkg)
 		if sol == nil {
 			t.Errorf("%s: нет эталона", pkg)
@@ -283,7 +283,7 @@ func TestSolutionOfEveryRealExercise(t *testing.T) {
 // а объявлений других упражнений пакета в ответе нет.
 func TestSolutionHelperTypesAreWholeAndNeighboursDoNotLeak(t *testing.T) {
 	helperTypes := 0
-	for _, pkg := range stubPackages(t) {
+	for _, pkg := range allPackages(t) {
 		sol := readSolution(pkg)
 		if sol == nil {
 			continue
@@ -338,26 +338,33 @@ func TestSolutionHelperTypesAreWholeAndNeighboursDoNotLeak(t *testing.T) {
 
 // allPackages — пакеты с упражнениями, включая те, где в заготовке нет panic("TODO").
 func allPackages(t *testing.T) []string {
-	return append(stubPackages(t), "codereview", "profiling")
+	pkgs := stubPackages(t)
+	for _, extra := range []string{"codereview", "profiling"} {
+		if !slices.Contains(pkgs, extra) { // «panic("TODO» бывает и в тексте шапки пакета
+			pkgs = append(pkgs, extra)
+		}
+	}
+	return pkgs
 }
 
 // linksOf — связи упражнений пакета с тестами: pkg.Имя -> Links.
 func linksOf(t *testing.T, pkg string) (map[string]Links, []Func) {
 	t.Helper()
 	fs := exercisesOf(t, pkg)
-	links, err := LinkTests(filepath.Join(moduleRoot, pkg), readStub(t, pkg), fs)
+	links, err := LinkTests(filepath.Join(moduleRoot, pkg), readStub(t, pkg), readSolution(pkg), fs)
 	if err != nil {
 		t.Fatalf("%s: %v", pkg, err)
 	}
 	return links, fs
 }
 
-// expectedNeeds — упражнения, чьи собственные тесты зовут другое упражнение: на заготовке с одной
-// решённой функцией такой тест падает с panic("TODO") соседа. Список поимённый: новая зависимость
-// должна быть замечена, а не появиться молча. Первые десять — пары «Conc/Seq» и подобные;
-// последняя появилась, когда круговой тест RSA получил имя по первой функции цикла
-// (TestRSAPrivateExponentRoundTrip).
+// expectedNeeds — упражнения, которым нужны другие упражнения пакета: тест единицы зовёт соседа (тесты
+// «Conc» сверяются с «Seq», BuildHeap собирает кучу через Heap.Len/Peek/Pop) или соседа зовёт эталон
+// единицы (LCM зовёт GCD, рецепт и эталон написаны через него) — транзитивно. На заготовке, где решена
+// только сама единица, прогон падает с panic("TODO") соседа. Список поимённый: новая зависимость должна
+// быть замечена, а не появиться молча; в части «методы» ссылка выбирается по типу получателя (см. LinkTests).
 var expectedNeeds = map[string][]string{
+	// тесты зовут соседа
 	"intervals.InsertInterval":            {"MergeIntervals"},
 	"parallelbfs.BFSLevelsConc":           {"BFSLevelsSeq"},
 	"parallelbfs.BFSLevelsConcLocal":      {"BFSLevelsSeq"},
@@ -368,7 +375,19 @@ var expectedNeeds = map[string][]string{
 	"combinatorics.Permutations":          {"Binomial"},
 	"sampling.BirthdayThreshold":          {"ExpectedCollisions"},
 	"serializetree.Serialize":             {"Deserialize"},
-	"cryptography.RSAPrivateExponent":     {"RSAEncrypt", "RSADecrypt"},
+	"cryptography.RSAPrivateExponent":     {"ExtendedGCD", "ModInverse", "ModExp", "RSAEncrypt", "RSADecrypt"},
+	// тесты зовут методы-упражнения типа
+	"binheap.BuildHeap": {"Heap.Pop", "Heap.Peek", "Heap.Len"},
+	// рецепт и эталон строятся на соседе
+	"numbertheory.LCM":                  {"GCD"},
+	"cryptography.ModInverse":           {"ExtendedGCD"},
+	"cryptography.IsProbablePrime":      {"ModExp"},
+	"cryptography.RSAEncrypt":           {"ModExp"},
+	"cryptography.RSADecrypt":           {"ModExp"},
+	"toposort.CanFinish":                {"TopologicalSort"},
+	"ahocorasick.Censor":                {"NewAutomaton", "Automaton.FindAll"},
+	"miniredis.dispatchSave":            {"SaveSnapshot"},
+	"ratelimiter.SafeTokenBucket.Allow": {"TokenBucket.Allow"}, // эталон: b.inner.Allow, поле inner — *TokenBucket
 }
 
 func TestNeedsAreExactlyTheKnownPairs(t *testing.T) {
@@ -452,10 +471,10 @@ func TestSingleExerciseTestsBelongToIt(t *testing.T) {
 			t.Fatal(err)
 		}
 		for name := range tf.tests {
-			reach := tf.reach([]string{name})
+			reach := tf.reach(newTyper(), []string{name})
 			var called []string
 			for _, f := range fs {
-				if reach[f.Name] {
+				if reach.idents[f.Name] {
 					called = append(called, f.Name)
 				}
 			}
@@ -493,8 +512,8 @@ func TestGroupsAreWellFormed(t *testing.T) {
 				if l.Group != typ {
 					t.Errorf("%s.%s: group = %q, ожидался %q", pkg, f.Name, l.Group, typ)
 				}
-				if len(l.Tests) != 0 || len(l.Needs) != 0 {
-					t.Errorf("%s.%s: у метода нет собственных tests и needs: %+v", pkg, f.Name, l)
+				if len(l.Tests) != 0 {
+					t.Errorf("%s.%s: у метода нет собственных tests: %+v", pkg, f.Name, l)
 				}
 			}
 			if l.Group != "" && len(l.GroupTests) > 0 {

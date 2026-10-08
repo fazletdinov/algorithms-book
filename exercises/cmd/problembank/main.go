@@ -167,7 +167,7 @@ func collect(root string) ([]problem, int, error) {
 		if err != nil {
 			return nil, 0, fmt.Errorf("%s: %w", stub, err)
 		}
-		links, err := stubdoc.LinkTests(filepath.Join(root, pkg), src, exercises)
+		links, err := stubdoc.LinkTests(filepath.Join(root, pkg), src, solution, exercises)
 		if err != nil {
 			return nil, 0, err
 		}

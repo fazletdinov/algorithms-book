@@ -91,7 +91,7 @@ func describeStub(dir, pkg string, code []byte) (stubResponse, error) {
 	if err != nil {
 		return stubResponse{}, fmt.Errorf("заготовка без подсказок: %w", err)
 	}
-	links, err := stubdoc.LinkTests(dir, code, funcs)
+	links, err := stubdoc.LinkTests(dir, code, solution, funcs)
 	if err != nil {
 		return stubResponse{}, fmt.Errorf("тесты пакета: %w", err)
 	}
