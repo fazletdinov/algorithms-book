@@ -107,11 +107,11 @@ func TestIsProbablePrimeRandom(t *testing.T) {
 	}
 }
 
-// TestRSARoundTripRandom: для случайных пар маленьких простых p != q и
+// TestRSAPrivateExponentRoundTripRandom: для случайных пар маленьких простых p != q и
 // открытой экспоненты e, обратимой по модулю φ, шифрование-расшифровка
 // возвращает исходное сообщение на случайных m из [0, n). Маленькие простые
 // держат n < 10^5, так что промежуточные произведения ModExp не переполняются.
-func TestRSARoundTripRandom(t *testing.T) {
+func TestRSAPrivateExponentRoundTripRandom(t *testing.T) {
 	primes := []int{53, 61, 71, 89, 101, 127, 151, 173, 197, 211, 233, 257}
 	exps := []int{3, 5, 7, 17, 257}
 	rng := rand.New(rand.NewSource(2605))

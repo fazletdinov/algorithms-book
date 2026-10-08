@@ -2,7 +2,7 @@ package cache
 
 import "testing"
 
-func TestLRUEviction(t *testing.T) {
+func TestTTLCacheLRUEviction(t *testing.T) {
 	// Ёмкость 2, большой TTL — чистое LRU-вытеснение.
 	c := NewTTLCache(2, 100000)
 	c.Put(1, 10, 0)
@@ -22,7 +22,7 @@ func TestLRUEviction(t *testing.T) {
 	}
 }
 
-func TestTTLExpiry(t *testing.T) {
+func TestTTLCacheExpiry(t *testing.T) {
 	c := NewTTLCache(10, 1000) // живёт 1000мс
 	c.Put(1, 10, 0)
 	if v, ok := c.Get(1, 500); !ok || v != 10 { // в пределах TTL
@@ -36,7 +36,7 @@ func TestTTLExpiry(t *testing.T) {
 	}
 }
 
-func TestTTLRefreshOnPut(t *testing.T) {
+func TestTTLCacheRefreshOnPut(t *testing.T) {
 	c := NewTTLCache(10, 1000)
 	c.Put(1, 10, 0)   // истекает в 1000
 	c.Put(1, 11, 900) // обновили — истекает в 1900
@@ -45,7 +45,7 @@ func TestTTLRefreshOnPut(t *testing.T) {
 	}
 }
 
-func TestUpdateMovesToFront(t *testing.T) {
+func TestTTLCacheUpdateMovesToFront(t *testing.T) {
 	// Обновление существующего ключа освежает его и не считается новой вставкой.
 	c := NewTTLCache(2, 100000)
 	c.Put(1, 10, 0)
@@ -60,7 +60,7 @@ func TestUpdateMovesToFront(t *testing.T) {
 	}
 }
 
-func TestExpiredFreesRoom(t *testing.T) {
+func TestTTLCacheExpiredFreesRoom(t *testing.T) {
 	// Протухшая запись не должна ложно занимать место.
 	c := NewTTLCache(1, 1000)
 	c.Put(1, 10, 0)
@@ -73,7 +73,7 @@ func TestExpiredFreesRoom(t *testing.T) {
 	}
 }
 
-func TestZeroCapacity(t *testing.T) {
+func TestTTLCacheZeroCapacity(t *testing.T) {
 	c := NewTTLCache(0, 1000)
 	c.Put(1, 10, 0)
 	if _, ok := c.Get(1, 0); ok {

@@ -64,6 +64,7 @@ type problem struct {
 	Complexity string   // эталон сложности: абзац «Ожидаемая сложность:» без префикса и точки
 	Also       []string // главы, чей ответ тоже верен («Также решается:»); Chapter среди них нет
 	Sign       string   // по чему приём виден в условии («Признак:»), без префикса
+	Needs      []string // другие упражнения пакета, без которых Tests не пройдут
 }
 
 // slugRe — имя главы: имя файла src/<слаг>.md. Узкое на всякий случай: слаг идёт в
@@ -161,11 +162,12 @@ func collect(root string) ([]problem, int, error) {
 				" без неё смешанная тренировка не знает темы задачи", stub)
 		}
 
-		topLevel, err := stubdoc.TopLevelFuncs(src)
+		solution, _ := os.ReadFile(filepath.Join(root, pkg, pkg+"_solution.go"))
+		exercises, err := stubdoc.Exercises(src, solution)
 		if err != nil {
 			return nil, 0, fmt.Errorf("%s: %w", stub, err)
 		}
-		testsOf, err := stubdoc.AssignTests(filepath.Join(root, pkg), topLevel)
+		links, err := stubdoc.LinkTests(filepath.Join(root, pkg), src, exercises)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -198,7 +200,8 @@ func collect(root string) ([]problem, int, error) {
 				Chapter:    answer,
 				Text:       text,
 				Hint:       hint,
-				Tests:      testsOf[fn.Name.Name],
+				Tests:      links[fn.Name.Name].Tests,
+				Needs:      links[fn.Name.Name].Needs,
 				Complexity: stubdoc.Complexity(fn.Doc.Text()),
 				Also:       marks.Also,
 				Sign:       marks.Sign,
@@ -298,12 +301,14 @@ func render(ps []problem) []byte {
  * ответа («Подсказка: используйте A*…», «Ожидаемая сложность: O(log n)»),
  * t — тесты именно этой функции (мок-интервью гоняет только их: panic("TODO")
  * в соседней функции иначе роняет весь тестовый бинарник). Пустой t значит
- * «своих тестов у функции нет» — такую задачу мок-интервью не выдаёт,
+ * «своих тестов у функции нет» — такую задачу мок-интервью не выдаёт.
  * x — эталон сложности: абзац «Ожидаемая сложность:» без префикса и точки в конце
- * (мок-интервью сверяет с ним оценку читателя; пустой — абзаца у функции нет),
- * a — слаги глав, чей приём тоже решает задачу («Также решается:» в
- * док-комментарии; главы c среди них нет), g — признак: по чему приём виден в
- * условии («Признак:», без префикса). У задач без разметки a пуст, g — "".
+ * (пустой — абзаца у функции нет). a — слаги глав, чей приём тоже решает задачу
+ * («Также решается:» в док-комментарии; главы c среди них нет), g — признак: по чему
+ * приём виден в условии («Признак:», без префикса); у задач без разметки a пуст, g — "".
+ * n — другие упражнения пакета, без которых тесты t не пройдут: тест зовёт их сам или
+ * через помощников (BFSLevelsConc сверяется с BFSLevelsSeq, и на заготовке с одной
+ * решённой функцией он упадёт с panic("TODO") соседа).
  */
 window.ALGO_PROBLEMS = [
 `)
@@ -316,9 +321,14 @@ window.ALGO_PROBLEMS = [
 		for i, a := range p.Also {
 			also[i] = jsString(a)
 		}
-		fmt.Fprintf(&b, "  { p: %s, f: %s, c: %s, s: %s, h: %s, t: [%s], x: %s, a: [%s], g: %s },\n",
+		needs := make([]string, len(p.Needs))
+		for i, n := range p.Needs {
+			needs[i] = jsString(n)
+		}
+		fmt.Fprintf(&b, "  { p: %s, f: %s, c: %s, s: %s, h: %s, t: [%s], x: %s, a: [%s], g: %s, n: [%s] },\n",
 			jsString(p.Pkg), jsString(p.Fn), jsString(p.Chapter), jsString(p.Text), jsString(p.Hint),
-			strings.Join(tests, ", "), jsString(p.Complexity), strings.Join(also, ", "), jsString(p.Sign))
+			strings.Join(tests, ", "), jsString(p.Complexity), strings.Join(also, ", "), jsString(p.Sign),
+			strings.Join(needs, ", "))
 	}
 	b.WriteString("];\n")
 	return b.Bytes()

@@ -83,7 +83,7 @@ func TestIsProbablePrime(t *testing.T) {
 	}
 }
 
-func TestRSARoundTrip(t *testing.T) {
+func TestRSAPrivateExponentRoundTrip(t *testing.T) {
 	// Классический учебный ключ: n = 3233, e = 17, d = 2753.
 	p, q, e := 61, 53, 17
 	n := p * q
@@ -106,7 +106,7 @@ func TestRSARoundTrip(t *testing.T) {
 	}
 }
 
-func TestRSANoInverse(t *testing.T) {
+func TestRSAPrivateExponentNoInverse(t *testing.T) {
 	// e не взаимно просто с φ=(p-1)(q-1) → ключа нет.
 	if _, ok := RSAPrivateExponent(6, 7, 13); ok {
 		t.Errorf("RSAPrivateExponent(6, 7, 13): ожидался ok=false (НОД(6, 72) != 1)")

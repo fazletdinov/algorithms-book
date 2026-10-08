@@ -62,10 +62,13 @@ type stubReply struct {
 	Code  string `json:"code"`
 	Plain string `json:"plain"`
 	Funcs []struct {
-		Name   string   `json:"name"`
-		Tests  []string `json:"tests"`
-		Hint   string   `json:"hint"`
-		Recipe string   `json:"recipe"`
+		Name       string   `json:"name"`
+		Tests      []string `json:"tests"`
+		Needs      []string `json:"needs"`
+		Group      string   `json:"group"`
+		GroupTests []string `json:"groupTests"`
+		Hint       string   `json:"hint"`
+		Recipe     string   `json:"recipe"`
 	} `json:"funcs"`
 }
 
@@ -164,13 +167,15 @@ func TestHandleStubJSONShape(t *testing.T) {
 	for _, f := range raw.Funcs {
 		var name string
 		_ = json.Unmarshal(f["name"], &name)
-		for _, key := range []string{"name", "tests", "hint", "recipe"} {
+		for _, key := range []string{"name", "tests", "needs", "group", "groupTests", "hint", "recipe"} {
 			if _, ok := f[key]; !ok {
 				t.Errorf("%s: нет поля %s", name, key)
 			}
 		}
-		if string(f["tests"]) == "null" {
-			t.Errorf("%s: tests = null, нужен []", name)
+		for _, key := range []string{"tests", "needs", "groupTests"} {
+			if string(f[key]) == "null" {
+				t.Errorf("%s: %s = null, нужен []", name, key)
+			}
 		}
 		if name == "MinStack.Top" {
 			found = true
@@ -205,6 +210,56 @@ func TestHandleStubRejectsBadPackage(t *testing.T) {
 // Тест делится между ВСЕМИ экспортированными функциями файла, не только упражнениями:
 // TestFooBar принадлежит готовой FooBar, и Foo его не получает (иначе прогон по её
 // «тестам» гонял бы чужой тест).
+// Метод и конструктор запускаются типом: у MinStack.Top своих тестов нет, но есть группа
+// с тестами типа; а тест функции, которому нужна соседняя, называет её в needs.
+func TestHandleStubNeedsAndGroups(t *testing.T) {
+	useRealModule(t)
+	funcsOf := func(pkg string) map[string]struct {
+		Tests, Needs, GroupTests []string
+		Group                    string
+	} {
+		_, body := get(t, handleStub, "/api/stub", map[string]string{"pkg": pkg})
+		var r struct {
+			Funcs []struct {
+				Name       string   `json:"name"`
+				Tests      []string `json:"tests"`
+				Needs      []string `json:"needs"`
+				Group      string   `json:"group"`
+				GroupTests []string `json:"groupTests"`
+			} `json:"funcs"`
+		}
+		if err := json.Unmarshal(body, &r); err != nil {
+			t.Fatal(err)
+		}
+		out := map[string]struct {
+			Tests, Needs, GroupTests []string
+			Group                    string
+		}{}
+		for _, f := range r.Funcs {
+			out[f.Name] = struct {
+				Tests, Needs, GroupTests []string
+				Group                    string
+			}{f.Tests, f.Needs, f.GroupTests, f.Group}
+		}
+		return out
+	}
+	bfs := funcsOf("parallelbfs")["BFSLevelsConc"]
+	if !slices.Equal(bfs.Needs, []string{"BFSLevelsSeq"}) || !slices.Equal(bfs.Tests, []string{"TestBFSLevelsConcMatchesSeq"}) {
+		t.Errorf("BFSLevelsConc: %+v", bfs)
+	}
+	if seq := funcsOf("parallelbfs")["BFSLevelsSeq"]; len(seq.Needs) != 0 {
+		t.Errorf("BFSLevelsSeq ничего не нужно: %+v", seq)
+	}
+	top := funcsOf("bigo")["MinStack.Top"]
+	if top.Group != "MinStack" || len(top.Tests) != 0 || !slices.Contains(top.GroupTests, "TestMinStack") {
+		t.Errorf("MinStack.Top: %+v", top)
+	}
+	ctor := funcsOf("lru")["Constructor"]
+	if ctor.Group != "LRUCache" || len(ctor.GroupTests) < 5 {
+		t.Errorf("lru.Constructor: %+v", ctor)
+	}
+}
+
 func TestHandleStubTestsGoToLongestNameEvenOfReadyFunc(t *testing.T) {
 	useModule(t, map[string]string{
 		"go.mod": "module probe\n",

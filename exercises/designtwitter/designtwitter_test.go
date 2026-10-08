@@ -25,7 +25,7 @@ func TestTwitterScenario(t *testing.T) {
 }
 
 // Лента ограничена 10 самыми свежими твитами.
-func TestNewsFeedLimit(t *testing.T) {
+func TestTwitterNewsFeedLimit(t *testing.T) {
 	tw := Constructor()
 	for i := 1; i <= 12; i++ {
 		tw.PostTweet(1, i) // твиты 1..12 по возрастанию времени
@@ -38,7 +38,7 @@ func TestNewsFeedLimit(t *testing.T) {
 }
 
 // Собственные твиты + твиты подписки сливаются по свежести (K-way merge).
-func TestMergeFollowed(t *testing.T) {
+func TestTwitterMergeFollowed(t *testing.T) {
 	tw := Constructor()
 	tw.PostTweet(1, 10) // время 1
 	tw.PostTweet(2, 20) // время 2

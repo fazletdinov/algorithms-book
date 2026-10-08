@@ -19,11 +19,11 @@ func randTree(rng *rand.Rand, depth int) *TreeNode {
 	}
 }
 
-// TestRoundTripRandom: свойство Deserialize(Serialize(t)) == t на случайных
+// TestSerializeRoundTripRandom: свойство Deserialize(Serialize(t)) == t на случайных
 // деревьях, включая nil и сильно перекошенные формы. Сравнение — sameTree
 // (структура + значения), то есть ловится любая потеря формы: перепутанные
 // лево/право, съеденный nil-маркер, лишний узел. Сид фиксирован.
-func TestRoundTripRandom(t *testing.T) {
+func TestSerializeRoundTripRandom(t *testing.T) {
 	rng := rand.New(rand.NewSource(2612))
 	for i := 0; i < 3000; i++ {
 		tree := randTree(rng, 1+rng.Intn(6))

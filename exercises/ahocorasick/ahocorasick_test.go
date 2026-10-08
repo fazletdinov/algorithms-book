@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestFindAll(t *testing.T) {
+func TestAutomatonFindAll(t *testing.T) {
 	tests := []struct {
 		name     string
 		patterns []string
@@ -71,7 +71,7 @@ func TestFindAll(t *testing.T) {
 	}
 }
 
-func TestContainsAny(t *testing.T) {
+func TestAutomatonContainsAny(t *testing.T) {
 	tests := []struct {
 		name     string
 		patterns []string

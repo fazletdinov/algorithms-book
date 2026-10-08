@@ -27,7 +27,7 @@ func runScenario(t *testing.T, name string, limit int, windowMs int64, steps []s
 	}
 }
 
-func TestBurstWithinWindow(t *testing.T) {
+func TestRateLimiterBurstWithinWindow(t *testing.T) {
 	runScenario(t, "всплеск", 3, 1000, []step{
 		{"a", 0, true},
 		{"a", 100, true},
@@ -36,7 +36,7 @@ func TestBurstWithinWindow(t *testing.T) {
 	})
 }
 
-func TestWindowSlides(t *testing.T) {
+func TestRateLimiterWindowSlides(t *testing.T) {
 	runScenario(t, "окно скользит", 2, 1000, []step{
 		{"a", 0, true},
 		{"a", 500, true},
@@ -46,7 +46,7 @@ func TestWindowSlides(t *testing.T) {
 	})
 }
 
-func TestPerClientIsolation(t *testing.T) {
+func TestRateLimiterPerClientIsolation(t *testing.T) {
 	runScenario(t, "изоляция клиентов", 1, 1000, []step{
 		{"a", 0, true},
 		{"a", 0, false}, // клиент a исчерпал лимит
@@ -55,7 +55,7 @@ func TestPerClientIsolation(t *testing.T) {
 	})
 }
 
-func TestWindowBoundary(t *testing.T) {
+func TestRateLimiterWindowBoundary(t *testing.T) {
 	runScenario(t, "граница окна", 1, 1000, []step{
 		{"a", 0, true},
 		{"a", 999, false}, // 0 всё ещё в окне (cutoff=-1)
@@ -63,7 +63,7 @@ func TestWindowBoundary(t *testing.T) {
 	})
 }
 
-func TestZeroAndSingleLimit(t *testing.T) {
+func TestRateLimiterZeroAndSingleLimit(t *testing.T) {
 	rl0 := NewRateLimiter(0, 1000)
 	if rl0.Allow("a", 0) {
 		t.Errorf("limit=0: запрос не должен проходить")
@@ -75,7 +75,7 @@ func TestZeroAndSingleLimit(t *testing.T) {
 	})
 }
 
-func TestOverallRespectsLimit(t *testing.T) {
+func TestRateLimiterOverallRespectsLimit(t *testing.T) {
 	// Инвариант: в любом окне пропущенных не больше limit.
 	const limit, window = 5, 1000
 	rl := NewRateLimiter(limit, window)
@@ -101,7 +101,7 @@ func TestOverallRespectsLimit(t *testing.T) {
 
 // ── 2. Sliding window log: RetryAfter ───────────────────────────────────────
 
-func TestRetryAfter(t *testing.T) {
+func TestRateLimiterRetryAfter(t *testing.T) {
 	rl := NewRateLimiter(2, 1000)
 	rl.Allow("a", 0)   // окно: {0}
 	rl.Allow("a", 500) // окно: {0, 500} — заполнено

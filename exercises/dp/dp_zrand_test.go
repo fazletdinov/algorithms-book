@@ -27,10 +27,10 @@ func bruteLIS(nums []int) int {
 	return best
 }
 
-// TestLISRandom: O(n log n)-решение против наивного O(n²) на случайных входах.
+// TestLongestIncreasingSubsequenceRandom: O(n log n)-решение против наивного O(n²) на случайных входах.
 // Узкий диапазон значений даёт дубликаты — проверяет, что возрастание именно
 // СТРОГОЕ (равные элементы не продолжают подпоследовательность).
-func TestLISRandom(t *testing.T) {
+func TestLongestIncreasingSubsequenceRandom(t *testing.T) {
 	rng := rand.New(rand.NewSource(2))
 	for range 1000 {
 		n := rng.Intn(40) // включая пустой массив

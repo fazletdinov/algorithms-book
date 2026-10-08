@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TestRBRandom: случайные перемешанные Insert/Delete/Search против модели
+// TestRBTreeRandom: случайные перемешанные Insert/Delete/Search против модели
 // (map ключей) с проверкой ВСЕХ инвариантов КЧ-дерева (checkRB: чёрный корень,
 // нет красный-красный, равная чёрная высота, порядок BST) после каждой операции.
 // Маленький пул ключей 0..29 заставляет постоянно срабатывать дубликаты при
@@ -14,7 +14,7 @@ import (
 // случаи fixup (красный/чёрный дядя, 4 случая «двойного чёрного»), которые
 // фиксированные сценарии из rbtree_test.go покрывают лишь частично.
 // Сид фиксирован → падение воспроизводимо.
-func TestRBRandom(t *testing.T) {
+func TestRBTreeRandom(t *testing.T) {
 	rng := rand.New(rand.NewSource(20260728))
 	for run := 0; run < 60; run++ {
 		tr := NewRBTree()
@@ -40,10 +40,10 @@ func TestRBRandom(t *testing.T) {
 	}
 }
 
-// TestRBRandomShrinkToEmpty: дерево наполняется и полностью опустошается в
+// TestRBTreeRandomShrinkToEmpty: дерево наполняется и полностью опустошается в
 // случайном порядке — ловит порчу стража nilNode (его parent/цвет) при
 // deleteFixup у корня и «хвосты» после удаления последнего узла.
-func TestRBRandomShrinkToEmpty(t *testing.T) {
+func TestRBTreeRandomShrinkToEmpty(t *testing.T) {
 	rng := rand.New(rand.NewSource(31338))
 	for run := 0; run < 40; run++ {
 		tr := NewRBTree()

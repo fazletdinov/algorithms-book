@@ -20,8 +20,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"path/filepath"
-	"sort"
 	"strings"
 )
 
@@ -161,16 +159,19 @@ func Funcs(src []byte) ([]Func, error) {
 	return exercises(src, nil)
 }
 
-// Exercises — то же, что Funcs, и ещё функции, объявленные И в заготовке, И в эталоне
-// (экспортированные): в codereview и profiling заготовка — рабочий код с изъяном, а
-// не panic("TODO"), но читателю она задана точно так же. solution == nil — как Funcs.
+// Exercises — то же, что Funcs; а если в заготовке нет ни одного panic("TODO…"), то
+// экспортированные функции, объявленные И в заготовке, И в эталоне. Так устроены codereview
+// и profiling: заготовка — рабочий код с изъяном, а не panic("TODO"), но читателю она задана
+// точно так же. В остальных пакетах готовые функции (конструкторы NewTrie, NewTopK…) есть в
+// обоих файлах тоже, но упражнениями не являются. solution == nil — как Funcs.
 func Exercises(stub, solution []byte) ([]Func, error) {
-	var inSolution map[string]bool
-	if solution != nil {
-		inSolution = map[string]bool{}
-		for _, name := range Declared(solution) {
-			inSolution[name] = true
-		}
+	fs, err := exercises(stub, nil)
+	if err != nil || len(fs) > 0 || solution == nil {
+		return fs, err
+	}
+	inSolution := map[string]bool{}
+	for _, name := range Declared(solution) {
+		inSolution[name] = true
 	}
 	return exercises(stub, inSolution)
 }
@@ -388,30 +389,11 @@ func todoIndex(group *ast.CommentGroup) int {
 // тест, а Subsets без SubsetsWithDup его не пройдёт никогда.
 // Тесты, которые не совпали ни с одной функцией, не достаются никому.
 func AssignTests(dir string, funcs []string) (map[string][]string, error) {
-	files, err := filepath.Glob(filepath.Join(dir, "*_test.go"))
+	tests, err := readTests(dir)
 	if err != nil {
 		return nil, err
 	}
-	out := map[string][]string{}
-	for _, f := range files {
-		file, err := parser.ParseFile(token.NewFileSet(), f, nil, parser.SkipObjectResolution)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", f, err)
-		}
-		for _, decl := range file.Decls {
-			fn, ok := decl.(*ast.FuncDecl)
-			if !ok || fn.Recv != nil || !strings.HasPrefix(fn.Name.Name, "Test") || fn.Name.Name == "TestMain" {
-				continue
-			}
-			if owner := OwnerOf(fn.Name.Name, funcs); owner != "" {
-				out[owner] = append(out[owner], fn.Name.Name)
-			}
-		}
-	}
-	for k := range out {
-		sort.Strings(out[k])
-	}
-	return out, nil
+	return tests.assign(funcs), nil
 }
 
 // OwnerOf — функция, которой принадлежит тест: имя после «Test» совпадает с ней

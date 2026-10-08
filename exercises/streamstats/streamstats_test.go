@@ -10,7 +10,7 @@ func approx(a, b float64) bool { return math.Abs(a-b) < 1e-9 }
 
 // ── MedianFinder ────────────────────────────────────────────────────────────
 
-func TestMedianBasic(t *testing.T) {
+func TestMedianFinderBasic(t *testing.T) {
 	m := NewMedianFinder()
 	if got := m.Median(); got != 0 {
 		t.Errorf("пустой поток: Median = %v, ожидалось 0", got)
@@ -27,7 +27,7 @@ func TestMedianBasic(t *testing.T) {
 	}
 }
 
-func TestMedianUnorderedInput(t *testing.T) {
+func TestMedianFinderUnorderedInput(t *testing.T) {
 	m := NewMedianFinder()
 	for _, x := range []float64{5, 15, 1, 3} { // отсортировано: 1 3 5 15
 		m.Add(x)
@@ -37,7 +37,7 @@ func TestMedianUnorderedInput(t *testing.T) {
 	}
 }
 
-func TestMedianMatchesSort(t *testing.T) {
+func TestMedianFinderMatchesSort(t *testing.T) {
 	// Сверяем бегущую медиану с точной медианой отсортированного префикса.
 	data := []float64{7, 2, 9, 1, 5, 8, 3, 6, 4, 10, 0, 12, 11, 13, 14}
 	m := NewMedianFinder()

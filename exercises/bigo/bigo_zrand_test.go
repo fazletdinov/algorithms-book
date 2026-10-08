@@ -36,7 +36,7 @@ func bruteDailyTemps(t []int) []int {
 	return res
 }
 
-func TestNextGreaterRandom(t *testing.T) {
+func TestNextGreaterElementRandom(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	for range 2000 {
 		n := rng.Intn(40)

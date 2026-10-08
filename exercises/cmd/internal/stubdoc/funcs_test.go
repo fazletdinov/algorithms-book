@@ -138,22 +138,7 @@ func Bare() {
 	}
 }
 
-func TestExercisesAddsFunctionsDeclaredInBothFiles(t *testing.T) {
-	const stub = `package p
-
-// Flawed — рабочая, но с изъяном; читателю задана.
-func Flawed() int { return 1 }
-
-func Plain() int { return 2 }
-
-func ReaderOnly() int { return 3 }
-
-func unexported() int { return 4 }
-
-func Todo() int {
-	panic("TODO: реализуйте Todo")
-}
-`
+func TestExercisesAddsFunctionsDeclaredInBothFilesOnlyWhenStubHasNoTODO(t *testing.T) {
 	const solution = `package p
 
 func Flawed() int { return 10 }
@@ -166,17 +151,36 @@ func Todo() int { return 5 }
 
 func SolutionOnly() int { return 6 }
 `
-	fs, err := Exercises([]byte(stub), []byte(solution))
+	// В заготовке нет panic("TODO"): упражнение — всё экспортированное, что есть и в эталоне.
+	const flawed = `package p
+
+// Flawed — рабочая, но с изъяном; читателю задана.
+func Flawed() int { return 1 }
+
+func Plain() int { return 2 }
+
+func ReaderOnly() int { return 3 }
+
+func unexported() int { return 4 }
+`
+	fs, err := Exercises([]byte(flawed), []byte(solution))
 	if err != nil {
 		t.Fatal(err)
 	}
-	// ReaderOnly нет в эталоне, SolutionOnly — в заготовке; неэкспортированные без
-	// panic("TODO не считаются.
-	if got, want := funcNames(fs), []string{"Flawed", "Plain", "Todo"}; !slices.Equal(got, want) {
+	if got, want := funcNames(fs), []string{"Flawed", "Plain"}; !slices.Equal(got, want) {
 		t.Errorf("Exercises = %v, ожидалось %v", got, want)
 	}
-	if only, _ := Exercises([]byte(stub), nil); !slices.Equal(funcNames(only), []string{"Todo"}) {
+	if only, _ := Exercises([]byte(flawed), nil); len(only) != 0 {
 		t.Errorf("без эталона — как Funcs: %v", funcNames(only))
+	}
+	// Есть panic("TODO"): готовые функции, оказавшиеся и в эталоне (конструкторы), не в счёт.
+	const withTodo = flawed + `
+func Todo() int {
+	panic("TODO: реализуйте Todo")
+}
+`
+	if got, _ := Exercises([]byte(withTodo), []byte(solution)); !slices.Equal(funcNames(got), []string{"Todo"}) {
+		t.Errorf("при наличии panic(\"TODO\") упражнения только они: %v", funcNames(got))
 	}
 }
 

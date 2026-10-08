@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestRBBasic(t *testing.T) {
+func TestRBTreeBasic(t *testing.T) {
 	tr := NewRBTree()
 	if got := tr.InOrder(); len(got) != 0 {
 		t.Fatalf("пустое дерево InOrder() = %v", got)
@@ -28,7 +28,7 @@ func TestRBBasic(t *testing.T) {
 }
 
 // Возрастающая вставка 1..n: дерево остаётся сбалансированным (высота O(log n)).
-func TestRBStaysBalanced(t *testing.T) {
+func TestRBTreeStaysBalanced(t *testing.T) {
 	tr := NewRBTree()
 	const n = 1000
 	for i := 1; i <= n; i++ {
@@ -40,7 +40,7 @@ func TestRBStaysBalanced(t *testing.T) {
 	}
 }
 
-func TestRBDelete(t *testing.T) {
+func TestRBTreeDelete(t *testing.T) {
 	tr := NewRBTree()
 	for _, v := range []int{10, 20, 30, 15, 25, 5, 1, 40, 35, 50} {
 		tr.Insert(v)
@@ -62,7 +62,7 @@ func TestRBDelete(t *testing.T) {
 }
 
 // Массовое удаление — все инварианты красно-чёрного дерева сохраняются.
-func TestRBDeleteStress(t *testing.T) {
+func TestRBTreeDeleteStress(t *testing.T) {
 	tr := NewRBTree()
 	const n = 500
 	for i := 1; i <= n; i++ {

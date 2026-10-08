@@ -20,10 +20,13 @@ var funcName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9
 
 // stubFunc — упражнение заготовки в ответе /api/stub.
 type stubFunc struct {
-	Name   string   `json:"name"`
-	Tests  []string `json:"tests"` // тесты именно этой функции; нет своих — []
-	Hint   string   `json:"hint"`
-	Recipe string   `json:"recipe"`
+	Name       string   `json:"name"`
+	Tests      []string `json:"tests"`      // тесты, которыми владеет сама функция; у метода и конструктора обычно []
+	Needs      []string `json:"needs"`      // другие упражнения пакета, без которых tests не пройдут
+	Group      string   `json:"group"`      // тип метода или конструктора; "" — функция сама по себе
+	GroupTests []string `json:"groupTests"` // тесты типа group; единица прогона для метода и конструктора
+	Hint       string   `json:"hint"`
+	Recipe     string   `json:"recipe"`
 }
 
 // stubNote — убранный из plain текст, которого нет ни в hint, ни в recipe упражнений.
@@ -88,35 +91,35 @@ func describeStub(dir, pkg string, code []byte) (stubResponse, error) {
 	if err != nil {
 		return stubResponse{}, fmt.Errorf("заготовка без подсказок: %w", err)
 	}
-	// Тесты делятся между ВСЕМИ экспортированными функциями файла, а не только
-	// упражнениями: так же их делит банк задач, и список функции совпадает с банком.
-	topLevel, err := stubdoc.TopLevelFuncs(code)
-	if err != nil {
-		return stubResponse{}, fmt.Errorf("разбор заготовки: %w", err)
-	}
-	testsOf, err := stubdoc.AssignTests(dir, topLevel)
+	links, err := stubdoc.LinkTests(dir, code, funcs)
 	if err != nil {
 		return stubResponse{}, fmt.Errorf("тесты пакета: %w", err)
 	}
-	resp := stubResponse{Pkg: pkg, Code: string(code), Plain: string(plain), Funcs: stubFuncs(funcs, testsOf), Notes: make([]stubNote, 0, len(notes))}
+	resp := stubResponse{Pkg: pkg, Code: string(code), Plain: string(plain), Funcs: stubFuncs(funcs, links), Notes: make([]stubNote, 0, len(notes))}
 	for _, n := range notes {
 		resp.Notes = append(resp.Notes, stubNote{At: n.At, Text: n.Text})
 	}
 	return resp, nil
 }
 
-// stubFuncs собирает ответ: у каждой функции — её тесты, у остальных — пустой
-// массив, а не null (виджет сравнивает длину).
-func stubFuncs(funcs []stubdoc.Func, testsOf map[string][]string) []stubFunc {
+// stubFuncs собирает ответ: списки — всегда массивы (виджет сравнивает длину), не null.
+func stubFuncs(funcs []stubdoc.Func, links map[string]stubdoc.Links) []stubFunc {
 	out := make([]stubFunc, 0, len(funcs))
 	for _, f := range funcs {
-		tests := testsOf[f.Name] // методы сюда не попадают: «Тип.Метод» ни один тест не назовёт
-		if tests == nil {
-			tests = []string{}
-		}
-		out = append(out, stubFunc{Name: f.Name, Tests: tests, Hint: f.Hint, Recipe: f.Recipe})
+		l := links[f.Name]
+		out = append(out, stubFunc{
+			Name: f.Name, Tests: nonNil(l.Tests), Needs: nonNil(l.Needs),
+			Group: l.Group, GroupTests: nonNil(l.GroupTests), Hint: f.Hint, Recipe: f.Recipe,
+		})
 	}
 	return out
+}
+
+func nonNil(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
 }
 
 // handleSolution отдаёт эталон ОДНОЙ функции: её объявление и то, без чего оно не

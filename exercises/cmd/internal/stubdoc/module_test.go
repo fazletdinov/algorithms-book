@@ -336,6 +336,185 @@ func TestSolutionHelperTypesAreWholeAndNeighboursDoNotLeak(t *testing.T) {
 	}
 }
 
+// allPackages — пакеты с упражнениями, включая те, где в заготовке нет panic("TODO").
+func allPackages(t *testing.T) []string {
+	return append(stubPackages(t), "codereview", "profiling")
+}
+
+// linksOf — связи упражнений пакета с тестами: pkg.Имя -> Links.
+func linksOf(t *testing.T, pkg string) (map[string]Links, []Func) {
+	t.Helper()
+	fs := exercisesOf(t, pkg)
+	links, err := LinkTests(filepath.Join(moduleRoot, pkg), readStub(t, pkg), fs)
+	if err != nil {
+		t.Fatalf("%s: %v", pkg, err)
+	}
+	return links, fs
+}
+
+// expectedNeeds — упражнения, чьи собственные тесты зовут другое упражнение: на заготовке с одной
+// решённой функцией такой тест падает с panic("TODO") соседа. Список поимённый: новая зависимость
+// должна быть замечена, а не появиться молча. Первые десять — пары «Conc/Seq» и подобные;
+// последняя появилась, когда круговой тест RSA получил имя по первой функции цикла
+// (TestRSAPrivateExponentRoundTrip).
+var expectedNeeds = map[string][]string{
+	"intervals.InsertInterval":            {"MergeIntervals"},
+	"parallelbfs.BFSLevelsConc":           {"BFSLevelsSeq"},
+	"parallelbfs.BFSLevelsConcLocal":      {"BFSLevelsSeq"},
+	"parallelnqueens.CountNQueensConc":    {"CountNQueensSeq"},
+	"wordcount.FreqConc":                  {"FreqSeq"},
+	"parallelsearch.CountOccurrencesConc": {"CountOccurrencesSeq"},
+	"parallelsort.MergeSortConc":          {"MergeSortSeq"},
+	"combinatorics.Permutations":          {"Binomial"},
+	"sampling.BirthdayThreshold":          {"ExpectedCollisions"},
+	"serializetree.Serialize":             {"Deserialize"},
+	"cryptography.RSAPrivateExponent":     {"RSAEncrypt", "RSADecrypt"},
+}
+
+func TestNeedsAreExactlyTheKnownPairs(t *testing.T) {
+	got := map[string][]string{}
+	for _, pkg := range allPackages(t) {
+		links, fs := linksOf(t, pkg)
+		for _, f := range fs {
+			if n := links[f.Name].Needs; len(n) > 0 {
+				got[pkg+"."+f.Name] = n
+			}
+		}
+	}
+	for name, want := range expectedNeeds {
+		if !slices.Equal(got[name], want) {
+			t.Errorf("%s: needs = %v, ожидалось %v", name, got[name], want)
+		}
+	}
+	for name, n := range got {
+		if _, ok := expectedNeeds[name]; !ok {
+			t.Errorf("%s: неожиданные needs %v — у остальных функций они пусты", name, n)
+		}
+	}
+}
+
+// noOwnTestsAllowed — упражнения, у которых нет ни собственных тестов, ни тестов типа. Храповик:
+// запись, которая больше не нужна, роняет тест. Причина обязательна.
+var noOwnTestsAllowed = map[string]string{
+	"miniredis.dispatchSet":     "диспетчер проверяют тесты протокола через Dispatch, пакет решается целиком",
+	"miniredis.dispatchGet":     "см. dispatchSet",
+	"miniredis.dispatchDel":     "см. dispatchSet",
+	"miniredis.dispatchExpire":  "см. dispatchSet",
+	"miniredis.dispatchTTL":     "см. dispatchSet",
+	"miniredis.dispatchZAdd":    "см. dispatchSet",
+	"miniredis.dispatchZScore":  "см. dispatchSet",
+	"miniredis.dispatchZRange":  "см. dispatchSet",
+	"miniredis.dispatchZRank":   "см. dispatchSet",
+	"miniredis.dispatchSave":    "см. dispatchSet",
+	"miniredis.SaveSnapshot":    "снапшот проверяют TestSnapshot… парой Save/Load, без общего имени",
+	"cryptography.RSAEncrypt":   "проверяется круговым TestRSAPrivateExponentRoundTrip, который принадлежит первой функции цикла",
+	"cryptography.RSADecrypt":   "см. RSAEncrypt",
+	"serializetree.Deserialize": "проверяется круговым TestSerializeRoundTrip, который принадлежит Serialize",
+}
+
+func TestEveryExerciseHasTestsOrTypeTests(t *testing.T) {
+	stillNeeded := map[string]bool{}
+	for _, pkg := range allPackages(t) {
+		links, fs := linksOf(t, pkg)
+		for _, f := range fs {
+			name := pkg + "." + f.Name
+			l := links[f.Name]
+			if len(l.Tests) > 0 || len(l.GroupTests) > 0 {
+				continue
+			}
+			if _, ok := noOwnTestsAllowed[name]; !ok {
+				t.Errorf("%s: нет ни tests, ни groupTests — переименуй тест по имени функции или типа либо внеси в noOwnTestsAllowed с причиной", name)
+			}
+			stillNeeded[name] = true
+		}
+	}
+	for name := range noOwnTestsAllowed {
+		if !stillNeeded[name] {
+			t.Errorf("%s: у упражнения теперь есть тесты — запись в noOwnTestsAllowed лишняя", name)
+		}
+	}
+}
+
+// ownershipExceptions — тесты, которые зовут ровно одно упражнение, но не входят ни в его tests, ни
+// в groupTests. Храповик, как выше.
+var ownershipExceptions = map[string]string{
+	"miniredis.TestDispatchSave": "SAVE вызывается строкой команды через Dispatch: имени dispatchSave в теле теста нет",
+}
+
+// Тест, тело которого (с помощниками) зовёт ровно одну функцию пакета, обязан быть в её
+// tests или groupTests: иначе «прогнать только её тесты» пропускает проверку, написанную именно про неё.
+func TestSingleExerciseTestsBelongToIt(t *testing.T) {
+	seen := map[string]bool{}
+	for _, pkg := range allPackages(t) {
+		links, fs := linksOf(t, pkg)
+		tf, err := readTests(filepath.Join(moduleRoot, pkg))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for name := range tf.tests {
+			reach := tf.reach([]string{name})
+			var called []string
+			for _, f := range fs {
+				if reach[f.Name] {
+					called = append(called, f.Name)
+				}
+			}
+			if len(called) != 1 {
+				continue
+			}
+			l := links[called[0]]
+			if slices.Contains(l.Tests, name) || slices.Contains(l.GroupTests, name) {
+				continue
+			}
+			key := pkg + "." + name
+			seen[key] = true
+			if _, ok := ownershipExceptions[key]; !ok {
+				t.Errorf("%s зовёт только %s, но не входит в её tests и groupTests", key, called[0])
+			}
+		}
+	}
+	for key := range ownershipExceptions {
+		if !seen[key] {
+			t.Errorf("%s: исключение больше не нужно", key)
+		}
+	}
+}
+
+// Тесты функции и тесты её типа не пересекаются, а у метода и конструктора группа заполнена.
+func TestGroupsAreWellFormed(t *testing.T) {
+	groups := map[string]bool{}
+	methods := 0
+	for _, pkg := range allPackages(t) {
+		links, fs := linksOf(t, pkg)
+		for _, f := range fs {
+			l := links[f.Name]
+			if typ, _, isMethod := strings.Cut(f.Name, "."); isMethod {
+				methods++
+				if l.Group != typ {
+					t.Errorf("%s.%s: group = %q, ожидался %q", pkg, f.Name, l.Group, typ)
+				}
+				if len(l.Tests) != 0 || len(l.Needs) != 0 {
+					t.Errorf("%s.%s: у метода нет собственных tests и needs: %+v", pkg, f.Name, l)
+				}
+			}
+			if l.Group != "" && len(l.GroupTests) > 0 {
+				groups[pkg+"."+l.Group] = true
+			}
+			for _, x := range l.Tests {
+				if slices.Contains(l.GroupTests, x) {
+					t.Errorf("%s.%s: тест %s и в tests, и в groupTests", pkg, f.Name, x)
+				}
+			}
+			if l.Group == "" && len(l.GroupTests) != 0 {
+				t.Errorf("%s.%s: groupTests без group", pkg, f.Name)
+			}
+		}
+	}
+	if methods < 80 || len(groups) < 25 {
+		t.Errorf("методов %d, групп с тестами %d — меньше ожидаемого", methods, len(groups))
+	}
+}
+
 func TestFuncsOfBigOIncludeMethods(t *testing.T) {
 	fs, err := Funcs(readStub(t, "bigo"))
 	if err != nil {

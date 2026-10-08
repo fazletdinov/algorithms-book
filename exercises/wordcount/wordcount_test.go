@@ -25,7 +25,7 @@ func TestFreqConcMatchesSeq(t *testing.T) {
 	}
 }
 
-func TestFreqEmpty(t *testing.T) {
+func TestFreqConcEmpty(t *testing.T) {
 	if got := FreqConc(nil); len(got) != 0 {
 		t.Errorf("Conc(nil) = %v, ожидалось пустую карту", got)
 	}

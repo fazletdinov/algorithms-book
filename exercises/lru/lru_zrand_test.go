@@ -47,11 +47,11 @@ func (m *modelLRU) put(key, val int) {
 	}
 }
 
-// TestLRURandom: случайные перемешанные Get/Put против наивной модели.
+// TestLRUCacheRandom: случайные перемешанные Get/Put против наивной модели.
 // Маленькие ёмкость и пул ключей заставляют вытеснение и обновление срабатывать
 // постоянно; ёмкость 0 включена как вырожденный случай. Сид фиксирован →
 // падение воспроизводимо.
-func TestLRURandom(t *testing.T) {
+func TestLRUCacheRandom(t *testing.T) {
 	rng := rand.New(rand.NewSource(20260728))
 	for run := 0; run < 50; run++ {
 		capacity := rng.Intn(5) // 0..4, включая вырожденный cap=0

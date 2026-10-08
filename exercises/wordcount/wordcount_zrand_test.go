@@ -8,7 +8,7 @@ import (
 
 // Случайные входы: Seq и Conc должны давать одинаковую карту частот. Прогон под
 // -race ловит запись в общую map из нескольких горутин (классический баг).
-func TestFreqRandom(t *testing.T) {
+func TestFreqConcRandom(t *testing.T) {
 	rng := rand.New(rand.NewSource(404))
 	for range 300 {
 		n := rng.Intn(2000)

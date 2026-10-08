@@ -43,7 +43,7 @@ func TestIsPrime(t *testing.T) {
 	}
 }
 
-func TestSieve(t *testing.T) {
+func TestSieveOfEratosthenes(t *testing.T) {
 	cases := []struct {
 		n    int
 		want []int

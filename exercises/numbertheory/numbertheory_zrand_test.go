@@ -32,7 +32,7 @@ func TestIsPrimeRandom(t *testing.T) {
 	}
 }
 
-func TestSieveMatchesIsPrime(t *testing.T) {
+func TestSieveOfEratosthenesRandom(t *testing.T) {
 	rng := rand.New(rand.NewSource(3))
 	for range 200 {
 		n := rng.Intn(2000) + 2

@@ -3,7 +3,7 @@ package serializetree
 import "testing"
 
 // Свойство round-trip: Deserialize(Serialize(t)) == t по структуре и значениям.
-func TestRoundTrip(t *testing.T) {
+func TestSerializeRoundTrip(t *testing.T) {
 	trees := map[string]*TreeNode{
 		"nil":           nil,
 		"один узел":     {Val: 42},

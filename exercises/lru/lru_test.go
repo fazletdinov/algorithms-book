@@ -4,7 +4,7 @@ import "testing"
 
 // Классический сценарий LeetCode (capacity = 2): проверяем вытеснение по LRU и
 // то, что Get обновляет свежесть.
-func TestLRUSequence(t *testing.T) {
+func TestLRUCacheSequence(t *testing.T) {
 	c := Constructor(2)
 	c.Put(1, 1)
 	c.Put(2, 2)
@@ -28,7 +28,7 @@ func TestLRUSequence(t *testing.T) {
 }
 
 // Put существующего ключа обновляет значение и не считается новой вставкой.
-func TestLRUUpdateExisting(t *testing.T) {
+func TestLRUCacheUpdateExisting(t *testing.T) {
 	c := Constructor(2)
 	c.Put(1, 10)
 	c.Put(2, 20)
@@ -46,7 +46,7 @@ func TestLRUUpdateExisting(t *testing.T) {
 }
 
 // Вырожденный случай: при ёмкости 0 кэш ничего не хранит — Put не паникует.
-func TestLRUZeroCapacity(t *testing.T) {
+func TestLRUCacheZeroCapacity(t *testing.T) {
 	c := Constructor(0)
 	c.Put(1, 1)
 	if got := c.Get(1); got != -1 {
@@ -55,7 +55,7 @@ func TestLRUZeroCapacity(t *testing.T) {
 }
 
 // Кэш ёмкости 1: каждая новая вставка вытесняет предыдущую.
-func TestLRUCapacityOne(t *testing.T) {
+func TestLRUCacheCapacityOne(t *testing.T) {
 	c := Constructor(1)
 	c.Put(1, 1)
 	c.Put(2, 2) // вытесняет 1

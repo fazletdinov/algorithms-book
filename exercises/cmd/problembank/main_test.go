@@ -150,8 +150,9 @@ func TestCollectRejectsBadMarks(t *testing.T) {
 			if err == nil {
 				t.Fatal("ожидалась ошибка")
 			}
-			if !strings.Contains(err.Error(), "p.F") {
-				t.Errorf("ошибка должна называть пакет и функцию (p.F): %v", err)
+			// «p.F: …» — ошибка метки в банке; «…/p.go: F: …» — та же метка, пойманная при разборе упражнений.
+			if msg := err.Error(); !strings.Contains(msg, "p.F") && !strings.Contains(msg, "p.go: F: ") {
+				t.Errorf("ошибка должна называть пакет и функцию: %v", err)
 			}
 		})
 	}
@@ -165,6 +166,7 @@ func TestCollectRealBankNewFields(t *testing.T) {
 	}
 	ps, _ = dedupe(ps) // как в main: счёт идёт по тому, что реально попадает в банк
 	withComplexity := 0
+	var needs []string
 	for _, p := range ps {
 		if p.Complexity != "" {
 			withComplexity++
@@ -177,29 +179,53 @@ func TestCollectRealBankNewFields(t *testing.T) {
 		}
 		// Размечать заготовки абзацами «Шаблон/Также решается/Признак» начнёт Task 7.
 		if len(p.Also) != 0 || p.Sign != "" {
-			t.Errorf("%s.%s: метки появились раньше разметки заготовок: also=%v sign=%q", p.Pkg, p.Fn, p.Also, p.Sign)
+			t.Errorf("%s.%s: в заготовке появилась разметка «Шаблон/Также решается/Признак» (also=%v sign=%q) — "+
+				"поля a и g заполняет Task 7: когда заготовки размечены, замени эту проверку на сверку с разметкой "+
+				"(какие функции получили метки и что в a и g)", p.Pkg, p.Fn, p.Also, p.Sign)
+		}
+		if p.Needs != nil {
+			needs = append(needs, p.Pkg+"."+p.Fn+" -> "+strings.Join(p.Needs, ","))
 		}
 	}
 	if withComplexity != 162 {
-		t.Errorf("задач с эталоном сложности %d, ожидалось 162", withComplexity)
+		t.Errorf("задач с эталоном сложности %d, ожидалось 162 (абзацев «Ожидаемая сложность:» стало больше или меньше — "+
+			"сверь с docs заготовок и поправь число)", withComplexity)
+	}
+	// Тесты этих функций зовут соседнее упражнение пакета (cmd/internal/stubdoc: TestNeedsAreExactlyTheKnownPairs).
+	wantNeeds := []string{
+		"combinatorics.Permutations -> Binomial",
+		"cryptography.RSAPrivateExponent -> RSAEncrypt,RSADecrypt",
+		"intervals.InsertInterval -> MergeIntervals",
+		"parallelbfs.BFSLevelsConc -> BFSLevelsSeq",
+		"parallelbfs.BFSLevelsConcLocal -> BFSLevelsSeq",
+		"parallelnqueens.CountNQueensConc -> CountNQueensSeq",
+		"parallelsearch.CountOccurrencesConc -> CountOccurrencesSeq",
+		"parallelsort.MergeSortConc -> MergeSortSeq",
+		"sampling.BirthdayThreshold -> ExpectedCollisions",
+		"wordcount.FreqConc -> FreqSeq",
+	}
+	if !slices.Equal(needs, wantNeeds) {
+		t.Errorf("зависимости тестов в банке:\n%v\nожидалось:\n%v", needs, wantNeeds)
 	}
 }
 
 func TestRenderNewFields(t *testing.T) {
 	out := string(render([]problem{
 		{Pkg: "p", Fn: "F", Chapter: "c", Text: "s", Hint: "h", Tests: []string{"TestF"},
-			Complexity: "O(n)", Also: []string{"a", "b"}, Sign: "g"},
+			Complexity: "O(n)", Also: []string{"a", "b"}, Sign: "g", Needs: []string{"H", "K"}},
 		{Pkg: "p", Fn: "G", Chapter: "c", Text: "s", Hint: "", Tests: nil},
 	}))
 	for _, want := range []string{
-		`{ p: "p", f: "F", c: "c", s: "s", h: "h", t: ["TestF"], x: "O(n)", a: ["a", "b"], g: "g" },`,
-		`{ p: "p", f: "G", c: "c", s: "s", h: "", t: [], x: "", a: [], g: "" },`,
+		`{ p: "p", f: "F", c: "c", s: "s", h: "h", t: ["TestF"], x: "O(n)", a: ["a", "b"], g: "g", n: ["H", "K"] },`,
+		`{ p: "p", f: "G", c: "c", s: "s", h: "", t: [], x: "", a: [], g: "", n: [] },`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("в банке нет строки %s:\n%s", want, out)
 		}
 	}
-	if !strings.Contains(out, "x — эталон сложности") {
-		t.Errorf("шапка файла не описывает поле x")
+	for _, field := range []string{"x — эталон сложности", "a — слаги глав", "g — признак", "n — другие упражнения"} {
+		if !strings.Contains(out, field) {
+			t.Errorf("шапка файла не описывает поле %q", field)
+		}
 	}
 }
