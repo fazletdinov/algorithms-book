@@ -6,14 +6,18 @@
 // прогон, не дошедший до тестов, не выдаётся ни за неё, ни за упавшие тесты. Вторая половина — ответы
 // /api/trace в AlgoTraceViz (trace-viz.js): ошибку сборки он узнаёт по build === false, и это
 // поле проверяется раньше остальных веток. Третья — плашка действующих пределов из
-// /api/health: сама функция и живой виджет на подставном fetch.
+// /api/health: сама функция и живой виджет на подставном fetch. Четвёртая — живой виджет на
+// подставном /api/stub: список упражнений и единица прогона (функция, тип, пакет), выбор по
+// умолчанию по algoFnSolved и needs, отметка только по ok, код из plain и черновики, подсказки по
+// порядку, «Сдаюсь» и /api/solution, data-func / data-tests / data-hints="off", warning и старый
+// сервер, сервер не отвечает (algo-runner:state), хранилище недоступно.
 // Форму самих ответов держат Go-тесты cmd/runner (run_test.go, run_unix_test.go, mem_test.go).
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
 const path = require("path");
-let JSDOM;
-try { ({ JSDOM } = require("jsdom")); } catch (e) {
+let JSDOM, VirtualConsole;
+try { ({ JSDOM, VirtualConsole } = require("jsdom")); } catch (e) {
   console.log("⏭  runner-render-check: jsdom не установлен — пропускаю (npm i jsdom).");
   process.exit(0);
 }
@@ -144,9 +148,15 @@ expect(V.status(flood).text === "✂ вывод обрезан · 256ms", `об�
 
 // Тесты не падали, а прогон не зелёный. Ответы сняты 2026-10-07 с настоящего обработчика и runGoTest
 // на крошечных модулях, как есть. Раньше первые два были зелёными (ok: true), третий — «Ошибкой компиляции».
+// Причина стоит первой; если под ней есть зелёные строки, тот же блок говорит, что они не засчитаны —
+// иначе «✓ TestSpin» и сырое «PASS» под «Прогон не засчитан» читались как зачёт.
 const notCounted = (name, res, extra) => {
   V.result(out, res);
-  expect(out.firstChild.textContent === "✗ " + res.reason, `${name}: первой строкой не причина, а «${out.firstChild.textContent}»`);
+  const first = out.firstChild.textContent;
+  expect(first.startsWith("✗ " + res.reason), `${name}: первой строкой не причина, а «${first}»`);
+  expect(!res.passed || /не засчитан/.test(first), `${name}: блок причины не говорит, что зелёные строки ниже не засчитаны — «${first}»`);
+  const noise = [...out.querySelectorAll("pre")].find((p) => /^\s*PASS\n/.test(p.textContent));
+  expect(!noise, `${name}: под причиной сырой вывод go test с PASS — «${noise && noise.textContent}»`);
   expect(!/Ошибка компиляции|Часть тестов упала|Все тесты прошли/.test(out.textContent), `${name}: на экране чужой заголовок — «${out.textContent.slice(0, 200)}»`);
   expect(V.status(res).text === "✗ прогон не засчитан · " + res.duration, `${name}: статус «${V.status(res).text}»`);
   expect(extra.test(out.textContent), `${name}: на экране нет ${extra} — «${out.textContent.slice(0, 240)}»`);
@@ -164,6 +174,22 @@ notCounted("бинарник упал до первого теста", { stage: 
   output: "panic: boom at init\n\ngoroutine 1 [running]:\nprobe/spin.init.func1(...)\n\t/tmp/algorunner-737340176/spin/spin.go:3\nprobe/spin.init()\n\t/tmp/algorunner-737340176/spin/spin.go:3 +0x25\nFAIL\tprobe/spin\t0.003s",
   reason: "тестовый бинарник упал до первого теста: panic: boom at init" }, /goroutine 1 \[running\]/);
 expect(!/0 ok/.test(out.textContent), `бинарник упал до первого теста: счёт без единого теста — «${out.textContent.slice(0, 120)}»`);
+
+// Прогон оборван (ушёл клиент, runner останавливается): причины у такого ответа нет по контракту, тестов
+// и вывода тоже. Раньше на экране стояло одно голое «(нет вывода)», а статус говорил «не засчитан».
+for (const cut of [
+  { stage: "tests", ok: false, build: true, race: false, passed: 0, failed: 0, tests: null, duration: "1.2s", output: "" },
+  { stage: "build", ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "0.3s", output: "" },
+]) {
+  V.result(out, cut);
+  expect(/^✗ Прогон оборван/.test(out.firstChild.textContent) && !/нет вывода|Ошибка компиляции/.test(out.textContent),
+    `оборванный прогон (${cut.stage}): «${out.textContent.slice(0, 160)}»`);
+  expect(V.status(cut).text === "✗ прогон оборван · " + cut.duration, `оборванный прогон (${cut.stage}): статус «${V.status(cut).text}»`);
+}
+// Ошибка компиляции — в шапке «не собралось», а не «есть падения»: падать было нечему.
+const compileErr = { stage: "build", ok: false, build: false, race: false, passed: 0, failed: 0, tests: null, duration: "62ms",
+  output: "# probe/spin [probe/spin.test]\nspin/spin.go:3:26: undefined: undefinedName\nFAIL\tprobe/spin [build failed]" };
+expect(V.status(compileErr).text === "✗ не собралось · 62ms", `ошибка компиляции: статус «${V.status(compileErr).text}»`);
 
 // Плашка действующих пределов в шапке — из ответа /api/health.
 const L = (memory, memoryText, race) => V.limits({ memory, memoryText, testTimeout: "20s", raceTimeout: "45s" }, race);
@@ -214,6 +240,279 @@ T.render(trace, { ok: false, build: true, steps: [], source: "package p\n", reas
 expect(/^✗\s*сборка трассы прервана/.test(trace.textContent) && !/⏱|Паника|не скомпилировался/.test(trace.textContent),
   `трасса: отмена сборки показана как «${trace.textContent.slice(0, 80)}»`);
 
+// ---- Единица прогона, подсказки, «Сдаюсь» — живой виджет на подставном сервере ----
+// Заготовка из шести упражнений, как их отдаёт /api/stub: A и B — функции со своими тестами, C — без
+// тестов и без типа (единица — пакет), M.X и M.Y — методы типа M (единица — тип, тесты TestM), D — функция,
+// чьи тесты зовут A (needs). Порядок — порядок файла.
+const ex = (name, o) => Object.assign({ name, tests: [], needs: [], group: "", groupTests: [], hint: "", recipe: "" }, o);
+const FUNCS = [
+  ex("A", { tests: ["TestA"], hint: "Признак: окно.\nОжидаемая сложность: O(n).", recipe: "двигайте окно" }),
+  ex("B", { tests: ["TestB"], recipe: "рецепт B" }),
+  ex("C"),
+  ex("M.X", { group: "M", groupTests: ["TestM"], recipe: "рецепт X" }),
+  ex("M.Y", { group: "M", groupTests: ["TestM"] }),
+  ex("D", { tests: ["TestD"], needs: ["A"] }),
+];
+const STUB = { pkg: "p", code: "package p\n\n// A считает.\n// Подсказка: окно.\nfunc A() int { panic(\"TODO: A\") }\n",
+  plain: "package p\n\n// A считает.\nfunc A() int { panic(\"TODO: A\") }\n", funcs: FUNCS,
+  notes: [{ at: "type M", text: "поля M: стек и минимумы" }, { at: "package", text: "о пакете целиком" }] };
+const GREEN = { stage: "tests", ok: true, build: true, race: false, passed: 1, failed: 0, duration: "0.2s", filtered: true,
+  tests: [{ name: "TestA", pass: true, output: "" }], output: "PASS\nok  \tp\t0.001s" };
+const RED = { stage: "tests", ok: false, build: true, race: false, passed: 0, failed: 1, duration: "0.2s", filtered: true,
+  tests: [{ name: "TestD", pass: false, output: "panic: TODO: A [recovered]" }], output: "FAIL\nFAIL\tp\t0.001s" };
+const tick = (ms = 40) => new Promise((r) => setTimeout(r, ms));
+const unhandled = [];
+process.on("unhandledRejection", (e) => unhandled.push(String(e && e.stack || e)));
+
+// page поднимает один виджет. run — ответ /api/run (объект или функция от тела запроса), solution — ответ
+// /api/solution ({status, error} — ошибка), down — сервер не отвечает, noStorage — localStorage бросает.
+async function page({ attrs = 'data-pkg="p"', stub = STUB, run = GREEN, solution, seed = {}, down = false, noStorage = false } = {}) {
+  const calls = [], events = [], errors = [], confirms = [];
+  const vc = new VirtualConsole();
+  vc.on("jsdomError", (e) => errors.push("jsdomError: " + (e && e.message)));
+  vc.on("error", (...a) => errors.push("console.error: " + a.join(" ")));
+  const dom = new JSDOM(`<!DOCTYPE html><html><body><div class="algo-runner" ${attrs}></div><script>${js}</script></body></html>`, {
+    runScripts: "dangerously", url: "http://localhost:3000/x.html", virtualConsole: vc,
+    beforeParse(w) {
+      Object.keys(seed).forEach((k) => w.localStorage.setItem(k, seed[k]));
+      if (noStorage) Object.defineProperty(w, "localStorage", { get() { throw new w.DOMException("denied", "SecurityError"); } });
+      w.confirm = (m) => { confirms.push(m); return true; };
+      w.addEventListener("error", (e) => errors.push("window error: " + e.message));
+      for (const t of ["algo-runner:result", "algo-runner:giveup", "algo-runner:state"]) {
+        w.document.addEventListener(t, (e) => events.push(Object.assign({ type: t }, e.detail)));
+      }
+      const reply = (body, status = 200) => Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(body) });
+      w.fetch = (url, opts) => {
+        const body = opts && opts.body ? JSON.parse(opts.body) : null;
+        calls.push({ url, body });
+        if (down) return Promise.reject(new w.TypeError("Failed to fetch"));
+        if (/\/api\/health$/.test(url)) return reply({ ok: true });
+        if (/\/api\/stub\?/.test(url)) return reply(stub);
+        if (/\/api\/run$/.test(url)) {
+          try { return reply(typeof run === "function" ? run(body) : run); } catch (e) { return Promise.reject(new w.TypeError("Failed to fetch")); }
+        }
+        if (/\/api\/solution\?/.test(url)) {
+          if (solution && solution.status) return reply({ error: solution.error }, solution.status);
+          const fn = decodeURIComponent(url.split("func=")[1]);
+          return reply(solution || { pkg: "p", func: fn, code: "func " + fn + "() int {\n\treturn 42 // эталон " + fn + "\n}\n" });
+        }
+        return reply({ error: "нет такого" }, 404);
+      };
+    },
+  });
+  await tick(100);
+  const doc = dom.window.document;
+  const root = doc.querySelector(".algo-runner");
+  const q = (s) => root.querySelector(s);
+  const pick = () => q(".algo-runner__pick");
+  const code = () => (q(".algo-runner__ta") || {}).value;
+  // Помощники терпят отсутствие списка и кнопок: на прежнем виджете проверка должна перечислить провалы, а не упасть.
+  const pv = () => (pick() || {}).value;
+  const optText = (v) => { const o = pick() && pick().querySelector(`option[value="${v}"]`); return o ? o.textContent : ""; };
+  const choose = (v) => { if (!pick()) return; pick().value = v; pick().dispatchEvent(new dom.window.Event("change", { bubbles: true })); };
+  const runOnce = async () => {
+    const b = q(".algo-runner__btn--run");
+    if (!b) return undefined;
+    b.click();
+    await tick();
+    return calls.filter((c) => /\/api\/run$/.test(c.url)).pop();
+  };
+  const lines = () => (q(".algo-runner__lines") || {}).textContent || "";
+  const helpBtn = (re) => [...root.querySelectorAll(".algo-runner__help button")].find((b) => re.test(b.textContent));
+  const press = (re) => { const b = helpBtn(re); if (b) b.click(); return !!b; };
+  const solved = () => { try { return JSON.parse(dom.window.localStorage.getItem("algoFnSolved") || "{}"); } catch (e) { return "хранилище недоступно"; } };
+  return { dom, doc, root, q, pick, pv, optText, code, choose, runOnce, helpBtn, press, solved, lines, calls, events, errors, confirms };
+}
+
+async function unitsAndHints() {
+  // (a) Список — ВСЕ упражнения в порядке файла плюс «весь пакет»; методы типа стоят вместе.
+  let w = await page();
+  const opts = w.pick() ? [...w.pick().querySelectorAll("option")] : [];
+  expect(opts.map((o) => o.value).join(",") === "A,B,C,M.X,M.Y,D,", `список: ${opts.map((o) => o.value + "=" + o.textContent).join(" | ")}`);
+  const og = w.pick() && w.pick().querySelector("optgroup");
+  expect(og && og.label === "тип M" && [...og.querySelectorAll("option")].map((o) => o.value).join() === "M.X,M.Y", "методы типа M не собраны в «тип M»");
+  expect(/весь пакет/.test((opts[opts.length - 1] || {}).textContent || ""), "последний пункт — не «весь пакет»");
+  expect(/нужны: A/.test((opts.find((o) => o.value === "D") || {}).textContent || ""), "у D нет пометки «нужны: A»");
+  expect(w.pick() && w.pick().value === "A", `по умолчанию выбрано «${w.pick() && w.pick().value}», а не A`);
+  expect(/тесты функции/.test((w.q(".algo-runner__unit") || {}).textContent || ""), "у строки запуска не видно «тесты функции»");
+  let r = await w.runOnce();
+  expect(r && JSON.stringify(r.body.tests) === '["TestA"]', `прогон A: ${r && JSON.stringify(r.body)}`);
+  w.choose("M.X");
+  expect(/тесты типа M/.test((w.q(".algo-runner__unit") || {}).textContent || ""), "M.X: у строки запуска не видно «тесты типа M»");
+  r = await w.runOnce();
+  expect(r && JSON.stringify(r.body.tests) === '["TestM"]', `прогон M.X: ${r && JSON.stringify(r.body)}`);
+  expect(w.solved()["p.M.X"] && w.solved()["p.M.Y"], `зелёный прогон типа не отметил M.X и M.Y: ${JSON.stringify(w.solved())}`);
+  expect(/✓/.test(w.optText("M.Y")), "после зелёного типа у M.Y нет ✓ в списке");
+  w.choose("C");
+  expect(/весь пакет/.test((w.q(".algo-runner__unit") || {}).textContent || ""), "C: у строки запуска не видно «весь пакет»");
+  r = await w.runOnce();
+  expect(r && !("tests" in r.body), `прогон C ушёл с фильтром: ${r && JSON.stringify(r.body)}`);
+  const res = w.events.filter((e) => e.type === "algo-runner:result");
+  expect(res.length === 3 && res[0].fn === "A" && res[0].unit === "func" && res[1].fn === "M.X" && res[1].unit === "type" && res[2].fn === "C" && res[2].unit === "pkg",
+    `событие: fn и unit — ${JSON.stringify(res.map((e) => [e.fn, e.unit]))}`);
+  expect(res.every((e) => e.draft === "" && e.hints === 0 && e.gaveUp === false && e.pkg === "p" && "stage" in e && "noTests" in e),
+    `событие: прежние поля и draft/hints/gaveUp — ${JSON.stringify(res[0])}`);
+  // Пакет решённым, как раньше, — только зелёный прогон без фильтра.
+  expect(!w.dom.window.localStorage.getItem("algoPkgSolved"), "зелёный прогон с фильтром отметил пакет решённым");
+  // Смена упражнения код не меняет.
+  const before = w.code();
+  w.choose("B");
+  expect(w.code() === before, "смена упражнения поменяла код в редакторе");
+  expect(w.events.filter((e) => e.type === "algo-runner:state").map((e) => e.up).join() === "true", "сервер ответил, а события state up: true нет");
+  expect(!w.errors.length, `ошибки в консоли: ${w.errors.join(" | ")}`);
+
+  // (b) Выбор по умолчанию — первое неотмеченное, у которого отмечены все needs.
+  const S = (...names) => ({ algoFnSolved: JSON.stringify(Object.fromEntries(names.map((n) => ["p." + n, 1]))) });
+  w = await page({ seed: S("A") });
+  expect(w.pick() && w.pick().value === "B", `A отмечена — выбрано «${w.pick() && w.pick().value}», а не B`);
+  w = await page({ seed: S("A", "B", "C", "M.X", "M.Y", "D") });
+  expect(w.pick() && w.pick().value === "", `все отмечены — выбрано «${w.pick() && w.pick().value}», а не «весь пакет»`);
+  r = await w.runOnce();
+  expect(r && !("tests" in r.body), `все отмечены — запрос с фильтром: ${r && JSON.stringify(r.body)}`);
+  w = await page({ stub: Object.assign({}, STUB, { funcs: [FUNCS[5], FUNCS[0]] }) });
+  expect(w.pick() && w.pick().value === "A", `D (нужна A) стоит первой — выбрано «${w.pick() && w.pick().value}», а не A`);
+  const P = ex("P", { tests: ["TestP"], needs: ["Q"] }), Qx = ex("Q", { tests: ["TestQ"], needs: ["P"] });
+  w = await page({ stub: Object.assign({}, STUB, { funcs: [P, Qx] }) });
+  expect(w.pick() && w.pick().value === "P", `у всех неотмеченных needs не отмечены — выбрано «${w.pick() && w.pick().value}», а не первое`);
+  w = await page({ stub: Object.assign({}, STUB, { funcs: [] }) });
+  expect(!w.pick(), "funcs пуст, а список выбора нарисован");
+  // Зелёный прогон последнего неотмеченного — совет прогнать пакет целиком, выбор переходит на «весь пакет».
+  w = await page({ seed: S("A", "C", "M.X", "M.Y", "D") });
+  expect(w.pv() === "B", "B — единственная неотмеченная");
+  await w.runOnce();
+  expect(w.pv() === "" && /пакет целиком/.test(w.root.textContent), `все отмечены после зелёного: выбор «${w.pv()}», совета нет`);
+  // Отметка — только по ok.
+  for (const bad of [
+    Object.assign({}, RED),
+    { stage: "tests", ok: false, build: true, noTests: true, passed: 0, failed: 0, tests: null, filtered: true, output: "", duration: "1s", reason: "ни один тест не запустился — в пакете нет тестов с такими именами: TestA" },
+    { stage: "tests", ok: false, build: true, timeout: true, passed: 1, failed: 1, filtered: true, output: "", duration: "20s", reason: "тест TestA не уложился в 20s", tests: [{ name: "TestA", pass: false, killed: "timeout", output: "" }] },
+    { stage: "tests", ok: false, build: true, passed: 1, failed: 0, filtered: true, output: "", duration: "1s", reason: "не запустились запрошенные тесты: TestA2 — в пакете нет тестов с такими именами", tests: [{ name: "TestA", pass: true, output: "" }] },
+  ]) {
+    w = await page({ run: bad });
+    await w.runOnce();
+    expect(!w.solved()["p.A"], `отметка без ok: ${JSON.stringify(bad).slice(0, 90)}`);
+  }
+
+  // needs: после красного прогона D при неотмеченной A — строка над выводом, вывод на месте.
+  w = await page({ run: RED });
+  w.choose("D");
+  await w.runOnce();
+  const needs = w.q(".algo-runner__out").firstChild;
+  expect(needs && /тесты зовут ещё не решённые упражнения: A — начни с них/i.test(needs.textContent), `строки про needs нет: «${w.q(".algo-runner__out").textContent.slice(0, 160)}»`);
+  expect(/Часть тестов упала/.test(w.q(".algo-runner__out").textContent), "строка про needs заменила вывод");
+  w = await page({ run: RED, seed: S("A") });
+  w.choose("D");
+  await w.runOnce();
+  expect(!/тесты зовут/i.test(w.root.textContent), "A отмечена, а строка про needs всё равно есть");
+
+  // (c) Код: без черновика — plain, с черновиком — черновик; «Сбросить» спрашивает, только если код отличается.
+  const reset = (w) => [...w.root.querySelectorAll(".algo-runner__bar button")].find((b) => b.textContent === "Сбросить").click();
+  w = await page();
+  expect(w.code() === STUB.plain, `без черновика в редакторе не plain: «${w.code()}»`);
+  reset(w);
+  expect(w.confirms.length === 0 && w.code() === STUB.plain, "«Сбросить» на нетронутой заготовке спросил подтверждение");
+  w = await page({ seed: { "algoRunnerCode:p": "мой черновик" } });
+  expect(w.code() === "мой черновик", `сохранённый черновик подменён: «${w.code()}»`);
+  reset(w);
+  expect(w.confirms.length === 1 && w.code() === STUB.plain && w.dom.window.localStorage.getItem("algoRunnerCode:p") === null, "«Сбросить» с правками: нет подтверждения или не вернул plain");
+  w = await page({ attrs: 'data-pkg="p" data-draft="mixed"', seed: { "algoRunnerCode:p": "решение главы", "algoRunnerCode:mixed:p": "черновик смешанной" } });
+  expect(w.code() === "черновик смешанной", `data-draft="mixed": в редакторе «${w.code()}»`);
+  w = await page({ attrs: 'data-pkg="p" data-fresh="true"', seed: { "algoRunnerCode:p": "решение главы" } });
+  expect(w.code() === STUB.plain, `data-fresh: подсунуто решение главы — «${w.code()}»`);
+
+  // Подсказки — по порядку, к выбранному упражнению; заметки типа и пакета — своими кнопками.
+  w = await page();
+  expect(w.helpBtn(/Признак и сложность/) && !w.helpBtn(/Рецепт/), "A: до «Признака» уже видна кнопка «Рецепт» или нет кнопки «Признак и сложность»");
+  expect(w.helpBtn(/О пакете/) && !w.helpBtn(/О полях типа/), "A: нет «О пакете» или есть «О полях типа»");
+  const helpText = () => (w.q(".algo-runner__help") || {}).textContent || "";
+  w.press(/Признак и сложность/);
+  expect(/Ожидаемая сложность: O\(n\)/.test(helpText()) && w.helpBtn(/Рецепт/), "после «Признака» нет текста подсказки или кнопки «Рецепт»");
+  w.press(/Рецепт/);
+  expect(/двигайте окно/.test(helpText()), "рецепт не открылся");
+  expect(w.code() === STUB.plain, "подсказка поменяла код читателя");
+  w.choose("M.X");
+  expect(w.helpBtn(/О полях типа/) && w.helpBtn(/Рецепт/) && !/двигайте окно/.test(helpText()), "M.X: панель не перешла на выбранное упражнение");
+  w.choose("M.Y");
+  expect(!w.helpBtn(/Рецепт|Признак/), "M.Y: кнопки без содержимого нарисованы");
+  w.choose("A");
+  expect(!w.helpBtn(/Сдаюсь/), "«Сдаюсь» видна до прогона");
+  await w.runOnce();
+  let last = w.events.filter((e) => e.type === "algo-runner:result").pop();
+  expect(last && last.hints === 2, `hints в событии после двух подсказок A: ${last && last.hints}`);
+
+  // (d) «Сдаюсь»: после завершившегося прогона, с подтверждением; эталон — отдельно, код читателя цел.
+  const give = w.helpBtn(/Сдаюсь/);
+  expect(!!give, "после прогона нет «Сдаюсь — показать эталон»");
+  if (give) {
+    give.click();
+    await tick();
+    expect(w.confirms.length === 1, "«Сдаюсь» без подтверждения");
+    expect(w.calls.some((c) => /\/api\/solution\?pkg=p&func=A$/.test(c.url)), `запрос эталона: ${w.calls.map((c) => c.url).join(" ")}`);
+    const sol = w.q(".algo-runner__solution");
+    expect(sol && /эталон A/.test(sol.textContent), "эталон не показан в отдельной панели");
+    expect(w.code() === STUB.plain, "эталон поменял код в редакторе");
+    const g = w.events.filter((e) => e.type === "algo-runner:giveup");
+    expect(g.length === 1 && g[0].pkg === "p" && g[0].fn === "A", `событие giveup: ${JSON.stringify(g)}`);
+    await w.runOnce();
+    last = w.events.filter((e) => e.type === "algo-runner:result").pop();
+    expect(last.fn === "A" && last.gaveUp === true, `после «Сдаюсь» событие по A без gaveUp: ${JSON.stringify(last)}`);
+    expect(w.solved()["p.A"], "после «Сдаюсь» зелёный прогон не отметил A (отметка ставится как обычно)");
+  }
+  w = await page({ solution: { status: 404, error: "эталона этой функции нет" } });
+  await w.runOnce();
+  w.press(/Сдаюсь/);
+  await tick();
+  expect(/эталона этой функции нет/.test((w.q(".algo-runner__help") || {}).textContent || ""), "ошибка эталона не показана строкой в панели");
+  expect(!w.events.some((e) => e.type === "algo-runner:giveup"), "ошибка эталона, а событие giveup ушло");
+  // Сервер не ответил на прогон — «Сдаюсь» не появляется: прогон не завершился.
+  w = await page({ run: () => { throw new Error("сеть"); } });
+  await w.runOnce();
+  expect(!w.helpBtn(/Сдаюсь/), "прогон не завершился, а «Сдаюсь» появилась");
+
+  // (e) data-hints="off": панели нет, код — plain, «Сдаюсь» нет и после прогона.
+  w = await page({ attrs: 'data-pkg="p" data-hints="off"' });
+  await w.runOnce();
+  expect(!w.root.querySelector(".algo-runner__help button") && w.code() === STUB.plain, "data-hints=off: есть кнопки панели или код не plain");
+
+  // data-func: выбор снаружи, списка нет; имени нет в funcs — пакет целиком, без панели, строка-пояснение.
+  w = await page({ attrs: 'data-pkg="p" data-func="M.Y"' });
+  expect(!w.pick(), "data-func: список выбора нарисован");
+  r = await w.runOnce();
+  expect(r && JSON.stringify(r.body.tests) === '["TestM"]', `data-func=M.Y: ${r && JSON.stringify(r.body)}`);
+  w = await page({ attrs: 'data-pkg="p" data-func="Gone"' });
+  r = await w.runOnce();
+  expect(r && !("tests" in r.body) && !w.root.querySelector(".algo-runner__help button") && /Gone/.test(w.lines()),
+    `data-func нет в funcs: ${r && JSON.stringify(r.body)}, строка «${w.lines()}»`);
+  // data-tests + data-func (собеседование): гоняются data-tests, событие несёт fn.
+  w = await page({ attrs: `data-pkg="p" data-func="D" data-tests='["TestD"]' data-fresh="true" data-hints="off"`, run: RED });
+  r = await w.runOnce();
+  last = w.events.filter((e) => e.type === "algo-runner:result").pop();
+  expect(r && JSON.stringify(r.body.tests) === '["TestD"]' && last.fn === "D" && last.draft === "mock" && !w.pick(), `собеседование: ${r && JSON.stringify(r.body)} ${JSON.stringify(last)}`);
+  expect(/тесты зовут ещё не решённые упражнения: A/i.test(w.root.textContent), "собеседование: нет строки про needs");
+
+  // warning и сервер прежней версии: работаем по code, пакет целиком, без панели; warning — одной строкой.
+  w = await page({ stub: { pkg: "p", code: "package p\nfunc (", plain: "package p\nfunc (", funcs: [], notes: [], warning: "разбор заготовки: stub.go:2:7: expected ')'" } });
+  r = await w.runOnce();
+  expect(w.code() === "package p\nfunc (" && !w.pick() && !w.root.querySelector(".algo-runner__help button") && r && !("tests" in r.body) &&
+    /разбор заготовки/.test(w.lines()), "warning: не по code, есть список/панель или нет строки");
+  w = await page({ stub: { pkg: "p", code: "package p // старый сервер\n" } });
+  r = await w.runOnce();
+  expect(w.code() === "package p // старый сервер\n" && !w.pick() && r && !("tests" in r.body) && !w.errors.length, `старый сервер: ${w.errors.join(" | ")}`);
+
+  // (g) Сервер не отвечает: прежняя инструкция, state up: false, ни списка, ни панели, ни исключений.
+  w = await page({ down: true });
+  expect(/Runner не отвечает/.test(w.root.textContent) && !w.pick() && !w.root.querySelector(".algo-runner__help button"), "сервер не отвечает: нет инструкции или нарисованы список/панель");
+  expect(w.events.filter((e) => e.type === "algo-runner:state").map((e) => e.up).join() === "false", `сервер не отвечает: события state — ${JSON.stringify(w.events)}`);
+  expect(!w.errors.length, `сервер не отвечает: ошибки — ${w.errors.join(" | ")}`);
+
+  // Хранилище недоступно: виджет работает, отметка живёт в пределах вкладки.
+  w = await page({ noStorage: true });
+  expect(w.code() === STUB.plain && w.pv() === "A", "без хранилища виджет не поднялся");
+  if (w.q(".algo-runner__btn--run")) await w.runOnce();
+  expect(/✓/.test(w.optText("A")) && !w.errors.length, `без хранилища: ✓ нет или ошибки — ${w.errors.join(" | ")}`);
+  expect(!unhandled.length, `необработанные отказы промисов: ${unhandled.join(" | ")}`);
+}
+
 // Живой виджет на подставном сервере: плашка пределов встаёт в шапку перед статусом, а
 // /api/health запрашивается один раз на страницу, сколько бы виджетов на ней ни было.
 function widgetPage(limits, runResponse) {
@@ -258,6 +557,12 @@ function widgetPage(limits, runResponse) {
   expect(seen.length === 1 && seen[0].pkg === "dp" && seen[0].ok === false && seen[0].filtered === true && seen[0].noTests === true && seen[0].stage === "tests",
     `событие algo-runner:result: ${JSON.stringify(seen)}`);
 
+  await unitsAndHints();
+
   if (fails.length) { console.error("❌ runner-render-check:\n  - " + fails.join("\n  - ")); process.exit(1); }
-  console.log("✅ runner-render-check: остановка показана причиной (срок ⏱, память 💾, обрезка ✂), прогон без единого теста — тоже (фильтр не совпал △, не запустился ✗, сборке не хватило памяти или срока), ошибка компиляции — строкой компилятора (и в трассе), упавший табличный тест — сообщением случая, прогон без упавших тестов, но не зелёный — «не засчитан», событие результата несёт stage и noTests, плашка пределов в шапке, обычное падение и зелёный прогон — как раньше");
-})();
+  console.log("✅ runner-render-check: остановка показана причиной (срок ⏱, память 💾, обрезка ✂), прогон без единого теста — тоже (фильтр не совпал △, не запустился ✗, сборке не хватило памяти или срока), ошибка компиляции — строкой компилятора (и в трассе), упавший табличный тест — сообщением случая, прогон без упавших тестов, но не зелёный — «не засчитан» (зелёные строки названы незасчитанными), оборванный — «оборван», событие результата несёт stage, noTests, fn, unit, draft, hints, gaveUp, плашка пределов в шапке, обычное падение и зелёный прогон — как раньше; виджет гоняет выбранное упражнение (функция / тип / пакет), отмечает algoFnSolved только по ok, открывается с plain, подсказки и эталон — за кнопками");
+})().catch((e) => {
+  // Исключение в самой проверке — провал, а не тихий выход с кодом 0.
+  console.error("❌ runner-render-check: проверка упала —", e && e.stack || e);
+  process.exit(1);
+});

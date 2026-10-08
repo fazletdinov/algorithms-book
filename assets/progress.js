@@ -259,7 +259,8 @@
     // а не только этот трекер.
     // algoProgressAt (метки отметок для srs.js) отдельной записью не нужен: его покрывает префикс
     // "algoProgress" (isOurs сравнивает по префиксу) — это держит review-render-check (экспорт и импорт).
-    var PREFIXES = ["algoProgress", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:", "algoPkgSolved", "algoSRS",
+    // algoFnSolved — решённые упражнения виджета runner'а ({ "<пакет>.<имя>": ts }): сливается общим правилом.
+    var PREFIXES = ["algoProgress", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:", "algoPkgSolved", "algoFnSolved", "algoSRS",
       "algoExplain", "algoExplainDone", "algoQuizMissed", "algoMixedMissed", "algoMixedSeen",
       "algoMockLog", "algoMockCxMissed", "algoVizMissed", "algoVizPredict"];
     function isOurs(key) {

@@ -71,7 +71,81 @@ html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
   color: var(--ar-warn);
   border: 1px solid color-mix(in srgb, var(--ar-warn) 50%, transparent);
 }
+/* Список упражнений в шапке. min-width: 0 и max-width: 100% — иначе <select> держит ширину самого
+   длинного пункта («RSAPrivateExponent · нужны: ExtendedGCD, …») и на телефоне вылезает из колонки. */
+.algo-runner__pick {
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--ar-line);
+  border-radius: 7px;
+  padding: 3px 6px;
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--ar-btn);
+  color: var(--ar-btn-fg);
+}
+/* Пункты выпадающего списка рисует система: на тёмной теме прозрачный фон давал бы светлый текст
+   на белом. */
+.algo-runner__pick option, .algo-runner__pick optgroup { background: var(--bg, #fff); color: var(--fg, #000); }
 .algo-runner__status { font-size: 12px; opacity: 0.85; }
+
+/* Пояснения под шапкой: warning разбора заготовки, упражнения нет на диске, runner старой версии. */
+.algo-runner__lines:empty { display: none; }
+.algo-runner__line { font-size: 12px; color: var(--ar-warn); margin: 0 0 6px; }
+
+/* Что гоняет «Прогнать тесты»: тесты функции, тесты типа или весь пакет. */
+.algo-runner__unit { align-self: center; font-size: 12px; opacity: 0.85; }
+
+/* Подсказки и эталон выбранного упражнения — под редактором. Блок, а не flex-колонка: у flex-потомка
+   min-width: auto, и строка эталона растянула бы его шире колонки. */
+.algo-runner__help { margin-top: 10px; }
+.algo-runner__help[hidden] { display: none; }
+.algo-runner__help > * + * { margin-top: 6px; }
+.algo-runner__help-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.algo-runner__help-btn { font-size: 12px; padding: 4px 10px; }
+.algo-runner__giveup { color: var(--ar-err); border-color: color-mix(in srgb, var(--ar-err) 45%, transparent); }
+.algo-runner__help-text {
+  border-left: 3px solid var(--ar-warn);
+  background: color-mix(in srgb, var(--ar-warn) 9%, transparent);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.algo-runner__help-label { font-weight: 700; font-size: 12px; margin-bottom: 2px; }
+.algo-runner__help-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.algo-runner__help-err { font-size: 12px; color: var(--ar-err); }
+.algo-runner__solution {
+  border: 1px solid color-mix(in srgb, var(--ar-err) 40%, var(--ar-line));
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+/* Эталон — как есть, с отступами Go: строки не переносятся, а прокручиваются в своём блоке. */
+.algo-runner__solution-code {
+  margin: 6px 0 0;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 4;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 10px;
+  border-radius: 7px;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Под причиной «прогон не засчитан» — что зелёные строки ниже не в счёт. */
+.algo-runner__verdict-sub { font-weight: 400; font-size: 12px; margin-top: 4px; }
+/* «Тесты зовут ещё не решённые упражнения» и совет прогнать пакет целиком. */
+.algo-runner__needs, .algo-runner__advice {
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  margin-bottom: 8px;
+  color: var(--ar-info);
+  background: color-mix(in srgb, var(--ar-info) 12%, transparent);
+}
+.algo-runner__advice { margin: 8px 0 0; }
 .algo-runner__status.is-ok { color: var(--ar-ok); }
 .algo-runner__status.is-err { color: var(--ar-err); }
 .algo-runner__status.is-wait { color: var(--ar-warn); }

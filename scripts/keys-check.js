@@ -10,10 +10,11 @@
 // ловил: он проверяет, что шаг сделан, а не куда ещё ушло событие.
 //
 // Здесь роль mdBook играет слушатель на document, который, как и mdBook,
-// реагирует на всё, что до него доплыло. Проверяются три места, где ← / →
+// реагирует на всё, что до него доплыло. Проверяются места, где ← / →
 // нужны самому виджету: пошаговая визуализация (algo-viz.js), трасса кода
-// читателя (trace-viz.js) и редактор runner'а (runner.js — CodeMirror 6 это
-// contenteditable div, и mdBook не считает его полем ввода).
+// читателя (trace-viz.js), редактор runner'а (runner.js — CodeMirror 6 это
+// contenteditable div, и mdBook не считает его полем ввода), список выбора
+// упражнения и панель подсказок runner'а (подставной /api/stub).
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -41,6 +42,15 @@ const chapter = fs.readFileSync(path.join(root, "src", "sliding-window.md"), "ut
 const vizTag = (chapter.match(/<div class="algo-viz" data-viz="sliding-window-fixed"[^>]*><\/div>/) || [])[0];
 if (!vizTag) { console.error("✗ keys-check: в sliding-window.md не найден виджет sliding-window-fixed"); process.exit(1); }
 
+// Подставной runner: заготовка с двумя упражнениями и подсказкой — так у виджета появляются
+// список выбора упражнения и панель подсказок, а в них ← / → тоже не должны листать главу.
+const STUB = {
+  pkg: "slidingwindow", code: "package slidingwindow\n", plain: "package slidingwindow\n", notes: [{ at: "package", text: "о пакете" }],
+  funcs: [
+    { name: "MaxSumSubarray", tests: ["TestMaxSumSubarray"], needs: [], group: "", groupTests: [], hint: "Ожидаемая сложность: O(n).", recipe: "двигайте окно" },
+    { name: "MaxSlidingWindow", tests: ["TestMaxSlidingWindow"], needs: [], group: "", groupTests: [], hint: "", recipe: "дек" },
+  ],
+};
 const dom = new JSDOM(
   `<!DOCTYPE html><html><body>
      ${vizTag.replace("<div ", '<div id="viz" ')}
@@ -50,7 +60,12 @@ const dom = new JSDOM(
      <script>${read("trace-viz.js")}</script>
      <script>${read("runner.js")}</script>
    </body></html>`,
-  { runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true, url: "http://localhost:3000/sliding-window.html" }
+  {
+    runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true, url: "http://localhost:3000/sliding-window.html",
+    beforeParse(w) {
+      w.fetch = (url) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(/\/api\/stub\?/.test(url) ? STUB : { ok: true }) });
+    },
+  }
 );
 const w = dom.window, doc = w.document;
 // jsdom не прокручивает; трасса зовёт scrollIntoView на активной строке кода.
@@ -117,12 +132,27 @@ setTimeout(() => {
     expect(!press(inner, "ArrowLeft"), "runner: ← из редактора доплыла до document");
   }
 
+  // 4. Список выбора упражнения и панель подсказок. mdBook 0.5 сам пропускает клавиши в <select>, но
+  //    двойник здесь этого не делает — и не должен: обработанная клавиша останавливается виджетом.
+  const pick = doc.querySelector(".algo-runner .algo-runner__pick");
+  expect(!!pick, "runner: нет списка выбора упражнения");
+  if (pick) {
+    for (const k of ["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"]) expect(!press(pick, k), `runner: «${k}» на списке упражнений доплыла до document`);
+  }
+  const helpBtn = doc.querySelector(".algo-runner .algo-runner__help button");
+  expect(!!helpBtn, "runner: нет кнопок панели подсказок");
+  if (helpBtn) {
+    expect(!press(helpBtn, "ArrowRight"), "runner: → в панели подсказок доплыла до document — mdBook перелистнёт главу");
+    expect(!press(helpBtn, "ArrowLeft"), "runner: ← в панели подсказок доплыла до document");
+    expect(press(helpBtn, "x"), "runner: контроль — необработанная «x» из панели не доплыла");
+  }
+
   const noise = errors.filter((e) => !/fetch|Failed to fetch|ECONNREFUSED|network/i.test(e));
   if (noise.length) fails.push(...noise.map((e) => "ошибка рантайма: " + e));
   if (fails.length) {
     console.error("✗ keys-check:\n  - " + fails.join("\n  - "));
     process.exit(1);
   }
-  console.log("✓ keys-check: ←/→/Home/End/Space/F/Esc в виджете, трассе и редакторе runner'а не доходят до навигации mdBook");
+  console.log("✓ keys-check: ←/→/Home/End/Space/F/Esc в виджете, трассе, редакторе runner'а, его списке упражнений и панели подсказок не доходят до навигации mdBook");
   process.exit(0);
 }, 300);
