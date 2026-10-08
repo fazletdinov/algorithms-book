@@ -36,7 +36,8 @@
  *
  * Данные — window.ALGO_PROBLEMS (assets/problems.js, генерируется из
  * док-комментариев заготовок командой `go run ./cmd/problembank`).
- * Промах по выбору шаблона уходит карточкой в движок повторений (srs.js).
+ * Промах по выбору шаблона уходит карточкой в движок повторений (srs.js), а каждый ответ
+ * оценивает карточку mix: этой задачи (ALGO_SRS.report): верно — «Помню», неверно — «Забыл».
  */
 (function () {
   "use strict";
@@ -178,8 +179,8 @@
     return picked.concat(rest).slice(0, OPTIONS - 1);
   }
 
-  // Карточка промаха (mix:, cx:) встаёт в очередь повторений сразу: счётчик «Сегодня» обновляется
-  // без перехода на другую страницу.
+  // Карточка промаха по сложности (cx:) встаёт в очередь повторений сразу: счётчик «Сегодня» обновляется
+  // без перехода на другую страницу. Карточку mix: оценивает сам ответ на «какой шаблон?» (record).
   function syncSRS() {
     if (window.ALGO_SRS) window.ALGO_SRS.sync();
   }
@@ -336,12 +337,15 @@
           delete missed[key(p)];
           save(MISSED, missed);
         }
-        return;
+      } else {
+        var rec = missed[key(p)] || { n: 0 };
+        missed[key(p)] = { n: rec.n + 1, chapter: p.c, pkg: p.p, fn: p.f };
+        save(MISSED, missed);
       }
-      var rec = missed[key(p)] || { n: 0 };
-      missed[key(p)] = { n: rec.n + 1, chapter: p.c, pkg: p.p, fn: p.f };
-      save(MISSED, missed);
-      syncSRS();
+      // Ответ — исход карточки mix: этой задачи: верно — «Помню», неверно — «Забыл». После записи промаха:
+      // новую карточку заводит sync внутри report (на сегодня, без оценки), и счётчик «Сегодня»
+      // обновляется без перехода на другую страницу. Нет карточки и ответ верный — report ничего не делает.
+      if (window.ALGO_SRS && window.ALGO_SRS.report) window.ALGO_SRS.report("mix:" + key(p), ok ? "good" : "again");
     }
 
     // hintsBlock — всё, что было скрыто в условии, и ссылка на главу.

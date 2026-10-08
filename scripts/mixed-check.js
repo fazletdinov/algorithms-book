@@ -12,7 +12,8 @@
 //      сначала берутся из путаемых шаблонов (ALGO_CONFUSABLE), а группы названы
 //      настоящими главами — опечатка тихо выключила бы группу;
 //   3) верный ответ раскрывает тему, подсказки и редактор с пакетом задачи;
-//   4) промах пишется в algoMixedMissed, верный ответ убирает запись;
+//   4) промах пишется в algoMixedMissed, верный ответ убирает запись; ответ сразу оценивает карточку
+//      mix: через ALGO_SRS.report (верно — «Помню», неверно — «Забыл»), один раз на вопрос;
 //   5) промахи квиза и смешанной тренировки попадают в таблицу слабых мест;
 //   6) банк задач не пустой и ссылается только на существующие главы.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
@@ -164,9 +165,10 @@ async function main() {
   }
 
   const wrongBtn = opts.find((b) => b.textContent !== correctTitle);
-  // промах заводит карточку сразу: движок повторений зовут без перехода на другую страницу
-  let synced = 0;
-  dom.window.ALGO_SRS = { sync: () => { synced++; } };
+  // ответ уходит в движок повторений сразу — report после записи промаха (новую карточку заведёт sync
+  // внутри report), без перехода на другую страницу
+  const reports = [];
+  dom.window.ALGO_SRS = { report: (rid, grade) => { reports.push(rid + " " + grade + " " + !!JSON.parse(dom.window.localStorage.getItem("algoMixedMissed") || "{}")[rid.slice(4)]); return { status: "created" }; } };
   // Черновик смешанной стирается при выдаче НОВОЙ задачи, а не при постройке редактора: подкладываем
   // его до ответа, как будто читатель уже печатал, — после ответа он обязан остаться.
   const draftKey = "algoRunnerCode:mixed:" + problem.p;
@@ -176,7 +178,11 @@ async function main() {
   const missed = JSON.parse(dom.window.localStorage.getItem("algoMixedMissed") || "{}");
   const id = problem.p + "." + problem.f;
   if (!missed[id]) errors.push(`промах не записан: ${JSON.stringify(missed)}`);
-  if (synced !== 1) errors.push(`после промаха ALGO_SRS.sync вызван ${synced} раз(а), ожидался один`);
+  // «true» в конце — промах в algoMixedMissed уже записан к моменту report
+  if (reports.join() !== `mix:${id} again true`) errors.push(`после промаха report: ${JSON.stringify(reports)}, ожидался один «mix:${id} again» после записи промаха`);
+  // повторный щелчок по вариантам того же вопроса — не второй ответ
+  opts.forEach((b) => click(dom, b));
+  if (reports.length !== 1) errors.push(`повторные щелчки по вариантам дали report: ${JSON.stringify(reports)}`);
   const result = widget.querySelector(".algo-mixed__result");
   if (!result) errors.push("после ответа не показан разбор");
   else {
@@ -240,6 +246,9 @@ async function main() {
     }
   }
 
+  // --- ответ оценивает карточку mix: в настоящем движке повторений (srs.js): верно — «Помню», неверно — «Забыл» ---
+  await gradesMixCard(problem, correctTitle);
+
   // --- режим собеседования ---
   await mockInterview(bank);
 
@@ -269,6 +278,38 @@ async function main() {
   }
 
   finish();
+}
+
+// gradesMixCard — у задачи есть карточка mix: с вышедшим сроком, и ответ на «какой шаблон?» сам оценивает
+// карточку через ALGO_SRS.report (настоящий srs.js). Задача записана в промахи: выдача берёт промахи в
+// половине случаев, а промах один — за 60 выдач она выпадет почти наверняка (как выше).
+async function gradesMixCard(problem, correctTitle) {
+  const DAY = 24 * 60 * 60 * 1000;
+  const id = problem.p + "." + problem.f;
+  const rec = { n: 1, chapter: problem.c, pkg: problem.p, fn: problem.f };
+  const mature = () => ({ due: Date.now() - DAY, iv: 8, ease: 2.5, reps: 3, meta: rec, seen: Date.now() - 9 * DAY });
+  for (const [right, want] of [[true, (c) => c.iv === 20 && c.reps === 4], [false, (c) => c.iv === 1 && c.back === 3 && c.reps === 0]]) {
+    const dom = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "srs.js", "mixed.js"], {
+      algoSRS: JSON.stringify({ ["mix:" + id]: mature() }),
+      algoMixedMissed: JSON.stringify({ [id]: rec }),
+    });
+    const w = dom.window;
+    const widget = w.document.querySelector(".algo-mixed");
+    const give = [...widget.querySelectorAll("button")].find((b) => /Дать задачу/.test(b.textContent));
+    let shown = false;
+    for (let i = 0; i < 60 && !shown; i++) {
+      click(dom, give);
+      const cardEl = widget.querySelector(".algo-mixed__card");
+      shown = !!cardEl && cardEl.textContent.includes(problem.s.split("\n").join(""));
+    }
+    if (!shown) { errors.push(`карточка mix:${id}: задача с промахом не выпала за 60 выдач`); continue; }
+    const opts = [...widget.querySelectorAll(".algo-mixed__q .algo-challenge__opt")];
+    const pickBtn = right ? opts.find((b) => b.textContent === correctTitle) : opts.find((b) => b.textContent !== correctTitle);
+    click(dom, pickBtn);
+    const c = JSON.parse(w.localStorage.getItem("algoSRS") || "{}")["mix:" + id] || {};
+    if (!want(c)) errors.push(`карточка mix:${id} в сроке, ответ ${right ? "верный" : "неверный"}: ${JSON.stringify(c)}, ожидалось ${right ? "«Помню» (iv 8 → 20)" : "«Забыл» (iv 1, back 3)"}`);
+    w.close();
+  }
 }
 
 // mockInterview проходит собеседование от начала до итога. Проверяется то, ради
