@@ -173,6 +173,15 @@
     function countDone(items) {
       return items.reduce(function (a, c) { return a + (state[c.h] ? 1 : 0); }, 0);
     }
+    // Галочки и подсветка строк — по state. После чтения хранилища заново (клик, импорт) там могут быть
+    // отметки, сделанные в другой вкладке, и без этого процент считал бы одно, а список показывал другое.
+    function showState() {
+      boxes.forEach(function (cb) {
+        var href = cb.parentNode.querySelector(".algo-prog__link").getAttribute("href");
+        cb.checked = !!state[href];
+        cb.parentNode.classList.toggle("algo-prog__item--done", cb.checked);
+      });
+    }
     function refresh() {
       var done = countDone(CORE);
       var pct = Math.round(done / CORE.length * 100);
@@ -200,7 +209,7 @@
         var row = document.createElement("label"); row.className = "algo-prog__item";
         var cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!state[ch.h];
         cb.setAttribute("aria-label", "Отметить главу пройденной: " + ch.t);
-        cb.onchange = function () { state[ch.h] = cb.checked; save(state); markAt(ch.h, cb.checked); row.classList.toggle("algo-prog__item--done", cb.checked); refresh(); };
+        cb.onchange = function () { state = load(); state[ch.h] = cb.checked; save(state); markAt(ch.h, cb.checked); showState(); refresh(); };
         var a = document.createElement("a"); a.href = ch.h; a.textContent = ch.t; a.className = "algo-prog__link";
         row.appendChild(cb); row.appendChild(a);
         // Ядро не помечаем: метка на четырёх пятых списка — это шум. Значок
@@ -222,7 +231,9 @@
     // без единого способа это перенести. Забираем ВСЕ ключи книги (главы,
     // решённые задачи, промахи, рекорд квиза и код, написанный в виджетах),
     // а не только этот трекер.
-    var PREFIXES = ["algoProgress", "algoProgressAt", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:", "algoPkgSolved", "algoSRS",
+    // algoProgressAt (метки отметок для srs.js) отдельной записью не нужен: его покрывает префикс
+    // "algoProgress" (isOurs сравнивает по префиксу) — это держит review-render-check (экспорт и импорт).
+    var PREFIXES = ["algoProgress", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:", "algoPkgSolved", "algoSRS",
       "algoExplain", "algoExplainDone", "algoQuizMissed", "algoMixedMissed", "algoMixedSeen",
       "algoMockLog", "algoMockCxMissed", "algoVizMissed", "algoVizPredict"];
     function isOurs(key) {
@@ -271,11 +282,7 @@
           try { localStorage.setItem(k, incoming); } catch (e) { /* приватный режим */ }
         });
         state = load();
-        boxes.forEach(function (cb) {
-          var href = cb.parentNode.querySelector(".algo-prog__link").getAttribute("href");
-          cb.checked = !!state[href];
-          cb.parentNode.classList.toggle("algo-prog__item--done", cb.checked);
-        });
+        showState();
         refresh();
         importInput.value = "";
       };

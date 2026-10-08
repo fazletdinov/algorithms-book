@@ -32,40 +32,52 @@
  * Срок новой карточки — от СОБЫТИЯ, а не от захода на страницу: глава — от метки
  * algoProgressAt[href] (её пишет трекер в progress.js; нет метки — от «сейчас») плюс день,
  * пакет — от algoPkgSolved[пакет] плюс день, «объясни сам» — от algoExplainDone[ключ].ts, причём
- * оценка виджета сразу идёт в расписание, как будто её поставили здесь; промахи — «сейчас».
+ * оценка виджета при заведении карточки идёт в расписание, как будто её поставили здесь (карточка
+ * уже есть — sync её не трогает); промахи — «сейчас». Карточка главы, которую ни разу не оценили,
+ * а отметку сняли, при sync убирается; оценённые не удаляются никогда.
  *
  * Расписание — SM-2 в упрощённом виде: у карточки есть интервал iv (дни) и «лёгкость»
  * ease. Лестница «Помню» с новой карточки: 1, 3, затем iv × ease (не меньше iv + 1 дня):
  * 1, 3, 8, 22, 61… «С трудом» растит на 20 %, но не меньше чем на день, первый интервал
  * после «Забыл» — день. «Забыл» — ШАГ НАЗАД, а не сброс: карточка приходит завтра (iv = 1),
  * а поле back хранит ступень, на которую она вернётся первым «Помню» (22 дня → завтра →
- * 8 → 21, а не 1 → 3 → 8). back = предыдущая ступень того, с чего упали (если карточка ещё
- * не вернулась после прошлого «Забыл», — back, иначе iv): до 3 дней включительно 1, иначе
- * max(3, round(интервал / ease до штрафа)). «С трудом» после «Забыл» снимает back: день.
- * Разброс: от iv = 8 срок сдвигается на round(iv × 0.125 × (2·rnd() − 1)) дней; card.iv
- * остаётся номинальным, сдвиг живёт только в due (поэтому порядок «Забыл» ≤ «С трудом» ≤
- * «Помню» держится и в сроках: при одном rnd срок не убывает от iv).
+ * 8 → 21, а не 1 → 3 → 8). Ступень вниз считает одна функция, stepBack(from, ease до штрафа):
+ * до 3 дней включительно 1, иначе max(3, round(from / ease)). «Забыл»: back = stepBack(back, если
+ * карточка ещё не вернулась после прошлого «Забыл», иначе iv). «С трудом» у карточки с back —
+ * iv = stepBack(back), back снимается (на ступень НИЖЕ прежней, как второе «Забыл», но ease падает на 0.05,
+ * а не на 0.2); у карточки без back — прежние +20 %. «Помню» с back возвращает на back.
+ * Разброс: от iv = 8 срок сдвигается примерно на ±12,5 % (round(iv × 0.125 × (2·rnd() − 1)) дней,
+ * у 22 дней — от 19 до 25); card.iv остаётся номинальным, сдвиг живёт только в due: при ОДНОМ и
+ * том же rnd срок не убывает от iv, а при независимых бросках порядок оценок по срокам не обещан.
  *
  * Карточка: { due, iv, ease, reps, meta, seen?, note?, back? }. due — мс, iv — номинальные дни
  * (0 — ещё не оценивалась), ease ∈ [1.3, 2.8] с шагом 0.05, reps — повторов после последнего «Забыл»,
  * seen — когда оценена последний раз, note — «в чём была ошибка», back — см. выше (нет — карточка
- * не падала со ступени: прежние записи без back работают как раньше).
+ * не падала со ступени: прежние записи без back работают как раньше). Запись в algoSRS, не
+ * похожая на карточку (null, число…), пропускается и остаётся в хранилище нетронутой.
  *
  * window.ALGO_SRS:
- *   schedule(card, grade, now, rnd) → iv   — меняет карточку; grade: "again" | "hard" | "good";
- *                                            rnd() ∈ [0, 1), по умолчанию Math.random;
- *   sync(now) → { cards, created }         — заводит недостающие карточки, created — их id;
+ *   schedule(card, grade, now, rnd) → iv   — меняет карточку; grade: "again" | "hard" | "good" (иначе
+ *                                            ничего); now по умолчанию Date.now(); rnd() ∈ [0, 1);
+ *   sync(now) → { cards, created, removed } — заводит недостающие карточки (created — их id), убирает
+ *                                            неоценённые карточки снятых глав (removed); при повреждённом
+ *                                            algoSRS — { damaged: true }, при отказе записи — { unsaved: true };
  *   report(id, grade, now, opts) → { status, iv, due }
  *                                          — исход события для виджетов; status: "created" (карточку
  *                                            только что завёл этот вызов — оценивать нечего), "none"
- *                                            (карточки нет или оценка неизвестна), "graded" (срок
- *                                            подошёл — оценена; «Забыл» применяется и до срока),
- *                                            "early" (срок не подошёл — ничего не изменилось);
- *                                            opts = { note, rnd };
- *   load() → cards, due(now) → [id]        — карточки как есть и id тех, чей срок вышел (старые первыми).
+ *                                            (карточки нет или оценка неизвестна), "graded" (оценена),
+ *                                            "early" (срок не подошёл — расписание не изменилось),
+ *                                            "unsaved" (хранилище повреждено, переполнено или недоступно —
+ *                                            ничего не записано, события нет); opts = { note, rnd }.
+ *                                            «Забыл» применяется и до срока, но один раз на падение
+ *                                            (reps === 0 и срок не подошёл → early, заметка обновляется);
+ *   load() → cards, due(now) → [id]        — карточки (без мусорных записей) и id тех, чей срок вышел
+ *                                            (старые первыми); damaged() — algoSRS не разбирается.
  * Запись algoSRS всегда по свежему чтению и с изменением только заведённых/оцениваемых карточек,
  * поэтому две вкладки не затирают друг друга; после записи на document уходит событие
- * "algo-srs:change" ({ detail: { ids } }), а вкладки слушают и "storage".
+ * "algo-srs:change" ({ detail: { ids } }), а вкладки слушают и "storage". Повреждённый algoSRS
+ * (не JSON, массив, число, строка, null) не перезаписывается ни sync, ни report: сырое значение
+ * остаётся для ручного спасения или импорта (progress.js).
  *
  * Ограничение, которое честно назвать: оценку ставит сам читатель, и движок
  * верит ей на слово. Для главы и пакета проверка объективная есть рядом (тесты
@@ -95,24 +107,64 @@
   var GRADES = ["again", "hard", "good"];
   // Начиная с 3 дней интервал растёт умножением; ниже «Забыл» опускает сразу на день.
   var LADDER_LOW = 3;
-  // Разброс срока: от 8 дней и не больше 12,5 % интервала в обе стороны — иначе карточки
+  // Разброс срока: от 8 дней и примерно ±12,5 % интервала (с округлением до дня) — иначе карточки
   // одной главы, заведённые в один день, приходили бы стайкой на каждой ступени.
   var SPREAD_FROM = 8;
   var SPREAD = 0.125;
 
-  function loadMap(key) {
+  // readMap читает ключ как карту «ключ → значение». Нет значения — пустая карта. Есть, но это не
+  // карта (не JSON, массив, число, строка, null) — damaged: пустая карта вместо неё НЕЛЬЗЯ записывать
+  // обратно, иначе молча теряется то, что ещё можно спасти руками или импортом.
+  function readMap(key) {
+    var raw;
     try {
-      return JSON.parse(localStorage.getItem(key) || "{}") || {};
+      raw = localStorage.getItem(key);
     } catch (e) {
-      return {};
+      return { map: {}, damaged: false }; // хранилище недоступно: читать нечего, запись сама откажет
     }
+    if (raw === null) return { map: {}, damaged: false };
+    var v;
+    try {
+      v = JSON.parse(raw);
+    } catch (e) {
+      return { map: {}, damaged: true };
+    }
+    if (v === null || typeof v !== "object" || Array.isArray(v)) return { map: {}, damaged: true };
+    return { map: v, damaged: false };
   }
+  function loadMap(key) {
+    return readMap(key).map;
+  }
+  // save отвечает, записалось ли: переполненное или запрещённое хранилище не должно выдаваться за успех.
   function save(key, obj) {
     try {
       localStorage.setItem(key, JSON.stringify(obj));
+      return true;
     } catch (e) {
-      /* приватный режим — работаем в рамках сессии */
+      return false;
     }
+  }
+
+  // Запись в algoSRS, не похожая на карточку (null, число, строка, массив), пропускается: остальные
+  // карточки работают, а сама запись остаётся в хранилище нетронутой.
+  function isCard(c) {
+    return c !== null && typeof c === "object" && !Array.isArray(c);
+  }
+  function cardsOnly(map) {
+    var out = {};
+    Object.keys(map).forEach(function (id) {
+      if (isCard(map[id])) out[id] = map[id];
+    });
+    return out;
+  }
+  function loadCards() {
+    return cardsOnly(loadMap(KEY));
+  }
+  function num(v, dflt) {
+    return typeof v === "number" && isFinite(v) ? v : dflt;
+  }
+  function dueOf(card) {
+    return num(card.due, 0);
   }
 
   function el(tag, cls, text) {
@@ -138,34 +190,43 @@
     document.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { ids: ids } }));
   }
 
-  // update читает хранилище заново, применяет fn к одной карточке и записывает.
+  // update читает хранилище заново, применяет fn к одной карточке и записывает. null — карточки нет;
+  // { ok: false } — хранилище повреждено или запись отказала (событие не шлётся); иначе { ok: true, card }.
   function update(id, fn) {
-    var cards = loadMap(KEY);
-    var card = cards[id];
-    if (!card) return null;
+    var store = readMap(KEY);
+    if (store.damaged) return { ok: false, card: null };
+    var card = store.map[id];
+    if (!isCard(card)) return null;
     fn(card);
-    save(KEY, cards);
+    if (!save(KEY, store.map)) return { ok: false, card: card };
     notify([id]);
-    return card;
+    return { ok: true, card: card };
   }
 
-  // sync заводит карточки для всего, что читатель уже прошёл или провалил, и
-  // ничего не удаляет: снятая в трекере галочка — не повод забывать историю
-  // повторений этой главы. Зовётся на каждой странице при загрузке: событие
-  // (отметка главы, зелёный пакет) происходит не там, где живёт очередь.
+  // sync заводит карточки для всего, что читатель уже прошёл или провалил. Оценённые карточки
+  // не удаляет: снятая в трекере галочка — не повод забывать историю повторений этой главы
+  // (убирается только карточка главы, которую ни разу не оценили — см. ниже). Зовётся на каждой
+  // странице при загрузке: событие (отметка главы, зелёный пакет) происходит не там, где живёт очередь.
   //
   // Новая карточка главы/пакета получает срок «событие + день», а не «сейчас»:
   // повторять в день прохождения бессмысленно, материал ещё в голове. Отсчёт идёт
   // от метки САМОГО события; нет метки (прежние записи) — от «сейчас». Промах —
   // наоборот, сразу в очередь: он и есть сигнал, что не понято именно сейчас.
+  //
+  // Повреждённый algoSRS не трогается вовсе ({ damaged: true }); отказ записи — { unsaved: true }
+  // без заведённых карточек: о том, чего нет в хранилище, не сообщаем.
   function sync(now) {
     now = now == null ? Date.now() : now;
-    var cards = loadMap(KEY);
+    var store = readMap(KEY);
+    if (store.damaged) return { cards: {}, created: [], removed: [], damaged: true };
+    var cards = store.map;
     var created = [];
+    var removed = [];
 
-    // add заводит карточку, если такой ещё нет, и отдаёт её (иначе null).
+    // add заводит карточку, если записи с таким id ещё нет (мусорная запись — тоже запись:
+    // её не перезаписываем), и отдаёт новую карточку (иначе null).
     function add(id, due, meta) {
-      if (cards[id]) return null;
+      if (Object.prototype.hasOwnProperty.call(cards, id)) return null;
       var card = newCard(due, meta);
       cards[id] = card;
       created.push(id);
@@ -176,11 +237,23 @@
       return typeof ts === "number" && isFinite(ts) && ts > 0 && ts <= now ? ts : now;
     }
 
-    var progress = loadMap(PROGRESS);
+    var progressStore = readMap(PROGRESS);
+    var progress = progressStore.map;
     var progressAt = loadMap(PROGRESS_AT);
     Object.keys(progress).forEach(function (href) {
       if (progress[href]) add("ch:" + href, stamp(progressAt[href]) + DAY, { href: href });
     });
+    // Карточка главы, которую ни разу не оценили (нет seen), а отметку сняли: случайный щелчок в
+    // трекере иначе стал бы вечной карточкой. Оценённая — уже история повторений, её не трогаем;
+    // нечитаемый algoProgress не повод считать, что отмечено «ничего».
+    if (!progressStore.damaged) {
+      Object.keys(cards).forEach(function (id) {
+        if (id.indexOf("ch:") !== 0 || !isCard(cards[id]) || cards[id].seen != null) return;
+        if (progress[id.slice(3)]) return;
+        delete cards[id];
+        removed.push(id);
+      });
+    }
 
     var pkgs = loadMap(PKG_SOLVED);
     Object.keys(pkgs).forEach(function (pkg) {
@@ -231,11 +304,11 @@
       add("task:" + taskId, now, { page: m.page, anchor: m.anchor, q: m.q });
     });
 
-    if (created.length) {
-      save(KEY, cards);
-      notify(created);
+    if (created.length || removed.length) {
+      if (!save(KEY, cards)) return { cards: cardsOnly(loadMap(KEY)), created: [], removed: [], unsaved: true };
+      notify(created.concat(removed));
     }
-    return { cards: cards, created: created };
+    return { cards: cardsOnly(cards), created: created, removed: removed };
   }
 
   function newCard(due, meta) {
@@ -257,20 +330,27 @@
     return Math.round(iv * SPREAD * (2 * rnd() - 1));
   }
 
+  // Ступень лестницы ниже from — единственное правило «шага назад», им считают и «Забыл», и
+  // «С трудом» у карточки с back: до LADDER_LOW включительно — день, выше — интервал, делённый на
+  // ease (им его и растили: ease здесь — ДО штрафа оценки), но не ниже LADDER_LOW.
+  function stepBack(from, ease) {
+    return from <= LADDER_LOW ? 1 : Math.max(LADDER_LOW, Math.round(from / ease));
+  }
+
   // grade: "again" | "hard" | "good". Меняет карточку и возвращает НОМИНАЛЬНЫЙ интервал
   // в днях; срок (due) отличается от него на разброс. Неизвестная оценка ничего не меняет.
   function schedule(card, grade, now, rnd) {
     if (GRADES.indexOf(grade) < 0) return card.iv || 0;
-    var iv = card.iv || 0;
-    var reps = card.reps || 0;
-    // карточка без ease — как новая; прежние записи всегда с ним, но NaN в расписании хуже заглушки
-    var ease = isFinite(card.ease) && card.ease > 0 ? card.ease : EASE_START;
+    now = now == null ? Date.now() : now;
+    var iv = num(card.iv, 0);
+    var reps = num(card.reps, 0);
+    // карточка без ease (или с ease не числом) — как новая: NaN в расписании хуже заглушки
+    var ease = num(card.ease, 0) > 0 ? card.ease : EASE_START;
 
     if (grade === "again") {
       // Шаг назад: ступень, с которой падаем, — back, если карточка ещё не вернулась после
-      // прошлого «Забыл», иначе iv. Делим на ease ДО штрафа: им и умножали интервал.
-      var from = hasBack(card) ? card.back : iv;
-      card.back = from <= LADDER_LOW ? 1 : Math.max(LADDER_LOW, Math.round(from / ease));
+      // прошлого «Забыл», иначе iv.
+      card.back = stepBack(hasBack(card) ? card.back : iv, ease);
       card.ease = clampEase(ease - 0.2);
       card.iv = 1;
       card.reps = 0;
@@ -279,7 +359,11 @@
       // +20 %, но не меньше чем на день: round(1 × 1.2) = 1 возвращал карточку
       // каждый день без конца. Первый интервал — день, как у «Помню»: иначе сразу
       // после «Забыл» слабая оценка откладывала бы дальше сильной (2 дня против 1).
-      card.iv = reps === 0 ? 1 : Math.max(iv + 1, Math.round((iv || 1) * 1.2));
+      // У карточки, упавшей и ещё не вернувшейся (back), «С трудом» — не возврат на прежнюю
+      // ступень, а ступень НИЖЕ неё: иначе «С трудом» после «Забыл» шло бы заново с 1, 3, 8 — хуже,
+      // чем второе «Забыл» (оно сохраняет лестницу).
+      if (hasBack(card)) card.iv = stepBack(card.back, ease);
+      else card.iv = reps === 0 ? 1 : Math.max(iv + 1, Math.round((iv || 1) * 1.2));
       card.reps = reps + 1;
       delete card.back;
     } else {
@@ -301,23 +385,39 @@
   // report — исход события для виджетов, которые оценивают сами (задача в тексте, «объясни
   // сам», 🎯, смешанная тренировка, тесты пакета). Сначала sync: событие могло как раз
   // и завести карточку (промах → карточка «сейчас») — тогда оценивать нечего.
-  // «Забыл» применяется и до срока: провал нельзя оставить без последствий; «Помню» и
-  // «С трудом» до срока ничего не меняют — иначе повтор «из любопытства» растил бы интервал.
+  // «Помню» и «С трудом» до срока ничего не меняют — иначе повтор «из любопытства» растил бы
+  // интервал. «Забыл» до срока применяется, провал нельзя оставить без последствий, но ОДИН раз на
+  // падение: карточка, которая уже упала или ещё ни разу не оценена (reps === 0) и ждёт срока,
+  // отвечает early — две неудачи подряд в одном заходе обычное дело, и пять вызовов не должны
+  // ронять её на пять ступеней (заметка при этом обновляется). Второй «Забыл» уже в срок — вторая ступень.
+  // unsaved — ничего не записано (хранилище повреждено, переполнено или недоступно); события нет.
   function report(id, grade, now, opts) {
     now = now == null ? Date.now() : now;
     var none = { status: "none", iv: 0, due: 0 };
+    var unsaved = { status: "unsaved", iv: 0, due: 0 };
     if (GRADES.indexOf(grade) < 0) return none;
     var synced = sync(now);
+    if (synced.damaged || synced.unsaved) return unsaved;
     var card = synced.cards[id];
     if (!card) return none;
     if (synced.created.indexOf(id) >= 0) return { status: "created", iv: card.iv, due: card.due };
-    if ((card.due || 0) > now && grade !== "again") return { status: "early", iv: card.iv, due: card.due };
     var o = opts || {};
-    var graded = update(id, function (c) {
+    if (dueOf(card) > now) {
+      var early = { status: "early", iv: card.iv, due: card.due };
+      if (grade !== "again") return early;
+      if (num(card.reps, 0) === 0) {
+        if (!o.note || o.note === card.note) return early;
+        var noted = update(id, function (c) { c.note = o.note; });
+        return noted && noted.ok ? early : noted ? unsaved : none;
+      }
+    }
+    var res = update(id, function (c) {
       if (grade === "again" && o.note) c.note = o.note;
       schedule(c, grade, now, o.rnd);
     });
-    return graded ? { status: "graded", iv: graded.iv, due: graded.due } : none;
+    if (!res) return none;
+    if (!res.ok) return unsaved;
+    return { status: "graded", iv: res.card.iv, due: res.card.due };
   }
 
   function kindOf(id) {
@@ -402,17 +502,17 @@
   function dueIds(cards, now) {
     return Object.keys(cards)
       .filter(function (id) {
-        return (cards[id].due || 0) <= now;
+        return dueOf(cards[id]) <= now;
       })
       .sort(function (a, b) {
-        return (cards[a].due || 0) - (cards[b].due || 0);
+        return dueOf(cards[a]) - dueOf(cards[b]);
       });
   }
 
   function nextDueIn(cards, now) {
     var min = Infinity;
     Object.keys(cards).forEach(function (id) {
-      var d = cards[id].due || 0;
+      var d = dueOf(cards[id]);
       if (d > now && d < min) min = d;
     });
     return min === Infinity ? null : Math.max(1, Math.ceil((min - now) / DAY));
@@ -439,11 +539,19 @@
     function render() {
       noteOpen = false;
       var now = Date.now();
-      var cards = loadMap(KEY);
+      var store = readMap(KEY);
+      var cards = cardsOnly(store.map);
       var queue = dueIds(cards, now);
       var total = Object.keys(cards).length;
-      shown = { id: queue[0] || null, due: queue.length ? cards[queue[0]].due : 0, n: queue.length, total: total };
+      shown = { id: queue[0] || null, due: queue.length ? dueOf(cards[queue[0]]) : 0, n: queue.length, total: total, damaged: store.damaged };
       root.innerHTML = "";
+
+      if (store.damaged) {
+        root.appendChild(el("p", "algo-today__empty",
+          "Сохранённые карточки повторений повреждены (ключ algoSRS не разбирается), поэтому книга их не трогает и не перезаписывает. " +
+          "Вернуть их можно кнопкой «Импорт» на странице шпаргалки — из файла прогресса, который вы выгружали раньше."));
+        return;
+      }
 
       var head = el("div", "algo-today__head");
       head.appendChild(el("strong", null, queue.length
@@ -531,7 +639,9 @@
         var res = report(id, grade, Date.now(), { note: note });
         render();
         var text = null;
-        if (res.status === "early") {
+        if (res.status === "unsaved") {
+          text = "Не удалось сохранить оценку: хранилище браузера недоступно или переполнено. Карточка осталась в очереди.";
+        } else if (res.status === "early") {
           text = "Эту карточку уже оценили в другой вкладке — оставил как есть.";
         } else if (res.status === "graded") {
           var days = Math.max(1, Math.round((res.due - Date.now()) / DAY));
@@ -575,10 +685,12 @@
     function refresh() {
       if (noteOpen) return;
       var now = Date.now();
-      var cards = loadMap(KEY);
+      var store = readMap(KEY);
+      var cards = cardsOnly(store.map);
       var queue = dueIds(cards, now);
-      var same = shown && shown.n === queue.length && shown.total === Object.keys(cards).length &&
-        shown.id === (queue[0] || null) && (!queue.length || cards[queue[0]].due === shown.due);
+      var same = shown && shown.damaged === store.damaged && shown.n === queue.length &&
+        shown.total === Object.keys(cards).length && shown.id === (queue[0] || null) &&
+        (!queue.length || dueOf(cards[queue[0]]) === shown.due);
       if (!same) render();
     }
 
@@ -612,7 +724,7 @@
   }
 
   function refreshBadge(cards) {
-    var n = dueIds(cards || loadMap(KEY), Date.now()).length;
+    var n = dueIds(cards || loadCards(), Date.now()).length;
     if (!badge) {
       if (!n) return;
       badge = makeBadge();
@@ -634,8 +746,9 @@
     schedule: schedule,
     sync: sync,
     report: report,
-    load: function () { return loadMap(KEY); },
-    due: function (now) { return dueIds(loadMap(KEY), now == null ? Date.now() : now); },
+    load: loadCards,
+    due: function (now) { return dueIds(loadCards(), now == null ? Date.now() : now); },
+    damaged: function () { return readMap(KEY).damaged; },
   };
 
   function init() {

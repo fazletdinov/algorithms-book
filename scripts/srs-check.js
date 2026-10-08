@@ -20,7 +20,11 @@
 //   6) сдвиг срока от 8 дней управляем подставным генератором, номинальный iv от него не зависит;
 //   7) две вкладки: оценка в одной не затирает то, что другая записала в algoSRS;
 //   8) report(): четыре исхода; счётчик «Сегодня: N» в верхней панели каждой страницы;
-//   9) карточки прежних версий (без back, iv = 1 при reps ≥ 2, главы без меток) не теряются.
+//   9) карточки прежних версий (без back, iv = 1 при reps ≥ 2, главы без меток) не теряются;
+//  10) «С трудом» у карточки с back — ступень НИЖЕ back (на шаг и на два шага порядок оценок держится);
+//  11) «Забыл» до срока — один раз на падение, дальше early; отказ записи — статус unsaved, без события;
+//  12) повреждённый algoSRS (пять видов значений) не перезаписывается, карточка-мусор пропускается;
+//  13) ни разу не оценённая карточка главы без отметки в трекере при sync уходит.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -241,7 +245,8 @@ async function main() {
 {
   const now = Date.now();
   const id = "ch:sliding-window.html";
-  const base = { due: now - DAY, iv: 20, ease: 2.5, reps: 5, meta: { href: "sliding-window.html" } };
+  // seen есть: карточка главы без seen и без отметки в трекере при sync уходит (см. раздел 8g)
+  const base = { due: now - DAY, iv: 20, ease: 2.5, reps: 5, meta: { href: "sliding-window.html" }, seen: now - 20 * DAY };
 
   const forgot = await newDom({ algoSRS: JSON.stringify({ [id]: base }) });
   click(forgot, "Забыл");
@@ -307,7 +312,11 @@ if (!api) {
     ["3 дня: Забыл, Помню, Помню", { iv: 3, ease: 2.6, reps: 2 }, ["again", "good", "good"], "1 (back 1), 1, 3"],
     ["прежняя формула iv 1, ease 1.3, reps 2: Помню", { iv: 1, ease: 1.3, reps: 2 }, ["good"], "2"],
     ["прежняя формула iv 1, ease 1.3, reps 2: С трудом", { iv: 1, ease: 1.3, reps: 2 }, ["hard"], "2"],
-    ["«С трудом» после «Забыл» снимает back: 1, затем 2", { iv: 22, ease: 2.7, reps: 4 }, ["again", "hard", "hard"], "1 (back 8), 1, 2"],
+    ["«С трудом» с back — на ступень ниже back (22 → завтра → 3 → 4)", { iv: 22, ease: 2.7, reps: 4 }, ["again", "hard", "hard"], "1 (back 8), 3, 4"],
+    ["61 день: Забыл, С трудом, Помню, Помню", { iv: 61, ease: 2.75, reps: 5 }, ["again", "hard", "good", "good"], "1 (back 22), 9, 23, 60"],
+    ["61 день: Забыл, Забыл, Помню ×3 (хуже, чем «С трудом»)", { iv: 61, ease: 2.75, reps: 5 }, ["again", "again", "good", "good", "good"], "1 (back 22), 1 (back 9), 9, 22, 55"],
+    ["back ≤ 3: «С трудом» — день, затем 2", { iv: 3, ease: 2.6, reps: 2 }, ["again", "hard", "hard"], "1 (back 1), 1, 2"],
+    ["back 4 при высоком ease: «С трудом» не ниже пола ступени", { iv: 10, ease: 2.55, reps: 3 }, ["again", "hard"], "1 (back 4), 3"],
     // round(4 / 2.55) = 2, но ниже 3 дней «Забыл» ступень не опускает: пол LADDER_LOW
     ["4 дня при высоком ease: Забыл, Помню (пол ступени)", { iv: 4, ease: 2.55, reps: 2 }, ["again", "good"], "1 (back 3), 3"],
     ["ладдер «Помню» с новой карточки", { iv: 0, ease: 2.5, reps: 0 }, ["good", "good", "good", "good", "good"], "1, 3, 8, 22, 61"],
@@ -358,7 +367,9 @@ if (!api) {
 // localStorage на оценку не нужны, поэтому перебор на порядки шире прежнего (1377 состояний).
 // Сдвиг срока: порядок сверяется и по номинальному iv (rnd = 0.5, сдвига нет), и по срокам при
 // крайних rnd = 0 и 0.999 — с ОДНИМ значением rnd на все три оценки: срок iv + round(c·iv)
-// не убывает от iv при любом c ∈ [−0.125, 0.125], так что проверка остаётся строгой.
+// не убывает от iv при любом c ∈ [−0.125, 0.125]. При независимых бросках для разных оценок
+// порядок по срокам не держится: «С трудом» может лечь позже возможного «Помню» (замер: до 17 дней
+// при iv ≤ 100; только при ease ≤ 1.5 и iv ≥ 7 и противоположных сдвигах) — это не проверяется и не обещается.
 if (api) {
   const LIMIT = 100;
   const MID = () => 0.5;
@@ -380,7 +391,7 @@ if (api) {
   }
   const seen = new Set(starts.map(key));
   const queue = starts.slice();
-  const bad = { order: [], dueOrder: [], backStep: [], repeat: [], growth: [], shape: [], jitter: [] };
+  const bad = { order: [], dueOrder: [], backStep: [], twoStep: [], hardBack: [], repeat: [], growth: [], shape: [], jitter: [] };
   const note = (kind, st, text) => { if (bad[kind].length < 3) bad[kind].push(`${show(st)}: ${text}`); bad[kind].n = (bad[kind].n || 0) + 1; };
   const valid = (c) =>
     Number.isInteger(c.iv) && c.iv >= 1 && Number.isInteger(c.reps) && c.reps >= 0 &&
@@ -403,13 +414,22 @@ if (api) {
       }
       for (const c of d) {
         const off = Math.abs(c.due / DAY - c.iv);
-        if (c.iv < 8 ? off !== 0 : off > Math.ceil(0.125 * c.iv)) note("jitter", st, `iv ${c.iv}, срок через ${c.due / DAY}`);
+        if (c.iv < 8 ? off !== 0 : off > Math.round(0.125 * c.iv)) note("jitter", st, `iv ${c.iv}, срок через ${c.due / DAY}`);
       }
     }
     // «Забыл», затем «Помню» возвращает не дальше, чем карточка стояла до «Забыл»
     if (stand(st) >= 1) {
       const back = step(again, "good");
       if (back.iv > stand(st)) note("backStep", st, `«Забыл» → «Помню» дало ${back.iv} при ${stand(st)} до «Забыл»`);
+    }
+    // Карточка с back (упала и ещё не вернулась): «С трудом» ставит ступень НИЖЕ back тем же
+    // правилом шага назад, что «Забыл», и снимает back; на два шага «Забыл → Помню» ≤
+    // «С трудом → Помню» ≤ «Помню → Помню» — слабая оценка не откладывает дальше сильной.
+    if (st.back != null) {
+      const below = st.back <= 3 ? 1 : Math.max(3, Math.round(st.back / st.ease));
+      if (hard.iv !== below || hard.back != null) note("hardBack", st, `«С трудом» → iv ${hard.iv}${hard.back != null ? ", back " + hard.back : ""}, ожидалось ${below} без back`);
+      const ag = step(again, "good"), hg = step(hard, "good"), gg = step(good, "good");
+      if (!(ag.iv <= hg.iv && hg.iv <= gg.iv)) note("twoStep", st, `«Забыл → Помню» ${ag.iv}, «С трудом → Помню» ${hg.iv}, «Помню → Помню» ${gg.iv}`);
     }
     // повтор той же оценки не оставляет карточку на месте: «С трудом» и «Помню» за три нажатия
     for (const g of ["hard", "good"]) {
@@ -431,10 +451,12 @@ if (api) {
     order: "слабая оценка откладывает дальше сильной",
     dueOrder: "слабая оценка дальше сильной по СРОКУ при сдвиге",
     backStep: "«Забыл» → «Помню» возвращает дальше, чем было до «Забыл»",
+    twoStep: "на два шага из состояния с back нарушен порядок «Забыл → Помню» ≤ «С трудом → Помню» ≤ «Помню → Помню»",
+    hardBack: "«С трудом» у карточки с back не ставит ступень ниже back",
     repeat: "повтор той же оценки оставляет карточку на месте",
     growth: "оценка не растит интервал там, где должна",
     shape: "недопустимое состояние карточки",
-    jitter: "сдвиг срока вышел за ±12,5 % или появился до 8 дней",
+    jitter: "сдвиг срока вышел за round(12,5 % iv) или появился до 8 дней",
   };
   for (const k of Object.keys(bad)) {
     if (bad[k].n) errors.push(`${labels[k]} в ${bad[k].n} из ${queue.length} проверок, например: ${bad[k].join("; ")}`);
@@ -442,12 +464,13 @@ if (api) {
   if (queue.length < 2000) errors.push(`перебор состояний расписания обошёл только ${queue.length} — ожидалось больше 2000`);
   console.log(`   перебор расписания: ${queue.length} состояний, ${queue.filter((s) => s.back != null).length} из них с back (интервал до ${LIMIT} дней, ${starts.length} стартов)`);
 
-  // «Забыл», «С трудом», «С трудом»: на второй «С трудом» интервал уже 2, а не день без конца
+  // «Забыл», «С трудом», «С трудом» с 10 дней (back 4): ступень ниже back — 3 (пол LADDER_LOW), затем +20 % не меньше дня — 4;
+  // карточка не стоит на месте и не идёт заново с 1, 3, 8
   const forgot = step({ iv: 10, ease: 2.5, reps: 3 }, "again");
   const hard1 = step(forgot, "hard");
   const hard2 = step(hard1, "hard");
   const got = [forgot.iv, hard1.iv, hard2.iv].join(", ");
-  if (got !== "1, 1, 2") errors.push(`«Забыл», «С трудом», «С трудом» дали интервалы ${got} дней вместо 1, 1, 2`);
+  if (got !== "1, 3, 4") errors.push(`«Забыл», «С трудом», «С трудом» с 10 дней дали интервалы ${got} вместо 1, 3, 4`);
   if (hard1.reps !== 1 || hard2.reps !== 2) errors.push(`«С трудом» после «Забыл» не засчитан как повтор: повторов ${hard1.reps} и ${hard2.reps} вместо 1 и 2`);
 }
 
@@ -595,8 +618,14 @@ if (api) {
   w.dispatchEvent(new w.StorageEvent("storage", { key: "algoSRS" }));
   if (!/На сегодня всё/.test(text())) errors.push(`storage: виджет не перерисовался: «${text().slice(0, 80)}»`);
   if (badgeShown(dom)) errors.push(`storage: счётчик остался на экране: «${badgeShown(dom)}»`);
-  // чужой ключ ничего не ломает
+  // чужой ключ перерисовку не вызывает: состояние изменено тихо, и экран остаётся прежним
+  // (с «algoSRS» тот же сценарий ниже перерисовывает)
+  const quiet = Object.assign(cards(dom), { "task:c#1": mk(now - 2 * DAY, "вопрос C") });
+  w.localStorage.setItem("algoSRS", JSON.stringify(quiet));
   w.dispatchEvent(new w.StorageEvent("storage", { key: "algoQuizBest" }));
+  if (!/На сегодня всё/.test(text()) || badgeShown(dom)) errors.push("storage по чужому ключу перерисовал виджет или счётчик");
+  w.dispatchEvent(new w.StorageEvent("storage", { key: "algoSRS" }));
+  if (!/вопрос C/.test(text())) errors.push("storage по ключу algoSRS не перерисовал виджет");
   // «Забыл» с заметкой: форма не должна пропадать от события из другой вкладки
   const m2 = Object.assign(cards(dom), { "task:c#1": mk(now - DAY, "вопрос C") });
   w.localStorage.setItem("algoSRS", JSON.stringify(m2));
@@ -666,6 +695,214 @@ if (api) {
     if (events.length !== 3) errors.push(`report: создание карточки без события (${events.length})`);
     status(r.report("task:big-o#9", "good", now), "graded", "второй вызов по уже заведённой карточке");
   }
+}
+
+// --- 8b. «Забыл» до срока — один раз на падение ---
+// Две неудачи подряд в одном заходе — обычное дело (Task 5/6 зовут report на каждый промах);
+// пять вызовов не должны ронять карточку на пять ступеней.
+{
+  const now = Date.now();
+  const mk = (extra) => Object.assign({ due: now + 5 * DAY, iv: 61, ease: 2.75, reps: 5, meta: { page: "big-o", q: "задача" } }, extra);
+  const dom = await newDom({ algoSRS: JSON.stringify({ "task:a#1": mk(), "task:new#1": mk({ iv: 0, ease: 2.5, reps: 0, due: now + DAY }) }) }, [], "<div></div>");
+  const r = dom.window.ALGO_SRS;
+  if (r) {
+    const statuses = [r.report("task:a#1", "again", now).status];
+    const afterFirst = JSON.stringify(cards(dom)["task:a#1"]);
+    for (let i = 0; i < 4; i++) statuses.push(r.report("task:a#1", "again", now).status);
+    if (statuses.join() !== "graded,early,early,early,early") errors.push(`пять «Забыл» до срока: статусы ${statuses.join()}, ожидалось одно graded и четыре early`);
+    if (JSON.stringify(cards(dom)["task:a#1"]) !== afterFirst) errors.push(`четыре повторных «Забыл» изменили карточку: ${JSON.stringify(cards(dom)["task:a#1"])} вместо ${afterFirst}`);
+    const first = JSON.parse(afterFirst);
+    if (first.back !== 22 || first.iv !== 1 || first.ease !== 2.55) errors.push(`первое «Забыл» с 61 дня: ${afterFirst}, ожидалось back 22, iv 1, ease 2.55`);
+
+    // заметка ко второй неудаче обновляется, расписание — нет
+    const noted = r.report("task:a#1", "again", now, { note: "вторая попытка" });
+    const c = cards(dom)["task:a#1"];
+    if (noted.status !== "early" || c.note !== "вторая попытка") errors.push(`заметка к «Забыл» до срока: ${JSON.stringify(noted)} ${JSON.stringify(c)}`);
+    delete c.note;
+    if (JSON.stringify(c) !== afterFirst) errors.push(`заметка к повторному «Забыл» тронула расписание: ${JSON.stringify(c)}`);
+
+    // на следующий день карточка в сроке: второй «Забыл» — вторая ступень вниз
+    const next = r.report("task:a#1", "again", now + DAY);
+    const d = cards(dom)["task:a#1"];
+    if (next.status !== "graded" || d.back !== 9 || d.ease !== 2.35) errors.push(`«Забыл» на следующий день: ${JSON.stringify(next)} ${JSON.stringify(d)}, ожидалось graded, back 9, ease 2.35`);
+
+    // ещё не оценённая карточка, которая ждёт срока, — тоже не «падение»
+    const before = JSON.stringify(cards(dom)["task:new#1"]);
+    const fresh = r.report("task:new#1", "again", now);
+    if (fresh.status !== "early" || JSON.stringify(cards(dom)["task:new#1"]) !== before) errors.push(`«Забыл» по ещё не оценённой карточке до срока: ${JSON.stringify(fresh)}`);
+    // «Помню» до срока по-прежнему ничего не меняет (после второго «Забыл» срок — через сутки)
+    const early = r.report("task:a#1", "good", now + DAY + 1000);
+    if (early.status !== "early") errors.push(`«Помню» до срока: ${JSON.stringify(early)}`);
+  }
+}
+
+// --- 8c. неудачная запись не выдаётся за успех ---
+{
+  const now = Date.now();
+  const card = { due: now - DAY, iv: 8, ease: 2.5, reps: 3, meta: { page: "big-o", q: "вопрос A" } };
+  const page = MENU + '<main><h1>Повторение</h1><div class="algo-today"></div></main>';
+  const dom = await newDom({ algoSRS: JSON.stringify({ "task:a#1": card }) }, [], page);
+  const w = dom.window;
+  const r = w.ALGO_SRS;
+  if (r) {
+    const events = [];
+    w.document.addEventListener("algo-srs:change", (e) => events.push(e.detail.ids));
+    const baseline = w.localStorage.getItem("algoSRS");
+    const orig = w.Storage.prototype.setItem;
+    w.Storage.prototype.setItem = function () { throw new Error("QuotaExceededError"); };
+    try {
+      // оценка существующей карточки: sync нечего заводить, отказывает сама запись оценки
+      const res = r.report("task:a#1", "good", now);
+      if (res.status !== "unsaved") errors.push(`report при отказе записи: ${JSON.stringify(res)}, ожидался статус unsaved`);
+      // а новая карточка из промаха: отказывает запись в sync
+      orig.call(w.localStorage, "algoChallengeMissed", JSON.stringify({ "big-o#9": { n: 1, page: "big-o", anchor: "task-9", q: "Новая" } }));
+      const s = r.sync(now);
+      if (s.created.length || s.cards["task:big-o#9"]) errors.push(`sync при отказе записи сообщил о заведённых карточках: ${JSON.stringify(s.created)}`);
+      // report по карточке, которую завёл бы этот вызов, — не «карточки нет», а «не записано»
+      const pending = r.report("task:big-o#9", "again", now);
+      if (pending.status !== "unsaved") errors.push(`report по карточке, которую не удалось завести: ${JSON.stringify(pending)}, ожидался unsaved`);
+      if (events.length) errors.push(`при отказе записи ушло событие algo-srs:change: ${JSON.stringify(events)}`);
+      if (w.localStorage.getItem("algoSRS") !== baseline) errors.push("при отказе записи algoSRS изменился");
+      click(dom, "Помню");
+      const t = w.document.querySelector(".algo-today").textContent;
+      if (!/Не удалось сохранить оценку: хранилище браузера недоступно или переполнено/.test(t)) errors.push(`виджет не сообщил об отказе записи: «${t.slice(0, 160)}»`);
+      if (!/вопрос A/.test(t)) errors.push("после отказа записи карточка ушла из очереди");
+      if (/Следующее повторение/.test(t)) errors.push("после отказа записи виджет пишет «Следующее повторение»");
+    } finally {
+      w.Storage.prototype.setItem = orig;
+    }
+    const ok = r.report("task:a#1", "good", now);
+    if (ok.status !== "graded") errors.push(`report после восстановления записи: ${JSON.stringify(ok)}`);
+  }
+}
+
+// --- 8d. повреждённый algoSRS не перезаписывается и не роняет страницу ---
+{
+  const now = Date.now();
+  const miss = { "big-o#2": { n: 2, page: "big-o", anchor: "task-2", q: "Сколько копий сделает append?" } };
+  const page = MENU + '<main><h1>Повторение</h1><div class="algo-today"></div></main>';
+  for (const raw of ["not json{", "[]", "42", '"str"', "null"]) {
+    const dom = await bootDom({ algoSRS: raw, algoChallengeMissed: JSON.stringify(miss) }, page);
+    const w = dom.window, r = w.ALGO_SRS;
+    const what = `algoSRS = ${raw}`;
+    if (w.localStorage.getItem("algoSRS") !== raw) errors.push(`${what}: при загрузке значение перезаписано: ${w.localStorage.getItem("algoSRS")}`);
+    if (badgeShown(dom)) errors.push(`${what}: виден счётчик «${badgeShown(dom)}»`);
+    const t = w.document.querySelector(".algo-today").textContent;
+    if (!/повреждены/.test(t) || !/Импорт/.test(t)) errors.push(`${what}: виджет не сообщил о повреждении и об импорте: «${t.slice(0, 120)}»`);
+    if (!r) continue;
+    const s = r.sync(now);
+    if (!s.damaged || s.created.length) errors.push(`${what}: sync → ${JSON.stringify({ damaged: s.damaged, created: s.created })}`);
+    const res = r.report("task:big-o#2", "again", now);
+    if (res.status !== "unsaved") errors.push(`${what}: report → ${JSON.stringify(res)}, ожидался unsaved`);
+    if (!(r.damaged && r.damaged()) || Object.keys(r.load()).length || r.due(now).length) errors.push(`${what}: damaged()/load()/due() не пусты`);
+    if (w.localStorage.getItem("algoSRS") !== raw) errors.push(`${what}: sync/report перезаписали значение: ${w.localStorage.getItem("algoSRS")}`);
+  }
+
+  // отдельная карточка-мусор в исправной карте пропускается, остальные работают
+  const ok = { due: now - DAY, iv: 8, ease: 2.5, reps: 3, meta: { page: "big-o", q: "исправная" } };
+  const dom = await bootDom(
+    {
+      algoSRS: JSON.stringify({ "task:junk#1": null, "task:junk#2": 5, "task:junk#3": "x", "task:junk#4": [], "task:ok#1": ok }),
+      algoChallengeMissed: JSON.stringify({ "junk#1": { n: 1, page: "big-o", anchor: "task-1", q: "мусорная" } }),
+    },
+    page
+  );
+  const w = dom.window, r = w.ALGO_SRS;
+  const t = w.document.querySelector(".algo-today").textContent;
+  if (!/исправная/.test(t) || !/Сегодня:\s*1\b/.test(badgeShown(dom) || "")) errors.push(`карточка-мусор: виджет «${t.slice(0, 80)}», счётчик «${badgeShown(dom)}»`);
+  if (r) {
+    if (JSON.stringify(r.due(now)) !== JSON.stringify(["task:ok#1"])) errors.push(`карточка-мусор: due() = ${JSON.stringify(r.due(now))}`);
+    if (JSON.stringify(Object.keys(r.load())) !== JSON.stringify(["task:ok#1"])) errors.push(`карточка-мусор: load() = ${JSON.stringify(Object.keys(r.load()))}`);
+    for (const id of ["task:junk#1", "task:junk#2", "task:junk#3", "task:junk#4"]) {
+      const res = r.report(id, "good", now);
+      if (res.status !== "none") errors.push(`карточка-мусор: report(${id}) → ${JSON.stringify(res)}, ожидался none`);
+    }
+    if (r.report("task:ok#1", "good", now).status !== "graded") errors.push("карточка-мусор: исправная карточка не оценилась");
+    const stored = JSON.parse(w.localStorage.getItem("algoSRS"));
+    if (stored["task:junk#1"] !== null || stored["task:junk#2"] !== 5 || stored["task:junk#3"] !== "x" || !Array.isArray(stored["task:junk#4"])) {
+      errors.push(`карточка-мусор: оценка исправной переписала мусорные записи: ${JSON.stringify(stored)}`);
+    }
+  }
+}
+
+// --- 8e. due(), счётчик по visibilitychange и по storage с key === null ---
+{
+  const now = Date.now();
+  const mk = (due) => ({ due, iv: 1, ease: 2.5, reps: 1, meta: { page: "big-o", q: "задача" } });
+  const page = MENU + '<main><h1>Повторение</h1><div class="algo-today"></div></main>';
+  const dom = await newDom(
+    { algoSRS: JSON.stringify({ "task:a#1": mk(now - 3 * DAY), "task:b#1": mk(now - DAY), "task:c#1": mk(now - 2 * DAY), "task:d#1": mk(now + 2 * DAY), "task:junk#1": null, "task:e#1": Object.assign(mk(0), { due: "скоро" }) }) },
+    [],
+    page
+  );
+  const w = dom.window, r = w.ALGO_SRS;
+  if (r) {
+    const got = JSON.stringify(r.due(now)), want = JSON.stringify(["task:e#1", "task:a#1", "task:c#1", "task:b#1"]);
+    if (got !== want) errors.push(`due(now) = ${got}, ожидалось ${want}: просроченные, старые первыми (due не числом считается 0), без будущих и мусора`);
+    const later = JSON.stringify(r.due(now + 3 * DAY)), wantLater = JSON.stringify(["task:e#1", "task:a#1", "task:c#1", "task:b#1", "task:d#1"]);
+    if (later !== wantLater) errors.push(`due(now + 3 дня) = ${later}, ожидалось ${wantLater}`);
+    if (JSON.stringify(r.due()) !== want) errors.push("due() без аргумента не равен due(Date.now())");
+  }
+  // тихое изменение хранилища без события: счётчик догоняет вкладку, открытую со вчера
+  const quiet = (due) => w.localStorage.setItem("algoSRS", JSON.stringify({ "task:a#1": mk(due) }));
+  if (!/Сегодня:\s*4\b/.test(badgeShown(dom) || "")) errors.push(`старт: счётчик «${badgeShown(dom)}», ожидалось 4`);
+  quiet(now + 5 * DAY);
+  Object.defineProperty(w.document, "hidden", { value: true, configurable: true });
+  w.document.dispatchEvent(new w.Event("visibilitychange"));
+  if (!/Сегодня:\s*4\b/.test(badgeShown(dom) || "")) errors.push("visibilitychange у скрытой вкладки пересчитал счётчик");
+  Object.defineProperty(w.document, "hidden", { value: false, configurable: true });
+  w.document.dispatchEvent(new w.Event("visibilitychange"));
+  if (badgeShown(dom)) errors.push(`visibilitychange у видимой вкладки не обновил счётчик: «${badgeShown(dom)}»`);
+  // вкладка вернулась, виджет при этом не перерисован (иначе закрылся бы открытый ответ карточки-вопроса)
+  quiet(now - DAY);
+  w.dispatchEvent(new w.StorageEvent("storage", { key: null })); // localStorage.clear() / восстановление в другой вкладке
+  if (!/Сегодня:\s*1\b/.test(badgeShown(dom) || "")) errors.push(`storage с key === null не обновил счётчик: «${badgeShown(dom)}»`);
+  if (!/задача/.test(w.document.querySelector(".algo-today").textContent) || /На сегодня всё/.test(w.document.querySelector(".algo-today").textContent)) {
+    errors.push("storage с key === null не перерисовал виджет");
+  }
+}
+
+// --- 8f. границы schedule: без now, мусорные поля ---
+if (api) {
+  const c = { iv: 8, ease: 2.5, reps: 3, meta: {} };
+  api.schedule(c, "good");
+  if (!Number.isFinite(c.due) || Math.abs(c.due - (Date.now() + c.iv * DAY)) > 3 * DAY + 60 * 1000 || !Number.isFinite(c.seen)) {
+    errors.push(`schedule без now записал due ${c.due}, seen ${c.seen}`);
+  }
+  const s = { iv: 8, ease: "2.5", reps: "3", due: 0, meta: {} };
+  api.schedule(s, "good", 0, () => 0.5);
+  if (s.ease !== 2.55 || !Number.isFinite(s.iv) || s.reps !== 1) errors.push(`ease/reps строками: ${JSON.stringify(s)}, ожидалось ease 2.55 (как у карточки без ease), конечный iv, reps 1`);
+}
+
+// --- 8g. ни разу не оценённая карточка главы, у которой отметку сняли, уходит ---
+{
+  const now = Date.now();
+  const mk = (extra) => Object.assign({ due: now + DAY, iv: 0, ease: 2.5, reps: 0, meta: {} }, extra);
+  const seed = {
+    algoSRS: JSON.stringify({
+      "ch:marked.html": mk({ meta: { href: "marked.html" } }), // отмечена — остаётся
+      "ch:unmarked.html": mk({ meta: { href: "unmarked.html" } }), // отметку сняли, не оценена — уходит
+      "ch:absent.html": mk({ meta: { href: "absent.html" } }), // записи в algoProgress нет — уходит
+      "ch:graded.html": mk({ iv: 3, reps: 1, seen: now - DAY, meta: { href: "graded.html" } }), // оценена — история, остаётся
+      "pkg:somepkg": mk({ meta: { pkg: "somepkg" } }), // не глава — остаётся
+    }),
+    algoProgress: JSON.stringify({ "marked.html": true, "unmarked.html": false, "graded.html": false }),
+  };
+  const dom = await newDom(seed, [], "<div></div>");
+  const ids = Object.keys(cards(dom)).sort();
+  const want = ["ch:graded.html", "ch:marked.html", "pkg:somepkg"];
+  if (JSON.stringify(ids) !== JSON.stringify(want)) errors.push(`карточки глав без отметки: осталось ${JSON.stringify(ids)}, ожидалось ${JSON.stringify(want)}`);
+  // событие несёт и убранные карточки; повреждённый algoProgress ничего не убирает
+  const r = dom.window.ALGO_SRS;
+  const events = [];
+  dom.window.document.addEventListener("algo-srs:change", (e) => events.push(e.detail.ids));
+  dom.window.localStorage.setItem("algoSRS", seed.algoSRS);
+  const s = r.sync(now);
+  if (!s.removed || s.removed.sort().join() !== "ch:absent.html,ch:unmarked.html" || events.length !== 1 || events[0].indexOf("ch:unmarked.html") < 0) {
+    errors.push(`sync: removed ${JSON.stringify(s.removed)}, события ${JSON.stringify(events)}`);
+  }
+  const broken = await newDom({ algoSRS: seed.algoSRS, algoProgress: "not json{" }, [], "<div></div>");
+  if (Object.keys(cards(broken)).length !== 5) errors.push(`повреждённый algoProgress убрал карточки глав: ${Object.keys(cards(broken))}`);
 }
 
 // --- 9. карточки прежних версий не теряются и не меняются ---
@@ -746,7 +983,8 @@ console.log(
   "✅ srs-check: карточки заводятся на любой странице с опорой на метку события, счётчик «Сегодня: N» в панели, " +
     "интервалы 1→3→8→22→61, «забыл» — шаг назад (22 → 1 → 8 → 21) с заметкой, порядок оценок и сроков при сдвиге " +
     "держится во всех достижимых состояниях (в том числе прежней формулы), две вкладки не затирают друг друга, " +
-    "report() — четыре исхода, прежние карточки не меняются, ease держится в [1.3, 2.8]"
+    "«с трудом» с back — ступень ниже back, «забыл» до срока один раз на падение, report() — исходы created/none/graded/early/unsaved, " +
+    "повреждённый algoSRS не перезаписывается, прежние карточки не меняются, ease держится в [1.3, 2.8]"
 );
 }
 

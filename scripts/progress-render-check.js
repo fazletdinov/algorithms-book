@@ -165,6 +165,29 @@ setTimeout(function () {
   mark(idxCore);
   if (typeof marks()[coreHref] !== "number") errors.push("повторная отметка не записала метку заново");
 
+  // --- вторая вкладка: чужая отметка, появившаяся в хранилище после загрузки этой страницы,
+  // переживает клик — обработчик галочки читает algoProgress заново, а не пишет устаревшее state ---
+  const idxOther = declaredLevels.findIndex((d, i) => d.lvl === "core" && i !== idxCore);
+  const idxThird = declaredLevels.findIndex((d, i) => d.lvl === "core" && i !== idxCore && i !== idxOther);
+  const hrefOther = links[idxOther].getAttribute("href");
+  const hrefThird = links[idxThird].getAttribute("href");
+  localStorage.setItem("algoProgress", JSON.stringify({ [coreHref]: true, [hrefOther]: true })); // как из другой вкладки
+  mark(idxThird);
+  const afterForeign = JSON.parse(localStorage.getItem("algoProgress"));
+  if (afterForeign[hrefOther] !== true || afterForeign[coreHref] !== true || afterForeign[hrefThird] !== true) {
+    errors.push(`отметка затёрла чужую: algoProgress = ${JSON.stringify(afterForeign)}`);
+  }
+  if (!items[idxOther].querySelector("input").checked) errors.push("чужая отметка не показана галочкой после клика");
+  if (!label.textContent.includes(`3 / ${core.length}`)) errors.push(`процент не по свежему состоянию: «${label.textContent}», ожидалось 3 / ${core.length}`);
+  // снятие галочки тоже не трогает чужое
+  localStorage.setItem("algoProgress", JSON.stringify({ [coreHref]: true, [hrefOther]: true, [hrefThird]: true, "chapter-from-other-tab.html": true }));
+  items[idxThird].querySelector("input").checked = false;
+  items[idxThird].querySelector("input").dispatchEvent(new dom.window.Event("change"));
+  const afterUncheck = JSON.parse(localStorage.getItem("algoProgress"));
+  if (afterUncheck["chapter-from-other-tab.html"] !== true || afterUncheck[hrefOther] !== true || afterUncheck[hrefThird] !== false) {
+    errors.push(`снятие отметки затёрло чужое: algoProgress = ${JSON.stringify(afterUncheck)}`);
+  }
+
   // --- сброс ---
   const reset = [...el.querySelectorAll("button")].find((b) => /Сбросить/.test(b.textContent));
   if (!reset) {
