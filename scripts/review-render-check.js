@@ -204,6 +204,95 @@ setTimeout(() => {
       if (!at["sliding-window.html"] || !at["big-o.html"]) errors.push(`импорт не слил метки algoProgressAt, а заменил: ${JSON.stringify(at)}`);
       const label = pdoc.querySelector(".algo-prog__label").textContent;
       if (!/2 \/ \d+/.test(label)) errors.push(`после импорта подпись трекера = «${label}»`);
+
+      // --- импорт не откатывает и не портит: у algoSRS, algoProgress и algoProgressAt свои правила ---
+      const importDump = (data) => {
+        progDom.window.FileReader = function () {
+          this.readAsText = function () {
+            this.result = JSON.stringify({ kind: "algorithms-book-progress", version: 1, data });
+            this.onload();
+          };
+        };
+        importInput.onchange();
+      };
+      const setLocal = (obj) => {
+        pls.clear();
+        for (const k of Object.keys(obj)) pls.setItem(k, typeof obj[k] === "string" ? obj[k] : JSON.stringify(obj[k]));
+      };
+      const get = (k) => {
+        try { return JSON.parse(pls.getItem(k)); } catch (e) { return "не JSON: " + pls.getItem(k); }
+      };
+      let changes = 0;
+      pdoc.addEventListener("algo-srs:change", () => changes++);
+
+      // 1. algoSRS: по каждой карточке побеждает та, у которой больше seen; без seen проигрывает
+      // оценённой; при равенстве — здешняя. Файл старше текущего состояния ничего не откатывает.
+      const card = (seen, iv) => Object.assign({ due: 1, iv, ease: 2.5, reps: 2, meta: {} }, seen === undefined ? {} : { seen });
+      setLocal({
+        algoSRS: { A: card(2000, 20), B: card(1000, 3), C: card(undefined, 3), D: card(5000, 30), E: card(3000, 3), H: card(undefined, 3), J: null, J2: null },
+      });
+      importDump({
+        algoSRS: JSON.stringify({ A: card(1000, 4), B: card(4000, 99), C: card(10, 7), D: card(undefined, 8), E: card(3000, 55), F: card(1, 5), H: card(undefined, 8), J: card(7, 6), J2: card(undefined, 9), K: null }),
+      });
+      const srs = get("algoSRS");
+      const iv = (id) => srs[id] && srs[id].iv;
+      for (const [id, want, why] of [
+        ["A", 20, "здешняя оценка свежее файла — откатываться нельзя"],
+        ["B", 99, "оценка в файле свежее"],
+        ["C", 7, "здешняя ни разу не оценивалась, а в файле оценка есть"],
+        ["D", 30, "в файле карточка без seen проигрывает здешней оценённой"],
+        ["E", 3, "при равенстве seen — здешняя"],
+        ["F", 5, "карточки нет здесь — приходит из файла"],
+        ["H", 3, "обе без seen — здешняя"],
+        ["J", 6, "здешняя запись — мусор, из файла приходит настоящая карточка"],
+        ["J2", 9, "здешняя запись — мусор: карточка из файла даже без seen лучше мусора"],
+      ]) {
+        if (iv(id) !== want) errors.push(`импорт algoSRS, карточка ${id}: iv ${iv(id)}, ожидалось ${want} (${why})`);
+      }
+      if ("K" in srs) errors.push("импорт algoSRS завёл мусорную запись из файла (null)");
+      if (!changes) errors.push("после импорта не ушло событие algo-srs:change — счётчик «Сегодня» не узнает о новых карточках");
+
+      // 2. algoProgress: отметка побеждает, «false» из файла её не снимает; algoProgressAt — ранняя метка
+      setLocal({ algoProgress: { a: true, b: false, d: false }, algoProgressAt: { a: 5000, x: 100 } });
+      importDump({
+        algoProgress: JSON.stringify({ a: false, b: true, c: false, d: false }),
+        algoProgressAt: JSON.stringify({ a: 3000, b: 4000, x: 900 }),
+      });
+      if (JSON.stringify(get("algoProgress")) !== JSON.stringify({ a: true, b: true, d: false, c: false })) {
+        errors.push(`импорт algoProgress: ${pls.getItem("algoProgress")}, ожидалось a, b отмечены, c, d нет — «false» из файла не снимает отметку`);
+      }
+      if (JSON.stringify(get("algoProgressAt")) !== JSON.stringify({ a: 3000, x: 100, b: 4000 })) {
+        errors.push(`импорт algoProgressAt: ${pls.getItem("algoProgressAt")}, ожидалась более ранняя метка у главы, отмеченной с обеих сторон`);
+      }
+      setLocal({ algoProgressAt: { a: 3000 } });
+      importDump({ algoProgressAt: JSON.stringify({ a: 5000 }) });
+      if (get("algoProgressAt").a !== 3000) errors.push("импорт algoProgressAt заменил раннюю здешнюю метку более поздней");
+
+      // 3. значение, не разбирающееся как JSON, не затирает исправное здешнее; повреждённое здешнее — лечится
+      const srsLocal = { A: card(2000, 20) };
+      for (const bad of ["not json{", "[]", "42", "null", '"str"']) {
+        setLocal({ algoSRS: srsLocal, algoChallengeMissed: { "x#1": { n: 1 } } });
+        importDump({ algoSRS: bad, algoChallengeMissed: bad });
+        if (JSON.stringify(get("algoSRS")) !== JSON.stringify(srsLocal)) errors.push(`файл с algoSRS = ${bad} затёр исправное здешнее: ${pls.getItem("algoSRS")}`);
+        if (JSON.stringify(get("algoChallengeMissed")) !== JSON.stringify({ "x#1": { n: 1 } })) errors.push(`файл с algoChallengeMissed = ${bad} затёр исправное здешнее: ${pls.getItem("algoChallengeMissed")}`);
+      }
+      setLocal({ algoChallengeMissed: { "x#1": { n: 1 } }, algoMockLog: [{ ts: 1 }] });
+      importDump({ algoChallengeMissed: '["a","b"]', algoMockLog: '{"k":1}' });
+      if (JSON.stringify(get("algoChallengeMissed")) !== JSON.stringify({ "x#1": { n: 1 } }) || JSON.stringify(get("algoMockLog")) !== JSON.stringify([{ ts: 1 }])) {
+        errors.push("файл с массивом вместо карты (и наоборот) затёр здешнее значение");
+      }
+      setLocal({});
+      importDump({ algoSRS: "not json{" });
+      if (pls.getItem("algoSRS") !== null) errors.push(`файл с неразбираемым algoSRS завёл повреждённый ключ: ${pls.getItem("algoSRS")}`);
+      for (const damaged of ["garbage{", "[]", "42"]) {
+        setLocal({ algoSRS: damaged });
+        importDump({ algoSRS: JSON.stringify({ A: card(1, 5) }) });
+        if (JSON.stringify(get("algoSRS")) !== JSON.stringify({ A: card(1, 5) })) errors.push(`импорт не вылечил повреждённый algoSRS = ${damaged}: ${pls.getItem("algoSRS")}`);
+      }
+      // ключи с сырым текстом ведут себя как раньше
+      setLocal({ "algoRunnerCode:slidingwindow": "мой код", algoQuizBest: "10/57" });
+      importDump({ "algoRunnerCode:slidingwindow": "чужой код", algoQuizBest: "40/57" });
+      if (pls.getItem("algoRunnerCode:slidingwindow") !== "чужой код" || pls.getItem("algoQuizBest") !== "40/57") errors.push("импорт ключей с сырым текстом изменил поведение");
       finish();
     }, 200);
   }, 200);

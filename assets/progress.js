@@ -272,19 +272,16 @@
         // что уже пройдено здесь. Для карт-объектов объединяем ключи.
         Object.keys(dump.data).forEach(function (k) {
           if (!isOurs(k)) return;
-          var incoming = dump.data[k];
-          var current = localStorage.getItem(k);
-          if (current && k !== "algoQuizBest" && k.indexOf("algoRunnerCode:") !== 0) {
-            try {
-              incoming = JSON.stringify(mergeStored(JSON.parse(current), JSON.parse(incoming)));
-            } catch (e) { /* не JSON — берём как есть */ }
-          }
-          try { localStorage.setItem(k, incoming); } catch (e) { /* приватный режим */ }
+          var out = importValue(k, localStorage.getItem(k), dump.data[k]);
+          if (out === null) return;
+          try { localStorage.setItem(k, out); } catch (e) { /* приватный режим */ }
         });
         state = load();
         showState();
         refresh();
         importInput.value = "";
+        // карточки повторений и метки могли измениться: счётчик «Сегодня» (srs.js) узнает об этом без перехода на другую страницу
+        document.dispatchEvent(new CustomEvent("algo-srs:change", { detail: { ids: [] } }));
       };
       reader.readAsText(file);
     };
@@ -328,6 +325,69 @@
     }
     Object.keys(add).forEach(function (id) { current[id] = add[id]; });
     return current;
+  }
+
+  function isMap(v) {
+    return v !== null && typeof v === "object" && !Array.isArray(v);
+  }
+  function tryParse(raw) {
+    try { return JSON.parse(raw); } catch (e) { return undefined; }
+  }
+
+  // Общее правило mergeStored — «пришедшее побеждает» — для трёх ключей делает обратное тому, что
+  // обещает импорт («не стирать пройденное здесь»), поэтому у них свои правила, по имени ключа.
+  // Каждое принимает здешнюю и пришедшую КАРТЫ и возвращает слитую.
+  //
+  // algoSRS: файл старше текущего состояния откатывал бы свежие оценки. По каждой карточке побеждает
+  // та, у которой больше seen; карточка без seen проигрывает оценённой; при равенстве — здешняя.
+  function mergeSRS(current, add) {
+    Object.keys(add).forEach(function (id) {
+      if (!isMap(add[id])) return; // мусор из файла не заводим
+      var here = current[id];
+      var seenHere = isMap(here) && typeof here.seen === "number" ? here.seen : -Infinity;
+      var seenThere = typeof add[id].seen === "number" ? add[id].seen : -Infinity;
+      if (!isMap(here) || seenThere > seenHere) current[id] = add[id];
+    });
+    return current;
+  }
+  // algoProgress: «false» из файла снимал здешнюю отметку. Отметка побеждает, с любой стороны.
+  function mergeProgress(current, add) {
+    Object.keys(add).forEach(function (href) { current[href] = !!(current[href] || add[href]); });
+    return current;
+  }
+  // algoProgressAt: для главы, отмеченной с обеих сторон, — более ранняя метка: событие случилось тогда.
+  function mergeProgressAt(current, add) {
+    Object.keys(add).forEach(function (href) {
+      var here = current[href], there = add[href];
+      if (typeof there !== "number") return;
+      current[href] = typeof here === "number" ? Math.min(here, there) : there;
+    });
+    return current;
+  }
+  var MERGE_BY_KEY = { algoSRS: mergeSRS, algoProgress: mergeProgress, algoProgressAt: mergeProgressAt };
+
+  // importValue решает, что записать в ключ k при импорте: сырой текст (null — оставить здешнее).
+  // Ключи со своим правилом принимают только карту, а здешнее не-карту (повреждённое) лечат пришедшей
+  // картой. Для остальных общее правило прежнее, но значение из файла, которое не разбирается как
+  // JSON (или другого вида, чем здешнее: карта против массива), не затирает исправное здешнее — это был
+  // единственный найденный путь к повреждённому algoSRS. Ключи с сырым текстом (код читателя, рекорд
+  // квиза) ведут себя как раньше.
+  function importValue(k, currentRaw, incomingRaw) {
+    var merge = MERGE_BY_KEY[k];
+    var incoming = tryParse(incomingRaw);
+    if (merge) {
+      if (!isMap(incoming)) return null;
+      var current = tryParse(currentRaw);
+      return JSON.stringify(merge(isMap(current) ? current : {}, incoming));
+    }
+    if (!currentRaw || k === "algoQuizBest" || k.indexOf("algoRunnerCode:") === 0) return incomingRaw;
+    var cur = tryParse(currentRaw);
+    if (cur !== null && typeof cur === "object" && !(incoming !== null && typeof incoming === "object" && Array.isArray(cur) === Array.isArray(incoming))) return null;
+    try {
+      return JSON.stringify(mergeStored(cur, incoming));
+    } catch (e) {
+      return incomingRaw; // здешнее не разбирается — берём пришедшее как есть
+    }
   }
 
   // Список глав нужен и движку повторений (srs.js) — чтобы показывать название
