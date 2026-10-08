@@ -249,6 +249,52 @@
   gap: 8px;
 }
 
+/* Галочка «Глава пройдена» в конце главы (progress.js) — та же отметка, что в трекере. Подсказка
+   переносится под галочку, когда рядом не помещается (телефон). */
+.algo-chapdone {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4em 1em;
+  margin: 2.6em 0 0.6em;
+  padding: 0.8em 1em;
+  border: 1px solid var(--quote-border, #cccccc44);
+  border-radius: 8px;
+  background: var(--quote-bg, #00000008);
+}
+
+.algo-chapdone--done {
+  border-color: #2e9b57;
+}
+
+.algo-chapdone__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.algo-chapdone__label input {
+  width: 1.15em;
+  height: 1.15em;
+  margin: 0;
+}
+
+.algo-chapdone__hint {
+  flex: 1 1 16em;
+  font-size: 0.88em;
+  opacity: 0.8;
+}
+
+/* в печатной версии главы отмечать нечего */
+@media print {
+  .algo-chapdone {
+    display: none;
+  }
+}
+
 /* Список «повторить промахи» (review.js). */
 .algo-review {
   margin: 1.4em 0;
@@ -383,10 +429,26 @@
   margin: 0;
 }
 
+/* Сколько просроченных в сегодняшнюю порцию не вошло и почему. */
+.algo-today__held {
+  margin: -0.3em 0 0.8em;
+  font-size: 0.88em;
+  opacity: 0.75;
+}
+
 .algo-today__card {
   border: 1px solid var(--quote-border, #cccccc44);
   border-radius: 8px;
   padding: 0.9em 1em;
+}
+
+/* Фокус после «Позже» и оценки встаёт на новую карточку (на ответ — после «Показать ответ», на сам
+   виджет — когда карточек не осталось): с клавиатуры это видно рамкой, от мыши рамки нет. */
+.algo-today:focus-visible,
+.algo-today__card:focus-visible,
+.algo-today__answer:focus-visible {
+  outline: 2px solid var(--links, #4183c4);
+  outline-offset: 3px;
 }
 
 .algo-today__kind {
@@ -413,11 +475,8 @@
   font-weight: 600;
 }
 
-.algo-today__reveal {
-  margin-bottom: 0.7em;
-}
-
-.algo-today__what {
+.algo-today__what,
+.algo-today__see {
   margin: 0 0 0.7em;
   font-size: 0.93em;
   opacity: 0.85;
@@ -431,10 +490,24 @@
   opacity: 0.9;
 }
 
+/* Ряд действий карточки: «Показать ответ» либо три оценки, справа — «Позже». */
+.algo-today__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .algo-today__grades {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* «Позже» не оценка: стоит отдельно от них и тише. */
+.algo-today__later {
+  margin-left: auto;
+  opacity: 0.8;
 }
 
 .algo-today__noteform {

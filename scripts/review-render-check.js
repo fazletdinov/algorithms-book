@@ -11,7 +11,7 @@
 //   2) верный ответ помечает задачу решённой и убирает её из промахов;
 //   3) review.js показывает только непройденное, с ссылкой на конкретную задачу;
 //   4) экспорт собирает все ключи книги (в том числе algoProgressAt и algoSRS),
-//      импорт вливает их СЛИЯНИЕМ.
+//      импорт вливает их СЛИЯНИЕМ; счётчик дня algoToday в файл не идёт и из файла не берётся.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -152,6 +152,9 @@ setTimeout(() => {
       pls.setItem("algoProgress", JSON.stringify({ "sliding-window.html": true }));
       pls.setItem("algoProgressAt", JSON.stringify({ "sliding-window.html": 1700000000000 }));
       pls.setItem("algoSRS", JSON.stringify({ "ch:sliding-window.html": { due: 1, iv: 0, ease: 2.5, reps: 0, meta: { href: "sliding-window.html" } } }));
+      // счётчик дня (srs.js) — про сегодня в ЭТОМ браузере: в файл прогресса он не идёт и из файла не берётся
+      const todayHere = JSON.stringify({ day: "2026-01-14", done: 3, heavy: 0, later: ["ch:sliding-window.html"] });
+      pls.setItem("algoToday", todayHere);
 
       // экспорт забирает ВСЕ ключи книги, и метки событий для srs.js тоже: без них после переноса
       // на другую машину сроки новых карточек глав снова считались бы от «сейчас»
@@ -168,6 +171,7 @@ setTimeout(() => {
           if (!(k in exported.data)) errors.push(`в экспорте нет ключа ${k}: ${Object.keys(exported.data)}`);
         }
         if (exported.data.algoProgressAt !== pls.getItem("algoProgressAt")) errors.push("экспорт отдал algoProgressAt не таким, каким он лежит в localStorage");
+        if ("algoToday" in exported.data) errors.push("в экспорт попал algoToday — счётчик дня чужой машины съел бы здесь дневную порцию");
       }
 
       const dump = {
@@ -177,6 +181,7 @@ setTimeout(() => {
           algoProgress: JSON.stringify({ "big-o.html": true }),
           algoProgressAt: JSON.stringify({ "big-o.html": 1700000100000 }),
           algoQuizBest: "40/57",
+          algoToday: JSON.stringify({ day: "2026-01-14", done: 12, heavy: 1, later: [] }),
         },
       };
       const importInput = pdoc.querySelector('input[type="file"]');
@@ -200,6 +205,7 @@ setTimeout(() => {
         errors.push(`импорт не слил прогресс, а заменил: ${JSON.stringify(merged)}`);
       }
       if (pls.getItem("algoQuizBest") !== "40/57") errors.push("импорт не перенёс рекорд квиза");
+      if (pls.getItem("algoToday") !== todayHere) errors.push(`импорт тронул algoToday: ${pls.getItem("algoToday")}`);
       const at = JSON.parse(pls.getItem("algoProgressAt") || "{}");
       if (!at["sliding-window.html"] || !at["big-o.html"]) errors.push(`импорт не слил метки algoProgressAt, а заменил: ${JSON.stringify(at)}`);
       const label = pdoc.querySelector(".algo-prog__label").textContent;
@@ -305,7 +311,7 @@ setTimeout(() => {
     }
     console.log(
       "✅ review-render-check: промах сохраняется с текстом и якорем, решение убирает его из списка, " +
-        "«повторить» показывает непройденное с ссылками, экспорт забирает algoProgressAt и algoSRS, импорт сливает прогресс и метки"
+        "«повторить» показывает непройденное с ссылками, экспорт забирает algoProgressAt и algoSRS (algoToday — нет), импорт сливает прогресс и метки"
     );
   }
 }, 200);

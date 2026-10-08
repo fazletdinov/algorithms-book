@@ -149,6 +149,8 @@
       q: (q ? q.textContent : "").trim().slice(0, 120),
     };
     save(MISSED, m);
+    // карточка промаха встаёт в очередь сразу: счётчик «Сегодня» обновляется без перехода на другую страницу
+    if (window.ALGO_SRS) window.ALGO_SRS.sync();
   }
 
   function buildFeedback(root) {

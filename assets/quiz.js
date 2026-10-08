@@ -561,6 +561,8 @@
     var prev = m[id] || { n: 0 };
     m[id] = { n: prev.n + 1, pattern: item.correct, href: item.href, q: item.q };
     saveQuizMissed(m);
+    // карточка промаха встаёт в очередь сразу: счётчик «Сегодня» обновляется без перехода на другую страницу
+    if (window.ALGO_SRS) window.ALGO_SRS.sync();
   }
   function loadBest() {
     try {

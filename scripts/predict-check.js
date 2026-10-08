@@ -387,6 +387,10 @@ setTimeout(async () => {
   expect(w.localStorage.getItem("algoVizPredict") === "1", "включённый режим не запомнился в localStorage");
   key(el, "Home");
 
+  // промах заводит карточку сразу: движок повторений (srs.js) зовут без перехода на другую страницу
+  let synced = 0;
+  w.ALGO_SRS = { sync: () => { synced++; } };
+
   // 2)–4) проходим весь прогон, на каждый вопрос отвечая «Да»
   let asked = 0, right = 0, wrong = 0, guard = 0;
   while (counter(el) < total && guard++ < 400) {
@@ -421,6 +425,7 @@ setTimeout(async () => {
   const miss = JSON.parse(w.localStorage.getItem("algoVizMissed") || "{}")["sliding-window-fixed"];
   expect(miss && miss.n === wrong && miss.line > 0 && miss.code && miss.page === "sliding-window.html",
     `промахи не записаны как надо: ${JSON.stringify(miss)} при ${wrong} промахах`);
+  expect(synced === wrong, `ALGO_SRS.sync вызван ${synced} раз(а) при ${wrong} промахах — счётчик «Сегодня» не узнает о промахе до перехода`);
 
   // 6) автопроигрывание на 4× останавливается на первом вопросе
   key(el, "Home");

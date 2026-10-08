@@ -24,7 +24,16 @@
 //  10) «С трудом» у карточки с back — ступень НИЖЕ back (на шаг и на два шага порядок оценок держится);
 //  11) «Забыл» до срока — один раз на падение, дальше early; отказ записи — статус unsaved, без события;
 //  12) повреждённый algoSRS (пять видов значений) не перезаписывается, карточка-мусор пропускается;
-//  13) ни разу не оценённая карточка главы без отметки в трекере при sync уходит.
+//  13) ни разу не оценённая карточка главы без отметки в трекере при sync уходит;
+//  14) порция дня: не больше 12 карточек и одной с кодом, порядок «iv, затем срок», тяжёлая последней,
+//      отложенные («Позже») в конце; границы — перебором случайных наборов с фиксированным зерном;
+//      мусор в algoToday и смена суток начинают день заново; счётчик дня растёт только по оценке
+//      карточки с вышедшим сроком; две вкладки не теряют ни done, ни later;
+//  15) «Позже» не меняет карточку и не запирает очередь (единственная, тяжёлая), фокус — на следующей;
+//  16) карточки quiz: и cx: — вопросы: ответ и оценки только после «Показать ответ»;
+//  17) оставленная вкладка: возврат, storage и algo-srs:change перестраивают порцию, не закрывая
+//      раскрытый ответ и форму заметки; промах на этой же странице обновляет счётчик без перехода;
+//  18) числа предела в текстах книги совпадают с константами движка.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -41,6 +50,9 @@ try {
 const root = path.resolve(__dirname, "..");
 const srsJs = fs.readFileSync(path.join(root, "assets", "srs.js"), "utf8");
 const problemsJs = fs.readFileSync(path.join(root, "assets", "problems.js"), "utf8");
+const challengeJs = fs.readFileSync(path.join(root, "assets", "challenge.js"), "utf8");
+const quizJs = fs.readFileSync(path.join(root, "assets", "quiz.js"), "utf8");
+const { mulberry32 } = require(path.join(root, "assets", "infra-core.js"));
 
 const errors = [];
 const vc = new VirtualConsole();
@@ -103,6 +115,36 @@ const badgeShown = (dom) => {
 function cards(dom) {
   return JSON.parse(dom.window.localStorage.getItem("algoSRS") || "{}");
 }
+
+// --- порция дня (разделы 11–19) ---
+const HOUR = 60 * 60 * 1000;
+// Полдень дня без перевода часов: граница суток не должна зависеть от того, когда запущена проверка.
+const NOON = new Date(2026, 0, 14, 12, 0, 0).getTime();
+// Управляемые часы: скрипт стоит раньше srs.js; и движок, и виджет читают время через Date.now().
+const CLOCK = (t) => `window.__now = ${t}; Date.now = function () { return window.__now; };`;
+const PAGE = MENU + '<main><h1>Повторение</h1><div class="algo-today"></div></main>';
+// Местная дата — ГГГГ-ММ-ДД, как день в algoToday.
+const dayKey = (t) => {
+  const d = new Date(t), two = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
+};
+const todayRec = (dom) => JSON.parse(dom.window.localStorage.getItem("algoToday") || "null");
+const light = (name, iv, due) => ({ due, iv, ease: 2.5, reps: 2, meta: { page: "big-o", q: "задача " + name }, seen: due - iv * DAY });
+const heavy = (name, due) => ({ due, iv: 0, ease: 2.5, reps: 0, meta: { pkg: name } });
+// Долг: 20 лёгких и 3 с кодом, все просрочены. У карточек с кодом самый малый iv и самый старый срок —
+// без предела они шли бы первыми тремя.
+const debt = (now) => {
+  const c = {};
+  for (let i = 0; i < 20; i++) c["task:t#" + i] = light(i, (i % 4) + 1, now - (i + 1) * HOUR);
+  for (let i = 0; i < 3; i++) c["pkg:p" + i] = heavy("p" + i, now - (30 + i) * DAY);
+  return c;
+};
+const DEBT_PORTION = ["task:t#16", "task:t#12", "task:t#8", "task:t#4", "task:t#0", "task:t#17", "task:t#13", "task:t#9", "task:t#5", "task:t#1", "task:t#18", "pkg:p2"];
+// вкладка вернулась на экран
+const comeBack = (w) => {
+  Object.defineProperty(w.document, "hidden", { value: false, configurable: true });
+  w.document.dispatchEvent(new w.Event("visibilitychange"));
+};
 
 function click(dom, label) {
   const btn = [...dom.window.document.querySelectorAll("button")].find((b) => b.textContent === label);
@@ -859,7 +901,8 @@ if (api) {
   Object.defineProperty(w.document, "hidden", { value: false, configurable: true });
   w.document.dispatchEvent(new w.Event("visibilitychange"));
   if (badgeShown(dom)) errors.push(`visibilitychange у видимой вкладки не обновил счётчик: «${badgeShown(dom)}»`);
-  // вкладка вернулась, виджет при этом не перерисован (иначе закрылся бы открытый ответ карточки-вопроса)
+  // вкладка вернулась — порцию перестраивает и виджет (раскрытый ответ и форму заметки он при этом бережёт: раздел 15)
+  if (!/На сегодня всё/.test(w.document.querySelector(".algo-today").textContent)) errors.push("visibilitychange у видимой вкладки не перестроил виджет");
   quiet(now - DAY);
   w.dispatchEvent(new w.StorageEvent("storage", { key: null })); // localStorage.clear() / восстановление в другой вкладке
   if (!/Сегодня:\s*1\b/.test(badgeShown(dom) || "")) errors.push(`storage с key === null не обновил счётчик: «${badgeShown(dom)}»`);
@@ -982,6 +1025,638 @@ if (api) {
   }
 }
 
+// --- 11. порция дня: не больше 12 карточек и одной с кодом, остальное ждёт ---
+{
+  const now = NOON;
+  const dom = await newDom({ algoSRS: JSON.stringify(debt(now)) }, [CLOCK(now)], PAGE);
+  const w = dom.window, r = w.ALGO_SRS;
+  const text = () => w.document.querySelector(".algo-today").textContent;
+  if (!r || typeof r.today !== "function") {
+    errors.push("ALGO_SRS.today не определён — очередь не ограничена дневной порцией");
+  } else {
+    // (a) 20 лёгких и 3 с кодом: 12 в порции, одна с кодом и она последняя; порядок — iv, затем срок
+    const t = r.today(now);
+    if (JSON.stringify(t.ids) !== JSON.stringify(DEBT_PORTION)) errors.push(`порция: ${JSON.stringify(t.ids)}, ожидалось ${JSON.stringify(DEBT_PORTION)}`);
+    if (t.held !== 11) errors.push(`порция: held = ${t.held}, ожидалось 11 (23 просроченных минус 12)`);
+    if (JSON.stringify(r.today()) !== JSON.stringify(t)) errors.push("today() без аргумента не равен today(Date.now())");
+    if (!r.limits || r.limits.cards !== 12 || r.limits.heavy !== 1) errors.push(`ALGO_SRS.limits = ${JSON.stringify(r.limits)}, ожидалось { cards: 12, heavy: 1 }`);
+    if (!/К повторению сегодня: 12/.test(text())) errors.push(`порция: шапка «${text().slice(0, 60)}», ожидалось «К повторению сегодня: 12»`);
+    if (!/ещё 11 — не раньше завтра: в день не больше 12 карточек и одной с кодом/.test(text())) errors.push(`порция: нет строки об отложенных: «${text().slice(0, 200)}»`);
+    if (!/Сегодня:\s*12\b/.test(badgeShown(dom) || "")) errors.push(`порция: счётчик «${badgeShown(dom)}», ожидалось «Сегодня: 12»`);
+    if (!/ещё 11/.test((badgeOf(dom) && badgeOf(dom).title) || "")) errors.push(`порция: подсказка счётчика не говорит об отложенных: «${badgeOf(dom) && badgeOf(dom).title}»`);
+    if (w.localStorage.getItem("algoToday") !== null) errors.push("порция только прочитана, а algoToday уже записан — чтение очереди не должно писать");
+
+    // (b) 12 оценок подряд — порция пуста, счётчик скрыт
+    for (let i = 0; i < 12; i++) {
+      if (i === 11 && !/Пакет тренажёра/.test(text())) errors.push(`двенадцатой должна идти карточка с кодом: «${text().slice(0, 80)}»`);
+      click(dom, "Помню");
+    }
+    const rec = todayRec(dom);
+    if (!rec || rec.day !== dayKey(now) || rec.done !== 12 || rec.heavy !== 1 || JSON.stringify(rec.later) !== "[]") {
+      errors.push(`после 12 оценок algoToday = ${JSON.stringify(rec)}, ожидалось { day: ${dayKey(now)}, done: 12, heavy: 1, later: [] }`);
+    }
+    const after = r.today(now);
+    if (after.ids.length !== 0 || after.held !== 11) errors.push(`после 12 оценок порция ${JSON.stringify(after)}, ожидалось пусто и held 11`);
+    if (!/На сегодня всё/.test(text()) || !/ещё 11 придут не раньше завтра: в день не больше 12 карточек и одной с кодом/i.test(text())) {
+      errors.push(`после 12 оценок виджет: «${text().slice(0, 200)}», ожидалось «На сегодня всё» и «ещё 11 придут не раньше завтра…»`);
+    }
+    if (/К повторению сегодня/.test(text()) || w.document.querySelector(".algo-today__card")) errors.push("порция пройдена, а виджет показывает карточку");
+    if (badgeShown(dom)) errors.push(`порция пройдена, а счётчик виден: «${badgeShown(dom)}»`);
+  }
+
+  // счётчик на странице без виджета — тоже порция, а не всё просроченное
+  const chapter = await bootDom({ algoSRS: JSON.stringify(debt(Date.now())) }, MENU + "<main><h1>Глава</h1><p>текст</p></main>");
+  if (!/Сегодня:\s*12\b/.test(badgeShown(chapter) || "")) errors.push(`страница главы при долге в 23: счётчик «${badgeShown(chapter)}», ожидалось «Сегодня: 12»`);
+}
+
+// --- 11c. algoToday со вчерашней датой — день начинается заново ---
+{
+  const now = NOON;
+  const stale = { day: dayKey(now - DAY), done: 12, heavy: 1, later: ["task:t#3"] };
+  const dom = await newDom({ algoSRS: JSON.stringify(debt(now)), algoToday: JSON.stringify(stale) }, [CLOCK(now)], PAGE);
+  const r = dom.window.ALGO_SRS;
+  if (r && r.today) {
+    const t = r.today(now);
+    if (JSON.stringify(t.ids) !== JSON.stringify(DEBT_PORTION) || t.held !== 11) errors.push(`вчерашний algoToday: порция ${JSON.stringify(t)}, ожидалась полная, без вчерашнего «Позже»`);
+    click(dom, "Помню");
+    const rec = todayRec(dom);
+    if (!rec || rec.day !== dayKey(now) || rec.done !== 1 || rec.heavy !== 0 || rec.later.length) errors.push(`первая оценка нового дня: algoToday = ${JSON.stringify(rec)}, ожидалось done 1 с сегодняшней датой`);
+  }
+}
+
+// --- 11d. «Позже»: карточка уходит в конец порции и сама не меняется ---
+{
+  const now = NOON;
+  const four = {
+    "task:a#1": light("A", 1, now - 4 * HOUR), "task:b#1": light("B", 2, now - 3 * HOUR),
+    "task:c#1": light("C", 3, now - 2 * HOUR), "task:d#1": light("D", 4, now - HOUR),
+  };
+  const dom = await newDom({ algoSRS: JSON.stringify(four) }, [CLOCK(now)], PAGE);
+  const w = dom.window, r = w.ALGO_SRS;
+  const text = (d) => (d || dom).window.document.querySelector(".algo-today").textContent;
+  const order = (api) => (api || r).today(now).ids.map((id) => id.slice(5, 6).toUpperCase()).join("");
+  if (r && r.today && typeof r.later === "function") {
+    const snap = w.localStorage.getItem("algoSRS");
+    if (order() !== "ABCD" || !/задача A/.test(text())) errors.push(`«Позже»: старт — порядок ${order()}, на экране «${text().slice(0, 60)}»`);
+    click(dom, "Позже");
+    if (order() !== "BCDA") errors.push(`«Позже» на первой карточке: порядок ${order()}, ожидалось BCDA`);
+    if (w.localStorage.getItem("algoSRS") !== snap) errors.push("«Позже» изменило algoSRS — карточка должна остаться как была");
+    if (!/задача B/.test(text())) errors.push(`после «Позже» на экране не следующая карточка: «${text().slice(0, 60)}»`);
+    const rec = todayRec(dom);
+    if (!rec || JSON.stringify(rec.later) !== '["task:a#1"]' || rec.done !== 0) errors.push(`«Позже»: algoToday = ${JSON.stringify(rec)}, ожидалось later [task:a#1], done 0`);
+    // порядок переживает перестройку виджета (страницу открыли заново)
+    const again = await newDom({ algoSRS: snap, algoToday: w.localStorage.getItem("algoToday") }, [CLOCK(now)], PAGE);
+    if (order(again.window.ALGO_SRS) !== "BCDA" || !/задача B/.test(text(again))) errors.push(`«Позже» не пережило перестройку: порядок ${order(again.window.ALGO_SRS)}, на экране «${text(again).slice(0, 60)}»`);
+    // не первая карточка — через интерфейс; чего нет в порции, то не откладывается
+    if (r.later("task:c#1", now) !== true || order() !== "BDAC") errors.push(`later() по третьей карточке: порядок ${order()}, ожидалось BDAC`);
+    const before = w.localStorage.getItem("algoToday");
+    if (r.later("task:nope#1", now) !== false || w.localStorage.getItem("algoToday") !== before) errors.push("later() по несуществующей карточке записал algoToday или вернул не false");
+    // остались только отложенные — идут по кругу
+    click(dom, "Помню"); // B
+    click(dom, "Помню"); // D
+    if (order() !== "AC" || !/задача A/.test(text())) errors.push(`остались только отложенные: порядок ${order()}, на экране «${text().slice(0, 60)}»`);
+    click(dom, "Позже");
+    if (order() !== "CA" || !/задача C/.test(text())) errors.push(`отложенные по кругу, шаг 1: порядок ${order()}`);
+    click(dom, "Позже");
+    if (order() !== "AC" || !/задача A/.test(text())) errors.push(`отложенные по кругу, шаг 2: порядок ${order()}`);
+    click(dom, "Помню"); // A
+    const fin = todayRec(dom);
+    if (!fin || fin.done !== 3 || JSON.stringify(fin.later) !== '["task:c#1"]') errors.push(`оценённая карточка осталась в later: ${JSON.stringify(fin)}`);
+  } else {
+    errors.push("ALGO_SRS.later не определён — «Позже» некуда записать");
+  }
+}
+
+// --- 11e. порядок порции: по возрастанию iv, затем срока ---
+{
+  const now = NOON;
+  const c = { "task:x#1": light("X", 1, now - HOUR), "task:y#1": light("Y", 22, now - 5 * DAY), "task:z#1": light("Z", 3, now - 2 * DAY) };
+  const dom = await newDom({ algoSRS: JSON.stringify(c) }, [CLOCK(now)], "<div></div>");
+  const r = dom.window.ALGO_SRS;
+  if (r && r.today) {
+    const got = r.today(now).ids.join();
+    if (got !== "task:x#1,task:z#1,task:y#1") errors.push(`порядок по iv: ${got}, ожидалось x (iv 1), z (iv 3), y (iv 22) — срок у y самый старый, но iv важнее`);
+    c["task:q#1"] = light("Q", 3, now - 3 * DAY);
+    dom.window.localStorage.setItem("algoSRS", JSON.stringify(c));
+    const tie = r.today(now).ids.join();
+    if (tie !== "task:x#1,task:q#1,task:z#1,task:y#1") errors.push(`при равном iv первым идёт старший срок: ${tie}`);
+  }
+}
+
+// --- 11f. карточки-вопросы: quiz: и cx: показывают ответ и оценки только после «Показать ответ» ---
+{
+  const now = NOON;
+  const Q = "Дан массив и число k: найти наибольшую сумму подмассива длины k.";
+  const quiz = await newDom(
+    { algoQuizMissed: JSON.stringify({ [Q]: { n: 1, pattern: "Скользящее окно", href: "sliding-window.html", q: Q } }) },
+    [CLOCK(now)], PAGE
+  );
+  {
+    const box = quiz.window.document.querySelector(".algo-today");
+    const grades = box.querySelector(".algo-today__grades");
+    if (!box.textContent.includes(Q)) errors.push(`карточка quiz: нет текста вопроса: «${box.textContent.slice(0, 120)}»`);
+    if (/Скользящее окно/.test(box.textContent) || box.querySelector('a[href^="sliding-window"]')) errors.push("карточка quiz: до ответа назван шаблон или дана ссылка на его главу");
+    if (!grades || grades.style.display !== "none") errors.push("карточка quiz: оценки доступны до «Показать ответ»");
+    if (!box.querySelector(".algo-today__later")) errors.push("карточка quiz: до ответа нет кнопки «Позже»");
+    if (click(quiz, "Показать ответ")) {
+      const ans = box.querySelector(".algo-today__answer a");
+      if (!ans || ans.textContent !== "Скользящее окно" || ans.getAttribute("href") !== "sliding-window.html") errors.push(`карточка quiz: ответ не meta.pattern со ссылкой на главу: ${ans && ans.outerHTML}`);
+      if (grades && grades.style.display === "none") errors.push("карточка quiz: после ответа оценки не появились");
+      click(quiz, "Помню");
+      const c = cards(quiz)["quiz:" + Q];
+      if (!c || c.iv !== 1 || c.reps !== 1) errors.push(`карточка quiz: «Помню» после ответа не записано: ${JSON.stringify(c)}`);
+    }
+  }
+
+  const cxSeed = { algoMockCxMissed: JSON.stringify({ "dp.CoinChange": { n: 1, chapter: "dynamic-programming", pkg: "dp", fn: "CoinChange" } }) };
+  const cx = await newDom(cxSeed, [CLOCK(now), problemsJs], PAGE);
+  {
+    const w = cx.window, box = w.document.querySelector(".algo-today");
+    const prob = w.ALGO_PROBLEMS.find((p) => p.p === "dp" && p.f === "CoinChange") || {};
+    const REF = "O(amount · len(coins))";
+    if (prob.x !== REF) errors.push(`в банке у dp.CoinChange эталон «${prob.x}» — проверка рассчитана на «${REF}»`);
+    const grades = box.querySelector(".algo-today__grades");
+    if (!prob.s || !box.textContent.includes(prob.s.split("\n")[0])) errors.push(`карточка cx: нет условия из банка: «${box.textContent.slice(0, 160)}»`);
+    if (!/Какая сложность у решения — по времени и по памяти\?/.test(box.textContent)) errors.push(`карточка cx: нет вопроса о сложности: «${box.textContent.slice(0, 160)}»`);
+    if (box.textContent.includes("O(amount")) errors.push("карточка cx: эталон виден до «Показать ответ»");
+    if (!grades || grades.style.display !== "none") errors.push("карточка cx: оценки доступны до «Показать ответ»");
+    if (click(cx, "Показать ответ")) {
+      const ans = box.querySelector(".algo-today__answer");
+      const link = ans && ans.querySelector("a");
+      if (!ans || !ans.textContent.includes(REF)) errors.push(`карточка cx: в ответе нет «${REF}»: «${ans && ans.textContent}»`);
+      if (!link || link.getAttribute("href") !== "dynamic-programming.html") errors.push(`карточка cx: в ответе нет ссылки на главу: ${link && link.outerHTML}`);
+      if (grades && grades.style.display === "none") errors.push("карточка cx: после ответа оценки не появились");
+    }
+  }
+  // эталона у задачи в банке нет — карточка так и говорит, оценки доступны сразу
+  const noRef = await newDom(cxSeed, [CLOCK(now), 'window.ALGO_PROBLEMS = [{ p: "dp", f: "CoinChange", c: "dynamic-programming", s: "Условие без эталона.", h: "", t: [], x: "" }];'], PAGE);
+  {
+    const box = noRef.window.document.querySelector(".algo-today");
+    const grades = box.querySelector(".algo-today__grades");
+    if (!/Условие без эталона\./.test(box.textContent) || !/эталонной оценки у этой задачи в банке нет/i.test(box.textContent)) errors.push(`карточка cx без эталона: «${box.textContent.slice(0, 200)}»`);
+    if ([...box.querySelectorAll("button")].some((b) => b.textContent === "Показать ответ")) errors.push("карточка cx без эталона обещает ответ, которого нет");
+    if (!grades || grades.style.display === "none") errors.push("карточка cx без эталона: оценки спрятаны, а открыть их нечем");
+    if (!box.querySelector('a[href="dynamic-programming.html"]')) errors.push("карточка cx без эталона: нет ссылки на главу для сверки");
+  }
+  // задачи в банке больше нет — карточка называет её по имени и говорит об этом
+  const gone = await newDom(cxSeed, [CLOCK(now), "window.ALGO_PROBLEMS = [];"], PAGE);
+  {
+    const box = gone.window.document.querySelector(".algo-today");
+    const grades = box.querySelector(".algo-today__grades");
+    if (!/dp\.CoinChange/.test(box.textContent) || !/больше нет в банке/.test(box.textContent)) errors.push(`карточка cx без задачи в банке: «${box.textContent.slice(0, 200)}»`);
+    if (!grades || grades.style.display === "none") errors.push("карточка cx без задачи в банке: оценки спрятаны, а открыть их нечем");
+  }
+}
+
+// --- 12. границы порции — перебором случайных наборов (зерно фиксировано) ---
+// Свойства, а не один пример: размер и число тяжёлых — в пределах остатка дня, тяжёлая последняя
+// среди неотложенных, отложенные в конце в порядке later, ни одна карточка не дважды и не потеряна
+// (ids + held = всё просроченное), неотложенные лёгкие — по (iv, срок), и порция не меньше возможного.
+{
+  const now = NOON;
+  const dom = await newDom({}, [CLOCK(now)], "<div></div>");
+  const w = dom.window, r = w.ALGO_SRS;
+  if (r && r.today) {
+    const rnd = mulberry32(20261008);
+    const pick = (n) => Math.floor(rnd() * n);
+    const KINDS = ["ch:c", "task:t#", "viz:v", "mix:m.", "quiz:q", "cx:x.", "expl:e"];
+    const isObj = (c) => c !== null && typeof c === "object" && !Array.isArray(c);
+    const bad = [];
+    const TRIALS = 600;
+    let nonTrivial = 0, withLater = 0, overLimit = 0;
+    for (let trial = 0; trial < TRIALS && bad.length < 5; trial++) {
+      const map = {}, all = [];
+      const n = pick(45);
+      for (let i = 0; i < n; i++) {
+        const id = (rnd() < 0.3 ? "pkg:p" : KINDS[pick(KINDS.length)]) + i;
+        const u = rnd();
+        map[id] = u < 0.04 ? null : {
+          due: u < 0.22 ? now + (1 + pick(5 * 24)) * HOUR : u < 0.3 ? now : now - pick(40 * 24) * HOUR,
+          iv: pick(5) === 0 ? 0 : pick(61), ease: 2.5, reps: pick(4), meta: {},
+        };
+        all.push(id);
+      }
+      const st = { day: dayKey(now), done: pick(4) === 0 ? 9 + pick(7) : pick(9), heavy: pick(3) === 0 ? 1 + pick(2) : 0, later: [] };
+      for (let j = pick(7); j > 0 && all.length; j--) st.later.push(rnd() < 0.15 ? "task:gone#" + j : all[pick(all.length)]);
+      w.localStorage.setItem("algoSRS", JSON.stringify(map));
+      w.localStorage.setItem("algoToday", JSON.stringify(st));
+
+      const got = r.today(now);
+      const dueAll = all.filter((id) => isObj(map[id]) && map[id].due <= now);
+      const isDue = new Set(dueAll);
+      const isHeavy = (id) => id.indexOf("pkg:") === 0;
+      const room = Math.max(0, 12 - st.done), heavyRoom = Math.max(0, 1 - st.heavy);
+      const laterDue = st.later.filter((id, i) => isDue.has(id) && st.later.indexOf(id) === i);
+      const inLater = new Set(laterDue);
+      const ids = got.ids;
+      const fail = (what) => bad.push(`набор ${trial}: ${what} — порция ${JSON.stringify(ids)}, held ${got.held}, день ${JSON.stringify(st)}, просрочено ${dueAll.length}`);
+      const key = (id) => [map[id].iv, map[id].due];
+      const less = (a, b) => key(a)[0] < key(b)[0] || (key(a)[0] === key(b)[0] && key(a)[1] < key(b)[1]);
+
+      if (new Set(ids).size !== ids.length) fail("карточка встречается дважды");
+      if (ids.some((id) => !isDue.has(id))) fail("в порции карточка без вышедшего срока, мусорная или несуществующая");
+      if (ids.length > room) fail(`в порции ${ids.length} при остатке дня ${room}`);
+      if (ids.filter(isHeavy).length > heavyRoom) fail(`тяжёлых ${ids.filter(isHeavy).length} при остатке ${heavyRoom}`);
+      if (ids.length + got.held !== dueAll.length) fail(`ids + held = ${ids.length + got.held}, просрочено ${dueAll.length}`);
+      // отложенные — в конце и в порядке later
+      const firstLater = ids.findIndex((id) => inLater.has(id));
+      const tail = firstLater < 0 ? [] : ids.slice(firstLater);
+      const headPart = firstLater < 0 ? ids : ids.slice(0, firstLater);
+      if (tail.some((id) => !inLater.has(id))) fail("после отложенной карточки стоит неотложенная");
+      if (tail.map((id) => laterDue.indexOf(id)).some((p, i, a) => i > 0 && p <= a[i - 1])) fail("отложенные стоят не в порядке later");
+      // тяжёлая последняя среди неотложенных; лёгкие — по (iv, срок)
+      const heavyAt = headPart.findIndex(isHeavy);
+      if (heavyAt >= 0 && heavyAt !== headPart.length - 1) fail("тяжёлая карточка не последняя среди неотложенных");
+      const lights = headPart.filter((id) => !isHeavy(id));
+      if (lights.some((id, i) => i > 0 && less(id, lights[i - 1]))) fail("неотложенные лёгкие не по возрастанию iv, затем срока");
+      // отложенные занимают место первыми: лёгкая отложенная не вошла — значит, места не было вовсе
+      const out = dueAll.filter((id) => ids.indexOf(id) < 0);
+      if (out.some((id) => inLater.has(id) && !isHeavy(id)) && headPart.length) fail("отложенная лёгкая карточка вытеснена неотложенной");
+      if (out.some((id) => inLater.has(id) && isHeavy(id)) && headPart.some(isHeavy)) fail("отложенная тяжёлая карточка вытеснена неотложенной тяжёлой");
+      // в порцию вошли лучшие по (iv, срок) из неотложенных
+      const outFresh = out.filter((id) => !inLater.has(id));
+      if (outFresh.some((id) => !isHeavy(id) && lights.some((x) => less(id, x)))) fail("оставленная лёгкая карточка раньше по (iv, срок), чем взятая");
+      if (heavyAt >= 0 && outFresh.some((id) => isHeavy(id) && less(id, headPart[heavyAt]))) fail("оставленная тяжёлая карточка раньше по (iv, срок), чем взятая");
+      // порция не меньше возможного: место осталось — значит, за бортом только тяжёлые сверх предела
+      if (ids.length < room) {
+        if (out.some((id) => !isHeavy(id))) fail("место в порции осталось, а лёгкая карточка не взята");
+        if (out.length && ids.filter(isHeavy).length < heavyRoom) fail("место и предел тяжёлых позволяют, а тяжёлая карточка не взята");
+      }
+      if (ids.length && got.held) nonTrivial++;
+      if (tail.length) withLater++;
+      if (st.done > 12) overLimit++;
+    }
+    bad.forEach((b) => errors.push("порция дня: " + b));
+    if (nonTrivial < 100 || withLater < 100 || overLimit < 20) errors.push(`перебор порции слишком беден: с остатком ${nonTrivial}, с отложенными ${withLater}, с done > 12 — ${overLimit} из ${TRIALS}`);
+    console.log(`   перебор порции дня: ${TRIALS} случайных наборов (до 44 карточек), с остатком на завтра ${nonTrivial}, с отложенными в порции ${withLater}, с done > 12 — ${overLimit}`);
+
+    // later с id, которого больше нет, и с уже оценённым — как будто их не откладывали; следующее «Позже» их убирает
+    const c = { "task:a#1": light("A", 1, now - 3 * HOUR), "task:b#1": light("B", 2, now - 2 * HOUR), "task:done#1": light("G", 1, now + 3 * DAY) };
+    w.localStorage.setItem("algoSRS", JSON.stringify(c));
+    w.localStorage.setItem("algoToday", JSON.stringify({ day: dayKey(now), done: 2, heavy: 0, later: ["task:gone#1", "task:done#1", "task:gone#1"] }));
+    const t = r.today(now);
+    if (t.ids.join() !== "task:a#1,task:b#1" || t.held !== 0) errors.push(`later с пропавшей и с оценённой карточкой: порция ${JSON.stringify(t)}`);
+    r.later("task:a#1", now);
+    const rec = todayRec(dom);
+    if (!rec || JSON.stringify(rec.later) !== '["task:a#1"]' || rec.done !== 2) errors.push(`«Позже» не убрало из later пропавшие и оценённые: ${JSON.stringify(rec)}`);
+
+    // мусор в algoToday — день начинается заново, ничего не падает; первая же оценка пишет исправную запись
+    const today = dayKey(now);
+    for (const raw of [
+      "not json{", "[]", "42", "null", '"str"',
+      JSON.stringify({ day: today, done: "5", heavy: 0, later: [] }),
+      JSON.stringify({ day: today, done: -3, heavy: 0, later: [] }),
+      JSON.stringify({ day: today, done: 12, heavy: "1", later: [] }),
+      JSON.stringify({ day: today, done: 12, heavy: 1, later: "task:t#3" }),
+      JSON.stringify({ day: today, done: 12 }),
+      JSON.stringify({ day: "2099-01-01", done: 12, heavy: 1, later: ["task:t#3"] }),
+      JSON.stringify({ day: 20260114, done: 12, heavy: 1, later: [] }),
+    ]) {
+      w.localStorage.setItem("algoSRS", JSON.stringify(debt(now)));
+      w.localStorage.setItem("algoToday", raw);
+      let g = null;
+      try { g = r.today(now); } catch (e) { errors.push(`algoToday = ${raw}: today() бросил ${e.message}`); }
+      if (g && (JSON.stringify(g.ids) !== JSON.stringify(DEBT_PORTION) || g.held !== 11)) errors.push(`algoToday = ${raw}: порция ${JSON.stringify(g)}, ожидался новый день`);
+      const res = r.report("task:t#16", "good", now);
+      const rec2 = todayRec(dom);
+      if (res.status !== "graded" || !rec2 || rec2.day !== today || rec2.done !== 1 || rec2.heavy !== 0 || JSON.stringify(rec2.later) !== "[]") {
+        errors.push(`algoToday = ${raw}: после оценки ${JSON.stringify(rec2)}, ожидалась исправная запись с done 1`);
+      }
+    }
+    // элементы later не строками — пропускаются по одному, запись не считается мусором
+    w.localStorage.setItem("algoSRS", JSON.stringify(debt(now)));
+    w.localStorage.setItem("algoToday", JSON.stringify({ day: today, done: 3, heavy: 0, later: [5, null, "task:t#3", {}] }));
+    const mixed = r.today(now);
+    if (mixed.ids.length !== 9 || mixed.ids[8] !== "task:t#3") errors.push(`later с нестроковыми элементами: ${JSON.stringify(mixed)}, ожидалось 9 карточек, последняя task:t#3`);
+    // done больше предела (виджеты в главах оценивают и сверх порции; прежняя запись) — порция пуста, без ошибок
+    for (const done of [12, 13, 50, 12.7]) {
+      w.localStorage.setItem("algoToday", JSON.stringify({ day: today, done, heavy: 0, later: ["task:t#3"] }));
+      const g = r.today(now);
+      if (g.ids.length !== 0 || g.held !== 23) errors.push(`done = ${done}: порция ${JSON.stringify(g)}, ожидалось пусто и held 23`);
+    }
+    // предел тяжёлых исчерпан, места много: тяжёлые ждут, лёгкие идут
+    w.localStorage.setItem("algoToday", JSON.stringify({ day: today, done: 1, heavy: 1, later: ["pkg:p0"] }));
+    const noHeavy = r.today(now);
+    if (noHeavy.ids.length !== 11 || noHeavy.ids.some((id) => id.indexOf("pkg:") === 0) || noHeavy.held !== 12) errors.push(`тяжёлая сегодня уже была: ${JSON.stringify(noHeavy)}, ожидалось 11 лёгких и held 12`);
+  }
+}
+
+// --- 13. смена суток при открытой странице: порция нового дня, done с нуля ---
+{
+  const late = new Date(2026, 0, 14, 23, 59, 0).getTime();
+  const twenty = {};
+  for (let i = 0; i < 20; i++) twenty["task:t#" + i] = light(i, 1, late - (i + 1) * DAY);
+  const dom = await newDom({ algoSRS: JSON.stringify(twenty) }, [CLOCK(late)], PAGE);
+  const w = dom.window, r = w.ALGO_SRS;
+  const text = () => w.document.querySelector(".algo-today").textContent;
+  if (r && r.today) {
+    click(dom, "Помню");
+    click(dom, "Помню");
+    const rec = todayRec(dom);
+    if (!rec || rec.day !== "2026-01-14" || rec.done !== 2) errors.push(`23:59: algoToday = ${JSON.stringify(rec)}, ожидалось 2026-01-14 и done 2`);
+    if (!/К повторению сегодня: 10/.test(text())) errors.push(`23:59 после двух оценок: «${text().slice(0, 60)}», ожидалось 10`);
+    w.__now = late + 2 * 60 * 1000; // 00:01 следующего дня
+    comeBack(w);
+    if (!/К повторению сегодня: 12/.test(text())) errors.push(`00:01, вкладка вернулась: «${text().slice(0, 60)}», ожидалась порция нового дня — 12`);
+    if (!/Сегодня:\s*12\b/.test(badgeShown(dom) || "")) errors.push(`00:01: счётчик «${badgeShown(dom)}», ожидалось 12`);
+    if (r.today(w.__now).ids.length !== 12 || r.today(w.__now).held !== 6) errors.push(`00:01: today() = ${JSON.stringify(r.today(w.__now))}`);
+    if (todayRec(dom).day !== "2026-01-14") errors.push("чтение порции в новый день переписало algoToday — день начинает первая оценка или «Позже»");
+    click(dom, "Помню");
+    const next = todayRec(dom);
+    if (!next || next.day !== "2026-01-15" || next.done !== 1 || next.heavy !== 0) errors.push(`00:01, первая оценка: algoToday = ${JSON.stringify(next)}, ожидалось 2026-01-15 и done 1`);
+  }
+  // без единого события: в 00:01 нажата оценка на вчерашнем экране — она идёт в счёт нового дня
+  const dom2 = await newDom({ algoSRS: JSON.stringify(twenty) }, [CLOCK(late)], PAGE);
+  if (dom2.window.ALGO_SRS && dom2.window.ALGO_SRS.today) {
+    click(dom2, "Помню");
+    dom2.window.__now = late + 2 * 60 * 1000;
+    click(dom2, "Помню");
+    const rec = todayRec(dom2);
+    if (!rec || rec.day !== "2026-01-15" || rec.done !== 1) errors.push(`оценка в 00:01 без события возврата: algoToday = ${JSON.stringify(rec)}, ожидалось 2026-01-15 и done 1`);
+    const t2 = dom2.window.document.querySelector(".algo-today").textContent;
+    if (!/К повторению сегодня: 11/.test(t2)) errors.push(`после оценки в 00:01 виджет: «${t2.slice(0, 60)}», ожидалось 11`);
+  }
+}
+
+// --- 14. «Позже» не запирает очередь: единственная карточка, тяжёлая, фокус, недоступное хранилище ---
+{
+  const now = NOON;
+  // единственная карточка остаётся на экране и оценивается
+  const one = await newDom({ algoSRS: JSON.stringify({ "task:a#1": light("A", 1, now - HOUR) }) }, [CLOCK(now)], PAGE);
+  if (one.window.ALGO_SRS && one.window.ALGO_SRS.later) {
+    const text = () => one.window.document.querySelector(".algo-today").textContent;
+    click(one, "Позже");
+    if (!/задача A/.test(text()) || !/Других карточек в сегодняшней порции нет/.test(text())) errors.push(`«Позже» на единственной карточке: «${text().slice(0, 200)}»`);
+    click(one, "Помню");
+    if (cards(one)["task:a#1"].iv !== 3 || !/На сегодня всё/.test(text())) errors.push("после «Позже» единственная карточка не оценивается");
+  }
+
+  // тяжёлая: отложенная остаётся сегодняшней тяжёлой, вторая её не подменяет
+  const hv = { "task:a#1": light("A", 1, now - HOUR), "pkg:first": heavy("first", now - 3 * DAY), "pkg:second": heavy("second", now - 2 * DAY) };
+  const dom = await newDom({ algoSRS: JSON.stringify(hv) }, [CLOCK(now)], PAGE);
+  const w = dom.window, r = w.ALGO_SRS;
+  if (r && r.later) {
+    const text = () => w.document.querySelector(".algo-today").textContent;
+    const ids = () => r.today(now).ids.join();
+    if (ids() !== "task:a#1,pkg:first" || r.today(now).held !== 1) errors.push(`тяжёлая: старт ${JSON.stringify(r.today(now))}`);
+    click(dom, "Позже"); // лёгкая уходит за тяжёлую
+    if (ids() !== "pkg:first,task:a#1" || !/first/.test(text())) errors.push(`«Позже» на лёгкой перед тяжёлой: ${ids()}`);
+    click(dom, "Позже"); // теперь тяжёлая
+    if (ids() !== "task:a#1,pkg:first") errors.push(`«Позже» на тяжёлой: ${ids()}, ожидалось task:a#1,pkg:first — вторая тяжёлая её не подменяет`);
+    click(dom, "Помню"); // A
+    if (ids() !== "pkg:first" || !/first/.test(text())) errors.push(`тяжёлая после лёгких: ${ids()}`);
+    click(dom, "Позже"); // единственная и тяжёлая
+    if (ids() !== "pkg:first" || !/first/.test(text()) || !w.document.querySelector(".algo-today__grades")) errors.push(`«Позже» на единственной тяжёлой заперло очередь: ${ids()}, «${text().slice(0, 80)}»`);
+    click(dom, "Помню");
+    const rec = todayRec(dom);
+    if (!rec || rec.done !== 2 || rec.heavy !== 1 || rec.later.length) errors.push(`тяжёлая оценена: algoToday = ${JSON.stringify(rec)}`);
+    if (r.today(now).ids.length !== 0 || r.today(now).held !== 1 || !/На сегодня всё/.test(text()) || !/ещё 1 придёт не раньше завтра/i.test(text())) {
+      errors.push(`вторая тяжёлая должна ждать завтра: ${JSON.stringify(r.today(now))}, «${text().slice(0, 160)}»`);
+    }
+  }
+
+  // фокус клавиатуры после «Позже» и после оценки — на новой карточке, а не потерян
+  const three = { "task:a#1": light("A", 1, now - 3 * HOUR), "task:b#1": light("B", 2, now - 2 * HOUR), "task:c#1": light("C", 3, now - HOUR) };
+  const f = await newDom({ algoSRS: JSON.stringify(three) }, [CLOCK(now)], PAGE);
+  if (f.window.ALGO_SRS && f.window.ALGO_SRS.later) {
+    const d = f.window.document;
+    const laterBtn = d.querySelector(".algo-today__later");
+    if (!laterBtn) errors.push("на карточке нет кнопки «Позже»");
+    else {
+      laterBtn.focus();
+      click(f, "Позже");
+      const a = d.activeElement;
+      if (!a || !a.classList.contains("algo-today__card") || !/задача B/.test(a.textContent)) errors.push(`после «Позже» фокус не на следующей карточке: ${a && a.tagName}.${a && a.className}`);
+      click(f, "Помню");
+      const b = d.activeElement;
+      if (!b || !b.classList.contains("algo-today__card") || !/задача C/.test(b.textContent)) errors.push(`после оценки фокус не на следующей карточке: ${b && b.tagName}.${b && b.className}`);
+      // ←/→ на этих узлах mdBook обрабатывает как обычно: своих обработчиков клавиш карточка не ставит,
+      // а поле заметки — <input>, на нём mdBook главу не листает
+      click(f, "Забыл");
+      const note = d.querySelector(".algo-today__noteform input");
+      if (!note || note.nodeName !== "INPUT" || d.activeElement !== note) errors.push("поле заметки — не <input> в фокусе: mdBook листал бы главу по ←/→ при вводе");
+      click(f, "Забыл"); // второе нажатие не плодит форму
+      if (d.querySelectorAll(".algo-today__noteform").length !== 1) errors.push(`повторное «Забыл» открыло ${d.querySelectorAll(".algo-today__noteform").length} форм заметки`);
+    }
+  }
+
+  // запись отказала: «Позже» работает в пределах вкладки и ничего не выдаёт за сохранённое
+  const mem = await newDom({ algoSRS: JSON.stringify(three) }, [CLOCK(now)], PAGE);
+  if (mem.window.ALGO_SRS && mem.window.ALGO_SRS.later) {
+    const wm = mem.window, rm = wm.ALGO_SRS;
+    const orig = wm.Storage.prototype.setItem;
+    wm.Storage.prototype.setItem = function () { throw new Error("QuotaExceededError"); };
+    try {
+      click(mem, "Позже");
+      if (rm.today(now).ids.join() !== "task:b#1,task:c#1,task:a#1") errors.push(`«Позже» при отказе записи: порядок ${rm.today(now).ids.join()}`);
+      if (!/задача B/.test(wm.document.querySelector(".algo-today").textContent)) errors.push("«Позже» при отказе записи не показало следующую карточку");
+      if (wm.localStorage.getItem("algoToday") !== null) errors.push("при отказе записи algoToday всё же записан");
+    } finally {
+      wm.Storage.prototype.setItem = orig;
+    }
+    // запись снова работает: следующее «Позже» сохраняет и то, что копилось в памяти вкладки
+    click(mem, "Позже");
+    const rec = todayRec(mem);
+    if (!rec || JSON.stringify(rec.later) !== '["task:a#1","task:b#1"]') errors.push(`после восстановления записи later = ${JSON.stringify(rec)}, ожидалось [a, b]`);
+  }
+}
+
+// --- 15. оставленная вкладка: возврат и чужие события перестраивают порцию, не закрывая ответ и форму ---
+{
+  const now = NOON;
+  const seed = {
+    algoSRS: JSON.stringify({ "task:a#1": light("A", 5, now - HOUR) }),
+    algoMixedMissed: JSON.stringify({ "topk.KthLargest": { n: 1, chapter: "top-k-elements", pkg: "topk", fn: "KthLargest" } }),
+  };
+  const dom = await newDom(seed, [CLOCK(now), problemsJs], PAGE);
+  const w = dom.window;
+  if (w.ALGO_SRS && w.ALGO_SRS.today) {
+    const box = w.document.querySelector(".algo-today");
+    const add = (id, card) => { const c = cards(dom); c[id] = card; w.localStorage.setItem("algoSRS", JSON.stringify(c)); };
+    const state = (what, n) => {
+      if (!box.querySelector(".algo-today__answer")) errors.push(`${what}: раскрытый ответ карточки закрылся`);
+      if (!new RegExp("К повторению сегодня: " + n + "\\b").test(box.textContent)) errors.push(`${what}: шапка «${box.textContent.slice(0, 40)}», ожидалось ${n}`);
+      if (!new RegExp("Сегодня:\\s*" + n + "\\b").test(badgeShown(dom) || "")) errors.push(`${what}: счётчик «${badgeShown(dom)}», ожидалось ${n}`);
+    };
+    click(dom, "Показать ответ");
+    // другая вкладка завела карточку с меньшим iv (она встала бы первой) — тихо, эта вкладка была в фоне
+    add("task:n1#1", light("N1", 0, now - HOUR));
+    comeBack(w);
+    state("возврат на вкладку", 3);
+    add("task:n2#1", light("N2", 0, now - HOUR));
+    w.dispatchEvent(new w.StorageEvent("storage", { key: "algoSRS" }));
+    state("storage из другой вкладки", 4);
+    add("task:n3#1", light("N3", 0, now - HOUR));
+    w.document.dispatchEvent(new w.CustomEvent("algo-srs:change", { detail: { ids: [] } })); // так сообщает импорт прогресса
+    state("algo-srs:change после импорта", 5);
+    add("task:n4#1", light("N4", 0, now - HOUR));
+    w.dispatchEvent(new w.Event("focus"));
+    state("окно получило фокус", 6);
+    // а вот карточку на экране оценили в другой вкладке: её ответ больше не нужен, виджет идёт дальше
+    const moved = cards(dom);
+    moved["mix:topk.KthLargest"].due = now + 3 * DAY;
+    w.localStorage.setItem("algoSRS", JSON.stringify(moved));
+    comeBack(w);
+    if (box.querySelector(".algo-today__answer") || !/задача N1/.test(box.textContent) || !/К повторению сегодня: 5\b/.test(box.textContent)) {
+      errors.push(`карточку на экране оценили в другой вкладке, а виджет не ушёл на следующую: «${box.textContent.slice(0, 120)}»`);
+    }
+  }
+
+  // форма заметки: порция перестраивается вокруг неё, текст не теряется
+  const two = { "task:a#1": light("A", 1, now - 2 * HOUR), "task:b#1": light("B", 2, now - HOUR), "task:c#1": light("C", 3, now - HOUR) };
+  const nf = await newDom({ algoSRS: JSON.stringify(two) }, [CLOCK(now)], PAGE);
+  const wn = nf.window;
+  if (wn.ALGO_SRS && wn.ALGO_SRS.today) {
+    const box = wn.document.querySelector(".algo-today");
+    click(nf, "Забыл");
+    const input = box.querySelector(".algo-today__noteform input");
+    if (input) {
+      input.value = "перепутал границу";
+      // другая вкладка: B оценена, счёт дня вырос
+      const c = cards(nf);
+      c["task:b#1"].due = now + 3 * DAY;
+      wn.localStorage.setItem("algoSRS", JSON.stringify(c));
+      wn.localStorage.setItem("algoToday", JSON.stringify({ day: dayKey(now), done: 5, heavy: 0, later: [] }));
+      comeBack(wn);
+      const still = box.querySelector(".algo-today__noteform input");
+      if (!still || still.value !== "перепутал границу") errors.push("возврат на вкладку стёр форму заметки или её текст");
+      if (!/К повторению сегодня: 2\b/.test(box.textContent)) errors.push(`форма заметки открыта, а шапка не обновилась: «${box.textContent.slice(0, 40)}»`);
+      click(nf, "Сохранить и отложить");
+      const a = cards(nf)["task:a#1"];
+      if (!a || a.note !== "перепутал границу" || a.iv !== 1) errors.push(`заметка после возврата на вкладку не записана: ${JSON.stringify(a)}`);
+      if (todayRec(nf).done !== 6) errors.push(`оценка после возврата на вкладку: done = ${todayRec(nf).done}, ожидалось 6 (5 из другой вкладки и эта)`);
+      if (!/задача C/.test(box.textContent)) errors.push(`после заметки на экране не следующая карточка: «${box.textContent.slice(0, 80)}»`);
+    }
+  }
+}
+
+// --- 16. две вкладки и algoToday: done не меньше настоящего, later не теряется ---
+{
+  const now = NOON;
+  const three = { "task:a#1": light("A", 1, now - 3 * HOUR), "task:b#1": light("B", 2, now - 2 * HOUR), "task:c#1": light("C", 3, now - HOUR) };
+  const dom = await newDom({ algoSRS: JSON.stringify(three) }, [CLOCK(now)], PAGE);
+  const w = dom.window;
+  if (w.ALGO_SRS && w.ALGO_SRS.today) {
+    const text = () => w.document.querySelector(".algo-today").textContent;
+    // другая вкладка оценила пять своих карточек и отложила C; событие до этой вкладки не дошло
+    w.localStorage.setItem("algoToday", JSON.stringify({ day: dayKey(now), done: 5, heavy: 0, later: ["task:c#1"] }));
+    click(dom, "Помню"); // A
+    const rec = todayRec(dom);
+    if (!rec || rec.done !== 6 || JSON.stringify(rec.later) !== '["task:c#1"]') errors.push(`две вкладки: algoToday = ${JSON.stringify(rec)}, ожидалось done 6 и later [task:c#1]`);
+    // событие storage по ключу algoToday перестраивает и порцию, и счётчик
+    w.localStorage.setItem("algoToday", JSON.stringify({ day: dayKey(now), done: 12, heavy: 0, later: [] }));
+    w.dispatchEvent(new w.StorageEvent("storage", { key: "algoToday" }));
+    if (!/На сегодня всё/.test(text()) || badgeShown(dom)) errors.push(`storage по ключу algoToday: «${text().slice(0, 60)}», счётчик «${badgeShown(dom)}»`);
+  }
+}
+
+// --- 17. счёт дня: растёт только по оценке карточки с вышедшим сроком; повреждённый algoSRS порцию не строит ---
+{
+  const now = NOON;
+  const seed = {
+    "task:due#1": light("D1", 1, now - HOUR), "task:due#2": light("D2", 1, now - HOUR), "pkg:due": heavy("due", now - DAY),
+    "task:wait#1": Object.assign(light("W", 8, now + 5 * DAY), { reps: 3 }),
+  };
+  const dom = await newDom({ algoSRS: JSON.stringify(seed) }, [CLOCK(now)], "<div></div>");
+  const w = dom.window, r = w.ALGO_SRS;
+  if (r && r.today) {
+    const seenAtEvent = [];
+    w.document.addEventListener("algo-srs:change", () => seenAtEvent.push((todayRec(dom) || { done: 0 }).done));
+    const expect = (what, done, hv) => {
+      const rec = todayRec(dom) || { done: 0, heavy: 0 };
+      if (rec.done !== done || rec.heavy !== hv) errors.push(`счёт дня, ${what}: done ${rec.done}, heavy ${rec.heavy}, ожидалось ${done} и ${hv}`);
+    };
+    r.report("task:nope#1", "good", now);
+    expect("карточки нет (none)", 0, 0);
+    r.report("task:wait#1", "good", now);
+    expect("срок не подошёл (early)", 0, 0);
+    if (r.report("task:wait#1", "again", now).status !== "graded") errors.push("«Забыл» до срока по зрелой карточке должен оцениваться");
+    expect("«Забыл» до срока — карточка не была в сроке", 0, 0);
+    w.localStorage.setItem("algoChallengeMissed", JSON.stringify({ "big-o#9": { n: 1, page: "big-o", anchor: "task-9", q: "Новая" } }));
+    if (r.report("task:big-o#9", "good", now).status !== "created") errors.push("report по новому промаху должен отвечать created");
+    expect("карточку завёл этот вызов (created)", 0, 0);
+    if (w.localStorage.getItem("algoToday") !== null) errors.push("algoToday записан, хотя ни одна карточка в сроке не оценена");
+    seenAtEvent.length = 0;
+    r.report("task:due#1", "good", now);
+    expect("лёгкая в сроке", 1, 0);
+    if (seenAtEvent.join() !== "1") errors.push(`в момент события algo-srs:change счёт дня ещё прежний: ${JSON.stringify(seenAtEvent)} — слушатель построил бы порцию по устаревшему done`);
+    r.report("pkg:due", "hard", now);
+    expect("с кодом в сроке", 2, 1);
+    r.report("task:big-o#9", "again", now);
+    expect("«Забыл» по карточке в сроке", 3, 1);
+    const orig = w.Storage.prototype.setItem;
+    w.Storage.prototype.setItem = function () { throw new Error("QuotaExceededError"); };
+    try {
+      if (r.report("task:due#2", "good", now).status !== "unsaved") errors.push("при отказе записи report должен отвечать unsaved");
+    } finally {
+      w.Storage.prototype.setItem = orig;
+    }
+    expect("запись отказала (unsaved)", 3, 1);
+    if (r.today(now).ids.join() !== "task:due#2") errors.push(`после unsaved карточка должна остаться в порции: ${r.today(now).ids.join()}`);
+  }
+
+  for (const raw of ["not json{", "[]"]) {
+    const broken = await newDom({ algoSRS: raw }, [CLOCK(now)], PAGE);
+    const rb = broken.window.ALGO_SRS;
+    if (!rb || !rb.today) continue;
+    const t = rb.today(now);
+    if (t.ids.length !== 0 || t.held !== 0) errors.push(`algoSRS = ${raw}: today() = ${JSON.stringify(t)}, ожидалось пусто`);
+    if (rb.later("task:a#1", now) !== false) errors.push(`algoSRS = ${raw}: later() вернул не false`);
+    if (broken.window.localStorage.getItem("algoToday") !== null) errors.push(`algoSRS = ${raw}: algoToday записан при повреждённом состоянии`);
+  }
+}
+
+// --- 18. промах на этой же странице обновляет счётчик без перехода ---
+{
+  const task =
+    '<div class="algo-challenge" data-type="predict" data-answer="12" data-explain="разбор">' +
+    '<div class="algo-challenge__q">Что вернёт gcd(48, 36)?</div></div>';
+  const dom = await newDom({}, [challengeJs], MENU + "<main><h1>Глава</h1>" + task + "</main>");
+  const w = dom.window;
+  if (badgeShown(dom)) errors.push("промах в задаче: счётчик виден до ответа");
+  const box = w.document.querySelector(".algo-challenge");
+  const input = box.querySelector("input");
+  const btn = [...box.querySelectorAll("button")].find((b) => !b.classList.contains("algo-challenge__hintbtn"));
+  if (!input || !btn) errors.push("промах в задаче: виджет задачи не построился");
+  else {
+    input.value = "999";
+    btn.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+    if (!/Сегодня:\s*1\b/.test(badgeShown(dom) || "")) errors.push(`промах в задаче не обновил счётчик на этой же странице: «${badgeShown(dom)}»`);
+    if (!Object.keys(cards(dom)).some((id) => id.indexOf("task:") === 0)) errors.push("промах в задаче не завёл карточку сразу");
+  }
+
+  const qdom = await newDom({}, [quizJs], MENU + '<main><h1>Квиз</h1><div class="algo-quiz"></div></main>');
+  const wq = qdom.window, quiz = wq.document.querySelector(".algo-quiz");
+  const press = (node) => node.dispatchEvent(new wq.MouseEvent("click", { bubbles: true }));
+  let missed = 0;
+  for (let i = 0; i < 12 && !missed; i++) {
+    const opt = quiz.querySelector(".algo-quiz__opt");
+    const go = quiz.querySelector(".algo-quiz__actions .algo-quiz__btn");
+    if (!opt || !go) break;
+    press(opt);
+    press(go); // «Проверить»
+    missed = Object.keys(JSON.parse(wq.localStorage.getItem("algoQuizMissed") || "{}")).length;
+    if (!missed) press(go); // «Следующий»
+  }
+  if (!missed) errors.push("промах в квизе: за 12 вопросов не удалось ошибиться — проверка ничего не видит");
+  else if (!/Сегодня:\s*1\b/.test(badgeShown(qdom) || "")) errors.push(`промах в квизе не обновил счётчик на этой же странице: «${badgeShown(qdom)}»`);
+}
+
+// --- 19. числа предела в текстах книги — те же, что в константах движка ---
+{
+  const r = (await newDom({})).window.ALGO_SRS;
+  if (r && r.limits) {
+    const phrase = `не больше ${r.limits.cards} карточек`;
+    for (const f of ["review.md", "README.md"]) {
+      const md = fs.readFileSync(path.join(root, "src", f), "utf8");
+      const said = md.match(/не больше \d+ карточ[а-яё]*/g) || [];
+      if (!said.length) errors.push(`src/${f}: дневной предел не назван («${phrase}»)`);
+      for (const s of said) if (s !== phrase) errors.push(`src/${f}: «${s}», а предел в srs.js — ${r.limits.cards}`);
+    }
+    if (r.limits.heavy !== 1) errors.push("предел тяжёлых изменился: тексты книги и виджета говорят «одной с кодом»");
+  }
+}
+
 if (errors.length) {
   console.error(`❌ srs-check: ${errors.length} проблем(ы):`);
   for (const e of errors) console.error("  - " + e);
@@ -992,7 +1667,11 @@ console.log(
     "интервалы 1→3→8→22→61, «забыл» — шаг назад (22 → 1 → 8 → 21) с заметкой, порядок оценок и сроков при одном и том же сдвиге " +
     "держится во всех достижимых состояниях (в том числе прежней формулы), две вкладки не затирают друг друга, " +
     "«с трудом» с back — ступень ниже back, «забыл» до срока один раз на падение, report() — исходы created/none/graded/early/unsaved, " +
-    "повреждённый algoSRS не перезаписывается, прежние карточки не меняются, ease держится в [1.3, 2.8]"
+    "повреждённый algoSRS не перезаписывается, прежние карточки не меняются, ease держится в [1.3, 2.8]; " +
+    "порция дня — не больше 12 карточек и одной с кодом (границы и порядок — на случайных наборах), «Позже» ставит в конец и не запирает очередь, " +
+    "смена суток и мусор в algoToday начинают день заново, счёт дня растёт только по оценке карточки в сроке, " +
+    "карточки quiz: и cx: отвечают после «Показать ответ», возврат на вкладку перестраивает порцию без потери ответа и заметки, " +
+    "промах на этой же странице обновляет счётчик"
 );
 }
 

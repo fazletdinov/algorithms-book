@@ -164,11 +164,15 @@ async function main() {
   }
 
   const wrongBtn = opts.find((b) => b.textContent !== correctTitle);
+  // промах заводит карточку сразу: движок повторений зовут без перехода на другую страницу
+  let synced = 0;
+  dom.window.ALGO_SRS = { sync: () => { synced++; } };
   click(dom, wrongBtn);
 
   const missed = JSON.parse(dom.window.localStorage.getItem("algoMixedMissed") || "{}");
   const id = problem.p + "." + problem.f;
   if (!missed[id]) errors.push(`промах не записан: ${JSON.stringify(missed)}`);
+  if (synced !== 1) errors.push(`после промаха ALGO_SRS.sync вызван ${synced} раз(а), ожидался один`);
   const result = widget.querySelector(".algo-mixed__result");
   if (!result) errors.push("после ответа не показан разбор");
   else {
@@ -262,8 +266,8 @@ async function mockInterview(bank) {
   modeBox.dispatchEvent(new dom.window.Event("change"));
   const next = [...w.querySelectorAll("button")].find((b) => /Дать задачу/.test(b.textContent));
 
-  // берём задачу с эталонной сложностью — у 145 из 159 она есть, так что
-  // обычно хватает первой выдачи; ветку «эталона нет» проверяет отдельная строка ниже
+  // берём задачу с эталонной сложностью (поле x банка) — она есть у девяти задач из десяти,
+  // так что обычно хватает первой выдачи
   let p = null;
   for (let i = 0; i < 60 && !p; i++) {
     click(dom, next);
@@ -274,7 +278,7 @@ async function mockInterview(bank) {
       errors.push(`режим собеседования выдал ${hit.p}.${hit.f} — у неё нет своих тестов`);
       return;
     }
-    if (/^Ожидаемая сложность/m.test(hit.h || "")) p = hit;
+    if (hit.x) p = hit;
   }
   if (!p) {
     errors.push("за 60 выдач не попалась задача с эталонной сложностью");
@@ -351,9 +355,15 @@ async function mockInterview(bank) {
   cx.value = "O(n) по времени, O(1) по памяти";
   cx.dispatchEvent(new dom.window.Event("input"));
   click(dom, w.querySelector(".algo-mixed__cx-check"));
-  if (!w.querySelector(".algo-mixed__cx-ref")) errors.push("собеседование: после ответа не показан эталон");
+  const ref = w.querySelector(".algo-mixed__cx-ref");
+  if (!ref) errors.push("собеседование: после ответа не показан эталон");
+  else if (ref.textContent !== "Эталон: " + p.x) errors.push(`собеседование: эталон «${ref.textContent}», а в банке у ${p.p}.${p.f} x = «${p.x}»`);
   if (w.querySelector(".algo-mixed__summary")) errors.push("собеседование: итог подведён до самооценки");
+  // промах по сложности заводит карточку сразу: движок повторений зовут без перехода на другую страницу
+  let synced = 0;
+  dom.window.ALGO_SRS = { sync: () => { synced++; } };
   click(dom, w.querySelector(".algo-mixed__cx-no"));
+  if (synced !== 1) errors.push(`собеседование: после промаха по сложности ALGO_SRS.sync вызван ${synced} раз(а), ожидался один`);
 
   const sum = w.querySelector(".algo-mixed__summary");
   if (!sum) {

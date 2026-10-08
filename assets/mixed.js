@@ -21,7 +21,7 @@
  *   3) редактор гоняет ТОЛЬКО тесты этой функции (поле t банка → data-tests) и
  *      открывается с чистой заготовки (data-fresh), а не с твоего решения пакета;
  *   4) после зелёных тестов — сложность своими словами, и только потом эталон из
- *      док-комментария; совпало ли — отмечаешь сам (эталоны записаны свободным
+ *      док-комментария (поле x банка); совпало ли — отмечаешь сам (эталоны записаны свободным
  *      текстом, «O(rows·cols)» против «O(R·C)» машинно не сравнить честно);
  *   5) итог сессии уходит в историю (algoMockLog), промах по сложности —
  *      карточкой cx:<pkg>.<fn> в движок повторений (srs.js).
@@ -171,15 +171,10 @@
     return picked.concat(rest).slice(0, OPTIONS - 1);
   }
 
-  // expectedComplexity достаёт эталон из подсказок: абзац «Ожидаемая сложность: …».
-  // У части задач его нет — тогда сверять не с чем, и режим так и говорит.
-  function expectedComplexity(p) {
-    var lines = String(p.h || "").split("\n");
-    for (var i = 0; i < lines.length; i++) {
-      var m = lines[i].match(/^Ожидаемая сложность:?\s*(.+)$/);
-      if (m) return m[1].replace(/\.\s*$/, "");
-    }
-    return "";
+  // Карточка промаха (mix:, cx:) встаёт в очередь повторений сразу: счётчик «Сегодня» обновляется
+  // без перехода на другую страницу.
+  function syncSRS() {
+    if (window.ALGO_SRS) window.ALGO_SRS.sync();
   }
 
   function build(root) {
@@ -333,6 +328,7 @@
       var rec = missed[key(p)] || { n: 0 };
       missed[key(p)] = { n: rec.n + 1, chapter: p.c, pkg: p.p, fn: p.f };
       save(MISSED, missed);
+      syncSRS();
     }
 
     // hintsBlock — всё, что было скрыто в условии, и ссылка на главу.
@@ -506,7 +502,9 @@
         input.readOnly = true;
         check.hidden = true;
         session.cxAnswer = input.value.trim();
-        var ref = expectedComplexity(p);
+        // Эталон — поле x банка (абзац «Ожидаемая сложность» заготовки, его выделяет генератор).
+        // У части задач его нет — тогда сверять не с чем, и режим так и говорит.
+        var ref = p.x || "";
         if (!ref) {
           box.appendChild(el("p", "algo-mixed__text",
             "Эталонной оценки у этой задачи в условии нет — сверься с главой после итога."));
@@ -579,6 +577,7 @@
         var rec = cxMissed[key(p)] || { n: 0 };
         cxMissed[key(p)] = { n: rec.n + 1, chapter: p.c, pkg: p.p, fn: p.f };
         save(CX_MISSED, cxMissed);
+        syncSRS();
       } else if (session.cx === "ok" && cxMissed[key(p)]) {
         delete cxMissed[key(p)];
         save(CX_MISSED, cxMissed);

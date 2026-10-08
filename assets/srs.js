@@ -18,16 +18,29 @@
  *                  словами в виджете «объясни сам» (explain.js);
  *   pkg:<пакет>  — как только тесты пакета позеленели в виджете «Реши прямо здесь»;
  *   task:<id>    — как только задача в тексте не далась (промах из challenge.js);
- *   quiz:<вопрос> — промах в квизе распознавания шаблонов (quiz.js);
+ *   quiz:<вопрос> — промах в квизе распознавания шаблонов (quiz.js). Карточка — вопрос:
+ *                  условие и «каким шаблоном это решается?»; шаблон (meta.pattern) ссылкой
+ *                  на главу и кнопки оценки — только после «Показать ответ»;
  *   mix:<pkg>.<fn> — в смешанной тренировке шаблон выбран неверно (mixed.js).
  *                  Карточка — вопрос: условие из банка задач (без имени функции) и
  *                  «каким шаблоном это решается?»; глава-ответ и кнопки оценки —
  *                  только после «Показать ответ». Заголовок «пакет.функция» сам был
  *                  ответом, и «Помню» ничего не проверяло;
  *   cx:<pkg>.<fn>  — в режиме собеседования сложность своего решения оценена
- *                  неверно (mixed.js): шаблон мог быть узнан, а цена кода — нет.
+ *                  неверно (mixed.js): шаблон мог быть узнан, а цена кода — нет. Карточка —
+ *                  вопрос: условие из банка и «какая сложность у решения?»; ответ — эталон из
+ *                  поля x банка и глава. Задачи в банке больше нет или x пуст — карточка так и
+ *                  говорит и оценивается без «Показать ответ»: сверять не с чем.
  *   viz:<тип>    — в режиме 🎯 виджета исход развилки предсказан неверно (algo-viz.js,
  *                  algoVizMissed): механику алгоритма читатель ещё не прокручивает в голове.
+ *
+ * Порция дня. Очередь показывает не всё просроченное, а не больше 12 карточек в день и одной
+ * «тяжёлой» (с кодом — вид pkg:); остальное ждёт следующих дней. Порядок: по возрастанию iv, затем
+ * срока; тяжёлая — последней; отложенные кнопкой «Позже» — в конце, в порядке откладывания
+ * (карточка при этом не меняется). Счётчик дня — ключ algoToday = { day: "ГГГГ-ММ-ДД" (местная дата),
+ * done, heavy, later: [id] }: done и heavy растут, когда оценена карточка с вышедшим сроком (кнопкой
+ * здесь или через report из виджета); в новый день, как и при мусоре в ключе, счёт идёт с нуля.
+ * В экспорт прогресса algoToday не входит: он про сегодня в этом браузере.
  *
  * Срок новой карточки — от СОБЫТИЯ, а не от захода на страницу: глава — от метки
  * algoProgressAt[href] (её пишет трекер в progress.js; нет метки — от «сейчас») плюс день,
@@ -72,12 +85,19 @@
  *                                            «Забыл» применяется и до срока, но один раз на падение
  *                                            (reps === 0 и срок не подошёл → early, заметка обновляется);
  *   load() → cards, due(now) → [id]        — карточки (без мусорных записей) и id тех, чей срок вышел
- *                                            (старые первыми); damaged() — algoSRS не разбирается.
+ *                                            (старые первыми); damaged() — algoSRS не разбирается;
+ *   today(now) → { ids, held }             — порция дня: ids — что показать сегодня, по порядку; held —
+ *                                            сколько просроченных в неё не вошло. Ничего не пишет;
+ *   later(id, now) → boolean               — «Позже»: карточка из порции уходит в её конец; false — её
+ *                                            в сегодняшней порции нет. Событий не шлёт: вид перерисовывает
+ *                                            тот, кто вызвал;
+ *   limits = { cards, heavy }              — пределы порции (их же называют тексты книги).
  * Запись algoSRS всегда по свежему чтению и с изменением только заведённых/оцениваемых карточек,
  * поэтому две вкладки не затирают друг друга; после записи на document уходит событие
- * "algo-srs:change" ({ detail: { ids } }), а вкладки слушают и "storage". Повреждённый algoSRS
- * (не JSON, массив, число, строка, null) не перезаписывается ни sync, ни report: сырое значение
- * остаётся для ручного спасения или импорта (progress.js).
+ * "algo-srs:change" ({ detail: { ids } }), а вкладки слушают и "storage". algoToday пишется так же —
+ * по свежему чтению, и при оценке раньше события: слушатель строит порцию уже по новому счёту дня.
+ * Повреждённый algoSRS (не JSON, массив, число, строка, null) не перезаписывается ни sync, ни report:
+ * сырое значение остаётся для ручного спасения или импорта (progress.js); порция при нём пуста.
  *
  * Ограничение, которое честно назвать: оценку ставит сам читатель, и движок
  * верит ей на слово. Для главы и пакета проверка объективная есть рядом (тесты
@@ -97,8 +117,16 @@
   var MIXED_MISSED = "algoMixedMissed";
   var CX_MISSED = "algoMockCxMissed";
   var VIZ_MISSED = "algoVizMissed";
+  var TODAY = "algoToday"; // счётчик дня: { day, done, heavy, later } — в экспорт прогресса не входит
 
   var CHANGE_EVENT = "algo-srs:change";
+
+  // Дневная порция: не больше DAY_LIMIT карточек в день, из них не больше HEAVY_LIMIT «тяжёлых»
+  // (с кодом — вид pkg:). После перерыва долг в сорок карточек иначе встречал бы читателя стеной,
+  // и повторение бросали бы целиком; тяжёлая карточка — это пакет с чистого листа, две за вечер
+  // съедают время новой главы.
+  var DAY_LIMIT = 12;
+  var HEAVY_LIMIT = 1;
 
   var DAY = 24 * 60 * 60 * 1000;
   var EASE_START = 2.5;
@@ -192,13 +220,16 @@
 
   // update читает хранилище заново, применяет fn к одной карточке и записывает. null — карточки нет;
   // { ok: false } — хранилище повреждено или запись отказала (событие не шлётся); иначе { ok: true, card }.
-  function update(id, fn) {
+  // saved зовётся после удавшейся записи и ДО события: то, что слушатели прочитают вместе с
+  // карточкой (счётчик дня), к этому моменту уже записано.
+  function update(id, fn, saved) {
     var store = readMap(KEY);
     if (store.damaged) return { ok: false, card: null };
     var card = store.map[id];
     if (!isCard(card)) return null;
     fn(card);
     if (!save(KEY, store.map)) return { ok: false, card: card };
+    if (saved) saved();
     notify([id]);
     return { ok: true, card: card };
   }
@@ -393,6 +424,8 @@
   // отвечает early — две неудачи подряд в одном заходе обычное дело, и пять вызовов не должны
   // ронять её на пять ступеней (заметка при этом обновляется). Второй «Забыл» уже в срок — вторая ступень.
   // unsaved — ничего не записано (хранилище повреждено, переполнено или недоступно); события нет.
+  // Оценка карточки с вышедшим сроком занимает место в порции дня (countDone) — кто бы её ни поставил,
+  // кнопка на «Повторении» или виджет в главе; «Забыл» до срока место не занимает.
   function report(id, grade, now, opts) {
     now = now == null ? Date.now() : now;
     var none = { status: "none", iv: 0, due: 0 };
@@ -413,9 +446,13 @@
         return noted && noted.ok ? early : noted ? unsaved : none;
       }
     }
+    var wasDue = false;
     var res = update(id, function (c) {
+      wasDue = dueOf(c) <= now;
       if (grade === "again" && o.note) c.note = o.note;
       schedule(c, grade, now, o.rnd);
+    }, function () {
+      if (wasDue) countDone(id, now);
     });
     if (!res) return none;
     if (!res.ok) return unsaved;
@@ -424,6 +461,126 @@
 
   function kindOf(id) {
     return id.slice(0, id.indexOf(":"));
+  }
+
+  // --- Порция дня ---
+
+  function isHeavy(id) {
+    return kindOf(id) === "pkg";
+  }
+
+  // День — местная дата: «сегодня» читателя кончается в его полночь, а не в полночь UTC.
+  function dayKey(now) {
+    var d = new Date(now);
+    function two(n) { return (n < 10 ? "0" : "") + n; }
+    return d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate());
+  }
+
+  // Счётчик дня, который не удалось записать (хранилище переполнено или запрещено): день продолжается
+  // в памяти вкладки — иначе «Позже» не сдвигало бы очередь. Сбрасывается первой удавшейся записью.
+  var todayMem = null;
+
+  function wholeCount(v) {
+    return typeof v === "number" && isFinite(v) && v >= 0 ? Math.floor(v) : -1;
+  }
+
+  // loadToday — счётчик дня по свежему чтению. Запись другого дня (вчерашняя, из будущего) и мусор
+  // (не JSON, не карта, счётчики не числами, later не списком) — новый день с нуля. Хранилище при
+  // этом не трогается: день начинает первая оценка или первое «Позже».
+  function loadToday(now) {
+    var day = dayKey(now);
+    var v = todayMem && todayMem.day === day ? todayMem : readMap(TODAY).map;
+    var done = wholeCount(v.done), heavy = wholeCount(v.heavy);
+    if (v.day !== day || done < 0 || heavy < 0 || !Array.isArray(v.later)) return { day: day, done: 0, heavy: 0, later: [] };
+    return { day: day, done: done, heavy: heavy, later: v.later.filter(function (id) { return typeof id === "string"; }) };
+  }
+
+  function saveToday(state) {
+    todayMem = save(TODAY, state) ? null : state;
+  }
+
+  // countDone — оценена карточка с вышедшим сроком: место в порции занято, из отложенных она уходит.
+  function countDone(id, now) {
+    var state = loadToday(now);
+    state.done++;
+    if (isHeavy(id)) state.heavy++;
+    state.later = state.later.filter(function (x) { return x !== id; });
+    saveToday(state);
+  }
+
+  // portion — что из просроченного входит в порцию при таком счётчике дня. Мест — DAY_LIMIT − done,
+  // тяжёлых — HEAVY_LIMIT − heavy (done бывает и больше предела: виджеты в главах оценивают карточки
+  // сверх порции). Первыми место занимают отложенные: карточка, которую читатель отодвинул, остаётся в
+  // сегодняшней порции, а не уступает место следующей из долга. Остальные идут по возрастанию iv, затем
+  // срока — сначала то, что держится хуже всего. На выходе: лёгкие, тяжёлая (код — когда уже
+  // разогрелся), отложенные в порядке later.
+  function portion(cards, state, now) {
+    var due = dueIds(cards, now);
+    var isDue = Object.create(null), taken = Object.create(null);
+    due.forEach(function (id) { isDue[id] = true; });
+    var room = Math.max(0, DAY_LIMIT - state.done);
+    var heavyRoom = Math.max(0, HEAVY_LIMIT - state.heavy);
+    function take(id, into) {
+      if (!room || taken[id]) return;
+      if (isHeavy(id)) {
+        if (!heavyRoom) return;
+        heavyRoom--;
+      }
+      room--;
+      taken[id] = true;
+      into.push(id);
+    }
+    var later = [], light = [], heavy = [];
+    state.later.forEach(function (id) {
+      if (isDue[id]) take(id, later);
+    });
+    due
+      .slice()
+      .sort(function (a, b) {
+        // при равных iv и сроке порядок прежний (dueIds): сортировка устойчива
+        return num(cards[a].iv, 0) - num(cards[b].iv, 0) || dueOf(cards[a]) - dueOf(cards[b]);
+      })
+      .forEach(function (id) {
+        take(id, isHeavy(id) ? heavy : light);
+      });
+    var ids = light.concat(heavy, later);
+    return { ids: ids, held: due.length - ids.length };
+  }
+
+  // queue — очередь на сейчас целиком: карточки, порция и сколько просроченных в неё не вошло.
+  // При повреждённом algoSRS порции нет.
+  function queue(now) {
+    var store = readMap(KEY);
+    var cards = cardsOnly(store.map);
+    var p = store.damaged ? { ids: [], held: 0 } : portion(cards, loadToday(now), now);
+    return { damaged: store.damaged, cards: cards, ids: p.ids, held: p.held };
+  }
+
+  function today(now) {
+    var q = queue(now == null ? Date.now() : now);
+    return { ids: q.ids, held: q.held };
+  }
+
+  // later — «Позже»: карточка из сегодняшней порции уходит в её конец. Сама карточка (algoSRS) не
+  // меняется, место в порции остаётся за ней, done не растёт. Запись — по свежему чтению; заодно из
+  // списка уходят те, кого в порции уже нет (оценены, пропали). false — карточки в порции нет,
+  // ничего не записано.
+  function later(id, now) {
+    now = now == null ? Date.now() : now;
+    var ids = queue(now).ids;
+    if (ids.indexOf(id) < 0) return false;
+    var state = loadToday(now);
+    state.later = state.later.filter(function (x, i, all) {
+      return x !== id && ids.indexOf(x) >= 0 && all.indexOf(x) === i;
+    });
+    state.later.push(id);
+    saveToday(state);
+    return true;
+  }
+
+  function limitText() {
+    return "в день не больше " + DAY_LIMIT + " " + plural(DAY_LIMIT, "карточки", "карточек", "карточек") +
+      " и " + (HEAVY_LIMIT === 1 ? "одной" : HEAVY_LIMIT) + " с кодом";
   }
 
   // Задача банка смешанной тренировки (assets/problems.js) — источник условия для
@@ -442,12 +599,18 @@
     if (kindOf(id) === "ch") {
       return { kind: "Глава", title: chapterTitle(meta.href || ""), href: meta.href || "", what: "Вспомни предусловие и инвариант, не заглядывая в текст, — потом сверься." };
     }
+    // Карточка-вопрос несёт answer = { text, link: { text, href } }: то и другое показывается только
+    // после «Показать ответ», и кнопки оценки — вместе с ним.
     if (kindOf(id) === "quiz") {
+      var pattern = meta.pattern || "";
       return {
         kind: "Квиз: распознать шаблон",
-        title: meta.q || id.slice(5),
-        href: "quiz.html",
-        what: "Назови шаблон и, главное, триггер в условии, по которому ты его узнал — правильный ответ без триггера не считается.",
+        title: "Каким шаблоном это решается?",
+        href: "",
+        question: meta.q || id.slice(5),
+        // запись промаха без шаблона (собранный руками файл) — оценка без ответа, как раньше
+        answer: !pattern ? null : meta.href ? { link: { text: pattern, href: meta.href } } : { text: pattern },
+        what: "Назови шаблон и, главное, триггер в условии, по которому ты его узнал, — потом открой ответ: правильный ответ без триггера не считается.",
       };
     }
     if (kindOf(id) === "mix") {
@@ -458,7 +621,7 @@
         title: prob ? "Каким шаблоном это решается?" : "Задача из смешанной тренировки",
         href: prob ? "" : "mixed.html",
         question: prob ? prob.s : "",
-        answer: { text: chapterTitle(chHref), href: chHref },
+        answer: { link: { text: chapterTitle(chHref), href: chHref } },
         what: prob
           ? "Назови шаблон и примету в условии, по которой его узнал, — потом открой ответ."
           : "Её условия больше нет в банке. Вспомни, каким шаблоном она решалась, и открой ответ.",
@@ -474,11 +637,34 @@
       };
     }
     if (kindOf(id) === "cx") {
+      // Эталон — поле x банка (абзац «Ожидаемая сложность» заготовки). Глава здесь не ответ, а место
+      // сверки: шаблон читатель узнал, промах был в цене кода.
+      var task = findProblem(meta.pkg, meta.fn);
+      var slug = meta.chapter || (task && task.c) || "";
+      var chapter = slug ? { text: chapterTitle(slug + ".html"), href: slug + ".html" } : null;
+      var derive = "Не открывая решение, выведи время и память: сколько раз выполняется каждый цикл, что растёт вместе с входом";
+      if (task && task.x) {
+        return {
+          kind: "Собеседование: сложность",
+          title: "Какая сложность у решения — по времени и по памяти?",
+          href: "",
+          question: task.s,
+          answer: { text: task.x, link: chapter },
+          what: derive + ", — потом открой ответ.",
+        };
+      }
       return {
         kind: "Собеседование: сложность",
-        title: (meta.pkg || "") + "." + (meta.fn || "") + " — сложность своего решения оценена неверно",
-        href: "mixed.html",
-        what: "Не открывая решение, выведи время и память: сколько раз выполняется каждый цикл, что растёт вместе с входом. Потом сверься с условием задачи.",
+        title: task
+          ? "Какая сложность у решения — по времени и по памяти?"
+          : (meta.pkg || "") + "." + (meta.fn || "") + ": какая сложность у решения — по времени и по памяти?",
+        href: "",
+        question: task ? task.s : "",
+        see: chapter,
+        what: (task
+          ? "Эталонной оценки у этой задачи в банке нет. "
+          : "Условия этой задачи больше нет в банке, эталонной оценки тоже. ") +
+          derive + " — и сверься с главой.",
       };
     }
     if (kindOf(id) === "expl") {
@@ -527,28 +713,64 @@
     return many;
   }
 
-  // Перерисовки, которым нужно знать об изменении algoSRS (виджеты очереди). Счётчик в
+  // Перерисовки, которым нужно знать об изменении очереди (виджеты на «Повторении»). Счётчик в
   // панели обновляется отдельно — он есть на каждой странице, виджет только на «Повторении».
   var refreshers = [];
 
   function build(root) {
-    // форма «в чём была ошибка» открыта: событие из другой вкладки её не стирает
-    var noteOpen = false;
-    // что сейчас нарисовано: по этому внешнее изменение узнаёт, нужна ли перерисовка (иначе
-    // каждое чужое событие закрывало бы уже открытый ответ карточки-вопроса)
-    var shown = null;
+    // Карточка на экране: { id, due }. Пока она в порции и её срок прежний, чужое событие (другая
+    // вкладка, возврат на вкладку, новый день) меняет только шапку: полная перерисовка закрывала бы
+    // раскрытый ответ карточки-вопроса и уводила бы карточку из-под рук.
+    var current = null;
+    // поле «в чём была ошибка», пока форма открыта: чужое событие её не стирает
+    var noteInput = null;
+    var damaged = false;
+    var top = null;
+    // после действия читателя фокус клавиатуры остаётся в виджете: кнопка, которую он нажал, уже стёрта
+    root.tabIndex = -1;
+
+    function focusCard() {
+      (root.querySelector(".algo-today__card") || root).focus();
+    }
+
+    function toast(text) {
+      root.appendChild(el("div", "algo-today__toast", text));
+    }
+
+    function fillTop(q, now) {
+      var total = Object.keys(q.cards).length;
+      top.innerHTML = "";
+      var head = el("div", "algo-today__head");
+      head.appendChild(el("strong", null, q.ids.length ? "К повторению сегодня: " + q.ids.length : "На сегодня всё"));
+      // «следующая через N дней» — о карточках, чей срок ещё не вышел; при остатке на завтра она путала бы
+      var nd = q.held ? null : nextDueIn(q.cards, now);
+      head.appendChild(el("span", "algo-today__sub", total
+        ? "всего карточек " + total + (nd ? " · следующая через " + nd + " " + plural(nd, "день", "дня", "дней") : "")
+        : "карточек пока нет"));
+      top.appendChild(head);
+      if (q.ids.length && q.held) {
+        top.appendChild(el("p", "algo-today__held", "ещё " + q.held + " — не раньше завтра: " + limitText()));
+      }
+    }
+
+    function emptyText(q) {
+      if (q.held) {
+        return "Ещё " + q.held + " " + plural(q.held, "придёт", "придут", "придут") + " не раньше завтра: " + limitText() + ".";
+      }
+      return Object.keys(q.cards).length
+        ? "Ничего не просрочено — возвращайся завтра. Карточки заводятся сами: отметил главу пройденной, позеленел пакет в тренажёре, промахнулся в задаче."
+        : "Отметь пройденную главу галочкой в её конце, реши пакет в тренажёре или промахнись в задаче — и здесь появится первая карточка.";
+    }
 
     function render() {
-      noteOpen = false;
+      noteInput = null;
+      current = null;
       var now = Date.now();
-      var store = readMap(KEY);
-      var cards = cardsOnly(store.map);
-      var queue = dueIds(cards, now);
-      var total = Object.keys(cards).length;
-      shown = { id: queue[0] || null, due: queue.length ? dueOf(cards[queue[0]]) : 0, n: queue.length, total: total, damaged: store.damaged };
+      var q = queue(now);
+      damaged = q.damaged;
       root.innerHTML = "";
 
-      if (store.damaged) {
+      if (q.damaged) {
         root.appendChild(el("p", "algo-today__empty",
           "Сохранённые карточки повторений повреждены (ключ algoSRS не разбирается), поэтому книга их не трогает и не перезаписывает. " +
           "Вернуть их можно кнопкой «Импорт» на странице шпаргалки — из файла прогресса, который вы выгружали раньше. " +
@@ -557,30 +779,22 @@
         return;
       }
 
-      var head = el("div", "algo-today__head");
-      head.appendChild(el("strong", null, queue.length
-        ? "К повторению сегодня: " + queue.length
-        : "На сегодня всё"));
-      var sub = el("span", "algo-today__sub");
-      var nd = nextDueIn(cards, now);
-      sub.textContent = total
-        ? "всего карточек " + total + (nd ? " · следующая через " + nd + " " + plural(nd, "день", "дня", "дней") : "")
-        : "карточек пока нет";
-      head.appendChild(sub);
-      root.appendChild(head);
+      top = el("div", "algo-today__top");
+      root.appendChild(top);
+      fillTop(q, now);
 
-      if (!queue.length) {
-        root.appendChild(el("p", "algo-today__empty", total
-          ? "Ничего не просрочено — возвращайся завтра. Карточки заводятся сами: отметил главу пройденной, позеленел пакет в тренажёре, промахнулся в задаче."
-          : "Отметь пройденную главу в трекере, реши пакет в тренажёре или промахнись в задаче — и здесь появится первая карточка."));
+      if (!q.ids.length) {
+        root.appendChild(el("p", "algo-today__empty", emptyText(q)));
         return;
       }
 
-      var id = queue[0];
-      var card = cards[id];
+      var id = q.ids[0];
+      var card = q.cards[id];
       var info = describe(id, card);
+      current = { id: id, due: dueOf(card) };
 
       var box = el("div", "algo-today__card");
+      box.tabIndex = -1;
       box.appendChild(el("div", "algo-today__kind", info.kind));
       if (info.href) {
         var a = el("a", "algo-today__title", info.title);
@@ -595,11 +809,19 @@
         });
       }
       box.appendChild(el("p", "algo-today__what", info.what));
+      if (info.see) {
+        var see = el("p", "algo-today__see", "Глава: ");
+        var seeLink = el("a", null, info.see.text);
+        seeLink.href = info.see.href;
+        see.appendChild(seeLink);
+        box.appendChild(see);
+      }
 
       if (card.note) {
         box.appendChild(el("p", "algo-today__note", "В прошлый раз: " + card.note));
       }
 
+      var actions = el("div", "algo-today__actions");
       var bar = el("div", "algo-today__grades");
       [
         ["again", "Забыл", "вернётся завтра, а потом на ступень ниже той, с которой упала"],
@@ -611,7 +833,7 @@
         b.title = g[2];
         b.onclick = function () {
           if (g[0] === "again") {
-            askNote(card, function (note) { apply(g[0], note); });
+            askNote(function (note) { apply(g[0], note); });
             return;
           }
           apply(g[0]);
@@ -625,16 +847,36 @@
         var reveal = el("button", "algo-quiz__btn algo-today__reveal", "Показать ответ");
         reveal.type = "button";
         reveal.onclick = function () {
-          var ans = el("p", "algo-today__answer", "Ответ: ");
-          var link = el("a", null, info.answer.text);
-          link.href = info.answer.href;
-          ans.appendChild(link);
-          box.replaceChild(ans, reveal);
+          var ans = el("p", "algo-today__answer", "Ответ: " + (info.answer.text || ""));
+          if (info.answer.link) {
+            if (info.answer.text) ans.appendChild(document.createTextNode(". Глава: "));
+            var link = el("a", null, info.answer.link.text);
+            link.href = info.answer.link.href;
+            ans.appendChild(link);
+          }
+          ans.tabIndex = -1;
+          box.insertBefore(ans, actions);
+          actions.removeChild(reveal);
           bar.style.display = "";
+          ans.focus(); // кнопка, на которой стоял фокус, только что убрана
         };
-        box.appendChild(reveal);
+        actions.appendChild(reveal);
       }
-      box.appendChild(bar);
+      actions.appendChild(bar);
+
+      // «Позже» — на каждой карточке и до ответа тоже: карточка уходит в конец сегодняшней порции,
+      // её расписание не меняется. Единственная в порции остаётся на месте — очередь не запирается.
+      var laterBtn = el("button", "algo-quiz__btn algo-today__later", "Позже");
+      laterBtn.type = "button";
+      laterBtn.title = "в конец сегодняшней порции; карточка и её срок не меняются";
+      laterBtn.onclick = function () {
+        later(id, Date.now());
+        render();
+        if (current && current.id === id) toast("Других карточек в сегодняшней порции нет — эта осталась на месте.");
+        focusCard();
+      };
+      actions.appendChild(laterBtn);
+      box.appendChild(actions);
       root.appendChild(box);
 
       // Оценка идёт через report: он читает хранилище заново и меняет одну карточку, а не
@@ -642,24 +884,28 @@
       function apply(grade, note) {
         var res = report(id, grade, Date.now(), { note: note });
         render();
-        var text = null;
         if (res.status === "unsaved") {
-          text = "Не удалось сохранить оценку: хранилище браузера недоступно или переполнено. Карточка осталась в очереди.";
+          toast("Не удалось сохранить оценку: хранилище браузера недоступно или переполнено. Карточка осталась в очереди.");
         } else if (res.status === "early") {
-          text = "Эту карточку уже оценили в другой вкладке — оставил как есть.";
+          toast("Эту карточку уже оценили в другой вкладке — оставил как есть.");
         } else if (res.status === "graded") {
           var days = Math.max(1, Math.round((res.due - Date.now()) / DAY));
-          text = "Следующее повторение через " + days + " " + plural(days, "день", "дня", "дней");
+          var text = "Следующее повторение через " + days + " " + plural(days, "день", "дня", "дней");
           var back = grade === "again" ? (loadMap(KEY)[id] || {}).back : 0;
           if (back > 1) text += ", потом — через " + back + " " + plural(back, "день", "дня", "дней");
+          toast(text);
         }
-        if (text) root.appendChild(el("div", "algo-today__toast", text));
+        focusCard();
       }
 
       // Дневник ошибок: «забыл» — единственный момент, когда причина ещё в
       // голове. Формулировка своими словами и есть то, что превращает промах в
       // знание, поэтому её показываем при следующем повторе этой же карточки.
-      function askNote(card, done) {
+      function askNote(done) {
+        if (noteInput) {
+          noteInput.focus(); // форма уже открыта: второе «Забыл» вторую не заводит
+          return;
+        }
         var wrap = el("div", "algo-today__noteform");
         wrap.appendChild(el("label", "algo-today__notelabel", "В чём была ошибка? (необязательно, но полезно)"));
         var input = document.createElement("input");
@@ -671,12 +917,12 @@
         var ok = el("button", "algo-quiz__btn", "Сохранить и отложить");
         ok.type = "button";
         ok.onclick = function () {
-          noteOpen = false;
+          noteInput = null;
           done(input.value.trim());
         };
         wrap.appendChild(ok);
         box.appendChild(wrap);
-        noteOpen = true;
+        noteInput = input;
         input.focus();
         input.addEventListener("keydown", function (e) {
           if (e.key === "Enter") { e.preventDefault(); ok.click(); }
@@ -684,18 +930,19 @@
       }
     }
 
-    // Изменение algoSRS не из этого виджета (другая вкладка, report из другого скрипта):
-    // перерисовываем, только если изменилось то, что на экране.
+    // Очередь изменилась не из этого виджета: другая вкладка, report из другого скрипта, возврат на
+    // вкладку, новый день. Порция пересчитывается всегда; карточка на экране остаётся, пока она в
+    // порции и её срок прежний, а с открытой формой заметки — в любом случае (её текст ещё не записан).
     function refresh() {
-      if (noteOpen) return;
       var now = Date.now();
-      var store = readMap(KEY);
-      var cards = cardsOnly(store.map);
-      var queue = dueIds(cards, now);
-      var same = shown && shown.damaged === store.damaged && shown.n === queue.length &&
-        shown.total === Object.keys(cards).length && shown.id === (queue[0] || null) &&
-        (!queue.length || dueOf(cards[queue[0]]) === shown.due);
-      if (!same) render();
+      var q = queue(now);
+      var keep = current && !damaged && !q.damaged &&
+        (noteInput || (q.ids.indexOf(current.id) >= 0 && dueOf(q.cards[current.id]) === current.due));
+      if (!keep) {
+        render();
+        return;
+      }
+      fillTop(q, now);
     }
 
     refreshers.push(refresh);
@@ -703,9 +950,10 @@
   }
 
   // Счётчик «🔁 Сегодня: N» — на КАЖДОЙ странице: очередь, о которой не напоминает ни одна
-  // страница, кроме собственной, не работает. Ставится в правую часть верхней панели mdBook
-  // первой кнопкой (порядок остальных не меняется); нет панели — под заголовком главы.
-  // Пока карточек на сегодня нет, элемента нет вовсе: страница не дёргается и не мигает.
+  // страница, кроме собственной, не работает. N — порция дня (today().ids.length), а не всё
+  // просроченное. Ставится в правую часть верхней панели mdBook первой кнопкой (порядок остальных
+  // не меняется); нет панели — под заголовком главы. Пока карточек на сегодня нет, элемента нет
+  // вовсе: страница не дёргается и не мигает.
   var badge = null;
 
   function makeBadge() {
@@ -727,8 +975,9 @@
     return a;
   }
 
-  function refreshBadge(cards) {
-    var n = dueIds(cards || loadCards(), Date.now()).length;
+  function refreshBadge() {
+    var t = today();
+    var n = t.ids.length;
     if (!badge) {
       if (!n) return;
       badge = makeBadge();
@@ -736,7 +985,8 @@
     }
     badge.hidden = !n;
     badge.querySelector(".algo-srs-badge__n").textContent = String(n);
-    var title = "К повторению сегодня: " + n + " " + plural(n, "карточка", "карточки", "карточек");
+    var title = "К повторению сегодня: " + n + " " + plural(n, "карточка", "карточки", "карточек") +
+      (t.held ? ", ещё " + t.held + " — не раньше завтра" : "");
     badge.title = title;
     badge.setAttribute("aria-label", title);
   }
@@ -753,18 +1003,27 @@
     load: loadCards,
     due: function (now) { return dueIds(loadCards(), now == null ? Date.now() : now); },
     damaged: function () { return readMap(KEY).damaged; },
+    today: today,
+    later: later,
+    limits: { cards: DAY_LIMIT, heavy: HEAVY_LIMIT },
   };
 
   function init() {
-    refreshBadge(sync(Date.now()).cards);
+    sync(Date.now());
+    refreshBadge();
     document.addEventListener(CHANGE_EVENT, refreshViews);
     window.addEventListener("storage", function (e) {
-      if (e.key === null || e.key === KEY) refreshViews();
+      if (e.key === null || e.key === KEY || e.key === TODAY) refreshViews();
     });
-    // вкладка, открытая со вчера: сроки подошли, а событий не было. Виджет не трогаем — он
-    // перерисовался бы поверх открытого ответа карточки-вопроса.
+    // Вкладка, открытая со вчера: сроки подошли и день сменился, а событий не было. Таймера до
+    // полуночи нет намеренно — порция пересчитывается, когда читатель возвращается к странице
+    // (и при любом его действии в виджете); карточку на экране виджет при этом бережёт (refresh).
     document.addEventListener("visibilitychange", function () {
-      if (!document.hidden) refreshBadge();
+      if (!document.hidden) refreshViews();
+    });
+    window.addEventListener("focus", refreshViews);
+    window.addEventListener("pageshow", function (e) {
+      if (e.persisted) refreshViews(); // страница поднята из кэша переходов: скрипты заново не шли
     });
     Array.prototype.forEach.call(
       document.querySelectorAll(".algo-today:not(.algo-today--ready)"),

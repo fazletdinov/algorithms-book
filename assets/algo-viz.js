@@ -16523,6 +16523,8 @@
         m[type] = e;
         localStorage.setItem(PRED_MISS, JSON.stringify(m));
       } catch (err) { /* приватный режим: промах просто не запомнится */ }
+      // карточка промаха встаёт в очередь сразу: счётчик «Сегодня» обновляется без перехода на другую страницу
+      if (window.ALGO_SRS) window.ALGO_SRS.sync();
     }
     predSync();
     [bPred, predScore].forEach(function (x) { btns.appendChild(x); });
