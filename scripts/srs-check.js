@@ -25,7 +25,8 @@
 //  11) «Забыл» до срока — один раз на падение, дальше early; отказ записи — статус unsaved, без события;
 //  12) повреждённый algoSRS (пять видов значений) не перезаписывается, карточка-мусор пропускается;
 //  13) ни разу не оценённая карточка главы без отметки в трекере при sync уходит;
-//  14) порция дня: не больше 12 карточек и одной с кодом, порядок «iv, затем срок», тяжёлая последней,
+//  14) порция дня: не больше 12 карточек и одной с кодом, порядок «iv, затем срок» у лёгких и «самая
+//      просроченная» у карточек с кодом (за 120 дней на долге первого дня пакет не голодает), тяжёлая последней,
 //      отложенные («Позже») в конце; границы — перебором случайных наборов с фиксированным зерном;
 //      мусор в algoToday и смена суток начинают день заново; счётчик дня растёт только по оценке
 //      карточки с вышедшим сроком; две вкладки не теряют ни done, ни later;
@@ -1034,7 +1035,7 @@ if (api) {
   if (!r || typeof r.today !== "function") {
     errors.push("ALGO_SRS.today не определён — очередь не ограничена дневной порцией");
   } else {
-    // (a) 20 лёгких и 3 с кодом: 12 в порции, одна с кодом и она последняя; порядок — iv, затем срок
+    // (a) 20 лёгких и 3 с кодом: 12 в порции, одна с кодом (самая просроченная) и она последняя; лёгкие — iv, затем срок
     const t = r.today(now);
     if (JSON.stringify(t.ids) !== JSON.stringify(DEBT_PORTION)) errors.push(`порция: ${JSON.stringify(t.ids)}, ожидалось ${JSON.stringify(DEBT_PORTION)}`);
     if (t.held !== 11) errors.push(`порция: held = ${t.held}, ожидалось 11 (23 просроченных минус 12)`);
@@ -1127,7 +1128,7 @@ if (api) {
   }
 }
 
-// --- 11e. порядок порции: по возрастанию iv, затем срока ---
+// --- 11e. порядок порции: лёгкие по возрастанию iv, затем срока; из карточек с кодом — самая просроченная ---
 {
   const now = NOON;
   const c = { "task:x#1": light("X", 1, now - HOUR), "task:y#1": light("Y", 22, now - 5 * DAY), "task:z#1": light("Z", 3, now - 2 * DAY) };
@@ -1140,6 +1141,25 @@ if (api) {
     dom.window.localStorage.setItem("algoSRS", JSON.stringify(c));
     const tie = r.today(now).ids.join();
     if (tie !== "task:x#1,task:q#1,task:z#1,task:y#1") errors.push(`при равном iv первым идёт старший срок: ${tie}`);
+
+    // Карточки с кодом — только по сроку: пакет с интервалом 22 дня, просроченный на 30, идёт раньше
+    // пакета с интервалом 1, просроченного на 2. По iv место дня доставалось бы молодым пакетам, и
+    // зрелый ждал бы, пока они не кончатся.
+    const pk = (iv, due) => Object.assign(heavy("p", due), { iv, reps: iv ? 3 : 0, ease: 2.5 });
+    const h = { "task:x#1": light("X", 1, now - HOUR), "pkg:young": pk(1, now - 2 * DAY), "pkg:old": pk(22, now - 30 * DAY), "pkg:new": pk(0, now - DAY) };
+    dom.window.localStorage.setItem("algoSRS", JSON.stringify(h));
+    const byDue = r.today(now);
+    if (byDue.ids.join() !== "task:x#1,pkg:old" || byDue.held !== 2) errors.push(`из карточек с кодом в порцию идёт самая просроченная, а не младшая по iv: ${JSON.stringify(byDue)}, ожидалось task:x#1, pkg:old`);
+    // при равном сроке — по id, а не по порядку заведения
+    const same = { "pkg:b": pk(1, now - 3 * DAY), "pkg:a": pk(8, now - 3 * DAY) };
+    dom.window.localStorage.setItem("algoSRS", JSON.stringify(same));
+    if (r.today(now).ids.join() !== "pkg:a") errors.push(`карточки с кодом с равным сроком — по id: ${r.today(now).ids.join()}, ожидалось pkg:a`);
+    // последнее место дня при равном сроке достаётся лёгкой: в общем проходе тяжёлая стоит как iv 0, но после лёгких
+    const tieLast = { "pkg:z": pk(5, now - DAY), "task:n#1": light("N", 0, now - DAY) };
+    dom.window.localStorage.setItem("algoSRS", JSON.stringify(tieLast));
+    dom.window.localStorage.setItem("algoToday", JSON.stringify({ day: dayKey(now), done: 11, heavy: 0, later: [] }));
+    if (r.today(now).ids.join() !== "task:n#1") errors.push(`последнее место дня при равном сроке: ${r.today(now).ids.join()}, ожидалась лёгкая task:n#1`);
+    dom.window.localStorage.removeItem("algoToday");
   }
 }
 
@@ -1256,6 +1276,8 @@ if (api) {
       const fail = (what) => bad.push(`набор ${trial}: ${what} — порция ${JSON.stringify(ids)}, held ${got.held}, день ${JSON.stringify(st)}, просрочено ${dueAll.length}`);
       const key = (id) => [map[id].iv, map[id].due];
       const less = (a, b) => key(a)[0] < key(b)[0] || (key(a)[0] === key(b)[0] && key(a)[1] < key(b)[1]);
+      // карточки с кодом — только по сроку, при равном — по id
+      const earlier = (a, b) => map[a].due < map[b].due || (map[a].due === map[b].due && a < b);
 
       if (new Set(ids).size !== ids.length) fail("карточка встречается дважды");
       if (ids.some((id) => !isDue.has(id))) fail("в порции карточка без вышедшего срока, мусорная или несуществующая");
@@ -1280,7 +1302,7 @@ if (api) {
       // в порцию вошли лучшие по (iv, срок) из неотложенных
       const outFresh = out.filter((id) => !inLater.has(id));
       if (outFresh.some((id) => !isHeavy(id) && lights.some((x) => less(id, x)))) fail("оставленная лёгкая карточка раньше по (iv, срок), чем взятая");
-      if (heavyAt >= 0 && outFresh.some((id) => isHeavy(id) && less(id, headPart[heavyAt]))) fail("оставленная тяжёлая карточка раньше по (iv, срок), чем взятая");
+      if (heavyAt >= 0 && outFresh.some((id) => isHeavy(id) && earlier(id, headPart[heavyAt]))) fail("оставленная тяжёлая карточка просрочена раньше взятой — у карточек с кодом порядок по сроку");
       // порция не меньше возможного: место осталось — значит, за бортом только тяжёлые сверх предела
       if (ids.length < room) {
         if (out.some((id) => !isHeavy(id))) fail("место в порции осталось, а лёгкая карточка не взята");
@@ -1702,6 +1724,65 @@ if (api) {
       for (const s of said) if (s !== phrase) errors.push(`src/${f}: «${s}», а предел в srs.js — ${r.limits.cards}`);
     }
     if (r.limits.heavy !== 1) errors.push("предел тяжёлых изменился: тексты книги и виджета говорят «одной с кодом»");
+  }
+}
+
+// --- 20. карточки с кодом не голодают: 120 дней ежедневной работы на долге первого дня ---
+// Состояние — как у автора книги в замере ревью: 15 глав без меток, 18 пакетов (старейший просрочен на
+// 87 дней), 6 формулировок, 14 промахов. Каждый день порция проходится целиком. Место для кода одно в
+// день, и при порядке «самая просроченная первой» пакет после первого круга опаздывает против своего
+// срока не больше чем на число остальных пакетов: 17 дней. При прежнем порядке по iv зрелый пакет ждал,
+// пока не кончатся молодые: при «Забыл» в четверти оценок — до 40 с лишним дней.
+{
+  const start = new Date(2026, 9, 8, 19, 0).getTime();
+  const PKGS = 18;
+  const state = () => {
+    const prog = {}, pk = {}, ex = {}, ch = {}, qz = {}, mx = {};
+    for (let i = 0; i < 15; i++) prog["c" + i + ".html"] = true;
+    for (let i = 0; i < PKGS; i++) pk["p" + i] = start - (88 - i * 5) * DAY;
+    for (let i = 0; i < 6; i++) ex["e" + i] = { ts: start - (10 + i) * DAY, grade: "good" };
+    for (let i = 0; i < 8; i++) ch["big-o#" + i] = { n: 1, page: "big-o", anchor: "", q: "q" };
+    for (let i = 0; i < 3; i++) qz["q" + i] = { n: 1, pattern: "P", href: "x.html", q: "q" + i };
+    for (let i = 0; i < 2; i++) mx["m.F" + i] = { n: 1, chapter: "c", pkg: "m", fn: "F" + i };
+    const vz = { t: { n: 1, page: "x.html", title: "t", line: 1, code: "if" } };
+    const out = {};
+    Object.entries({ algoProgress: prog, algoPkgSolved: pk, algoExplainDone: ex, algoChallengeMissed: ch, algoQuizMissed: qz, algoMixedMissed: mx, algoVizMissed: vz })
+      .forEach(([k, v]) => { out[k] = JSON.stringify(v); });
+    return out;
+  };
+  const run = async (pAgain, seed) => {
+    const dom = await newDom(state(), [CLOCK(start)], "<div></div>");
+    const w = dom.window, r = w.ALGO_SRS;
+    if (!r || !r.today) return null;
+    const R = mulberry32(seed);
+    let worst = 0, firstPass = 0;
+    const seenPkg = new Set();
+    for (let day = 1; day <= 120; day++) {
+      const now = start + (day - 1) * DAY;
+      w.__now = now;
+      r.sync(now);
+      for (let g = 0; g < 20; g++) {
+        const t = r.today(now);
+        if (!t.ids.length) break;
+        const id = t.ids[0];
+        const card = r.load()[id];
+        if (id.indexOf("pkg:") === 0) {
+          seenPkg.add(id);
+          if (seenPkg.size === PKGS && !firstPass) firstPass = day;
+          if (card.iv > 0) worst = Math.max(worst, (now - card.due) / DAY);
+        }
+        r.report(id, R() < pAgain ? "again" : "good", now, { rnd: () => 0.5 });
+      }
+    }
+    w.close();
+    return { worst, firstPass };
+  };
+  for (const [what, pAgain, seed] of [["все «Помню»", 0, 1], ["«Забыл» в четверти оценок", 0.25, 20261008]]) {
+    const res = await run(pAgain, seed);
+    if (!res) continue;
+    if (res.firstPass !== PKGS) errors.push(`${what}: первый круг по ${PKGS} пакетам закончился на дне ${res.firstPass}, ожидался день ${PKGS} — по пакету в день`);
+    if (res.worst > PKGS - 1) errors.push(`${what}: пакет пришёл на ${res.worst} дн. позже своего срока — больше ${PKGS - 1}: карточки с кодом голодают`);
+    console.log(`   долг первого дня, 120 дней (${what}): первый круг по ${PKGS} пакетам — день ${res.firstPass}, наибольшее опоздание пакета ${res.worst} дн.`);
   }
 }
 
