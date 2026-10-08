@@ -1797,6 +1797,17 @@ if (api) {
     }
     if (r.limits.heavy !== 1) errors.push("предел тяжёлых изменился: тексты книги и виджета говорят «одной с кодом»");
   }
+  // карточка пакета: сколько функций и пакетов годны для «одной функции с чистого листа» — по банку задач
+  // (свои тесты, без соседей) и каталогам тренажёра, а не по памяти
+  const md = fs.readFileSync(path.join(root, "src", "review.md"), "utf8").replace(/\s+/g, " ");
+  const ex = path.join(root, "exercises");
+  const pkgs = fs.readdirSync(ex).filter((d) => d !== "cmd" && fs.statSync(path.join(ex, d)).isDirectory());
+  const fit = BANK.filter((p) => p.t.length && !p.n.length);
+  const withFn = new Set(fit.map((p) => p.p));
+  const want = [fit.length, withFn.size, pkgs.length, pkgs.length - withFn.size];
+  const said = md.match(/(\d+) функци\S* в (\d+) пакет\S* из (\d+); у остальных (\d+) пакет/);
+  if (!said) errors.push("src/review.md: нет фразы «N функций в M пакетах из K; у остальных L пакетов» о карточке пакета");
+  else if (said.slice(1).map(Number).join() !== want.join()) errors.push(`src/review.md: «${said[0]}», а по банку и тренажёру — ${want.join(" / ")}`);
 }
 
 // --- 20. карточки с кодом не голодают: 120 дней ежедневной работы на долге первого дня ---
