@@ -543,7 +543,7 @@
             emit(root, "algo-runner:giveup", { pkg: pkg, fn: name });
           }, function (err) {
             if (err.network) setUp(false);
-            else if (!err.status) console.error("algo-runner:", err);
+            else if (err.status) setUp(true); else console.error("algo-runner:", err);
             solutions[name] = { error: err.network ? "runner не отвечает (" + err.message + ")" : err.message };
             renderHelp();
           });
@@ -683,7 +683,7 @@
             setStatus("ошибка связи", "err");
             return;
           }
-          if (!err.status) console.error("algo-runner:", err);
+          if (err.status) setUp(true); else console.error("algo-runner:", err);
           out.innerHTML = "";
           out.appendChild(el("div", "algo-runner__verdict is-err", "✗ Runner ответил ошибкой: " + err.message));
           setStatus("ошибка запроса", "err");
@@ -745,7 +745,7 @@
               setStatus("ошибка связи", "err");
               return;
             }
-            if (!err.status) console.error("algo-runner:", err);
+            if (err.status) setUp(true); else console.error("algo-runner:", err);
             traceOut.innerHTML = "";
             traceOut.appendChild(el("div", "algo-runner__verdict is-err", "✗ Runner ответил ошибкой: " + err.message));
             setStatus("ошибка запроса", "err");
