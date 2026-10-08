@@ -9,7 +9,9 @@
 //   1) отрисовались ВСЕ главы из GROUPS и заголовок каждой группы со счётчиком;
 //   2) отметка главы обновляет общий процент, счётчик своей группы и localStorage;
 //   3) состояние ключуется по href (перегруппировка глав не сбрасывает отметки);
-//   4) «Сбросить прогресс» действительно всё снимает.
+//   4) «Сбросить прогресс» действительно всё снимает;
+//   5) отметка пишет algoProgressAt[href] (метку события для srs.js), снятие её убирает,
+//      сброс очищает.
 // Состав списка сверяет с книгой отдельный scripts/check-registries.js.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в viz-render-check.js.
 "use strict";
@@ -145,6 +147,24 @@ setTimeout(function () {
     errors.push(`состояние в localStorage ключуется не по href: ${JSON.stringify(stored)}`);
   }
 
+  // --- метка времени отметки: по ней srs.js считает срок карточки главы от события ---
+  const marks = () => JSON.parse(localStorage.getItem("algoProgressAt") || "{}");
+  if (typeof marks()[coreHref] !== "number" || Math.abs(marks()[coreHref] - Date.now()) > 60 * 1000) {
+    errors.push(`отметка главы не записала метку algoProgressAt[${coreHref}]: ${JSON.stringify(marks())}`);
+  }
+  if (typeof marks()[declaredLevels[idxNonCore].h + ".html"] !== "number") {
+    errors.push("метка пишется только у глав ядра — у остальных она нужна так же");
+  }
+  // снятие галочки убирает метку (algoProgress остаётся false: сама карточка из srs.js не удаляется)
+  const cbCore = items[idxCore].querySelector("input");
+  cbCore.checked = false;
+  cbCore.dispatchEvent(new dom.window.Event("change"));
+  if (coreHref in marks()) errors.push(`снятие отметки не убрало метку: ${JSON.stringify(marks())}`);
+  if (JSON.parse(localStorage.getItem("algoProgress"))[coreHref] !== false) errors.push("снятие отметки не записало false в algoProgress");
+  // повторная отметка — новая метка, не старая
+  mark(idxCore);
+  if (typeof marks()[coreHref] !== "number") errors.push("повторная отметка не записала метку заново");
+
   // --- сброс ---
   const reset = [...el.querySelectorAll("button")].find((b) => /Сбросить/.test(b.textContent));
   if (!reset) {
@@ -157,6 +177,7 @@ setTimeout(function () {
     if (items.some((i) => i.querySelector("input").checked)) {
       errors.push("после сброса остались отмеченные главы");
     }
+    if (Object.keys(marks()).length) errors.push(`после сброса остались метки времени: ${JSON.stringify(marks())}`);
   }
 
   if (errors.length) {
@@ -167,6 +188,6 @@ setTimeout(function () {
   console.log(
     `✅ progress-render-check: трекер строит ${items.length} глав в ${groups.length} группах ` +
       `(ядро ${core.length}, вне ядра ${nonCore.length}), процент считается только по ядру, ` +
-      `отметка обновляет счётчик группы/localStorage, сброс работает`
+      `отметка обновляет счётчик группы/localStorage и пишет метку времени, снятие её убирает, сброс работает`
   );
 }, 200);

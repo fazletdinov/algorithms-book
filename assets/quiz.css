@@ -309,6 +309,52 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Счётчик «🔁 Сегодня: N» (srs.js) в правой части верхней панели mdBook — на каждой странице.
+   Цвета у панели общие для всех тем (--icons, --icons-hover), поэтому читается и в navy, и в
+   light. Ссылка стоит среди иконок: у них line-height равен высоте панели, у неё тоже. */
+.algo-srs-badge {
+  display: inline-block;
+  padding: 0 8px;
+  line-height: var(--menu-bar-height, 50px);
+  font-size: 1.4rem;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--icons, inherit);
+}
+
+.algo-srs-badge:hover {
+  color: var(--icons-hover, inherit);
+  text-decoration: none;
+}
+
+.algo-srs-badge[hidden] {
+  display: none;
+}
+
+.algo-srs-badge__n {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Телефон: слово «Сегодня:» не помещается рядом с иконками панели — остаётся «🔁 N» (подсказка
+   и aria-label у ссылки полные). */
+@media (max-width: 520px) {
+  .algo-srs-badge__label {
+    display: none;
+  }
+}
+
+/* Нет панели mdBook — счётчик под заголовком главы, как плашка уровня. */
+.algo-srs-badge--inline {
+  display: table;
+  margin: -0.4em 0 1.2em;
+  padding: 0.25em 0.8em;
+  line-height: 1.4;
+  font-size: 0.9em;
+  border: 1px solid var(--quote-border, #cccccc66);
+  border-radius: 10px;
+  color: inherit;
+}
+
 /* Виджет «Сегодня к повторению» (srs.js). */
 .algo-today {
   margin: 1.4em 0;

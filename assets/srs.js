@@ -2,6 +2,9 @@
  * srs.js — интервальные повторения: что повторить сегодня и когда следующий раз.
  *
  * Контейнер: <div class="algo-today"></div> (страница «Повторение», review.md).
+ * Движок работает на КАЖДОЙ странице книги: при загрузке заводит недостающие карточки
+ * (sync) и ставит в верхнюю панель счётчик «🔁 Сегодня: N». Виджет очереди — только на
+ * странице «Повторение».
  *
  * Зачем. Учебник фиксирует только «пройдено» — один раз и навсегда. За два-три
  * месяца пути от Big-O до дерева отрезков начало забывается быстрее, чем
@@ -26,11 +29,43 @@
  *   viz:<тип>    — в режиме 🎯 виджета исход развилки предсказан неверно (algo-viz.js,
  *                  algoVizMissed): механику алгоритма читатель ещё не прокручивает в голове.
  *
- * Расписание — SM-2 в упрощённом виде: у карточки есть интервал (дни) и «лёгкость»
- * ease. «Помню» умножает интервал на ease, «с трудом» растит его на 20 %, но не
- * меньше чем на день, «забыл» роняет обратно в один день и снижает ease. Первые
- * два интервала у «Помню» фиксированы (1 и 3 дня) — до них умножать нечего; первый
- * интервал у «с трудом» — тоже день.
+ * Срок новой карточки — от СОБЫТИЯ, а не от захода на страницу: глава — от метки
+ * algoProgressAt[href] (её пишет трекер в progress.js; нет метки — от «сейчас») плюс день,
+ * пакет — от algoPkgSolved[пакет] плюс день, «объясни сам» — от algoExplainDone[ключ].ts, причём
+ * оценка виджета сразу идёт в расписание, как будто её поставили здесь; промахи — «сейчас».
+ *
+ * Расписание — SM-2 в упрощённом виде: у карточки есть интервал iv (дни) и «лёгкость»
+ * ease. Лестница «Помню» с новой карточки: 1, 3, затем iv × ease (не меньше iv + 1 дня):
+ * 1, 3, 8, 22, 61… «С трудом» растит на 20 %, но не меньше чем на день, первый интервал
+ * после «Забыл» — день. «Забыл» — ШАГ НАЗАД, а не сброс: карточка приходит завтра (iv = 1),
+ * а поле back хранит ступень, на которую она вернётся первым «Помню» (22 дня → завтра →
+ * 8 → 21, а не 1 → 3 → 8). back = предыдущая ступень того, с чего упали (если карточка ещё
+ * не вернулась после прошлого «Забыл», — back, иначе iv): до 3 дней включительно 1, иначе
+ * max(3, round(интервал / ease до штрафа)). «С трудом» после «Забыл» снимает back: день.
+ * Разброс: от iv = 8 срок сдвигается на round(iv × 0.125 × (2·rnd() − 1)) дней; card.iv
+ * остаётся номинальным, сдвиг живёт только в due (поэтому порядок «Забыл» ≤ «С трудом» ≤
+ * «Помню» держится и в сроках: при одном rnd срок не убывает от iv).
+ *
+ * Карточка: { due, iv, ease, reps, meta, seen?, note?, back? }. due — мс, iv — номинальные дни
+ * (0 — ещё не оценивалась), ease ∈ [1.3, 2.8] с шагом 0.05, reps — подряд зачтённых повторов,
+ * seen — когда оценена последний раз, note — «в чём была ошибка», back — см. выше (нет — карточка
+ * не падала с ступени: прежние записи без back работают как раньше).
+ *
+ * window.ALGO_SRS:
+ *   schedule(card, grade, now, rnd) → iv   — меняет карточку; grade: "again" | "hard" | "good";
+ *                                            rnd() ∈ [0, 1), по умолчанию Math.random;
+ *   sync(now) → { cards, created }         — заводит недостающие карточки, created — их id;
+ *   report(id, grade, now, opts) → { status, iv, due }
+ *                                          — исход события для виджетов; status: "created" (карточку
+ *                                            только что завёл этот вызов — оценивать нечего), "none"
+ *                                            (карточки нет или оценка неизвестна), "graded" (срок
+ *                                            подошёл — оценена; «Забыл» применяется и до срока),
+ *                                            "early" (срок не подошёл — ничего не изменилось);
+ *                                            opts = { note, rnd };
+ *   load() → cards, due(now) → [id]        — карточки как есть и id тех, чей срок вышел (старые первыми).
+ * Запись algoSRS всегда по свежему чтению и с изменением только заведённых/оцениваемых карточек,
+ * поэтому две вкладки не затирают друг друга; после записи на document уходит событие
+ * "algo-srs:change" ({ detail: { ids } }), а вкладки слушают и "storage".
  *
  * Ограничение, которое честно назвать: оценку ставит сам читатель, и движок
  * верит ей на слово. Для главы и пакета проверка объективная есть рядом (тесты
@@ -41,6 +76,7 @@
 
   var KEY = "algoSRS";
   var PROGRESS = "algoProgress";
+  var PROGRESS_AT = "algoProgressAt"; // { "<href>": ts } — когда глава отмечена (пишет progress.js)
   var PKG_SOLVED = "algoPkgSolved";
   var MISSED = "algoChallengeMissed";
   var SOLVED = "algoChallengeSolved";
@@ -50,10 +86,19 @@
   var CX_MISSED = "algoMockCxMissed";
   var VIZ_MISSED = "algoVizMissed";
 
+  var CHANGE_EVENT = "algo-srs:change";
+
   var DAY = 24 * 60 * 60 * 1000;
   var EASE_START = 2.5;
   var EASE_MIN = 1.3;
   var EASE_MAX = 2.8;
+  var GRADES = ["again", "hard", "good"];
+  // Начиная с 3 дней интервал растёт умножением; ниже «Забыл» опускает сразу на день.
+  var LADDER_LOW = 3;
+  // Разброс срока: от 8 дней и не больше 12,5 % интервала в обе стороны — иначе карточки
+  // одной главы, заведённые в один день, приходили бы стайкой на каждой ступени.
+  var SPREAD_FROM = 8;
+  var SPREAD = 0.125;
 
   function loadMap(key) {
     try {
@@ -85,40 +130,71 @@
     return href.replace(/\.html$/, "");
   }
 
+  // Запись, меняющая algoSRS, всегда идёт по СВЕЖЕМУ чтению и трогает только свои
+  // карточки: вкладок с книгой может быть несколько, и «прочитал при загрузке, записал
+  // всё при оценке» стирало бы то, что другая вкладка записала за это время.
+  function notify(ids) {
+    if (typeof CustomEvent !== "function") return;
+    document.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { ids: ids } }));
+  }
+
+  // update читает хранилище заново, применяет fn к одной карточке и записывает.
+  function update(id, fn) {
+    var cards = loadMap(KEY);
+    var card = cards[id];
+    if (!card) return null;
+    fn(card);
+    save(KEY, cards);
+    notify([id]);
+    return card;
+  }
+
   // sync заводит карточки для всего, что читатель уже прошёл или провалил, и
   // ничего не удаляет: снятая в трекере галочка — не повод забывать историю
-  // повторений этой главы.
+  // повторений этой главы. Зовётся на каждой странице при загрузке: событие
+  // (отметка главы, зелёный пакет) происходит не там, где живёт очередь.
   //
-  // Новая карточка главы/пакета получает срок «завтра», а не «сейчас»: повторять
-  // в день прохождения бессмысленно, материал ещё в голове. Промах — наоборот,
-  // сразу в очередь: он и есть сигнал, что не понято именно сейчас.
+  // Новая карточка главы/пакета получает срок «событие + день», а не «сейчас»:
+  // повторять в день прохождения бессмысленно, материал ещё в голове. Отсчёт идёт
+  // от метки САМОГО события; нет метки (прежние записи) — от «сейчас». Промах —
+  // наоборот, сразу в очередь: он и есть сигнал, что не понято именно сейчас.
   function sync(now) {
+    now = now == null ? Date.now() : now;
     var cards = loadMap(KEY);
-    var changed = false;
+    var created = [];
+
+    // add заводит карточку, если такой ещё нет, и отдаёт её (иначе null).
+    function add(id, due, meta) {
+      if (cards[id]) return null;
+      var card = newCard(due, meta);
+      cards[id] = card;
+      created.push(id);
+      return card;
+    }
+    // Метка из будущего (часы переводили) и не-число (прежние записи) — не метка.
+    function stamp(ts) {
+      return typeof ts === "number" && isFinite(ts) && ts > 0 && ts <= now ? ts : now;
+    }
 
     var progress = loadMap(PROGRESS);
+    var progressAt = loadMap(PROGRESS_AT);
     Object.keys(progress).forEach(function (href) {
-      if (!progress[href]) return;
-      var id = "ch:" + href;
-      if (cards[id]) return;
-      cards[id] = newCard(now + DAY, { href: href });
-      changed = true;
+      if (progress[href]) add("ch:" + href, stamp(progressAt[href]) + DAY, { href: href });
     });
 
     var pkgs = loadMap(PKG_SOLVED);
     Object.keys(pkgs).forEach(function (pkg) {
-      var id = "pkg:" + pkg;
-      if (cards[id]) return;
-      cards[id] = newCard(now + DAY, { pkg: pkg });
-      changed = true;
+      add("pkg:" + pkg, stamp(pkgs[pkg]) + DAY, { pkg: pkg });
     });
 
+    // Оценка виджета («Не сошлось» / «Частично» / «Сошлось») — уже первое извлечение,
+    // а не просто факт «ответил»: она идёт в расписание, как будто поставлена здесь.
     var explained = loadMap(EXPLAINED);
     Object.keys(explained).forEach(function (chapKey) {
-      var id = "expl:" + chapKey;
-      if (cards[id]) return;
-      cards[id] = newCard(now + DAY, { chapter: chapKey });
-      changed = true;
+      var rec = explained[chapKey] || {};
+      var ts = stamp(rec.ts);
+      var card = add("expl:" + chapKey, ts + DAY, { chapter: chapKey });
+      if (card && GRADES.indexOf(rec.grade) >= 0) schedule(card, rec.grade, ts);
     });
 
     // Промахи квиза и смешанной тренировки — это «не узнал шаблон», то есть
@@ -126,85 +202,122 @@
     // в очередь СЕГОДНЯ, а не завтра.
     var quizMissed = loadMap(QUIZ_MISSED);
     Object.keys(quizMissed).forEach(function (q) {
-      var id = "quiz:" + q;
-      if (cards[id]) return;
-      cards[id] = newCard(now, quizMissed[q]);
-      changed = true;
+      add("quiz:" + q, now, quizMissed[q]);
     });
 
     var mixMissed = loadMap(MIXED_MISSED);
     Object.keys(mixMissed).forEach(function (k) {
-      var id = "mix:" + k;
-      if (cards[id]) return;
-      cards[id] = newCard(now, mixMissed[k]);
-      changed = true;
+      add("mix:" + k, now, mixMissed[k]);
     });
 
     // Промах по сложности тоже встаёт СЕГОДНЯ: оценить цену своего кода — навык,
     // который на собеседовании проверяют сразу после зелёных тестов.
     var cxMissed = loadMap(CX_MISSED);
     Object.keys(cxMissed).forEach(function (k) {
-      var id = "cx:" + k;
-      if (cards[id]) return;
-      cards[id] = newCard(now, cxMissed[k]);
-      changed = true;
+      add("cx:" + k, now, cxMissed[k]);
     });
 
     // Промах предсказания в виджете — тоже сегодня: пока развилка свежа в памяти.
     var vizMissed = loadMap(VIZ_MISSED);
     Object.keys(vizMissed).forEach(function (k) {
-      var id = "viz:" + k;
-      if (cards[id]) return;
-      cards[id] = newCard(now, vizMissed[k]);
-      changed = true;
+      add("viz:" + k, now, vizMissed[k]);
     });
 
     var missed = loadMap(MISSED);
     var solved = loadMap(SOLVED);
     Object.keys(missed).forEach(function (taskId) {
       if (solved[taskId]) return;
-      var id = "task:" + taskId;
-      if (cards[id]) return;
       var m = missed[taskId] || {};
-      cards[id] = newCard(now, { page: m.page, anchor: m.anchor, q: m.q });
-      changed = true;
+      add("task:" + taskId, now, { page: m.page, anchor: m.anchor, q: m.q });
     });
 
-    if (changed) save(KEY, cards);
-    return cards;
+    if (created.length) {
+      save(KEY, cards);
+      notify(created);
+    }
+    return { cards: cards, created: created };
   }
 
   function newCard(due, meta) {
     return { due: due, iv: 0, ease: EASE_START, reps: 0, meta: meta };
   }
 
-  function clamp(v, lo, hi) {
-    return Math.max(lo, Math.min(hi, v));
+  function clampEase(v) {
+    // два знака: иначе 2.5 + 0.05 + 0.05 копит хвосты вида 2.6000000000000005, и граница
+    // round(iv × ease) на «ровно .5» зависит от пути, которым карточка сюда пришла
+    return Math.round(Math.max(EASE_MIN, Math.min(EASE_MAX, v)) * 100) / 100;
   }
 
-  // grade: "again" | "hard" | "good". Возвращает новый интервал в днях.
-  function schedule(card, grade, now) {
+  function hasBack(card) {
+    return typeof card.back === "number" && card.back >= 1;
+  }
+
+  function spread(iv, rnd) {
+    if (iv < SPREAD_FROM) return 0;
+    return Math.round(iv * SPREAD * (2 * rnd() - 1));
+  }
+
+  // grade: "again" | "hard" | "good". Меняет карточку и возвращает НОМИНАЛЬНЫЙ интервал
+  // в днях; срок (due) отличается от него на разброс. Неизвестная оценка ничего не меняет.
+  function schedule(card, grade, now, rnd) {
+    if (GRADES.indexOf(grade) < 0) return card.iv || 0;
+    var iv = card.iv || 0;
+    var reps = card.reps || 0;
+    // карточка без ease — как новая; прежние записи всегда с ним, но NaN в расписании хуже заглушки
+    var ease = isFinite(card.ease) && card.ease > 0 ? card.ease : EASE_START;
+
     if (grade === "again") {
-      card.ease = clamp(card.ease - 0.2, EASE_MIN, EASE_MAX);
+      // Шаг назад: ступень, с которой падаем, — back, если карточка ещё не вернулась после
+      // прошлого «Забыл», иначе iv. Делим на ease ДО штрафа: им и умножали интервал.
+      var from = hasBack(card) ? card.back : iv;
+      card.back = from <= LADDER_LOW ? 1 : Math.max(LADDER_LOW, Math.round(from / ease));
+      card.ease = clampEase(ease - 0.2);
       card.iv = 1;
       card.reps = 0;
     } else if (grade === "hard") {
-      card.ease = clamp(card.ease - 0.05, EASE_MIN, EASE_MAX);
+      card.ease = clampEase(ease - 0.05);
       // +20 %, но не меньше чем на день: round(1 × 1.2) = 1 возвращал карточку
       // каждый день без конца. Первый интервал — день, как у «Помню»: иначе сразу
       // после «Забыл» слабая оценка откладывала бы дальше сильной (2 дня против 1).
-      card.iv = card.reps === 0 ? 1 : Math.max((card.iv || 0) + 1, Math.round((card.iv || 1) * 1.2));
-      card.reps++;
+      card.iv = reps === 0 ? 1 : Math.max(iv + 1, Math.round((iv || 1) * 1.2));
+      card.reps = reps + 1;
+      delete card.back;
     } else {
-      card.ease = clamp(card.ease + 0.05, EASE_MIN, EASE_MAX);
-      if (card.reps === 0) card.iv = 1;
-      else if (card.reps === 1) card.iv = 3;
-      else card.iv = Math.max(1, Math.round(card.iv * card.ease));
-      card.reps++;
+      card.ease = clampEase(ease + 0.05);
+      if (hasBack(card)) card.iv = card.back;
+      else if (reps === 0) card.iv = 1;
+      else if (reps === 1 && iv < LADDER_LOW) card.iv = LADDER_LOW;
+      // не меньше чем на день: у прежней формулы встречается iv = 1 при reps ≥ 2, где
+      // round(1 × 1.35) = 1 держал карточку на месте
+      else card.iv = Math.max(iv + 1, Math.round(iv * card.ease));
+      card.reps = reps + 1;
+      delete card.back;
     }
-    card.due = now + card.iv * DAY;
+    card.due = now + (card.iv + spread(card.iv, rnd || Math.random)) * DAY;
     card.seen = now;
     return card.iv;
+  }
+
+  // report — исход события для виджетов, которые оценивают сами (задача в тексте, «объясни
+  // сам», 🎯, смешанная тренировка, тесты пакета). Сначала sync: событие могло как раз
+  // и завести карточку (промах → карточка «сейчас») — тогда оценивать нечего.
+  // «Забыл» применяется и до срока: провал нельзя оставить без последствий; «Помню» и
+  // «С трудом» до срока ничего не меняют — иначе повтор «из любопытства» растил бы интервал.
+  function report(id, grade, now, opts) {
+    now = now == null ? Date.now() : now;
+    var none = { status: "none", iv: 0, due: 0 };
+    if (GRADES.indexOf(grade) < 0) return none;
+    var synced = sync(now);
+    var card = synced.cards[id];
+    if (!card) return none;
+    if (synced.created.indexOf(id) >= 0) return { status: "created", iv: card.iv, due: card.due };
+    if ((card.due || 0) > now && grade !== "again") return { status: "early", iv: card.iv, due: card.due };
+    var o = opts || {};
+    var graded = update(id, function (c) {
+      if (grade === "again" && o.note) c.note = o.note;
+      schedule(c, grade, now, o.rnd);
+    });
+    return graded ? { status: "graded", iv: graded.iv, due: graded.due } : none;
   }
 
   function kindOf(id) {
@@ -286,7 +399,7 @@
     };
   }
 
-  function due(cards, now) {
+  function dueIds(cards, now) {
     return Object.keys(cards)
       .filter(function (id) {
         return (cards[id].due || 0) <= now;
@@ -312,14 +425,25 @@
     return many;
   }
 
+  // Перерисовки, которым нужно знать об изменении algoSRS (виджеты очереди). Счётчик в
+  // панели обновляется отдельно — он есть на каждой странице, виджет только на «Повторении».
+  var refreshers = [];
+
   function build(root) {
-    var now = Date.now();
-    var cards = sync(now);
-    var queue = due(cards, now);
+    // форма «в чём была ошибка» открыта: событие из другой вкладки её не стирает
+    var noteOpen = false;
+    // что сейчас нарисовано: по этому внешнее изменение узнаёт, нужна ли перерисовка (иначе
+    // каждое чужое событие закрывало бы уже открытый ответ карточки-вопроса)
+    var shown = null;
 
     function render() {
-      root.innerHTML = "";
+      noteOpen = false;
+      var now = Date.now();
+      var cards = loadMap(KEY);
+      var queue = dueIds(cards, now);
       var total = Object.keys(cards).length;
+      shown = { id: queue[0] || null, due: queue.length ? cards[queue[0]].due : 0, n: queue.length, total: total };
+      root.innerHTML = "";
 
       var head = el("div", "algo-today__head");
       head.appendChild(el("strong", null, queue.length
@@ -366,7 +490,7 @@
 
       var bar = el("div", "algo-today__grades");
       [
-        ["again", "Забыл", "снова через день"],
+        ["again", "Забыл", "вернётся завтра, а потом на ступень ниже той, с которой упала"],
         ["hard", "С трудом", "интервал почти не растёт"],
         ["good", "Помню", "интервал растёт"],
       ].forEach(function (g) {
@@ -375,7 +499,7 @@
         b.title = g[2];
         b.onclick = function () {
           if (g[0] === "again") {
-            askNote(card, function () { apply(g[0]); });
+            askNote(card, function (note) { apply(g[0], note); });
             return;
           }
           apply(g[0]);
@@ -401,14 +525,21 @@
       box.appendChild(bar);
       root.appendChild(box);
 
-      function apply(grade) {
-        var iv = schedule(card, grade, now);
-        save(KEY, cards);
-        queue.shift();
+      // Оценка идёт через report: он читает хранилище заново и меняет одну карточку, а не
+      // пишет обратно всё, что виджет прочитал при отрисовке.
+      function apply(grade, note) {
+        var res = report(id, grade, Date.now(), { note: note });
         render();
-        var toast = el("div", "algo-today__toast",
-          "Следующее повторение через " + iv + " " + plural(iv, "день", "дня", "дней"));
-        root.appendChild(toast);
+        var text = null;
+        if (res.status === "early") {
+          text = "Эту карточку уже оценили в другой вкладке — оставил как есть.";
+        } else if (res.status === "graded") {
+          var days = Math.max(1, Math.round((res.due - Date.now()) / DAY));
+          text = "Следующее повторение через " + days + " " + plural(days, "день", "дня", "дней");
+          var back = grade === "again" ? (loadMap(KEY)[id] || {}).back : 0;
+          if (back > 1) text += ", потом — через " + back + " " + plural(back, "день", "дня", "дней");
+        }
+        if (text) root.appendChild(el("div", "algo-today__toast", text));
       }
 
       // Дневник ошибок: «забыл» — единственный момент, когда причина ещё в
@@ -426,12 +557,12 @@
         var ok = el("button", "algo-quiz__btn", "Сохранить и отложить");
         ok.type = "button";
         ok.onclick = function () {
-          var v = input.value.trim();
-          if (v) card.note = v;
-          done();
+          noteOpen = false;
+          done(input.value.trim());
         };
         wrap.appendChild(ok);
         box.appendChild(wrap);
+        noteOpen = true;
         input.focus();
         input.addEventListener("keydown", function (e) {
           if (e.key === "Enter") { e.preventDefault(); ok.click(); }
@@ -439,10 +570,85 @@
       }
     }
 
+    // Изменение algoSRS не из этого виджета (другая вкладка, report из другого скрипта):
+    // перерисовываем, только если изменилось то, что на экране.
+    function refresh() {
+      if (noteOpen) return;
+      var now = Date.now();
+      var cards = loadMap(KEY);
+      var queue = dueIds(cards, now);
+      var same = shown && shown.n === queue.length && shown.total === Object.keys(cards).length &&
+        shown.id === (queue[0] || null) && (!queue.length || cards[queue[0]].due === shown.due);
+      if (!same) render();
+    }
+
+    refreshers.push(refresh);
     render();
   }
 
+  // Счётчик «🔁 Сегодня: N» — на КАЖДОЙ странице: очередь, о которой не напоминает ни одна
+  // страница, кроме собственной, не работает. Ставится в правую часть верхней панели mdBook
+  // первой кнопкой (порядок остальных не меняется); нет панели — под заголовком главы.
+  // Пока карточек на сегодня нет, элемента нет вовсе: страница не дёргается и не мигает.
+  var badge = null;
+
+  function makeBadge() {
+    var a = el("a", "algo-srs-badge");
+    a.href = "review.html";
+    a.appendChild(el("span", "algo-srs-badge__icon", "🔁"));
+    a.appendChild(document.createTextNode(" "));
+    a.appendChild(el("span", "algo-srs-badge__label", "Сегодня: "));
+    a.appendChild(el("b", "algo-srs-badge__n", ""));
+    var bar = document.querySelector("#mdbook-menu-bar .right-buttons");
+    if (bar) {
+      bar.insertBefore(a, bar.firstChild);
+      return a;
+    }
+    var h1 = document.querySelector("main h1");
+    if (!h1) return null;
+    a.className += " algo-srs-badge--inline";
+    h1.parentNode.insertBefore(a, h1.nextSibling);
+    return a;
+  }
+
+  function refreshBadge(cards) {
+    var n = dueIds(cards || loadMap(KEY), Date.now()).length;
+    if (!badge) {
+      if (!n) return;
+      badge = makeBadge();
+      if (!badge) return;
+    }
+    badge.hidden = !n;
+    badge.querySelector(".algo-srs-badge__n").textContent = String(n);
+    var title = "К повторению сегодня: " + n + " " + plural(n, "карточка", "карточки", "карточек");
+    badge.title = title;
+    badge.setAttribute("aria-label", title);
+  }
+
+  function refreshViews() {
+    refreshBadge();
+    refreshers.forEach(function (f) { f(); });
+  }
+
+  window.ALGO_SRS = {
+    schedule: schedule,
+    sync: sync,
+    report: report,
+    load: function () { return loadMap(KEY); },
+    due: function (now) { return dueIds(loadMap(KEY), now == null ? Date.now() : now); },
+  };
+
   function init() {
+    refreshBadge(sync(Date.now()).cards);
+    document.addEventListener(CHANGE_EVENT, refreshViews);
+    window.addEventListener("storage", function (e) {
+      if (e.key === null || e.key === KEY) refreshViews();
+    });
+    // вкладка, открытая со вчера: сроки подошли, а событий не было. Виджет не трогаем — он
+    // перерисовался бы поверх открытого ответа карточки-вопроса.
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) refreshBadge();
+    });
     Array.prototype.forEach.call(
       document.querySelectorAll(".algo-today:not(.algo-today--ready)"),
       function (node) {

@@ -128,9 +128,23 @@
   }
 
   var KEY = "algoProgress";
+  // Когда глава отмечена: по этой метке srs.js считает срок карточки «глава + день» от самой
+  // отметки, а не от первого захода на страницу «Повторение». Отдельный ключ, потому что формат
+  // algoProgress ({href: true|false}) читают трекер, повторение и экспорт — менять его нельзя.
+  var MARKED_AT_KEY = "algoProgressAt";
 
   function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
   function save(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* недоступно — работаем в рамках сессии */ } }
+
+  // Метки пишутся по свежему чтению: трекер держит state, прочитанный при загрузке, а метки
+  // принадлежат и другим вкладкам.
+  function markAt(href, on) {
+    try {
+      var marks = JSON.parse(localStorage.getItem(MARKED_AT_KEY)) || {};
+      if (on) marks[href] = Date.now(); else delete marks[href];
+      localStorage.setItem(MARKED_AT_KEY, JSON.stringify(marks));
+    } catch (e) { /* недоступно — карточка главы встанет от «сейчас» */ }
+  }
 
   function build(el) {
     var state = load();
@@ -186,7 +200,7 @@
         var row = document.createElement("label"); row.className = "algo-prog__item";
         var cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!state[ch.h];
         cb.setAttribute("aria-label", "Отметить главу пройденной: " + ch.t);
-        cb.onchange = function () { state[ch.h] = cb.checked; save(state); row.classList.toggle("algo-prog__item--done", cb.checked); refresh(); };
+        cb.onchange = function () { state[ch.h] = cb.checked; save(state); markAt(ch.h, cb.checked); row.classList.toggle("algo-prog__item--done", cb.checked); refresh(); };
         var a = document.createElement("a"); a.href = ch.h; a.textContent = ch.t; a.className = "algo-prog__link";
         row.appendChild(cb); row.appendChild(a);
         // Ядро не помечаем: метка на четырёх пятых списка — это шум. Значок
@@ -208,7 +222,7 @@
     // без единого способа это перенести. Забираем ВСЕ ключи книги (главы,
     // решённые задачи, промахи, рекорд квиза и код, написанный в виджетах),
     // а не только этот трекер.
-    var PREFIXES = ["algoProgress", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:", "algoPkgSolved", "algoSRS",
+    var PREFIXES = ["algoProgress", "algoProgressAt", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:", "algoPkgSolved", "algoSRS",
       "algoExplain", "algoExplainDone", "algoQuizMissed", "algoMixedMissed", "algoMixedSeen",
       "algoMockLog", "algoMockCxMissed", "algoVizMissed", "algoVizPredict"];
     function isOurs(key) {
@@ -273,6 +287,7 @@
     var reset = document.createElement("button"); reset.type = "button"; reset.className = "algo-quiz__btn"; reset.textContent = "Сбросить прогресс";
     reset.onclick = function () {
       state = {}; save(state);
+      try { localStorage.removeItem(MARKED_AT_KEY); } catch (e) { /* недоступно */ }
       boxes.forEach(function (cb) { cb.checked = false; cb.parentNode.classList.remove("algo-prog__item--done"); });
       refresh();
     };
