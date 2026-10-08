@@ -1004,6 +1004,22 @@
     refreshers.forEach(function (f) { f(); });
   }
 
+  // Вкладка на экране через полночь: порция нового дня приходит сама, без действий читателя. Один таймер
+  // до следующей местной полуночи с запасом в две секунды (срабатывание вплотную к границе ещё могло бы
+  // попасть во вчерашний день), по срабатыванию — та же перестройка, что при возврате на вкладку, и
+  // перевзвод на следующие сутки. Локальный конструктор Date сам учитывает перевод часов.
+  function armMidnight() {
+    var now = Date.now();
+    var d = new Date(now);
+    var next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 2).getTime();
+    var timer = setTimeout(function () {
+      refreshViews();
+      armMidnight();
+    }, Math.max(1000, next - now));
+    // в node таймер не держит процесс (jsdom отдаёт число — там проверки выходят сами)
+    if (timer && typeof timer.unref === "function") timer.unref();
+  }
+
   window.ALGO_SRS = {
     schedule: schedule,
     sync: sync,
@@ -1023,9 +1039,10 @@
     window.addEventListener("storage", function (e) {
       if (e.key === null || e.key === KEY || e.key === TODAY) refreshViews();
     });
-    // Вкладка, открытая со вчера: сроки подошли и день сменился, а событий не было. Таймера до
-    // полуночи нет намеренно — порция пересчитывается, когда читатель возвращается к странице
-    // (и при любом его действии в виджете); карточку на экране виджет при этом бережёт (refresh).
+    // Вкладка, открытая со вчера: сроки подошли и день сменился, а событий не было. Порция
+    // пересчитывается, когда читатель возвращается к странице, и в местную полночь (armMidnight) —
+    // если вкладка всё это время на экране; карточку на экране виджет при этом бережёт (refresh).
+    armMidnight();
     document.addEventListener("visibilitychange", function () {
       if (!document.hidden) refreshViews();
     });

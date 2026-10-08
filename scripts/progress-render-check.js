@@ -247,6 +247,8 @@ setTimeout(function () {
         `галочка «Глава пройдена» стоит в конце каждой главы (и только главы), пишет те же ключи по свежему чтению, ` +
         `зовёт sync и слышит другую вкладку`
     );
+    // явный выход: страницы с настоящим srs.js взводят таймер до местной полуночи и держали бы процесс
+    process.exit(0);
   }, function (e) {
     console.error("❌ progress-render-check: неожиданная ошибка:", e);
     process.exit(1);
@@ -300,6 +302,8 @@ async function chapterDoneChecks() {
     const cb = b.querySelector('input[type="checkbox"]');
     if (doc.querySelector("main").lastElementChild !== b) errors.push("блок «Глава пройдена» стоит не в конце main");
     if (!/Глава пройдена/.test(b.textContent)) errors.push(`в блоке нет подписи «Глава пройдена»: «${b.textContent}»`);
+    // карточка главы приходит ровно через сутки после отметки (срок — метка + DAY), а не «на следующий день»
+    if (!/новая карточка приходит через сутки/.test(b.textContent)) errors.push(`подсказка блока не говорит «через сутки»: «${b.textContent}»`);
     if (!cb || cb.checked) errors.push("галочка неотмеченной главы отсутствует или уже стоит");
     if (doc.querySelector(".algo-lvlnote")) errors.push("у главы ядра появилась плашка уровня");
     toggle(d, true);

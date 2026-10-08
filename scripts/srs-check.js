@@ -37,6 +37,10 @@
 //  18) числа предела в текстах книги совпадают с константами движка.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
+// Пояс не UTC — до любого Date: день порции — МЕСТНАЯ дата, а раннер CI живёт в UTC, где местная полночь
+// совпадает с полночью UTC и путаница «день по UTC» не видна. Node перечитывает TZ при присваивании;
+// все времена ниже строятся местным конструктором Date или от Date.now(), так что от пояса не зависят.
+process.env.TZ = "Asia/Tokyo";
 const fs = require("fs");
 const path = require("path");
 
@@ -1411,6 +1415,36 @@ if (api) {
   }
 }
 
+// --- 13b. вкладка на экране через полночь: порция нового дня приходит без действий читателя ---
+// Таймер ловится подменой setTimeout до srs.js: ждать настоящей полуночи проверка не может.
+{
+  const late = new Date(2026, 0, 14, 23, 59, 0).getTime();
+  const midnight = new Date(2026, 0, 15, 0, 0, 2).getTime(); // местная полночь и две секунды запаса
+  const twenty = {};
+  for (let i = 0; i < 20; i++) twenty["task:t#" + i] = light(i, 1, late - (i + 1) * DAY);
+  const CATCH = "window.__timers = []; window.setTimeout = function (fn, ms) { window.__timers.push({ fn: fn, ms: ms }); return window.__timers.length; };";
+  const dom = await newDom({ algoSRS: JSON.stringify(twenty) }, [CLOCK(late), CATCH], PAGE);
+  const w = dom.window;
+  const text = () => w.document.querySelector(".algo-today").textContent;
+  if (w.ALGO_SRS && w.ALGO_SRS.today) {
+    click(dom, "Помню");
+    click(dom, "Помню");
+    const armed = w.__timers.slice();
+    if (armed.length !== 1 || armed[0].ms !== midnight - late) {
+      errors.push(`таймер до полуночи: взведено ${armed.length}, через ${armed[0] && armed[0].ms} мс, ожидался один через ${midnight - late} мс (до местной полуночи + 2 с)`);
+    } else {
+      if (!/К повторению сегодня: 10\b/.test(text())) errors.push(`23:59 после двух оценок: «${text().slice(0, 60)}»`);
+      w.__now = midnight;
+      armed[0].fn(); // сработал таймер: ни события, ни действия читателя
+      if (!/К повторению сегодня: 12\b/.test(text())) errors.push(`полночь без действий читателя: «${text().slice(0, 60)}», ожидалась порция нового дня — 12`);
+      if (!/Сегодня:\s*12\b/.test(badgeShown(dom) || "")) errors.push(`полночь без действий читателя: счётчик «${badgeShown(dom)}», ожидалось 12`);
+      const next = w.__timers[1];
+      const want = new Date(2026, 0, 16, 0, 0, 2).getTime() - midnight;
+      if (w.__timers.length !== 2 || !next || next.ms !== want) errors.push(`после полуночи таймер не перевзведён на следующие сутки: ${JSON.stringify(w.__timers.map((t) => t.ms))}, ожидалось ещё одно через ${want} мс`);
+    }
+  }
+}
+
 // --- 14. «Позже» не запирает очередь: единственная карточка, тяжёлая, фокус, недоступное хранилище ---
 {
   const now = NOON;
@@ -1800,8 +1834,11 @@ console.log(
     "порция дня — не больше 12 карточек и одной с кодом (границы и порядок — на случайных наборах), «Позже» ставит в конец и не запирает очередь, " +
     "смена суток и мусор в algoToday начинают день заново, счёт дня растёт только по оценке карточки в сроке, " +
     "карточки quiz: и cx: отвечают после «Показать ответ», возврат на вкладку перестраивает порцию без потери ответа и заметки, " +
-    "промах на этой же странице обновляет счётчик"
+    "промах на этой же странице обновляет счётчик, таймер в местную полночь приносит порцию нового дня"
 );
+// Явный выход: каждая страница с srs.js взводит таймер до местной полуночи, и окна jsdom держали бы
+// процесс до утра.
+process.exit(0);
 }
 
 main().catch(function (e) {
