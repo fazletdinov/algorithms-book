@@ -35,6 +35,10 @@ func newHidden() *hidden {
 	panic("TODO: реализуйте newHidden")
 }
 
+func Count() int {
+	panic("TODO: реализуйте Count")
+}
+
 func Ready() int { return 1 }
 `
 
@@ -47,7 +51,12 @@ func TestSum(t *testing.T) { _ = Sum(nil) }
 // Сверка с последовательной версией: без Sum этот тест упадёт с panic("TODO").
 func TestSumConcMatchesSum(t *testing.T) { check(t, SumConc(nil)) }
 
-func TestSumConcRandom(t *testing.T) { _ = SumConc(nil) }
+// Count здесь — метод значения, а не упражнение Count верхнего уровня.
+func TestSumConcRandom(t *testing.T) {
+	var st Stack
+	_ = st.Count()
+	_ = SumConc(nil)
+}
 
 func check(t *testing.T, got int) { oracle(got) }
 
@@ -85,6 +94,7 @@ func TestLinkTests(t *testing.T) {
 		"Stack.Push": {Group: "Stack", GroupTests: []string{"TestStack", "TestStackRandom"}},
 		// Push верхнего уровня — другая функция: вызов s.Push в TestStack ей не засчитывается.
 		"Push":      {},
+		"Count":     {},
 		"newHidden": {Group: "hidden"},
 	}
 	for name, w := range want {
