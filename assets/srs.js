@@ -548,11 +548,11 @@
   }
 
   // queue — очередь на сейчас целиком: карточки, порция и сколько просроченных в неё не вошло.
-  // При повреждённом algoSRS порции нет.
+  // При повреждённом algoSRS карточек нет (readMap отдаёт пустую карту) — пуста и порция.
   function queue(now) {
     var store = readMap(KEY);
     var cards = cardsOnly(store.map);
-    var p = store.damaged ? { ids: [], held: 0 } : portion(cards, loadToday(now), now);
+    var p = portion(cards, loadToday(now), now);
     return { damaged: store.damaged, cards: cards, ids: p.ids, held: p.held };
   }
 
@@ -724,7 +724,6 @@
     var current = null;
     // поле «в чём была ошибка», пока форма открыта: чужое событие её не стирает
     var noteInput = null;
-    var damaged = false;
     var top = null;
     // после действия читателя фокус клавиатуры остаётся в виджете: кнопка, которую он нажал, уже стёрта
     root.tabIndex = -1;
@@ -767,7 +766,6 @@
       current = null;
       var now = Date.now();
       var q = queue(now);
-      damaged = q.damaged;
       root.innerHTML = "";
 
       if (q.damaged) {
@@ -936,7 +934,7 @@
     function refresh() {
       var now = Date.now();
       var q = queue(now);
-      var keep = current && !damaged && !q.damaged &&
+      var keep = current && !q.damaged &&
         (noteInput || (q.ids.indexOf(current.id) >= 0 && dueOf(q.cards[current.id]) === current.due));
       if (!keep) {
         render();

@@ -396,5 +396,11 @@ async function chapterDoneChecks() {
     first.checked = false;
     first.dispatchEvent(new sheet.window.Event("change"));
     if (read(sheet, "algoSRS")["ch:big-o.html"]) errors.push("снятая в трекере отметка оставила неоценённую карточку главы");
+    // «Сбросить прогресс» — то же: карточки глав, которые ни разу не оценивались, уходят сразу
+    first.checked = true;
+    first.dispatchEvent(new sheet.window.Event("change"));
+    const reset = [...sheet.window.document.querySelectorAll("button")].find((b) => /Сбросить/.test(b.textContent));
+    reset.dispatchEvent(new sheet.window.MouseEvent("click", { bubbles: true }));
+    if (read(sheet, "algoSRS")["ch:big-o.html"]) errors.push("после сброса прогресса неоценённая карточка главы осталась в очереди");
   }
 }

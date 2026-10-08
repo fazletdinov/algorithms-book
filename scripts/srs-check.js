@@ -1528,6 +1528,31 @@ if (api) {
       if (!/задача C/.test(box.textContent)) errors.push(`после заметки на экране не следующая карточка: «${box.textContent.slice(0, 80)}»`);
     }
   }
+
+  // та же форма, но в другой вкладке оценили саму карточку с открытой формой: из порции она ушла,
+  // а набранный текст ещё не записан — форма остаётся, шапка считает уже без неё
+  const gone = await newDom({ algoSRS: JSON.stringify(two) }, [CLOCK(now)], PAGE);
+  const wg = gone.window;
+  if (wg.ALGO_SRS && wg.ALGO_SRS.today) {
+    const box = wg.document.querySelector(".algo-today");
+    click(gone, "Забыл");
+    const input = box.querySelector(".algo-today__noteform input");
+    if (input) {
+      input.value = "не тот инвариант";
+      const c = cards(gone);
+      Object.assign(c["task:a#1"], { due: now + 3 * DAY, iv: 3, reps: 3, seen: now });
+      wg.localStorage.setItem("algoSRS", JSON.stringify(c));
+      wg.dispatchEvent(new wg.StorageEvent("storage", { key: "algoSRS" }));
+      const still = box.querySelector(".algo-today__noteform input");
+      if (!still || still.value !== "не тот инвариант") errors.push("карточку с открытой формой заметки оценили в другой вкладке — форма или её текст пропали");
+      if (!/К повторению сегодня: 2\b/.test(box.textContent)) errors.push(`карточка с формой ушла из порции, а шапка её ещё считает: «${box.textContent.slice(0, 40)}»`);
+      click(gone, "Сохранить и отложить");
+      const a = cards(gone)["task:a#1"];
+      if (!a || a.note !== "не тот инвариант") errors.push(`заметка по карточке, оценённой в другой вкладке, потеряна: ${JSON.stringify(a)}`);
+      if (todayRec(gone)) errors.push(`«Забыл» по карточке, срок которой уже не вышел, занял место в порции: ${JSON.stringify(todayRec(gone))}`);
+      if (!/задача B/.test(box.textContent) || box.querySelector(".algo-today__noteform")) errors.push(`после заметки виджет не ушёл на следующую карточку: «${box.textContent.slice(0, 80)}»`);
+    }
+  }
 }
 
 // --- 16. две вкладки и algoToday: done не меньше настоящего, later не теряется ---

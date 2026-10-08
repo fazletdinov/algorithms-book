@@ -198,7 +198,12 @@ setTimeout(() => {
         };
       };
       Object.defineProperty(importInput, "files", { value: [{ name: "p.json" }], configurable: true });
+      // после импорта движок повторений сверяется сразу: карточки для пришедших отметок и промахов
+      // заводятся без перехода на другую страницу
+      let synced = 0;
+      progDom.window.ALGO_SRS = { sync: () => { synced++; } };
       importInput.onchange();
+      if (synced !== 1) errors.push(`после импорта ALGO_SRS.sync вызван ${synced} раз(а), ожидался один`);
 
       const merged = JSON.parse(pls.getItem("algoProgress"));
       if (!merged["sliding-window.html"] || !merged["big-o.html"]) {
