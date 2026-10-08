@@ -506,7 +506,8 @@ async function unitsAndHints() {
   r = await w.runOnce();
   last = w.events.filter((e) => e.type === "algo-runner:result").pop();
   expect(r && JSON.stringify(r.body.tests) === '["TestD"]' && last.fn === "D" && last.draft === "mock" && !w.pick(), `собеседование: ${r && JSON.stringify(r.body)} ${JSON.stringify(last)}`);
-  expect(/тесты зовут ещё не решённые упражнения: A/i.test(w.root.textContent), "собеседование: нет строки про needs");
+  // В своём черновике лист чистый: сосед называется словами «на этом листе их тоже нужно написать».
+  expect(/Тесты зовут и соседние упражнения: A — на этом листе их тоже нужно написать/.test(w.root.textContent), "собеседование: нет строки про needs");
 
   // warning и сервер прежней версии: работаем по code, пакет целиком, без панели; warning — одной строкой.
   w = await page({ stub: { pkg: "p", code: "package p\nfunc (", plain: "package p\nfunc (", funcs: [], notes: [], warning: "разбор заготовки: stub.go:2:7: expected ')'" } });

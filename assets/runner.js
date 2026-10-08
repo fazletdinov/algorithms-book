@@ -68,47 +68,86 @@
     return /\b(coal|navy|ayu)\b/.test(document.documentElement.className);
   }
 
+  // Загрузчик модулей; window.ALGO_RUNNER_IMPORT подменяет его в проверке (runner-render-check:
+  // CDN, который не отвечает, и CodeMirror, пришедший после срока).
+  function importModule(url) {
+    return typeof window.ALGO_RUNNER_IMPORT === "function" ? window.ALGO_RUNNER_IMPORT(url) : import(/* @vite-ignore */ url);
+  }
+
   var cmPromise = null;
+  var cmMod = null;   // CodeMirror загружен — следующие редакторы берут его сразу
+  var cmSlow = false; // загрузка не уложилась в срок — следующие редакторы сразу textarea, без ожидания
   function loadCM() {
     if (!cmPromise) {
       cmPromise = Promise.all([
-        import(/* @vite-ignore */ CM_URL),
-        import(/* @vite-ignore */ LANG_URL),
-        import(/* @vite-ignore */ GO_URL),
-        darkBook() ? import(/* @vite-ignore */ DARK_URL) : null,
+        importModule(CM_URL),
+        importModule(LANG_URL),
+        importModule(GO_URL),
+        darkBook() ? importModule(DARK_URL) : null,
       ]).then(function (m) {
-        return { cm: m[0], lang: m[1], go: m[2].go, dark: m[3] && m[3].oneDark };
+        cmMod = { cm: m[0], lang: m[1], go: m[2].go, dark: m[3] && m[3].oneDark };
+        return cmMod;
       });
     }
     return cmPromise;
   }
 
+  // Срок загрузки CodeMirror. Ошибка загрузки и так даёт textarea, а зависание (сеть молча
+  // отбрасывает пакеты, прокси, нет выхода наружу) без срока оставляло виджет на «загрузка…»
+  // навсегда: заготовка уже пришла, а кнопка прогона мертва — редактора нет.
+  var CM_TIMEOUT_MS = 8000;
+
   // mountEditor возвращает объект { getValue, setValue } независимо от того,
-  // удалось ли поднять CodeMirror.
+  // удалось ли поднять CodeMirror. CodeMirror, пришедший после срока, этому редактору
+  // уже не нужен: textarea стоит, читатель, возможно, в нём печатает.
   function mountEditor(host, initialCode) {
-    return loadCM().then(
-      function (mod) {
-        var view = new mod.cm.EditorView({
-          doc: initialCode,
-          extensions: [
-            mod.cm.basicSetup,
-            mod.lang.StreamLanguage.define(mod.go),
-            mod.cm.EditorView.theme({
-              "&": { fontSize: "13px", maxHeight: "440px" },
-              ".cm-scroller": { overflow: "auto", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace" },
-            }),
-          ].concat(mod.dark ? [mod.dark] : []),
-          parent: host,
-        });
-        return {
-          getValue: function () { return view.state.doc.toString(); },
-          setValue: function (v) {
-            view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: v } });
-          },
-        };
+    if (cmMod) return Promise.resolve(editorOrTextarea(cmMod, host, initialCode));
+    if (cmSlow) return Promise.resolve(textareaEditor(host, initialCode));
+    return new Promise(function (resolve) {
+      var settled = false;
+      function settle(make) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(make());
+      }
+      var timer = setTimeout(function () {
+        cmSlow = true;
+        settle(function () { return textareaEditor(host, initialCode); });
+      }, CM_TIMEOUT_MS);
+      loadCM().then(
+        function (mod) { settle(function () { return editorOrTextarea(mod, host, initialCode); }); },
+        function () { settle(function () { return textareaEditor(host, initialCode); }); }
+      );
+    });
+  }
+  function editorOrTextarea(mod, host, initialCode) {
+    try {
+      return cmEditor(mod, host, initialCode);
+    } catch (e) {
+      console.warn("algo-runner: CodeMirror не поднялся, работаю в textarea", e);
+      return textareaEditor(host, initialCode);
+    }
+  }
+  function cmEditor(mod, host, initialCode) {
+    var view = new mod.cm.EditorView({
+      doc: initialCode,
+      extensions: [
+        mod.cm.basicSetup,
+        mod.lang.StreamLanguage.define(mod.go),
+        mod.cm.EditorView.theme({
+          "&": { fontSize: "13px", maxHeight: "440px" },
+          ".cm-scroller": { overflow: "auto", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace" },
+        }),
+      ].concat(mod.dark ? [mod.dark] : []),
+      parent: host,
+    });
+    return {
+      getValue: function () { return view.state.doc.toString(); },
+      setValue: function (v) {
+        view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: v } });
       },
-      function () { return textareaEditor(host, initialCode); }
-    );
+    };
   }
 
   // Фолбэк: textarea с поддержкой Tab.
@@ -394,8 +433,10 @@
     }
 
     // pendingNeeds — соседи, которых зовут тесты или эталон единицы, а зелёными они ещё не были.
+    // algoFnSolved общий для всех черновиков и значит «решал где-то»: в своём черновике (data-draft —
+    // собеседование, смешанная, карточка) лист чистый, и сосед, решённый в главе, здесь — panic("TODO").
     function pendingNeeds(u, e) {
-      var solved = fnSolved(), seen = {}, res = [];
+      var solved = draft ? {} : fnSolved(), seen = {}, res = [];
       var from = u.kind === "type" ? funcs.filter(function (f) { return u.members.indexOf(f.name) >= 0; })
         : u.kind === "func" && e ? [e] : [];
       from.forEach(function (f) {
@@ -552,27 +593,31 @@
     }
     function solutionView(name, code) {
       var box = el("div", "algo-runner__solution");
-      box.appendChild(el("div", "algo-runner__help-label", "Эталон " + name + " — только для чтения; твой код в редакторе не изменился"));
+      // /api/solution отдаёт объявления без import (у половины пакетов эталон зовёт sort, sync,
+      // container/heap…, которых нет в заготовке) — переписанный как есть, он не соберётся.
+      box.appendChild(el("div", "algo-runner__help-label", "Эталон " + name + " — только для чтения; строк import в нём нет — " +
+        "нужные пакеты допиши сам. Твой код в редакторе не изменился."));
       var p = el("pre", "algo-runner__solution-code", code);
       p.tabIndex = 0; // длинные строки прокручиваются в своём блоке — и с клавиатуры тоже
       box.appendChild(p);
       return box;
     }
 
-    // hintsFor — сколько подсказок к упражнению fn открыто на странице; заметки считаются.
-    // fn пуст (весь пакет) — все открытые.
-    function hintsFor(fn) {
+    // hintsFor — сколько подсказок открыто на странице к упражнениям names (участники единицы
+    // прогона и само упражнение): рецепт MinStack.Push, открытый перед прогоном типа из
+    // NewMinStack, — тоже помощь в этом прогоне. Заметки считаются; names пуст — все открытые.
+    function hintsFor(names) {
       var n = 0;
       Object.keys(opened).forEach(function (k) {
         var m = /^(hint|recipe):(.*)$/.exec(k);
-        if (m) { if (!fn || m[2] === fn) n++; return; }
+        if (m) { if (!names.length || names.indexOf(m[2]) >= 0) n++; return; }
         var note = notes[+k.slice("note:".length)];
-        if (note && noteApplies(note, fn)) n++;
+        if (note && (!names.length || names.some(function (name) { return noteApplies(note, name); }))) n++;
       });
       return n;
     }
     function noteApplies(note, fn) {
-      if (!fn || note.at === "package") return true;
+      if (note.at === "package") return true;
       var f = byName(fn);
       return note.at === "func " + fn || !!(f && f.group && note.at === "type " + f.group);
     }
@@ -637,7 +682,12 @@
     function saveSoon() {
       if (!editor) return;
       clearTimeout(saveTimer);
-      saveTimer = setTimeout(function () { lsSet(lsKey, editor.getValue()); }, 400);
+      saveTimer = setTimeout(function () {
+        // Виджет уже убрали со страницы (смешанная выдала новую задачу и стёрла этот черновик) —
+        // запись после удаления воскресила бы стёртый черновик для следующей задачи того же пакета.
+        if (!root.isConnected) return;
+        lsSet(lsKey, editor.getValue());
+      }, 400);
     }
 
     // ---- прогон ----
@@ -646,9 +696,11 @@
       if (!editor) return;
       var e = sel, u = unitOf(e);
       var fn = e ? e.name : wantFunc;
-      // Подсказки и «сдаюсь» — на момент нажатия: они относятся к попытке, которую сейчас проверят.
-      var run = { fn: fn, unit: u.kind, draft: draft, hints: hintsFor(fn),
-        gaveUp: !!gaveUp[fn] || u.members.some(function (n) { return gaveUp[n]; }) };
+      // Подсказки и «сдаюсь» — на момент нажатия и по всем участникам единицы прогона: они относятся
+      // к попытке, которую сейчас проверят.
+      var involved = u.members.concat(fn && u.members.indexOf(fn) < 0 ? [fn] : []);
+      var run = { fn: fn, unit: u.kind, draft: draft, hints: hintsFor(involved),
+        gaveUp: involved.some(function (n) { return gaveUp[n]; }) };
       var body = { pkg: pkg, code: editor.getValue(), race: race };
       if (u.tests) body.tests = u.tests;
       runBtn.disabled = true;
@@ -657,12 +709,13 @@
       api("/api/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
         .then(function (res) {
           setUp(true);
-          u.members.concat(fn ? [fn] : []).forEach(function (n) { tried[n] = true; });
+          involved.forEach(function (n) { tried[n] = true; });
           renderResult(out, res);
           var pending = res.ok ? [] : pendingNeeds(u, e);
           if (pending.length) {
-            out.insertBefore(el("div", "algo-runner__needs",
-              "Тесты зовут ещё не решённые упражнения: " + pending.join(", ") + " — начни с них."), out.firstChild);
+            out.insertBefore(el("div", "algo-runner__needs", draft
+              ? "Тесты зовут и соседние упражнения: " + pending.join(", ") + " — на этом листе их тоже нужно написать."
+              : "Тесты зовут ещё не решённые упражнения: " + pending.join(", ") + " — начни с них."), out.firstChild);
           }
           var st = runStatus(res);
           setStatus(st.text, st.cls);
