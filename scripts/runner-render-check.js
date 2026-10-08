@@ -381,6 +381,21 @@ async function unitsAndHints() {
   expect(w.pv() === "B", "B — единственная неотмеченная");
   await w.runOnce();
   expect(w.pv() === "" && /пакет целиком/.test(w.root.textContent), `все отмечены после зелёного: выбор «${w.pv()}», совета нет`);
+  // Запись по свежему чтению: другая вкладка отметила своё уже после загрузки этой — отметка не теряется.
+  w = await page();
+  w.dom.window.localStorage.setItem("algoFnSolved", JSON.stringify({ "q.Other": 5 }));
+  await w.runOnce();
+  expect(w.solved()["q.Other"] === 5 && w.solved()["p.A"], `две вкладки: запись algoFnSolved затёрла чужую отметку — ${JSON.stringify(w.solved())}`);
+  // Конструктор типа со своими тестами (как binheap.BuildHeap): тесты типа его не проверяют, и зелёный
+  // прогон типа его не отмечает; его собственный зелёный — отмечает только его.
+  const K = ex("K", { tests: ["TestK"], group: "M", groupTests: ["TestM"] });
+  w = await page({ stub: Object.assign({}, STUB, { funcs: [K, FUNCS[3], FUNCS[4]] }) });
+  w.choose("M.X");
+  await w.runOnce();
+  expect(w.solved()["p.M.X"] && w.solved()["p.M.Y"] && !w.solved()["p.K"], `зелёный прогон типа отметил конструктор со своими тестами: ${JSON.stringify(w.solved())}`);
+  w.choose("K");
+  r = await w.runOnce();
+  expect(r && JSON.stringify(r.body.tests) === '["TestK"]' && w.solved()["p.K"], `K со своими тестами: ${r && JSON.stringify(r.body)}`);
   // Отметка — только по ok.
   for (const bad of [
     Object.assign({}, RED),
@@ -436,9 +451,12 @@ async function unitsAndHints() {
   expect(!w.helpBtn(/Рецепт|Признак/), "M.Y: кнопки без содержимого нарисованы");
   w.choose("A");
   expect(!w.helpBtn(/Сдаюсь/), "«Сдаюсь» видна до прогона");
+  // Заметка о пакете относится к любому упражнению и считается вместе с подсказками.
+  w.press(/О пакете/);
+  expect(/о пакете целиком/.test(helpText()), "заметка о пакете не открылась");
   await w.runOnce();
   let last = w.events.filter((e) => e.type === "algo-runner:result").pop();
-  expect(last && last.hints === 2, `hints в событии после двух подсказок A: ${last && last.hints}`);
+  expect(last && last.hints === 3, `hints в событии после двух подсказок A и заметки о пакете: ${last && last.hints}`);
 
   // (d) «Сдаюсь»: после завершившегося прогона, с подтверждением; эталон — отдельно, код читателя цел.
   const give = w.helpBtn(/Сдаюсь/);
