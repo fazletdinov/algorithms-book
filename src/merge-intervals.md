@@ -471,9 +471,9 @@ if iv[0] &lt;= last[1] {        // перекрытие/касание
 
 **🔴 Добивка** — когда основа идёт уверенно:
 
-- [Meeting Rooms II](https://leetcode.com/problems/meeting-rooms-ii/) (LeetCode 253) — сканирующая прямая из «Цены на практике»; в тренажёре: `intervals.MinMeetingRooms`
+- [Meeting Rooms II](https://leetcode.com/problems/meeting-rooms-ii/) (LeetCode 253) — сканирующая прямая из «Цены на практике»; на LeetCode по подписке; в тренажёре: `intervals.MinMeetingRooms`
 - [Remove Covered Intervals](https://leetcode.com/problems/remove-covered-intervals/) (LeetCode 1288) — сортировка по началу, а при равных началах — по убыванию конца
-- [Employee Free Time](https://leetcode.com/problems/employee-free-time/) (LeetCode 759) — сложная
+- [Employee Free Time](https://leetcode.com/problems/employee-free-time/) (LeetCode 759) — сложная; на LeetCode по подписке
 - [Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) (LeetCode 435) и [Minimum Arrows to Burst Balloons](https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/) (LeetCode 452) — забегают вперёд: жадность по концу, их разбор — в главе [«Жадные алгоритмы»](greedy.md)
 
 > 🧭 **Не пошла задача из основы?** В 57 не сортируй: вход уже упорядочен, и проход идёт в три

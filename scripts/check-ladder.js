@@ -201,8 +201,12 @@ for (const file of fs.readdirSync(srcDir).filter((f) => f.endsWith(".md") && f !
           `зелёный прогон её одной невозможен`
       );
     }
+    // Сосед ищется целым словом и только после самой ссылки: «MergeIntervalsRandom» — не
+    // MergeIntervals, а имя соседа внутри `пакет.Функция` (InsertInterval в intervals.InsertInterval) — не упоминание.
+    const rest = m[1].slice(ref[0].length);
     for (const need of bankNeeds.get(`${pkg}.${fn}`) || []) {
-      if (!m[1].includes(need)) {
+      const word = new RegExp(`(^|[^\\w.])${need.replace(/\./g, "\\.")}(?![\\w])`);
+      if (!word.test(rest)) {
         errors.push(
           `${where}: «в тренажёре: ${pkg}.${fn}» — эталон и тесты зовут ${need} (поле n банка), ` +
             `а хвост об этом молчит`

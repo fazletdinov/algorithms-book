@@ -469,12 +469,12 @@ if ______ {
 **🔵 Основа** — планка главы:
 
 - [Minimum Height Trees](https://leetcode.com/problems/minimum-height-trees/) (LeetCode 310) — ощипывание листьев
-- [Parallel Courses](https://leetcode.com/problems/parallel-courses/) (LeetCode 1136) — слои Кана
+- [Parallel Courses](https://leetcode.com/problems/parallel-courses/) (LeetCode 1136) — слои Кана; на LeetCode по подписке
 
 **🔴 Добивка** — когда основа идёт уверенно:
 
 - [Course Schedule IV](https://leetcode.com/problems/course-schedule-iv/) (LeetCode 1462) — транзитивное замыкание
-- [Sequence Reconstruction](https://leetcode.com/problems/sequence-reconstruction/) (LeetCode 444) — единственность
+- [Sequence Reconstruction](https://leetcode.com/problems/sequence-reconstruction/) (LeetCode 444) — единственность; на LeetCode по подписке
 
 > 🧭 **Не пошла задача из основы?** Держись за один факт: Кан — это про **степени входа**.
 > Очередь опустела, а вершины остались — значит у них есть неразрешимая зависимость, то есть
