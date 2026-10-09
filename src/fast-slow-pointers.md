@@ -466,23 +466,28 @@ func detectCycle(head *ListNode) *ListNode {
 
 **🟢 Разогрев** — два указателя с разной скоростью, без доказательств:
 
-- [Linked List Cycle](https://leetcode.com/problems/linked-list-cycle/) (LeetCode 141) — есть ли цикл
-- [Remove Nth Node From End](https://leetcode.com/problems/remove-nth-node-from-end-of-list/) (LeetCode 19) — разрыв в `n` шагов
+- [Linked List Cycle](https://leetcode.com/problems/linked-list-cycle/) (LeetCode 141) — есть ли цикл; в тренажёре: `fastslow.HasCycle`
+- [Middle of the Linked List](https://leetcode.com/problems/middle-of-the-linked-list/) (LeetCode 876) — при чётной длине второй из двух средних; в тренажёре: `fastslow.MiddleNode`
+- [Happy Number](https://leetcode.com/problems/happy-number/) (LeetCode 202) — цикл в последовательности чисел; в тренажёре: `fastslow.IsHappyNumber`
 
 **🔵 Основа** — планка главы:
 
-- [Reorder List](https://leetcode.com/problems/reorder-list/) (LeetCode 143) — середина + разворот + сшивка
-- [Linked List Cycle II](https://leetcode.com/problems/linked-list-cycle-ii/) (LeetCode 142) — вход в цикл
+- [Linked List Cycle II](https://leetcode.com/problems/linked-list-cycle-ii/) (LeetCode 142) — вход в цикл; в тренажёре: `fastslow.DetectCycle`
+- [Remove Nth Node From End](https://leetcode.com/problems/remove-nth-node-from-end-of-list/) (LeetCode 19) — разрыв в `n` шагов
 
 **🔴 Добивка** — когда основа идёт уверенно:
 
 - [Find the Duplicate Number](https://leetcode.com/problems/find-the-duplicate-number/) (LeetCode 287) — Floyd на массиве
+- [Reorder List](https://leetcode.com/problems/reorder-list/) (LeetCode 143) — после разворота списка: середина + разворот второй половины ([глава о связном списке](linked-list-structure.md#-разворот-списка)) + сшивка
 
 > 🧭 **Не пошла задача из основы?** 142 решается не перебором, а **арифметикой расстояний**:
 > выведи на бумаге, почему указатель из головы и указатель из точки встречи сходятся ровно
-> во входе в цикл. А 287 сначала не выглядит задачей про списки вовсе — увидеть её можно,
-> только если прочитать массив как функцию `i → nums[i]`: тогда «дубликат» становится
-> входом в цикл, и это ровно 142.
+> во входе в цикл. В 19 разрыв задаёт `fast`, уведённый на `n` шагов вперёд: когда он дойдёт
+> до конца, `slow` встанет **перед** удаляемым узлом. Удаление самой головы (`n` равно длине)
+> — особый случай, который снимает фиктивная голова `dummy` из
+> [главы о связном списке](linked-list-structure.md). А 287 сначала не выглядит задачей про
+> списки вовсе — увидеть её можно, только если прочитать массив как функцию `i → nums[i]`:
+> тогда «дубликат» становится входом в цикл, и это ровно 142.
 
 **Тренажёр** — пакет `fastslow`:
 
