@@ -543,26 +543,29 @@ return merge(left, right)</pre>
 **🟢 Разогрев** — слияние и разбиение руками:
 
 - [Merge Sorted Array](https://leetcode.com/problems/merge-sorted-array/) (LeetCode 88) — слияние с конца
-- [Sort Colors](https://leetcode.com/problems/sort-colors/) (LeetCode 75) — голландский флаг, partition на 3 зоны
 
 **🔵 Основа** — планка главы:
 
-- [Sort an Array](https://leetcode.com/problems/sort-an-array/) (LeetCode 912) — напиши merge sort сам
-- [Kth Largest Element](https://leetcode.com/problems/kth-largest-element-in-an-array/) (LeetCode 215) — QuickSelect
-- [Largest Number](https://leetcode.com/problems/largest-number/) (LeetCode 179) — нестандартный компаратор
-- [Top K Frequent](https://leetcode.com/problems/top-k-frequent-elements/) (LeetCode 347) — bucket sort по частоте
+- [Sort an Array](https://leetcode.com/problems/sort-an-array/) (LeetCode 912) — напиши merge sort сам; в тренажёре: `sorting.MergeSort`
+- [Kth Largest Element](https://leetcode.com/problems/kth-largest-element-in-an-array/) (LeetCode 215) — QuickSelect; в тренажёре: `sorting.QuickSelect` (там k-й по возрастанию: k-й наибольший — это `n − k + 1`-й)
 
 **🔴 Добивка** — когда основа идёт уверенно:
 
+- [Largest Number](https://leetcode.com/problems/largest-number/) (LeetCode 179) — нестандартный компаратор
+- [Top K Frequent](https://leetcode.com/problems/top-k-frequent-elements/) (LeetCode 347) — bucket sort по частоте
+- [Sort Colors](https://leetcode.com/problems/sort-colors/) (LeetCode 75) — голландский флаг, partition на 3 зоны; разобран в главе [«Два указателя»](two-pointers.md)
 - [Count of Smaller Numbers After Self](https://leetcode.com/problems/count-of-smaller-numbers-after-self/) (LeetCode 315) — merge sort + подсчёт инверсий
 - [Maximum Gap](https://leetcode.com/problems/maximum-gap/) (LeetCode 164) — bucket/radix за O(n)
 
-> 🧭 **Не пошла задача из основы?** В 179 всё решает **транзитивность компаратора**:
-> сравнивать надо конкатенации (`a+b` против `b+a`), а не сами числа — иначе порядок
-> противоречив и сортировка выдаёт мусор. В 215 QuickSelect отличается от быстрой сортировки
-> одной деталью: рекурсия идёт **только в ту половину**, где лежит ответ, отсюда `O(n)` в
-> среднем вместо `O(n log n)`. А 347 — напоминание, что сортировка вообще не всегда нужна:
-> частоты ограничены длиной массива, значит раскладываются по корзинам за линию.
+> 🧭 **Не пошла задача из основы?** В 912 проверь две вещи: базу рекурсии (срез из нуля или
+> одного элемента уже отсортирован) и слияние — пока обе половины не пусты, бери меньшую
+> голову (при равенстве — левую, так сортировка остаётся устойчивой), потом допиши хвост той,
+> что осталась. В 215 QuickSelect отличается от быстрой сортировки одной деталью: рекурсия идёт
+> **только в ту половину**, где лежит ответ, отсюда `O(n)` в среднем вместо `O(n log n)`; а
+> «k-й наибольший» — это `n − k + 1`-й по возрастанию, не перепутай. Из добивки: в 179 всё
+> решает **транзитивность компаратора** — сравнивать надо конкатенации (`a+b` против `b+a`),
+> а не сами числа; 347 — напоминание, что сортировка вообще не всегда нужна: частоты
+> ограничены длиной массива и раскладываются по корзинам за линию.
 
 **Тренажёр** — пакет `sorting`:
 
