@@ -268,9 +268,9 @@ process.on("unhandledRejection", (e) => unhandled.push(String(e && e.stack || e)
 // /api/solution ({status, error} — ошибка), down — сервер не отвечает, noStorage — localStorage бросает,
 // stubStatus — код ответа /api/stub, importer — подмена загрузки модулей CodeMirror
 // (window.ALGO_RUNNER_IMPORT), holdSlow — управляемые часы: таймеры от 5 с не идут сами, их
-// запускает held[i]() (срок загрузки CodeMirror — 8 с).
+// запускает held[i]() (срок загрузки CodeMirror — 8 с), goWords — словари hlGo (window.ALGO_VIZ.goWords).
 async function page({ attrs = 'data-pkg="p"', stub = STUB, run = GREEN, solution, seed = {}, down = false, noStorage = false,
-  stubStatus = 200, importer, holdSlow = false } = {}) {
+  stubStatus = 200, importer, holdSlow = false, goWords } = {}) {
   const calls = [], events = [], errors = [], confirms = [], held = [];
   const vc = new VirtualConsole();
   vc.on("jsdomError", (e) => errors.push("jsdomError: " + (e && e.message)));
@@ -282,6 +282,7 @@ async function page({ attrs = 'data-pkg="p"', stub = STUB, run = GREEN, solution
       if (noStorage) Object.defineProperty(w, "localStorage", { get() { throw new w.DOMException("denied", "SecurityError"); } });
       w.confirm = (m) => { confirms.push(m); return true; };
       if (importer) w.ALGO_RUNNER_IMPORT = importer;
+      if (goWords) w.ALGO_VIZ = { goWords };
       if (holdSlow) {
         const realSetTimeout = w.setTimeout.bind(w);
         w.setTimeout = (fn, ms, ...args) => {
@@ -614,18 +615,63 @@ async function fixRoundOne(S) {
   expect(/строк import в нём нет — нужные пакеты допиши сам/.test((w.q(".algo-runner__solution") || {}).textContent || ""), "в подписи эталона нет пометки про import");
 
   // CodeMirror: подставной загрузчик. Контроль — ответил сразу: редактор CodeMirror (textarea нет).
-  let built = 0;
+  // Подставные модули повторяют форму настоящих: lang-go отдаёт go(), one-dark — теги своей
+  // HighlightStyle (у тега есть имя, как у @lezer/highlight), language — HighlightStyle и
+  // syntaxHighlighting. По ним runner собирает цвета книги — тем же путём, что живая книга.
+  let built = 0, langGo = 0, styled = null, oneDarkUsed = 0, matcher = null;
+  const tag = (name) => ({ toString: () => name });
+  const nodeAt = {}; // позиция → имя узла разбора для syntaxTree().resolveInner
   const modules = (url) => {
-    if (/^https:\/\/esm\.sh\/@codemirror\/language@/.test(url)) return { StreamLanguage: { define: () => ({}) } };
-    if (/^https:\/\/esm\.sh\/@codemirror\/legacy-modes@/.test(url)) return { go: {} };
-    if (/^https:\/\/esm\.sh\/@codemirror\/theme-one-dark@/.test(url)) return { oneDark: {} };
+    if (/^https:\/\/esm\.sh\/@codemirror\/language@/.test(url)) return {
+      HighlightStyle: { define: (specs) => ({ specs }) },
+      syntaxHighlighting: (hs) => { styled = hs; return {}; },
+      syntaxTree: () => ({ resolveInner: (pos) => ({ name: nodeAt[pos] || "VariableName" }) }),
+    };
+    if (/^https:\/\/esm\.sh\/@codemirror\/view@/.test(url)) return {
+      MatchDecorator: function (cfg) { matcher = cfg; },
+      ViewPlugin: { fromClass: () => ({}) },
+      Decoration: { mark: (spec) => spec },
+    };
+    if (/^https:\/\/esm\.sh\/@codemirror\/lang-go@/.test(url)) return { go: () => { langGo++; return {}; } };
+    if (/^https:\/\/esm\.sh\/@codemirror\/theme-one-dark@/.test(url)) return {
+      get oneDark() { oneDarkUsed++; return {}; },
+      oneDarkTheme: {},
+      oneDarkHighlightStyle: { specs: [
+        { tag: tag("keyword"), color: "#c678dd" },
+        { tag: [tag("typeName"), tag("number")], color: "#e5c07b" },
+        { tag: [tag("function(variableName)")], color: "#61afef" },
+        { tag: [tag("atom"), tag("bool")], color: "#d19a66" },
+        { tag: tag("strong"), fontWeight: "bold" },
+      ] },
+    };
     const EditorView = function () { built++; this.state = { doc: { toString: () => "", length: 0 } }; };
     EditorView.theme = () => ({});
     return { EditorView, basicSetup: [] };
   };
-  w = await page({ importer: (url) => Promise.resolve(modules(url)) });
+  const goWords = { kw: { func: 1, nil: 1, true: 1, iota: 1 }, type: { int: 1 }, fn: { len: 1, append: 1 } };
+  w = await page({ importer: (url) => Promise.resolve(modules(url)), goWords });
   expect(built === 1 && !w.q(".algo-runner__ta") && /сервер на связи/.test(w.q(".algo-runner__status").textContent),
     `контроль: CodeMirror ответил сразу, а построено ${built}, textarea ${!!w.q(".algo-runner__ta")}`);
+  // Докраска словарями hlGo: nil — константа, len — встроенная функция, ключевое слово func — не
+  // её дело (его красит грамматика); в комментарии — ничего.
+  const deco = (word, pos = 0) => { matcher.regexp.lastIndex = 0; const m = matcher.regexp.exec(word); return m && m[0] === word ? matcher.decoration(m, { state: {} }, pos) : null; };
+  nodeAt[7] = "LineComment";
+  expect(matcher && (deco("nil") || {}).class === "algo-tp__tok--kw" && (deco("len") || {}).class === "algo-tp__tok--fn" &&
+    deco("func") === null && deco("lens") === null && deco("nil", 7) === null,
+    `докраска predeclared: nil ${JSON.stringify(deco("nil"))}, len ${JSON.stringify(deco("len"))}, func ${JSON.stringify(deco("func"))}, в комментарии ${JSON.stringify(deco("nil", 7))}`);
+  // Цвета книги: язык — из lang-go, теги — на токенах --hl-* (типы синие, как у hlGo, числа свои,
+  // вызов — цвет функции, bool — ключевого слова), запасной oneDark не взят.
+  const colorOf = (name) => ((styled && styled.specs) || []).filter((s) => String(s.tag) === name).map((s) => s.color)[0];
+  expect(langGo === 1 && styled && oneDarkUsed === 0, `путь цветов книги: go() ${langGo}, HighlightStyle ${!!styled}, oneDark взят ${oneDarkUsed}`);
+  expect(colorOf("typeName") === "var(--hl-type)" && colorOf("number") === "var(--hl-number)" &&
+    colorOf("function(variableName)") === "var(--hl-function)" && colorOf("bool") === "var(--hl-keyword)" &&
+    colorOf("keyword") === "var(--hl-keyword)" && colorOf("strong") === undefined,
+    `теги не на токенах книги: ${JSON.stringify(((styled && styled.specs) || []).map((s) => String(s.tag) + "=" + s.color))}`);
+  // lang-go без go() (другая версия модуля) — не CodeMirror без языка, а textarea.
+  built = 0;
+  w = await page({ importer: (url) => Promise.resolve(/lang-go@/.test(url) ? {} : modules(url)) });
+  await tick();
+  expect(built === 0 && w.root.querySelectorAll(".algo-runner__ta").length === 1, `lang-go без go(): построено ${built}, textarea ${w.root.querySelectorAll(".algo-runner__ta").length}`);
   // CDN не отвечает: до срока — ожидание, по сроку (8 с, управляемые часы) — textarea, прогон работает.
   built = 0;
   w = await page({ importer: () => new Promise(() => {}), holdSlow: true });

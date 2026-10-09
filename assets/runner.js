@@ -54,13 +54,20 @@
     "@codemirror/commands@6.11.1", "@lezer/common@1.5.3", "@lezer/highlight@1.2.5", "@lezer/lr@1.4.10",
   ].join(",");
   // У language — РОВНО её собственные зависимости: esm.sh кладёт список deps в
-  // адрес сборки, и с полным списком получалась вторая копия модуля. StreamLanguage
-  // из неё не видела подсветку из basicSetup — код в редакторе был одного цвета.
+  // адрес сборки, и с полным списком получалась вторая копия модуля. Язык из неё не
+  // видел подсветку из basicSetup — код в редакторе был одного цвета. Отсюда же
+  // syntaxHighlighting и HighlightStyle для цветов книги (bookColors).
   var LANG_DEPS = "@codemirror/state@6.7.6,@codemirror/view@6.43.13,@lezer/common@1.5.3,@lezer/highlight@1.2.5,@lezer/lr@1.4.10";
   var CM_URL = "https://esm.sh/codemirror@6.0.2?deps=" + DEPS;
   var LANG_URL = "https://esm.sh/@codemirror/language@6.12.4?deps=" + LANG_DEPS;
-  var GO_URL = "https://esm.sh/@codemirror/legacy-modes@6.5.4/mode/go?deps=" + DEPS;
+  // Go — грамматика lezer (lang-go), а не legacy-режим: только она отличает типы, вызовы и nil/true
+  // (legacy красил int, len и nil одним цветом). @lezer/go — лишь у неё: остальные адреса прежние,
+  // и сборка language внутри lang-go — тот же файл, что LANG_URL (одна копия, сверено по сети).
+  var GO_URL = "https://esm.sh/@codemirror/lang-go@6.0.1?deps=" + DEPS + ",@lezer/go@1.0.1";
   var DARK_URL = "https://esm.sh/@codemirror/theme-one-dark@6.1.3?deps=" + DEPS;
+  // view — ради MatchDecorator (predeclared ниже). Адрес даёт тот же файл, что грузит сам
+  // codemirror (deps у view — только state): второй копии нет, иначе её декорации не приняли бы.
+  var VIEW_URL = "https://esm.sh/@codemirror/view@6.43.13?deps=@codemirror/state@6.7.6";
 
   // Загрузчик модулей; window.ALGO_RUNNER_IMPORT подменяет его в проверке (runner-render-check:
   // CDN, который не отвечает, и CodeMirror, пришедший после срока).
@@ -79,8 +86,10 @@
         importModule(GO_URL),
         // Книга всегда тёмная (тема одна): светлый редактор был бы белым прямоугольником.
         importModule(DARK_URL),
+        importModule(VIEW_URL),
       ]).then(function (m) {
-        cmMod = { cm: m[0], lang: m[1], go: m[2].go, dark: m[3] && m[3].oneDark, darkMod: m[3] };
+        if (!m[2] || typeof m[2].go !== "function") throw new Error("lang-go: нет go()"); // → textarea
+        cmMod = { cm: m[0], lang: m[1], go: m[2].go, darkMod: m[3], view: m[4] };
         return cmMod;
       });
     }
@@ -129,12 +138,12 @@
       doc: initialCode,
       extensions: [
         mod.cm.basicSetup,
-        mod.lang.StreamLanguage.define(mod.go),
+        mod.go(),
         mod.cm.EditorView.theme({
           "&": { fontSize: "13px", maxHeight: "440px" },
           ".cm-scroller": { overflow: "auto", fontFamily: "var(--mono-font, ui-monospace,SFMono-Regular,Menlo,monospace)" },
         }),
-      ].concat(bookColors(mod)),
+      ].concat(bookColors(mod), predeclared(mod)),
       parent: host,
     });
     return {
@@ -145,12 +154,14 @@
     };
   }
 
-  // Цвета редактора — палитра книги и её токены подсветки --hl-* (theme.css), без новых импортов:
-  // теги lezer берём из oneDarkHighlightStyle (модуль one-dark уже загружен), HighlightStyle и
-  // syntaxHighlighting — из того же экземпляра @codemirror/language, что и StreamLanguage
-  // (иначе подсветка не применилась бы). Режим go из legacy-modes различает меньше, чем hlGo:
-  // типы в нём — ключевые слова, а nil/true и len/append — один токен atom (красим как
-  // ключевые слова). Чего-то нет (подставной модуль проверки, другая версия) — прежний oneDark.
+  // Цвета редактора — палитра книги и её токены подсветки --hl-* (theme.css), те же, что у hlGo
+  // (algo-viz.js): ключевые слова и nil/true/false — фиолетовые, типы (int, string, свои) — синие,
+  // вызовы (len, append, make… и свои функции) — жёлтые, числа, строки, комментарии, операторы —
+  // как в hlGo. Расхождение одно: hlGo знает только встроенные функции, а грамматика красит любой
+  // вызов (и имя объявляемой функции). Имена и переменные цвета не получают (берут цвет текста
+  // редактора) — иначе их span перекрыл бы докраску predeclared. Теги lezer — из oneDarkHighlightStyle (модуль one-dark уже загружен; тот же экземпляр
+  // @lezer/highlight, что у lang-go), HighlightStyle и syntaxHighlighting — из того же экземпляра
+  // @codemirror/language. Чего-то нет (другая версия) — прежний oneDark.
   var HL_TAGS = [
     [/^(keyword|operatorKeyword|modifier|self|bool|null|atom|special\(variableName\))$/, "--hl-keyword"],
     [/^(string|special\(string\)|character|regexp|escape|inserted)$/, "--hl-string"],
@@ -164,13 +175,14 @@
   function bookColors(mod) {
     var L = mod.lang, src = mod.darkMod && mod.darkMod.oneDarkHighlightStyle;
     if (!L || !L.HighlightStyle || !L.syntaxHighlighting || !src || !src.specs || !mod.darkMod.oneDarkTheme) {
-      return mod.dark ? [mod.dark] : [];
+      return mod.darkMod && mod.darkMod.oneDark ? [mod.darkMod.oneDark] : [];
     }
     var specs = [];
     src.specs.forEach(function (s) {
       (Array.isArray(s.tag) ? s.tag : [s.tag]).forEach(function (tag) {
         var name = String(tag), v = null;
         HL_TAGS.forEach(function (r) { if (!v && r[0].test(name)) v = r[1]; });
+        if (v === "--hl-text") return;
         var spec = {};
         Object.keys(s).forEach(function (k) { spec[k] = s[k]; });
         spec.tag = tag;
@@ -188,6 +200,37 @@
     }, { dark: true });
     // Раньше в списке — выше приоритет: наш фон перекрывает фон oneDarkTheme.
     return [surface, mod.darkMod.oneDarkTheme, L.syntaxHighlighting(L.HighlightStyle.define(specs))];
+  }
+
+  // predeclared — докраска того, что грамматика lang-go не различает, словарями hlGo
+  // (window.ALGO_VIZ.goWords): nil и iota для неё — обычные идентификаторы, а len в «i < len(arr)»
+  // парсер читает как сравнение, не как вызов. Классы — те же algo-tp__tok--*, цвета — --hl-*.
+  // В комментариях и строках не трогаем. Нет view или словарей — без докраски.
+  var GO_CONSTS = { nil: 1, iota: 1, true: 1, false: 1 };
+  var NOT_CODE = /^(LineComment|BlockComment|String|RawString|Rune)$/;
+  function predeclared(mod) {
+    var V = mod.view, L = mod.lang, words = window.ALGO_VIZ && window.ALGO_VIZ.goWords;
+    if (!V || !V.MatchDecorator || !V.ViewPlugin || !V.Decoration || !L || !L.syntaxTree || !words) return [];
+    var cls = {};
+    Object.keys(words.kw).forEach(function (w) { if (GO_CONSTS[w]) cls[w] = "kw"; });
+    Object.keys(words.fn).forEach(function (w) { cls[w] = "fn"; });
+    var marks = {};
+    Object.keys(cls).forEach(function (w) { marks[w] = V.Decoration.mark({ class: "algo-tp__tok--" + cls[w] }); });
+    var md = new V.MatchDecorator({
+      regexp: new RegExp("\\b(?:" + Object.keys(cls).join("|") + ")\\b", "g"),
+      decoration: function (m, view, pos) {
+        var node = L.syntaxTree(view.state).resolveInner(pos, 1);
+        return NOT_CODE.test(node.name) ? null : marks[m[0]];
+      },
+    });
+    return [V.ViewPlugin.fromClass(function (view) {
+      this.decorations = md.createDeco(view);
+      // Дерево разбора доросло (разбор идёт кусками) — пересчёт целиком: иначе слово, размеченное
+      // до разбора своего комментария, так и осталось бы окрашенным.
+      this.update = function (u) {
+        this.decorations = L.syntaxTree(u.startState) !== L.syntaxTree(u.state) ? md.createDeco(u.view) : md.updateDeco(u, this.decorations);
+      };
+    }, { decorations: function (p) { return p.decorations; } })];
   }
 
   // Фолбэк: textarea с поддержкой Tab.
