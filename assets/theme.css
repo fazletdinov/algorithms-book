@@ -161,6 +161,11 @@ body {
 ::selection { background: color-mix(in srgb, var(--th-accent) 30%, transparent); }
 mark { color: var(--th-bg); border-radius: 2px; }
 
+/* Кнопки и поля виджетов — шрифтом текста: иначе браузер ставит им свой (варианты квиза шли Arial).
+   :where — нулевая специфичность: правило побеждает только умолчание браузера, а не моноширинный
+   шрифт, заданный полю классом (ввод визуализаций, ответ «Предскажи»). */
+:where(.content) :where(button, input, select, textarea) { font-family: inherit; }
+
 /* Выбор темы убран: тема одна. Кнопку не удаляем из разметки — book.js mdBook на неё опирается. */
 #mdbook-theme-toggle, #mdbook-theme-list { display: none !important; }
 
@@ -239,10 +244,7 @@ mark { color: var(--th-bg); border-radius: 2px; }
 .content main > h4 { color: var(--th-strong); font-weight: 650; }
 
 /* ===== Код ===== */
-/* Лигатуры выключены на всей странице, а не только в <code>: JetBrains Mono стоит и в редакторе
-   CodeMirror, и в панелях виджетов, и там «>=» рисовался знаком «⩾», «!=» — «≠». Код показывается
-   так, как его набирают. На каждом элементе и с !important: сокращение «font: …» в CSS виджетов
-   (эталон runner, панель трассы) сбрасывает font-variant-ligatures обратно в normal. */
+/* Лигатуры выключены: читатель должен видеть те знаки, что набирает (>= а не ⩾); !important — «font: …» виджетов их сбрасывает. */
 *, *::before, *::after { font-variant-ligatures: none !important; }
 /* Блоки кода главы — <pre> без класса (у виджетов свои <pre class="…">). */
 .content main pre:not([class]) {
