@@ -30,7 +30,7 @@ const fs = require("fs");
 const path = require("path");
 
 // Слаги перестроенных глав (src/<слаг>.md). Пополняется по мере перестройки.
-const REBUILT = ["graphs", "sorting"];
+const REBUILT = ["graphs", "sorting", "monotonic-stack"];
 
 const ZAPOMNI_MAX_LI = 3;
 const ZAPOMNI_MAX_WORDS = 60;
