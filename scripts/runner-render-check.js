@@ -477,6 +477,9 @@ async function unitsAndHints() {
     give.click();
     await tick();
     expect(w.confirms.length === 1, "«Сдаюсь» без подтверждения");
+    // подтверждение говорит, чем «Сдаюсь» обернётся в повторениях (srs.js: «Забыл» или карточка на завтра)
+    expect(/«Забыл»/.test(w.confirms[0] || "") && /карточка пакета p вернётся завтра/.test(w.confirms[0] || "") && /заведётся на завтра/.test(w.confirms[0] || ""),
+      `подтверждение «Сдаюсь» не говорит, что это «Забыл»: «${w.confirms[0]}»`);
     expect(w.calls.some((c) => /\/api\/solution\?pkg=p&func=A$/.test(c.url)), `запрос эталона: ${w.calls.map((c) => c.url).join(" ")}`);
     const sol = w.q(".algo-runner__solution");
     expect(sol && /эталон A/.test(sol.textContent), "эталон не показан в отдельной панели");

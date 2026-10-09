@@ -573,7 +573,10 @@
     function giveUpButton(name) {
       var b = btn("🏳 Сдаюсь — показать эталон", "algo-runner__btn algo-runner__help-btn algo-runner__giveup");
       b.addEventListener("click", function () {
-        if (!confirm("Показать эталон " + name + "? Код в редакторе останется твоим.")) return;
+        // srs.js (слушатель algo-runner:giveup) ставит карточке пакета «Забыл» или заводит её на завтра;
+        // эталон после своих зелёных тестов этой функции на этой странице — сверка, его он не считает
+        if (!confirm("Показать эталон " + name + "? Код в редакторе останется твоим. Для повторений это «Забыл»: карточка пакета " +
+          pkg + " вернётся завтра (её нет — заведётся на завтра); после своих зелёных тестов этой функции здесь — просто сверка.")) return;
         b.disabled = true;
         api("/api/solution?pkg=" + encodeURIComponent(pkg) + "&func=" + encodeURIComponent(name), {})
           .then(function (r) {

@@ -478,6 +478,20 @@ async function anchorMismatches() {
     if (hash !== "#viz-4" && det.open) bad.push(`${hash || "без якоря"}: <details> раскрыт без нужды`);
     W.close();
   }
+  // Якорь позиционный: виджет, вставленный в главу выше, сдвигает номера. Ссылка карточки несёт тип
+  // (?viz=<тип>): якорь чужого типа — ведём к первому виджету нужного типа; без якоря (прежние карточки) —
+  // туда же; виджета такого типа на странице нет — к якорю.
+  const S = tagOf("monotonic-stack.md", "monotonic-stack");
+  const mixedBody = `${S}${T}${T}`; // viz-1 — стек, viz-2 и viz-3 — окно
+  for (const [q, want] of [["?viz=sliding-window-fixed#viz-1", "viz-2"], ["?viz=sliding-window-fixed#viz-3", "viz-3"],
+    ["?viz=sliding-window-fixed", "viz-2"], ["?viz=monotonic-stack#viz-1", "viz-1"], ["?viz=two-pointers-sum#viz-3", "viz-3"]]) {
+    const d = pageWith(mixedBody, "http://localhost:3000/x.html" + q, {});
+    await ready(d);
+    if (d.window.document.readyState !== "complete") await new Promise((r) => d.window.addEventListener("load", r));
+    const got = d.window.__scrolled.filter(Boolean);
+    if (got[got.length - 1] !== want) bad.push(`${q}: прокрутка к ${JSON.stringify(got)}, ожидалось ${want}`);
+    d.window.close();
+  }
   return bad;
 }
 

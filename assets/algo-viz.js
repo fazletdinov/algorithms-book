@@ -16734,11 +16734,21 @@
   // Ссылка «страница#якорь-виджета»: браузер сам до виджета не прокрутит — id ставит скрипт, а виджет
   // может стоять в неактивной вкладке или в свёрнутом «Втором проходе». Открываем то и другое и
   // прокручиваем после постройки (и ещё раз на load: шрифты и формулы сдвигают раскладку).
+  // Ссылка карточки viz: несёт ещё и тип — «страница?viz=<тип>#якорь». Якорь позиционный: виджет,
+  // вставленный в главу выше, сдвигает номера, и старый якорь указал бы на соседний виджет другого типа.
+  // Поэтому якорь берётся, только если его тип совпал; иначе — первый виджет этого типа на странице (нет
+  // такого — всё же якорь). Без якоря (прежние карточки) — тоже первый виджет типа.
   function revealHash() {
-    var id;
+    var id = "", want = "";
     try { id = decodeURIComponent((location.hash || "").slice(1)); } catch (e) { return; }
-    var target = id && document.getElementById(id);
-    if (!target || !target.classList.contains("algo-viz")) return;
+    var m = /[?&]viz=([a-z0-9-]+)(?:&|$)/.exec(location.search || "");
+    if (m) want = m[1];
+    var target = id ? document.getElementById(id) : null;
+    if (target && !target.classList.contains("algo-viz")) target = null;
+    if (want && (!target || target.getAttribute("data-viz") !== want)) {
+      target = document.querySelector('.algo-viz[data-viz="' + want + '"]') || target;
+    }
+    if (!target) return;
     if (target.__algoTab) target.__algoTab();
     for (var n = target.parentNode; n && n !== document; n = n.parentNode) if (n.tagName === "DETAILS") n.open = true;
     if (target.scrollIntoView) target.scrollIntoView({ block: "start" });
