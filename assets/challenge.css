@@ -427,6 +427,10 @@
 .algo-mixed__verdict.is-ok { color: #2e9b57; }
 .algo-mixed__verdict.is-no { color: #c0392b; }
 
+.algo-mixed__sign {
+  margin: 0.2em 0 0.5em;
+}
+
 .algo-mixed__hints {
   margin-top: 0.7em;
   padding-top: 0.6em;

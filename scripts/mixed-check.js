@@ -14,8 +14,16 @@
 //   3) верный ответ раскрывает тему, подсказки и редактор с пакетом задачи;
 //   4) промах пишется в algoMixedMissed, верный ответ убирает запись; ответ сразу оценивает карточку
 //      mix: через ALGO_SRS.report (верно — «Помню», неверно — «Забыл»), один раз на вопрос;
-//   5) промахи квиза и смешанной тренировки попадают в таблицу слабых мест;
-//   6) банк задач не пустой и ссылается только на существующие главы.
+//   5) промахи квиза и смешанной тренировки попадают в таблицу слабых мест; глава промаха — из банка по
+//      pkg/fn (прежний промах bigo.* с главой big-o считается у монотонного стека);
+//   6) банк задач не пустой и ссылается только на существующие главы;
+//   7) по умолчанию — только пройденные главы: меньше трёх глав с задачами — сообщение с их числом и двумя
+//      выходами, «по всем главам» пишет algoPracticeScope; при трёх главах — задачи с c или a из них, у
+//      собеседования — только со своими тестами и без соседей (n);
+//   8) альтернативы: показан один верный вариант (c, если пройдена, иначе пройденная из a), выбор
+//      альтернативы — не промах, вердикт называет «также решается»; неверные варианты — не c и не из a,
+//      сначала пройденные (на 300 случайных наборах глав с зерном);
+//   9) признак g не виден до ответа; после неверного — «Как это было узнать» раньше подсказок.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -42,6 +50,7 @@ const vc = new VirtualConsole();
 vc.on("jsdomError", () => {}); // собственные скрипты mdBook в jsdom шумят
 
 const asset = (f) => fs.readFileSync(path.join(root, "assets", f), "utf8");
+const { mulberry32 } = require(path.join(root, "assets", "infra-core.js"));
 
 // shownProblem узнаёт показанную задачу по ПОЛНОМУ условию (абзацы в карточке —
 // отдельные <p>, поэтому \n убираем). Раньше хватало первых 40 символов, но у
@@ -52,7 +61,11 @@ function shownProblem(bank, cardText) {
   return (bank || []).find((q) => cardText.includes(q.s.split("\n").join("")));
 }
 
-function boot(page, scripts, seed) {
+// boot — собранная страница; seed ложится в хранилище до скриптов. Режим выдачи по умолчанию — «по всем
+// главам» (algoPracticeScope = "all"): сценарии ниже проверяют выдачу из всего банка; разделы о пройденных
+// главах передают algoPracticeScope: null — ключа нет, работает режим по умолчанию, «только пройденные».
+// rngSeed — зерно Math.random страницы (выдача и варианты повторяемы).
+function boot(page, scripts, seed, rngSeed) {
   return new Promise((resolve) => {
     const dom = new JSDOM(fs.readFileSync(path.join(root, "book", page), "utf8"), {
       runScripts: "dangerously",
@@ -60,10 +73,12 @@ function boot(page, scripts, seed) {
       url: "https://example.test/" + page,
     });
     dom.window.addEventListener("load", () => {
-      Object.keys(seed || {}).forEach((k) => dom.window.localStorage.setItem(k, seed[k]));
+      const all = Object.assign({ algoPracticeScope: "all" }, seed || {});
+      Object.keys(all).forEach((k) => { if (all[k] !== null) dom.window.localStorage.setItem(k, all[k]); });
+      if (rngSeed) dom.window.Math.random = mulberry32(rngSeed);
       scripts.forEach((f) => {
         const s = dom.window.document.createElement("script");
-        s.textContent = asset(f);
+        s.textContent = f.endsWith(".js") ? asset(f) : f; // не имя файла — сам код
         dom.window.document.body.appendChild(s);
       });
       resolve(dom);
@@ -158,7 +173,8 @@ async function main() {
   if (typos.length) errors.push(`в группах путаемых шаблонов нет таких глав: ${typos.join(", ")}`);
   const inBank = new Set(bank.map((p) => p.c));
   const titleOf = (slug) => ((dom.window.ALGO_CHAPTERS || []).find((c) => c.h === slug + ".html") || {}).t || slug;
-  const near = new Set([].concat(...groups.filter((g) => g.includes(problem.c))).filter((c) => c !== problem.c && inBank.has(c)));
+  // соседи — без глав, чей ответ тоже верен (a): они не бывают неверным вариантом
+  const near = new Set([].concat(...groups.filter((g) => g.includes(problem.c))).filter((c) => c !== problem.c && !problem.a.includes(c) && inBank.has(c)));
   const nearShown = titles.filter((t) => [...near].map(titleOf).includes(t)).length;
   if (nearShown < Math.min(2, near.size)) {
     errors.push(`для «${problem.c}» среди вариантов ${nearShown} путаемых шаблонов из ${near.size}: ${titles.join(" | ")}`);
@@ -250,17 +266,26 @@ async function main() {
   await gradesMixCard(problem, correctTitle);
   await raceFlag(bank);
 
+  // --- пройденные главы, альтернативные ответы, признак ---
+  await practiceScope(bank);
+  await alternatives(bank);
+  await signBeforeHints(bank);
+  await choicesOnRandomSets(bank);
+
   // --- режим собеседования ---
   await mockInterview(bank);
 
   // --- диагностика слабых мест ---
-  const dom3 = await boot("review.html", ["progress.js", "review.js"], {
+  // Глава промаха смешанной — из банка по pkg/fn (её ответ мог смениться: bigo-задачи «следующего
+  // большего» теперь отвечают главой монотонного стека), из записи — только у задачи вне банка.
+  const dom3 = await boot("review.html", ["progress.js", "problems.js", "review.js"], {
     algoQuizMissed: JSON.stringify({
       "Вопрос про кучу": { n: 2, pattern: "Two Heaps", href: "two-heaps.html", q: "Вопрос про кучу" },
     }),
     algoMixedMissed: JSON.stringify({
       "topk.KthLargest": { n: 1, chapter: "top-k-elements", pkg: "topk", fn: "KthLargest" },
       "twoheaps.MedianFinder": { n: 3, chapter: "two-heaps", pkg: "twoheaps", fn: "MedianFinder" },
+      "bigo.DailyTemperatures": { n: 2, chapter: "big-o", pkg: "bigo", fn: "DailyTemperatures" },
     }),
   });
   const table = dom3.window.document.querySelector(".algo-weak__table");
@@ -276,6 +301,9 @@ async function main() {
       errors.push(`сверху не самый слабый шаблон: ${JSON.stringify(rows)}`);
     }
     if (top[3] !== "5") errors.push(`сумма промахов у верхней строки = ${top[3]}, ожидалось 5 (2 квиз + 3 смешанная)`);
+    const stackRow = rows.find((r) => /Монотонный стек/.test(r[0]));
+    if (!stackRow || stackRow[2] !== "2") errors.push(`промах bigo.DailyTemperatures (в записи big-o) не посчитан у монотонного стека: ${JSON.stringify(rows)}`);
+    if (rows.some((r) => /Big-O/.test(r[0]))) errors.push(`промах bigo.DailyTemperatures посчитан у Big-O по старой записи: ${JSON.stringify(rows)}`);
   }
 
   finish();
@@ -321,8 +349,11 @@ async function raceFlag(bank) {
     const p = bank.find((q) => q.p === pkg && q.t.length);
     if (!p) { errors.push(`-race: в банке нет задачи пакета ${pkg} со своими тестами`); continue; }
     const id = p.p + "." + p.f;
+    // Все задачи -race-пакетов в банке зовут соседей (n) и собеседованию не выдаются; путь -race в
+    // собеседовании проверяется на той же задаче, у которой соседи в странице убраны.
+    const noNeeds = `window.ALGO_PROBLEMS.forEach(function (q) { if (q.p === "${p.p}" && q.f === "${p.f}") q.n = []; });`;
     for (const mock of [false, true]) {
-      const dom = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "srs.js", "mixed.js"], {
+      const dom = await boot("mixed.html", ["progress.js", "problems.js"].concat(mock ? [noNeeds] : [], ["runner.js", "srs.js", "mixed.js"]), {
         algoMixedMissed: JSON.stringify({ [id]: { n: 1, chapter: p.c, pkg: p.p, fn: p.f } }),
       });
       const w = dom.window, widget = w.document.querySelector(".algo-mixed");
@@ -349,6 +380,184 @@ async function raceFlag(bank) {
       w.close();
     }
   }
+}
+
+const slugOf = (h) => h.replace(/\.html$/, "");
+const progressOf = (slugs) => JSON.stringify(Object.fromEntries(slugs.map((s) => [s + ".html", true])));
+const answersOf = (p) => [p.c].concat(p.a || []);
+const giveBtn = (w) => [...w.querySelectorAll("button")].find((b) => /Дать задачу|Следующая задача/.test(b.textContent));
+const optionsOf = (w) => [...w.querySelectorAll(".algo-mixed__q .algo-challenge__opt")];
+
+// practiceScope — режим по умолчанию «только пройденные главы»: при пустом трекере и при двух главах —
+// сообщение с числом и двумя выходами, а не пустой экран и не задача из непройденной главы; при трёх —
+// задачи только тех, чей ответ (c или из a) пройден, и среди неверных вариантов нет её альтернатив. Тот же
+// пул у собеседования. Переключатель «по всем главам» пишет общий ключ.
+async function practiceScope(bank) {
+  for (const [label, slugs] of [["пустой трекер", []], ["две главы", ["sliding-window", "two-pointers"]]]) {
+    const dom = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "srs.js", "mixed.js"],
+      { algoPracticeScope: null, algoProgress: progressOf(slugs) }, 3);
+    const w = dom.window.document.querySelector(".algo-mixed");
+    const give = giveBtn(w);
+    if (give && !give.disabled) click(dom, give); // кнопка выключена или ничего не выдаёт — так и надо
+    const empty = w.querySelector(".algo-mixed__empty");
+    const text = empty ? empty.textContent : "";
+    if (w.querySelector(".algo-mixed__card")) errors.push(`пройденные: ${label} — выдана задача, хотя пройдено меньше трёх глав`);
+    if (!new RegExp(`глав с задачами[^.]*: ${slugs.length}\\b`).test(text) || !/«Глава пройдена»/.test(text) || !/«по всем главам»/.test(text)) {
+      errors.push(`пройденные: ${label} — нет сообщения с числом глав (${slugs.length}) и двумя выходами: «${text}»`);
+    }
+    const box = w.querySelector(".algo-scope__box");
+    if (!box) { errors.push(`пройденные: ${label} — нет переключателя «по всем главам»`); dom.window.close(); continue; }
+    if (box.checked) errors.push(`пройденные: ${label} — по умолчанию стоит «по всем главам»`);
+    box.checked = true;
+    box.dispatchEvent(new dom.window.Event("change"));
+    if (dom.window.localStorage.getItem("algoPracticeScope") !== "all") errors.push(`пройденные: ${label} — «по всем главам» не записан в algoPracticeScope`);
+    click(dom, giveBtn(w));
+    if (!w.querySelector(".algo-mixed__card")) errors.push(`пройденные: ${label} — «по всем главам» не дал задачу`);
+    dom.window.close();
+  }
+
+  const done = ["sliding-window", "two-pointers", "prefix-sums"];
+  for (const mock of [false, true]) {
+    const dom = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "srs.js", "mixed.js"],
+      { algoPracticeScope: null, algoProgress: progressOf(done) }, mock ? 21 : 22);
+    const doc = dom.window.document, w = doc.querySelector(".algo-mixed");
+    if (mock) { const mb = w.querySelector(".algo-mixed__mode-box"); mb.checked = true; mb.dispatchEvent(new dom.window.Event("change")); }
+    const titleOf = (slug) => ((dom.window.ALGO_CHAPTERS || []).find((c) => c.h === slug + ".html") || {}).t || slug;
+    for (let i = 0; i < 25; i++) {
+      click(dom, giveBtn(w));
+      const card = w.querySelector(".algo-mixed__card");
+      const p = card && shownProblem(bank, card.textContent);
+      if (!p) { errors.push(`пройденные (${mock ? "собеседование" : "обычный"}): выдача ${i} — задача не опознана`); break; }
+      const right = answersOf(p);
+      if (!right.some((c) => done.includes(c))) errors.push(`пройденные: выдана ${p.p}.${p.f} (ответы ${right}) — ни одна её глава не пройдена`);
+      if (mock && (!p.t.length || p.n.length)) errors.push(`пройденные, собеседование: выдана ${p.p}.${p.f} без своих тестов или с соседями`);
+      const titles = optionsOf(w).map((b) => b.textContent);
+      const shown = titles.filter((t) => right.map(titleOf).includes(t));
+      if (shown.length !== 1) errors.push(`пройденные: у ${p.p}.${p.f} верных вариантов ${shown.length}: ${titles.join(" | ")}`);
+      else if (!done.map(titleOf).includes(shown[0])) errors.push(`пройденные: у ${p.p}.${p.f} верный вариант «${shown[0]}» — непройденная глава`);
+      if (titles.length !== 4) errors.push(`пройденные: у ${p.p}.${p.f} вариантов ${titles.length}`);
+    }
+    dom.window.close();
+  }
+}
+
+// alternatives — (f) k-й по величине при пройденных сортировках: верный вариант — «Сортировки», его
+// выбор не промах; вердикт называет и главу-ответ, и альтернативы. (g) bigo-задачи «следующего
+// большего» отвечают главой монотонного стека.
+async function alternatives(bank) {
+  const kth = bank.find((p) => p.p === "topk" && p.f === "KthLargest");
+  if (!kth || kth.c !== "top-k-elements" || !kth.a.includes("sorting")) {
+    errors.push(`(f) в банке у topk.KthLargest c = ${kth && kth.c}, a = ${kth && JSON.stringify(kth.a)} — ожидались top-k-elements и sorting`);
+    return;
+  }
+  const done = ["sorting", "sliding-window", "prefix-sums"];
+  // выдача берёт непоказанные: все прочие задачи пула помечены показанными
+  const seen = {};
+  bank.forEach((p) => { if (p !== kth) seen[p.p + "." + p.f] = 1; });
+  const dom = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "srs.js", "mixed.js"],
+    { algoPracticeScope: null, algoProgress: progressOf(done), algoMixedSeen: JSON.stringify(seen) }, 5);
+  const w = dom.window.document.querySelector(".algo-mixed");
+  click(dom, giveBtn(w));
+  const card = w.querySelector(".algo-mixed__card");
+  if (!card || shownProblem(bank, card.textContent) !== kth) {
+    errors.push(`(f) выдана не topk.KthLargest: «${card && card.textContent.slice(0, 80)}»`);
+  } else {
+    const titleOf = (slug) => ((dom.window.ALGO_CHAPTERS || []).find((c) => c.h === slug + ".html") || {}).t || slug;
+    const opts = optionsOf(w);
+    const sortBtn = opts.find((b) => b.textContent === titleOf("sorting"));
+    if (!sortBtn) errors.push(`(f) среди вариантов нет «${titleOf("sorting")}»: ${opts.map((b) => b.textContent).join(" | ")}`);
+    if (opts.some((b) => b.textContent === titleOf("top-k-elements"))) errors.push("(f) глава-ответ непройдена, а стоит среди вариантов");
+    if (sortBtn) {
+      click(dom, sortBtn);
+      const missed = JSON.parse(dom.window.localStorage.getItem("algoMixedMissed") || "{}");
+      if (missed["topk.KthLargest"]) errors.push("(f) выбор альтернативы «Сортировки» записан как промах");
+      const verdict = w.querySelector(".algo-mixed__verdict");
+      const vt = verdict ? verdict.textContent : "";
+      if (!/^✓/.test(vt) || !vt.includes(titleOf("sorting")) || !/также решается/.test(vt) || !vt.includes(titleOf("top-k-elements"))) {
+        errors.push(`(f) вердикт не называет выбор и альтернативу: «${vt}»`);
+      }
+      if (!sortBtn.classList.contains("algo-challenge__opt--ok")) errors.push("(f) выбранная альтернатива не отмечена верной");
+    }
+  }
+  dom.window.close();
+
+  const bigo = bank.filter((p) => p.p === "bigo" && p.c === "monotonic-stack").map((p) => p.f).sort();
+  if (JSON.stringify(bigo) !== JSON.stringify(["DailyTemperatures", "NextGreaterElement"])) {
+    errors.push(`(g) у bigo главой монотонного стека отвечают ${JSON.stringify(bigo)}, ожидались DailyTemperatures и NextGreaterElement`);
+  }
+}
+
+// signBeforeHints — (h) признак g виден только после ответа; после неверного он стоит под вердиктом
+// («Как это было узнать»), раньше подсказок; после верного — первым среди подсказок.
+async function signBeforeHints(bank) {
+  const p = bank.find((q) => q.g && q.h && q.p === "prefixsum" && q.f === "CountSubarraysWithSum") || bank.find((q) => q.g && q.h);
+  if (!p) { errors.push("(h) в банке нет задачи с признаком и подсказками"); return; }
+  const seen = {};
+  bank.forEach((q) => { if (q !== p) seen[q.p + "." + q.f] = 1; });
+  for (const right of [false, true]) {
+    const dom = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "srs.js", "mixed.js"], { algoMixedSeen: JSON.stringify(seen) }, 9);
+    const w = dom.window.document.querySelector(".algo-mixed");
+    click(dom, giveBtn(w));
+    const card = w.querySelector(".algo-mixed__card");
+    if (!card || shownProblem(bank, card.textContent) !== p) { errors.push(`(h) выдана не ${p.p}.${p.f}`); dom.window.close(); continue; }
+    if (w.textContent.includes(p.g.slice(0, 40))) errors.push("(h) признак виден до ответа");
+    const titleOf = (slug) => ((dom.window.ALGO_CHAPTERS || []).find((c) => c.h === slug + ".html") || {}).t || slug;
+    const okTitles = answersOf(p).map(titleOf);
+    const btn = optionsOf(w).find((b) => okTitles.includes(b.textContent) === right);
+    click(dom, btn);
+    const res = w.querySelector(".algo-mixed__result");
+    const t = res ? res.textContent : "";
+    const gi = t.indexOf(p.g.slice(0, 40)), hi = t.indexOf(p.h.split("\n")[0].slice(0, 30));
+    if (gi < 0) errors.push(`(h) ответ ${right ? "верный" : "неверный"}: признака нет в разборе`);
+    else if (hi >= 0 && gi > hi) errors.push(`(h) ответ ${right ? "верный" : "неверный"}: признак стоит после подсказок`);
+    if (!right && !/Как это было узнать: /.test(t)) errors.push("(h) после неверного ответа нет «Как это было узнать»");
+    dom.window.close();
+  }
+}
+
+// choicesOnRandomSets — варианты ответа на случайных наборах пройденных глав (зерно): показан ровно один
+// верный — c, если пройдена, иначе пройденная из a; неверные — не c и не из a, без повторов, всего 4;
+// неверные — сначала пройденные (до двух соседей из путаемых групп), и непройденная стоит, только когда
+// пройденные чужие главы кончились.
+async function choicesOnRandomSets(bank) {
+  const dom = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "srs.js", "mixed.js"], {});
+  const M = dom.window.ALGO_MIXED;
+  if (!M || typeof M.choices !== "function") { errors.push("mixed.js не отдаёт ALGO_MIXED.choices — варианты не проверить"); return; }
+  const groups = dom.window.ALGO_CONFUSABLE || [];
+  const chapters = [...new Set(bank.map((p) => p.c))];
+  for (let s = 1; s <= 300; s++) {
+    const rnd = mulberry32(s);
+    const all = rnd() < 0.15;
+    const done = {};
+    chapters.forEach((c) => { if (rnd() < 0.2) done[c] = true; });
+    ["sorting", "big-o", "union-find-structure", "merge-intervals", "greedy", "recursion", "dynamic-programming"].forEach((c) => { if (rnd() < 0.3) done[c] = true; });
+    const isDone = (c) => all || !!done[c];
+    const pool = bank.filter((p) => answersOf(p).some(isDone));
+    if (!pool.length) continue;
+    const p = pool[Math.floor(rnd() * pool.length)];
+    const got = M.choices(p, bank, all ? null : done, mulberry32(s * 31));
+    const right = answersOf(p);
+    const where = `зерно ${s}, ${p.p}.${p.f}`;
+    if (!got || !Array.isArray(got.options)) { errors.push(`варианты: ${where} — choices вернул ${JSON.stringify(got)}`); break; }
+    const opts = got.options;
+    if (opts.length !== 4) errors.push(`варианты: ${where} — их ${opts.length}`);
+    if (new Set(opts).size !== opts.length) errors.push(`варианты: ${where} — повторы ${opts}`);
+    const shown = opts.filter((c) => right.includes(c));
+    if (shown.length !== 1 || shown[0] !== got.shown) errors.push(`варианты: ${where} — верных ${shown.length} (${shown}), показанный ${got.shown}`);
+    const wantShown = isDone(p.c) ? p.c : (p.a || []).find((c) => done[c]);
+    if (got.shown !== wantShown) errors.push(`варианты: ${where} — показан верным ${got.shown}, ожидался ${wantShown}`);
+    const wrong = opts.filter((c) => !right.includes(c));
+    const others = chapters.filter((c) => !right.includes(c));
+    if (wrong.some((c) => !others.includes(c))) errors.push(`варианты: ${where} — неверный вариант не из глав банка: ${wrong}`);
+    if (wrong.some((c) => !isDone(c)) && others.some((c) => isDone(c) && !wrong.includes(c))) {
+      errors.push(`варианты: ${where} — стоит непройденная ${wrong.filter((c) => !isDone(c))}, хотя пройденные чужие главы остались`);
+    }
+    const near = new Set([].concat(...groups.filter((g) => g.includes(got.shown))).filter((c) => others.includes(c) && isDone(c)));
+    const nearShown = wrong.filter((c) => near.has(c)).length;
+    if (nearShown < Math.min(2, near.size)) errors.push(`варианты: ${where} — соседей из путаемых групп ${nearShown} из ${near.size}`);
+    if (errors.length > 30) break;
+  }
+  dom.window.close();
 }
 
 // mockInterview проходит собеседование от начала до итога. Проверяется то, ради
@@ -495,14 +704,14 @@ async function mockInterview(bank) {
   const cxMissed = JSON.parse(ls.getItem("algoMockCxMissed") || "{}");
   if (!cxMissed[id]) errors.push("собеседование: промах по сложности не записан для повторений");
 
-  // Задачи без своих тестов режим выдавать не должен. Случайной выдачей это не
-  // проверить (таких 4 из 163), поэтому детерминированно: все задачи СО своими
-  // тестами помечаем показанными — выдача предпочитает непоказанные, и при
-  // ошибке фильтра неизбежно вытащит задачу без тестов.
-  const untested = bank.filter((q) => !q.t || !q.t.length);
-  if (!untested.length) return; // нечего проверять — все задачи с тестами
+  // Задачи без своих тестов и задачи, чьи тесты зовут соседние упражнения (n), режим выдавать не должен:
+  // он гоняет только тесты функции на чистой заготовке, и такая задача там неразрешима. Случайной выдачей
+  // это не проверить, поэтому детерминированно: все годные задачи (свои тесты, без соседей) помечаем
+  // показанными — выдача предпочитает непоказанные, и при ошибке фильтра неизбежно вытащит негодную.
+  const untested = bank.filter((q) => !q.t || !q.t.length || (q.n && q.n.length));
+  if (!untested.length) return; // нечего проверять — все задачи годны
   const seen = {};
-  bank.filter((q) => q.t && q.t.length).forEach((q) => { seen[q.p + "." + q.f] = 1; });
+  bank.filter((q) => q.t && q.t.length && !(q.n && q.n.length)).forEach((q) => { seen[q.p + "." + q.f] = 1; });
   const dom2 = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "mixed.js"], {
     algoMixedSeen: JSON.stringify(seen),
   });
@@ -512,8 +721,9 @@ async function mockInterview(bank) {
   box2.dispatchEvent(new dom2.window.Event("change"));
   click(dom2, [...w2.querySelectorAll("button")].find((b) => /Дать задачу/.test(b.textContent)));
   const card2 = w2.querySelector(".algo-mixed__card");
-  const bad = card2 && untested.find((q) => card2.textContent.includes(q.s.slice(0, 40)));
-  if (bad) errors.push(`режим собеседования выдал ${bad.p}.${bad.f} — у неё нет своих тестов`);
+  const bad = card2 && shownProblem(untested, card2.textContent);
+  if (bad) errors.push(`режим собеседования выдал ${bad.p}.${bad.f} — ${bad.t.length ? "её тесты зовут соседей " + bad.n.join(", ") : "у неё нет своих тестов"}`);
+  if (!card2) errors.push("собеседование: при всех годных задачах показанными задача не выдана вовсе");
 }
 
 function finish() {
@@ -528,7 +738,9 @@ function finish() {
       "черновик data-draft=\"mixed\" стирается выдачей новой задачи, а не постройкой редактора), " +
       "слабые места считаются по квизу и смешанной вместе; собеседование прячет подсказки и главу до итога, " +
       "пускает к коду только после плана, гоняет тесты одной функции с чистой заготовки без подсказок и эталона " +
-      "(data-hints=\"off\"), спрашивает сложность до эталона"
+      "(data-hints=\"off\"), спрашивает сложность до эталона и не выдаёт задач с соседями; по умолчанию — только пройденные главы " +
+      "(меньше трёх — сообщение с числом), альтернативы засчитываются и названы в вердикте, неверные варианты — не из них, " +
+      "признак — после ответа, раньше подсказок"
   );
   // Явный выход: последняя проверка начинает собеседование, и его часы (setInterval
   // в mixed.js) держат цикл событий jsdom-окна живым — без exit процесс после «✅»

@@ -31,7 +31,9 @@
 //      мусор в algoToday и смена суток начинают день заново; счётчик дня растёт только по оценке
 //      карточки с вышедшим сроком; две вкладки не теряют ни done, ни later;
 //  15) «Позже» не меняет карточку и не запирает очередь (единственная, тяжёлая), фокус — на следующей;
-//  16) карточки quiz: и cx: — вопросы: ответ и оценки только после «Показать ответ»;
+//  16) карточки quiz: и cx: — вопросы: ответ и оценки только после «Показать ответ»; карточка mix: — условие
+//      другой задачи того же шаблона (не meta.last), глава из банка (прежняя meta.chapter "big-o" у bigo.* —
+//      монотонный стек), ответ с альтернативами, оценка пишет meta.last;
 //  17) оставленная вкладка: возврат, storage и algo-srs:change перестраивают порцию, не закрывая
 //      раскрытый ответ и форму заметки; промах на этой же странице обновляет счётчик без перехода;
 //  18) числа предела в текстах книги совпадают с константами движка;
@@ -257,10 +259,13 @@ async function main() {
     algoMixedMissed: JSON.stringify({ "topk.KthLargest": { n: 1, chapter: "top-k-elements", pkg: "topk", fn: "KthLargest" } }),
   }, [problemsJs]);
   const w = mix.window, box = w.document.querySelector(".algo-today");
-  const statement = (w.ALGO_PROBLEMS.find((p) => p.p === "topk" && p.f === "KthLargest") || {}).s || "";
+  // Условие — ДРУГОЙ задачи того же шаблона (у Top-K их несколько): промах уже видел свою, узнать приём
+  // надо на новой формулировке (подробнее — раздел 11g).
   const mixText = box.textContent;
-  if (!statement || !mixText.includes(statement.split("\n")[0])) {
-    errors.push(`карточка mix: не показывает условие задачи из банка: «${mixText.slice(0, 160)}»`);
+  const sameChapter = w.ALGO_PROBLEMS.filter((p) => p.c === "top-k-elements");
+  const shownMix = sameChapter.find((p) => mixText.includes(p.s.split("\n")[0]));
+  if (!shownMix || (shownMix.p === "topk" && shownMix.f === "KthLargest")) {
+    errors.push(`карточка mix: показывает не другую задачу Top-K из банка: «${mixText.slice(0, 160)}»`);
   }
   if (/topk|KthLargest|Top-K|top-k/i.test(mixText)) {
     errors.push(`карточка mix: до ответа выдаёт пакет, функцию или главу: «${mixText.slice(0, 200)}»`);
@@ -1275,6 +1280,84 @@ if (api) {
   }
 }
 
+// --- 11g. карточка mix: условие другой задачи того же шаблона; глава — из банка, из meta — вне банка ---
+// Оценивается карточка промаха, а на ней — другая задача с той же главой-ответом c: свою формулировку
+// читатель уже видел, а узнавать приём надо по новой. После оценки meta.last — показанная задача, и в
+// следующий раз придёт следующая. Прежние карточки bigo.* записаны с meta.chapter "big-o", а в банке их
+// ответ теперь — монотонный стек: глава берётся из банка.
+{
+  const now = NOON;
+  const titleOf = (slug) => slug; // в этих страницах нет ALGO_CHAPTERS — заголовок главы равен слагу
+  const mixCard = (meta, extra) => Object.assign({ due: now - HOUR, iv: 0, ease: 2.5, reps: 0, meta }, extra || {});
+  const oldMeta = { n: 1, chapter: "big-o", pkg: "bigo", fn: "DailyTemperatures" };
+  const stackList = BANK.filter((p) => p.c === "monotonic-stack");
+  const key = (p) => p.p + "." + p.f;
+  const shownOf = (dom) => {
+    const t = dom.window.document.querySelector(".algo-today").textContent;
+    return BANK.filter((p) => t.includes(p.s.split("\n").join(""))).map(key);
+  };
+  const dom = await newDom({
+    algoMixedMissed: JSON.stringify({ "bigo.DailyTemperatures": oldMeta }),
+    algoSRS: JSON.stringify({ "mix:bigo.DailyTemperatures": mixCard(oldMeta) }),
+  }, [CLOCK(now), problemsJs], PAGE);
+  const first = shownOf(dom);
+  if (stackList.length < 2) errors.push(`у монотонного стека в банке ${stackList.length} задач — проверка рассчитана на несколько`);
+  if (first.length !== 1 || first[0] === "bigo.DailyTemperatures" || !stackList.map(key).includes(first[0])) {
+    errors.push(`карточка mix:bigo.DailyTemperatures показывает ${JSON.stringify(first)}, ожидалась другая задача монотонного стека`);
+  }
+  if (click(dom, "Показать ответ")) {
+    const ans = dom.window.document.querySelector(".algo-today__answer");
+    const link = ans && ans.querySelector("a");
+    if (!link || link.getAttribute("href") !== "monotonic-stack.html") errors.push(`карточка mix: с meta.chapter "big-o" отвечает ${link && link.getAttribute("href")}, ожидалась глава монотонного стека из банка`);
+    const shownRec = BANK.find((p) => key(p) === first[0]);
+    if (shownRec && shownRec.a.length && !(ans && ans.textContent.includes("также решается: " + shownRec.a.map(titleOf).join(", ")))) {
+      errors.push(`карточка mix: ответ не перечисляет альтернативы показанной задачи (${shownRec.a}): «${ans && ans.textContent}»`);
+    }
+    click(dom, "Помню");
+    const c = cards(dom)["mix:bigo.DailyTemperatures"];
+    if (!c || c.iv !== 1 || !c.meta || c.meta.last !== first[0]) errors.push(`карточка mix: после «Помню» meta.last ≠ показанной задаче ${first[0]}: ${JSON.stringify(c)}`);
+    if (c && c.meta && c.meta.chapter !== "big-o") errors.push("карточка mix: оценка переписала прежнюю meta.chapter — карточку менять не нужно");
+  }
+  dom.window.close();
+
+  // следующий показ — не та, что в meta.last; задача-промах снова приходит в свою очередь
+  for (const last of stackList.map(key)) {
+    const meta = Object.assign({}, oldMeta, { last });
+    const again = await newDom({ algoSRS: JSON.stringify({ "mix:bigo.DailyTemperatures": mixCard(meta, { iv: 1, reps: 1, seen: now - DAY }) }) }, [CLOCK(now), problemsJs], PAGE);
+    const s = shownOf(again);
+    if (s.length !== 1 || s[0] === last || !stackList.map(key).includes(s[0])) errors.push(`карточка mix: при meta.last = ${last} показано ${JSON.stringify(s)}`);
+    again.window.close();
+  }
+
+  // у шаблона одна задача — показывается она сама; задачи нет в банке — глава из meta, ссылка на смешанную
+  const single = Object.entries(BANK.reduce((m, p) => ((m[p.c] = (m[p.c] || []).concat(p)), m), {})).find(([, list]) => list.length === 1);
+  if (single) {
+    const p = single[1][0];
+    const one = await newDom({ algoSRS: JSON.stringify({ ["mix:" + key(p)]: mixCard({ n: 1, chapter: p.c, pkg: p.p, fn: p.f }) }) }, [CLOCK(now), problemsJs], PAGE);
+    if (JSON.stringify(shownOf(one)) !== JSON.stringify([key(p)])) errors.push(`карточка mix: у шаблона ${p.c} одна задача, показано ${JSON.stringify(shownOf(one))}`);
+    one.window.close();
+  }
+  // cx: — то же правило главы: прежняя запись big-o у bigo.DailyTemperatures ведёт к монотонному стеку
+  const cxOld = await newDom({ algoSRS: JSON.stringify({ "cx:bigo.DailyTemperatures": mixCard(oldMeta) }) }, [CLOCK(now), problemsJs], PAGE);
+  {
+    const box = cxOld.window.document.querySelector(".algo-today");
+    if (/Показать ответ/.test(box.textContent)) click(cxOld, "Показать ответ");
+    const links = [...box.querySelectorAll("a")].map((a) => a.getAttribute("href"));
+    if (!links.includes("monotonic-stack.html") || links.includes("big-o.html")) errors.push(`карточка cx: с meta.chapter "big-o" ведёт на ${JSON.stringify(links)}, ожидалась глава монотонного стека из банка`);
+  }
+  cxOld.window.close();
+  const gone = await newDom({ algoSRS: JSON.stringify({ "mix:old.Gone": mixCard({ n: 1, chapter: "greedy", pkg: "old", fn: "Gone" }) }) }, [CLOCK(now), problemsJs], PAGE);
+  {
+    const box = gone.window.document.querySelector(".algo-today");
+    if (!/больше нет в банке/.test(box.textContent)) errors.push(`карточка mix: задача вне банка не сказала об этом: «${box.textContent.slice(0, 160)}»`);
+    if (click(gone, "Показать ответ")) {
+      const link = box.querySelector(".algo-today__answer a");
+      if (!link || link.getAttribute("href") !== "greedy.html") errors.push(`карточка mix: задача вне банка отвечает не главой из meta: ${link && link.outerHTML}`);
+    }
+  }
+  gone.window.close();
+}
+
 // --- 12. границы порции — перебором случайных наборов (зерно фиксировано) ---
 // Свойства, а не один пример: размер и число тяжёлых — в пределах остатка дня, тяжёлая последняя
 // среди неотложенных, отложенные в конце в порядке later, ни одна карточка не дважды и не потеряна
@@ -2171,7 +2254,7 @@ console.log(
     "повреждённый algoSRS не перезаписывается, прежние карточки не меняются, ease держится в [1.3, 2.8]; " +
     "порция дня — не больше 12 карточек и одной с кодом (границы и порядок — на случайных наборах), «Позже» ставит в конец и не запирает очередь, " +
     "смена суток и мусор в algoToday начинают день заново, счёт дня растёт только по оценке карточки в сроке, " +
-    "карточки quiz: и cx: отвечают после «Показать ответ», возврат на вкладку перестраивает порцию без потери ответа и заметки, " +
+    "карточки quiz: и cx: отвечают после «Показать ответ», mix: показывает другую задачу шаблона с главой из банка, возврат на вкладку перестраивает порцию без потери ответа и заметки, " +
     "промах на этой же странице обновляет счётчик, таймер в местную полночь приносит порцию нового дня; " +
     "карточка пакета — одна функция с чистого листа, оценку ставят события её виджета и «Сдаюсь» с любой страницы, " +
     "без runner'а «Позже» переносит её на завтра"

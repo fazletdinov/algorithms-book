@@ -145,14 +145,26 @@
     var mixed = load(MIXED_MISSED);
     Object.keys(mixed).forEach(function (k) {
       var rec = mixed[k] || {};
-      var name = chapterTitle(rec.chapter);
-      var w = (byPattern[name] = byPattern[name] || { name: name, quiz: 0, mixed: 0, href: (rec.chapter || "") + ".html" });
+      var chapter = bankChapter(rec.pkg, rec.fn) || rec.chapter;
+      var name = chapterTitle(chapter);
+      var w = (byPattern[name] = byPattern[name] || { name: name, quiz: 0, mixed: 0, href: (chapter || "") + ".html" });
       w.mixed += rec.n || 1;
-      if (!w.href) w.href = (rec.chapter || "") + ".html";
+      if (!w.href) w.href = (chapter || "") + ".html";
     });
     return Object.keys(byPattern)
       .map(function (k) { return byPattern[k]; })
       .sort(function (a, b) { return b.quiz + b.mixed - (a.quiz + a.mixed); });
+  }
+
+  // bankChapter — глава-ответ задачи по банку (assets/problems.js). Промах хранит главу на момент
+  // ответа, а она могла смениться: bigo-задачи «следующего большего» теперь отвечают главой монотонного
+  // стека. Запись — только для задачи, которой в банке больше нет ("" — не нашлась).
+  function bankChapter(pkg, fn) {
+    var list = window.ALGO_PROBLEMS || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].p === pkg && list[i].f === fn) return list[i].c;
+    }
+    return "";
   }
 
   function chapterTitle(chapter) {

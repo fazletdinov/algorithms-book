@@ -36,6 +36,15 @@
  *
  * Данные — window.ALGO_PROBLEMS (assets/problems.js, генерируется из
  * док-комментариев заготовок командой `go run ./cmd/problembank`).
+ *
+ * Пул — по умолчанию только пройденные главы (отметки трекера, window.ALGO_DONE из progress.js;
+ * галочка «по всем главам» — общий с квизом ключ algoPracticeScope): задача входит, если её
+ * глава-ответ c или одна из альтернатив a («Также решается») пройдена. Пройденных глав с задачами
+ * меньше MIN_DONE — задачи нет, страница говорит, сколько их и как расширить выбор. Верным
+ * вариантом показывается c, если она пройдена, иначе первая пройденная из a; засчитывается выбор
+ * c или любой из a, а неверные варианты не бывают ни тем, ни другим. Собеседование берёт тот же
+ * пул, только задачи со своими тестами (t) и без соседних упражнений (n): на чистой заготовке
+ * тесты задачи с соседями падают на их panic("TODO").
  * Промах по выбору шаблона уходит карточкой в движок повторений (srs.js), а каждый ответ
  * оценивает карточку mix: этой задачи (ALGO_SRS.report): верно — «Помню», неверно — «Забыл».
  */
@@ -48,6 +57,9 @@
   var CX_MISSED = "algoMockCxMissed"; // {"<pkg>.<fn>": {n, chapter, fn, pkg}} — источник карточек cx: для srs.js
   var MIXED_DRAFT = "algoRunnerCode:mixed:"; // черновик обычного режима — ключ виджета runner'а с data-draft="mixed"
   var OPTIONS = 4;
+  // Меньше трёх пройденных глав с задачами — выбирать «какой шаблон» почти не из чего: верный вариант
+  // угадывается по тому, что остальные главы читатель ещё не открывал.
+  var MIN_DONE = 3;
   var MOCK_LIMIT_MIN = 35;
   var PLAN_MIN = 80;
   var LOG_MAX = 100;
@@ -97,9 +109,10 @@
     return chapter;
   }
 
-  function shuffle(a) {
+  function shuffle(a, rnd) {
+    rnd = rnd || Math.random;
     for (var i = a.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
+      var j = Math.floor(rnd() * (i + 1));
       var t = a[i];
       a[i] = a[j];
       a[j] = t;
@@ -138,8 +151,6 @@
     return p.p + "." + p.f;
   }
 
-  // distractors — три чужие главы: берём темы ДРУГИХ задач банка, поэтому
-  // варианты всегда правдоподобны и не требуют ручного ведения списка.
   // Шаблоны, которые путают по условию. Неверные варианты берутся сначала отсюда:
   // отличить окно от префиксных сумм — это и есть навык, а случайная глава
   // («теория чисел» против задачи на подмассив) отсеивается сама и ничему не учит.
@@ -164,20 +175,60 @@
   // которым задача тоже решается (окно фиксированного размера — и префиксами).
   var NEAR = 2;
 
-  function distractors(problems, correctChapter) {
+  // answers — главы, чей ответ верен: глава-ответ c и альтернативы a («Также решается»).
+  function answers(p) {
+    return [p.c].concat(Array.isArray(p.a) ? p.a : []);
+  }
+  // done — { слаг: true } пройденных глав; null — режим «по всем главам», пройдено всё.
+  function isDone(done, chapter) {
+    return !done || !!done[chapter];
+  }
+  function inScope(p, done) {
+    return answers(p).some(function (c) { return isDone(done, c); });
+  }
+
+  // choices — варианты ответа на задачу p: { shown, options }. shown — верный вариант на экране: c, если
+  // она пройдена, иначе первая пройденная из a. Три неверных — темы ДРУГИХ задач банка, поэтому варианты
+  // всегда правдоподобны и не требуют ручного ведения списка; ни одна не c и не из a. Порядок выбора:
+  // пройденные соседи shown из путаемых групп (не больше NEAR), затем прочие пройденные, затем любые —
+  // вариант из главы, которую читатель ещё не открывал, угадывается как «точно не то».
+  function choices(p, problems, done, rnd) {
+    var right = answers(p);
+    var shown = isDone(done, p.c) ? p.c : right.filter(function (c) { return isDone(done, c); })[0] || p.c;
     var others = {};
-    problems.forEach(function (p) {
-      if (p.c !== correctChapter) others[p.c] = true;
+    problems.forEach(function (q) {
+      if (right.indexOf(q.c) < 0) others[q.c] = true;
     });
     var near = {};
     CONFUSABLE.forEach(function (group) {
-      if (group.indexOf(correctChapter) < 0) return;
-      group.forEach(function (c) { if (others[c]) near[c] = true; });
+      if (group.indexOf(shown) < 0) return;
+      group.forEach(function (c) { if (others[c] && isDone(done, c)) near[c] = true; });
     });
-    var picked = shuffle(Object.keys(near)).slice(0, NEAR);
-    var rest = shuffle(Object.keys(others).filter(function (c) { return picked.indexOf(c) < 0; }));
-    return picked.concat(rest).slice(0, OPTIONS - 1);
+    var picked = shuffle(Object.keys(near), rnd).slice(0, NEAR);
+    var rest = Object.keys(others).filter(function (c) { return picked.indexOf(c) < 0; });
+    var doneRest = shuffle(rest.filter(function (c) { return isDone(done, c); }), rnd);
+    var anyRest = shuffle(rest.filter(function (c) { return !isDone(done, c); }), rnd);
+    var wrong = picked.concat(doneRest, anyRest).slice(0, OPTIONS - 1);
+    return { shown: shown, options: shuffle(wrong.concat([shown]), rnd) };
   }
+
+  // scopeOf — что выдавать сейчас: done (null — по всем главам), пул задач base в этом режиме и сколько
+  // пройденных глав вообще отвечают на задачи base (по ним решается, хватает ли выбора). Отметки — по
+  // свежему чтению: главу могли отметить в другой вкладке.
+  function scopeOf(base) {
+    var api = typeof window.ALGO_DONE === "function" ? window.ALGO_DONE : null;
+    var done = !api || api.scope() === "all" ? null : api();
+    var pool = base.filter(function (p) { return inScope(p, done); });
+    var chapters = {};
+    if (done) {
+      base.forEach(function (p) {
+        answers(p).forEach(function (c) { if (done[c]) chapters[c] = true; });
+      });
+    }
+    var count = Object.keys(chapters).length;
+    return { api: api, done: done, pool: pool, chapters: count, short: !!done && count < MIN_DONE };
+  }
+  window.ALGO_MIXED = { choices: choices, answers: answers };
 
   // Карточка промаха по сложности (cx:) встаёт в очередь повторений сразу: счётчик «Сегодня» обновляется
   // без перехода на другую страницу. Карточку mix: оценивает сам ответ на «какой шаблон?» (record).
@@ -201,16 +252,30 @@
         "Банк задач не загрузился (assets/problems.js). Собери книгу заново: mdbook build."));
       return;
     }
-    // В собеседовании гоняются только тесты самой функции; задачу без своих
-    // тестов проверить нечем, поэтому её режим не выдаёт.
+    // В собеседовании гоняются только тесты самой функции на чистой заготовке: задачу без своих тестов
+    // проверить нечем, а тесты задачи с соседними упражнениями (n) упадут на их panic("TODO").
     var mockable = problems.filter(function (p) {
-      return p.t && p.t.length;
+      return p.t && p.t.length && !(p.n && p.n.length);
     });
 
     var lastKey = null;
     var lastPkg = null;
     var mock = false;
     var session = null; // текущее собеседование: {p, start, timer, pattern, plan, green, cx}
+
+    // Режим выдачи: «только пройденные главы» (по умолчанию) или «по всем главам» — общий с квизом.
+    // Без progress.js выбора нет: пул — весь банк.
+    var scope = el("div", "algo-scope");
+    var scopeText = el("span", "algo-scope__text", "");
+    var scopeLabel = el("label", "algo-scope__label");
+    var scopeBox = document.createElement("input");
+    scopeBox.type = "checkbox";
+    scopeBox.className = "algo-scope__box";
+    scopeLabel.appendChild(scopeBox);
+    scopeLabel.appendChild(document.createTextNode(" по всем главам"));
+    scope.appendChild(scopeText);
+    scope.appendChild(scopeLabel);
+    if (typeof window.ALGO_DONE === "function") root.appendChild(scope);
 
     var head = el("div", "algo-mixed__head");
     var nextBtn = el("button", "algo-quiz__btn algo-mixed__next", "Дать задачу");
@@ -237,11 +302,13 @@
     root.appendChild(body);
 
     refreshStat();
+    showScope();
     function refreshStat() {
       var missed = Object.keys(loadMap(MISSED)).length;
       var seen = Object.keys(loadMap(SEEN)).length;
-      stat.textContent = "в банке " + problems.length + " задач · показано " + seen +
-        (missed ? " · шаблон не угадан у " + missed : "");
+      var st = scopeOf(mock ? mockable : problems);
+      stat.textContent = (st.done ? "задач по пройденным главам: " + st.pool.length + " из " + problems.length : "в банке " + problems.length + " задач") +
+        " · показано " + seen + (missed ? " · шаблон не угадан у " + missed : "");
 
       var log = loadList(MOCK_LOG);
       if (!log.length) {
@@ -267,6 +334,40 @@
       session = null;
     }
 
+    // showScope — подпись режима и, если задач в нём не хватает, объяснение вместо задачи: пустой экран
+    // после «Дать задачу» выглядел бы поломкой. Зовётся при сборке, смене режима выдачи и собеседования.
+    function showScope() {
+      var st = scopeOf(mock ? mockable : problems);
+      scopeBox.checked = !st.done;
+      scopeText.textContent = st.done
+        ? "Задачи только по пройденным главам (с задачами в банке: " + st.chapters + ")."
+        : "Задачи по всем главам.";
+      nextBtn.disabled = st.short;
+      if (st.short) shortScope(st);
+      return st;
+    }
+
+    // shortScope — «только пройденные», а глав с задачами меньше MIN_DONE (или хранилище не читается).
+    function shortScope(st) {
+      body.innerHTML = "";
+      body.appendChild(el("p", "algo-mixed__empty", st.api.readable()
+        ? "Смешанная берёт задачи только из глав, отмеченных пройденными, а пройдено глав с задачами в банке: " + st.chapters +
+          ". Нужно хотя бы " + MIN_DONE + " — иначе выбирать шаблон почти не из чего. Отметь главу галочкой «Глава пройдена» в её конце " +
+          "(или в трекере на странице шпаргалки) — или поставь «по всем главам» выше."
+        : "Хранилище браузера недоступно, поэтому отметки пройденных глав не прочитать. Поставь «по всем главам» выше: " +
+          "выбор продержится, пока открыта эта страница."));
+    }
+
+    scopeBox.onchange = function () {
+      window.ALGO_DONE.setScope(scopeBox.checked ? "all" : "done");
+      stopSession();
+      body.innerHTML = "";
+      nextBtn.textContent = "Дать задачу";
+      lastKey = null;
+      showScope();
+      refreshStat();
+    };
+
     modeBox.onchange = function () {
       mock = modeBox.checked;
       stopSession();
@@ -274,24 +375,28 @@
       mockStat.hidden = !mock;
       nextBtn.textContent = "Дать задачу";
       lastKey = null;
+      showScope();
       refreshStat();
     };
 
     nextBtn.onclick = function () {
       stopSession();
-      var p = pick(mock ? mockable : problems, lastKey);
+      // отметки — свежие: главу могли отметить в другой вкладке, пока эта была открыта
+      var st = showScope();
+      if (st.short) return;
+      var p = pick(st.pool, lastKey);
       // Черновик обычного режима живёт, пока задача на экране: новая задача стирает и черновик
       // прошлой (он уже мусор), и прежний черновик своего пакета — она начинается с чистой заготовки.
       if (lastPkg) drop(MIXED_DRAFT + lastPkg);
       drop(MIXED_DRAFT + p.p);
       lastKey = key(p);
       lastPkg = p.p;
-      render(p);
+      render(p, st.done);
       nextBtn.textContent = "Следующая задача";
       refreshStat();
     };
 
-    function render(p) {
+    function render(p, done) {
       body.innerHTML = "";
 
       if (mock) startSession(p);
@@ -305,25 +410,28 @@
 
       var qBox = el("div", "algo-mixed__q");
       qBox.appendChild(el("div", "algo-mixed__label", "Каким шаблоном это решается?"));
-      var opts = shuffle(distractors(problems, p.c).concat([p.c]));
+      var pickOf = choices(p, problems, done);
+      var right = answers(p);
       var answered = false;
       var buttons = [];
 
-      opts.forEach(function (chapter) {
+      pickOf.options.forEach(function (chapter) {
         var b = el("button", "algo-challenge__opt", chapterTitle(chapter));
         b.type = "button";
         b.onclick = function () {
           if (answered) return;
           answered = true;
-          var ok = chapter === p.c;
+          // верен выбор главы-ответа и любой альтернативы; на экране из них ровно одна — pickOf.shown
+          var ok = right.indexOf(chapter) >= 0;
           buttons.forEach(function (x) {
             x.disabled = true;
-            if (x.__chapter === p.c) x.classList.add("algo-challenge__opt--ok");
+            if (right.indexOf(x.__chapter) >= 0) x.classList.add("algo-challenge__opt--ok");
           });
           if (!ok) b.classList.add("algo-challenge__opt--no");
           record(p, ok);
-          if (mock) mockPlan(p, ok);
-          else reveal(p, ok);
+          var named = ok ? chapter : pickOf.shown;
+          if (mock) mockPlan(p, ok, named);
+          else reveal(p, ok, named);
           refreshStat();
         };
         b.__chapter = chapter;
@@ -355,16 +463,32 @@
       if (window.ALGO_SRS && window.ALGO_SRS.report) window.ALGO_SRS.report("mix:" + key(p), ok ? "good" : "again");
     }
 
-    // hintsBlock — всё, что было скрыто в условии, и ссылка на главу.
-    function hintsBlock(p, into) {
+    // verdictText — вердикт и альтернативы: named — глава, которую он называет (выбранная верная или
+    // показанная верная), остальные из c и a идут как «также решается».
+    function verdictText(p, ok, named, yes, no) {
+      var also = answers(p).filter(function (c) { return c !== named; }).map(chapterTitle);
+      return (ok ? yes : no) + chapterTitle(named) + (also.length ? " — также решается: " + also.join(", ") : "");
+    }
+
+    // signLine — признак g под вердиктом после неверного ответа: «по чему это было видно» стоит раньше
+    // подсказок, которые называют уже сам способ.
+    function signLine(p, into) {
+      if (!p.g) return;
+      into.appendChild(el("p", "algo-mixed__sign", "Как это было узнать: " + p.g));
+    }
+
+    // hintsBlock — всё, что было скрыто в условии, и ссылка на главу. withSign — признак g первой строкой
+    // подсказок (после неверного ответа он уже стоит под вердиктом).
+    function hintsBlock(p, into, withSign) {
       var link = el("a", "algo-mixed__link", "открыть главу с теорией");
       link.href = p.c + ".html";
       into.appendChild(link);
 
-      if (p.h) {
+      var lines = (withSign && p.g ? ["Признак: " + p.g] : []).concat(p.h ? p.h.split("\n") : []);
+      if (lines.length) {
         var hints = el("div", "algo-mixed__hints");
         hints.appendChild(el("div", "algo-mixed__label", "Что было скрыто в условии"));
-        p.h.split("\n").forEach(function (h) {
+        lines.forEach(function (h) {
           hints.appendChild(el("p", "algo-mixed__text", h));
         });
         into.appendChild(hints);
@@ -373,11 +497,12 @@
 
     // reveal показывает всё, что до ответа было спрятано: тему, подсказки из
     // условия и редактор с настоящими тестами пакета.
-    function reveal(p, ok) {
+    function reveal(p, ok, named) {
       var res = el("div", "algo-mixed__result");
       res.appendChild(el("div", "algo-mixed__verdict " + (ok ? "is-ok" : "is-no"),
-        ok ? "✓ Да, это " + chapterTitle(p.c) : "✗ Нет. Это " + chapterTitle(p.c)));
-      hintsBlock(p, res);
+        verdictText(p, ok, named, "✓ Да, это ", "✗ Нет. Это ")));
+      if (!ok) signLine(p, res);
+      hintsBlock(p, res, ok);
 
       res.appendChild(el("p", "algo-mixed__solve",
         "Теперь реши её: ниже — заготовка пакета «" + p.p + "» без подсказок и его настоящие тесты. " +
@@ -429,13 +554,13 @@
 
     // mockPlan — шаг после шаблона: план словами. Тему называем (продолжать с
     // неверным приёмом — потерянная сессия), но ни подсказок, ни главы.
-    function mockPlan(p, ok) {
+    function mockPlan(p, ok, named) {
       if (!session) return;
       session.pattern = ok;
 
       var res = el("div", "algo-mixed__result algo-mixed__mock");
       res.appendChild(el("div", "algo-mixed__verdict " + (ok ? "is-ok" : "is-no"),
-        ok ? "✓ Шаблон угадан: " + chapterTitle(p.c) : "✗ Шаблон не угадан. Это " + chapterTitle(p.c)));
+        verdictText(p, ok, named, "✓ Шаблон угадан: ", "✗ Шаблон не угадан. Это ")));
 
       var planBox = el("div", "algo-mixed__plan");
       planBox.appendChild(el("div", "algo-mixed__label", "План — как сказал бы вслух интервьюеру"));
@@ -477,7 +602,7 @@
     function mockEditor(p, res) {
       res.appendChild(el("p", "algo-mixed__solve",
         "Реши " + p.f + " в пакете «" + p.p + "». Гоняются только её тесты (" + p.t.join(", ") +
-        "); если функция опирается на другие функции пакета — допиши и их."));
+        "); соседние упражнения пакета им не нужны."));
 
       var runner = document.createElement("div");
       runner.className = "algo-runner";
@@ -593,7 +718,7 @@
         table.appendChild(tr);
       });
       sum.appendChild(table);
-      hintsBlock(p, sum);
+      hintsBlock(p, sum, true);
       res.appendChild(sum);
 
       var log = loadList(MOCK_LOG);

@@ -26,10 +26,13 @@
  *                  условие и «каким шаблоном это решается?»; шаблон (meta.pattern) ссылкой
  *                  на главу и кнопки оценки — только после «Показать ответ»;
  *   mix:<pkg>.<fn> — в смешанной тренировке шаблон выбран неверно (mixed.js).
- *                  Карточка — вопрос: условие из банка задач (без имени функции) и
- *                  «каким шаблоном это решается?»; глава-ответ и кнопки оценки —
- *                  только после «Показать ответ». Заголовок «пакет.функция» сам был
- *                  ответом, и «Помню» ничего не проверяло;
+ *                  Карточка — вопрос: условие ДРУГОЙ задачи банка с той же главой-ответом
+ *                  (без имени функции; по кругу после meta.last, сначала — после задачи
+ *                  промаха; задача у шаблона одна — она сама) и «каким шаблоном это
+ *                  решается?»; глава-ответ с альтернативами показанной задачи и кнопки
+ *                  оценки — только после «Показать ответ»; оценка пишет meta.last. Глава —
+ *                  из банка по pkg/fn, meta.chapter — только у задачи вне банка (как у cx:).
+ *                  Заголовок «пакет.функция» сам был ответом, и «Помню» ничего не проверяло;
  *   cx:<pkg>.<fn>  — в режиме собеседования сложность своего решения оценена
  *                  неверно (mixed.js): шаблон мог быть узнан, а цена кода — нет. Карточка —
  *                  вопрос: условие из банка и «какая сложность у решения?»; ответ — эталон из
@@ -737,6 +740,17 @@
     return null;
   }
 
+  // mixShown — задача для карточки mix:: следующая по порядку банка после meta.last среди задач с главой-
+  // ответом chapter, по кругу. meta.last ещё нет — после задачи промаха (miss), так что первый показ — уже
+  // другая задача. Задача у шаблона одна — она сама. Выбор без случайности: перезагрузка показывает ту же.
+  function mixShown(chapter, meta, miss) {
+    var list = (window.ALGO_PROBLEMS || []).filter(function (p) { return p.c === chapter; });
+    if (!list.length) return null;
+    var keys = list.map(function (p) { return p.p + "." + p.f; });
+    var last = typeof meta.last === "string" && keys.indexOf(meta.last) >= 0 ? meta.last : miss;
+    return list[(keys.indexOf(last) + 1) % list.length];
+  }
+
   function describe(id, card) {
     var meta = card.meta || {};
     if (kindOf(id) === "ch") {
@@ -757,15 +771,21 @@
       };
     }
     if (kindOf(id) === "mix") {
+      // Глава — из банка (ответ задачи мог смениться: у bigo.* в прежних карточках записано big-o), из
+      // meta — только у задачи, которой в банке нет. Условие — другой задачи с той же главой-ответом.
       var prob = findProblem(meta.pkg, meta.fn);
-      var chHref = (meta.chapter || (prob && prob.c) || "") + ".html";
+      var mixChapter = prob ? prob.c : meta.chapter || "";
+      var shownProb = prob ? mixShown(mixChapter, meta, (meta.pkg || "") + "." + (meta.fn || "")) : null;
+      var chHref = mixChapter + ".html";
+      var also = shownProb && Array.isArray(shownProb.a) ? shownProb.a.map(function (c) { return chapterTitle(c + ".html"); }) : [];
       return {
         kind: "Смешанная тренировка: узнай шаблон",
-        title: prob ? "Каким шаблоном это решается?" : "Задача из смешанной тренировки",
-        href: prob ? "" : "mixed.html",
-        question: prob ? prob.s : "",
-        answer: { link: { text: chapterTitle(chHref), href: chHref } },
-        what: prob
+        title: shownProb ? "Каким шаблоном это решается?" : "Задача из смешанной тренировки",
+        href: shownProb ? "" : "mixed.html",
+        question: shownProb ? shownProb.s : "",
+        answer: { link: { text: chapterTitle(chHref), href: chHref }, also: also },
+        shown: shownProb ? shownProb.p + "." + shownProb.f : "",
+        what: shownProb
           ? "Назови шаблон и примету в условии, по которой его узнал, — потом открой ответ."
           : "Её условия больше нет в банке. Вспомни, каким шаблоном она решалась, и открой ответ.",
       };
@@ -787,7 +807,7 @@
       // Эталон — поле x банка (абзац «Ожидаемая сложность» заготовки). Глава здесь не ответ, а место
       // сверки: шаблон читатель узнал, промах был в цене кода.
       var task = findProblem(meta.pkg, meta.fn);
-      var slug = meta.chapter || (task && task.c) || "";
+      var slug = (task && task.c) || meta.chapter || ""; // как у mix: — из банка, из meta только вне банка
       var chapter = slug ? { text: chapterTitle(slug + ".html"), href: slug + ".html" } : null;
       var derive = "Не открывая решение, выведи время и память: сколько раз выполняется каждый цикл, что растёт вместе с входом";
       if (task && task.x) {
@@ -1045,6 +1065,10 @@
               link.href = info.answer.link.href;
               ans.appendChild(link);
             }
+            // альтернативы показанной задачи (поле a банка): их выбор в смешанной тоже засчитывается
+            if (info.answer.also && info.answer.also.length) {
+              ans.appendChild(document.createTextNode("; также решается: " + info.answer.also.join(", ")));
+            }
             ans.tabIndex = -1;
             box.insertBefore(ans, actions);
             actions.removeChild(reveal);
@@ -1165,7 +1189,14 @@
       // Оценка идёт через report: он читает хранилище заново и меняет одну карточку, а не
       // пишет обратно всё, что виджет прочитал при отрисовке.
       function apply(grade, note) {
-        var res = report(id, grade, Date.now(), { note: note });
+        // Карточка mix: показывала другую задачу шаблона — в той же записи, что и оценка, она становится
+        // meta.last, и следующий показ возьмёт следующую.
+        var res = info.shown
+          ? gradeCard(id, grade, Date.now(), { note: note }, function (c) {
+            if (!isCard(c.meta)) c.meta = {};
+            c.meta.last = info.shown;
+          })
+          : report(id, grade, Date.now(), { note: note });
         render();
         if (res.status === "unsaved") {
           toast("Не удалось сохранить оценку: хранилище браузера недоступно или переполнено. Карточка осталась в очереди.");
