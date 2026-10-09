@@ -377,7 +377,7 @@ func fib(n int) int {
 **🟢 Разогрев** — база и шаг, размер входа уменьшается очевидно:
 
 - [Reverse String](https://leetcode.com/problems/reverse-string/) (LeetCode 344) — рекурсия с двух концов
-- [Fibonacci Number](https://leetcode.com/problems/fibonacci-number/) (LeetCode 509) — наивно → мемоизация
+- [Fibonacci Number](https://leetcode.com/problems/fibonacci-number/) (LeetCode 509) — наивно → мемоизация; в тренажёре: `recursion.Fib`
 
 **🔵 Основа** — планка главы:
 

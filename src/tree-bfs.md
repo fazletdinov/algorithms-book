@@ -418,7 +418,7 @@ func rightSideView(root *TreeNode) []int {
 **🟢 Разогрев** — обход по уровням в чистом виде:
 
 - [Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/) (LeetCode 104)
-- [Average of Levels](https://leetcode.com/problems/average-of-levels-in-binary-tree/) (LeetCode 637)
+- [Average of Levels](https://leetcode.com/problems/average-of-levels-in-binary-tree/) (LeetCode 637) — в тренажёре: `treebfs.LevelAverages`
 
 **🔵 Основа** — планка главы:
 
