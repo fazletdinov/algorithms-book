@@ -310,6 +310,20 @@ async function main() {
   const aLink = vizA.window.document.querySelector(".algo-today__title");
   // тип в ссылке страхует позиционный якорь (algo-viz.js сверяет его с data-viz цели)
   if (!aLink || aLink.getAttribute("href") !== "two-pointers.html?viz=two-pointers-sum#viz-3") errors.push(`карточка viz: с якорем ведёт на ${aLink && aLink.getAttribute("href")}, ожидалось two-pointers.html?viz=two-pointers-sum#viz-3`);
+  // виджет переехал (VIZ_MOVED в srs.js): старая карточка ведёт на новую страницу и без чужого якоря,
+  // а карточка, записанная уже на новой странице, остаётся как есть
+  for (const [page, anchor, want] of [
+    ["sorting.html", "viz-4", "heap-structure.html?viz=heap-sort"],
+    ["heap-structure.html", "viz-4", "heap-structure.html?viz=heap-sort#viz-4"],
+  ]) {
+    const VIZ_M = { n: 1, page, anchor, title: "Пирамидальная сортировка", line: 14, code: "if l < size && a[l] > a[largest] {" };
+    const vizM = await newDom({
+      algoVizMissed: JSON.stringify({ "heap-sort": VIZ_M }),
+      algoSRS: JSON.stringify({ "viz:heap-sort": missCard(VIZ_M, now - HOUR) }),
+    });
+    const mLink = vizM.window.document.querySelector(".algo-today__title");
+    if (!mLink || mLink.getAttribute("href") !== want) errors.push(`карточка viz:heap-sort со страницы ${page} ведёт на ${mLink && mLink.getAttribute("href")}, ожидалось ${want}`);
+  }
 
   if (click(mix, "Показать ответ")) {
     const ans = box.querySelector(".algo-today__answer a");
