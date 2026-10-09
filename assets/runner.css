@@ -1,25 +1,19 @@
 /* runner.css — стили виджета «решай прямо в книге» (см. runner.js). */
 
-/* Свои токены: светлые по умолчанию и тёмные под тёмные темы mdBook. Книга по
-   умолчанию открывается в navy, а цвета были зашиты под светлый фон — подсказка
-   «runner не отвечает» читалась светло-серым по кремовому (контраст 1.79:1). */
+/* Свои токены — под единственную (тёмную) тему книги, оттенки из палитры theme.css.
+   Светлого набора больше нет: книга не бывает светлой (theme/head.hbs). */
 .algo-runner {
-  --ar-ok: #15803d; --ar-err: #b91c1c; --ar-warn: #b45309; --ar-info: #3730a3;
-  --ar-chip: #eef1f7; --ar-chip-fg: #334;
-  --ar-btn: #fff; --ar-btn-fg: #243; --ar-btn-hover: #f1f4fa; --ar-line: #cfd6e4;
-  border: 1px solid var(--quote-border, #cfd6e4);
-  border-radius: 10px;
-  padding: 12px;
-  margin: 1.4em 0;
-  background: var(--sidebar-bg, #fafbfc);
-}
-html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
-  --ar-ok: #4ade80; --ar-err: #f87171; --ar-warn: #fbbf24; --ar-info: #a5b4fc;
+  --ar-ok: #4ae08a; --ar-err: #f87171; --ar-warn: #ffab40; --ar-info: #a5b4fc;
   --ar-chip: rgba(255, 255, 255, 0.08); --ar-chip-fg: var(--fg);
   --ar-btn: rgba(255, 255, 255, 0.06); --ar-btn-fg: var(--fg);
   --ar-btn-hover: rgba(255, 255, 255, 0.12); --ar-line: rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--quote-border, #2a2e3d);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 1.4em 0;
+  background: var(--sidebar-bg, #1a1d27);
 }
-.algo-runner--ready { background: var(--bg, #fff); }
+.algo-runner--ready { background: var(--sidebar-bg, #1a1d27); }
 
 /* flex-wrap: с плашкой пределов шапка на телефоне не помещается в строку — без
    переноса плашки сжимались в столбики по слову («🏁 / - / race»). */
