@@ -591,28 +591,31 @@ seen[r]++</pre>
 
 **🟢 Разогрев** — сам префикс и формула отрезка:
 
-- [Range Sum Query – Immutable](https://leetcode.com/problems/range-sum-query-immutable/) (LeetCode 303)
+- [Range Sum Query – Immutable](https://leetcode.com/problems/range-sum-query-immutable/) (LeetCode 303) — в тренажёре: `prefixsum.RangeSums` (запросы пачкой)
 - [Find Pivot Index](https://leetcode.com/problems/find-pivot-index/) (LeetCode 724) — сумма слева против суммы справа
-- [Maximum Subarray](https://leetcode.com/problems/maximum-subarray/) (LeetCode 53) — Кадане как «префикс минус минимальный префикс»
+- [Maximum Subarray](https://leetcode.com/problems/maximum-subarray/) (LeetCode 53) — Кадане как «префикс минус минимальный префикс»; в тренажёре: `prefixsum.MaxSubarraySum`
 
 **🔵 Основа** — планка главы:
 
-- [Subarray Sum Equals K](https://leetcode.com/problems/subarray-sum-equals-k/) (LeetCode 560) — префикс + хеш-таблица
-- [Product of Array Except Self](https://leetcode.com/problems/product-of-array-except-self/) (LeetCode 238) — префикс и суффикс
-- [Contiguous Array](https://leetcode.com/problems/contiguous-array/) (LeetCode 525) — первое вхождение
-- [Subarray Sums Divisible by K](https://leetcode.com/problems/subarray-sums-divisible-by-k/) (LeetCode 974) — остатки
+- [Subarray Sum Equals K](https://leetcode.com/problems/subarray-sum-equals-k/) (LeetCode 560) — префикс + хеш-таблица; в тренажёре: `prefixsum.CountSubarraysWithSum`
+- [Contiguous Array](https://leetcode.com/problems/contiguous-array/) (LeetCode 525) — первое вхождение; в тренажёре: `prefixsum.LongestBalanced`
+- [Subarray Sums Divisible by K](https://leetcode.com/problems/subarray-sums-divisible-by-k/) (LeetCode 974) — остатки; в тренажёре: `prefixsum.CountDivisibleSubarrays`
 
 **🔴 Добивка** — когда основа идёт уверенно:
 
-- [Range Sum Query 2D – Immutable](https://leetcode.com/problems/range-sum-query-2d-immutable/) (LeetCode 304)
-- [Corporate Flight Bookings](https://leetcode.com/problems/corporate-flight-bookings/) (LeetCode 1109) — разностный массив
+- [Product of Array Except Self](https://leetcode.com/problems/product-of-array-except-self/) (LeetCode 238) — префикс и суффикс; в тренажёре: `prefixsum.ProductExceptSelf`
+- [Range Sum Query 2D – Immutable](https://leetcode.com/problems/range-sum-query-2d-immutable/) (LeetCode 304) — в тренажёре: `prefixsum.MatrixRegionSums`
+- [Corporate Flight Bookings](https://leetcode.com/problems/corporate-flight-bookings/) (LeetCode 1109) — разностный массив; в тренажёре: `prefixsum.ApplyRangeAdds` (там индексы с нуля)
 - [Number of Submatrices That Sum to Target](https://leetcode.com/problems/number-of-submatrices-that-sum-to-target/) (LeetCode 1074) — сложная: пара строк + задача 560 по столбцам
 
 > 🧭 **Не пошла задача из основы?** Сформулируй, что такое «подмассив» в терминах **двух
 > префиксов**, — дальше задача решается сама. Сумма `k` — `P[j] − P[i] = k`, ищем `P[j] − k`
-> среди прошлых (560). Кратно `k` — равные остатки (974). Поровну 0 и 1 — замени 0 на −1, и
-> это сумма 0 (525). Нужен самый длинный — храни первый индекс, нужно число — храни
-> количество. Произведение (238) — не сумма, но та же идея «всё слева × всё справа».
+> среди прошлых (560, весь путь — в [«📝 Разборе задачи»](#-разбор-задачи)). Кратно `k` —
+> равные остатки (974), поровну 0 и 1 — замени 0 на −1, и это сумма 0 (525): обе разобраны в
+> [«📖 Разборе»](#-разбор), в свёрнутом блоке «Подсчёт подмассивов: префикс + хеш-таблица» —
+> таблица «что храним в map» и код для остатков. Нужен самый длинный — храни первый индекс,
+> нужно число — храни количество (ошибка №5 в «Типичных ошибках»); в 974 не забудь, что
+> остаток в Go бывает отрицательным (ошибка №4).
 
 **Тренажёр** — пакет `prefixsum`:
 
