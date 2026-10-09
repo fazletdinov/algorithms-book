@@ -20,7 +20,7 @@
 //     без <pre>, каждый <code> — голое имя (^[\p{L}\p{N}_.]+$): `visited` можно, `lo < hi` нельзя;
 //  R2 черта — строка «> 🏁 **Глава сдана выше.** Дальше — …»;
 //  R3 «Что унести» — блок algo-mental с иконкой 📌 и заголовком «Что унести»: ровно три <li>,
-//     начинающиеся с <b>Сигнал.</b>, <b>Должно быть верно.</b>, <b>Ломается</b>, в каждом ≤ 40 слов;
+//     начинающиеся с меток «Сигнал», «Должно быть верно», «Ломается» (<b>М</b>, <b>М.</b>, <b>М</b>. или **М**), в каждом ≤ 40 слов;
 //  R4 порядок: последняя строка «Не пошла…» лестницы < черта < «Что унести» < «## 🔗»
 //     (если он есть); между «Что унести» и «## 🔗» других блоков algo-mental нет;
 //  R5 если есть «## 🧭»: в главе нет подстроки «Задача из «📝»;
@@ -34,7 +34,10 @@ const REBUILT = [];
 
 const ZAPOMNI_MAX_LI = 3;
 const ZAPOMNI_MAX_WORDS = 60;
-const TAKEAWAY_PREFIXES = ["<b>Сигнал.</b>", "<b>Должно быть верно.</b>", "<b>Ломается</b>"];
+const TAKEAWAY_LABELS = ["Сигнал", "Должно быть верно", "Ломается"];
+// метка: <b>Метка</b>, <b>Метка.</b>, <b>Метка</b>. или **Метка** (с точкой внутри или после)
+const takeawayLabel = (label) =>
+  new RegExp(`^(?:<b>${label}\\.?</b>|\\*\\*${label}\\.?\\*\\*)\\.?`, "u");
 const TAKEAWAY_MAX_WORDS = 40;
 const FINISH_LINE = /^> 🏁 \*\*Глава сдана выше\.\*\* Дальше — /;
 
@@ -113,13 +116,13 @@ function checkChapter(rawText, file) {
     (b) => /<div class="algo-mental__icon">📌<\/div>/.test(b.html) && titleOf(b.html) === "Что унести"
   );
   if (!take) fail("R3 «Что унести»", "нет блока algo-mental с иконкой 📌 и заголовком «Что унести»");
-  else {
-    const items = itemsOf(bodyOf(take.html));
+  const items = take ? itemsOf(bodyOf(take.html)) : null;
+  if (items) {
     if (items.length !== 3) fail("R3 «Что унести»", `пунктов ${items.length}, нужно ровно 3`);
     else
       items.forEach((it, i) => {
-        if (!it.startsWith(TAKEAWAY_PREFIXES[i]))
-          fail("R3 «Что унести»", `пункт ${i + 1} должен начинаться с ${TAKEAWAY_PREFIXES[i]}`);
+        if (!takeawayLabel(TAKEAWAY_LABELS[i]).test(it))
+          fail("R3 «Что унести»", `пункт ${i + 1} должен начинаться с метки «${TAKEAWAY_LABELS[i]}» (<b>…</b> или **…**)`);
         const w = wordCount(it);
         if (w > TAKEAWAY_MAX_WORDS)
           fail("R3 «Что унести»", `в пункте ${i + 1} слов ${w}, допустимо не больше ${TAKEAWAY_MAX_WORDS}`);
@@ -202,6 +205,11 @@ function selfTest() {
   const good = checkChapter(sampleChapter(), "образец");
   if (good.length) errs.push(`самопроверка: хороший образец покраснел: ${good.join("; ")}`);
   const li3 = "<li><b>Сигнал.</b> а</li><li><b>Должно быть верно.</b> б</li>";
+  const lab = (l3) => `    <ul><li><b>Сигнал.</b> а</li><li><b>Должно быть верно.</b> б</li><li>${l3} в</li></ul>`;
+  for (const l3 of ["**Ломается**", "<b>Ломается.</b>", "<b>Ломается</b>.", "<b>Ломается</b>"]) {
+    const got = checkChapter(sampleChapter({ takeaway: lab(l3) }), "образец");
+    if (got.length) errs.push(`самопроверка: метка ${l3} не принята: ${got.join("; ")}`);
+  }
   const bad = [
     ["R1 «Запомни»", { zapomni: "    <ul>" + "<li>а</li>".repeat(4) + "</ul>" }],
     ["R1 «Запомни»", { zapomni: "    <ul><li>" + "слово ".repeat(61) + "</li></ul>" }],
@@ -212,6 +220,7 @@ function selfTest() {
     ["R3 «Что унести»", { noTakeaway: true }],
     ["R3 «Что унести»", { takeaway: `    <ul>${li3}</ul>` }],
     ["R3 «Что унести»", { takeaway: `    <ul>${li3}<li><b>Что-то.</b> в</li></ul>` }],
+    ["R3 «Что унести»", { takeaway: lab("Ломается") }],
     ["R3 «Что унести»", { takeaway: `    <ul>${li3}<li><b>Ломается</b> ${"слово ".repeat(41)}</li></ul>` }],
     ["R4 порядок", { swapOrder: true }],
     ["R4 порядок", { extraBlock: true }],
