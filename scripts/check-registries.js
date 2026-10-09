@@ -6,12 +6,13 @@
 // что есть на самом деле. Забыть их — не «сломать сборку», а тихо ухудшить книгу:
 // трекер перестаёт считать реальные главы, виджет молча не находит пакет,
 // «🎞 Визуализировать» отвечает 403. Именно так трекер прогресса однажды и отстал
-// от книги на 19 глав. Проверяем шесть связей:
+// от книги на 19 глав. Проверяем семь связей:
 //
 //  1) assets/progress.js  <-> src/SUMMARY.md      — трекер знает все главы книги;
 //  2) exercises/README.md <-> exercises/*/        — таблица пакетов полна;
 //  3) data-trace-calls в главах <-> traceTargets  — бэкенд разрешает то, что предлагает глава;
 //  4) data-pkg у algo-runner   <-> exercises/*/   — виджет ссылается на существующий пакет;
+//  4b) RACE_PKGS в assets/srs.js <-> data-race="true" в главах — карточка и смешанная гоняют -race там же;
 //  5) число пакетов в CLAUDE.md <-> exercises/*/  — счётчик в документации не протух;
 //  6) имена файлов случайных тестов               — они идут после табличных.
 "use strict";
@@ -219,6 +220,28 @@ for (const file of chapterFiles) {
         );
       }
     }
+  }
+}
+
+// ---------- 4b. пакеты с -race: список srs.js (RACE_PKGS) <-> data-race="true" виджетов в главах ----------
+// Карточка пакета и смешанная тренировка ставят data-race по списку из srs.js; разойдись он с главами —
+// гоночное решение зеленело бы на карточке (и «Помню»), а лишний пакет гонялся бы с -race без нужды.
+{
+  const srsSrc = read(path.join(root, "assets", "srs.js"));
+  const lit = srsSrc.match(/var RACE_PKGS = \[([^\]]*)\];/);
+  if (!lit) {
+    errors.push("assets/srs.js: не найден список RACE_PKGS — проверка -race не выполнена");
+  } else {
+    const listed = new Set([...lit[1].matchAll(/"([a-z0-9]+)"/g)].map((x) => x[1]));
+    const inChapters = new Set();
+    for (const file of chapterFiles) {
+      for (const m of read(path.join(srcDir, file)).matchAll(/<div class="algo-runner"([^>]*)>/g)) {
+        const pkg = (m[1].match(/data-pkg="([^"]*)"/) || [])[1];
+        if (pkg && /data-race="true"/.test(m[1])) inChapters.add(pkg);
+      }
+    }
+    for (const p of inChapters) if (!listed.has(p)) errors.push(`assets/srs.js: RACE_PKGS без «${p}», а в главах его тесты гоняются с -race — на карточке и в смешанной гонка не ловится`);
+    for (const p of listed) if (!inChapters.has(p)) errors.push(`assets/srs.js: RACE_PKGS содержит «${p}», но ни одна глава не гоняет его с -race`);
   }
 }
 

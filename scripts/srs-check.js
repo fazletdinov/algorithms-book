@@ -277,15 +277,16 @@ async function main() {
   else if (vc.due - Date.now() > DAY * 0.1) errors.push("карточка viz: заведена не на сегодня");
   const vizText = viz.window.document.querySelector(".algo-today").textContent;
   const vizLink = viz.window.document.querySelector(".algo-today__title");
-  if (!/Предсказание шага/.test(vizText) || !/строка 9: if windowSum > maxSum/.test(vizText) || !vizLink || vizLink.getAttribute("href") !== "sliding-window.html") {
+  if (!/Предсказание шага/.test(vizText) || !/строка 9: if windowSum > maxSum/.test(vizText) || !vizLink || vizLink.getAttribute("href") !== "sliding-window.html?viz=sliding-window-fixed") {
     errors.push(`карточка viz: без вида, развилки или ссылки на страницу: «${vizText.slice(0, 160)}»`);
   }
-  // с якорем (algo-viz.js пишет его с промахом) ссылка ведёт прямо к виджету; без якоря — на страницу (выше)
+  // с якорем (algo-viz.js пишет его с промахом) ссылка ведёт прямо к виджету; без якоря — к первому виджету типа (выше)
   const vizA = await newDom({
     algoVizMissed: JSON.stringify({ "two-pointers-sum": { n: 1, page: "two-pointers.html", anchor: "viz-3", title: "Два указателя", line: 4, code: "if s == target {" } }),
   });
   const aLink = vizA.window.document.querySelector(".algo-today__title");
-  if (!aLink || aLink.getAttribute("href") !== "two-pointers.html#viz-3") errors.push(`карточка viz: с якорем ведёт на ${aLink && aLink.getAttribute("href")}, ожидалось two-pointers.html#viz-3`);
+  // тип в ссылке страхует позиционный якорь (algo-viz.js сверяет его с data-viz цели)
+  if (!aLink || aLink.getAttribute("href") !== "two-pointers.html?viz=two-pointers-sum#viz-3") errors.push(`карточка viz: с якорем ведёт на ${aLink && aLink.getAttribute("href")}, ожидалось two-pointers.html?viz=two-pointers-sum#viz-3`);
 
   if (click(mix, "Показать ответ")) {
     const ans = box.querySelector(".algo-today__answer a");
@@ -2092,6 +2093,9 @@ const startOfDay = (t) => { const d = new Date(t); return new Date(d.getFullYear
     const dom = await newDom({ algoSRS: JSON.stringify({ ["pkg:" + pkg]: heavy(pkg, now - DAY) }) }, [CLOCK(now), problemsJs, RUNNER], PAGE);
     const node = runnerOf(dom);
     if (!node || node.hasAttribute("data-func") || node.getAttribute("data-draft") !== "review") errors.push(`${pkg} (${why}): виджет ${node && node.outerHTML}, ожидался без data-func, с data-draft=review`);
+    // parallelbfs в главе гоняется с -race: без детектора гоночное решение зеленело бы и ставило «Помню»
+    const race = pkg === "parallelbfs";
+    if (node && (node.getAttribute("data-race") === "true") !== race) errors.push(`${pkg}: data-race=${node.getAttribute("data-race")}, ожидалось ${race ? "true, как в главе" : "без -race"}`);
     if (!/пакет целиком/.test(todayText(dom))) errors.push(`${pkg}: карточка не говорит, что решать пакет целиком: «${todayText(dom).slice(0, 200)}»`);
     const snap = dom.window.localStorage.getItem("algoSRS");
     fire(dom, "algo-runner:result", run(pkg, "Put")); // зелёное одно упражнение — не пакет

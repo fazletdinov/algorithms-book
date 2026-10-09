@@ -248,6 +248,7 @@ async function main() {
 
   // --- ответ оценивает карточку mix: в настоящем движке повторений (srs.js): верно — «Помню», неверно — «Забыл» ---
   await gradesMixCard(problem, correctTitle);
+  await raceFlag(bank);
 
   // --- режим собеседования ---
   await mockInterview(bank);
@@ -309,6 +310,44 @@ async function gradesMixCard(problem, correctTitle) {
     const c = JSON.parse(w.localStorage.getItem("algoSRS") || "{}")["mix:" + id] || {};
     if (!want(c)) errors.push(`карточка mix:${id} в сроке, ответ ${right ? "верный" : "неверный"}: ${JSON.stringify(c)}, ожидалось ${right ? "«Помню» (iv 8 → 20)" : "«Забыл» (iv 1, back 3)"}`);
     w.close();
+  }
+}
+
+// raceFlag — задача пакета, который в главе гоняется с -race (ALGO_SRS.racePkgs из srs.js), открывает
+// редактор с data-race="true" и в обычном режиме, и в собеседовании; задача другого пакета — без него.
+// Без детектора гоночное решение там зеленело бы.
+async function raceFlag(bank) {
+  for (const [pkg, race] of [["wordcount", true], ["slidingwindow", false]]) {
+    const p = bank.find((q) => q.p === pkg && q.t.length);
+    if (!p) { errors.push(`-race: в банке нет задачи пакета ${pkg} со своими тестами`); continue; }
+    const id = p.p + "." + p.f;
+    for (const mock of [false, true]) {
+      const dom = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "srs.js", "mixed.js"], {
+        algoMixedMissed: JSON.stringify({ [id]: { n: 1, chapter: p.c, pkg: p.p, fn: p.f } }),
+      });
+      const w = dom.window, widget = w.document.querySelector(".algo-mixed");
+      if (mock) { const box = widget.querySelector(".algo-mixed__mode-box"); box.checked = true; box.dispatchEvent(new w.Event("change")); }
+      const give = [...widget.querySelectorAll("button")].find((b) => /Дать задачу/.test(b.textContent));
+      let shown = false;
+      for (let i = 0; i < 60 && !shown; i++) {
+        click(dom, give);
+        const cardEl = widget.querySelector(".algo-mixed__card");
+        shown = !!cardEl && cardEl.textContent.includes(p.s.split("\n").join(""));
+      }
+      if (!shown) { errors.push(`-race: задача ${id} не выпала за 60 выдач`); w.close(); continue; }
+      click(dom, widget.querySelector(".algo-mixed__q .algo-challenge__opt"));
+      if (mock) {
+        const ta = widget.querySelector(".algo-mixed__plan-text");
+        ta.value = "План: считаю частоты по чанкам параллельно, каждая горутина — своя карта, потом слияние под одним владельцем, без общей памяти.";
+        ta.dispatchEvent(new w.Event("input"));
+        click(dom, widget.querySelector(".algo-mixed__to-code"));
+      }
+      const ed = widget.querySelector('.algo-runner[data-pkg="' + p.p + '"]');
+      const got = ed && ed.getAttribute("data-race") === "true";
+      if (!ed) errors.push(`-race: ${mock ? "собеседование" : "обычный режим"}, ${id}: редактор не появился`);
+      else if (got !== race) errors.push(`-race: ${mock ? "собеседование" : "обычный режим"}, ${id}: data-race=${ed.getAttribute("data-race")}, ожидалось ${race ? "true, как в главе" : "без -race"}`);
+      w.close();
+    }
   }
 }
 

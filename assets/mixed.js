@@ -185,6 +185,13 @@
     if (window.ALGO_SRS) window.ALGO_SRS.sync();
   }
 
+  // race — тесты пакета с -race, как у его виджета в главе: список один, у движка повторений (srs.js,
+  // ALGO_SRS.racePkgs); без детектора гоночное решение зеленело бы и здесь.
+  function race(node, pkg) {
+    var list = (window.ALGO_SRS && window.ALGO_SRS.racePkgs) || [];
+    if (list.indexOf(pkg) >= 0) node.setAttribute("data-race", "true");
+  }
+
   function build(root) {
     var problems = window.ALGO_PROBLEMS || [];
     root.innerHTML = "";
@@ -384,6 +391,7 @@
       runner.setAttribute("data-func", p.f);
       // Свой черновик: решение пакета из главы не подсовывается готовым ответом и не затирается.
       runner.setAttribute("data-draft", "mixed");
+      race(runner, p.p);
       body.appendChild(runner);
       // runner.js инициализируется по DOMContentLoaded — виджет, созданный
       // динамически, он сам не подхватит, поэтому просит инициализацию явно.
@@ -476,6 +484,7 @@
       runner.setAttribute("data-pkg", p.p);
       runner.setAttribute("data-tests", JSON.stringify(p.t));
       runner.setAttribute("data-fresh", "true");
+      race(runner, p.p);
       // Имя функции — для события прогона и строки «тесты зовут ещё не решённые упражнения»; подсказок
       // и эталона в собеседовании нет: среди подсказок — «Ожидаемая сложность», ответ на шаг 4.
       runner.setAttribute("data-func", p.f);
