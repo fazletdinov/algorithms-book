@@ -463,8 +463,8 @@ if ______ {
 
 **🟢 Разогрев** — алгоритм Кана как есть:
 
-- [Course Schedule](https://leetcode.com/problems/course-schedule/) (LeetCode 207) — есть ли цикл
-- [Course Schedule II](https://leetcode.com/problems/course-schedule-ii/) (LeetCode 210) — сам порядок
+- [Course Schedule](https://leetcode.com/problems/course-schedule/) (LeetCode 207) — есть ли цикл; в тренажёре: `toposort.CanFinish` (эталон строится на `TopologicalSort` — её удобно решить первой)
+- [Course Schedule II](https://leetcode.com/problems/course-schedule-ii/) (LeetCode 210) — сам порядок; в тренажёре: `toposort.TopologicalSort`
 
 **🔵 Основа** — планка главы:
 

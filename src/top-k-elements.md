@@ -436,12 +436,12 @@ if h.Len() &gt; ______ {
 
 **🟢 Разогрев** — куча фиксированного размера:
 
-- [Kth Largest Element](https://leetcode.com/problems/kth-largest-element-in-an-array/) (LeetCode 215) — куча или QuickSelect
+- [Kth Largest Element](https://leetcode.com/problems/kth-largest-element-in-an-array/) (LeetCode 215) — куча или QuickSelect; в тренажёре: `topk.KthLargest`
 - [Sort Characters By Frequency](https://leetcode.com/problems/sort-characters-by-frequency/) (LeetCode 451)
 
 **🔵 Основа** — планка главы:
 
-- [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) (LeetCode 347) — bucket sort
+- [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) (LeetCode 347) — bucket sort; в тренажёре: `topk.TopKFrequent`
 - [Top K Frequent Words](https://leetcode.com/problems/top-k-frequent-words/) (LeetCode 692) — составной компаратор
 - [Reorganize String](https://leetcode.com/problems/reorganize-string/) (LeetCode 767)
 
