@@ -108,6 +108,9 @@
   function buildCodePanel(source) {
     var panel = el("div", "algo-trace__code");
     var rows = []; // rows[lineNumber] = DOM-элемент строки (1-индексация)
+    // Подсветка — та же, что у листингов визуализаций (algo-viz.js грузится раньше): своей копии
+    // нет. Без algo-viz.js (отдельная проверка) строки идут простым текстом.
+    var hl = window.ALGO_VIZ && window.ALGO_VIZ.hlGo;
     if (!source) {
       panel.appendChild(el("div", "algo-trace__code-line", "(сервер не прислал исходник — обновите страницу)"));
       return { panel: panel, rows: rows };
@@ -120,7 +123,8 @@
       gutter.appendChild(document.createTextNode(String(lineNo)));
       row.appendChild(gutter);
       var code = el("span", "algo-trace__code-text");
-      code.textContent = text.length ? text : " ";
+      if (text.length && hl) code.appendChild(hl(text));
+      else code.textContent = text.length ? text : " ";
       row.appendChild(code);
       panel.appendChild(row);
       rows[lineNo] = row;

@@ -62,12 +62,6 @@
   var GO_URL = "https://esm.sh/@codemirror/legacy-modes@6.5.4/mode/go?deps=" + DEPS;
   var DARK_URL = "https://esm.sh/@codemirror/theme-one-dark@6.1.3?deps=" + DEPS;
 
-  // Тёмные темы mdBook (по умолчанию книга открывается в navy): светлый редактор
-  // в них — белый прямоугольник посреди страницы.
-  function darkBook() {
-    return /\b(coal|navy|ayu)\b/.test(document.documentElement.className);
-  }
-
   // Загрузчик модулей; window.ALGO_RUNNER_IMPORT подменяет его в проверке (runner-render-check:
   // CDN, который не отвечает, и CodeMirror, пришедший после срока).
   function importModule(url) {
@@ -83,9 +77,10 @@
         importModule(CM_URL),
         importModule(LANG_URL),
         importModule(GO_URL),
-        darkBook() ? importModule(DARK_URL) : null,
+        // Книга всегда тёмная (тема одна): светлый редактор был бы белым прямоугольником.
+        importModule(DARK_URL),
       ]).then(function (m) {
-        cmMod = { cm: m[0], lang: m[1], go: m[2].go, dark: m[3] && m[3].oneDark };
+        cmMod = { cm: m[0], lang: m[1], go: m[2].go, dark: m[3] && m[3].oneDark, darkMod: m[3] };
         return cmMod;
       });
     }
@@ -137,9 +132,9 @@
         mod.lang.StreamLanguage.define(mod.go),
         mod.cm.EditorView.theme({
           "&": { fontSize: "13px", maxHeight: "440px" },
-          ".cm-scroller": { overflow: "auto", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace" },
+          ".cm-scroller": { overflow: "auto", fontFamily: "var(--mono-font, ui-monospace,SFMono-Regular,Menlo,monospace)" },
         }),
-      ].concat(mod.dark ? [mod.dark] : []),
+      ].concat(bookColors(mod)),
       parent: host,
     });
     return {
@@ -148,6 +143,51 @@
         view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: v } });
       },
     };
+  }
+
+  // Цвета редактора — палитра книги и её токены подсветки --hl-* (theme.css), без новых импортов:
+  // теги lezer берём из oneDarkHighlightStyle (модуль one-dark уже загружен), HighlightStyle и
+  // syntaxHighlighting — из того же экземпляра @codemirror/language, что и StreamLanguage
+  // (иначе подсветка не применилась бы). Режим go из legacy-modes различает меньше, чем hlGo:
+  // типы в нём — ключевые слова, а nil/true и len/append — один токен atom (красим как
+  // ключевые слова). Чего-то нет (подставной модуль проверки, другая версия) — прежний oneDark.
+  var HL_TAGS = [
+    [/^(keyword|operatorKeyword|modifier|self|bool|null|atom|special\(variableName\))$/, "--hl-keyword"],
+    [/^(string|special\(string\)|character|regexp|escape|inserted)$/, "--hl-string"],
+    [/^(number|integer|float)$/, "--hl-number"],
+    [/^(comment|lineComment|blockComment|docComment|meta)$/, "--hl-comment"],
+    [/^(typeName|className|namespace|standard\(name\)|constant\(name\))$/, "--hl-type"],
+    [/^(function\(variableName\)|labelName|macroName)$/, "--hl-function"],
+    [/^(operator|punctuation|separator|bracket|derefOperator)$/, "--hl-punct"],
+    [/^(name|variableName|propertyName|definition\(name\))$/, "--hl-text"],
+  ];
+  function bookColors(mod) {
+    var L = mod.lang, src = mod.darkMod && mod.darkMod.oneDarkHighlightStyle;
+    if (!L || !L.HighlightStyle || !L.syntaxHighlighting || !src || !src.specs || !mod.darkMod.oneDarkTheme) {
+      return mod.dark ? [mod.dark] : [];
+    }
+    var specs = [];
+    src.specs.forEach(function (s) {
+      (Array.isArray(s.tag) ? s.tag : [s.tag]).forEach(function (tag) {
+        var name = String(tag), v = null;
+        HL_TAGS.forEach(function (r) { if (!v && r[0].test(name)) v = r[1]; });
+        var spec = {};
+        Object.keys(s).forEach(function (k) { spec[k] = s[k]; });
+        spec.tag = tag;
+        if (v) spec.color = "var(" + v + ")";
+        specs.push(spec);
+      });
+    });
+    var surface = mod.cm.EditorView.theme({
+      "&": { backgroundColor: "var(--th-code-bg, #141720)", color: "var(--hl-text, #c8ccd8)" },
+      ".cm-gutters": { backgroundColor: "var(--th-code-bg, #141720)", color: "var(--th-muted, #8a91ad)", borderRight: "1px solid var(--th-border, #2a2e3d)" },
+      ".cm-activeLine": { backgroundColor: "rgba(59, 130, 246, 0.10)" },
+      ".cm-activeLineGutter": { backgroundColor: "rgba(59, 130, 246, 0.16)", color: "var(--hl-text, #c8ccd8)" },
+      "&.cm-focused .cm-cursor": { borderLeftColor: "var(--th-accent, #4ae08a)" },
+      "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground": { backgroundColor: "rgba(74, 224, 138, 0.22)" },
+    }, { dark: true });
+    // Раньше в списке — выше приоритет: наш фон перекрывает фон oneDarkTheme.
+    return [surface, mod.darkMod.oneDarkTheme, L.syntaxHighlighting(L.HighlightStyle.define(specs))];
   }
 
   // Фолбэк: textarea с поддержкой Tab.
@@ -601,7 +641,18 @@
       // container/heap…, которых нет в заготовке) — переписанный как есть, он не соберётся.
       box.appendChild(el("div", "algo-runner__help-label", "Эталон " + name + " — только для чтения; строк import в нём нет — " +
         "нужные пакеты допиши сам. Твой код в редакторе не изменился."));
-      var p = el("pre", "algo-runner__solution-code", code);
+      var p = el("pre", "algo-runner__solution-code");
+      // Подсветка — общая hlGo из algo-viz.js (без неё — простой текст): эталон окрашен так же,
+      // как листинги главы и редактор.
+      var hl = window.ALGO_VIZ && window.ALGO_VIZ.hlGo;
+      if (hl) {
+        String(code).split("\n").forEach(function (line, i) {
+          if (i) p.appendChild(document.createTextNode("\n"));
+          p.appendChild(hl(line));
+        });
+      } else {
+        p.textContent = code;
+      }
       p.tabIndex = 0; // длинные строки прокручиваются в своём блоке — и с клавиатуры тоже
       box.appendChild(p);
       return box;

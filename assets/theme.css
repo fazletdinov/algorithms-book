@@ -74,6 +74,18 @@ html.navy, html:not(.js) {
   --th-violet: #b388ff;
   --th-red: #ef5350;
 
+  /* Подсветка Go — одна на всю книгу: блоки ```go (hljs), листинги визуализаций и панель
+     трассы (hlGo в algo-viz.js), эталон «Сдаюсь» и редактор CodeMirror в runner.js.
+     Контраст на фоне кода #141720 — от 5.7:1 (комментарий) до 12.8:1 (имя функции). */
+  --hl-text: #c8ccd8;
+  --hl-keyword: #b388ff;
+  --hl-string: #4ae08a;
+  --hl-number: #ffab40;
+  --hl-comment: #8a91ad;
+  --hl-type: #6ea8fe;
+  --hl-function: #ffd740;
+  --hl-punct: #9aa1bb;
+
   --bg: var(--th-bg);
   --fg: var(--th-text);
 
@@ -255,6 +267,20 @@ html .hljs {
 .content h1 :not(pre) > code, .content h2 :not(pre) > code, .content h3 :not(pre) > code {
   background: none; border: 0; padding: 0; color: inherit;
 }
+
+/* hljs: переопределяем tomorrow-night (navy включает именно его) и общий highlight.css.
+   Селекторы с html — чтобы перебить и их, и порядок подключения. */
+html .hljs-comment, html .hljs-quote { color: var(--hl-comment); font-style: normal; }
+html .hljs-keyword, html .hljs-literal, html .hljs-selector-tag { color: var(--hl-keyword); }
+html .hljs-string, html .hljs-regexp, html .hljs-char.escape_, html .hljs-subst { color: var(--hl-string); }
+html .hljs-number { color: var(--hl-number); }
+html .hljs-type, html .hljs-class .hljs-title, html .hljs-title.class_ { color: var(--hl-type); }
+html .hljs-title, html .hljs-title.function_, html .hljs-function .hljs-title, html .hljs-built_in { color: var(--hl-function); }
+html .hljs-params, html .hljs-variable, html .hljs-attr, html .hljs-attribute, html .hljs-property { color: var(--hl-text); }
+html .hljs-operator, html .hljs-punctuation { color: var(--hl-punct); }
+html .hljs-meta, html .hljs-meta .hljs-keyword { color: var(--hl-type); }
+html .hljs-addition { color: var(--hl-string); }
+html .hljs-deletion { color: var(--th-red); }
 
 /* ===== Таблицы ===== */
 /* Только таблицы из Markdown (mdBook оборачивает их в .table-wrapper): у виджетов свои. */

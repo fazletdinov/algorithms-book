@@ -10477,8 +10477,9 @@
   }
 
   // ===== Лёгкая подсветка синтаксиса Go ======================================
-  // Код в CODE[] — доверенные строки (не пользовательский ввод), но спаны строим
-  // через textContent/DocumentFragment, без innerHTML — безопасно по построению.
+  // Спаны строим через textContent/DocumentFragment, без innerHTML — безопасно по построению,
+  // поэтому ею можно красить и код читателя (панель трассы, эталон в runner.js — через
+  // window.ALGO_VIZ.hlGo). Разбор построчный: строка — одна строка листинга.
   var GO_KW = { func: 1, for: 1, if: 1, else: 1, return: 1, range: 1, var: 1, const: 1, package: 1, import: 1, switch: 1, case: 1, default: 1, break: 1, continue: 1, go: 1, defer: 1, select: 1, type: 1, struct: 1, interface: 1, map: 1, chan: 1, fallthrough: 1, nil: 1, true: 1, false: 1, iota: 1 };
   var GO_TYPE = { int: 1, int8: 1, int16: 1, int32: 1, int64: 1, uint: 1, uint8: 1, uint16: 1, uint32: 1, uint64: 1, uintptr: 1, float32: 1, float64: 1, complex64: 1, complex128: 1, string: 1, byte: 1, rune: 1, bool: 1, error: 1, any: 1 };
   var GO_FN = { make: 1, delete: 1, len: 1, cap: 1, append: 1, copy: 1, max: 1, min: 1, new: 1, panic: 1, recover: 1, print: 1, println: 1, close: 1 };
@@ -16696,7 +16697,10 @@
       DASH[type] = cfg;
       CODE[cfg.codeKey] = code;
     },
-    mkEl: mkEl
+    mkEl: mkEl,
+    // Подсветка Go одна на книгу: ею же красят панель трассы (trace-viz.js) и эталон «Сдаюсь»
+    // (runner.js). Цвета классов algo-tp__tok--* — токены --hl-* из theme.css.
+    hlGo: hlGo
   };
 
   // ===== Диспетчер ============================================================

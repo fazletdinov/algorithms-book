@@ -862,14 +862,15 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__code { margin: 0; padding: 0.6em 0; border-radius: 10px; background: #0b0f1a; border: 1px solid var(--tp-border); font-size: 0.84em; line-height: 1.65; overflow-x: auto; }
 .algo-tp__codeline { display: flex; padding: 0 0.7em; white-space: pre; border-left: 3px solid transparent; }
 .algo-tp__codeline--active { background: color-mix(in srgb, var(--tp-lo) 26%, transparent); border-left-color: var(--tp-lo); }
-/* подсветка синтаксиса Go */
-.algo-tp__tok--kw { color: #c084fc; }
-.algo-tp__tok--type { color: #5e9bff; }
-.algo-tp__tok--fn { color: #4fd1c5; }
-.algo-tp__tok--num { color: #f0883e; }
-.algo-tp__tok--str { color: #7ee787; }
-.algo-tp__tok--com { color: #6b7689; font-style: italic; }
-.algo-tp__tok--punct { color: #9aa4ba; }
+/* подсветка синтаксиса Go — классы ставит hlGo (algo-viz.js); им же красят панель трассы и эталон
+   в runner.js. Цвета — общие токены книги --hl-* (theme.css), запасные — те же значения. */
+.algo-tp__tok--kw { color: var(--hl-keyword, #b388ff); }
+.algo-tp__tok--type { color: var(--hl-type, #6ea8fe); }
+.algo-tp__tok--fn { color: var(--hl-function, #ffd740); }
+.algo-tp__tok--num { color: var(--hl-number, #ffab40); }
+.algo-tp__tok--str { color: var(--hl-string, #4ae08a); }
+.algo-tp__tok--com { color: var(--hl-comment, #8a91ad); }
+.algo-tp__tok--punct { color: var(--hl-punct, #9aa1bb); }
 /* Вспышка: активная строка только что изменила переменные — связываем причину и эффект. */
 .algo-tp__codeline--justran { animation: algo-tp-justran 0.6s ease-out; }
 @keyframes algo-tp-justran {
