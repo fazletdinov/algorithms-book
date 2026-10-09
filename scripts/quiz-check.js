@@ -12,10 +12,12 @@
 //       этих глав, без повторов; вопрос из algoQuizMissed идёт первым; «Следующая порция» — новая;
 //   (c) показ пишется в algoQuizSeen по свежему чтению — запись другой вкладки не стирается;
 //   (d) рекорд — только у полной порции: порция из 7 его не пишет и не показывает, из 10 пишет «k/10»;
-//       прежний рекорд «40/64» (весь банк подряд) не показывается и не стирается;
+//       под своим ключом algoQuizBestPortion; прежний рекорд algoQuizBest «40/64» (весь банк подряд) не
+//       показывается и не перезаписывается;
 //   (e) сборка порции на случайных наборах (зерно): размер — min(10, вопросов в пуле), только главы
 //       пула, без повторов, порядок «промахи → не показанные → давно показанные», а пропущенные
-//       не «лучше» взятых (промах не уступает место показанному, давний — недавнему).
+//       не «лучше» взятых (промах не уступает место показанному, давний — недавнему);
+//   (f) повторная порция маленького пула: показанные идут каждый раз в другом порядке, промах — первым.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -182,7 +184,8 @@ async function main() {
       if (seen["чужой вопрос"] !== 5) errors.push(`(c) зерно ${rs}: показ другой вкладки стёрт: ${JSON.stringify(seen)}`);
       if (shown.some((x) => typeof seen[x.q] !== "number")) errors.push(`(c) зерно ${rs}: не все показанные вопросы попали в algoQuizSeen`);
       const end = view(dom);
-      if (dom.window.localStorage.getItem("algoQuizBest") !== "40/64") errors.push(`(d) зерно ${rs}: порция из 7 тронула рекорд: ${dom.window.localStorage.getItem("algoQuizBest")}`);
+      if (dom.window.localStorage.getItem("algoQuizBest") !== "40/64") errors.push(`(d) зерно ${rs}: порция из 7 тронула прежний рекорд: ${dom.window.localStorage.getItem("algoQuizBest")}`);
+      if (dom.window.localStorage.getItem("algoQuizBestPortion") !== null) errors.push(`(d) зерно ${rs}: порция из 7 записала рекорд порции: ${dom.window.localStorage.getItem("algoQuizBestPortion")}`);
       if (/Рекорд:/.test(end.text) || /Новый рекорд/.test(end.text)) errors.push(`(d) зерно ${rs}: итог порции из 7 говорит о рекорде: «${end.text.slice(0, 160)}»`);
       if (!/Вы набрали 6 из 7/.test(end.text)) errors.push(`(b) зерно ${rs}: итог «${end.q}», ожидалось «Вы набрали 6 из 7»`);
       if (end.btn.textContent !== "Следующая порция") errors.push(`(b) зерно ${rs}: кнопка итога «${end.btn.textContent}»`);
@@ -196,13 +199,14 @@ async function main() {
     }
   }
 
-  // --- (d) полная порция пишет рекорд «k/10» и показывает его ---
+  // --- (d) полная порция пишет рекорд «k/10» под своим ключом и показывает его; прежний «40/64» не тронут ---
   {
     const dom = await boot({ algoPracticeScope: "all", algoQuizBest: "40/64" }, 7);
     if (/40/.test(view(dom).head)) errors.push(`(d) «по всем главам»: показан прежний рекорд — «${view(dom).head}»`);
     const shown = answerAll(dom, [0, 3, 5]);
     if (shown.length !== 10) errors.push(`(d) полная порция: ${shown.length} вопросов, ожидалось 10`);
-    if (dom.window.localStorage.getItem("algoQuizBest") !== "7/10") errors.push(`(d) полная порция: рекорд ${dom.window.localStorage.getItem("algoQuizBest")}, ожидалось 7/10`);
+    if (dom.window.localStorage.getItem("algoQuizBestPortion") !== "7/10") errors.push(`(d) полная порция: рекорд порции ${dom.window.localStorage.getItem("algoQuizBestPortion")}, ожидалось 7/10`);
+    if (dom.window.localStorage.getItem("algoQuizBest") !== "40/64") errors.push(`(d) полная порция перезаписала прежний рекорд algoQuizBest: ${dom.window.localStorage.getItem("algoQuizBest")}, ожидалось 40/64`);
     if (!/Рекорд: 7 \/ 10/.test(view(dom).text)) errors.push(`(d) итог полной порции не показывает рекорд: «${view(dom).text.slice(0, 160)}»`);
     click(dom, view(dom).btn);
     if (!/Рекорд: 7 \/ 10/.test(view(dom).head)) errors.push(`(d) в следующей порции нет рекорда в заголовке: «${view(dom).head}»`);
@@ -236,17 +240,40 @@ async function main() {
       if (got.some((x) => !pool.includes(x))) errors.push(`(e) ${where}: вопрос вне пройденных глав`);
       const cls = (x) => (missed[x.q] ? 0 : seen[x.q] == null ? 1 : 2);
       const ts = (x) => (typeof seen[x.q] === "number" ? seen[x.q] : 0);
+      // порядок групп; внутри показанных порядок случайный (раздел (f)), а взяты — самые давние
       for (let i = 1; i < got.length; i++) {
         if (cls(got[i]) < cls(got[i - 1])) { errors.push(`(e) ${where}: порядок групп нарушен на ${i}`); break; }
-        if (cls(got[i]) === 2 && cls(got[i - 1]) === 2 && ts(got[i]) < ts(got[i - 1])) { errors.push(`(e) ${where}: недавний раньше давнего`); break; }
       }
       const left = pool.filter((x) => !got.includes(x));
-      const worst = got.length ? got[got.length - 1] : null;
-      if (worst && left.some((x) => cls(x) < cls(worst) || (cls(x) === 2 && cls(worst) === 2 && ts(x) < ts(worst)))) {
+      const maxCls = Math.max(...got.map(cls));
+      const maxTs = Math.max(0, ...got.filter((x) => cls(x) === 2).map(ts));
+      if (left.some((x) => cls(x) < maxCls || (maxCls === 2 && cls(x) === 2 && ts(x) < maxTs))) {
         errors.push(`(e) ${where}: за бортом остался вопрос, который шёл бы раньше взятого`);
       }
       if (errors.length > 20) break;
     }
+  }
+
+  // --- (f) маленький пул, повторная порция: показанные — каждый раз в другом порядке, промах — первым ---
+  // Иначе на двух главах (7 вопросов) порция шла бы одной и той же очередью, и запоминалась бы она, а не
+  // признак в условии. Набор вопросов и место промаха от перемешивания не зависят.
+  {
+    const probe = await boot({}, 1);
+    const Q = probe.window.ALGO_QUIZ;
+    const pool = Q.questions.filter((x) => SW_TP.has(x.href));
+    const seen = Object.fromEntries(pool.map((x, i) => [x.q, 1000 + i]));
+    const done = { "sliding-window": true, "two-pointers": true };
+    const orders = new Set();
+    for (const withMiss of [false, true]) {
+      for (let s = 1; s <= 20; s++) {
+        const missed = withMiss ? { [pool[3].q]: { n: 1 } } : {};
+        const got = Q.portion({ done, missed, seen, rnd: mulberry32(500 + s) });
+        if (got.length !== pool.length || pool.some((x) => !got.includes(x))) errors.push(`(f) зерно ${s}: порция — не весь пул из ${pool.length}`);
+        if (withMiss && got[0] !== pool[3]) errors.push(`(f) зерно ${s}: промах не первым`);
+        if (!withMiss) orders.add(got.map((x) => pool.indexOf(x)).join(","));
+      }
+    }
+    if (orders.size < 10) errors.push(`(f) 20 повторных порций из 7 показанных дали ${orders.size} разных порядков — порция идёт одной очередью`);
   }
 }
 
@@ -270,7 +297,8 @@ function finish() {
   console.log(
     "✅ quiz-check: пустой трекер — объяснение и «по всем главам» (выбор сохраняется, без хранилища — в памяти); " +
       "две главы — порция из их 7 вопросов, промах первым, «Следующая порция»; показы пишутся по свежему чтению; " +
-      "рекорд — только у порции из 10, «40/64» не показан; сборка порции на 400 случайных наборах держит размер, главы, порядок"
+      "рекорд — только у порции из 10 и под своим ключом, «40/64» не показан и не тронут; сборка порции на 400 случайных наборах " +
+      "держит размер, главы, порядок групп; повторная порция — в новом порядке"
   );
   process.exit(0);
 }

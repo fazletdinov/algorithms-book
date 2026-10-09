@@ -262,6 +262,7 @@
     // algoFnSolved — решённые упражнения виджета runner'а ({ "<пакет>.<имя>": ts }): сливается общим правилом.
     // algoQuizSeen — когда вопрос квиза показан последний раз ({ "<вопрос>": ts }), algoPracticeScope —
     // «только пройденные главы» или «по всем» у квиза и смешанной; правила их слияния — MERGE_BY_KEY ниже.
+    // Рекорд полной порции квиза algoQuizBestPortion покрывает префикс "algoQuizBest" (isOurs).
     var PREFIXES = ["algoProgress", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:", "algoPkgSolved", "algoFnSolved", "algoSRS",
       "algoExplain", "algoExplainDone", "algoQuizMissed", "algoQuizSeen", "algoMixedMissed", "algoMixedSeen",
       "algoMockLog", "algoMockCxMissed", "algoVizMissed", "algoVizPredict", "algoPracticeScope"];
@@ -416,6 +417,16 @@
   }
   var MERGE_BY_KEY = { algoSRS: mergeSRS, algoProgress: mergeProgress, algoProgressAt: mergeProgressAt, algoQuizSeen: mergeQuizSeen };
 
+  // betterBest — из двух рекордов «счёт/всего» тот, у кого счёт больше; неразборчивый пришедший не
+  // затирает здешний, неразборчивый здешний заменяется пришедшим (null — оставить здешнее).
+  function betterBest(currentRaw, incomingRaw) {
+    function score(raw) {
+      var m = /^(\d+)\/(\d+)$/.exec(String(raw || ""));
+      return m ? Number(m[1]) : -1;
+    }
+    return score(incomingRaw) > score(currentRaw) ? incomingRaw : null;
+  }
+
   // importValue решает, что записать в ключ k при импорте: сырой текст (null — оставить здешнее).
   // Ключи со своим правилом принимают только карту, а здешнее не-карту (повреждённое) лечат пришедшей
   // картой. Для остальных общее правило прежнее, но значение из файла, которое не разбирается как
@@ -426,6 +437,8 @@
     var merge = MERGE_BY_KEY[k];
     // algoPracticeScope — выбор читателя на ЭТОЙ машине: заданный здесь файл не перебивает
     if (k === "algoPracticeScope") return currentRaw ? null : incomingRaw;
+    // algoQuizBestPortion — рекорд полной порции квиза «k/10»: остаётся лучший из двух
+    if (k === "algoQuizBestPortion") return betterBest(currentRaw, incomingRaw);
     var incoming = tryParse(incomingRaw);
     if (merge) {
       if (!isMap(incoming)) return null;

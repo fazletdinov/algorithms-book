@@ -157,6 +157,7 @@ setTimeout(() => {
       // квиз: когда вопрос показан последний раз (порядок порции) и режим выдачи квиза и смешанной
       pls.setItem("algoQuizSeen", JSON.stringify({ "Вопрос A": 1700000400000 }));
       pls.setItem("algoPracticeScope", "all");
+      pls.setItem("algoQuizBestPortion", "7/10"); // рекорд полной порции квиза — под своим ключом
       // счётчик дня (srs.js) — про сегодня в ЭТОМ браузере: в файл прогресса он не идёт и из файла не берётся
       const todayHere = JSON.stringify({ day: "2026-01-14", done: 3, heavy: 0, later: ["ch:sliding-window.html"] });
       pls.setItem("algoToday", todayHere);
@@ -172,7 +173,7 @@ setTimeout(() => {
       const exported = exportedText ? JSON.parse(exportedText) : null;
       if (!exported || !exported.data) errors.push("экспорт не собрал дамп");
       else {
-        for (const k of ["algoProgress", "algoProgressAt", "algoSRS", "algoFnSolved", "algoQuizSeen", "algoPracticeScope"]) {
+        for (const k of ["algoProgress", "algoProgressAt", "algoSRS", "algoFnSolved", "algoQuizSeen", "algoPracticeScope", "algoQuizBestPortion"]) {
           if (!(k in exported.data)) errors.push(`в экспорте нет ключа ${k}: ${Object.keys(exported.data)}`);
         }
         if (exported.data.algoProgressAt !== pls.getItem("algoProgressAt")) errors.push("экспорт отдал algoProgressAt не таким, каким он лежит в localStorage");
@@ -319,6 +320,12 @@ setTimeout(() => {
       setLocal({});
       importDump({ algoPracticeScope: "all" });
       if (pls.getItem("algoPracticeScope") !== "all") errors.push(`импорт не перенёс algoPracticeScope, которого здесь не было: ${pls.getItem("algoPracticeScope")}`);
+      // 5. algoQuizBestPortion — остаётся лучший рекорд полной порции; мусор из файла здешний не затирает
+      for (const [here, there, want] of [["7/10", "5/10", "7/10"], ["7/10", "9/10", "9/10"], [null, "4/10", "4/10"], ["7/10", "мусор", "7/10"], ["мусор", "3/10", "3/10"]]) {
+        setLocal(here === null ? {} : { algoQuizBestPortion: here });
+        importDump({ algoQuizBestPortion: there });
+        if (pls.getItem("algoQuizBestPortion") !== want) errors.push(`импорт algoQuizBestPortion: здесь ${here}, в файле ${there} — стало ${pls.getItem("algoQuizBestPortion")}, ожидалось ${want}`);
+      }
       // ключи с сырым текстом ведут себя как раньше
       setLocal({ "algoRunnerCode:slidingwindow": "мой код", algoQuizBest: "10/57" });
       importDump({ "algoRunnerCode:slidingwindow": "чужой код", algoQuizBest: "40/57" });
