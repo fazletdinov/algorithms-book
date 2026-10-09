@@ -43,7 +43,8 @@
 //      вопросов 🎯 нет»), а не «развилок на шагах нет» — так отвечает виджет без развилок вовсе.
 //
 //  10) то же с настоящим srs.js: карточка viz: в сроке — промах даёт «Забыл», чистый проход — «Помню»;
-//      первый промах без карточки заводит её на сегодня, без оценки;
+//      первый промах без карточки заводит её на начало завтра, без оценки, и чистый проход в тот же день
+//      её не оценивает;
 //  11) якорь: id корня viz-<номер на странице> по порядку документа (с неактивными вкладками), занятый id
 //      не перебивается; «страница#якорь» открывает вкладку и <details> виджета и прокручивает к нему.
 //
@@ -420,13 +421,23 @@ async function engineMismatches() {
   c = card(d);
   if (c.iv !== 20 || c.reps !== 4) bad.push(`чистый проход по карточке в сроке: ${JSON.stringify(c)}, ожидалось «Помню» (iv 8 → 20)`);
   d.window.close();
-  // карточки нет: первый промах заводит её сразу — на сегодня и без оценки (report после записи промаха)
+  // карточки нет: первый промах заводит её сразу — на начало завтрашних суток и без оценки (report после
+  // записи промаха); чистый проход в тот же день её не оценивает (early)
   d = pageWith(T, "http://localhost:3000/sliding-window.html", { algoVizPredict: "1" }, `<script>${srsJs}</script>`);
   await ready(d);
   missed = false;
   walkIn(d, d.window.document.querySelector(".algo-viz"), (q) => { if (missed) return q.entered; missed = true; return !q.entered; });
   c = card(d);
-  if (c.iv !== 0 || !(c.due <= Date.now()) || !c.meta || c.meta.anchor !== "viz-1") bad.push(`первый промах без карточки: ${JSON.stringify(c)}, ожидалась карточка на сегодня (iv 0) с якорем viz-1`);
+  const t0 = new Date(), tomorrow = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + 1).getTime();
+  if (c.iv !== 0 || c.due !== tomorrow || !c.meta || c.meta.anchor !== "viz-1") bad.push(`первый промах без карточки: ${JSON.stringify(c)}, ожидалась карточка на начало завтра (iv 0) с якорем viz-1`);
+  const afterMiss = { algoVizPredict: "1", algoSRS: d.window.localStorage.getItem("algoSRS"), algoVizMissed: d.window.localStorage.getItem("algoVizMissed") };
+  d.window.close();
+  d = pageWith(T, "http://localhost:3000/sliding-window.html", afterMiss, `<script>${srsJs}</script>`);
+  await ready(d);
+  walkIn(d, d.window.document.querySelector(".algo-viz"), (q) => q.entered);
+  if (JSON.stringify(card(d)) !== JSON.stringify(c) || d.window.localStorage.getItem("algoToday") !== null) {
+    bad.push(`чистый проход в день промаха оценил карточку: ${JSON.stringify(card(d))}, algoToday ${d.window.localStorage.getItem("algoToday")} — ожидалось early`);
+  }
   d.window.close();
   // Пересчёт высоты перебирает ВСЕ шаги через show(), в том числе последний: «Помню» ставит только
   // настоящий приход на последний шаг. В jsdom ширина 0, и пересчёт не запускается — подменяем замер

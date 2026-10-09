@@ -150,6 +150,7 @@ console.log("ordering no-spoiler:");
 // ---- 5. исход задачи идёт в расписание её карточки (ALGO_SRS.report, настоящий srs.js) ----
 // Первая проверка за загрузку страницы оценивает карточку task:<страница>#<номер>: верно — «Помню»,
 // неверно — «Забыл», и у уже решённой задачи тоже; дальнейшие попытки той же загрузки карточку не трогают.
+// Новый промах заводит карточку на начало завтрашних суток: ответ в тот же день её не оценивает, назавтра — да.
 console.log("report → srs:");
 {
   const DAY = 24 * 60 * 60 * 1000;
@@ -194,13 +195,27 @@ console.log("report → srs:");
   assert(c && c.iv === 20 && c.reps === 4, `решённая задача, верно: «Помню» (iv 8 → 20) — ${JSON.stringify(c)}`);
   answer(dom, "7");
   assert(cardOf(dom).iv === 20 && !cardOf(dom).back, "неверный ответ после верного в ту же загрузку не роняет карточку");
-  // новый промах: карточка заводится на сегодня (report отвечает created), второй промах той же загрузки — без оценки
+  // новый промах: карточка заводится на начало завтрашних суток (report отвечает created), второй промах той
+  // же загрузки — без оценки
+  const TOMORROW = new Date(2026, 0, 15).getTime();
   dom = await page(TASK, {});
   answer(dom, "7");
   c = cardOf(dom);
-  assert(c && c.iv === 0 && c.due === NOW, `первый промах заводит карточку на сегодня, не оценивая её: ${JSON.stringify(c)}`);
+  assert(c && c.iv === 0 && c.due === TOMORROW, `первый промах заводит карточку на начало завтра, не оценивая её: ${JSON.stringify(c)}`);
   answer(dom, "8");
   assert(JSON.stringify(cardOf(dom)) === JSON.stringify(c), "второй промах в ту же загрузку не опускает только что заведённую карточку");
+  // та же задача в тот же день после перезагрузки: верный ответ — early, карточка и счёт дня не тронуты
+  const missSeed = () => ({ algoSRS: dom.window.localStorage.getItem("algoSRS"), algoChallengeMissed: dom.window.localStorage.getItem("algoChallengeMissed") });
+  const seedAfterMiss = missSeed();
+  let again = await page(TASK, seedAfterMiss);
+  answer(again, "42");
+  assert(JSON.stringify(cardOf(again)) === JSON.stringify(c) && again.window.localStorage.getItem("algoToday") === null,
+    `верный ответ в тот же день после промаха карточку не оценивает (early): ${JSON.stringify(cardOf(again))}, algoToday ${again.window.localStorage.getItem("algoToday")}`);
+  // назавтра — оценивается: «Помню», первый интервал
+  again = await page(TASK, seedAfterMiss);
+  again.window.__now = TOMORROW + 9 * 60 * 60 * 1000;
+  answer(again, "42");
+  assert(cardOf(again).iv === 1 && cardOf(again).reps === 1, `назавтра верный ответ оценивает карточку промаха: ${JSON.stringify(cardOf(again))}`);
   // выбор и порядок шагов — те же правила
   dom = await page(CHOICE.replace("<div ", '<div data-id="big-o#0" '), solvedSeed());
   [...dom.window.document.querySelectorAll(".algo-challenge__opt")].find((b) => b.textContent !== "верный").click();

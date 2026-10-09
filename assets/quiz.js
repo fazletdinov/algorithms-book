@@ -581,7 +581,7 @@
     var prev = m[id] || { n: 0 };
     m[id] = { n: prev.n + 1, pattern: item.correct, href: item.href, q: item.q };
     saveMap(QUIZ_MISSED, m);
-    // карточка промаха встаёт в очередь сразу: счётчик «Сегодня» обновляется без перехода на другую страницу
+    // карточка промаха заводится сразу, со сроком на начало завтрашних суток (srs.js, missDue)
     if (window.ALGO_SRS) window.ALGO_SRS.sync();
   }
   function loadBest() {

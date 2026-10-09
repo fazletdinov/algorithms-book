@@ -374,8 +374,10 @@ async function chapterDoneChecks() {
   const MENU =
     '<div id="mdbook-menu-bar" class="menu-bar"><div class="left-buttons"></div><h1 class="menu-title">Книга</h1>' +
     '<div class="right-buttons"><a href="print.html" title="Print">P</a></div></div>';
+  // промах вчерашний: его карточка уже в сроке (промах сегодняшний заводит карточку только на завтра)
   const miss = { "big-o#2": { n: 1, page: "big-o", anchor: "task-2", q: "Сколько копий сделает append?" } };
-  const real = await pageDom(H, { srs: true, menu: MENU, seed: { algoChallengeMissed: JSON.stringify(miss) } });
+  const missCard = { due: Date.now() - 60 * 60 * 1000, iv: 0, ease: 2.5, reps: 0, meta: { page: "big-o", anchor: "task-2", q: miss["big-o#2"].q } };
+  const real = await pageDom(H, { srs: true, menu: MENU, seed: { algoChallengeMissed: JSON.stringify(miss), algoSRS: JSON.stringify({ "task:big-o#2": missCard }) } });
   const badge = () => {
     const a = real.window.document.querySelector(".algo-srs-badge");
     return a && !a.hidden ? a.textContent.replace(/\s+/g, " ").trim() : null;

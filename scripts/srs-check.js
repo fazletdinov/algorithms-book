@@ -8,7 +8,8 @@
 // вырождается в список без порядка:
 //   1) карточки заводятся сами из источников (главы, пакеты, промахи) на ЛЮБОЙ странице,
 //      а не только на «Повторении»; срок считается от события (метки algoProgressAt,
-//      algoPkgSolved, algoExplainDone), промах встаёт «сейчас»;
+//      algoPkgSolved, algoExplainDone), промах — с начала завтрашних суток, и оценка в тот же день — early
+//      (по каждому источнику: task:, quiz:, mix:, cx:, viz:; «Не сошлось» — сутки от отметки);
 //   2) «Помню» даёт интервалы 1 → 3 → растущий геометрически, а не фиксированный;
 //   3) «Забыл» — шаг назад по лестнице: завтра, потом предыдущая ступень (22 → 1 → 8 → 21),
 //      а не сброс в начало; «С трудом» растит слабо, но растит; перебор достижимых состояний
@@ -35,7 +36,7 @@
 //      другой задачи того же шаблона (не meta.last), глава из банка (прежняя meta.chapter "big-o" у bigo.* —
 //      монотонный стек), ответ с альтернативами, оценка пишет meta.last;
 //  17) оставленная вкладка: возврат, storage и algo-srs:change перестраивают порцию, не закрывая
-//      раскрытый ответ и форму заметки; промах на этой же странице обновляет счётчик без перехода;
+//      раскрытый ответ и форму заметки; промах на этой же странице заводит карточку сразу, но на завтра;
 //  18) числа предела в текстах книги совпадают с константами движка;
 //  19) карточка пакета — одна функция банка (свои тесты, без соседей) с чистого листа в виджете runner'а;
 //      оценку ставят события ЭТОГО виджета: зелёный без подсказок — «Помню», с подсказкой — «С трудом»,
@@ -144,6 +145,11 @@ const dayKey = (t) => {
 const todayRec = (dom) => JSON.parse(dom.window.localStorage.getItem("algoToday") || "null");
 const light = (name, iv, due) => ({ due, iv, ease: 2.5, reps: 2, meta: { page: "big-o", q: "задача " + name }, seen: due - iv * DAY });
 const heavy = (name, due) => ({ due, iv: 0, ease: 2.5, reps: 0, meta: { pkg: name } });
+// Начало завтрашних местных суток — срок карточки, которую заводит промах (srs.js, missDue).
+const nextDay = (t) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime(); };
+// Карточка, которую промах завёл раньше: срок due уже вышел, оценок не было. Проверки вида карточек кладут
+// её в algoSRS сами — промах, записанный сегодня, заводит карточку только на завтра.
+const missCard = (meta, due) => ({ due, iv: 0, ease: 2.5, reps: 0, meta });
 // Долг: 20 лёгких и 3 с кодом, все просрочены. У карточек с кодом самый малый iv и самый старый срок —
 // без предела они шли бы первыми тремя. В порции — две самые просроченные, последними и по сроку.
 const debt = (now) => {
@@ -216,37 +222,43 @@ async function main() {
   if (c["ch:sliding-window.html"] && c["ch:sliding-window.html"].due - now < DAY * 0.9) {
     errors.push("карточка главы заведена со сроком «сегодня», ожидалось «завтра»");
   }
-  if (c["task:big-o#2"] && c["task:big-o#2"].due - now > DAY * 0.1) {
-    errors.push("карточка промаха заведена не на сегодня — промах должен попадать в очередь сразу");
+  if (c["task:big-o#2"] && c["task:big-o#2"].due !== nextDay(now)) {
+    errors.push(`карточка промаха заведена на ${c["task:big-o#2"].due}, ожидалось начало завтрашних суток ${nextDay(now)}`);
   }
   const text = dom.window.document.querySelector(".algo-today").textContent;
-  if (!/К повторению сегодня: 1/.test(text)) {
-    errors.push(`в очереди на сегодня не одна карточка: «${text.slice(0, 80)}»`);
+  if (!/На сегодня всё/.test(text)) errors.push(`в день промаха очередь не пуста: «${text.slice(0, 80)}»`);
+  // с начала завтрашних суток промах в очереди, а глава и пакет (сутки от события) — ещё нет
+  const next = await newDom({ algoSRS: dom.window.localStorage.getItem("algoSRS") }, [CLOCK(nextDay(now))]);
+  const nextText = next.window.document.querySelector(".algo-today").textContent;
+  if (!/К повторению сегодня: 1/.test(nextText) || !/append/.test(nextText)) {
+    errors.push(`с начала завтрашних суток в очереди не один промах: «${nextText.slice(0, 80)}»`);
   }
-  if (!/append/.test(text)) errors.push("в очереди показана не та карточка (ожидался промах)");
 }
 
 // --- 1b. промахи смешанной тренировки и собеседования: шаблон и сложность ---
 // Два разных вида карточек по одной и той же задаче: узнать приём (mix:) и
-// оценить стоимость своего кода (cx:) — разные умения, и оба встают на сегодня.
+// оценить стоимость своего кода (cx:) — разные умения, и оба встают в очередь с начала завтрашних суток.
 {
   const now = Date.now();
+  const MIX_META = { n: 1, chapter: "top-k-elements", pkg: "topk", fn: "KthLargest" };
+  const CX_META = { n: 1, chapter: "dynamic-programming", pkg: "dp", fn: "CoinChange" };
   const dom = await newDom({
-    algoMixedMissed: JSON.stringify({ "topk.KthLargest": { n: 1, chapter: "top-k-elements", pkg: "topk", fn: "KthLargest" } }),
-    algoMockCxMissed: JSON.stringify({ "dp.CoinChange": { n: 1, chapter: "dynamic-programming", pkg: "dp", fn: "CoinChange" } }),
+    algoMixedMissed: JSON.stringify({ "topk.KthLargest": MIX_META }),
+    algoMockCxMissed: JSON.stringify({ "dp.CoinChange": CX_META }),
   });
   const c = cards(dom);
   for (const id of ["mix:topk.KthLargest", "cx:dp.CoinChange"]) {
     if (!c[id]) errors.push(`не заведена карточка ${id}: ${JSON.stringify(Object.keys(c))}`);
-    else if (c[id].due - now > DAY * 0.1) errors.push(`карточка ${id} заведена не на сегодня`);
+    else if (c[id].due !== nextDay(now)) errors.push(`карточка ${id} заведена на ${c[id].due}, ожидалось начало завтрашних суток`);
   }
   const text = dom.window.document.querySelector(".algo-today").textContent;
-  if (!/К повторению сегодня: 2/.test(text)) errors.push(`в очереди не две карточки: «${text.slice(0, 80)}»`);
+  if (!/На сегодня всё/.test(text)) errors.push(`в день промахов очередь не пуста: «${text.slice(0, 80)}»`);
 
   // Виджет показывает одну текущую карточку, а не список, — поэтому вид карточки
-  // cx: проверяем там, где она единственная.
+  // cx: проверяем там, где она единственная (заведена промахом раньше, срок вышел).
   const solo = await newDom({
-    algoMockCxMissed: JSON.stringify({ "dp.CoinChange": { n: 1, chapter: "dynamic-programming", pkg: "dp", fn: "CoinChange" } }),
+    algoMockCxMissed: JSON.stringify({ "dp.CoinChange": CX_META }),
+    algoSRS: JSON.stringify({ "cx:dp.CoinChange": missCard(CX_META, now - HOUR) }),
   });
   const soloText = solo.window.document.querySelector(".algo-today").textContent;
   if (!/Собеседование: сложность/.test(soloText) || !/dp\.CoinChange/.test(soloText)) {
@@ -256,7 +268,8 @@ async function main() {
   // Карточка mix: — вопрос. Раньше её заголовком было «topk.KthLargest — шаблон
   // выбран неверно»: имя пакета и есть ответ, и «Помню» ничего не проверяло.
   const mix = await newDom({
-    algoMixedMissed: JSON.stringify({ "topk.KthLargest": { n: 1, chapter: "top-k-elements", pkg: "topk", fn: "KthLargest" } }),
+    algoMixedMissed: JSON.stringify({ "topk.KthLargest": MIX_META }),
+    algoSRS: JSON.stringify({ "mix:topk.KthLargest": missCard(MIX_META, now - HOUR) }),
   }, [problemsJs]);
   const w = mix.window, box = w.document.querySelector(".algo-today");
   // Условие — ДРУГОЙ задачи того же шаблона (у Top-K их несколько): промах уже видел свою, узнать приём
@@ -272,22 +285,27 @@ async function main() {
   }
   const grades = box.querySelector(".algo-today__grades");
   if (!grades || grades.style.display !== "none") errors.push("карточка mix: оценки доступны до «Показать ответ»");
-  // Промах предсказания в виджете (режим 🎯) — карточка viz: на сегодня, со строкой
+  // Промах предсказания в виджете (режим 🎯) — карточка viz: с начала завтрашних суток, со строкой
   // развилки и ссылкой на страницу виджета.
-  const viz = await newDom({
-    algoVizMissed: JSON.stringify({ "sliding-window-fixed": { n: 2, page: "sliding-window.html", title: "Максимум окна размера 3", line: 9, code: "if windowSum > maxSum {" } }),
-  });
-  const vc = cards(viz)["viz:sliding-window-fixed"];
+  const VIZ_META = { n: 2, page: "sliding-window.html", title: "Максимум окна размера 3", line: 9, code: "if windowSum > maxSum {" };
+  const vizNew = await newDom({ algoVizMissed: JSON.stringify({ "sliding-window-fixed": VIZ_META }) });
+  const vc = cards(vizNew)["viz:sliding-window-fixed"];
   if (!vc) errors.push("промах предсказания не завёл карточку viz:");
-  else if (vc.due - Date.now() > DAY * 0.1) errors.push("карточка viz: заведена не на сегодня");
+  else if (vc.due !== nextDay(now)) errors.push("карточка viz: заведена не на начало завтрашних суток");
+  const viz = await newDom({
+    algoVizMissed: JSON.stringify({ "sliding-window-fixed": VIZ_META }),
+    algoSRS: JSON.stringify({ "viz:sliding-window-fixed": missCard(VIZ_META, now - HOUR) }),
+  });
   const vizText = viz.window.document.querySelector(".algo-today").textContent;
   const vizLink = viz.window.document.querySelector(".algo-today__title");
   if (!/Предсказание шага/.test(vizText) || !/строка 9: if windowSum > maxSum/.test(vizText) || !vizLink || vizLink.getAttribute("href") !== "sliding-window.html?viz=sliding-window-fixed") {
     errors.push(`карточка viz: без вида, развилки или ссылки на страницу: «${vizText.slice(0, 160)}»`);
   }
   // с якорем (algo-viz.js пишет его с промахом) ссылка ведёт прямо к виджету; без якоря — к первому виджету типа (выше)
+  const VIZ_A = { n: 1, page: "two-pointers.html", anchor: "viz-3", title: "Два указателя", line: 4, code: "if s == target {" };
   const vizA = await newDom({
-    algoVizMissed: JSON.stringify({ "two-pointers-sum": { n: 1, page: "two-pointers.html", anchor: "viz-3", title: "Два указателя", line: 4, code: "if s == target {" } }),
+    algoVizMissed: JSON.stringify({ "two-pointers-sum": VIZ_A }),
+    algoSRS: JSON.stringify({ "viz:two-pointers-sum": missCard(VIZ_A, now - HOUR) }),
   });
   const aLink = vizA.window.document.querySelector(".algo-today__title");
   // тип в ссылке страхует позиционный якорь (algo-viz.js сверяет его с data-viz цели)
@@ -628,20 +646,23 @@ if (api) {
 
 // --- 6. sync() на любой странице: карточки заводятся без захода на «Повторение», счётчик в панели ---
 {
+  // вчерашний промах — его карточка уже в сроке; сегодняшний — заводится на завтра; глава — через сутки
+  const OLD = { n: 2, page: "big-o", anchor: "task-2", q: "Сколько копий сделает append?" };
   const seed = {
     algoProgress: JSON.stringify({ "sliding-window.html": true, "big-o.html": false }),
-    algoChallengeMissed: JSON.stringify({ "big-o#2": { n: 2, page: "big-o", anchor: "task-2", q: "Сколько копий сделает append?" } }),
+    algoChallengeMissed: JSON.stringify({ "big-o#2": OLD, "big-o#3": { n: 1, page: "big-o", anchor: "task-3", q: "Сегодняшний промах" } }),
+    algoSRS: JSON.stringify({ "task:big-o#2": missCard({ page: OLD.page, anchor: OLD.anchor, q: OLD.q }, Date.now() - 20 * HOUR) }),
   };
   const page = MENU + "<main><h1>Скользящее окно</h1><p>текст главы</p></main>";
   const dom = await bootDom(seed, page);
   const ids = Object.keys(cards(dom)).sort();
-  if (JSON.stringify(ids) !== JSON.stringify(["ch:sliding-window.html", "task:big-o#2"])) {
-    errors.push(`на странице главы без виджета заведены ${JSON.stringify(ids)}, ожидались глава и промах`);
+  if (JSON.stringify(ids) !== JSON.stringify(["ch:sliding-window.html", "task:big-o#2", "task:big-o#3"])) {
+    errors.push(`на странице главы без виджета заведены ${JSON.stringify(ids)}, ожидались глава и два промаха`);
   }
   const b = badgeOf(dom);
   if (!b) errors.push("на странице главы нет счётчика «Сегодня: N»");
   else {
-    if (!/Сегодня:\s*1\b/.test(badgeShown(dom) || "")) errors.push(`счётчик показывает «${badgeShown(dom)}», ожидалось «Сегодня: 1» (промах — сегодня, глава — завтра)`);
+    if (!/Сегодня:\s*1\b/.test(badgeShown(dom) || "")) errors.push(`счётчик показывает «${badgeShown(dom)}», ожидалось «Сегодня: 1» (вчерашний промах — сегодня, сегодняшний и глава — завтра)`);
     if (b.getAttribute("href") !== "review.html") errors.push(`счётчик ведёт на ${b.getAttribute("href")}, ожидалось review.html`);
     if (!b.parentNode.classList.contains("right-buttons")) errors.push("счётчик стоит не в .right-buttons верхней панели");
     if (b.parentNode.querySelector("a") !== b) errors.push("счётчик должен идти первым среди кнопок справа — порядок остальных не меняется");
@@ -666,7 +687,7 @@ if (api) {
   if (!bb || bb.previousElementSibling !== bare.window.document.querySelector("main h1")) errors.push("без панели mdBook счётчик не встал сразу под main h1");
   // нет ни панели, ни заголовка — страница не ломается
   const nowhere = await bootDom(seed, "<p>просто текст</p>");
-  if (Object.keys(cards(nowhere)).length !== 2) errors.push("на странице без панели и заголовка карточки не заведены");
+  if (Object.keys(cards(nowhere)).length !== 3) errors.push("на странице без панели и заголовка карточки не заведены");
 }
 
 // --- 7. две вкладки: оценка в одной не стирает то, что другая записала в algoSRS ---
@@ -781,10 +802,59 @@ if (api) {
     res = r.report("task:big-o#9", "good", now);
     status(res, "created", "карточку завёл этот вызов");
     const n = cards(dom)["task:big-o#9"];
-    if (!n || n.iv !== 0 || n.reps !== 0 || n.due !== now) errors.push(`report: созданная карточка тронута оценкой: ${JSON.stringify(n)}`);
+    if (!n || n.iv !== 0 || n.reps !== 0 || n.due !== nextDay(now)) errors.push(`report: созданная карточка тронута оценкой или срок не начало завтра: ${JSON.stringify(n)}`);
     if (events.length !== 3) errors.push(`report: создание карточки без события (${events.length})`);
-    status(r.report("task:big-o#9", "good", now), "graded", "второй вызов по уже заведённой карточке");
+    // в тот же день срок не вышел — early; с начала завтрашних суток — оценка
+    status(r.report("task:big-o#9", "good", now), "early", "второй вызов по только что заведённой карточке в тот же день");
+    status(r.report("task:big-o#9", "good", nextDay(now)), "graded", "вызов по заведённой карточке назавтра");
   }
+}
+
+// --- 8a. карточка от промаха — не раньше завтра, по каждому источнику ---
+// Срок «сейчас» давал повтор в той же сессии через секунды, и «Помню» проверяло кратковременную память.
+// Теперь: промах → срок = начало завтрашних местных суток; любая оценка в тот же день — early (iv, счёт дня
+// и algoSRS не меняются); назавтра — обычная оценка. Карточки, заведённые прежде со сроком «сейчас», sync не трогает.
+{
+  const now = NOON, tomorrow = nextDay(NOON);
+  const sources = [
+    ["task:big-o#5", "algoChallengeMissed", "big-o#5", { n: 1, page: "big-o", anchor: "task-5", q: "задача" }],
+    ["quiz:Вопрос?", "algoQuizMissed", "Вопрос?", { n: 1, pattern: "P", href: "x.html", q: "Вопрос?" }],
+    ["mix:m.F", "algoMixedMissed", "m.F", { n: 1, chapter: "c", pkg: "m", fn: "F" }],
+    ["cx:m.G", "algoMockCxMissed", "m.G", { n: 1, chapter: "c", pkg: "m", fn: "G" }],
+    ["viz:t", "algoVizMissed", "t", { n: 1, page: "x.html", title: "t", line: 1, code: "if" }],
+  ];
+  for (const [id, key, k, meta] of sources) {
+    const dom = await newDom({ [key]: JSON.stringify({ [k]: meta }) }, [CLOCK(now)], "<div></div>");
+    const w = dom.window, r = w.ALGO_SRS;
+    if (!r) continue;
+    const c0 = cards(dom)[id];
+    if (!c0 || c0.due !== tomorrow || c0.iv !== 0) { errors.push(`${id}: промах завёл ${JSON.stringify(c0)}, ожидался срок ${tomorrow} (начало завтра), iv 0`); continue; }
+    const snap = w.localStorage.getItem("algoSRS");
+    for (const [g, at] of [["good", now + HOUR], ["hard", now + 2 * HOUR], ["again", now + 3 * HOUR], ["good", tomorrow - 1]]) {
+      const res = r.report(id, g, at);
+      if (res.status !== "early") errors.push(`${id}: «${g}» в день промаха — статус ${res.status}, ожидался early`);
+    }
+    if (w.localStorage.getItem("algoSRS") !== snap) errors.push(`${id}: оценки в день промаха изменили карточку: ${JSON.stringify(cards(dom)[id])}`);
+    if (w.localStorage.getItem("algoToday") !== null) errors.push(`${id}: оценки в день промаха заняли место в порции`);
+    if (r.today(now).ids.indexOf(id) >= 0) errors.push(`${id}: карточка промаха в сегодняшней порции`);
+    if (r.today(tomorrow).ids.indexOf(id) < 0) errors.push(`${id}: с начала завтрашних суток карточки промаха нет в порции`);
+    const next = r.report(id, "good", tomorrow + HOUR);
+    const c1 = cards(dom)[id];
+    if (next.status !== "graded" || c1.iv !== 1 || c1.reps !== 1 || (todayRec(dom) || {}).done !== 1) errors.push(`${id}: назавтра «Помню» — ${next.status}, карточка ${JSON.stringify(c1)}, счёт дня ${JSON.stringify(todayRec(dom))}`);
+    w.close();
+  }
+  // карточка, заведённая прежней версией со сроком «сейчас», не переносится: sync её не трогает, оценка — как раньше
+  const oldCard = missCard({ n: 1, pattern: "P", href: "x.html", q: "Вопрос?" }, now - 2 * HOUR);
+  const old = await newDom({ algoQuizMissed: JSON.stringify({ "Вопрос?": oldCard.meta }), algoSRS: JSON.stringify({ "quiz:Вопрос?": oldCard }) }, [CLOCK(now)], "<div></div>");
+  if (JSON.stringify(cards(old)["quiz:Вопрос?"]) !== JSON.stringify(oldCard)) errors.push(`прежняя карточка промаха перенесена sync: ${JSON.stringify(cards(old)["quiz:Вопрос?"])}`);
+  if (old.window.ALGO_SRS && old.window.ALGO_SRS.report("quiz:Вопрос?", "good", now).status !== "graded") errors.push("прежняя карточка промаха со сроком «сейчас» не оценивается в срок");
+  old.window.close();
+  // «Не сошлось» в «объясни сам» заводит карточку уже оценённой «Забыл»: срок — сутки от отметки, не раньше завтра
+  const ex = await newDom({ algoExplainDone: JSON.stringify({ greedy: { ts: now, grade: "again" } }) }, [CLOCK(now)], "<div></div>");
+  const ec = cards(ex)["expl:greedy"];
+  if (!ec || ec.due !== now + DAY || ec.due < tomorrow || ec.iv !== 1) errors.push(`«Не сошлось» в «объясни сам»: ${JSON.stringify(ec)}, ожидался срок через сутки (не раньше завтра), iv 1`);
+  if (ex.window.ALGO_SRS && ex.window.ALGO_SRS.report("expl:greedy", "good", now + HOUR).status !== "early") errors.push("«Сошлось» в день «Не сошлось» должно отвечать early");
+  ex.window.close();
 }
 
 // --- 8b. «Забыл» до срока — один раз на падение ---
@@ -1223,8 +1293,9 @@ if (api) {
 {
   const now = NOON;
   const Q = "Дан массив и число k: найти наибольшую сумму подмассива длины k.";
+  const QM = { n: 1, pattern: "Скользящее окно", href: "sliding-window.html", q: Q };
   const quiz = await newDom(
-    { algoQuizMissed: JSON.stringify({ [Q]: { n: 1, pattern: "Скользящее окно", href: "sliding-window.html", q: Q } }) },
+    { algoQuizMissed: JSON.stringify({ [Q]: QM }), algoSRS: JSON.stringify({ ["quiz:" + Q]: missCard(QM, now - HOUR) }) },
     [CLOCK(now)], PAGE
   );
   {
@@ -1248,7 +1319,8 @@ if (api) {
     }
   }
 
-  const cxSeed = { algoMockCxMissed: JSON.stringify({ "dp.CoinChange": { n: 1, chapter: "dynamic-programming", pkg: "dp", fn: "CoinChange" } }) };
+  const CXM = { n: 1, chapter: "dynamic-programming", pkg: "dp", fn: "CoinChange" };
+  const cxSeed = { algoMockCxMissed: JSON.stringify({ "dp.CoinChange": CXM }), algoSRS: JSON.stringify({ "cx:dp.CoinChange": missCard(CXM, now - HOUR) }) };
   const cx = await newDom(cxSeed, [CLOCK(now), problemsJs], PAGE);
   {
     const w = cx.window, box = w.document.querySelector(".algo-today");
@@ -1675,9 +1747,10 @@ if (api) {
 // --- 15. оставленная вкладка: возврат и чужие события перестраивают порцию, не закрывая ответ и форму ---
 {
   const now = NOON;
+  const KM = { n: 1, chapter: "top-k-elements", pkg: "topk", fn: "KthLargest" };
   const seed = {
-    algoSRS: JSON.stringify({ "task:a#1": light("A", 5, now - HOUR) }),
-    algoMixedMissed: JSON.stringify({ "topk.KthLargest": { n: 1, chapter: "top-k-elements", pkg: "topk", fn: "KthLargest" } }),
+    algoSRS: JSON.stringify({ "task:a#1": light("A", 5, now - HOUR), "mix:topk.KthLargest": missCard(KM, now - DAY) }),
+    algoMixedMissed: JSON.stringify({ "topk.KthLargest": KM }),
   };
   const dom = await newDom(seed, [CLOCK(now), problemsJs], PAGE);
   const w = dom.window;
@@ -1801,6 +1874,7 @@ if (api) {
   const now = NOON;
   const seed = {
     "task:due#1": light("D1", 1, now - HOUR), "task:due#2": light("D2", 1, now - HOUR), "pkg:due": heavy("due", now - DAY),
+    "task:due#3": light("D3", 3, now - HOUR),
     "task:wait#1": Object.assign(light("W", 8, now + 5 * DAY), { reps: 3 }),
   };
   const dom = await newDom({ algoSRS: JSON.stringify(seed) }, [CLOCK(now)], "<div></div>");
@@ -1828,7 +1902,11 @@ if (api) {
     if (seenAtEvent.join() !== "1") errors.push(`в момент события algo-srs:change счёт дня ещё прежний: ${JSON.stringify(seenAtEvent)} — слушатель построил бы порцию по устаревшему done`);
     r.report("pkg:due", "hard", now);
     expect("с кодом в сроке", 2, 1);
-    r.report("task:big-o#9", "again", now);
+    // карточка промаха, заведённая выше, в сроке только завтра: «Забыл» и «Помню» сегодня — early, место не занято
+    if (r.report("task:big-o#9", "again", now).status !== "early") errors.push("«Забыл» в день промаха по его карточке должен отвечать early");
+    if (r.report("task:big-o#9", "good", now).status !== "early") errors.push("«Помню» в день промаха по его карточке должен отвечать early");
+    expect("промах в тот же день — early", 2, 1);
+    r.report("task:due#3", "again", now);
     expect("«Забыл» по карточке в сроке", 3, 1);
     const orig = w.Storage.prototype.setItem;
     w.Storage.prototype.setItem = function () { throw new Error("QuotaExceededError"); };
@@ -1852,7 +1930,7 @@ if (api) {
   }
 }
 
-// --- 18. промах на этой же странице обновляет счётчик без перехода ---
+// --- 18. промах на этой же странице заводит карточку сразу, но на завтра: счётчик сегодня не растёт ---
 {
   const task =
     '<div class="algo-challenge" data-type="predict" data-answer="12" data-explain="разбор">' +
@@ -1867,8 +1945,9 @@ if (api) {
   else {
     input.value = "999";
     btn.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
-    if (!/Сегодня:\s*1\b/.test(badgeShown(dom) || "")) errors.push(`промах в задаче не обновил счётчик на этой же странице: «${badgeShown(dom)}»`);
-    if (!Object.keys(cards(dom)).some((id) => id.indexOf("task:") === 0)) errors.push("промах в задаче не завёл карточку сразу");
+    if (badgeShown(dom)) errors.push(`промах в задаче поднял счётчик сегодняшней порции: «${badgeShown(dom)}» — карточка промаха приходит завтра`);
+    const tc = Object.keys(cards(dom)).filter((id) => id.indexOf("task:") === 0).map((id) => cards(dom)[id]);
+    if (tc.length !== 1 || tc[0].due !== nextDay(Date.now())) errors.push(`промах в задаче не завёл карточку сразу на начало завтра: ${JSON.stringify(tc)}`);
   }
 
   const qdom = await newDom({}, [quizJs], MENU + '<main><h1>Квиз</h1><div class="algo-quiz"></div></main>');
@@ -1885,7 +1964,11 @@ if (api) {
     if (!missed) press(go); // «Следующий»
   }
   if (!missed) errors.push("промах в квизе: за 12 вопросов не удалось ошибиться — проверка ничего не видит");
-  else if (!/Сегодня:\s*1\b/.test(badgeShown(qdom) || "")) errors.push(`промах в квизе не обновил счётчик на этой же странице: «${badgeShown(qdom)}»`);
+  else {
+    if (badgeShown(qdom)) errors.push(`промах в квизе поднял счётчик сегодняшней порции: «${badgeShown(qdom)}»`);
+    const qc = Object.keys(cards(qdom)).filter((id) => id.indexOf("quiz:") === 0).map((id) => cards(qdom)[id]);
+    if (qc.length !== 1 || qc[0].due !== nextDay(Date.now())) errors.push(`промах в квизе не завёл карточку сразу на начало завтра: ${JSON.stringify(qc)}`);
+  }
 }
 
 // --- 19. числа предела в текстах книги — те же, что в константах движка ---
@@ -2294,7 +2377,7 @@ console.log(
     "порция дня — не больше 12 карточек и двух с кодом (границы и порядок — на случайных наборах), «Позже» ставит в конец и не запирает очередь, " +
     "смена суток и мусор в algoToday начинают день заново, счёт дня растёт только по оценке карточки в сроке, " +
     "карточки quiz: и cx: отвечают после «Показать ответ», mix: показывает другую задачу шаблона с главой из банка, возврат на вкладку перестраивает порцию без потери ответа и заметки, " +
-    "промах на этой же странице обновляет счётчик, таймер в местную полночь приносит порцию нового дня; " +
+    "промах заводит карточку на начало завтра (оценка в тот же день — early), таймер в местную полночь приносит порцию нового дня; " +
     "карточка пакета — одна функция с чистого листа, оценку ставят события её виджета и «Сдаюсь» с любой страницы, " +
     "без runner'а «Позже» переносит её на завтра"
 );
