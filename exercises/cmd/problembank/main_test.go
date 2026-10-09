@@ -160,7 +160,8 @@ func TestCollectRejectsBadMarks(t *testing.T) {
 	}
 }
 
-// Банк настоящих заготовок: поля «эталон сложности», «также решается» и «признак».
+// Банк настоящих заготовок: поля «эталон сложности» и «соседи»; разметку «Шаблон / Также
+// решается / Признак» сверяет TestCollectRealBankMarks.
 func TestCollectRealBankNewFields(t *testing.T) {
 	ps, _, err := collect("../..")
 	if err != nil {
@@ -178,12 +179,6 @@ func TestCollectRealBankNewFields(t *testing.T) {
 		}
 		if strings.HasSuffix(p.Complexity, ".") || strings.HasPrefix(p.Complexity, "Ожидаемая") {
 			t.Errorf("%s.%s: в эталоне сложности остались префикс или точка: %q", p.Pkg, p.Fn, p.Complexity)
-		}
-		// Размечать заготовки абзацами «Шаблон/Также решается/Признак» начнёт Task 7.
-		if len(p.Also) != 0 || p.Sign != "" {
-			t.Errorf("%s.%s: в заготовке появилась разметка «Шаблон/Также решается/Признак» (also=%v sign=%q) — "+
-				"поля a и g заполняет Task 7: когда заготовки размечены, замени эту проверку на сверку с разметкой "+
-				"(какие функции получили метки и что в a и g)", p.Pkg, p.Fn, p.Also, p.Sign)
 		}
 		if p.Needs != nil {
 			needs = append(needs, p.Pkg+"."+p.Fn+" -> "+strings.Join(p.Needs, ","))
@@ -207,6 +202,70 @@ func TestCollectRealBankNewFields(t *testing.T) {
 	for _, spot := range []string{"parallelbfs.BFSLevelsConc -> BFSLevelsSeq", "numbertheory.LCM -> GCD"} {
 		if !slices.Contains(needs, spot) {
 			t.Errorf("в банке нет зависимости %q: %v", spot, needs)
+		}
+	}
+}
+
+// realMarks — разметка заготовок абзацами «Шаблон / Также решается / Признак»: глава-ответ c,
+// альтернативы a и есть ли признак g. Каждая строка сверена с текстом глав: глава из a учит тот же
+// приём на задаче такого вида (big-o — «следующий больший» как пример амортизации, sorting —
+// QuickSelect и Sort Colors, merge-intervals — задача 435, dynamic-programming — Кадане и Фибоначчи,
+// recursion — лестница как рекуррента Фибоначчи, greedy — «удали k цифр» доказана заменой, как
+// жадность, union-find-structure — цикл в неориентированном графе). MaxSlidingWindow — без
+// альтернативы: глава о монотонном стеке называет максимум окна в «Когда НЕ применять».
+var realMarks = map[string]struct {
+	c string
+	a []string
+}{
+	"bigo.NextGreaterElement":         {"monotonic-stack", []string{"big-o"}},
+	"bigo.DailyTemperatures":          {"monotonic-stack", []string{"big-o"}},
+	"graphs.HasCycleUndirected":       {"graphs", []string{"union-find-structure"}},
+	"topk.KthLargest":                 {"top-k-elements", []string{"sorting"}},
+	"sorting.QuickSelect":             {"sorting", []string{"top-k-elements"}},
+	"prefixsum.MaxSubarraySum":        {"prefix-sums", []string{"dynamic-programming"}},
+	"greedy.MaxNonOverlapping":        {"greedy", []string{"merge-intervals"}},
+	"twopointers.DutchFlagSort":       {"two-pointers", []string{"sorting"}},
+	"slidingwindow.MaxSlidingWindow":  {"sliding-window", nil},
+	"stack.RemoveKDigits":             {"monotonic-stack", []string{"greedy"}},
+	"recursion.Fib":                   {"recursion", []string{"dynamic-programming"}},
+	"dp.ClimbStairs":                  {"dynamic-programming", []string{"recursion"}},
+	"prefixsum.CountSubarraysWithSum": {"prefix-sums", nil},
+	"toposort.CanFinish":              {"topological-sort", nil},
+}
+
+// Банк настоящих заготовок: размеченные функции получили ровно свою главу-ответ и свои
+// альтернативы, у каждой есть признак; у остальных ни альтернатив, ни признака нет — метка не
+// расползлась по соседним функциям и не потерялась при правке заготовки.
+func TestCollectRealBankMarks(t *testing.T) {
+	ps, _, err := collect("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ps, _ = dedupe(ps)
+	found := map[string]bool{}
+	for _, p := range ps {
+		id := p.Pkg + "." + p.Fn
+		want, marked := realMarks[id]
+		if !marked {
+			if len(p.Also) != 0 || p.Sign != "" {
+				t.Errorf("%s: разметка не из списка realMarks (a=%v g=%q) — сверь её с главами и внеси в список", id, p.Also, p.Sign)
+			}
+			continue
+		}
+		found[id] = true
+		if p.Chapter != want.c {
+			t.Errorf("%s: c = %q, ожидалось %q", id, p.Chapter, want.c)
+		}
+		if !slices.Equal(p.Also, want.a) {
+			t.Errorf("%s: a = %v, ожидалось %v", id, p.Also, want.a)
+		}
+		if p.Sign == "" {
+			t.Errorf("%s: размечена, а признака g нет", id)
+		}
+	}
+	for id := range realMarks {
+		if !found[id] {
+			t.Errorf("%s: нет в банке — функцию переименовали или условие стало короче порога", id)
 		}
 	}
 }
