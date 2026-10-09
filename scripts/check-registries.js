@@ -116,7 +116,9 @@ for (const { file, re, lvl } of statedCounts) {
   const sandbox = {};
   new Function("window", read(path.join(root, "assets", "problems.js")))(sandbox);
   const bank = sandbox.ALGO_PROBLEMS || [];
-  const withTests = bank.filter((p) => p.t && p.t.length).length;
+  // собеседованию годится задача со своими тестами и без соседних упражнений (n): на чистой заготовке
+  // тесты задачи с соседями падают на их panic("TODO") — так фильтрует mixed.js
+  const withTests = bank.filter((p) => p.t && p.t.length && !(p.n && p.n.length)).length;
   const mixedMd = read(path.join(srcDir, "mixed.md"));
   const total = mixedMd.match(/(\d+) услови[йяе] собран[оы]/); // «163 условия собраны», «181 условие собрано»
   const mock = mixedMd.match(/собственные тесты, — (\d+) из (\d+)/);
@@ -137,6 +139,40 @@ for (const { file, re, lvl } of statedCounts) {
       `src/mixed.md: для собеседования годится ${withTests} из ${bank.length}, а на странице — ` +
         (mock ? `${mock[1]} из ${mock[2]}` : "(не нашёл «— N из M»)")
     );
+  }
+  // Почему не годятся остальные: «у N проверить … нечем» — без своих тестов, «а у M тесты зовут
+  // соседние» — с непустым n.
+  const noTests = bank.filter((p) => !(p.t && p.t.length)).length;
+  const withNeeds = bank.filter((p) => p.t && p.t.length && p.n && p.n.length).length;
+  const why = mixedMd.match(/у (\d+) проверить функцию отдельно от пакета нечем, а у\s+(\d+) тесты зовут/);
+  if (!why || Number(why[1]) !== noTests || Number(why[2]) !== withNeeds) {
+    errors.push(`src/mixed.md: без своих тестов ${noTests}, с соседями ${withNeeds}, а на странице — ${why ? why[1] + " и " + why[2] : "(не нашёл «у N проверить … а у M тесты зовут»)"}`);
+  }
+  // Пример пула «только пройденные»: окно, два указателя и префиксные суммы — задачи, чей ответ (c или
+  // из a) среди этих глав; у собеседования — из годных ему.
+  const three = ["sliding-window", "two-pointers", "prefix-sums"];
+  const inThree = (p) => [p.c].concat(p.a || []).some((c) => three.includes(c));
+  const poolAll = bank.filter(inThree).length;
+  const poolMock = bank.filter((p) => inThree(p) && p.t && p.t.length && !(p.n && p.n.length)).length;
+  const exAll = mixedMd.match(/окно, два указателя и префиксные суммы дают (\d+) задач/);
+  const exMock = mixedMd.match(/на окне, двух указателях и префиксных суммах их (\d+)/);
+  if (!exAll || Number(exAll[1]) !== poolAll) errors.push(`src/mixed.md: на окне, двух указателях и префиксах в пуле ${poolAll} задач, а на странице — ${exAll ? exAll[1] : "(не нашёл «… дают N задач»)"}`);
+  if (!exMock || Number(exMock[1]) !== poolMock) errors.push(`src/mixed.md: у собеседования на тех же главах ${poolMock} задач, а на странице — ${exMock ? exMock[1] : "(не нашёл «… их N»)"}`);
+}
+
+// ---------- 1e. числа квиза на его странице ----------
+// Порция и число вопросов зашиты в quiz.js; страница называет их словами.
+{
+  const quizJs = read(path.join(root, "assets", "quiz.js"));
+  const questions = (quizJs.match(/^\s+q: "/gm) || []).length;
+  const portion = (quizJs.match(/var PORTION = (\d+);/) || [])[1];
+  const quizMd = read(path.join(srcDir, "quiz.md"));
+  const mdAll = quizMd.match(/берёт все (\d+) вопрос/);
+  const mdPortion = quizMd.match(/порциями по (\d+)/);
+  const mdRecord = quizMd.match(/полной порции из (\d+) вопрос/);
+  if (!mdAll || Number(mdAll[1]) !== questions) errors.push(`src/quiz.md: в квизе ${questions} вопросов, а на странице — ${mdAll ? mdAll[1] : "(не нашёл «берёт все N вопросов»)"}`);
+  for (const [m, what] of [[mdPortion, "«порциями по N»"], [mdRecord, "«полной порции из N вопросов»"]]) {
+    if (!m || m[1] !== portion) errors.push(`src/quiz.md: порция в quiz.js — ${portion}, а на странице ${what} — ${m ? m[1] : "(не нашёл)"}`);
   }
 }
 
