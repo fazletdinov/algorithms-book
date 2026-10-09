@@ -25,8 +25,8 @@
 //  11) «Забыл» до срока — один раз на падение, дальше early; отказ записи — статус unsaved, без события;
 //  12) повреждённый algoSRS (пять видов значений) не перезаписывается, карточка-мусор пропускается;
 //  13) ни разу не оценённая карточка главы без отметки в трекере при sync уходит;
-//  14) порция дня: не больше 12 карточек и одной с кодом, порядок «iv, затем срок» у лёгких и «самая
-//      просроченная» у карточек с кодом (за 120 дней на долге первого дня пакет не голодает), тяжёлая последней,
+//  14) порция дня: не больше 12 карточек и двух с кодом, порядок «iv, затем срок» у лёгких и «самые
+//      просроченные» у карточек с кодом (за 120 дней на долге первого дня пакет не голодает), тяжёлые последними,
 //      отложенные («Позже») в конце; границы — перебором случайных наборов с фиксированным зерном;
 //      мусор в algoToday и смена суток начинают день заново; счётчик дня растёт только по оценке
 //      карточки с вышедшим сроком; две вкладки не теряют ни done, ни later;
@@ -145,14 +145,14 @@ const todayRec = (dom) => JSON.parse(dom.window.localStorage.getItem("algoToday"
 const light = (name, iv, due) => ({ due, iv, ease: 2.5, reps: 2, meta: { page: "big-o", q: "задача " + name }, seen: due - iv * DAY });
 const heavy = (name, due) => ({ due, iv: 0, ease: 2.5, reps: 0, meta: { pkg: name } });
 // Долг: 20 лёгких и 3 с кодом, все просрочены. У карточек с кодом самый малый iv и самый старый срок —
-// без предела они шли бы первыми тремя.
+// без предела они шли бы первыми тремя. В порции — две самые просроченные, последними и по сроку.
 const debt = (now) => {
   const c = {};
   for (let i = 0; i < 20; i++) c["task:t#" + i] = light(i, (i % 4) + 1, now - (i + 1) * HOUR);
   for (let i = 0; i < 3; i++) c["pkg:p" + i] = heavy("p" + i, now - (30 + i) * DAY);
   return c;
 };
-const DEBT_PORTION = ["task:t#16", "task:t#12", "task:t#8", "task:t#4", "task:t#0", "task:t#17", "task:t#13", "task:t#9", "task:t#5", "task:t#1", "task:t#18", "pkg:p2"];
+const DEBT_PORTION = ["task:t#16", "task:t#12", "task:t#8", "task:t#4", "task:t#0", "task:t#17", "task:t#13", "task:t#9", "task:t#5", "task:t#1", "pkg:p2", "pkg:p1"];
 // вкладка вернулась на экран
 const comeBack = (w) => {
   Object.defineProperty(w.document, "hidden", { value: false, configurable: true });
@@ -1073,7 +1073,7 @@ if (api) {
   }
 }
 
-// --- 11. порция дня: не больше 12 карточек и одной с кодом, остальное ждёт ---
+// --- 11. порция дня: не больше 12 карточек и двух с кодом, остальное ждёт ---
 {
   const now = NOON;
   const dom = await newDom({ algoSRS: JSON.stringify(debt(now)) }, [CLOCK(now), RUNNER_STUB], PAGE);
@@ -1082,31 +1082,34 @@ if (api) {
   if (!r || typeof r.today !== "function") {
     errors.push("ALGO_SRS.today не определён — очередь не ограничена дневной порцией");
   } else {
-    // (a) 20 лёгких и 3 с кодом: 12 в порции, одна с кодом (самая просроченная) и она последняя; лёгкие — iv, затем срок
+    // (a) 20 лёгких и 3 с кодом: 12 в порции, две с кодом (самые просроченные, по сроку) последними; лёгкие — iv, затем срок
     const t = r.today(now);
     if (JSON.stringify(t.ids) !== JSON.stringify(DEBT_PORTION)) errors.push(`порция: ${JSON.stringify(t.ids)}, ожидалось ${JSON.stringify(DEBT_PORTION)}`);
     if (t.held !== 11) errors.push(`порция: held = ${t.held}, ожидалось 11 (23 просроченных минус 12)`);
     if (JSON.stringify(r.today()) !== JSON.stringify(t)) errors.push("today() без аргумента не равен today(Date.now())");
-    if (!r.limits || r.limits.cards !== 12 || r.limits.heavy !== 1) errors.push(`ALGO_SRS.limits = ${JSON.stringify(r.limits)}, ожидалось { cards: 12, heavy: 1 }`);
+    if (!r.limits || r.limits.cards !== 12 || r.limits.heavy !== 2) errors.push(`ALGO_SRS.limits = ${JSON.stringify(r.limits)}, ожидалось { cards: 12, heavy: 2 }`);
     if (!/К повторению сегодня: 12/.test(text())) errors.push(`порция: шапка «${text().slice(0, 60)}», ожидалось «К повторению сегодня: 12»`);
-    if (!/ещё 11 — не раньше завтра: в день не больше 12 карточек и одной с кодом/.test(text())) errors.push(`порция: нет строки об отложенных: «${text().slice(0, 200)}»`);
+    if (!/ещё 11 — не раньше завтра: в день не больше 12 карточек и двух с кодом/.test(text())) errors.push(`порция: нет строки об отложенных: «${text().slice(0, 200)}»`);
     if (!/Сегодня:\s*12\b/.test(badgeShown(dom) || "")) errors.push(`порция: счётчик «${badgeShown(dom)}», ожидалось «Сегодня: 12»`);
     if (!/ещё 11/.test((badgeOf(dom) && badgeOf(dom).title) || "")) errors.push(`порция: подсказка счётчика не говорит об отложенных: «${badgeOf(dom) && badgeOf(dom).title}»`);
     if (w.localStorage.getItem("algoToday") !== null) errors.push("порция только прочитана, а algoToday уже записан — чтение очереди не должно писать");
 
     // (b) 12 оценок подряд — порция пуста, счётчик скрыт
     for (let i = 0; i < 12; i++) {
-      if (i < 11) { click(dom, "Помню"); continue; }
-      if (!/Пакет тренажёра/.test(text())) errors.push(`двенадцатой должна идти карточка с кодом: «${text().slice(0, 80)}»`);
+      if (i < 10) { click(dom, "Помню"); continue; }
+      const want = i === 10 ? "p2" : "p1"; // самая просроченная первой
+      if (!/Пакет тренажёра/.test(text()) || (runnerOf(dom) || { getAttribute: () => "" }).getAttribute("data-pkg") !== want) {
+        errors.push(`${i + 1}-й должна идти карточка с кодом ${want}: «${text().slice(0, 80)}»`);
+      }
       greenPkg(dom); // у карточки с кодом кнопок оценки нет — её оценивает зелёный прогон виджета
     }
     const rec = todayRec(dom);
-    if (!rec || rec.day !== dayKey(now) || rec.done !== 12 || rec.heavy !== 1 || JSON.stringify(rec.later) !== "[]") {
-      errors.push(`после 12 оценок algoToday = ${JSON.stringify(rec)}, ожидалось { day: ${dayKey(now)}, done: 12, heavy: 1, later: [] }`);
+    if (!rec || rec.day !== dayKey(now) || rec.done !== 12 || rec.heavy !== 2 || JSON.stringify(rec.later) !== "[]") {
+      errors.push(`после 12 оценок algoToday = ${JSON.stringify(rec)}, ожидалось { day: ${dayKey(now)}, done: 12, heavy: 2, later: [] }`);
     }
     const after = r.today(now);
     if (after.ids.length !== 0 || after.held !== 11) errors.push(`после 12 оценок порция ${JSON.stringify(after)}, ожидалось пусто и held 11`);
-    if (!/На сегодня всё/.test(text()) || !/ещё 11 придут не раньше завтра: в день не больше 12 карточек и одной с кодом/i.test(text())) {
+    if (!/На сегодня всё/.test(text()) || !/ещё 11 придут не раньше завтра: в день не больше 12 карточек и двух с кодом/i.test(text())) {
       errors.push(`после 12 оценок виджет: «${text().slice(0, 200)}», ожидалось «На сегодня всё» и «ещё 11 придут не раньше завтра…»`);
     }
     if (/К повторению сегодня/.test(text()) || w.document.querySelector(".algo-today__card")) errors.push("порция пройдена, а виджет показывает карточку");
@@ -1197,11 +1200,16 @@ if (api) {
     const h = { "task:x#1": light("X", 1, now - HOUR), "pkg:young": pk(1, now - 2 * DAY), "pkg:old": pk(22, now - 30 * DAY), "pkg:new": pk(0, now - DAY) };
     dom.window.localStorage.setItem("algoSRS", JSON.stringify(h));
     const byDue = r.today(now);
-    if (byDue.ids.join() !== "task:x#1,pkg:old" || byDue.held !== 2) errors.push(`из карточек с кодом в порцию идёт самая просроченная, а не младшая по iv: ${JSON.stringify(byDue)}, ожидалось task:x#1, pkg:old`);
+    if (byDue.ids.join() !== "task:x#1,pkg:old,pkg:young" || byDue.held !== 1) errors.push(`из карточек с кодом в порцию идут две самые просроченные, а не младшие по iv: ${JSON.stringify(byDue)}, ожидалось task:x#1, pkg:old, pkg:young`);
+    // три с кодом в сроке и лёгкие после них по сроку: в порции две, обе последние, самая просроченная первой
+    const three = { "pkg:c": pk(3, now - 5 * DAY), "task:l#1": light("L1", 2, now - 6 * DAY), "pkg:d": pk(8, now - 9 * DAY), "task:m#1": light("M", 1, now - HOUR), "pkg:e": pk(1, now - 2 * DAY) };
+    dom.window.localStorage.setItem("algoSRS", JSON.stringify(three));
+    const t3 = r.today(now);
+    if (t3.ids.join() !== "task:m#1,task:l#1,pkg:d,pkg:c" || t3.held !== 1) errors.push(`три с кодом в сроке: ${JSON.stringify(t3)}, ожидалось task:m#1, task:l#1, pkg:d, pkg:c — две с кодом, последними, по сроку`);
     // при равном сроке — по id, а не по порядку заведения
-    const same = { "pkg:b": pk(1, now - 3 * DAY), "pkg:a": pk(8, now - 3 * DAY) };
+    const same = { "pkg:b": pk(1, now - 3 * DAY), "pkg:a": pk(8, now - 3 * DAY), "pkg:c": pk(2, now - 3 * DAY) };
     dom.window.localStorage.setItem("algoSRS", JSON.stringify(same));
-    if (r.today(now).ids.join() !== "pkg:a") errors.push(`карточки с кодом с равным сроком — по id: ${r.today(now).ids.join()}, ожидалось pkg:a`);
+    if (r.today(now).ids.join() !== "pkg:a,pkg:b") errors.push(`карточки с кодом с равным сроком — по id: ${r.today(now).ids.join()}, ожидалось pkg:a,pkg:b`);
     // последнее место дня при равном сроке достаётся лёгкой: в общем проходе тяжёлая стоит как iv 0, но после лёгких
     const tieLast = { "pkg:z": pk(5, now - DAY), "task:n#1": light("N", 0, now - DAY) };
     dom.window.localStorage.setItem("algoSRS", JSON.stringify(tieLast));
@@ -1359,8 +1367,8 @@ if (api) {
 }
 
 // --- 12. границы порции — перебором случайных наборов (зерно фиксировано) ---
-// Свойства, а не один пример: размер и число тяжёлых — в пределах остатка дня, тяжёлая последняя
-// среди неотложенных, отложенные в конце в порядке later, ни одна карточка не дважды и не потеряна
+// Свойства, а не один пример: размер и число тяжёлых — в пределах остатка дня, тяжёлые последними
+// среди неотложенных и по сроку, отложенные в конце в порядке later, ни одна карточка не дважды и не потеряна
 // (ids + held = всё просроченное), неотложенные лёгкие — по (iv, срок), и порция не меньше возможного.
 {
   const now = NOON;
@@ -1373,7 +1381,7 @@ if (api) {
     const isObj = (c) => c !== null && typeof c === "object" && !Array.isArray(c);
     const bad = [];
     const TRIALS = 600;
-    let nonTrivial = 0, withLater = 0, overLimit = 0;
+    let nonTrivial = 0, withLater = 0, overLimit = 0, twoHeavy = 0;
     for (let trial = 0; trial < TRIALS && bad.length < 5; trial++) {
       const map = {}, all = [];
       const n = pick(45);
@@ -1386,7 +1394,7 @@ if (api) {
         };
         all.push(id);
       }
-      const st = { day: dayKey(now), done: pick(4) === 0 ? 9 + pick(7) : pick(9), heavy: pick(3) === 0 ? 1 + pick(2) : 0, later: [] };
+      const st = { day: dayKey(now), done: pick(4) === 0 ? 9 + pick(7) : pick(9), heavy: pick(3) === 0 ? 1 + pick(3) : 0, later: [] };
       for (let j = pick(7); j > 0 && all.length; j--) st.later.push(rnd() < 0.15 ? "task:gone#" + j : all[pick(all.length)]);
       w.localStorage.setItem("algoSRS", JSON.stringify(map));
       w.localStorage.setItem("algoToday", JSON.stringify(st));
@@ -1395,7 +1403,7 @@ if (api) {
       const dueAll = all.filter((id) => isObj(map[id]) && map[id].due <= now);
       const isDue = new Set(dueAll);
       const isHeavy = (id) => id.indexOf("pkg:") === 0;
-      const room = Math.max(0, 12 - st.done), heavyRoom = Math.max(0, 1 - st.heavy);
+      const room = Math.max(0, 12 - st.done), heavyRoom = Math.max(0, 2 - st.heavy);
       const laterDue = st.later.filter((id, i) => isDue.has(id) && st.later.indexOf(id) === i);
       const inLater = new Set(laterDue);
       const ids = got.ids;
@@ -1416,9 +1424,12 @@ if (api) {
       const headPart = firstLater < 0 ? ids : ids.slice(0, firstLater);
       if (tail.some((id) => !inLater.has(id))) fail("после отложенной карточки стоит неотложенная");
       if (tail.map((id) => laterDue.indexOf(id)).some((p, i, a) => i > 0 && p <= a[i - 1])) fail("отложенные стоят не в порядке later");
-      // тяжёлая последняя среди неотложенных; лёгкие — по (iv, срок)
+      // тяжёлые последними среди неотложенных и между собой по сроку; лёгкие — по (iv, срок)
       const heavyAt = headPart.findIndex(isHeavy);
-      if (heavyAt >= 0 && heavyAt !== headPart.length - 1) fail("тяжёлая карточка не последняя среди неотложенных");
+      const heavies = heavyAt < 0 ? [] : headPart.slice(heavyAt);
+      if (heavies.some((id) => !isHeavy(id))) fail("тяжёлые карточки не последние среди неотложенных");
+      if (heavies.some((id, i) => i > 0 && earlier(id, heavies[i - 1]))) fail("неотложенные тяжёлые не по сроку");
+      if (heavies.length > 1) twoHeavy++;
       const lights = headPart.filter((id) => !isHeavy(id));
       if (lights.some((id, i) => i > 0 && less(id, lights[i - 1]))) fail("неотложенные лёгкие не по возрастанию iv, затем срока");
       // отложенные занимают место первыми: лёгкая отложенная не вошла — значит, места не было вовсе
@@ -1428,7 +1439,7 @@ if (api) {
       // в порцию вошли лучшие по (iv, срок) из неотложенных
       const outFresh = out.filter((id) => !inLater.has(id));
       if (outFresh.some((id) => !isHeavy(id) && lights.some((x) => less(id, x)))) fail("оставленная лёгкая карточка раньше по (iv, срок), чем взятая");
-      if (heavyAt >= 0 && outFresh.some((id) => isHeavy(id) && earlier(id, headPart[heavyAt]))) fail("оставленная тяжёлая карточка просрочена раньше взятой — у карточек с кодом порядок по сроку");
+      if (outFresh.some((id) => isHeavy(id) && heavies.some((x) => earlier(id, x)))) fail("оставленная тяжёлая карточка просрочена раньше взятой — у карточек с кодом порядок по сроку");
       // порция не меньше возможного: место осталось — значит, за бортом только тяжёлые сверх предела
       if (ids.length < room) {
         if (out.some((id) => !isHeavy(id))) fail("место в порции осталось, а лёгкая карточка не взята");
@@ -1439,8 +1450,8 @@ if (api) {
       if (st.done > 12) overLimit++;
     }
     bad.forEach((b) => errors.push("порция дня: " + b));
-    if (nonTrivial < 100 || withLater < 100 || overLimit < 20) errors.push(`перебор порции слишком беден: с остатком ${nonTrivial}, с отложенными ${withLater}, с done > 12 — ${overLimit} из ${TRIALS}`);
-    console.log(`   перебор порции дня: ${TRIALS} случайных наборов (до 44 карточек), с остатком на завтра ${nonTrivial}, с отложенными в порции ${withLater}, с done > 12 — ${overLimit}`);
+    if (nonTrivial < 100 || withLater < 100 || overLimit < 20 || twoHeavy < 100) errors.push(`перебор порции слишком беден: с остатком ${nonTrivial}, с отложенными ${withLater}, с done > 12 — ${overLimit}, с двумя неотложенными тяжёлыми — ${twoHeavy} из ${TRIALS}`);
+    console.log(`   перебор порции дня: ${TRIALS} случайных наборов (до 44 карточек), с остатком на завтра ${nonTrivial}, с отложенными в порции ${withLater}, с done > 12 — ${overLimit}, с двумя неотложенными тяжёлыми — ${twoHeavy}`);
 
     // later с id, которого больше нет, и с уже оценённым — как будто их не откладывали; следующее «Позже» их убирает
     const c = { "task:a#1": light("A", 1, now - 3 * HOUR), "task:b#1": light("B", 2, now - 2 * HOUR), "task:done#1": light("G", 1, now + 3 * DAY) };
@@ -1494,9 +1505,13 @@ if (api) {
     const half = r.today(now);
     if (half.ids.length !== 1 || half.held !== 22) errors.push(`done = 11.5: порция ${JSON.stringify(half)}, ожидалась одна карточка`);
     // предел тяжёлых исчерпан, места много: тяжёлые ждут, лёгкие идут
-    w.localStorage.setItem("algoToday", JSON.stringify({ day: today, done: 1, heavy: 1, later: ["pkg:p0"] }));
+    w.localStorage.setItem("algoToday", JSON.stringify({ day: today, done: 1, heavy: 2, later: ["pkg:p0"] }));
     const noHeavy = r.today(now);
-    if (noHeavy.ids.length !== 11 || noHeavy.ids.some((id) => id.indexOf("pkg:") === 0) || noHeavy.held !== 12) errors.push(`тяжёлая сегодня уже была: ${JSON.stringify(noHeavy)}, ожидалось 11 лёгких и held 12`);
+    if (noHeavy.ids.length !== 11 || noHeavy.ids.some((id) => id.indexOf("pkg:") === 0) || noHeavy.held !== 12) errors.push(`две с кодом сегодня уже были: ${JSON.stringify(noHeavy)}, ожидалось 11 лёгких и held 12`);
+    // одна с кодом уже была: место осталось одно, и его берёт отложенная, а не самая просроченная
+    w.localStorage.setItem("algoToday", JSON.stringify({ day: today, done: 1, heavy: 1, later: ["pkg:p0"] }));
+    const oneHeavy = r.today(now);
+    if (oneHeavy.ids.length !== 11 || oneHeavy.ids.filter((id) => id.indexOf("pkg:") === 0).join() !== "pkg:p0" || oneHeavy.ids[10] !== "pkg:p0") errors.push(`одна с кодом сегодня уже была: ${JSON.stringify(oneHeavy)}, ожидалось 10 лёгких и отложенная pkg:p0 последней`);
   }
 }
 
@@ -1580,27 +1595,32 @@ if (api) {
     if (cards(one)["task:a#1"].iv !== 3 || !/На сегодня всё/.test(text())) errors.push("после «Позже» единственная карточка не оценивается");
   }
 
-  // тяжёлая: отложенная остаётся сегодняшней тяжёлой, вторая её не подменяет
-  const hv = { "task:a#1": light("A", 1, now - HOUR), "pkg:first": heavy("first", now - 3 * DAY), "pkg:second": heavy("second", now - 2 * DAY) };
+  // тяжёлые: отложенная остаётся сегодняшней тяжёлой, третья её не подменяет
+  const hv = {
+    "task:a#1": light("A", 1, now - HOUR), "pkg:first": heavy("first", now - 3 * DAY),
+    "pkg:second": heavy("second", now - 2 * DAY), "pkg:third": heavy("third", now - DAY),
+  };
   const dom = await newDom({ algoSRS: JSON.stringify(hv) }, [CLOCK(now), RUNNER_STUB], PAGE);
   const w = dom.window, r = w.ALGO_SRS;
   if (r && r.later) {
     const text = () => w.document.querySelector(".algo-today").textContent;
     const ids = () => r.today(now).ids.join();
-    if (ids() !== "task:a#1,pkg:first" || r.today(now).held !== 1) errors.push(`тяжёлая: старт ${JSON.stringify(r.today(now))}`);
-    click(dom, "Позже"); // лёгкая уходит за тяжёлую
-    if (ids() !== "pkg:first,task:a#1" || !/first/.test(text())) errors.push(`«Позже» на лёгкой перед тяжёлой: ${ids()}`);
+    if (ids() !== "task:a#1,pkg:first,pkg:second" || r.today(now).held !== 1) errors.push(`тяжёлые: старт ${JSON.stringify(r.today(now))}`);
+    click(dom, "Позже"); // лёгкая уходит за тяжёлые
+    if (ids() !== "pkg:first,pkg:second,task:a#1" || !/first/.test(text())) errors.push(`«Позже» на лёгкой перед тяжёлыми: ${ids()}`);
     click(dom, "Позже"); // теперь тяжёлая
-    if (ids() !== "task:a#1,pkg:first") errors.push(`«Позже» на тяжёлой: ${ids()}, ожидалось task:a#1,pkg:first — вторая тяжёлая её не подменяет`);
+    if (ids() !== "pkg:second,task:a#1,pkg:first") errors.push(`«Позже» на тяжёлой: ${ids()}, ожидалось pkg:second,task:a#1,pkg:first — третья тяжёлая её не подменяет`);
+    greenPkg(dom); // second
+    if (ids() !== "task:a#1,pkg:first") errors.push(`после второй тяжёлой: ${ids()}, ожидалось task:a#1,pkg:first — третья ждёт`);
     click(dom, "Помню"); // A
     if (ids() !== "pkg:first" || !/first/.test(text())) errors.push(`тяжёлая после лёгких: ${ids()}`);
     click(dom, "Позже"); // единственная и тяжёлая
     if (ids() !== "pkg:first" || !/first/.test(text()) || !runnerOf(dom)) errors.push(`«Позже» на единственной тяжёлой заперло очередь: ${ids()}, «${text().slice(0, 80)}»`);
     greenPkg(dom);
     const rec = todayRec(dom);
-    if (!rec || rec.done !== 2 || rec.heavy !== 1 || rec.later.length) errors.push(`тяжёлая оценена: algoToday = ${JSON.stringify(rec)}`);
+    if (!rec || rec.done !== 3 || rec.heavy !== 2 || rec.later.length) errors.push(`тяжёлые оценены: algoToday = ${JSON.stringify(rec)}`);
     if (r.today(now).ids.length !== 0 || r.today(now).held !== 1 || !/На сегодня всё/.test(text()) || !/ещё 1 придёт не раньше завтра/i.test(text())) {
-      errors.push(`вторая тяжёлая должна ждать завтра: ${JSON.stringify(r.today(now))}, «${text().slice(0, 160)}»`);
+      errors.push(`третья тяжёлая должна ждать завтра: ${JSON.stringify(r.today(now))}, «${text().slice(0, 160)}»`);
     }
   }
 
@@ -1879,7 +1899,15 @@ if (api) {
       if (!said.length) errors.push(`src/${f}: дневной предел не назван («${phrase}»)`);
       for (const s of said) if (s !== phrase) errors.push(`src/${f}: «${s}», а предел в srs.js — ${r.limits.cards}`);
     }
-    if (r.limits.heavy !== 1) errors.push("предел тяжёлых изменился: тексты книги и виджета говорят «одной с кодом»");
+    // предел карточек с кодом тексты называют словом: «не больше двух с кодом» (шапка виджета — limitText)
+    const word = { 1: "одной", 2: "двух" }[r.limits.heavy];
+    if (!word) errors.push(`предел карточек с кодом ${r.limits.heavy}: у проверки текстов нет для него слова`);
+    for (const f of ["review.md", "README.md"]) {
+      const md = fs.readFileSync(path.join(root, "src", f), "utf8").replace(/\s+/g, " ");
+      const said = md.match(/не больше (\S+) с кодом/g) || [];
+      if (!said.length) errors.push(`src/${f}: предел карточек с кодом не назван («не больше ${word} с кодом»)`);
+      for (const s of said) if (s !== `не больше ${word} с кодом`) errors.push(`src/${f}: «${s}», а предел в srs.js — ${r.limits.heavy}`);
+    }
   }
   // карточка пакета: сколько функций и пакетов годны для «одной функции с чистого листа» — по банку задач
   // (свои тесты, без соседей) и каталогам тренажёра, а не по памяти
@@ -1896,10 +1924,12 @@ if (api) {
 
 // --- 20. карточки с кодом не голодают: 120 дней ежедневной работы на долге первого дня ---
 // Состояние — как у автора книги в замере ревью: 15 глав без меток, 18 пакетов (старейший просрочен на
-// 87 дней), 6 формулировок, 14 промахов. Каждый день порция проходится целиком. Место для кода одно в
-// день, и при порядке «самая просроченная первой» пакет после первого круга опаздывает против своего
-// срока не больше чем на число остальных пакетов: 17 дней. При прежнем порядке по iv зрелый пакет ждал,
-// пока не кончатся молодые: при «Забыл» в четверти оценок — до 40 с лишним дней.
+// 87 дней), 6 формулировок, 14 промахов. Каждый день порция проходится целиком. Мест для кода H в день
+// (limits.heavy, сейчас 2), и при порядке «самая просроченная первой» пакет опаздывает против своего срока
+// не больше чем на floor((N − 1) / H) дней: оценённый пакет получает срок не раньше завтра, поэтому перед
+// пакетом P после его срока встают не больше N − 1 других, по H в день (N = 18, H = 2 — до 8 дней; при
+// H = 1 было 17). Первый круг — ceil(N / H) дней. При прежнем порядке по iv и одном месте зрелый пакет
+// ждал, пока не кончатся молодые: при «Забыл» в четверти оценок — до 40 с лишним дней.
 {
   const start = new Date(2026, 9, 8, 19, 0).getTime();
   const PKGS = 18;
@@ -1922,7 +1952,7 @@ if (api) {
     const w = dom.window, r = w.ALGO_SRS;
     if (!r || !r.today) return null;
     const R = mulberry32(seed);
-    let worst = 0, firstPass = 0;
+    let worst = 0, firstPass = 0, firstEmpty = Infinity;
     const seenPkg = new Set();
     for (let day = 1; day <= 120; day++) {
       const now = start + (day - 1) * DAY;
@@ -1940,16 +1970,22 @@ if (api) {
         }
         r.report(id, R() < pAgain ? "again" : "good", now, { rnd: () => 0.5 });
       }
+      // очередь кода пуста: после первого круга и дневной порции ни одного пакета в сроке
+      const left = r.load();
+      if (firstPass && firstEmpty === Infinity && !Object.keys(left).some((id) => id.indexOf("pkg:") === 0 && left[id].due <= now)) firstEmpty = day;
     }
     w.close();
-    return { worst, firstPass };
+    return { worst, firstPass, firstEmpty, heavy: r.limits.heavy };
   };
   for (const [what, pAgain, seed] of [["все «Помню»", 0, 1], ["«Забыл» в четверти оценок", 0.25, 20261008]]) {
     const res = await run(pAgain, seed);
     if (!res) continue;
-    if (res.firstPass !== PKGS) errors.push(`${what}: первый круг по ${PKGS} пакетам закончился на дне ${res.firstPass}, ожидался день ${PKGS} — по пакету в день`);
-    if (res.worst > PKGS - 1) errors.push(`${what}: пакет пришёл на ${res.worst} дн. позже своего срока — больше ${PKGS - 1}: карточки с кодом голодают`);
-    console.log(`   долг первого дня, 120 дней (${what}): первый круг по ${PKGS} пакетам — день ${res.firstPass}, наибольшее опоздание пакета ${res.worst} дн.`);
+    const H = res.heavy;
+    const pass = Math.ceil(PKGS / H), bound = Math.floor((PKGS - 1) / H);
+    if (res.firstPass !== pass) errors.push(`${what}: первый круг по ${PKGS} пакетам закончился на дне ${res.firstPass}, ожидался день ${pass} — по ${H} пакета в день`);
+    if (res.worst > bound) errors.push(`${what}: пакет пришёл на ${res.worst} дн. позже своего срока — больше ${bound}: карточки с кодом голодают`);
+    if (res.firstEmpty > 120) errors.push(`${what}: за 120 дней очередь кода ни разу не опустела после дневной порции`);
+    console.log(`   долг первого дня, 120 дней (${what}): первый круг по ${PKGS} пакетам — день ${res.firstPass}, наибольшее опоздание пакета ${res.worst} дн. (граница ${bound}), очередь кода впервые пуста после порции — день ${res.firstEmpty}`);
   }
 }
 
@@ -2208,10 +2244,13 @@ const startOfDay = (t) => { const d = new Date(t); return new Date(d.getFullYear
 // --- 24. (c) runner не отвечает: карточка так и говорит, «Позже» переносит её на начало завтрашнего дня ---
 {
   const now = NOON;
-  const two = { "pkg:first": Object.assign(heavy("first", now - 3 * DAY), { iv: 8, ease: 2.4, reps: 3, back: 3 }), "pkg:second": heavy("second", now - 2 * DAY) };
+  const two = {
+    "pkg:first": Object.assign(heavy("first", now - 3 * DAY), { iv: 8, ease: 2.4, reps: 3, back: 3 }),
+    "pkg:second": heavy("second", now - 2 * DAY), "pkg:third": heavy("third", now - DAY),
+  };
   const dom = await newDom({ algoSRS: JSON.stringify(two) }, [CLOCK(now), RUNNER], PAGE);
   const w = dom.window, r = w.ALGO_SRS;
-  if (r.today(now).ids.join() !== "pkg:first") errors.push(`runner не отвечает: старт ${r.today(now).ids.join()}`);
+  if (r.today(now).ids.join() !== "pkg:first,pkg:second") errors.push(`runner не отвечает: старт ${r.today(now).ids.join()}`);
   fire(dom, "algo-runner:state", { pkg: "first", up: false });
   if (!/нужен runner/.test(todayText(dom))) errors.push(`runner не отвечает, а карточка молчит: «${todayText(dom).slice(0, 200)}»`);
   click(dom, "Позже");
@@ -2219,7 +2258,7 @@ const startOfDay = (t) => { const d = new Date(t); return new Date(d.getFullYear
   const want = Object.assign({}, two["pkg:first"], { due: startOfDay(now + DAY) });
   if (JSON.stringify(c) !== JSON.stringify(want)) errors.push(`«Позже» без runner'а: ${JSON.stringify(c)}, ожидалось ${JSON.stringify(want)} — срок на начало завтра, остальное как было`);
   if (todayRec(dom) && (todayRec(dom).done || todayRec(dom).heavy)) errors.push(`«Позже» без runner'а засчитано как оценка: ${JSON.stringify(todayRec(dom))}`);
-  if (r.today(now).ids.join() !== "pkg:second" || !/second/.test(todayText(dom))) errors.push(`после «Позже» без runner'а место для кода не освободилось: ${r.today(now).ids.join()}, «${todayText(dom).slice(0, 120)}»`);
+  if (r.today(now).ids.join() !== "pkg:second,pkg:third" || !/second/.test(todayText(dom))) errors.push(`после «Позже» без runner'а место для кода не освободилось: ${r.today(now).ids.join()}, «${todayText(dom).slice(0, 120)}»`);
   if (!/завтра/.test(todayText(dom))) errors.push("«Позже» без runner'а не сказало, что карточка ушла на завтра");
   // runner отвечает — обычное «Позже»: в конец порции, карточка не меняется
   const up = await newDom({ algoSRS: JSON.stringify({ "pkg:first": heavy("first", now - 3 * DAY), "task:a#1": light("A", 1, now - HOUR) }) }, [CLOCK(now), RUNNER], PAGE);
@@ -2252,7 +2291,7 @@ console.log(
     "держится во всех достижимых состояниях (в том числе прежней формулы), две вкладки не затирают друг друга, " +
     "«с трудом» с back — ступень ниже back, «забыл» до срока один раз на падение, report() — исходы created/none/graded/early/unsaved, " +
     "повреждённый algoSRS не перезаписывается, прежние карточки не меняются, ease держится в [1.3, 2.8]; " +
-    "порция дня — не больше 12 карточек и одной с кодом (границы и порядок — на случайных наборах), «Позже» ставит в конец и не запирает очередь, " +
+    "порция дня — не больше 12 карточек и двух с кодом (границы и порядок — на случайных наборах), «Позже» ставит в конец и не запирает очередь, " +
     "смена суток и мусор в algoToday начинают день заново, счёт дня растёт только по оценке карточки в сроке, " +
     "карточки quiz: и cx: отвечают после «Показать ответ», mix: показывает другую задачу шаблона с главой из банка, возврат на вкладку перестраивает порцию без потери ответа и заметки, " +
     "промах на этой же странице обновляет счётчик, таймер в местную полночь приносит порцию нового дня; " +
