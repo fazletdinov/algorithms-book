@@ -10,7 +10,7 @@
 //   1) промах в задаче попадает в algoChallengeMissed с текстом и якорем;
 //   2) верный ответ помечает задачу решённой и убирает её из промахов;
 //   3) review.js показывает только непройденное, с ссылкой на конкретную задачу;
-//   4) экспорт собирает все ключи книги (в том числе algoProgressAt, algoSRS и algoFnSolved),
+//   4) экспорт собирает все ключи книги (в том числе algoProgressAt, algoSRS, algoFnSolved, algoQuizSeen и algoPracticeScope),
 //      импорт вливает их СЛИЯНИЕМ; счётчик дня algoToday в файл не идёт и из файла не берётся.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
@@ -154,6 +154,9 @@ setTimeout(() => {
       pls.setItem("algoSRS", JSON.stringify({ "ch:sliding-window.html": { due: 1, iv: 0, ease: 2.5, reps: 0, meta: { href: "sliding-window.html" } } }));
       // решённые упражнения виджета «Реши прямо здесь» (runner.js) — от них зависит, какое упражнение он предложит первым
       pls.setItem("algoFnSolved", JSON.stringify({ "slidingwindow.MaxSumSubarray": 1700000200000 }));
+      // квиз: когда вопрос показан последний раз (порядок порции) и режим выдачи квиза и смешанной
+      pls.setItem("algoQuizSeen", JSON.stringify({ "Вопрос A": 1700000400000 }));
+      pls.setItem("algoPracticeScope", "all");
       // счётчик дня (srs.js) — про сегодня в ЭТОМ браузере: в файл прогресса он не идёт и из файла не берётся
       const todayHere = JSON.stringify({ day: "2026-01-14", done: 3, heavy: 0, later: ["ch:sliding-window.html"] });
       pls.setItem("algoToday", todayHere);
@@ -169,7 +172,7 @@ setTimeout(() => {
       const exported = exportedText ? JSON.parse(exportedText) : null;
       if (!exported || !exported.data) errors.push("экспорт не собрал дамп");
       else {
-        for (const k of ["algoProgress", "algoProgressAt", "algoSRS", "algoFnSolved"]) {
+        for (const k of ["algoProgress", "algoProgressAt", "algoSRS", "algoFnSolved", "algoQuizSeen", "algoPracticeScope"]) {
           if (!(k in exported.data)) errors.push(`в экспорте нет ключа ${k}: ${Object.keys(exported.data)}`);
         }
         if (exported.data.algoProgressAt !== pls.getItem("algoProgressAt")) errors.push("экспорт отдал algoProgressAt не таким, каким он лежит в localStorage");
@@ -305,6 +308,17 @@ setTimeout(() => {
         importDump({ algoSRS: JSON.stringify({ A: card(1, 5) }) });
         if (JSON.stringify(get("algoSRS")) !== JSON.stringify({ A: card(1, 5) })) errors.push(`импорт не вылечил повреждённый algoSRS = ${damaged}: ${pls.getItem("algoSRS")}`);
       }
+      // 4. algoQuizSeen — более поздняя метка (ранняя из файла вернула бы в порцию только что пройденное);
+      // algoPracticeScope — выбор этой машины: заданный здесь не затирается, незаданный приходит из файла
+      setLocal({ algoQuizSeen: { a: 5000, b: 1000 }, algoPracticeScope: "done" });
+      importDump({ algoQuizSeen: JSON.stringify({ a: 3000, b: 4000, c: 7000, d: "мусор" }), algoPracticeScope: "all" });
+      if (JSON.stringify(get("algoQuizSeen")) !== JSON.stringify({ a: 5000, b: 4000, c: 7000 })) {
+        errors.push(`импорт algoQuizSeen: ${pls.getItem("algoQuizSeen")}, ожидалась более поздняя метка у каждого вопроса`);
+      }
+      if (pls.getItem("algoPracticeScope") !== "done") errors.push(`импорт затёр здешний algoPracticeScope: ${pls.getItem("algoPracticeScope")}`);
+      setLocal({});
+      importDump({ algoPracticeScope: "all" });
+      if (pls.getItem("algoPracticeScope") !== "all") errors.push(`импорт не перенёс algoPracticeScope, которого здесь не было: ${pls.getItem("algoPracticeScope")}`);
       // ключи с сырым текстом ведут себя как раньше
       setLocal({ "algoRunnerCode:slidingwindow": "мой код", algoQuizBest: "10/57" });
       importDump({ "algoRunnerCode:slidingwindow": "чужой код", algoQuizBest: "40/57" });
@@ -321,7 +335,7 @@ setTimeout(() => {
     }
     console.log(
       "✅ review-render-check: промах сохраняется с текстом и якорем, решение убирает его из списка, " +
-        "«повторить» показывает непройденное с ссылками, экспорт забирает algoProgressAt, algoSRS и algoFnSolved (algoToday — нет), импорт сливает прогресс, метки и решённые упражнения"
+        "«повторить» показывает непройденное с ссылками, экспорт забирает algoProgressAt, algoSRS, algoFnSolved, algoQuizSeen и algoPracticeScope (algoToday — нет), импорт сливает прогресс, метки и решённые упражнения, у показов квиза берёт позднюю метку, здешний режим выдачи не затирает"
     );
   }
 }, 200);

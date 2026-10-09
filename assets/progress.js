@@ -260,9 +260,11 @@
     // algoProgressAt (метки отметок для srs.js) отдельной записью не нужен: его покрывает префикс
     // "algoProgress" (isOurs сравнивает по префиксу) — это держит review-render-check (экспорт и импорт).
     // algoFnSolved — решённые упражнения виджета runner'а ({ "<пакет>.<имя>": ts }): сливается общим правилом.
+    // algoQuizSeen — когда вопрос квиза показан последний раз ({ "<вопрос>": ts }), algoPracticeScope —
+    // «только пройденные главы» или «по всем» у квиза и смешанной; правила их слияния — MERGE_BY_KEY ниже.
     var PREFIXES = ["algoProgress", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:", "algoPkgSolved", "algoFnSolved", "algoSRS",
-      "algoExplain", "algoExplainDone", "algoQuizMissed", "algoMixedMissed", "algoMixedSeen",
-      "algoMockLog", "algoMockCxMissed", "algoVizMissed", "algoVizPredict"];
+      "algoExplain", "algoExplainDone", "algoQuizMissed", "algoQuizSeen", "algoMixedMissed", "algoMixedSeen",
+      "algoMockLog", "algoMockCxMissed", "algoVizMissed", "algoVizPredict", "algoPracticeScope"];
     function isOurs(key) {
       return PREFIXES.some(function (p) { return key === p || key.indexOf(p) === 0; });
     }
@@ -371,8 +373,9 @@
     try { return JSON.parse(raw); } catch (e) { return undefined; }
   }
 
-  // Общее правило mergeStored — «пришедшее побеждает» — для трёх ключей делает обратное тому, что
-  // обещает импорт («не стирать пройденное здесь»), поэтому у них свои правила, по имени ключа.
+  // Общее правило mergeStored — «пришедшее побеждает» — для четырёх ключей делает обратное тому, что
+  // обещает импорт («не стирать пройденное здесь»), поэтому у них свои правила, по имени ключа
+  // (у скаляра algoPracticeScope — своё в importValue).
   // Каждое принимает здешнюю и пришедшую КАРТЫ и возвращает слитую.
   //
   // algoSRS: файл старше текущего состояния откатывал бы свежие оценки. По каждой карточке побеждает
@@ -401,7 +404,17 @@
     });
     return current;
   }
-  var MERGE_BY_KEY = { algoSRS: mergeSRS, algoProgress: mergeProgress, algoProgressAt: mergeProgressAt };
+  // algoQuizSeen: метка «вопрос показан» — более поздняя: давно виденные квиз даёт раньше, и ранняя метка
+  // из файла вернула бы в порцию то, что здесь только что прошли.
+  function mergeQuizSeen(current, add) {
+    Object.keys(add).forEach(function (q) {
+      var here = current[q], there = add[q];
+      if (typeof there !== "number") return;
+      current[q] = typeof here === "number" ? Math.max(here, there) : there;
+    });
+    return current;
+  }
+  var MERGE_BY_KEY = { algoSRS: mergeSRS, algoProgress: mergeProgress, algoProgressAt: mergeProgressAt, algoQuizSeen: mergeQuizSeen };
 
   // importValue решает, что записать в ключ k при импорте: сырой текст (null — оставить здешнее).
   // Ключи со своим правилом принимают только карту, а здешнее не-карту (повреждённое) лечат пришедшей
@@ -411,6 +424,8 @@
   // квиза) ведут себя как раньше.
   function importValue(k, currentRaw, incomingRaw) {
     var merge = MERGE_BY_KEY[k];
+    // algoPracticeScope — выбор читателя на ЭТОЙ машине: заданный здесь файл не перебивает
+    if (k === "algoPracticeScope") return currentRaw ? null : incomingRaw;
     var incoming = tryParse(incomingRaw);
     if (merge) {
       if (!isMap(incoming)) return null;
@@ -431,6 +446,37 @@
   // главы, а не слаг из адреса. Отдельного модуля ради одной константы не
   // заводим: оглавление и так живёт здесь.
   window.ALGO_CHAPTERS = CHAPTERS;
+
+  // Пройденные главы для квиза (quiz.js) и смешанной тренировки (mixed.js): они по умолчанию берут
+  // только отмеченное. algoProgress ключуется по href главы, а банк задач и квиз — по слагу; перевод
+  // одного в другое — только здесь, из реестра. Чтение свежее: главу могли отметить в другой вкладке.
+  // Хранилище недоступно — {} (ALGO_DONE.readable() скажет почему); главы вне реестра и инструменты
+  // (квиз, шпаргалка) не считаются.
+  function practiceDone() {
+    var state = load() || {};
+    var out = {};
+    CHAPTERS.forEach(function (c) {
+      if (c.lvl !== "tool" && state[c.h]) out[c.h.replace(/\.html$/, "")] = true;
+    });
+    return out;
+  }
+  practiceDone.readable = function () {
+    return load() !== null;
+  };
+  // Режим выдачи — общий у квиза и смешанной: "done" (по умолчанию: только пройденные главы) или
+  // "all". Хранилище недоступно — выбор живёт в памяти вкладки.
+  var SCOPE_KEY = "algoPracticeScope";
+  var scopeMem = null;
+  practiceDone.scope = function () {
+    var v = scopeMem;
+    try { v = localStorage.getItem(SCOPE_KEY) || scopeMem; } catch (e) { /* недоступно — память вкладки */ }
+    return v === "all" ? "all" : "done";
+  };
+  practiceDone.setScope = function (v) {
+    scopeMem = v === "all" ? "all" : "done";
+    try { localStorage.setItem(SCOPE_KEY, scopeMem); } catch (e) { /* недоступно — память вкладки */ }
+  };
+  window.ALGO_DONE = practiceDone;
 
   // Плашка уровня на самой странице главы. Ставится ИЗ ЭТОГО ЖЕ реестра, а не
   // руками в сорока файлах: разметка в двух местах гарантированно разъедется,

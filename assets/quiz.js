@@ -2,8 +2,16 @@
  * quiz.js — тренажёр распознавания алгоритмических шаблонов по условию задачи.
  *
  * На странице ставится контейнер: <div class="algo-quiz"></div>
- * Скрипт находит его, перемешивает вопросы и варианты, ведёт счёт и в конце
+ * Скрипт находит его, даёт порцию вопросов, перемешивает варианты, ведёт счёт и в конце
  * показывает разбор слабых мест со ссылками на главы. Без зависимостей.
+ *
+ * Порция — до PORTION вопросов, по умолчанию только из пройденных глав (отметки трекера,
+ * window.ALGO_DONE из progress.js; галочка «по всем главам» — общий с смешанной тренировкой
+ * ключ algoPracticeScope). Шестьдесят с лишним вопросов подряд по главам, до которых ещё не
+ * дошёл, — это экзамен на незнакомое, а не тренировка распознавания. Порядок порции: сначала
+ * вопросы, на которых ошибался (algoQuizMissed), затем ни разу не показанные, затем давно
+ * показанные (algoQuizSeen — { "<вопрос>": ts }). Рекорд (algoQuizBest) пишется и показывается
+ * только для полной порции: «7 из 7» по двум главам и «7 из 10» — разные результаты.
  */
 (function () {
   "use strict";
@@ -534,33 +542,44 @@
     hard:   { label: "Сложный", cls: "hard" }
   };
 
-  // Рекорд храним в localStorage как "score/total" последнего ЛУЧШЕГО прохождения.
+  // Порция — столько вопросов за заход. Рекорд имеет смысл только для полной порции.
+  var PORTION = 10;
+
+  // Рекорд храним в localStorage как "score/total" ЛУЧШЕЙ полной порции. Запись прежнего формата
+  // («40/64» — весь банк подряд) не удаляется, но и не показывается: total у неё не PORTION.
   var BEST_KEY = "algoQuizBest";
 
   // Промахи по вопросам копятся отдельно от рекорда: до сих пор ошибка исчезала
   // вместе с прохождением («40/57» не говорит, ЧТО именно не далось). Теперь
   // промах живёт до тех пор, пока на этот вопрос не ответят верно, и питает
-  // две вещи: карточки повторений (srs.js) и диагностику слабых мест по
-  // шаблонам (review.js).
+  // три вещи: порцию (промахи идут первыми), карточки повторений (srs.js) и
+  // диагностику слабых мест по шаблонам (review.js).
   var QUIZ_MISSED = "algoQuizMissed"; // {"<вопрос>": {n, pattern, href, q}}
-  function loadQuizMissed() {
-    try { return JSON.parse(localStorage.getItem(QUIZ_MISSED) || "{}") || {}; } catch (e) { return {}; }
+  // Когда вопрос показан последний раз: порция берёт давно виденные раньше недавних.
+  var QUIZ_SEEN = "algoQuizSeen"; // {"<вопрос>": ts}
+  function loadMap(key) {
+    try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; }
   }
-  function saveQuizMissed(m) {
-    try { localStorage.setItem(QUIZ_MISSED, JSON.stringify(m)); } catch (e) {}
+  function saveMap(key, m) {
+    try { localStorage.setItem(key, JSON.stringify(m)); } catch (e) {}
   }
   // Ключ — сам текст вопроса: он стабилен при перестановке банка, в отличие от
   // индекса (вопросы каждый раз перемешиваются, а банк дополняется).
+  // Обе записи — по свежему чтению: вкладок с книгой бывает несколько.
   function recordAnswer(item, ok) {
-    var m = loadQuizMissed();
+    var seen = loadMap(QUIZ_SEEN);
+    seen[item.q] = Date.now();
+    saveMap(QUIZ_SEEN, seen);
+
+    var m = loadMap(QUIZ_MISSED);
     var id = item.q;
     if (ok) {
-      if (m[id]) { delete m[id]; saveQuizMissed(m); }
+      if (m[id]) { delete m[id]; saveMap(QUIZ_MISSED, m); }
       return;
     }
     var prev = m[id] || { n: 0 };
     m[id] = { n: prev.n + 1, pattern: item.correct, href: item.href, q: item.q };
-    saveQuizMissed(m);
+    saveMap(QUIZ_MISSED, m);
     // карточка промаха встаёт в очередь сразу: счётчик «Сегодня» обновляется без перехода на другую страницу
     if (window.ALGO_SRS) window.ALGO_SRS.sync();
   }
@@ -576,21 +595,56 @@
     try { localStorage.setItem(BEST_KEY, score + "/" + total); } catch (e) {}
   }
 
-  function shuffle(a) {
+  function shuffle(a, rnd) {
+    rnd = rnd || Math.random;
     for (var i = a.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
+      var j = Math.floor(rnd() * (i + 1));
       var t = a[i]; a[i] = a[j]; a[j] = t;
     }
     return a;
   }
 
+  function slugOf(item) {
+    return item.href.replace(/\.html$/, "");
+  }
+
+  // portion собирает порцию: вопросы глав из done (null — все главы), до PORTION штук — сначала
+  // промахи, затем ни разу не показанные (каждая группа перемешана), затем показанные, самые давние
+  // первыми. Метка показа не числом (испорченная запись) — как самая давняя.
+  function portion(opts) {
+    var rnd = opts.rnd || Math.random;
+    var missed = opts.missed || {}, seen = opts.seen || {}, done = opts.done;
+    var pool = QUESTIONS.filter(function (item) { return !done || done[slugOf(item)]; });
+    var wrong = [], fresh = [], old = [];
+    pool.forEach(function (item) {
+      if (missed[item.q]) wrong.push(item);
+      else if (seen[item.q] == null) fresh.push(item);
+      else old.push(item);
+    });
+    function ts(item) {
+      var v = seen[item.q];
+      return typeof v === "number" && isFinite(v) ? v : 0;
+    }
+    // давно показанные — по метке; при равных метках порядок случайный (перемешаны до сортировки)
+    old = shuffle(old, rnd).sort(function (a, b) { return ts(a) - ts(b); });
+    return shuffle(wrong, rnd).concat(shuffle(fresh, rnd), old).slice(0, PORTION);
+  }
+
+  // practice — пройденные главы и режим выдачи (progress.js). Без progress.js — все главы, без выбора.
+  function practice() {
+    return typeof window.ALGO_DONE === "function" ? window.ALGO_DONE : null;
+  }
+
   function buildQuiz(el) {
-    var qs = shuffle(QUESTIONS.slice());
-    var idx = 0, score = 0, missed = [], selected = null, answered = false;
+    var api = practice();
+    var qs = [], idx = 0, score = 0, missed = [], selected = null, answered = false;
     var best = loadBest();
 
+    function full() {
+      return qs.length === PORTION;
+    }
     function bestText() {
-      return best && best.total === qs.length ? "      🏆 Рекорд: " + best.score + " / " + best.total : "";
+      return best && best.total === PORTION && full() ? "      🏆 Рекорд: " + best.score + " / " + best.total : "";
     }
     function renderHead() {
       var lv = LEVELS[qs[idx].level] || LEVELS.medium;
@@ -605,6 +659,16 @@
 
     el.setAttribute("role", "region");
     el.setAttribute("aria-label", "Тренажёр распознавания шаблонов");
+    // Режим выдачи: «только пройденные главы» (по умолчанию) или «по всем главам» — общий ключ со
+    // смешанной тренировкой. Без progress.js выбора нет: квиз берёт все главы.
+    var scope = document.createElement("div"); scope.className = "algo-scope";
+    var scopeText = document.createElement("span"); scopeText.className = "algo-scope__text";
+    var scopeLabel = document.createElement("label"); scopeLabel.className = "algo-scope__label";
+    var scopeBox = document.createElement("input"); scopeBox.type = "checkbox"; scopeBox.className = "algo-scope__box";
+    scopeLabel.appendChild(scopeBox);
+    scopeLabel.appendChild(document.createTextNode(" по всем главам"));
+    scope.appendChild(scopeText); scope.appendChild(scopeLabel);
+    if (api) el.appendChild(scope);
     var head = document.createElement("div"); head.className = "algo-quiz__head"; el.appendChild(head);
     var qText = document.createElement("div"); qText.className = "algo-quiz__q"; el.appendChild(qText);
     var optsBox = document.createElement("div"); optsBox.className = "algo-quiz__opts";
@@ -616,9 +680,45 @@
     var actions = document.createElement("div"); actions.className = "algo-quiz__actions"; el.appendChild(actions);
     var btn = document.createElement("button"); btn.type = "button"; btn.className = "algo-quiz__btn"; actions.appendChild(btn);
 
+    scopeBox.onchange = function () {
+      api.setScope(scopeBox.checked ? "all" : "done");
+      start();
+    };
+
+    // start — новая порция по СВЕЖИМ отметкам, промахам и показам: глава могла быть отмечена в
+    // другой вкладке, пока эта была открыта.
+    function start() {
+      var all = !api || api.scope() === "all";
+      var done = all ? null : api();
+      scopeBox.checked = all;
+      if (api) {
+        var n = done ? Object.keys(done).length : 0;
+        scopeText.textContent = all ? "Вопросы по всем главам." : "Вопросы только по пройденным главам (отмечено: " + n + ").";
+      }
+      qs = portion({ done: done, missed: loadMap(QUIZ_MISSED), seen: loadMap(QUIZ_SEEN) });
+      idx = 0; score = 0; missed = [];
+      if (!qs.length) return renderEmpty(api.readable());
+      renderQuestion();
+    }
+
+    // renderEmpty — режим «только пройденные», а вопросов нет: объяснение и тот же переключатель.
+    function renderEmpty(readable) {
+      head.textContent = "";
+      qText.textContent = readable
+        ? "Квиз берёт вопросы только из глав, отмеченных пройденными, а среди отмеченных пока нет глав с вопросами квиза."
+        : "Хранилище браузера недоступно, поэтому отметки пройденных глав не прочитать.";
+      optsBox.innerHTML = "";
+      explain.className = "algo-quiz__explain algo-quiz__explain--show";
+      explain.textContent = readable
+        ? "Отметь главу галочкой «Глава пройдена» в её конце (или в трекере на странице шпаргалки) — или поставь «по всем главам» над вопросом."
+        : "Поставь «по всем главам» над вопросом: выбор продержится, пока открыта эта страница.";
+      btn.hidden = true;
+    }
+
     function renderQuestion() {
       var item = qs[idx];
       selected = null; answered = false;
+      btn.hidden = false;
       renderHead();
       qText.textContent = item.q;
       explain.className = "algo-quiz__explain";
@@ -674,11 +774,13 @@
     }
 
     function renderSummary() {
-      var isRecord = !best || best.total !== qs.length || score > best.score;
-      if (isRecord) { saveBest(score, qs.length); best = { score: score, total: qs.length }; }
-      head.textContent = "Результат" + (best ? "   🏆 Рекорд: " + best.score + " / " + best.total : "");
+      // Рекорд — только у полной порции: «7 из 7» по двум отмеченным главам не сравнить с «7 из 10».
+      var isRecord = full() && (!best || best.total !== PORTION || score > best.score);
+      if (isRecord) { saveBest(score, PORTION); best = { score: score, total: PORTION }; }
+      head.textContent = "Результат" + (full() && best && best.total === PORTION ? "   🏆 Рекорд: " + best.score + " / " + best.total : "");
       qText.textContent = "Вы набрали " + score + " из " + qs.length + "." +
-        (isRecord && score > 0 ? " 🎉 Новый рекорд!" : "");
+        (isRecord && score > 0 ? " 🎉 Новый рекорд!" : "") +
+        (full() ? "" : " Рекорд считается только по полной порции из " + PORTION + " вопросов.");
       optsBox.innerHTML = "";
       explain.className = "algo-quiz__explain";
       explain.textContent = "";
@@ -697,13 +799,16 @@
         explain.className = "algo-quiz__explain algo-quiz__explain--show algo-quiz__explain--ok";
         explain.textContent = "Идеально! Все шаблоны распознаны верно. 🎉";
       }
-      btn.textContent = "Пройти заново";
+      btn.textContent = "Следующая порция";
       btn.disabled = false;
-      btn.onclick = function () { qs = shuffle(QUESTIONS.slice()); idx = 0; score = 0; missed = []; renderQuestion(); };
+      btn.onclick = start;
     }
 
-    renderQuestion();
+    start();
   }
+
+  // Для проверок (scripts/quiz-check.js): банк вопросов и сборка порции.
+  window.ALGO_QUIZ = { questions: QUESTIONS, portion: portion, size: PORTION };
 
   function init() {
     Array.prototype.forEach.call(document.querySelectorAll(".algo-quiz:not(.algo-quiz--ready)"), function (el) {

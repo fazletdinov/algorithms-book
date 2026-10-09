@@ -8,6 +8,27 @@
   background: var(--quote-bg, #00000008);
 }
 
+/* Режим выдачи квиза и смешанной тренировки: «только пройденные главы» или «по всем главам». */
+.algo-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-bottom: 0.7em;
+  font-size: 0.88em;
+}
+
+.algo-scope__text {
+  opacity: 0.75;
+}
+
+.algo-scope__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
 .algo-quiz__head {
   font-size: 0.85em;
   opacity: 0.7;
