@@ -434,10 +434,12 @@ if tank &lt; 0 {
 **Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
 сдана, добивка не обязательна.
 
-**🟢 Разогрев** — жадный выбор очевиден и доказывается в одну строку:
+**🟢 Разогрев** — жадный выбор очевиден или уже доказан в главе:
 
 - [Assign Cookies](https://leetcode.com/problems/assign-cookies/) (LeetCode 455) — жадность по указателям
 - [Lemonade Change](https://leetcode.com/problems/lemonade-change/) (LeetCode 860)
+- [Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) (LeetCode 435) — выбор заявок из этой главы: убрать нужно всё, что не выбрано; в тренажёре: `greedy.MaxNonOverlapping` (она возвращает, сколько оставить)
+- [Minimum Arrows to Burst Balloons](https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/) (LeetCode 452) — тот же выбор по концу, но шары, касающиеся в точке, лопаются одной стрелой
 
 **🔵 Основа** — планка главы:
 

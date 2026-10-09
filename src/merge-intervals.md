@@ -461,23 +461,30 @@ if iv[0] &lt;= last[1] {        // перекрытие/касание
 
 **🟢 Разогрев** — сортировка по началу и один проход:
 
-- [Merge Intervals](https://leetcode.com/problems/merge-intervals/) (LeetCode 56) — слияние перекрытий
-- [Insert Interval](https://leetcode.com/problems/insert-interval/) (LeetCode 57)
+- [Merge Intervals](https://leetcode.com/problems/merge-intervals/) (LeetCode 56) — слияние перекрытий; в тренажёре: `intervals.MergeIntervals`
 
 **🔵 Основа** — планка главы:
 
-- [Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) (LeetCode 435) — жадность по концу
-- [Minimum Arrows to Burst Balloons](https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/) (LeetCode 452)
-- [Remove Covered Intervals](https://leetcode.com/problems/remove-covered-intervals/) (LeetCode 1288)
+- [Insert Interval](https://leetcode.com/problems/insert-interval/) (LeetCode 57) — вход уже отсортирован; в тренажёре: `intervals.InsertInterval` (её случайный тест зовёт и `MergeIntervals` — та идёт первой)
+- [Interval List Intersections](https://leetcode.com/problems/interval-list-intersections/) (LeetCode 986) — пересечение двух отсортированных списков; в тренажёре: `intervals.IntervalsIntersection`
+- [Meeting Rooms](https://leetcode.com/problems/meeting-rooms/) (LeetCode 252) — есть ли наложение; на LeetCode по подписке; в тренажёре: `intervals.CanAttendAllMeetings`
 
 **🔴 Добивка** — когда основа идёт уверенно:
 
+- [Meeting Rooms II](https://leetcode.com/problems/meeting-rooms-ii/) (LeetCode 253) — сканирующая прямая из «Цены на практике»; в тренажёре: `intervals.MinMeetingRooms`
+- [Remove Covered Intervals](https://leetcode.com/problems/remove-covered-intervals/) (LeetCode 1288) — сортировка по началу, а при равных началах — по убыванию конца
 - [Employee Free Time](https://leetcode.com/problems/employee-free-time/) (LeetCode 759) — сложная
+- [Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) (LeetCode 435) и [Minimum Arrows to Burst Balloons](https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/) (LeetCode 452) — забегают вперёд: жадность по концу, их разбор — в главе [«Жадные алгоритмы»](greedy.md)
 
-> 🧭 **Не пошла задача из основы?** Вопрос всегда один: **по чему сортировать**. По началу —
-> когда интервалы надо *слить* (56, 57, 759). По концу — когда надо выбрать как можно больше
-> непересекающихся (435, 452): именно ранний конец оставляет максимум места следующим.
-> Перепутал ключ сортировки — решение будет почти верным и стабильно ошибаться на краях.
+> 🧭 **Не пошла задача из основы?** В 57 не сортируй: вход уже упорядочен, и проход идёт в три
+> фазы — интервалы целиком левее нового копируем, пересекающиеся с ним поглощаем, расширяя его
+> границы, остальные дописываем (код — в свёрнутом блоке [«📖 Разбора»](#-разбор)). В 986
+> пересечение двух интервалов — `[max начал, min концов]`, и оно есть, только если левая граница
+> не больше правой; по двум спискам идут [двумя указателями](two-pointers.md) и сдвигают тот,
+> чей интервал кончился раньше: он уже ни с чем дальше не пересечётся. В 252 хватает сортировки
+> по началу и сравнения соседей — но касание `[1,4]` и `[4,5]` встречам не мешает, поэтому
+> наложение — строгое `<`, а не `<=` слияния (см. [«Касание границ»](#касание-границ--это-решение-из-условия-а-не-деталь)).
+> А если ловишь себя на сортировке по концу — это уже не слияние, а выбор (435, 452).
 
 **Тренажёр** — пакет `intervals`:
 
