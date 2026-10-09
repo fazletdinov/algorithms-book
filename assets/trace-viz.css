@@ -1,18 +1,17 @@
 /* trace-viz.css — стили трассы своего кода (см. trace-viz.js): панель кода
    читателя слева, массив+переменные справа — макет мини-дебаггера IDE.
-   Виджет намеренно САМОДОСТАТОЧНО тёмный (не подстраивается под тему mdBook
-   light/navy/ayu/rust/coal через CSS-переменные) — так гарантированно
-   читаем в любой теме, а не только в той, что была при вёрстке. */
+   Тёмный, как вся книга; оттенки — из палитры theme.css, подсветка кода — её же
+   токены --hl-* (классы algo-tp__tok--* ставит общий hlGo из algo-viz.js). */
 
 :root {
-  --trace-bg: #0f172a;
-  --trace-surface: #1e293b;
-  --trace-surface-alt: #172033;
-  --trace-border: #334155;
-  --trace-fg: #e2e8f0;
-  --trace-fg-dim: #94a3b8;
-  --trace-accent: #818cf8;
-  --trace-accent-strong: #6366f1;
+  --trace-bg: #1a1d27;
+  --trace-surface: #232733;
+  --trace-surface-alt: #1e2130;
+  --trace-border: #2a2e3d;
+  --trace-fg: #e2e6f0;
+  --trace-fg-dim: #8a91ad;
+  --trace-accent: #6ea8fe;
+  --trace-accent-strong: #2563eb;
 }
 
 .algo-runner__trace:empty { display: none; }
@@ -63,7 +62,7 @@
   font-weight: 700;
   line-height: 1.4;
 }
-.algo-trace__nav:hover:not(:disabled) { background: #263244; }
+.algo-trace__nav:hover:not(:disabled) { background: #2c3140; }
 .algo-trace__nav:disabled { opacity: 0.35; cursor: default; }
 .algo-trace__nav--play {
   background: var(--trace-accent-strong);
@@ -71,12 +70,12 @@
   color: #fff;
   min-width: 30px;
 }
-.algo-trace__nav--play:hover:not(:disabled) { background: #4f46e5; }
+.algo-trace__nav--play:hover:not(:disabled) { background: #1d4ed8; }
 .algo-trace__nav--play.is-playing { background: #b45309; border-color: #92400e; }
 .algo-trace__slider { flex: 1 1 auto; accent-color: var(--trace-accent); }
 .algo-trace__pos {
   font-size: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   white-space: nowrap;
   color: var(--trace-fg-dim);
   min-width: 140px;
@@ -96,24 +95,25 @@
   flex: 3 1 320px;
   max-height: 420px;
   overflow: auto;
-  background: #0b1220;
+  background: #141720;
   border: 1px solid var(--trace-border);
   border-radius: 8px;
   padding: 8px 0;
-  font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 12.5px/1.6 var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
 }
 .algo-trace__code-line {
   display: flex;
   align-items: baseline;
   padding: 1px 10px 1px 4px;
   white-space: pre;
-  color: #94a3b8;
+  color: var(--hl-text, #c8ccd8);
   border-left: 3px solid transparent;
 }
+/* Текущая строка — полупрозрачная синяя полоса, как у листингов визуализаций: сплошная
+   заливка с белым текстом гасила цвета подсветки. */
 .algo-trace__code-line.is-current {
-  background: #4338ca;
-  color: #fff;
-  border-left-color: #a5b4fc;
+  background: color-mix(in srgb, #3b82f6 26%, transparent);
+  border-left-color: #6ea8fe;
   font-weight: 700;
 }
 .algo-trace__code-no {
@@ -128,10 +128,10 @@
 }
 .algo-trace__code-arrow {
   opacity: 0; /* виден только у текущей строки */
-  color: #a5b4fc;
+  color: #6ea8fe;
   font-size: 10px;
 }
-.algo-trace__code-line.is-current .algo-trace__code-no { opacity: 1; color: #e0e7ff; }
+.algo-trace__code-line.is-current .algo-trace__code-no { opacity: 1; color: #e2e6f0; }
 .algo-trace__code-line.is-current .algo-trace__code-arrow { opacity: 1; }
 .algo-trace__code-text { white-space: pre; }
 
@@ -156,10 +156,10 @@
   border-radius: 6px;
   text-align: center;
   padding: 4px 2px 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   transition: border-color 0.2s ease, background 0.2s ease;
 }
-.algo-trace__cell.is-pointed { border-color: var(--trace-accent); background: #2a2a5c; }
+.algo-trace__cell.is-pointed { border-color: var(--trace-accent); background: #1e2a45; }
 .algo-trace__cell-idx { font-size: 10px; color: var(--trace-fg-dim); }
 .algo-trace__cell-val { font-size: 14px; font-weight: 700; color: var(--trace-fg); }
 .algo-trace__cell-ptrs { display: flex; flex-direction: column; gap: 2px; margin-top: 3px; }
@@ -167,8 +167,8 @@
   display: block;
   font-size: 9px;
   font-weight: 700;
-  color: #c7d2fe;
-  background: #4338ca;
+  color: #fff;
+  background: #2563eb;
   border-radius: 4px;
   padding: 1px 4px;
   line-height: 1.4;
@@ -189,13 +189,13 @@
 .algo-trace__vars td { padding: 5px 9px; border-bottom: 1px solid var(--trace-border); }
 .algo-trace__vars tr:last-child td { border-bottom: none; }
 .algo-trace__var-name {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-weight: 700;
   color: var(--trace-fg-dim);
   white-space: nowrap;
 }
 .algo-trace__var-val {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   color: var(--trace-fg);
   word-break: break-word;
   border-radius: 4px;
@@ -208,13 +208,13 @@
 }
 
 .algo-trace__pre {
-  background: #0b1220;
-  color: #e2e8f0;
+  background: #141720;
+  color: #e2e6f0;
   border: 1px solid var(--trace-border);
   padding: 10px;
   border-radius: 7px;
   overflow: auto;
-  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 12px/1.5 var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   white-space: pre-wrap;
   word-break: break-word;
 }

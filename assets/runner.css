@@ -32,7 +32,7 @@ html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
   font-size: 13px;
 }
 .algo-runner__pkg {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 6px;
@@ -40,7 +40,7 @@ html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
   color: var(--ar-chip-fg);
 }
 .algo-runner__race {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-weight: 700;
   font-size: 11px;
   padding: 2px 7px;
@@ -55,7 +55,7 @@ html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
 /* Мок-интервью гоняет только тесты одной функции — это надо видеть, иначе
    «всё зелёное» читается как «пакет решён». */
 .algo-runner__only {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 11px;
   padding: 2px 7px;
   border-radius: 6px;
@@ -80,7 +80,7 @@ html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
   border-radius: 7px;
   padding: 3px 6px;
   font-size: 13px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   background: var(--ar-btn);
   color: var(--ar-btn-fg);
 }
@@ -127,11 +127,11 @@ html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
   overflow-x: auto;
   white-space: pre;
   tab-size: 4;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #141720;
+  color: #e2e6f0;
   padding: 10px;
   border-radius: 7px;
-  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 12px/1.5 var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
 }
 
 /* Под причиной «прогон не засчитан» — что зелёные строки ниже не в счёт. */
@@ -162,7 +162,7 @@ html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
   border: 0;
   padding: 10px;
   resize: vertical;
-  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 13px/1.5 var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   tab-size: 4;
   background: var(--bg, #fff);
   color: var(--fg, #000);
@@ -225,17 +225,17 @@ html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
 .algo-runner__test.is-ok .algo-runner__test-mark { color: var(--ar-ok); }
 .algo-runner__test.is-err .algo-runner__test-mark { color: var(--ar-err); }
 .algo-runner__test-mark { font-weight: 700; }
-.algo-runner__test-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.algo-runner__test-name { font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace); }
 .algo-runner__test details { flex-basis: 100%; }
 .algo-runner__test summary { cursor: pointer; font-size: 12px; opacity: 0.8; }
 
 .algo-runner__pre {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #141720;
+  color: #e2e6f0;
   padding: 10px;
   border-radius: 7px;
   overflow: auto;
-  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 12px/1.5 var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -249,12 +249,12 @@ html.coal .algo-runner, html.navy .algo-runner, html.ayu .algo-runner {
   font-size: 13px;
 }
 .algo-runner__down pre {
-  background: #1f2937;
+  background: #232733;
   color: #e5e7eb;
   padding: 8px 10px;
   border-radius: 6px;
   margin: 6px 0;
-  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 12px var(--mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   /* Длинная команда прокручивается в своём блоке. Без этого на телефоне она вылезала из
      колонки на 231px: раньше из-за неё вбок ездила вся страница (.content), а когда на
      узком экране у .content сняли прокрутку (algo-viz.css), хвост команды просто срезался. */

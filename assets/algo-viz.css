@@ -591,16 +591,17 @@
      поэтому виджет одинаково выглядит на любой теме mdBook. --fg/--bg переопределены
      локально, чтобы все color-mix(var(--fg)…) давали светлые полупрозрачные слои на тёмном. */
   --fg: #e6e9f2;
-  --bg: #0d1117;
+  --bg: #0f1117;
   --tp-lo: #3b82f6;            /* синий — правая граница (right) */
   --tp-hi: #a855f7;            /* фиолетовый — левая граница (left) */
   --tp-ok: #16a34a;            /* зелёный — корректность; #22c55e давал белому тексту 2.3:1 */
   --tp-warn: #f59e0b;          /* янтарный — максимум/лучшее */
   --tp-bad: #ef4444;           /* красный — нарушение условия */
-  --tp-surface: #0a0e16;       /* внешний холст виджета */
-  --tp-panel: #131927;         /* карточки и панели */
-  --tp-panel2: #1b2233;        /* вложенные блоки, поля ввода */
-  --tp-border: #283145;
+  /* Поверхности — из палитры книги (theme.css): холст — поверхность карточек, панели — фон кода. */
+  --tp-surface: #1a1d27;       /* внешний холст виджета */
+  --tp-panel: #141720;         /* карточки и панели */
+  --tp-panel2: #232733;        /* вложенные блоки, поля ввода */
+  --tp-border: #2a2e3d;
   --tp-grad-lo: linear-gradient(135deg, #2563eb, #3b82f6);
   --tp-grad-hi: linear-gradient(135deg, #9333ea, #a855f7);
   --tp-grad-ok: linear-gradient(135deg, #15803d, #16a34a);
@@ -608,13 +609,13 @@
      сетки, интервалы, trie, KMP) рисуются через .algo-viz__* и завязаны на эти переменные.
      Так они становятся тёмными разом, не трогая прозу/hero-карточки вне .algo-tp. */
   --links: #3b82f6;            /* синий акцент (visited / merged / active) */
-  --quote-border: #3d465c;     /* рёбра графов, обводки узлов, рамки ячеек — видны на тёмном */
-  --sidebar-bg: #1b2233;       /* фон ячеек/кнопок легаси-виз */
-  --quote-bg: #131927;
+  --quote-border: #3d4256;     /* рёбра графов, обводки узлов, рамки ячеек — видны на тёмном */
+  --sidebar-bg: #232733;       /* фон ячеек/кнопок легаси-виз */
+  --quote-bg: #141720;
   color: var(--fg);
   background: var(--tp-surface);
-  border: 1px solid #1b2333;
-  border-radius: 16px;
+  border: 1px solid var(--tp-border);
+  border-radius: 12px;
   padding: 1.4em clamp(1em, 2.5vw, 1.7em);
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.4);
   /* «вырываемся» из узкой колонки mdBook и центрируемся: дашборду нужна ширина,
@@ -859,7 +860,7 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__rulebody { font-size: 0.85em; opacity: 0.7; }
 
 /* код */
-.algo-tp__code { margin: 0; padding: 0.6em 0; border-radius: 10px; background: #0b0f1a; border: 1px solid var(--tp-border); font-size: 0.84em; line-height: 1.65; overflow-x: auto; }
+.algo-tp__code { margin: 0; padding: 0.6em 0; border-radius: 8px; background: #141720; border: 1px solid var(--tp-border); font-size: 0.84em; line-height: 1.65; overflow-x: auto; }
 .algo-tp__codeline { display: flex; padding: 0 0.7em; white-space: pre; border-left: 3px solid transparent; }
 .algo-tp__codeline--active { background: color-mix(in srgb, var(--tp-lo) 26%, transparent); border-left-color: var(--tp-lo); }
 /* подсветка синтаксиса Go — классы ставит hlGo (algo-viz.js); им же красят панель трассы и эталон
@@ -1877,7 +1878,7 @@ body.algo-tp-fslock { overflow: hidden; }
 /* ===== Раскладка по умолчанию (по образцу AlgoMaster; data-layout="classic" — прежняя) == */
 /* Сверху вниз: ввод (свёрнут) → холст → строка шага → переменные → управление → код. Узлы
    те же, что в классической раскладке, — compactLayout в algo-viz.js только переставляет их. */
-.algo-tp--compact { --nn-green: #2ee59d; --nn-cyan: #22d3ee; --nn-amber: #fbbf24; --nn-red: #f87171; --nn-cell: #1a1e26; --nn-line: #3a4150; }
+.algo-tp--compact { --nn-green: #4ae08a; --nn-cyan: #22d3ee; --nn-amber: #fbbf24; --nn-red: #f87171; --nn-cell: #1a1d27; --nn-line: #3d4256; }
 .algo-tp--compact .algo-tp__head { margin-bottom: 0.9em; align-items: center; }
 .algo-tp--compact .algo-tp__top { margin-bottom: 0.7em; }
 .algo-tp--compact .algo-tp__card--arr { padding: 0.6em 1em; }
