@@ -23,8 +23,9 @@
  *                  подсказок — «Помню», с подсказкой — «С трудом», «Сдаюсь» — «Забыл» (где угодно);
  *   task:<id>    — как только задача в тексте не далась (промах из challenge.js);
  *   quiz:<вопрос> — промах в квизе распознавания шаблонов (quiz.js). Карточка — вопрос:
- *                  условие и «каким шаблоном это решается?»; шаблон (meta.pattern) ссылкой
- *                  на главу и кнопки оценки — только после «Показать ответ»;
+ *                  условие и «каким шаблоном это решается?»; шаблон ссылкой на главу и кнопки
+ *                  оценки — только после «Показать ответ». Шаблон и глава — из банка квиза
+ *                  (ALGO_QUIZ) по тексту вопроса, meta.pattern/href — только если вопроса больше нет;
  *   mix:<pkg>.<fn> — в смешанной тренировке шаблон выбран неверно (mixed.js).
  *                  Карточка — вопрос: условие ДРУГОЙ задачи банка с той же главой-ответом
  *                  (без имени функции; по кругу после meta.last, сначала — после задачи
@@ -752,6 +753,15 @@
     return null;
   }
 
+  // quizQuestion — вопрос банка квиза (quiz.js грузится на каждой странице раньше srs.js) по его тексту.
+  function quizQuestion(q) {
+    var list = (window.ALGO_QUIZ && window.ALGO_QUIZ.questions) || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && list[i].q === q) return list[i];
+    }
+    return null;
+  }
+
   // mixShown — задача для карточки mix:: следующая по порядку банка после meta.last среди задач с главой-
   // ответом chapter, по кругу. meta.last ещё нет — после задачи промаха (miss), так что первый показ — уже
   // другая задача. Задача у шаблона одна — она сама. Выбор без случайности: перезагрузка показывает ту же.
@@ -771,14 +781,19 @@
     // Карточка-вопрос несёт answer = { text, link: { text, href } }: то и другое показывается только
     // после «Показать ответ», и кнопки оценки — вместе с ним.
     if (kindOf(id) === "quiz") {
-      var pattern = meta.pattern || "";
+      // Ответ и глава — из банка квиза по тексту вопроса (как у mix: — из банка задач): у вопроса мог смениться
+      // верный ответ или глава, а meta — снимок на момент промаха. Вопроса в банке больше нет — снимок.
+      var qText = meta.q || id.slice(5);
+      var cur = quizQuestion(qText);
+      var pattern = (cur ? cur.correct : meta.pattern) || "";
+      var qHref = cur ? cur.href : meta.href;
       return {
         kind: "Квиз: распознать шаблон",
         title: "Каким шаблоном это решается?",
         href: "",
-        question: meta.q || id.slice(5),
+        question: qText,
         // запись промаха без шаблона (собранный руками файл) — оценка без ответа, как раньше
-        answer: !pattern ? null : meta.href ? { link: { text: pattern, href: meta.href } } : { text: pattern },
+        answer: !pattern ? null : qHref ? { link: { text: pattern, href: qHref } } : { text: pattern },
         what: "Назови шаблон и, главное, триггер в условии, по которому ты его узнал, — потом открой ответ: правильный ответ без триггера не считается.",
       };
     }
@@ -1121,6 +1136,9 @@
         var down = el("p", "algo-today__down");
         down.hidden = true;
         box.appendChild(down);
+        var partial = el("p", "algo-today__partial");
+        partial.hidden = true;
+        box.appendChild(partial);
 
         function runnerDown(text) {
           cur.up = false;
@@ -1163,6 +1181,13 @@
           // только зелёный прогон своего листа: виджет на экране, черновик карточки, тот же пакет, не
           // списанный с эталона (после «Сдаюсь» оценка уже стоит), та же функция — или пакет целиком
           if (cur.settled || !node.isConnected || d.draft !== "review" || d.pkg !== code.pkg || !d.ok || d.gaveUp) return;
+          if (!code.fn && d.unit !== "pkg") {
+            // Карточка пакета целиком: зелёное упражнение её не оценивает — без этой строки первые зелёные
+            // прогоны выглядели бы как «ничего не произошло».
+            partial.textContent = "✓ Упражнение зелёное. Карточку засчитает зелёный прогон всего пакета — пункт «весь пакет» в списке упражнений.";
+            partial.hidden = false;
+            return;
+          }
           if (code.fn ? d.fn !== code.fn : d.unit !== "pkg") return;
           var grade = d.hints > 0 ? "hard" : "good";
           view.hold();
@@ -1171,6 +1196,7 @@
 
         function settle(text) {
           cur.settled = true;
+          partial.hidden = true; // оценка стоит — подсказка про «весь пакет» больше не нужна
           box.insertBefore(el("p", "algo-today__verdict", text), actions);
           var next = el("button", "algo-quiz__btn algo-today__next", "Дальше →");
           next.type = "button";

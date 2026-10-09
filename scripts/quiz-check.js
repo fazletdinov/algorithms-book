@@ -50,34 +50,38 @@ function mulberry32(seed) {
   };
 }
 
-// boot — страница квиза: хранилище, зерно случайности, затем progress.js и quiz.js (как в книге:
-// progress.js к моменту сборки квиза уже отдал ALGO_DONE). brokenStorage — getItem/setItem бросают.
+// Порядок скриптов — как в additional-js книги (book.toml): quiz.js раньше progress.js. Скрипты стоят в
+// конце body, как их ставит mdBook, и оба собираются по DOMContentLoaded — тогда квиз уже видит ALGO_DONE.
+// Начни quiz.js собираться сразу при загрузке, он не увидел бы трекер и выдал бы все главы — проверка это поймает.
+const BOOK_JS = (() => {
+  const toml = fs.readFileSync(path.join(root, "book.toml"), "utf8");
+  const list = JSON.parse((toml.match(/^additional-js\s*=\s*(\[.*\])/m) || [])[1] || "[]");
+  return list.map((p) => path.basename(p)).filter((f) => f === "quiz.js" || f === "progress.js");
+})();
+const SRC = { "quiz.js": quizJs, "progress.js": progressJs };
+
+// boot — страница квиза: хранилище и зерно случайности до первого скрипта, затем quiz.js и progress.js в
+// порядке книги. brokenStorage — getItem/setItem бросают.
 function boot(seed, rngSeed, brokenStorage) {
-  const dom = new JSDOM('<!DOCTYPE html><html><body><main><h1>Квиз</h1><div class="algo-quiz"></div></main></body></html>', {
-    runScripts: "dangerously",
-    virtualConsole: vc,
-    url: "https://example.test/quiz.html",
-  });
-  const w = dom.window;
+  const scripts = BOOK_JS.map((f) => `<script>${SRC[f]}</script>`).join("");
   return new Promise((resolve) => {
-    // скрипты — после load: документ разобран, и квиз собирается сразу, а не по DOMContentLoaded
-    w.addEventListener("load", () => {
-      Object.keys(seed || {}).forEach((k) => w.localStorage.setItem(k, seed[k]));
-      w.Math.random = mulberry32(rngSeed || 1);
-      if (brokenStorage) {
-        w.Storage.prototype.getItem = () => { throw new Error("SecurityError"); };
-        w.Storage.prototype.setItem = () => { throw new Error("SecurityError"); };
-      }
-      try {
-        w.eval(progressJs);
-        w.eval(quizJs);
-      } catch (e) {
-        errors.push("скрипт упал при сборке квиза: " + e.message);
-      }
-      resolve(dom);
+    const dom = new JSDOM(`<!DOCTYPE html><html><body><main><h1>Квиз</h1><div class="algo-quiz"></div></main>${scripts}</body></html>`, {
+      runScripts: "dangerously",
+      virtualConsole: vc,
+      url: "https://example.test/quiz.html",
+      beforeParse(w) {
+        Object.keys(seed || {}).forEach((k) => w.localStorage.setItem(k, seed[k]));
+        w.Math.random = mulberry32(rngSeed || 1);
+        if (brokenStorage) {
+          w.Storage.prototype.getItem = () => { throw new Error("SecurityError"); };
+          w.Storage.prototype.setItem = () => { throw new Error("SecurityError"); };
+        }
+      },
     });
+    dom.window.addEventListener("load", () => resolve(dom));
   });
 }
+if (BOOK_JS.length !== 2) errors.push(`в additional-js книги (book.toml) нет quiz.js или progress.js: ${JSON.stringify(BOOK_JS)}`);
 
 const click = (dom, node) => node.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
 

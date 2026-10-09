@@ -542,6 +542,7 @@
 }
 
 .algo-today__down,
+.algo-today__partial,
 .algo-today__verdict {
   margin: 0 0 0.7em;
   font-size: 0.93em;

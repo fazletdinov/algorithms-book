@@ -1319,6 +1319,23 @@ if (api) {
     }
   }
 
+  // Старая карточка: промах записан, когда ответом на вопрос о цикле в неориентированном графе был
+  // «Union-Find (DSU)». Ответ и глава берутся из банка квиза по тексту вопроса, снимок meta — только у
+  // вопроса, которого в банке больше нет.
+  const CYCLE = "Определить, образует ли набор рёбер цикл в НЕориентированном графе.";
+  const cycleMeta = { n: 1, pattern: "Union-Find (DSU)", href: "union-find-structure.html", q: CYCLE };
+  const goneMeta = { n: 1, pattern: "Старый шаблон", href: "old.html", q: "Вопроса больше нет" };
+  for (const [meta, wantText, wantHref] of [[cycleMeta, "DFS по графу", "graphs.html"], [goneMeta, "Старый шаблон", "old.html"]]) {
+    const d = await newDom({ algoQuizMissed: JSON.stringify({ [meta.q]: meta }), algoSRS: JSON.stringify({ ["quiz:" + meta.q]: missCard(meta, now - DAY) }) }, [CLOCK(now), quizJs], PAGE);
+    const bank = d.window.ALGO_QUIZ && d.window.ALGO_QUIZ.questions.find((x) => x.q === CYCLE);
+    if (!bank || bank.correct !== "DFS по графу") errors.push(`в банке квиза у вопроса о цикле ответ «${bank && bank.correct}» — проверка рассчитана на «DFS по графу»`);
+    if (click(d, "Показать ответ")) {
+      const a = d.window.document.querySelector(".algo-today__answer a");
+      if (!a || a.textContent !== wantText || a.getAttribute("href") !== wantHref) errors.push(`карточка quiz: «${meta.q}» отвечает ${a && a.outerHTML}, ожидалось «${wantText}» → ${wantHref}`);
+    }
+    d.window.close();
+  }
+
   const CXM = { n: 1, chapter: "dynamic-programming", pkg: "dp", fn: "CoinChange" };
   const cxSeed = { algoMockCxMissed: JSON.stringify({ "dp.CoinChange": CXM }), algoSRS: JSON.stringify({ "cx:dp.CoinChange": missCard(CXM, now - HOUR) }) };
   const cx = await newDom(cxSeed, [CLOCK(now), problemsJs], PAGE);
@@ -2182,7 +2199,9 @@ const startOfDay = (t) => { const d = new Date(t); return new Date(d.getFullYear
   fire(dom, "algo-runner:result", run("slidingwindow", SW[0]), w.document.querySelector("main")); // не её узел
   fire(dom, "algo-runner:result", run("slidingwindow", SW[0], { draft: "mixed" })); // не её черновик
   fire(dom, "algo-runner:result", run("slidingwindow", SW[0], { gaveUp: true })); // списано с эталона
-  if (ls.getItem("algoSRS") !== snap) errors.push("красный прогон, чужой узел, чужой черновик или прогон после эталона изменили карточку");
+  fire(dom, "algo-runner:result", run("slidingwindow", SW[1])); // зелёная другая функция
+  if (ls.getItem("algoSRS") !== snap) errors.push("красный прогон, чужой узел, чужой черновик, прогон после эталона или другая функция изменили карточку");
+  if (w.document.querySelector(".algo-today__partial:not([hidden])")) errors.push("карточка одной функции показала строку про «весь пакет»");
   if (ls.getItem(DRAFT + "slidingwindow") !== "мой черновик") errors.push("черновик карточки стёрт без оценки");
   if (runnerOf(dom) !== node) errors.push("после красного прогона виджет карточки перестроен — набранный код пропал бы");
 
@@ -2300,11 +2319,17 @@ const startOfDay = (t) => { const d = new Date(t); return new Date(d.getFullYear
     if (node && (node.getAttribute("data-race") === "true") !== race) errors.push(`${pkg}: data-race=${node.getAttribute("data-race")}, ожидалось ${race ? "true, как в главе" : "без -race"}`);
     if (!/пакет целиком/.test(todayText(dom))) errors.push(`${pkg}: карточка не говорит, что решать пакет целиком: «${todayText(dom).slice(0, 200)}»`);
     const snap = dom.window.localStorage.getItem("algoSRS");
+    const partial = () => { const p = dom.window.document.querySelector(".algo-today__partial"); return p && !p.hidden ? p.textContent : ""; };
+    if (partial()) errors.push(`${pkg}: строка про «весь пакет» видна до первого зелёного упражнения`);
+    fire(dom, "algo-runner:result", run(pkg, "Put", { ok: false, failed: 1, passed: 0 })); // красное упражнение — молчит
+    if (partial()) errors.push(`${pkg}: красный прогон упражнения показал строку про «весь пакет»`);
     fire(dom, "algo-runner:result", run(pkg, "Put")); // зелёное одно упражнение — не пакет
     if (dom.window.localStorage.getItem("algoSRS") !== snap) errors.push(`${pkg}: зелёный прогон одного упражнения оценил карточку пакета целиком`);
+    if (!/засчитает зелёный прогон всего пакета — пункт «весь пакет»/.test(partial())) errors.push(`${pkg}: зелёное упражнение без строки, что карточку засчитает «весь пакет»: «${partial()}»`);
     fire(dom, "algo-runner:result", run(pkg, ""));
     const c = cards(dom)["pkg:" + pkg];
     if (!c || c.iv !== 1 || "last" in c.meta) errors.push(`${pkg}: зелёный прогон пакета целиком: ${JSON.stringify(c)}, ожидалось «Помню» без meta.last`);
+    if (partial()) errors.push(`${pkg}: после оценки осталась строка «карточку засчитает весь пакет»`);
   }
   // книга без банка задач: тот же пакет целиком, условия нет, ничего не падает
   const nob = await newDom({ algoSRS: JSON.stringify({ "pkg:slidingwindow": heavy("slidingwindow", now - DAY) }) }, [CLOCK(now), RUNNER], PAGE);

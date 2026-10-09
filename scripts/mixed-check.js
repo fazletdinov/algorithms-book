@@ -277,10 +277,14 @@ async function main() {
 
   // --- диагностика слабых мест ---
   // Глава промаха смешанной — из банка по pkg/fn (её ответ мог смениться: bigo-задачи «следующего
-  // большего» теперь отвечают главой монотонного стека), из записи — только у задачи вне банка.
-  const dom3 = await boot("review.html", ["progress.js", "problems.js", "review.js"], {
+  // большего» теперь отвечают главой монотонного стека), из записи — только у задачи вне банка. Так же у
+  // промаха квиза: ответ — из банка квиза по тексту вопроса («цикл в неориентированном графе» был
+  // «Union-Find (DSU)», стал «DFS по графу»), из записи — только у вопроса вне банка («Вопрос про кучу»).
+  const CYCLE = "Определить, образует ли набор рёбер цикл в НЕориентированном графе.";
+  const dom3 = await boot("review.html", ["quiz.js", "progress.js", "problems.js", "review.js"], {
     algoQuizMissed: JSON.stringify({
       "Вопрос про кучу": { n: 2, pattern: "Two Heaps", href: "two-heaps.html", q: "Вопрос про кучу" },
+      [CYCLE]: { n: 1, pattern: "Union-Find (DSU)", href: "union-find-structure.html", q: CYCLE },
     }),
     algoMixedMissed: JSON.stringify({
       "topk.KthLargest": { n: 1, chapter: "top-k-elements", pkg: "topk", fn: "KthLargest" },
@@ -304,6 +308,10 @@ async function main() {
     const stackRow = rows.find((r) => /Монотонный стек/.test(r[0]));
     if (!stackRow || stackRow[2] !== "2") errors.push(`промах bigo.DailyTemperatures (в записи big-o) не посчитан у монотонного стека: ${JSON.stringify(rows)}`);
     if (rows.some((r) => /Big-O/.test(r[0]))) errors.push(`промах bigo.DailyTemperatures посчитан у Big-O по старой записи: ${JSON.stringify(rows)}`);
+    const dfsRow = [...table.querySelectorAll("tr")].find((tr) => /DFS по графу/.test(tr.textContent));
+    const dfsLink = dfsRow && dfsRow.querySelector("a");
+    if (!dfsRow || !dfsLink || dfsLink.getAttribute("href") !== "graphs.html") errors.push(`старый промах квиза о цикле не посчитан у «DFS по графу» со ссылкой на graphs.html: ${JSON.stringify(rows)}`);
+    if (rows.some((r) => /Union-Find/.test(r[0]))) errors.push(`старый промах квиза о цикле посчитан по снимку «Union-Find (DSU)»: ${JSON.stringify(rows)}`);
   }
 
   finish();

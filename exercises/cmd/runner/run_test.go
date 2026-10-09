@@ -394,6 +394,10 @@ func TestVerdict(t *testing.T) {
 			want: testResult{Stage: stageTests, MemLimit: true, Reason: "прогон: упёрлось в предел памяти 128 МиБ" + growth}},
 		{name: "память кончилась в тесте", stream: streamTestRunning, end: runEnd{hitMem: true, runErr: exit1}, lim: cgroup, killed: "memory",
 			want: testResult{Stage: stageTests, MemLimit: true, Reason: "TestHang: упёрлось в предел памяти 128 МиБ" + growth}},
+		// rlimit/none узнают упор по строкам вывода (hitLimit): пакет может кончиться pass, а в выводе —
+		// «signal: killed». Здесь ok держит только !MemLimit — зелёным такой прогон быть не может.
+		{name: "пакет прошёл, а упор в память", stream: streamOnePass, end: runEnd{hitMem: true}, lim: rlimit,
+			want: testResult{Stage: stageTests, MemLimit: true, Reason: "прогон: упёрлось в предел памяти 2 ГиБ" + growth}},
 		{name: "срок вышел в запущенном бинарнике", stream: streamBinaryStarted, end: deadline, lim: cgroup,
 			want: testResult{Stage: stageTests, Timeout: true, Reason: loop}},
 		{name: "срок вышел в тесте", stream: streamTestRunning, end: deadline, lim: cgroup, killed: "timeout",

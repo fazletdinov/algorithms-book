@@ -138,8 +138,11 @@
     var quiz = load(QUIZ_MISSED);
     Object.keys(quiz).forEach(function (q) {
       var rec = quiz[q] || {};
-      var name = rec.pattern || "?";
-      var w = (byPattern[name] = byPattern[name] || { name: name, quiz: 0, mixed: 0, href: rec.href || "" });
+      // ответ и глава — из банка квиза: у вопроса они могли смениться после промаха (снимок — вне банка)
+      var cur = quizQuestion(rec.q || q);
+      var name = (cur ? cur.correct : rec.pattern) || "?";
+      var href = (cur ? cur.href : rec.href) || "";
+      var w = (byPattern[name] = byPattern[name] || { name: name, quiz: 0, mixed: 0, href: href });
       w.quiz += rec.n || 1;
     });
     var mixed = load(MIXED_MISSED);
@@ -154,6 +157,15 @@
     return Object.keys(byPattern)
       .map(function (k) { return byPattern[k]; })
       .sort(function (a, b) { return b.quiz + b.mixed - (a.quiz + a.mixed); });
+  }
+
+  // quizQuestion — вопрос банка квиза (window.ALGO_QUIZ из quiz.js) по тексту; null — вопроса больше нет.
+  function quizQuestion(q) {
+    var list = (window.ALGO_QUIZ && window.ALGO_QUIZ.questions) || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && list[i].q === q) return list[i];
+    }
+    return null;
   }
 
   // bankChapter — глава-ответ задачи по банку (assets/problems.js). Промах хранит главу на момент
