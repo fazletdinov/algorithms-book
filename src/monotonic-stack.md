@@ -529,21 +529,21 @@ area := heights[top] * (i - left - ______)</pre>
 
 **🟢 Разогрев** — стек и базовый монотонный стек:
 
-- [Valid Parentheses](https://leetcode.com/problems/valid-parentheses/) (LeetCode 20)
+- [Valid Parentheses](https://leetcode.com/problems/valid-parentheses/) (LeetCode 20) — в тренажёре: `stack.IsValidBrackets` (там ещё и прочие символы между скобками)
 - [Min Stack](https://leetcode.com/problems/min-stack/) (LeetCode 155) — второй стек минимумов
-- [Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) (LeetCode 739) — индексы, а не значения
+- [Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) (LeetCode 739) — индексы, а не значения; в тренажёре: `bigo.DailyTemperatures` (виджет — в главе «Big-O»)
 
 **🔵 Основа** — планка главы:
 
-- [Next Greater Element II](https://leetcode.com/problems/next-greater-element-ii/) (LeetCode 503) — круговой
-- [Online Stock Span](https://leetcode.com/problems/online-stock-span/) (LeetCode 901) — предыдущий больший, онлайн
-- [Decode String](https://leetcode.com/problems/decode-string/) (LeetCode 394) — два стека
-- [Remove K Digits](https://leetcode.com/problems/remove-k-digits/) (LeetCode 402) — монотонный стек как жадность
+- [Next Greater Element II](https://leetcode.com/problems/next-greater-element-ii/) (LeetCode 503) — круговой; в тренажёре: `stack.NextGreaterCircular`
+- [Online Stock Span](https://leetcode.com/problems/online-stock-span/) (LeetCode 901) — предыдущий больший, онлайн; в тренажёре: `stack.StockSpans` (цены пачкой)
+- [Decode String](https://leetcode.com/problems/decode-string/) (LeetCode 394) — два стека; в тренажёре: `stack.DecodeString`
+- [Remove K Digits](https://leetcode.com/problems/remove-k-digits/) (LeetCode 402) — монотонный стек как жадность; в тренажёре: `stack.RemoveKDigits`
 
 **🔴 Добивка** — когда основа идёт уверенно:
 
-- [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) (LeetCode 84)
-- [Sum of Subarray Minimums](https://leetcode.com/problems/sum-of-subarray-minimums/) (LeetCode 907) — вклад и правило ничьей
+- [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) (LeetCode 84) — в тренажёре: `stack.LargestRectangle`
+- [Sum of Subarray Minimums](https://leetcode.com/problems/sum-of-subarray-minimums/) (LeetCode 907) — вклад и правило ничьей; в тренажёре: `stack.SumSubarrayMins` (там без остатка по модулю)
 - [Maximal Rectangle](https://leetcode.com/problems/maximal-rectangle/) (LeetCode 85) — задача 84 для каждой строки матрицы
 - [Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) (LeetCode 42) — реши стеком, хотя в главе «Два указателя» она решена иначе: стек считает воду горизонтальными слоями — снятая «яма» даёт слой шириной до нового столбика и высотой до меньшего из двух бортов
 

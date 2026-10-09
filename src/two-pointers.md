@@ -534,13 +534,13 @@ if sum &lt; target {
 **🟢 Разогрев** — встречные указатели в чистом виде:
 
 - [Valid Palindrome](https://leetcode.com/problems/valid-palindrome/) (LeetCode 125)
-- [Two Sum II](https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/) (LeetCode 167)
+- [Two Sum II](https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/) (LeetCode 167) — в тренажёре: `twopointers.PairWithTargetSum` (там индексы с нуля, а пары может не быть)
 
 **🔵 Основа** — планка главы:
 
 - [Move Zeroes](https://leetcode.com/problems/move-zeroes/) (LeetCode 283) — медленный/быстрый
 - [Container With Most Water](https://leetcode.com/problems/container-with-most-water/) (LeetCode 11)
-- [3Sum](https://leetcode.com/problems/3sum/) (LeetCode 15) — сортировка + встречные указатели
+- [3Sum](https://leetcode.com/problems/3sum/) (LeetCode 15) — сортировка + встречные указатели; в тренажёре: `twopointers.TripletsSumToZero`
 
 **🔴 Добивка** — когда основа идёт уверенно:
 
