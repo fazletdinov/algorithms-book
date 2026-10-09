@@ -42,31 +42,35 @@ func CountComponents(n int, edges [][]int) int {
 	return count
 }
 
+// arc — ребро в списке смежности: куда ведёт и его номер в edges. С номером правило «пропусти
+// ребро, по которому пришёл» буквально: второе ребро между той же парой вершин — уже другое ребро.
+type arc struct{ to, id int }
+
 func HasCycleUndirected(n int, edges [][]int) bool {
-	parent := make([]int, n)
-	rank := make([]int, n)
-	for i := range parent {
-		parent[i] = i
+	adj := make([][]arc, n)
+	for id, e := range edges {
+		adj[e[0]] = append(adj[e[0]], arc{e[1], id})
+		adj[e[1]] = append(adj[e[1]], arc{e[0], id}) // у петли [v, v] — вторая запись у той же v
 	}
-	var find func(int) int
-	find = func(x int) int {
-		for parent[x] != x {
-			parent[x] = parent[parent[x]]
-			x = parent[x]
+	visited := make([]bool, n)
+	// dfs сообщает, есть ли цикл в компоненте node; from — номер ребра, по которому в неё пришли.
+	// В неориентированном обходе любое другое ребро в уже посещённую вершину замыкает цикл.
+	var dfs func(node, from int) bool
+	dfs = func(node, from int) bool {
+		visited[node] = true
+		for _, a := range adj[node] {
+			if a.id == from {
+				continue
+			}
+			if visited[a.to] || dfs(a.to, a.id) {
+				return true
+			}
 		}
-		return x
+		return false
 	}
-	for _, e := range edges {
-		rx, ry := find(e[0]), find(e[1])
-		if rx == ry {
+	for v := 0; v < n; v++ {
+		if !visited[v] && dfs(v, -1) {
 			return true
-		}
-		if rank[rx] < rank[ry] {
-			rx, ry = ry, rx
-		}
-		parent[ry] = rx
-		if rank[rx] == rank[ry] {
-			rank[rx]++
 		}
 	}
 	return false

@@ -73,28 +73,37 @@ func TestCountComponentsRandom(t *testing.T) {
 	}
 }
 
-// bruteHasCycle — DFS с запоминанием родителя (независимо от union-find-эталона).
-func bruteHasCycle(n int, edges [][]int) bool {
-	adj := buildAdj(n, edges)
-	visited := make([]bool, n)
-	var dfs func(node, parent int) bool
-	dfs = func(node, parent int) bool {
-		visited[node] = true
-		for _, next := range adj[node] {
-			if !visited[next] {
-				if dfs(next, node) {
-					return true
-				}
-			} else if next != parent {
-				return true
-			}
-		}
-		return false
+// randMultigraph — неориентированный мультиграф: до 2n рёбер, концы которых выбираются
+// независимо, так что бывают петли [v, v] и повторы одной пары (в любом порядке концов).
+func randMultigraph(rng *rand.Rand, n int) [][]int {
+	m := rng.Intn(2*n + 1)
+	edges := make([][]int, m)
+	for i := range edges {
+		edges[i] = []int{rng.Intn(n), rng.Intn(n)}
 	}
-	for i := 0; i < n; i++ {
-		if !visited[i] && dfs(i, -1) {
+	return edges
+}
+
+// unionFindHasCycle — система непересекающихся множеств: ребро, оба конца которого уже в одном
+// множестве, замыкает цикл (петля и повтор пары — тоже). Это прежний эталон — модель, не
+// зависящая от обхода в эталоне нынешнем.
+func unionFindHasCycle(n int, edges [][]int) bool {
+	parent := make([]int, n)
+	for i := range parent {
+		parent[i] = i
+	}
+	find := func(x int) int {
+		for parent[x] != x {
+			x = parent[x]
+		}
+		return x
+	}
+	for _, e := range edges {
+		rx, ry := find(e[0]), find(e[1])
+		if rx == ry {
 			return true
 		}
+		parent[ry] = rx
 	}
 	return false
 }
@@ -104,7 +113,20 @@ func TestHasCycleUndirectedRandom(t *testing.T) {
 	for range 3000 {
 		n := rng.Intn(7) + 1
 		edges := randGraph(rng, n)
-		if got, want := HasCycleUndirected(n, edges), bruteHasCycle(n, edges); got != want {
+		if got, want := HasCycleUndirected(n, edges), unionFindHasCycle(n, edges); got != want {
+			t.Fatalf("HasCycleUndirected(%d, %v) = %v, want %v", n, edges, got, want)
+		}
+	}
+}
+
+// На мультиграфах цикл бывает длины 1 (петля) и 2 (кратное ребро): обход по множеству соседей
+// (map[int]bool вместо списка) склеивает кратное ребро и здесь расходится с моделью.
+func TestHasCycleUndirectedMultigraphRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(1306))
+	for range 3000 {
+		n := rng.Intn(6) + 1
+		edges := randMultigraph(rng, n)
+		if got, want := HasCycleUndirected(n, edges), unionFindHasCycle(n, edges); got != want {
 			t.Fatalf("HasCycleUndirected(%d, %v) = %v, want %v", n, edges, got, want)
 		}
 	}

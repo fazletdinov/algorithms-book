@@ -268,7 +268,7 @@ go test -tags solution ./dsu/  # эталон (зелёные)
 Как готовый инструмент Union-Find используется в прикладных пакетах:
 
 ```bash
-go test ./graphs/   # HasCycleUndirected, CountComponents — на Union-Find
+go test ./graphs/   # HasCycleUndirected, CountComponents — решаются и на Union-Find (эталон — обход)
 go test ./mst/      # MST Краскала на Union-Find
 ```
 

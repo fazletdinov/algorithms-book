@@ -561,7 +561,7 @@ go test ./graphs/                 # ваши решения
 go test -tags solution ./graphs/  # эталон
 ```
 
-Реализуйте `CountComponents` (компоненты связности), `HasCycleUndirected` (Union-Find), `BFSOrder` (обход в ширину), `DFSOrder` (обход в глубину), `ShortestPathUnweighted` (кратчайший по числу рёбер) и `IsBipartite` (двудольность).
+Реализуйте `CountComponents` (компоненты связности), `HasCycleUndirected` (цикл: обход, который помнит ребро, по которому пришёл; можно и Union-Find), `BFSOrder` (обход в ширину), `DFSOrder` (обход в глубину), `ShortestPathUnweighted` (кратчайший по числу рёбер) и `IsBipartite` (двудольность).
 
 ## 🧵 Конкурентный BFS (Go)
 
