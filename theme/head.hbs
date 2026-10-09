@@ -1,0 +1,7 @@
+<script>
+  // У книги одна тема — navy, перекрашенная в assets/theme.css. Скрипт mdBook в начале <body>
+  // ставит на <html> класс из localStorage «mdbook-theme»: выбор, сохранённый читателем раньше
+  // («light», «rust»…), включил бы светлую тему поверх нашей. Этот код стоит в <head> — до
+  // скрипта mdBook и до первой отрисовки, — поэтому вспышки чужой темы нет.
+  try { localStorage.setItem("mdbook-theme", "navy"); } catch (e) { /* хранилище недоступно — тогда mdBook и так берёт navy из book.toml */ }
+</script>

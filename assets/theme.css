@@ -1,0 +1,291 @@
+/* theme.css — единственная тема книги: тёмная, «терминальная».
+ *
+ * Книга всегда в классе navy (theme/head.hbs не даёт сохранённому выбору включить другую тему),
+ * а здесь переменные navy переопределены палитрой книги. Селекторы — html.navy и html:not(.js)
+ * (страница без скриптов): у обоих специфичность выше, чем у .navy и .light в variables.css
+ * mdBook, и файл подключён позже, поэтому побеждает он. Виджеты (algo-viz, runner, trace-viz)
+ * берут цвета книги через эти же переменные или через свои токены (--tp-*, --ar-*), настроенные
+ * под ту же палитру.
+ */
+
+/* ===== Палитра и переменные mdBook ===== */
+:root {
+  --text-font: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono-font: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --code-font-size: 0.875em;
+}
+
+html.navy, html:not(.js) {
+  /* Палитра. Приглушённый текст — #8a91ad, а не #6b7394 образца: тот на фоне даёт 4.05:1 (ниже AA
+     для обычного текста), этот — 6.05 на фоне и 4.78 на второй поверхности. Им же — номера
+     разделов в оглавлении и номера строк редактора: они тоже текст. */
+  --th-bg: #0f1117;
+  --th-surface: #1a1d27;
+  --th-surface2: #232733;
+  --th-border: #2a2e3d;
+  --th-code-bg: #141720;
+  --th-text: #c8ccd8;
+  --th-strong: #e6e9f2;
+  --th-muted: #8a91ad;
+  --th-accent: #4ae08a;
+  --th-blue: #3b82f6;
+  --th-blue-text: #6ea8fe;   /* синий для текста: #3b82f6 на второй поверхности — 4.05:1 */
+  --th-orange: #ffab40;
+  --th-yellow: #ffd740;
+  --th-violet: #b388ff;
+  --th-red: #ef5350;
+
+  --bg: var(--th-bg);
+  --fg: var(--th-text);
+
+  --sidebar-bg: var(--th-surface);
+  --sidebar-fg: var(--th-text);
+  --sidebar-non-existant: var(--th-muted);
+  --sidebar-active: var(--th-accent);
+  --sidebar-spacer: var(--th-border);
+  --sidebar-header-border-color: var(--th-border); /* полоса «на этой странице»: зелёной она спорила с активным пунктом */
+
+  --scrollbar: #3a3f52;
+
+  --icons: var(--th-muted);
+  --icons-hover: var(--th-strong);
+
+  --links: var(--th-accent);
+
+  --inline-code-color: #e2e6f0;
+
+  --theme-popup-bg: var(--th-surface);
+  --theme-popup-border: var(--th-border);
+  --theme-hover: var(--th-surface2);
+
+  --quote-bg: var(--th-surface);
+  --quote-border: var(--th-border);
+
+  --warning-border: var(--th-orange);
+
+  --table-border-color: var(--th-border);
+  --table-header-bg: var(--th-surface2);
+  --table-alternate-bg: #151821;
+
+  --searchbar-border-color: var(--th-border);
+  --searchbar-bg: var(--th-surface);
+  --searchbar-fg: var(--th-text);
+  --searchbar-shadow-color: transparent;
+  --searchresults-header-fg: var(--th-muted);
+  --searchresults-border-color: var(--th-border);
+  --searchresults-li-bg: var(--th-surface);
+  --search-mark-bg: var(--th-yellow);
+
+  --color-scheme: dark;
+
+  /* Перекраска значка «копировать» (data:svg) фильтром: серый под --icons, зелёный под акцент. */
+  --copy-button-filter: invert(62%) sepia(9%) saturate(726%) hue-rotate(191deg) brightness(91%) contrast(86%);
+  --copy-button-filter-hover: invert(77%) sepia(46%) saturate(605%) hue-rotate(84deg) brightness(97%) contrast(89%);
+
+  --footnote-highlight: var(--th-blue);
+
+  --overlay-bg: rgba(8, 10, 15, 0.55);
+
+  --blockquote-note-color: var(--th-blue-text);
+  --blockquote-tip-color: var(--th-accent);
+  --blockquote-important-color: var(--th-violet);
+  --blockquote-warning-color: var(--th-orange);
+  --blockquote-caution-color: var(--th-red);
+}
+
+/* ===== Основа: текст для долгого чтения ===== */
+html {
+  font-family: var(--text-font);
+  font-feature-settings: "cv11", "ss01"; /* Inter: однопалочная a и открытые цифры — спокойнее в длинном тексте */
+}
+body {
+  font-size: 1.7rem; /* 17px: mdBook ставит корню 62.5%, так что 1rem = 10px */
+  background-color: var(--bg);
+}
+.content main { line-height: 1.65; }
+.content p, .content ol, .content ul { line-height: 1.65em; }
+.content strong, .content b { color: var(--th-strong); font-weight: 650; }
+.content a { color: var(--links); }
+.content a:hover { text-decoration: underline; text-underline-offset: 0.18em; }
+::selection { background: color-mix(in srgb, var(--th-accent) 30%, transparent); }
+mark { color: var(--th-bg); border-radius: 2px; }
+
+/* Выбор темы убран: тема одна. Кнопку не удаляем из разметки — book.js mdBook на неё опирается. */
+#mdbook-theme-toggle, #mdbook-theme-list { display: none !important; }
+
+/* Верхняя панель и оглавление */
+.menu-title { font-weight: 600; letter-spacing: 0.01em; color: var(--th-strong); }
+.menu-bar { border-block-end: 1px solid var(--th-border); }
+.sidebar { border-inline-end: 1px solid var(--th-border); }
+.chapter li a { color: var(--sidebar-fg); }
+.chapter li a.active { font-weight: 600; }
+.on-this-page { border-inline-start-width: 2px; }
+/* Номера разделов — моноширинные и приглушённые: «терминальный» штрих без моноширинного текста. */
+.chapter li strong[aria-hidden="true"] {
+  font-family: var(--mono-font);
+  font-weight: 500;
+  font-size: 0.88em;
+  color: var(--th-muted);
+}
+.chapter li a.active strong[aria-hidden="true"] { color: var(--th-accent); }
+.chapter li.part-title { color: var(--th-muted); font-family: var(--mono-font); font-size: 0.82em; letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* ===== Заголовки ===== */
+/* Только заголовки самой главы (прямые потомки main): у виджетов свои заголовки. */
+.content main > h1,
+.content main > h2,
+.content main > h3 { color: var(--th-strong); line-height: 1.3; }
+
+/* h1 — имя главы: акцентный цвет, под ним короткая черта градиентом акцент → синий. Градиент
+   по самому тексту (background-clip: text) проверен и отброшен: почти каждое имя главы
+   начинается с эмодзи, а клип превращает цветной эмодзи в залитый градиентом квадрат. */
+.content main > h1 {
+  font-size: 2.25em;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  margin: 0.9em 0 0.75em;
+  padding-bottom: 0.45em;
+  position: relative;
+}
+.content main > h1 .header:link, .content main > h1 .header:visited { color: var(--th-accent); }
+.content main > h1::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 64px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--th-accent), var(--th-blue));
+}
+
+/* h2 — «заголовок фазы»: акцентная черта слева, текст, тонкая линия до правого края. Черта —
+   фоном, а не ::before: ::before у :target mdBook занят маркером «»». */
+.content main > h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  font-size: 1.5em;
+  font-weight: 700;
+  margin-block-start: 2.4em;
+  padding-inline-start: 0.75em;
+  /* Черта — напротив ПЕРВОЙ строки: при переносе (телефон) по центру она висела между строк. */
+  background: linear-gradient(var(--th-accent), var(--th-accent)) 0 0.13em / 4px 1.05em no-repeat;
+}
+.content main > h2 > .header { min-width: 0; }
+.content main > h2::after {
+  content: "";
+  flex: 1 1 2em;
+  min-width: 2em;
+  height: 1px;
+  background: var(--th-border);
+}
+.content main > h2:target::before { margin-inline-start: -1.5em; width: 1em; flex: none; color: var(--th-accent); }
+
+/* h3 — второй акцент, без линии. */
+.content main > h3 { font-size: 1.2em; font-weight: 650; margin-block-start: 2em; }
+.content main > h3 .header:link, .content main > h3 .header:visited { color: var(--th-blue-text); }
+.content main > h4 { color: var(--th-strong); font-weight: 650; }
+
+/* ===== Код ===== */
+/* Блоки кода главы — <pre> без класса (у виджетов свои <pre class="…">). */
+.content main pre:not([class]) {
+  background: var(--th-code-bg);
+  border: 1px solid var(--th-border);
+  border-radius: 8px;
+}
+html .hljs {
+  background: var(--th-code-bg);
+  color: var(--hl-text);
+}
+.content main pre:not([class]) > code { padding: 0.9em 1.1em; line-height: 1.6; border-radius: 8px; }
+/* Встроенный код в тексте — плашка на второй поверхности. Только <code> без класса: у виджетов
+   свои <code class="…"> со своим оформлением. */
+.content main :not(pre) > code:not([class]) {
+  color: var(--inline-code-color);
+  background: var(--th-surface2);
+  border: 1px solid var(--th-border);
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+}
+.content h1 :not(pre) > code, .content h2 :not(pre) > code, .content h3 :not(pre) > code {
+  background: none; border: 0; padding: 0; color: inherit;
+}
+
+/* ===== Таблицы ===== */
+/* Только таблицы из Markdown (mdBook оборачивает их в .table-wrapper): у виджетов свои. */
+.content .table-wrapper { border: 1px solid var(--th-border); border-radius: 8px; margin: 1.2em 0; }
+.content .table-wrapper > table { margin: 0; min-width: 100%; }
+.content .table-wrapper > table td, .content .table-wrapper > table th { border: 0; border-top: 1px solid var(--th-border); padding: 0.45em 0.9em; }
+.content .table-wrapper > table thead th { border-top: 0; color: var(--th-strong); font-weight: 650; text-align: left; }
+.content .table-wrapper > table thead tr { border: 0; }
+
+/* ===== Врезки: цитаты и карточки «Запомни» / «Вспомни» ===== */
+/* Карточка на поверхности с цветной полосой слева — как .note образца. */
+.content blockquote {
+  background: var(--th-surface);
+  border: 1px solid var(--th-border);
+  border-inline-start: 3px solid var(--th-accent);
+  border-radius: 8px;
+  padding: 0.15em 1.1em;
+  margin: 1.4em 0;
+}
+.content blockquote.blockquote-tag { border-inline-start-width: 3px; }
+.content blockquote.blockquote-tag-note { border-inline-start-color: var(--blockquote-note-color); }
+.content blockquote.blockquote-tag-tip { border-inline-start-color: var(--blockquote-tip-color); }
+.content blockquote.blockquote-tag-important { border-inline-start-color: var(--blockquote-important-color); }
+.content blockquote.blockquote-tag-warning { border-inline-start-color: var(--blockquote-warning-color); }
+.content blockquote.blockquote-tag-caution { border-inline-start-color: var(--blockquote-caution-color); }
+
+/* «Запомни» / «Вспомни» (algo-mental) — та же карточка, полоса оранжевая. Роль прежняя:
+   янтарная врезка-памятка, менялся только оттенок. */
+.content .algo-mental {
+  background: var(--th-surface);
+  border: 1px solid var(--th-border);
+  border-inline-start: 3px solid var(--th-orange);
+  border-radius: 8px;
+}
+.content .algo-mental__title { color: var(--th-orange); }
+
+/* Шапка главы и карточки конспекта — поверхность с тонкой рамкой. */
+.content .algo-hero {
+  background: var(--th-surface);
+  border: 1px solid var(--th-border);
+  border-radius: 8px;
+}
+.content .algo-hero__name { color: var(--th-strong); }
+.content .algo-hero__metric { background: var(--th-surface2); border-color: var(--th-border); border-radius: 6px; }
+.content .algo-card { background: var(--th-surface); border-radius: 8px; }
+.content .algo-card--yes .algo-card__hdr, .content .algo-card--yes li::before { color: var(--th-accent); }
+.content .algo-card--yes { border-color: color-mix(in srgb, var(--th-accent) 40%, var(--th-border)); }
+.content .algo-card--no .algo-card__hdr, .content .algo-card--no li::before { color: #ff7b78; }
+.content .algo-card--no { border-color: color-mix(in srgb, var(--th-red) 40%, var(--th-border)); }
+.content .algo-hint { background: var(--th-surface); border-left-color: var(--th-blue); }
+.content .algo-details { background: var(--th-surface); border-color: var(--th-border); border-radius: 8px; }
+.content details > summary { cursor: pointer; }
+
+/* Плашка уровня главы под h1 (markPage в progress.js): расширение — синий, справочник —
+   фиолетовый, в тон заголовкам; ядро и инструменты плашки не получают, как и раньше. */
+.content .algo-lvlnote { background: var(--th-surface); border-radius: 0 8px 8px 0; opacity: 1; color: var(--th-muted); }
+.content .algo-lvlnote--ext { border-left-color: var(--th-blue); }
+.content .algo-lvlnote--ref { border-left-color: var(--th-violet); }
+.algo-lvl { opacity: 1; font-family: var(--mono-font); font-weight: 600; font-size: 0.72em; letter-spacing: 0.03em; }
+.algo-lvl--ext { color: var(--th-blue-text); border-color: color-mix(in srgb, var(--th-blue) 55%, transparent); background: color-mix(in srgb, var(--th-blue) 12%, transparent); }
+.algo-lvl--ref { color: var(--th-violet); border-color: color-mix(in srgb, var(--th-violet) 55%, transparent); background: color-mix(in srgb, var(--th-violet) 10%, transparent); }
+
+/* Горизонтальная черта */
+.content hr { border: 0; border-top: 1px solid var(--th-border); margin: 2.2em 0; }
+
+/* Поиск */
+#mdbook-searchbar { border-radius: 8px; }
+#mdbook-searchbar:focus { outline: 2px solid var(--th-accent); outline-offset: 1px; }
+
+/* Телефон: заголовки скромнее, линия h2 не выталкивает текст за край. */
+@media (max-width: 620px) {
+  body { font-size: 1.65rem; }
+  .content main > h1 { font-size: 1.8em; }
+  /* Линии вправо на телефоне нет: заголовок почти всегда в две строки, и обрубок линии рядом
+     с первой из них выглядел опечаткой. */
+  .content main > h2 { font-size: 1.3em; }
+  .content main > h2::after { display: none; }
+}
