@@ -8,6 +8,45 @@
  * под ту же палитру.
  */
 
+/* ===== Шрифты: Inter — текст, JetBrains Mono — код =====
+   Лицензия обоих — SIL OFL 1.1 (тексты рядом с файлами); файлы — вариативные woff2 из пакетов
+   @fontsource-variable/inter и @fontsource-variable/jetbrains-mono 5.3.0, только латиница и
+   кириллица: прочие символы (стрелки, ≤, греческие буквы) браузер берёт из системного шрифта.
+   Лежат в src/fonts/, а не в assets/: mdBook копирует в книгу из src/ всё как есть (book/fonts/,
+   имена без хеша), а из assets/ — только названное в additional-css/js. theme/fonts/ не годится:
+   оттуда mdBook добавляет к именам хеш, а адреса в своём CSS не переписывает. Этот файл в книге —
+   book/assets/theme-<хеш>.css, отсюда «../fonts/». Внешних запросов нет — книгу читают без сети. */
+@font-face {
+  font-family: "Inter Variable"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("../fonts/inter-cyrillic-wght-normal.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: "Inter Variable"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter Variable"; font-style: italic; font-weight: 100 900; font-display: swap;
+  src: url("../fonts/inter-cyrillic-wght-italic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: "Inter Variable"; font-style: italic; font-weight: 100 900; font-display: swap;
+  src: url("../fonts/inter-latin-wght-italic.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono Variable"; font-style: normal; font-weight: 100 800; font-display: swap;
+  src: url("../fonts/jetbrains-mono-cyrillic-wght-normal.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: "JetBrains Mono Variable"; font-style: normal; font-weight: 100 800; font-display: swap;
+  src: url("../fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* ===== Палитра и переменные mdBook ===== */
 :root {
   --text-font: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -188,6 +227,11 @@ mark { color: var(--th-bg); border-radius: 2px; }
 .content main > h4 { color: var(--th-strong); font-weight: 650; }
 
 /* ===== Код ===== */
+/* Лигатуры выключены на всей странице, а не только в <code>: JetBrains Mono стоит и в редакторе
+   CodeMirror, и в панелях виджетов, и там «>=» рисовался знаком «⩾», «!=» — «≠». Код показывается
+   так, как его набирают. На каждом элементе и с !important: сокращение «font: …» в CSS виджетов
+   (эталон runner, панель трассы) сбрасывает font-variant-ligatures обратно в normal. */
+*, *::before, *::after { font-variant-ligatures: none !important; }
 /* Блоки кода главы — <pre> без класса (у виджетов свои <pre class="…">). */
 .content main pre:not([class]) {
   background: var(--th-code-bg);
