@@ -53,8 +53,8 @@
 | [Top-K Elements](top-k-elements.md) | K наибольших/наименьших, K-й по величине | O(n log k) | heap размера K |
 | [K-way Merge](k-way-merge.md) | слить K отсортированных источников | O(n log k) | min-heap из голов |
 | [Subsets](subsets.md) / [Backtracking](backtracking.md) | «все комбинации/перестановки» | экспонента | выбор → рекурсия → откат |
-| [Graphs (обход)](graphs.md) | обход, связность, компоненты | O(V+E) | visited + очередь/рекурсия |
-| [Union-Find](union-find-structure.md) | динамическая связность, цикл (неориент.) | ~O(1)/опер. | сжатие пути + ранг |
+| [Graphs (обход)](graphs.md) | обход, связность, компоненты, цикл (неориент.) | O(V+E) | visited + очередь/рекурсия |
+| [Union-Find](union-find-structure.md) | динамическая связность, цикл при добавлении рёбер (неориент.) | ~O(1)/опер. | сжатие пути + ранг |
 | [Topological Sort](topological-sort.md) | зависимости/порядок, DAG | O(V+E) | Кан: убираем вершины с in-degree 0 |
 | BFS / [Dijkstra](grids-and-shortest-paths.md) | кратчайший путь (1 / неотриц. веса) | O(V+E) / O((V+E)log V) | очередь / приоритетная очередь |
 | [Bellman–Ford / A\*/ MST](advanced-graph-algorithms.md) | отрицат. веса / эвристика / остов | O(V·E) / — / O(E log E) | релаксация / f=g+h / жадно+DSU |
