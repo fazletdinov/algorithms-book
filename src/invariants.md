@@ -218,7 +218,7 @@ merge sort корректен, потому что (база) массив из 
 
 Теперь разделы «Почему это корректно» по всей книге — не ритуал, а знакомая
 триада. Ближайшие главы, где инвариант — главный герой:
-[Modified Binary Search](modified-binary-search.md) (полуинтервалы),
+[Modified Binary Search](modified-binary-search.md) (одна форма границы «нет → да»),
 [Sliding Window](sliding-window.md) (две семьи монотонности),
 [Cyclic Sort](cyclic-sort.md) (место для числа) и
 [Дейкстра](grids-and-shortest-paths.md) (финальность извлечённых вершин).

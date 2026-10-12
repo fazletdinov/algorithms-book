@@ -138,6 +138,12 @@
   var MIXED_MISSED = "algoMixedMissed";
   var CX_MISSED = "algoMockCxMissed";
   var VIZ_MISSED = "algoVizMissed";
+  // Виджеты, переехавшие на другую страницу: тип → { from, to }. Карточка viz: хранит страницу,
+  // на которой был промах, и без этой карты вела бы туда, где виджета уже нет.
+  var VIZ_MOVED = {
+    "heap-sort": { from: "sorting.html", to: "heap-structure.html" }, // этап 3a: пирамидальная — в главу о куче
+    "binary-search-first": { from: "modified-binary-search.html", to: "go-stdlib-structures.html" }, // этап 3a: в главе бинпоиска одна форма границы, виджет с кандидатом остался в главе о stdlib
+  };
   var TODAY = "algoToday"; // счётчик дня: { day, done, heavy, later } — в экспорт прогресса не входит
   // Черновик виджета на карточке пакета (data-draft="review", ключ пишет runner.js). Владелец — карточка:
   // стирается после оценки, а не при перестройке виджета, — иначе полчаса работы терялись бы на «Позже».
@@ -820,11 +826,15 @@
     if (kindOf(id) === "viz") {
       // Ссылка ведёт прямо к виджету: «страница?viz=<тип>#якорь» (якорь пишет algo-viz.js с промахом).
       // Тип страхует позиционный якорь: разошёлся тип — algo-viz.js ведёт к первому виджету этого типа; у
-      // прежних записей якоря нет — тоже к нему.
+      // прежних записей якоря нет — тоже к нему. Виджет переехал на другую страницу (VIZ_MOVED) —
+      // старая запись ведёт на новую, без якоря: номер viz-N позиционный и на новой странице чужой.
+      var vizType = id.slice(4), vizPage = meta.page || "", vizAnchor = meta.anchor || "";
+      var moved = VIZ_MOVED[vizType];
+      if (moved && vizPage === moved.from) { vizPage = moved.to; vizAnchor = ""; }
       return {
         kind: "Предсказание шага",
-        title: meta.title || id.slice(4),
-        href: meta.page ? meta.page + "?viz=" + encodeURIComponent(id.slice(4)) + (meta.anchor ? "#" + meta.anchor : "") : "",
+        title: meta.title || vizType,
+        href: vizPage ? vizPage + "?viz=" + encodeURIComponent(vizType) + (vizAnchor ? "#" + vizAnchor : "") : "",
         what: "Развилка «строка " + (meta.line || "?") + ": " + (meta.code || "") + "» пошла не так, как ты предсказал. " +
           "Открой виджет по ссылке, включи 🎯 и пройди его заново от первого шага до последнего — перед каждым ответом проговори " +
           "условие по значениям в чипах. Проход без промахов и пропусков сам поставит карточке «Помню», промах — «Забыл».",

@@ -1921,7 +1921,7 @@
       "// наименьший индекс, где nums[i] >= target (может быть len(nums))",
       "func lowerBound(nums []int, target int) int {",
       "    lo, hi := 0, len(nums)",
-      "    for lo < hi {                 // полуинтервал [lo, hi)",
+      "    for lo < hi {                 // ответ в [lo, hi]",
       "        mid := lo + (hi-lo)/2",
       "        if nums[mid] < target {",
       "            lo = mid + 1          // граница строго правее",
@@ -9380,13 +9380,14 @@
       });
     };
   }
-  // lowerBound в конвенции [lo, hi): hi может указывать ЗА массив (индекс n) — поэтому в
-  // ряду есть лишняя клетка-«конец». Раньше под листингом lowerBound главы стоял виджет
-  // другой конвенции (left <= right, res, mid±1), и трассировки расходились.
+  // lowerBound — firstTrue с вопросом nums[i] >= target: ответ в [lo, hi], и hi может
+  // указывать ЗА массив (индекс n) — поэтому в ряду есть лишняя клетка-«конец». Раньше под
+  // листингом lowerBound главы стоял виджет другой формы (left <= right, res, mid±1), и
+  // трассировки расходились.
   function bLowerBound(arr, x) {
     var n = arr.length, lo = 0, hi = n, steps = [];
     function vv(mid) { return { lo: lo, hi: hi, mid: mid == null ? "—" : mid, "nums[mid]": mid == null ? "—" : arr[mid] }; }
-    steps.push({ lo: lo, hi: hi, mid: -1, line: 2, vars: vv(), info: "lo = 0, hi = len(nums) = " + n + " — полуинтервал [0, " + n + "): hi указывает ЗА массив" });
+    steps.push({ lo: lo, hi: hi, mid: -1, line: 2, vars: vv(), info: "lo = 0, hi = len(nums) = " + n + " — ответ в [0, " + n + "], оба конца включены; ответ " + n + " значил бы «nums[i] ≥ target нет нигде»" });
     var guard = 0;
     while (lo < hi && guard++ < 64) {
       steps.push({ lo: lo, hi: hi, mid: -1, line: 3, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — ещё есть кандидаты" });
@@ -11092,14 +11093,14 @@
     },
 
     "lower-bound": {
-      badge: "Binary Search · [lo, hi)", desc: "Поиск границы: наименьший индекс, где nums[i] ≥ target. Полуинтервал [lo, hi), цикл lo < hi, hi = mid (без −1) — mid остаётся кандидатом; ответ может быть len(nums).",
-      legend: [{ cls: "span", nn: "span", label: "ещё под подозрением: [lo, hi)" }, { cls: "mid", nn: "mid", label: "mid — проверяем" }, { cls: "dim", nn: "dim", label: "отброшено" }, { cls: "found", nn: "found", label: "ответ" }],
+      badge: "Binary Search · граница", desc: "Поиск границы: наименьший индекс, где nums[i] ≥ target. Ответ в [lo, hi], оба конца включены; mid не равен hi, поэтому hi = mid (без −1) сужает отрезок, а mid остаётся кандидатом; ответ может быть len(nums).",
+      legend: [{ cls: "span", nn: "span", label: "ещё под подозрением: [lo, hi]" }, { cls: "mid", nn: "mid", label: "mid — проверяем" }, { cls: "dim", nn: "dim", label: "отброшено" }, { cls: "found", nn: "found", label: "ответ" }],
       valuesLabel: "", codeKey: "lower-bound", arrLabel: "nums", fillRange: true,
-      ptr1: { name: "lo", cap: "левый край [lo, hi)" }, ptr2: { name: "hi", cap: "правый край, не входит (может быть «за концом»)" },
+      ptr1: { name: "lo", cap: "левый край [lo, hi]" }, ptr2: { name: "hi", cap: "правый край, тоже кандидат (может быть «за концом»)" },
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Первое/последнее вхождение, место вставки" },
       varOrder: ["lo", "hi", "mid", "nums[mid]"],
-      varDesc: { lo: "Левая граница (входит)", hi: "Правая граница (НЕ входит)", mid: "Середина", "nums[mid]": "Значение в середине" },
-      lineNotes: { 2: "hi = len(nums): полуинтервал, hi за массивом", 3: "Пока интервал не пуст", 4: "Середина без переполнения", 5: "Значение меньше target?", 6: "Да — граница правее mid", 8: "Нет — mid кандидат, hi = mid (не mid−1)", 11: "lo == hi — это и есть граница" },
+      varDesc: { lo: "Левая граница (входит)", hi: "Правая граница (входит; mid её не достигает)", mid: "Середина", "nums[mid]": "Значение в середине" },
+      lineNotes: { 2: "hi = len(nums): ответ в [lo, hi], hi за массивом", 3: "Пока кандидатов больше одного", 4: "Середина без переполнения", 5: "Значение меньше target?", 6: "Да — граница правее mid", 8: "Нет — mid кандидат, hi = mid (не mid−1)", 11: "lo == hi — это и есть граница" },
       rules: [{ head: "nums[mid] < target", body: "→ lo = mid + 1", cls: "lt" }, { head: "иначе", body: "→ hi = mid (без −1)", cls: "gt" }, { head: "lo == hi", body: "→ ответ lo (может быть len)", cls: "eq" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var t = parseInt(root.getAttribute("data-target"), 10); return { arr: arr, target: t, steps: bLowerBound(arr, t) }; },
       inputs: [{ attr: "data-array", label: "Отсортированный массив" }, { attr: "data-target", label: "target", sm: true }],
@@ -11111,13 +11112,13 @@
       ],
       // лишняя клетка «конец»: hi = len(nums) указывает туда
       values: function (ctx) { return ctx.arr.concat(["end"]); },
-      title: function (ctx) { return "lowerBound(" + ctx.target + ") — [lo, hi)"; },
+      title: function (ctx) { return "lowerBound(" + ctx.target + ") — ответ в [lo, hi]"; },
       cellState: function (s, j) { var st = {}; if (s.found && j === s.lo) st.found = true; else { if (j === s.lo) st.lo = true; if (j === s.hi) st.hi = true; if (j > s.lo && j < s.hi) st.span = true; if (j === s.mid && s.mid >= 0) st.mid = true; if (j < s.lo || j > s.hi) st.dim = true; } return st; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
-      sumCells: ["[lo, hi)", "nums[mid] vs target"],
-      sumValues: function (s, ctx) { return [{ text: "[" + s.lo + ", " + s.hi + ")" }, { text: s.mid >= 0 ? s.vars["nums[mid]"] + (s.vars["nums[mid]"] < ctx.target ? " < " : " ≥ ") + ctx.target : "—", cls: s.mid >= 0 ? (s.vars["nums[mid]"] < ctx.target ? "lt" : "gt") : "" }]; },
+      sumCells: ["[lo, hi]", "nums[mid] vs target"],
+      sumValues: function (s, ctx) { return [{ text: "[" + s.lo + ", " + s.hi + "]" }, { text: s.mid >= 0 ? s.vars["nums[mid]"] + (s.vars["nums[mid]"] < ctx.target ? " < " : " ≥ ") + ctx.target : "—", cls: s.mid >= 0 ? (s.vars["nums[mid]"] < ctx.target ? "lt" : "gt") : "" }]; },
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Граница = " + s.lo, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { return { a: "[" + s.lo + ", " + s.hi + ")", b: "mid " + s.vars.mid, c: "", cls: "lt" }; },
+      stepCard: function (s) { return { a: "[" + s.lo + ", " + s.hi + "]", b: "mid " + s.vars.mid, c: "", cls: "lt" }; },
       varsOf: function (s) { return { lo: s.vars.lo, hi: s.vars.hi, mid: s.vars.mid, "nums[mid]": s.vars["nums[mid]"] }; }
     },
 
@@ -12292,7 +12293,7 @@
       varDesc: { i: "Узел, который просеиваем (в фазе 1 — и номер шага цикла)", size: "Размер кучи внутри siftDown", largest: "Больший из a[i] и детей", end: "Конец кучи в фазе 2", "обменов": "Сделано обменов" },
       legend: [{ cls: "tcurrent", label: "i — просеиваемый узел" }, { cls: "tkids", label: "его дети l, r — сравниваем" }, { cls: "mid", nn: "mid", label: "двигается на этом шаге" }, { cls: "found", nn: "found", label: "отсортированный хвост — уже вне кучи" }],
       lineNotes: { 0: "Сортировка на месте через двоичную кучу", 2: "Строим кучу снизу вверх, от последнего родителя", 3: "siftDown опускает узел, пока он меньше ребёнка", 5: "Извлечение: n−1 раз снимаем максимум", 6: "Максимум (корень) меняем с концом кучи", 7: "Чиним кучу на суженном диапазоне", 12: "Дети узла i — 2i+1 и 2i+2; пока считаем, что больший — сам i", 13: "Левый ребёнок есть в куче и больше?", 16: "Правый ребёнок есть и больше текущего largest?", 19: "Узел не меньше детей — дальше спускаться не надо", 22: "Меняем узел с большим ребёнком", 23: "Продолжаем с того места, куда опустилось значение" },
-      rules: [{ head: "фаза 1", body: "build max-heap за O(n)", cls: "gt" }, { head: "фаза 2", body: "extract max n раз", cls: "lt" }, { head: "суффикс", body: "справа — уже отсортирован", cls: "eq" }],
+      rules: [{ head: "фаза 1", body: "build max-heap за O(n)", cls: "gt" }, { head: "фаза 2", body: "n − 1 раз снять корень", cls: "lt" }, { head: "суффикс", body: "справа — уже отсортирован", cls: "eq" }],
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bHeapSort(arr) }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return ctx.arr; },

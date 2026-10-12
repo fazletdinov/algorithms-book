@@ -519,6 +519,6 @@ go test -tags solution ./grids/ ./dijkstra/  # эталон
 
 ## 🔗 Связанные шаблоны
 
-- **[Обход графов](graphs.md)** — BFS/DFS и Union-Find, на которых всё строится.
+- **[Обход графов](graphs.md)** — BFS/DFS, на которых всё строится.
 - **[Two Heaps](two-heaps.md)** — приоритетная очередь, сердце Дейкстры.
 - **[Topological Sort](topological-sort.md)** — кратчайшие пути в DAG за O(V + E).
