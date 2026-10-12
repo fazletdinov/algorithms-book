@@ -638,6 +638,9 @@ go test -tags solution ./dp/  # эталон
 
 <div class="algo-runner" data-pkg="dp" data-trace-calls='[{"func": "ClimbStairs", "call": "ClimbStairs(6)"}, {"func": "CoinChange", "call": "CoinChange([]int{1, 3, 5}, 11)"}, {"func": "LongestCommonSubsequence", "call": "LongestCommonSubsequence(\"abcde\", \"ace\")"}, {"func": "EditDistance", "call": "EditDistance(\"kitten\", \"sitting\")"}, {"func": "LongestIncreasingSubsequence", "call": "LongestIncreasingSubsequence([]int{10, 9, 2, 5, 3, 7, 101, 18})"}, {"func": "Knapsack01", "call": "Knapsack01([]int{1, 3, 4, 5}, []int{1, 4, 5, 7}, 7)"}, {"func": "HouseRobber", "call": "HouseRobber([]int{2, 7, 9, 3, 1})"}, {"func": "UniquePaths", "call": "UniquePaths(3, 4)"}, {"func": "WordBreak", "call": "WordBreak(\"leetcode\", []string{\"leet\", \"code\"})"}]'></div>
 
+> 🏁 **Глава сдана выше.** Дальше — инженерный кейс: как до кода понять, что задача на ДП, а не
+> на жадность.
+
 ## 🏗️ Инженерный кейс
 
 > **Ситуация.** Тебе дают задачу оптимизации: «минимум монет на сумму», «максимум прибыли», «сколько
@@ -661,6 +664,18 @@ go test -tags solution ./dp/  # эталон
 **Вывод.** Цепочка выборов + повторяющиеся подзадачи → **ДП**. Жадность — только когда локальный оптимум
 **доказуемо** глобален (и это надо проверять контрпримером, а не надеждой). Не уверен — начни с перебора,
 заметь повторяющиеся подзадачи, навесь мемоизацию: перебор превратится в ДП.
+
+<div class="algo-mental">
+  <div class="algo-mental__icon">📌</div>
+  <div class="algo-mental__body">
+    <div class="algo-mental__title">Что унести</div>
+    <ul>
+      <li><b>Сигнал.</b> «Сколькими способами», «минимум / максимум», «можно ли достичь», «самая длинная подпоследовательность» — цепочка выборов, где варианты повторяются.</li>
+      <li><b>Должно быть верно.</b> Подзадачи перекрываются, ответ состояния выражается через меньшие состояния, и порядок заполнения считает их раньше, чем они понадобятся.</li>
+      <li><b>Ломается</b>, когда подзадачи не повторяются — хватит рекурсии или <a href="backtracking.md">перебора</a>; когда жадность доказуемо работает, она проще; при экспоненциальном числе состояний не уложится.</li>
+    </ul>
+  </div>
+</div>
 
 ## 🔗 Связанные шаблоны
 
