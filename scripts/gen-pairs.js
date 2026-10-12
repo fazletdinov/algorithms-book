@@ -5,6 +5,8 @@
 // В раздел «## 🔗» каждой главы, названной в рядах (как use или как not), генератор вписывает
 // блок между метками <!-- pairs:begin … --> и <!-- pairs:end -->: сразу после заголовка и
 // пустой строки, ряды в порядке реестра. У глав, которых в реестре нет, блок убирается.
+// В руководство по выбору (src/pattern-selection-guide.md) — вся таблица: сразу после заголовка
+// «## Путаемые пары: что обязано быть верно», между метками <!-- pairs:begin guide … -->.
 // Руками внутри меток не править — правка реестра и перегенерация.
 //
 //   node scripts/gen-pairs.js          — вписать блоки в src/*.md
@@ -20,13 +22,16 @@ const SRC = path.join(root, "src");
 const PROGRESS = path.join(root, "assets", "progress.js");
 
 const BEGIN = "<!-- pairs:begin — сгенерировано node scripts/gen-pairs.js из assets/pairs.js, руками не править -->";
+const GUIDE_BEGIN = "<!-- pairs:begin guide — сгенерировано node scripts/gen-pairs.js из assets/pairs.js, руками не править -->";
 const END = "<!-- pairs:end -->";
-// Якорь раздела руководства появится вместе с самим разделом (задача 8 этапа 3b).
-const GUIDE_LINK = "pattern-selection-guide.md";
+const GUIDE = "pattern-selection-guide";
+const GUIDE_HEADING = "## Путаемые пары: что обязано быть верно";
+const GUIDE_LINK = "pattern-selection-guide.md#путаемые-пары-что-обязано-быть-верно";
 const MAX_WORDS = 25;
 
 const BLOCK_RE = /<!-- pairs:begin[^\n]*\n[\s\S]*?<!-- pairs:end -->\n\n?/;
 const LINKS_RE = /^(## 🔗[^\n]*\n)\n?/m;
+const GUIDE_RE = new RegExp(`^(${GUIDE_HEADING}\n)\n?`, "m");
 
 // Названия глав из трекера прогресса: слаг -> «Название». Приписка после двоеточия
 // («Хеш-таблица: устройство», «Дерево Фенвика: задачи») в строке пары опускается:
@@ -58,13 +63,14 @@ function validate(pairs, titles, texts) {
       else if (!LINKS_RE.test(texts.get(p[k]))) errs.push(`${at}: в src/${p[k]}.md нет раздела «## 🔗»`);
     }
     if (p.use === p.not) errs.push(`${at}: use и not — одна глава`);
+    if (p.use === GUIDE || p.not === GUIDE) errs.push(`${at}: руководство по выбору — не глава`);
     const key = `${p.use}|${p.not}`;
     if (seen.has(key)) errs.push(`${at}: пара повторяется`);
     seen.add(key);
     for (const k of ["must", "why"]) {
       const n = words(p[k]);
       if (n > MAX_WORDS) errs.push(`${at}: ${k} — ${n} слов, больше ${MAX_WORDS}`);
-      if (/[`<>\[\]{}=;]/.test(p[k])) errs.push(`${at}: ${k} похоже на код или разметку`);
+      if (/[`<>\[\]{}=;|]/.test(p[k])) errs.push(`${at}: ${k} похоже на код или разметку`);
       if (!/^[а-яё]/iu.test(p[k])) errs.push(`${at}: ${k} должно начинаться с русского слова`);
       if (/[.!?;:,]$/.test(p[k])) errs.push(`${at}: ${k} без знака препинания в конце — его ставит генератор`);
     }
@@ -90,15 +96,29 @@ function blockFor(slug, pairs, titles) {
   );
 }
 
-// Текст главы с вписанным блоком (block = null — блок убирается).
-function apply(text, block) {
+// Таблица руководства по выбору: все ряды в порядке реестра.
+function guideBlock(pairs, titles) {
+  const short = (s) => titles.get(s).replace(/:.*$/, "");
+  const rows = pairs.map((p) => `| ${p.must} | [${short(p.use)}](${p.use}.md) | не [${short(p.not)}](${p.not}.md): ${p.why} |`);
+  return (
+    `${GUIDE_BEGIN}\n` +
+    "Если в условии верно то, что слева, — бери приём из середины, а не соседа справа. " +
+    "Те же строки стоят в разделе «🔗» обеих глав пары.\n\n" +
+    "| Что обязано быть верно | Приём | Почему не сосед |\n|---|---|---|\n" +
+    `${rows.join("\n")}\n${END}\n`
+  );
+}
+
+// Текст с вписанным блоком (block = null — блок убирается). head — заголовок, после которого
+// встаёт блок: «## 🔗» у главы, GUIDE_HEADING у руководства.
+function apply(text, block, head = LINKS_RE, headName = "«## 🔗»") {
   const begins = text.split("<!-- pairs:begin").length - 1;
   const ends = text.split(END).length - 1;
   if (begins !== ends || begins > 1) throw new Error(`меток pairs:begin ${begins}, pairs:end ${ends} — нужно поровну и не больше одной пары`);
   const clean = text.replace(BLOCK_RE, "");
   if (!block) return clean;
-  if (!LINKS_RE.test(clean)) throw new Error("нет раздела «## 🔗»");
-  return clean.replace(LINKS_RE, (_, h) => `${h}\n${block}\n`);
+  if (!head.test(clean)) throw new Error(`нет раздела ${headName}`);
+  return clean.replace(head, (_, h) => `${h}\n${block}\n`);
 }
 
 function loadChapters() {
@@ -115,7 +135,10 @@ function generate(pairs, titles, texts) {
   for (const [slug, disk] of texts) {
     let want;
     try {
-      want = apply(disk, blockFor(slug, pairs, titles));
+      want =
+        slug === GUIDE
+          ? apply(disk, guideBlock(pairs, titles), GUIDE_RE, `«${GUIDE_HEADING}»`)
+          : apply(disk, blockFor(slug, pairs, titles));
     } catch (e) {
       throw new Error(`src/${slug}.md: ${e.message}`);
     }
@@ -169,6 +192,13 @@ function selfTest() {
   if (apply(once, null) !== texts.get("a")) errs.push("самопроверка: блок не убирается");
   const edited = once.replace("окно проще", "окно короче");
   if (apply(edited, block) === edited) errs.push("самопроверка: правка внутри меток не видна");
+  const guide = `# Р\n\n${GUIDE_HEADING}\n\n## Дальше\n`;
+  const gb = guideBlock(pairs, titles);
+  if (!gb.includes("| числа неотрицательны | [Глава А](a.md) | не [Глава Б](b.md): окно проще |"))
+    errs.push(`самопроверка (таблица руководства): ${JSON.stringify(gb)}`);
+  const g1 = apply(guide, gb, GUIDE_RE);
+  if (g1 !== `# Р\n\n${GUIDE_HEADING}\n\n${gb}\n## Дальше\n`) errs.push(`самопроверка (вписывание в руководство): ${JSON.stringify(g1)}`);
+  if (apply(g1, gb, GUIDE_RE) !== g1) errs.push("самопроверка: второй прогон меняет руководство");
   try {
     apply(once.replace(END, ""), block);
     errs.push("самопроверка: метка без пары не замечена");
@@ -194,13 +224,17 @@ function main() {
   }
   const out = generate(pairs, titles, texts);
   const withBlock = [...out.values()].filter((o) => o.want.includes(BEGIN)).length;
+  if (!out.get(GUIDE) || !out.get(GUIDE).want.includes(GUIDE_BEGIN)) {
+    console.error(`❌ src/${GUIDE}.md: таблица пар не вписана`);
+    process.exit(1);
+  }
   const stale = [...out].filter(([, o]) => o.disk !== o.want).map(([s]) => `src/${s}.md`);
   if (process.argv.includes("--check")) {
     if (stale.length) {
       console.error(`❌ блоки пар расходятся с assets/pairs.js: ${stale.join(", ")} — запусти node scripts/gen-pairs.js`);
       process.exit(1);
     }
-    console.log(`✅ gen-pairs: блоки пар совпадают с assets/pairs.js (рядов ${pairs.length}, глав с блоком ${withBlock}), самопроверка зелёная`);
+    console.log(`✅ gen-pairs: блоки пар совпадают с assets/pairs.js (рядов ${pairs.length}, глав с блоком ${withBlock}, таблица в руководстве), самопроверка зелёная`);
     return;
   }
   for (const [slug, o] of out) {
@@ -210,4 +244,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { BEGIN, END, GUIDE_LINK, titlesOf, validate, blockFor, apply, generate, selfTest };
+module.exports = { BEGIN, GUIDE_BEGIN, END, GUIDE, GUIDE_HEADING, GUIDE_LINK, titlesOf, validate, blockFor, guideBlock, apply, generate, selfTest };
