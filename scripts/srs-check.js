@@ -34,7 +34,10 @@
 //  15) «Позже» не меняет карточку и не запирает очередь (единственная, тяжёлая), фокус — на следующей;
 //  16) карточки quiz: и cx: — вопросы: ответ и оценки только после «Показать ответ»; карточка mix: — условие
 //      другой задачи того же шаблона (не meta.last), глава из банка (прежняя meta.chapter "big-o" у bigo.* —
-//      монотонный стек), ответ с альтернативами, оценка пишет meta.last;
+//      монотонный стек), ответ с альтернативами, оценка пишет meta.last; карточка ch: главы со строками
+//      «Что унести» (takeaways.js) — три вопроса, ответ — те же строки и ссылка, оценки после ответа; без
+//      строк или без реестра — прежний вопрос; глава с «объясни сам» не получает ch:, только если её expl:
+//      уже есть (или заводится тем же sync); прежние ch: побайтно те же;
 //  17) оставленная вкладка: возврат, storage и algo-srs:change перестраивают порцию, не закрывая
 //      раскрытый ответ и форму заметки; промах на этой же странице заводит карточку сразу, но на завтра;
 //  18) числа предела в текстах книги совпадают с константами движка;
@@ -66,6 +69,7 @@ const srsJs = fs.readFileSync(path.join(root, "assets", "srs.js"), "utf8");
 const problemsJs = fs.readFileSync(path.join(root, "assets", "problems.js"), "utf8");
 const challengeJs = fs.readFileSync(path.join(root, "assets", "challenge.js"), "utf8");
 const quizJs = fs.readFileSync(path.join(root, "assets", "quiz.js"), "utf8");
+const takeawaysJs = fs.readFileSync(path.join(root, "assets", "takeaways.js"), "utf8");
 const { mulberry32 } = require(path.join(root, "assets", "infra-core.js"));
 
 const errors = [];
@@ -1470,6 +1474,104 @@ if (api) {
   gone.window.close();
 }
 
+// --- 11h. карточка главы: три вопроса, ответ — строки «Что унести» (takeaways.js); главы с «объясни сам» ---
+// Ключ карточки прежний (ch:<страница>.html), расписание читателя не трогается. В главе с «объясни сам»
+// ch: не заводится, только если её expl: уже есть: глава, отмеченная без заполненного виджета, обязана
+// попасть в очередь. Реестр не загрузился — прежнее поведение: карточки заводятся, вопрос прежний.
+{
+  const now = NOON;
+  const TK = (() => { const s = {}; new Function("window", takeawaysJs)(s); return s.ALGO_TAKEAWAYS; })();
+  const GRAPHS = TK.chapters["graphs.html"];
+  if (!Array.isArray(GRAPHS) || GRAPHS.length !== 3) errors.push("в takeaways.js у graphs.html не три строки — проверка рассчитана на них");
+  if (TK.explain.indexOf("monotonic-stack.html") < 0 || TK.explain.indexOf("sliding-window.html") < 0) errors.push("в takeaways.js monotonic-stack/sliding-window не среди глав с «объясни сам» — проверка рассчитана на них");
+  if (TK.explain.indexOf("graphs.html") >= 0 || TK.chapters["two-heaps.html"]) errors.push("takeaways.js: graphs.html с «объясни сам» или two-heaps.html со строками — проверка рассчитана на обратное");
+  const marked = JSON.stringify({ "monotonic-stack.html": true, "graphs.html": true });
+  const idsOf = (dom) => Object.keys(cards(dom)).sort().join();
+  const tk = [CLOCK(now), takeawaysJs];
+  const explCard = { due: now + 5 * DAY, iv: 3, ease: 2.5, reps: 2, meta: { chapter: "monotonic-stack" }, seen: now - 3 * DAY };
+
+  // «объясни сам» без expl: — карточка главы заводится, как у любой другой главы
+  const noExpl = await newDom({ algoProgress: marked }, tk);
+  if (idsOf(noExpl) !== "ch:graphs.html,ch:monotonic-stack.html") errors.push(`«объясни сам» без expl:: заведены ${idsOf(noExpl)}, ожидались ch:graphs.html и ch:monotonic-stack.html`);
+  noExpl.window.close();
+  // expl: уже есть — ch: этой главы не заводится, expl: не меняется
+  const withExpl = await newDom({ algoProgress: marked, algoSRS: JSON.stringify({ "expl:monotonic-stack": explCard }) }, tk);
+  if (idsOf(withExpl) !== "ch:graphs.html,expl:monotonic-stack") errors.push(`«объясни сам» с expl:: в algoSRS ${idsOf(withExpl)}, ожидались ch:graphs.html и expl:monotonic-stack`);
+  if (JSON.stringify(cards(withExpl)["expl:monotonic-stack"]) !== JSON.stringify(explCard)) errors.push("«объясни сам» с expl:: карточка expl: изменилась");
+  withExpl.window.close();
+  // виджет заполнен, а expl: ещё не заведена: её заводит тот же sync — ch: рядом с ней не нужна
+  const samePass = await newDom({ algoProgress: marked, algoExplainDone: JSON.stringify({ "monotonic-stack": { ts: now - DAY, grade: "good" } }) }, tk);
+  if (idsOf(samePass) !== "ch:graphs.html,expl:monotonic-stack") errors.push(`«объясни сам», expl: в том же sync: в algoSRS ${idsOf(samePass)}, ожидались ch:graphs.html и expl:monotonic-stack`);
+  samePass.window.close();
+  // мусорная запись под id expl: — не карточка: ch: заводится
+  const junkExpl = await newDom({ algoProgress: marked, algoSRS: JSON.stringify({ "expl:monotonic-stack": 7 }) }, tk);
+  if (!cards(junkExpl)["ch:monotonic-stack.html"] || cards(junkExpl)["expl:monotonic-stack"] !== 7) errors.push(`«объясни сам», мусор под expl:: в algoSRS ${JSON.stringify(cards(junkExpl))}`);
+  junkExpl.window.close();
+
+  // прежние карточки читателя — побайтно те же, с expl: и без, ничего нового не заводится и не убирается
+  const oldCh = {
+    "ch:sliding-window.html": { due: now + 4 * DAY, iv: 8, ease: 2.5, reps: 2, meta: { href: "sliding-window.html" }, seen: now - 4 * DAY },
+    "ch:graphs.html": { due: now - HOUR, iv: 0, ease: 2.5, reps: 0, meta: { href: "graphs.html" } },
+  };
+  const oldMarked = JSON.stringify({ "sliding-window.html": true, "graphs.html": true });
+  const withSw = Object.assign({ "expl:sliding-window": Object.assign({}, explCard, { meta: { chapter: "sliding-window" } }) }, oldCh);
+  for (const [label, store] of [["без expl:", oldCh], ["с expl:", withSw]]) {
+    const raw = JSON.stringify(store);
+    const d = await newDom({ algoProgress: oldMarked, algoSRS: raw }, tk);
+    const r = d.window.ALGO_SRS.sync(now);
+    if (r.created.length || r.removed.length) errors.push(`прежние карточки (${label}): sync завёл ${JSON.stringify(r.created)}, убрал ${JSON.stringify(r.removed)}`);
+    if (d.window.localStorage.getItem("algoSRS") !== raw) errors.push(`прежние карточки (${label}): algoSRS изменился: ${d.window.localStorage.getItem("algoSRS")}`);
+    d.window.close();
+  }
+
+  // вид: три вопроса; ответ — строки главы и ссылка, оценки — только после «Показать ответ»
+  const chCard = (href) => ({ due: now - HOUR, iv: 0, ease: 2.5, reps: 0, meta: { href } });
+  const view = await newDom({ algoProgress: JSON.stringify({ "graphs.html": true }), algoSRS: JSON.stringify({ "ch:graphs.html": chCard("graphs.html") }) }, tk, PAGE);
+  {
+    const box = view.window.document.querySelector(".algo-today");
+    const grades = box.querySelector(".algo-today__grades");
+    const qs = [...box.querySelectorAll(".algo-today__questions li")].map((li) => li.textContent);
+    const WANT_Q = ["По каким словам условия узнать этот приём?", "Что должно быть верно, чтобы он работал?", "Где он ломается и чем его заменить?"];
+    if (JSON.stringify(qs) !== JSON.stringify(WANT_Q)) errors.push(`карточка главы: вопросы ${JSON.stringify(qs)}, ожидались ${JSON.stringify(WANT_Q)}`);
+    if (GRAPHS && GRAPHS.some((s) => box.textContent.includes(s))) errors.push("карточка главы: строка «Что унести» видна до «Показать ответ»");
+    if (box.querySelector('a[href^="graphs.html"]')) errors.push("карточка главы: до ответа есть ссылка на главу — текст открывается раньше попытки");
+    if (!grades || grades.style.display !== "none") errors.push("карточка главы: оценки доступны до «Показать ответ»");
+    if (click(view, "Показать ответ")) {
+      const ans = box.querySelector(".algo-today__answer");
+      const lines = ans ? [...ans.querySelectorAll("li")].map((li) => li.textContent) : [];
+      if (JSON.stringify(lines) !== JSON.stringify(GRAPHS)) errors.push(`карточка главы: строки ответа ${JSON.stringify(lines)}, ожидались строки takeaways.js`);
+      const link = ans && ans.querySelector("a");
+      if (!link || link.getAttribute("href") !== "graphs.html") errors.push(`карточка главы: в ответе нет ссылки на главу: ${link && link.outerHTML}`);
+      if (ans && /undefined|Ответ: $/.test(ans.textContent)) errors.push(`карточка главы: в ответе «${ans.textContent}»`);
+      if (grades && grades.style.display === "none") errors.push("карточка главы: после ответа оценки не появились");
+      if (view.window.document.activeElement !== ans) errors.push("карточка главы: фокус после «Показать ответ» не на ответе");
+      click(view, "Помню");
+      const c = cards(view)["ch:graphs.html"];
+      if (!c || c.iv !== 1 || c.reps !== 1) errors.push(`карточка главы: «Помню» после ответа не записано: ${JSON.stringify(c)}`);
+    }
+  }
+  view.window.close();
+  // глава без строк (вне ядра) и любая глава без реестра — прежний вопрос со ссылкой на главу, оценки сразу
+  const oldView = async (href, extra) => {
+    const d = await newDom({ algoProgress: JSON.stringify({ [href]: true }), algoSRS: JSON.stringify({ ["ch:" + href]: chCard(href) }) }, extra, PAGE);
+    const box = d.window.document.querySelector(".algo-today");
+    const grades = box.querySelector(".algo-today__grades");
+    const who = `карточка главы ${href}${extra.length > 1 ? "" : " без реестра"}`;
+    if (!/Вспомни предусловие и инвариант/.test(box.textContent)) errors.push(`${who}: не прежний вопрос: «${box.textContent.slice(0, 160)}»`);
+    if (box.querySelector(".algo-today__questions") || /Показать ответ/.test(box.textContent)) errors.push(`${who}: три вопроса или «Показать ответ» без строк`);
+    if (!box.querySelector(`a.algo-today__title[href="${href}"]`)) errors.push(`${who}: заголовок не ссылка на главу`);
+    if (!grades || grades.style.display === "none") errors.push(`${who}: оценки спрятаны`);
+    if (/undefined/.test(box.textContent)) errors.push(`${who}: в тексте «undefined»`);
+    d.window.close();
+  };
+  await oldView("two-heaps.html", tk);
+  await oldView("graphs.html", [CLOCK(now)]);
+  // без реестра «объясни сам» неизвестно — заводятся обе карточки, как раньше
+  const noReg = await newDom({ algoProgress: marked }, [CLOCK(now)]);
+  if (idsOf(noReg) !== "ch:graphs.html,ch:monotonic-stack.html") errors.push(`без реестра: заведены ${idsOf(noReg)}, ожидались ch:graphs.html и ch:monotonic-stack.html`);
+  noReg.window.close();
+}
+
 // --- 12. границы порции — перебором случайных наборов (зерно фиксировано) ---
 // Свойства, а не один пример: размер и число тяжёлых — в пределах остатка дня, тяжёлые последними
 // среди неотложенных и по сроку, отложенные в конце в порядке later, ни одна карточка не дважды и не потеряна
@@ -2416,7 +2518,7 @@ console.log(
     "повреждённый algoSRS не перезаписывается, прежние карточки не меняются, ease держится в [1.3, 2.8]; " +
     "порция дня — не больше 12 карточек и двух с кодом (границы и порядок — на случайных наборах), «Позже» ставит в конец и не запирает очередь, " +
     "смена суток и мусор в algoToday начинают день заново, счёт дня растёт только по оценке карточки в сроке, " +
-    "карточки quiz: и cx: отвечают после «Показать ответ», mix: показывает другую задачу шаблона с главой из банка, возврат на вкладку перестраивает порцию без потери ответа и заметки, " +
+    "карточки quiz: и cx: отвечают после «Показать ответ», mix: показывает другую задачу шаблона с главой из банка, ch: — три вопроса и ответ из «Что унести» (без ch:, если у главы уже есть expl:), возврат на вкладку перестраивает порцию без потери ответа и заметки, " +
     "промах заводит карточку на начало завтра (оценка в тот же день — early), таймер в местную полночь приносит порцию нового дня; " +
     "карточка пакета — одна функция с чистого листа, оценку ставят события её виджета и «Сдаюсь» с любой страницы, " +
     "без runner'а «Позже» переносит её на завтра"

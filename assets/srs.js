@@ -13,7 +13,14 @@
  *
  * Что попадает в очередь (карточки заводятся сами, вручную ничего размечать не
  * нужно):
- *   ch:<глава>   — как только глава отмечена пройденной в трекере;
+ *   ch:<глава>   — как только глава отмечена пройденной в трекере. Карточка — вопрос: «по каким словам
+ *                  узнать приём, что должно быть верно, где ломается и чем заменить»; ответ — три строки
+ *                  «Что унести» главы (window.ALGO_TAKEAWAYS из takeaways.js — генерируется из глав) и
+ *                  ссылка на главу, оценки — только после «Показать ответ». Строк у главы нет (вне ядра)
+ *                  или реестр не загрузился — прежний вопрос «вспомни предусловие и инвариант» со ссылкой.
+ *                  Глава с «объясни сам» (ALGO_TAKEAWAYS.explain) новой ch: не получает, если её уже
+ *                  повторяет expl: (в algoSRS или заводится тем же sync); отмеченная без заполненного
+ *                  виджета — получает. Уже заведённые ch: не трогаются; без реестра — как раньше;
  *   expl:<глава> — как только читатель сформулировал предусловие и инвариант своими
  *                  словами в виджете «объясни сам» (explain.js);
  *   pkg:<пакет>  — как только тесты пакета позеленели в виджете «Реши прямо здесь» или читатель
@@ -244,6 +251,31 @@
     return href.replace(/\.html$/, "");
   }
 
+  // takeawayOf — три строки «Что унести» главы href или null (реестра нет, главы в нём нет).
+  // Реестр — window.ALGO_TAKEAWAYS из takeaways.js (генерируется из глав, подключён раньше srs.js).
+  function takeawayOf(href) {
+    var t = window.ALGO_TAKEAWAYS;
+    var lines = t && t.chapters && t.chapters[href];
+    return Array.isArray(lines) && lines.length === 3 ? lines : null;
+  }
+  // hasExplain — у главы есть «объясни сам». Реестра нет — false: прежнее поведение, ни одна глава
+  // не пропадает из очереди.
+  function hasExplain(href) {
+    var t = window.ALGO_TAKEAWAYS;
+    return !!(t && Array.isArray(t.explain) && t.explain.indexOf(href) >= 0);
+  }
+  // explCovers — главу с «объясни сам» уже повторяет её карточка expl: (есть в algoSRS или её заводит этот
+  // же sync по algoExplainDone): тогда ch: не нужна. Отмеченная без заполненного виджета глава expl: не
+  // имеет — и получает ch:, иначе не попала бы в очередь вовсе. Мусорная запись под id expl: — не карточка
+  // (и sync её не перезапишет, так что expl: по algoExplainDone тоже не появится).
+  function explCovers(href, cards, explained) {
+    if (!hasExplain(href)) return false;
+    var key = href.replace(/\.html$/, "");
+    var id = "expl:" + key;
+    if (Object.prototype.hasOwnProperty.call(cards, id)) return isCard(cards[id]);
+    return Object.prototype.hasOwnProperty.call(explained, key);
+  }
+
   // Запись, меняющая algoSRS, всегда идёт по СВЕЖЕМУ чтению и трогает только свои
   // карточки: вкладок с книгой может быть несколько, и «прочитал при загрузке, записал
   // всё при оценке» стирало бы то, что другая вкладка записала за это время.
@@ -305,8 +337,9 @@
     var progressStore = readMap(PROGRESS);
     var progress = progressStore.map;
     var progressAt = loadMap(PROGRESS_AT);
+    var explained = loadMap(EXPLAINED);
     Object.keys(progress).forEach(function (href) {
-      if (progress[href]) add("ch:" + href, stamp(progressAt[href]) + DAY, { href: href });
+      if (progress[href] && !explCovers(href, cards, explained)) add("ch:" + href, stamp(progressAt[href]) + DAY, { href: href });
     });
     // Карточка главы, которую ни разу не оценили (нет seen), а отметку сняли: случайный щелчок в
     // трекере иначе стал бы вечной карточкой. Оценённая — уже история повторений, её не трогаем;
@@ -329,7 +362,6 @@
 
     // Оценка виджета («Не сошлось» / «Частично» / «Сошлось») — уже первое извлечение,
     // а не просто факт «ответил»: она идёт в расписание, как будто поставлена здесь.
-    var explained = loadMap(EXPLAINED);
     Object.keys(explained).forEach(function (chapKey) {
       var rec = explained[chapKey] || {};
       var ts = stamp(rec.ts);
@@ -779,13 +811,47 @@
     return list[(keys.indexOf(last) + 1) % list.length];
   }
 
+  // linesAnswer — ответ карточки главы: строки «Что унести» списком, под ними ссылка на главу.
+  function linesAnswer(answer) {
+    var box = el("div", "algo-today__answer");
+    var list = el("ul", "algo-today__lines");
+    answer.lines.forEach(function (line) {
+      list.appendChild(el("li", null, line));
+    });
+    box.appendChild(list);
+    var see = el("p", "algo-today__check", "Сверься с главой: ");
+    var link = el("a", null, answer.link.text);
+    link.href = answer.link.href;
+    see.appendChild(link);
+    box.appendChild(see);
+    return box;
+  }
+
   function describe(id, card) {
     var meta = card.meta || {};
     if (kindOf(id) === "ch") {
-      return { kind: "Глава", title: chapterTitle(meta.href || ""), href: meta.href || "", what: "Вспомни предусловие и инвариант, не заглядывая в текст, — потом сверься." };
+      // У главы есть «Что унести» — карточка-вопрос: три вопроса, ответ — строки главы, ссылка на главу
+      // только вместе с ответом. Строк нет (глава вне ядра, реестр не загрузился) — прежний вопрос.
+      var chPage = meta.href || "";
+      var lines = takeawayOf(chPage);
+      if (lines) {
+        return {
+          kind: "Глава",
+          title: chapterTitle(chPage),
+          href: "",
+          questions: [
+            "По каким словам условия узнать этот приём?",
+            "Что должно быть верно, чтобы он работал?",
+            "Где он ломается и чем его заменить?",
+          ],
+          answer: { lines: lines, link: { text: chapterTitle(chPage), href: chPage } },
+          what: "Ответь на три вопроса вслух, не открывая главу, — потом открой ответ.",
+        };
+      }
+      return { kind: "Глава", title: chapterTitle(chPage), href: chPage, what: "Вспомни предусловие и инвариант, не заглядывая в текст, — потом сверься." };
     }
-    // Карточка-вопрос несёт answer = { text, link: { text, href } }: то и другое показывается только
-    // после «Показать ответ», и кнопки оценки — вместе с ним.
+    // Карточка-вопрос несёт answer = { text, link: { text, href } } (у карточки главы — { lines, link }):
+    // то и другое показывается только после «Показать ответ», и кнопки оценки — вместе с ним.
     if (kindOf(id) === "quiz") {
       // Ответ и глава — из банка квиза по тексту вопроса (как у mix: — из банка задач): у вопроса мог смениться
       // верный ответ или глава, а meta — снимок на момент промаха. Вопроса в банке больше нет — снимок.
@@ -1035,6 +1101,13 @@
           box.appendChild(el("p", "algo-today__q", para));
         });
       }
+      if (info.questions) {
+        var qList = el("ol", "algo-today__questions");
+        info.questions.forEach(function (q) {
+          qList.appendChild(el("li", null, q));
+        });
+        box.appendChild(qList);
+      }
       box.appendChild(el("p", "algo-today__what", info.what));
       if (info.see) {
         var see = el("p", "algo-today__see", "Глава: ");
@@ -1095,8 +1168,8 @@
           var reveal = el("button", "algo-quiz__btn algo-today__reveal", "Показать ответ");
           reveal.type = "button";
           reveal.onclick = function () {
-            var ans = el("p", "algo-today__answer", "Ответ: " + (info.answer.text || ""));
-            if (info.answer.link) {
+            var ans = info.answer.lines ? linesAnswer(info.answer) : el("p", "algo-today__answer", "Ответ: " + (info.answer.text || ""));
+            if (info.answer.link && !info.answer.lines) {
               if (info.answer.text) ans.appendChild(document.createTextNode(". Глава: "));
               var link = el("a", null, info.answer.link.text);
               link.href = info.answer.link.href;

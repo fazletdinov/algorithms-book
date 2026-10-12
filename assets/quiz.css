@@ -496,6 +496,27 @@
   font-weight: 600;
 }
 
+/* Карточка главы: три вопроса до ответа, строки «Что унести» — в ответе. Строки длинные (до 40 слов),
+   полужирным их не дочитать — вес обычный, ссылка на главу под ними. */
+.algo-today__questions,
+.algo-today__lines {
+  margin: 0 0 0.6em;
+  padding-left: 1.4em;
+  line-height: 1.5;
+}
+.algo-today__questions li,
+.algo-today__lines li {
+  margin: 0.15em 0;
+}
+.algo-today__lines {
+  font-weight: normal;
+}
+.algo-today__check {
+  margin: 0;
+  font-size: 0.93em;
+  font-weight: normal;
+}
+
 .algo-today__what,
 .algo-today__see {
   margin: 0 0 0.7em;
