@@ -42,7 +42,7 @@ const chapter = fs.readFileSync(path.join(root, "src", "sliding-window.md"), "ut
 const vizTag = (chapter.match(/<div class="algo-viz" data-viz="sliding-window-fixed"[^>]*><\/div>/) || [])[0];
 if (!vizTag) { console.error("✗ keys-check: в sliding-window.md не найден виджет sliding-window-fixed"); process.exit(1); }
 // Статический рисунок: узлы в фокусе, Esc снимает подсветку — и только он рисунку нужен.
-const figTag = (fs.readFileSync(path.join(root, "src", "trie-structure.md"), "utf8").match(/<div class="algo-fig"[^>]*><\/div>/) || [])[0];
+const figTag = (fs.readFileSync(path.join(root, "src", "trie-structure.md"), "utf8").match(/<div\s[^>]*\bclass="(?:[^"]*\s)?algo-fig(?:\s[^"]*)?"[^>]*><\/div>/) || [])[0];
 if (!figTag) { console.error("✗ keys-check: в trie-structure.md не найден рисунок .algo-fig"); process.exit(1); }
 
 // Подставной runner: заготовка с двумя упражнениями и подсказкой — так у виджета появляются
@@ -151,19 +151,25 @@ setTimeout(() => {
     expect(press(helpBtn, "x"), "runner: контроль — необработанная «x» из панели не доплыла");
   }
 
-  // 5. Статический рисунок. Esc с подсвеченного узла снимает подсветку и до document не доходит;
-  //    стрелки рисунок не трогает — им положено листать главу, как в остальном тексте.
+  // 5. Статический рисунок. Одна остановка Tab — сам рисунок; Enter — внутрь, фокус на первом узле;
+  //    Esc с узла снимает подсветку, возвращает фокус на рисунок и до document не доходит.
+  //    Стрелки рисунок не трогает ни снаружи, ни внутри — им положено листать главу.
   const fig = doc.getElementById("fig");
-  const figNode = fig && fig.querySelector(".algo-fig__hot[tabindex='0']");
-  expect(!!figNode, "algo-fig: нет узла в фокусе");
-  if (figNode) {
+  expect(!!fig && fig.getAttribute("tabindex") === "0", "algo-fig: рисунок не встаёт в обход Tab");
+  expect(!!fig && !fig.querySelector(".algo-fig__hot[tabindex='0']"), "algo-fig: узлы в обходе Tab до входа в рисунок");
+  if (fig) {
     const lit = () => fig.classList.contains("algo-fig--lit");
-    figNode.focus();
+    fig.focus();
+    expect(press(fig, "ArrowRight") && press(fig, "ArrowLeft"), "algo-fig: ←/→ на рисунке проглочены — mdBook не перелистнёт главу");
+    expect(!press(fig, "Enter"), "algo-fig: Enter (вход в рисунок) доплыл до document");
+    const figNode = doc.activeElement;
+    expect(!!figNode && figNode !== fig && fig.contains(figNode), "algo-fig: Enter не перевёл фокус на узел");
     expect(lit(), "algo-fig: фокус не подсветил узел");
-    expect(press(figNode, "ArrowRight") && press(figNode, "ArrowLeft"), "algo-fig: ←/→ проглочены рисунком — mdBook не перелистнёт главу");
+    expect(press(figNode, "ArrowRight") && press(figNode, "ArrowLeft"), "algo-fig: ←/→ на узле проглочены — mdBook не перелистнёт главу");
     expect(!press(figNode, "Escape"), "algo-fig: Esc с подсвеченного узла доплыл до document");
     expect(!lit(), "algo-fig: Esc не снял подсветку");
-    expect(press(figNode, "Escape"), "algo-fig: контроль — Esc без подсветки не доплыл (рисунку он уже не нужен)");
+    expect(doc.activeElement === fig, "algo-fig: Esc не вернул фокус на рисунок");
+    expect(press(fig, "Escape"), "algo-fig: контроль — Esc без подсветки не доплыл (рисунку он уже не нужен)");
   }
 
   const noise = errors.filter((e) => !/fetch|Failed to fetch|ECONNREFUSED|network/i.test(e));
@@ -172,6 +178,6 @@ setTimeout(() => {
     console.error("✗ keys-check:\n  - " + fails.join("\n  - "));
     process.exit(1);
   }
-  console.log("✓ keys-check: ←/→/Home/End/Space/F/Esc в виджете, трассе, редакторе runner'а, его списке упражнений и панели подсказок не доходят до навигации mdBook; Esc рисунка .algo-fig не доходит, а ←/→ с него — доходят");
+  console.log("✓ keys-check: ←/→/Home/End/Space/F/Esc в виджете, трассе, редакторе runner'а, его списке упражнений и панели подсказок не доходят до навигации mdBook; у рисунка .algo-fig одна остановка Tab, Enter — внутрь, Esc — наружу и не доходит, а ←/→ и снаружи, и внутри — доходят");
   process.exit(0);
 }, 300);

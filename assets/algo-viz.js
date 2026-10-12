@@ -16709,9 +16709,39 @@
   //  - последовательность («;») — узел с той же меткой во всех деревьях (метки в дереве уникальны);
   //    с data-diff рёбра, которых не было в предыдущем дереве (другой родитель у ребёнка), —
   //    янтарём всегда (зелёный акцент остаётся за подсветкой).
-  // Строка-подсказка «Наведи на узел…» — только у первого рисунка страницы.
+  // Строка-подсказка «Наведи на узел…» — одна на страницу, у первого построенного видимого рисунка (figPlaceHint).
   // Сноска @N на широкой рамке — выноска рядом с узлом с линией к нему, уже FIG_NARROW — номер
   // у узла и список под рисунком.
+  //
+  // Буквальные служебные знаки. «\» перед одним из FIG_ESC делает его обычным символом метки
+  // («n\!» — метка «n!», а не выделенный «n»; «\,» — запятая в метке). Разбор идёт по
+  // «защищённой» строке: экранированный знак заменён символом из личной области Unicode
+  // (U+E000 + его номер в FIG_ESC), и ни разделитель, ни суффикс его не видят; в подписи возвращается исходный знак.
+  // Повтор суффикса («a!!»), второй «^» и незакрытая «[» — видимая ошибка, а не молча съеденный
+  // символ: так буквальный знак, забытый без «\», не теряется.
+  var FIG_ESC = "\\!*~^@|[](),;_∅";
+  function figProtect(s) {
+    return String(s).replace(/\\(.)/g, function (m, c) {
+      var k = FIG_ESC.indexOf(c);
+      if (k < 0) throw new Error("«\\" + c + "» — такой знак экранировать не нужно (можно: " + FIG_ESC + ")");
+      return String.fromCharCode(0xE000 + k);
+    });
+  }
+  function figRestore(s) { return String(s).replace(/[\uE000-\uE01F]/g, function (c) { return FIG_ESC[c.charCodeAt(0) - 0xE000]; }); }
+  // Деление защищённой строки по sep вне «[…]» (как запятая в метке дерева «[0,3]»).
+  function figSplit(s, sep) {
+    var out = [], cur = "", sq = 0;
+    for (var i = 0; i < s.length; i++) {
+      var c = s[i];
+      if (c === "[") sq++;
+      else if (c === "]") { if (--sq < 0) throw new Error("лишняя «]» в «" + figRestore(s) + "»"); }
+      else if (c === sep && !sq) { out.push(cur.trim()); cur = ""; continue; }
+      cur += c;
+    }
+    if (sq) throw new Error("незакрытая «[» в «" + figRestore(s) + "»");
+    out.push(cur.trim());
+    return out;
+  }
   function parseFigTree(src) {
     var i = 0;
     function node() {
@@ -16719,7 +16749,7 @@
       for (; i < src.length; i++) {
         var c = src[i];
         if (c === "[") sq++;
-        else if (c === "]") sq--;
+        else if (c === "]") sq--; // скобки уже сверены: деревья делит figSplit, он и ловит непарную
         else if (sq === 0 && (c === "(" || c === "," || c === ")")) break;
         lbl += c;
       }
@@ -16757,14 +16787,16 @@
         return;
       }
       var m = /^(\^)?(.+?)([*!~]*)(?:@(\d+))?$/.exec(head);
-      if (!m) throw new Error("не разобрана метка «" + head + "»");
-      var cls = [], label = m[2], sfx = m[3];
+      if (!m) throw new Error("не разобрана метка «" + figRestore(head) + "»");
+      if (/^\^/.test(m[2])) throw new Error("метка «" + figRestore(head) + "»: «^» дважды — буквальный знак пишется «\\^»");
+      if (/(.).*\1/.test(m[3])) throw new Error("метка «" + figRestore(head) + "»: суффикс «" + m[3] + "» с повтором — буквальный знак пишется через «\\»");
+      var cls = [], label = figRestore(m[2]), sfx = m[3];
       if (m[1]) cls.push("algo-fig__sub");
       if (sfx.indexOf("*") >= 0) { cls.push("algo-tp__tnode--end"); label += " ★"; }
       if (sfx.indexOf("!") >= 0) cls.push("algo-tp__tnode--current");
       if (sfx.indexOf("~") >= 0) cls.push("algo-fig__trail");
       var me = out.length;
-      out.push({ parent: parent, label: label, base: m[2], end: sfx.indexOf("*") >= 0, trail: sfx.indexOf("~") >= 0, sub: bar < 0 ? null : n.text.slice(bar + 1).trim(), cls: cls.join(" "), note: m[4] ? +m[4] : 0, leaf: !n.kids.length });
+      out.push({ parent: parent, label: label, base: figRestore(m[2]), end: sfx.indexOf("*") >= 0, trail: sfx.indexOf("~") >= 0, sub: bar < 0 ? null : figRestore(n.text.slice(bar + 1).trim()), cls: cls.join(" "), note: m[4] ? +m[4] : 0, leaf: !n.kids.length });
       n.kids.forEach(function (k) { walk(k, me); });
       // лист — у кого нет настоящих детей (пустые места «_» не в счёт): под ним ряд data-row
       out[me].leaf = !n.kids.some(function (k) { return k.text.trim() !== "_"; });
@@ -16923,8 +16955,10 @@
   }
   // Ключи подсветки: что зажигает каждый ключ — hl (сам узел), path (предки, соседи вершины),
   // edges, cells (ячейки ряда, узлы списка), words (слова бора), aux (плашки, отрезки, подписи
-  // строк и столбцов, строки списка смежности). hot — элемент реагирует на наведение/касание,
-  // tab — встаёт в фокус клавиатуры (атрибутом: у SVG-кругов графа свойство tabIndex есть не везде).
+  // строк и столбцов, строки списка смежности). hot — элемент реагирует на наведение/касание;
+  // tab — по нему ходит клавиатура внутри рисунка (data-fig-tab): до входа в рисунок tabindex −1,
+  // в обходе Tab он не стоит — у рисунка одна остановка Tab, сам рисунок (см. figInteract).
+  // Атрибутом, а не свойством: у SVG-кругов графа свойства tabIndex есть не везде.
   function figKeys() {
     var groups = {};
     return {
@@ -16932,7 +16966,7 @@
       g: function (k) { return groups[k] || (groups[k] = { hl: [], path: [], edges: [], cells: [], words: [], aux: [] }); },
       hot: function (x, key, tab) {
         x.classList.add("algo-fig__hot"); x.setAttribute("data-fig-key", key);
-        if (tab) x.setAttribute("tabindex", "0");
+        if (tab) { x.setAttribute("data-fig-tab", "1"); x.setAttribute("tabindex", "-1"); }
       }
     };
   }
@@ -16999,11 +17033,30 @@
       var k = keyOf(e.target);
       if (k && st.pin !== k) { st.pin = k; show(); } else clear();
     });
-    // Esc снимает подсветку и дальше не идёт; стрелки рисунку не нужны — их листает mdBook.
+    // Клавиатура. У рисунка одна остановка Tab — сам рисунок (имя — подпись). Enter или пробел на
+    // нём — вход: его узлы (data-fig-tab) встают в обход Tab, фокус — на первый; Tab и Shift+Tab
+    // ходят по ним, фокус подсвечивает как наведение. Esc — выход: подсветка снята, фокус на
+    // рисунке. Фокус ушёл из рисунка — узлы снова вне обхода. Стрелки рисунок НЕ трогает ни в
+    // каком состоянии: их листает mdBook (перехват ←/→ уводил бы читателя с главы на месте).
+    function tabs() { return [].slice.call(el.querySelectorAll("[data-fig-tab]")); }
+    function inside(on) { tabs().forEach(function (x) { x.setAttribute("tabindex", on ? "0" : "-1"); }); }
     el.addEventListener("keydown", function (e) {
-      if (e.key !== "Escape" || !(st.hover || st.focus || st.pin)) return;
-      clear(); e.preventDefault(); e.stopPropagation();
+      if (e.target === el && (e.key === "Enter" || e.key === " ")) {
+        var t = tabs();
+        if (!t.length) return;
+        inside(true); t[0].focus();
+        e.preventDefault(); e.stopPropagation();
+        return;
+      }
+      if (e.key !== "Escape") return;
+      var a = document.activeElement, deep = a && a !== el && el.contains(a);
+      if (!deep && !(st.hover || st.focus || st.pin)) return; // нечего снимать — Esc идёт дальше
+      st.hover = st.pin = null;
+      if (deep) { inside(false); el.focus(); }
+      st.focus = null; show();
+      e.preventDefault(); e.stopPropagation();
     });
+    el.addEventListener("focusout", function (e) { if (!e.relatedTarget || !el.contains(e.relatedTarget)) inside(false); });
     if (!figClearers) {
       figClearers = [];
       document.addEventListener("click", function (e) { figClearers.forEach(function (f) { f(e.target); }); });
@@ -17017,7 +17070,8 @@
   // (algo-nn__cell, algo-nn__idx, algo-nn__tagtx на ножке), но раскладка — CSS-сетка, колонка на
   // позицию: плашки, отрезки и подписи встают в свои колонки сами, без замеров offsetLeft (у
   // виджета плашки ездят, у рисунка двигаться нечему).
-  //   data-array   — ряды через «;», ячейки через «,»; «_» — пустое место (ничего не рисуется),
+  //   data-array   — ряды через «;», ячейки через «,» (вне «[…]»: «[1,2]» — одна ячейка; буквальный
+  //                  знак — через «\\», см. FIG_ESC); «_» — пустое место (ничего не рисуется),
   //                  суффикс «!» — выделенная ячейка, «@a-b» (или «@a») — значение посчитано по
   //                  ячейкам a…b первого ряда (наведение их подсветит)
   //   data-rows    — подписи рядов через «;»; data-index — первый номер позиции («0» по умолчанию,
@@ -17028,11 +17082,13 @@
   // Позиции — в номерах data-index (у Фенвика — с единицы). Наведение: указатель или отрезок —
   // свои ячейки; ячейка — свои плашки, накрывающие её отрезки, подпись своего ряда и номер, а
   // при «@a-b» — ячейки a…b.
+  // tok — защищённый кусок (figProtect): экранированные «\!», «\@», «\_» сюда не доходят знаками
   function figCellTok(tok, base, n, where) {
     if (tok === "_") return { gap: true };
     var m = /^(.*?)(!)?(?:@(\d+)(?:-(\d+))?)?$/.exec(tok);
-    if (!m || !m[1]) throw new Error("пустая ячейка «" + tok + "» в " + where);
-    var t = { v: m[1], mark: !!m[2] };
+    if (!m || !m[1]) throw new Error("пустая ячейка «" + figRestore(tok) + "» в " + where);
+    if (/!$/.test(m[1])) throw new Error("ячейка «" + figRestore(tok) + "»: «!» дважды — буквальный знак пишется «\\!»");
+    var t = { v: figRestore(m[1]), mark: !!m[2] };
     if (m[3] != null) {
       t.lo = +m[3] - base; t.hi = (m[4] != null ? +m[4] : +m[3]) - base;
       if (t.lo < 0 || t.hi < t.lo || t.hi >= n) throw new Error("ячейка «" + tok + "»: отрезок вне первого ряда");
@@ -17040,17 +17096,17 @@
     return t;
   }
   function figPtrList(v) {
-    return splitList(v, ",").filter(Boolean).map(function (s) {
+    return figSplit(figProtect(v || ""), ",").filter(Boolean).map(function (s) {
       var at = s.lastIndexOf("@");
-      if (at <= 0 || !/^\d+$/.test(s.slice(at + 1))) throw new Error("указатель «" + s + "»: ждали «имя@позиция»");
-      return { name: s.slice(0, at).trim(), at: +s.slice(at + 1) };
+      if (at <= 0 || !/^\d+$/.test(s.slice(at + 1))) throw new Error("указатель «" + figRestore(s) + "»: ждали «имя@позиция»");
+      return { name: figRestore(s.slice(0, at).trim()), at: +s.slice(at + 1) };
     });
   }
   function figRangeList(v) {
-    return splitList(v, ";").filter(Boolean).map(function (s) {
+    return figSplit(figProtect(v || ""), ";").filter(Boolean).map(function (s) {
       var at = s.lastIndexOf("@"), m = at > 0 && /^(\d+)(?:-(\d+))?$/.exec(s.slice(at + 1));
-      if (!m) throw new Error("отрезок «" + s + "»: ждали «подпись@a-b»");
-      return { label: s.slice(0, at).trim(), lo: +m[1], hi: m[2] != null ? +m[2] : +m[1] };
+      if (!m) throw new Error("отрезок «" + figRestore(s) + "»: ждали «подпись@a-b»");
+      return { label: figRestore(s.slice(0, at).trim()), lo: +m[1], hi: m[2] != null ? +m[2] : +m[1] };
     });
   }
   var FIG_BAR_H = 180; // px — высота самого высокого столбика при data-bars: у столбика 1 из 6 — 30px, под цифру хватает
@@ -17149,7 +17205,8 @@
   function figGridFromAttrs(el, labelAttr) {
     var ix = el.getAttribute("data-index");
     return figGrid({
-      rows: splitList(el.getAttribute("data-array"), ";").map(function (r) { return splitList(r, ","); }),
+      // ряды и ячейки делятся вне «[…]»: ячейка «[1,2]» — одна, как метка дерева «[0,3]»
+      rows: figSplit(figProtect(el.getAttribute("data-array") || ""), ";").map(function (r) { return figSplit(r, ","); }),
       rowLabels: splitList(el.getAttribute(labelAttr), ";"),
       base: ix === "none" ? null : ix ? +ix : 0, indexLabel: el.getAttribute("data-index-label") || "",
       top: figPtrList(el.getAttribute("data-ptrs-top")), bot: figPtrList(el.getAttribute("data-ptrs")),
@@ -17188,23 +17245,25 @@
 
   // ===== Связные списки: data-fig="list" ======================================
   // Узлы и стрелки — классы списков виджетов (algo-tp__llnode, algo-tp__llarrow, algo-tp__llnil).
-  //   data-list — списки через «;», значения через «,»; пустой список — «∅»; суффикс «!» — выделен
+  //   data-list — списки через «;», значения через «,» (вне «[…]»); пустой список — пусто или «∅»
+  //   (узел со знаком ∅ — «\∅»); суффикс «!» — выделен
   //   data-rows — подписи списков через «;» (бакеты); data-ptrs — «имя@i» или «имя@список:i» над
   //   узлом; data-end — чем кончается список («nil» по умолчанию, пусто — ничем)
   // Наведение: узел — путь до него от головы (так до узла и добираются: по Next с начала);
   // указатель — его узел; подпись — весь список.
   function figBuildList(el, body, K) {
-    var lists = splitList(el.getAttribute("data-list"), ";"), labs = splitList(el.getAttribute("data-rows"), ";");
+    var lists = figSplit(figProtect(el.getAttribute("data-list") || ""), ";"), labs = splitList(el.getAttribute("data-rows"), ";");
     if (!lists.length) throw new Error("пустой data-list");
     var end = el.hasAttribute("data-end") ? el.getAttribute("data-end") : "nil";
-    var ptrs = splitList(el.getAttribute("data-ptrs"), ",").filter(Boolean).map(function (s) {
+    var ptrs = figSplit(figProtect(el.getAttribute("data-ptrs") || ""), ",").filter(Boolean).map(function (s) {
       var m = /^(.+)@(?:(\d+):)?(\d+)$/.exec(s);
-      if (!m) throw new Error("указатель «" + s + "»: ждали «имя@i» или «имя@список:i»");
-      return { name: m[1].trim(), r: m[2] != null ? +m[2] : 0, i: +m[3] };
+      if (!m) throw new Error("указатель «" + figRestore(s) + "»: ждали «имя@i» или «имя@список:i»");
+      return { name: figRestore(m[1].trim()), r: m[2] != null ? +m[2] : 0, i: +m[3] };
     });
     var wrap = mkEl("div", "algo-fig__lists" + (ptrs.length ? " algo-fig__lists--ptrs" : ""));
     var rows = lists.map(function (src, r) {
-      var vals = src ? splitList(src, ",") : [], row = mkEl("div", "algo-fig__lrow");
+      // пусто или «∅» — пустой список (как ∅ на рисунке), а не узел со знаком ∅
+      var vals = src && src !== "∅" ? figSplit(src, ",") : [], row = mkEl("div", "algo-fig__lrow");
       var lab = labs[r] ? mkEl("div", "algo-fig__rowlab", labs[r]) : null;
       if (lab) row.appendChild(lab);
       var ll = mkEl("div", "algo-tp__ll algo-fig__ll"), nodes = [], arrows = [];
@@ -17213,6 +17272,8 @@
       vals.forEach(function (v, i) {
         var m = /^(.*?)(!)?$/.exec(v);
         if (!m[1]) throw new Error("пустой узел в списке " + (r + 1));
+        if (/!$/.test(m[1])) throw new Error("узел «" + figRestore(v) + "»: «!» дважды — буквальный знак пишется «\\!»");
+        m[1] = figRestore(m[1]);
         var slot = mkEl("div", "algo-fig__lslot"), pb = mkEl("div", "algo-fig__ptrs algo-fig__ptrs--top");
         var nd = mkEl("div", "algo-tp__llnode algo-fig__lnode" + (m[2] ? " algo-tp__llnode--found" : ""), m[1]);
         slot.appendChild(pb); slot.appendChild(nd); ll.appendChild(slot);
@@ -17280,6 +17341,9 @@
     }
     labels.forEach(function (l, i) {
       var key = "v" + i, gr = K.g(key);
+      // у круга нет текста внутри (метка — соседний <text>): имя для экранного чтения — явно
+      circles[i].setAttribute("role", "img");
+      circles[i].setAttribute("aria-label", "вершина " + l + ", соседи: " + (adj[i].length ? adj[i].map(function (j) { return labels[j]; }).join(", ") : "нет"));
       gr.hl.push(circles[i]); K.hot(circles[i], key, true);
       adj[i].forEach(function (j) { if (gr.path.indexOf(circles[j]) < 0) gr.path.push(circles[j]); });
       edges.forEach(function (e, k) { if (e[0] === i || e[1] === i) gr.edges.push(lines[k]); });
@@ -17290,7 +17354,7 @@
 
   // ===== Деревья: data-fig="tree" ==============================================
   function figBuildTree(el, body, K) {
-    var trees = splitList(el.getAttribute("data-tree"), ";"), titles = splitList(el.getAttribute("data-titles"), ";");
+    var trees = figSplit(figProtect(el.getAttribute("data-tree") || ""), ";").filter(Boolean), titles = splitList(el.getAttribute("data-titles"), ";");
     var notes = splitList(el.getAttribute("data-notes"), "||"), row = el.getAttribute("data-row");
     if (!trees.length) throw new Error("пустой data-tree");
     // лес (data-forest): деревья рядом, без стрелок, каждое подсвечивается само по себе;
@@ -17396,10 +17460,16 @@
     var scroll = mkEl("div", "algo-fig__scroll");
     scroll.appendChild(body); el.appendChild(scroll);
     var cap = el.getAttribute("data-caption");
-    if (cap) el.appendChild(mkEl("div", "algo-fig__caption", cap));
-    // подсказка — один раз на страницу: на втором рисунке читатель уже знает, что узлы живые
-    if (document.querySelector(".algo-fig") === el) el.appendChild(mkEl("div", "algo-fig__hint", r.hint));
     el.setAttribute("role", "figure");
+    el.setAttribute("tabindex", "0"); // одна остановка Tab на рисунок; внутрь — Enter (figInteract)
+    if (cap) {
+      var capEl = mkEl("div", "algo-fig__caption", cap);
+      capEl.id = "algo-fig-cap-" + (++figSeq);
+      el.appendChild(capEl);
+      el.setAttribute("aria-labelledby", capEl.id);
+    }
+    // подсказку ставит figPlaceHint — одну на страницу, когда построены все рисунки
+    el.__algoFigHint = r.hint;
     figInteract(el, K.groups);
     // Сначала раскладка без масштаба (выноски меряются в настоящих пикселях), потом — как у
     // рисунков деревьев в виджетах: ужать целиком, но не мельче 0.75 — дальше честнее прокрутка
@@ -17412,19 +17482,43 @@
       var w = body.scrollWidth;
       if (avail > 0 && w > avail) body.style.zoom = String(Math.round(Math.max(0.75, avail / w) * 1000) / 1000);
     }
-    el.__algoFigLayout = layout; // fig-check: у jsdom нет ширины, раскладку он зовёт сам
+    // Повторные раскладки (ширина рамки, догруженный шрифт) — в той же обёртке, что первая
+    // отрисовка: исключение там иначе уходило бы в консоль, а рисунок молча оставался полуразложенным.
+    function relayout() {
+      if (el.__algoFigFailed) return;
+      try { layout(); } catch (err) { figFail(el, err); }
+    }
+    el.__algoFigLayout = relayout; // fig-check: у jsdom нет ширины, раскладку он зовёт сам
     layout();
-    if (window.ResizeObserver) new ResizeObserver(function () { (window.requestAnimationFrame || setTimeout)(layout); }).observe(scroll);
+    if (window.ResizeObserver) new ResizeObserver(function () { (window.requestAnimationFrame || setTimeout)(relayout); }).observe(scroll);
     // высота выносок зависит от шрифта, а он догружается после первой раскладки
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
+  }
+  var figSeq = 0;
+  function figFail(el, err) {
+    el.__algoFigFailed = true; delete el.__algoFigHint;
+    if (window.console && console.error) console.error("algo-fig: не удалось построить рисунок:", err);
+    el.textContent = "";
+    ["role", "tabindex", "aria-labelledby"].forEach(function (a) { el.removeAttribute(a); });
+    el.appendChild(mkEl("div", "algo-tp__note", "⚠️ Ошибка рисунка: " + (err && err.message ? err.message : err)));
   }
   function renderFigSafe(el) {
     el.classList.add("algo-fig--ready");
-    try { renderFig(el); } catch (err) {
-      if (window.console && console.error) console.error("algo-fig: не удалось построить рисунок:", err);
-      el.textContent = "";
-      el.appendChild(mkEl("div", "algo-tp__note", "⚠️ Ошибка рисунка: " + (err && err.message ? err.message : err)));
-    }
+    try { renderFig(el); } catch (err) { figFail(el, err); }
+  }
+  // Подсказка «Наведи…» — одна на страницу, у первого построенного рисунка, который виден:
+  // рисунок в свёрнутом <details> (или под hidden) её не забирает — иначе читатель её не увидел бы.
+  // Видимых нет — у первого построенного. aria-hidden: это про мышь и палец, экранному чтению
+  // хватает подписи рисунка.
+  function figPlaceHint() {
+    if (document.querySelector(".algo-fig__hint")) return;
+    var ok = [].slice.call(document.querySelectorAll(".algo-fig--ready")).filter(function (f) { return f.__algoFigHint && !f.__algoFigFailed; });
+    var vis = ok.filter(function (f) { return !f.closest("details:not([open])") && !f.closest("[hidden]"); });
+    var f = vis[0] || ok[0];
+    if (!f) return;
+    var h = mkEl("div", "algo-fig__hint", f.__algoFigHint);
+    h.setAttribute("aria-hidden", "true");
+    f.appendChild(h);
   }
 
   // ===== Внешняя регистрация типов ============================================
@@ -17507,6 +17601,7 @@
     initTabs();
     Array.prototype.forEach.call(document.querySelectorAll(".algo-viz:not(.algo-viz--ready)"), render);
     Array.prototype.forEach.call(document.querySelectorAll(".algo-fig:not(.algo-fig--ready)"), renderFigSafe);
+    figPlaceHint();
     revealHash();
     if (document.readyState !== "complete") window.addEventListener("load", revealHash);
     window.addEventListener("hashchange", revealHash);

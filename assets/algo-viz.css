@@ -2482,6 +2482,9 @@ body.algo-tp-fslock { overflow: hidden; }
 
 /* --- подсветка: узел — кольцо акцента, путь — кольцо потоньше, остальное приглушено --- */
 .algo-fig__hot { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+/* сам рисунок — одна остановка Tab; внутрь — Enter */
+.algo-fig:focus { outline: none; }
+.algo-fig:focus-visible { outline: 2px dashed var(--fig-accent); outline-offset: 3px; }
 .algo-fig__hot:focus { outline: none; }
 .algo-fig__hot:focus-visible { outline: 2px dashed var(--fig-accent); outline-offset: 4px; }
 .algo-fig .algo-tp__tfignode.algo-fig__hl { box-shadow: 0 0 0 3px var(--fig-accent), 0 0 18px -2px color-mix(in srgb, var(--fig-accent) 60%, transparent); }
@@ -2602,7 +2605,7 @@ body.algo-tp-fslock { overflow: hidden; }
 
 /* узкая рамка: ячейки и зазоры меньше — 8 позиций Фенвика встают без прокрутки */
 @container algo-fig (max-width: 520px) {
-  .algo-fig__grid { --nn-size: 2.15em; --fig-col: 2.4em; column-gap: 5px; row-gap: 4px; }
+  .algo-fig__grid { --nn-size: 2.15em; --fig-col: 2.15em; column-gap: 5px; row-gap: 4px; }
   .algo-fig .algo-fig__grid .algo-nn__cell { font-size: 0.92em; border-radius: 8px; }
   .algo-fig__rowlab { font-size: 0.72em; }
   /* плашки соседних позиций (left · top в гистограмме) иначе сливались в одну */
