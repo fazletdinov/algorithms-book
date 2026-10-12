@@ -929,7 +929,7 @@ for внутри for, или for/range вперемешку) и if/else любо
 `.github/workflows/ci.yml`: job `go-tests`, `assets-check` и `build-book` (`mdbook build`
 + `check-links.js`) должны пройти. Публикации нет (job `deploy` убран 2026-10-12: репозиторий
 приватный, Pages на бесплатном тарифе недоступны; книгу читают локально). Job `build-book` после сборки прогоняет `node scripts/check-links.js`
-— целостность внутренних ссылок/якорей по собранному `book/`.
+— целостность внутренних ссылок/якорей по собранному `book/`, и markdown-ссылок `[..](..)`, и `<a href>` в HTML-блоках глав («Вспомни», «Что унести»).
 
 Job `go-tests` (working-directory `exercises/`) проверяет четыре инварианта:
 1. `gofmt -l .` — всё отформатировано;

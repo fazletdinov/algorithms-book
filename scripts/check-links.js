@@ -5,6 +5,7 @@
 //  1) ссылка [..](foo.md) на несуществующую главу;
 //  2) ссылка [..](foo.md#anchor) или [..](#anchor) на несуществующий якорь;
 //  3) ссылка на отсутствующий локальный файл (картинка/папка).
+// То же — для <a href="…"> внутри HTML-блоков глав (их markdown-регэксп не видит).
 // Якоря берём из СОБРАННОГО book/*.html (это авторитетный источник — ровно те id,
 // что сгенерировал mdBook), поэтому угадывать алгоритм слагов не нужно.
 // Внешние http(s)-ссылки тут НЕ проверяются (см. check-links-external при наличии).
@@ -35,8 +36,11 @@ for (const hf of fs.readdirSync(bookDir).filter((n) => n.endsWith(".html"))) {
 }
 
 const linkRe = /\[(?:[^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+// <a href="…"> в HTML-блоках глав («Вспомни», «Что унести», карточки): mdBook переписывает в них
+// .md → .html так же, как в markdown-ссылках, поэтому проверяются они тем же путём.
+const htmlLinkRe = /<a\s[^>]*?\bhref="([^"]+)"/g;
 const broken = [];
-let total = 0, external = 0;
+let total = 0, external = 0, htmlLinks = 0;
 
 for (const mf of fs.readdirSync(srcDir).filter((n) => n.endsWith(".md"))) {
   const base = mf.slice(0, -3);
@@ -44,8 +48,13 @@ for (const mf of fs.readdirSync(srcDir).filter((n) => n.endsWith(".md"))) {
   // рисунков: data-tree дерева отрезков «3|[0,1](2|[0,0],…)» — разметка дерева, а не ссылка
   // (внутри HTML-тега mdBook ссылок не делает)
   const text = fs.readFileSync(path.join(srcDir, mf), "utf8").replace(/```[\s\S]*?```/g, "").replace(/<div\s[^>]*\bclass="(?:[^"]*\s)?algo-fig(?:\s[^"]*)?"[^>]*>/g, "");
-  for (const m of text.matchAll(linkRe)) {
-    let tgt = m[1].trim();
+  const targets = [...text.matchAll(linkRe)].map((m) => m[1]);
+  for (const m of text.matchAll(htmlLinkRe)) {
+    if (!/^(https?:|mailto:|tel:)/.test(m[1].trim())) htmlLinks++;
+    targets.push(m[1]);
+  }
+  for (const raw of targets) {
+    let tgt = raw.trim();
     if (/^(https?:|mailto:|tel:)/.test(tgt)) { external++; continue; }
     total++;
     let page, anchor;
@@ -77,4 +86,4 @@ if (broken.length) {
   console.error(`\n❌ check-links: ${broken.length} битых ссылок (из ${total} внутренних)`);
   process.exit(1);
 }
-console.log(`✅ check-links: ${total} внутренних ссылок и якорей валидны (${external} внешних не проверялись), ${Object.keys(ids).length} страниц`);
+console.log(`✅ check-links: ${total} внутренних ссылок и якорей валидны (из них ${htmlLinks} — <a href> в HTML-блоках; ${external} внешних не проверялись), ${Object.keys(ids).length} страниц`);
