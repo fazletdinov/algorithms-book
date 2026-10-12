@@ -452,6 +452,20 @@ go test -tags solution ./treebfs/  # эталон
 
 <div class="algo-runner" data-pkg="treebfs" data-trace-calls='[{"func": "LevelOrder", "call": "LevelOrder(&treebfs.TreeNode{Val: 1, Left: &treebfs.TreeNode{Val: 2, Left: &treebfs.TreeNode{Val: 4}, Right: &treebfs.TreeNode{Val: 5}}, Right: &treebfs.TreeNode{Val: 3}})"}, {"func": "ZigzagLevelOrder", "call": "ZigzagLevelOrder(&treebfs.TreeNode{Val: 1, Left: &treebfs.TreeNode{Val: 2, Left: &treebfs.TreeNode{Val: 4}, Right: &treebfs.TreeNode{Val: 5}}, Right: &treebfs.TreeNode{Val: 3}})"}, {"func": "RightSideView", "call": "RightSideView(&treebfs.TreeNode{Val: 1, Left: &treebfs.TreeNode{Val: 2, Left: &treebfs.TreeNode{Val: 4}, Right: &treebfs.TreeNode{Val: 5}}, Right: &treebfs.TreeNode{Val: 3}})"}, {"func": "LevelAverages", "call": "LevelAverages(&treebfs.TreeNode{Val: 1, Left: &treebfs.TreeNode{Val: 2, Left: &treebfs.TreeNode{Val: 4}, Right: &treebfs.TreeNode{Val: 5}}, Right: &treebfs.TreeNode{Val: 3}})"}, {"func": "MinDepth", "call": "MinDepth(&treebfs.TreeNode{Val: 1, Left: &treebfs.TreeNode{Val: 2, Left: &treebfs.TreeNode{Val: 4}, Right: &treebfs.TreeNode{Val: 5}}, Right: &treebfs.TreeNode{Val: 3}})"}]'></div>
 
+> 🏁 **Глава сдана выше.** Дальше — только итог.
+
+<div class="algo-mental">
+  <div class="algo-mental__icon">📌</div>
+  <div class="algo-mental__body">
+    <div class="algo-mental__title">Что унести</div>
+    <ul>
+      <li><b>Сигнал.</b> «По уровням», «построчно», «вид справа», «зигзаг», «минимальная глубина», «среднее уровня» — важна глубина узла, а не путь до листа.</li>
+      <li><b>Должно быть верно.</b> В момент снимка размера очереди в ней ровно узлы текущего уровня: извлекаешь столько же, а их дети встают в хвост следующим уровнем.</li>
+      <li><b>Ломается</b>, когда ответ узла зависит от поддеревьев или нужен путь от корня до листа, — бери <a href="tree-dfs.md">DFS</a>; на широком дереве очередь держит до половины узлов.</li>
+    </ul>
+  </div>
+</div>
+
 ## 🔗 Связанные шаблоны
 
 - **[Tree DFS](tree-dfs.md)** — обход в глубину; память O(h) вместо O(w), удобен для
