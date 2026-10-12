@@ -14,6 +14,8 @@
 // (R2, R3, R4: черта, «Что унести», порядок), без «Запомни» и «🧭» (R1, R5, R6).
 // Глава не перестроена целиком, но конец у неё уже по образцу; при перестройке
 // (пункт 14 плана) она переходит из ENDED в REBUILT. Слаг в обоих списках — ошибка.
+// Покрытие: REBUILT ∪ ENDED = главы lvl "core" из assets/progress.js (без --only) — новая глава
+// ядра без конца или слаг вне ядра в списках роняют проверку.
 //
 // Самопроверка гоняется ВСЕГДА, на встроенных образцах (хорошая глава зелёная,
 // каждое из правил по очереди ломается и краснеет своим сообщением): пока список
@@ -40,7 +42,8 @@ const REBUILT = ["graphs", "sorting", "monotonic-stack", "modified-binary-search
 // Слаги глав, у которых проверяется только конец (R2–R4). Пополняется задачами 3–6 этапа 3b.
 const ENDED = ["big-o", "recursion", "invariants", "hash-table-structure", "linked-list-structure",
   "sliding-window", "prefix-sums", "two-pointers", "fast-slow-pointers", "merge-intervals",
-  "bst-structure", "tree-bfs", "tree-dfs", "heap-structure", "top-k-elements"];
+  "bst-structure", "tree-bfs", "tree-dfs", "heap-structure", "top-k-elements",
+  "backtracking", "topological-sort", "greedy", "dynamic-programming"];
 
 const ZAPOMNI_MAX_LI = 3;
 const ZAPOMNI_MAX_WORDS = 60;
@@ -236,6 +239,13 @@ function selfTest() {
     if (!got.some((e) => e.includes(rule)))
       errs.push(`самопроверка: в режиме end поломка ${JSON.stringify(opts)} не поймана правилом ${rule}`);
   }
+  // покрытие ядра: глава ядра вне списков и слаг списков вне ядра — оба красные
+  const prog = '{ h: "a.html", lvl: "core" }, { h: "b.html", lvl: "core" }, { h: "c.html", lvl: "ext" }';
+  if (coverageErrors(coreSlugs(prog), ["a"], ["b"]).length) errs.push("самопроверка: полное покрытие ядра покраснело");
+  if (!coverageErrors(coreSlugs(prog), ["a"], []).some((e) => e.includes("глава ядра b")))
+    errs.push("самопроверка: глава ядра вне REBUILT/ENDED не поймана");
+  if (!coverageErrors(coreSlugs(prog), ["a", "c"], ["b"]).some((e) => e.includes("слаг c")))
+    errs.push("самопроверка: слаг вне ядра в списках не пойман");
   const li3 = "<li><b>Сигнал.</b> а</li><li><b>Должно быть верно.</b> б</li>";
   const lab = (l3) => `    <ul><li><b>Сигнал.</b> а</li><li><b>Должно быть верно.</b> б</li><li>${l3} в</li></ul>`;
   for (const l3 of ["**Ломается**", "<b>Ломается.</b>", "<b>Ломается</b>.", "<b>Ломается</b>"]) {
@@ -269,6 +279,20 @@ function selfTest() {
   return errs;
 }
 
+// Покрытие ядра: каждая глава lvl "core" из assets/progress.js стоит в REBUILT или ENDED, и в
+// списках нет глав вне ядра. Разбор — тем же регэкспом, что в check-registries.js (пункт 1b).
+function coreSlugs(progressText) {
+  return [...progressText.matchAll(/h:\s*"([\w-]+)\.html",\s*lvl:\s*"(\w+)"/g)].filter((m) => m[2] === "core").map((m) => m[1]);
+}
+function coverageErrors(core, rebuilt, ended) {
+  const listed = new Set([...rebuilt, ...ended]);
+  const coreSet = new Set(core);
+  const errs = [];
+  for (const s of core) if (!listed.has(s)) errs.push(`глава ядра ${s} не в REBUILT и не в ENDED`);
+  for (const s of listed) if (!coreSet.has(s)) errs.push(`слаг ${s} в REBUILT/ENDED, но не глава ядра (lvl: "core" в assets/progress.js)`);
+  return errs;
+}
+
 function main() {
   const root = path.resolve(__dirname, "..");
   const args = process.argv.slice(2);
@@ -286,6 +310,11 @@ function main() {
   const errors = selfTest();
   for (const slug of REBUILT.filter((s) => ENDED.includes(s)))
     errors.push(`src/${slug}.md: слаг «${slug}» одновременно в REBUILT и в ENDED — глава в одном списке`);
+  if (!only) {
+    const core = coreSlugs(fs.readFileSync(path.join(root, "assets", "progress.js"), "utf8"));
+    if (!core.length) errors.push("assets/progress.js: не найдено ни одной главы lvl: \"core\" — разбор сломан");
+    errors.push(...coverageErrors(core, REBUILT, ENDED));
+  }
   const jobs = only
     ? [[only, endFlag ? "end" : "full"]]
     : [...REBUILT.map((s) => [s, "full"]), ...ENDED.map((s) => [s, "end"])];
@@ -310,5 +339,5 @@ function main() {
   );
 }
 
-module.exports = { REBUILT, ENDED, checkChapter, selfTest, mentalBlocks, titleOf, bodyOf, itemsOf, decode, TAKEAWAY_LABELS, takeawayLabel };
+module.exports = { REBUILT, ENDED, checkChapter, selfTest, mentalBlocks, titleOf, bodyOf, itemsOf, decode, TAKEAWAY_LABELS, takeawayLabel, coreSlugs, coverageErrors };
 if (require.main === module) main();
