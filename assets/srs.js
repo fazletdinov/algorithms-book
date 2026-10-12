@@ -142,6 +142,7 @@
   // на которой был промах, и без этой карты вела бы туда, где виджета уже нет.
   var VIZ_MOVED = {
     "heap-sort": { from: "sorting.html", to: "heap-structure.html" }, // этап 3a: пирамидальная — в главу о куче
+    "binary-search-first": { from: "modified-binary-search.html", to: "go-stdlib-structures.html" }, // этап 3a: в главе бинпоиска одна форма границы, виджет с кандидатом остался в главе о stdlib
   };
   var TODAY = "algoToday"; // счётчик дня: { day, done, heavy, later } — в экспорт прогресса не входит
   // Черновик виджета на карточке пакета (data-draft="review", ключ пишет runner.js). Владелец — карточка:
