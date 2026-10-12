@@ -96,11 +96,7 @@ func (d *Deque) PopBack() int    { n := len(d.data) - 1; x := d.data[n]; d.data 
 func (d *Deque) PopFront() int   { x := d.data[0]; d.data = d.data[1:]; return x }
 ```
 
-```
-PushFront ↓                      ↓ PushBack
-PopFront  ↑                      ↑ PopBack
-        ◀ перёд [ 0 | 1 | 2 | 3 ] зад ▶
-```
+<div class="algo-fig" data-fig="array" data-array="0,1,2,3" data-rows="data" data-index="none" data-ptrs-top="Push/PopFront@0,Push/PopBack@3" data-ptrs="перёд@0,зад@3" data-caption="Дек [0, 1, 2, 3]: кладут и снимают с обоих концов — спереди (Front) и сзади (Back)"></div>
 
 Три факта, которые держат всё:
 

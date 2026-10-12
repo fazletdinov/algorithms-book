@@ -157,14 +157,10 @@ func (c *ringChan) recv() int {
 
 `dataqsiz = 4`; `sendx`/`recvx` бегут по кругу, между ними — «живые» элементы:
 
-```
-индексы:   0    1    2    3
-buf:     [ _ ][ A ][ B ][ _ ]
-               ^recvx        ^sendx  (следующая запись → слот 3, потом заворот в 0)
+<div class="algo-fig" data-fig="array" data-array="·,A,B,·" data-rows="buf" data-ptrs="recvx@1,sendx@3" data-ranges="живые, qcount = 2@1-2" data-caption="dataqsiz = 4: recvx — откуда следующий recv, sendx — куда следующий send"></div>
 
-recv() → отдаёт A, recvx→2.   send(C) → пишет в 3, sendx→0 (заворот).
-пусто:  qcount == 0        полно:  qcount == dataqsiz  (тогда send блокируется)
-```
+`recv()` отдаёт `A`, и `recvx` становится 2. `send(C)` пишет в слот 3, и `sendx` заворачивается в 0.
+Пусто — `qcount == 0`; полно — `qcount == dataqsiz`, тогда `send` блокируется.
 
 Листай «›»: `send` заполняет слот и двигает `sendx`, `recv` освобождает слот и двигает `recvx`;
 на границе индекс **заворачивается** в 0, а при заполнении (`qcount == ёмкость`) `send` блокируется:

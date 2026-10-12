@@ -88,11 +88,7 @@ type Fenwick struct {
 }
 ```
 
-```
-индекс i:    1     2     3     4     5     6     7     8
-lowbit(i):   1     2     1     4     1     2     1     8
-зона [.. i]: [1]  [1,2] [3]  [1..4][5]  [5,6] [7]  [1..8]
-```
+<div class="algo-fig" data-fig="array" data-array="1,2,1,4,1,2,1,8" data-rows="lowbit(i)" data-index="1" data-index-label="i" data-ranges="tree[1]@1-1; tree[2]@1-2; tree[3]@3-3; tree[4]@1-4; tree[5]@5-5; tree[6]@5-6; tree[7]@7-7; tree[8]@1-8" data-caption="Под рядом — зона каждого узла tree[i]: lowbit(i) позиций, кончая i. Наведи на позицию — загорятся узлы, чья зона её накрывает: их и обновит Add"></div>
 
 Три факта, которые держат всё:
 
