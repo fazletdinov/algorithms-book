@@ -9,6 +9,7 @@
 // от книги на 19 глав. Проверяем семь связей:
 //
 //  1) assets/progress.js  <-> src/SUMMARY.md      — трекер знает все главы книги;
+//  1b') листья дерева в pattern-selection-guide.md <-> lvl в progress.js — метки уровня верны;
 //  2) exercises/README.md <-> exercises/*/        — таблица пакетов полна;
 //  3) data-trace-calls в главах <-> traceTargets  — бэкенд разрешает то, что предлагает глава;
 //  4) data-pkg у algo-runner   <-> exercises/*/   — виджет ссылается на существующий пакет;
@@ -82,6 +83,103 @@ for (const ch of trackerChapters) {
 const coreCount = [...levelOf.values()].filter((v) => v === "core").length;
 if (!coreCount) {
   errors.push("трекер прогресса: ни одной главы с lvl=\"core\" — процент будет делиться на ноль");
+}
+
+// ---------- 1b'. метки уровня у листьев дерева решений ----------
+// В дереве руководства по выбору каждое название главы в листе «└─ → …» несёт сразу после
+// себя метку уровня: шестьдесят глав в дереве иначе выглядят одинаково обязательными.
+// Здесь — только соответствие «название в дереве → слаг»; уровни берутся из progress.js.
+const GUIDE_LEAVES = {
+  "Хеш-таблица": "hash-table-structure",
+  "Sliding Window": "sliding-window",
+  "Prefix Sums": "prefix-sums",
+  "Monotonic Stack": "monotonic-stack",
+  "Two Pointers": "two-pointers",
+  "Cyclic Sort": "cyclic-sort",
+  "Modified Binary Search": "modified-binary-search",
+  "Bit Manipulation": "bit-manipulation",
+  "Fast & Slow Pointers": "fast-slow-pointers",
+  "Reverse Linked List": "reverse-linked-list",
+  "Tree BFS": "tree-bfs",
+  "Tree DFS": "tree-dfs",
+  "Merge Intervals": "merge-intervals",
+  "Top K Elements": "top-k-elements",
+  "Two Heaps": "two-heaps",
+  "K-way Merge": "k-way-merge",
+  "Subsets": "subsets",
+  "Backtracking": "backtracking",
+  "Graphs": "graphs",
+  "Topological Sort": "topological-sort",
+  "Union-Find": "union-find-structure",
+  "Grids & Shortest Paths": "grids-and-shortest-paths",
+  "Advanced Graphs": "advanced-graph-algorithms",
+  "Graph Connectivity": "graph-connectivity",
+  "Max Flow / Min Cut": "max-flow",
+  "Greedy": "greedy",
+  "Dynamic Programming": "dynamic-programming",
+  "Классы сложности": "complexity-classes",
+  "Строковые алгоритмы": "string-algorithms",
+  "Trie": "trie",
+  "Sparse Table": "sparse-table-structure",
+  "Дерево отрезков": "segment-tree",
+  "Дерево Фенвика": "fenwick-tree",
+  "B-дерево": "btree-structure",
+  "Вероятностные структуры": "probabilistic-structures",
+  "Комбинаторика счёта": "combinatorics",
+  "Дискретная вероятность": "probability",
+  "Теория чисел": "number-theory",
+  "Криптография": "cryptography",
+  "Сортировки и порядковые статистики": "sorting",
+};
+let guideLeavesCount = 0;
+const LEVEL_TAG = { core: "ядро", ext: "расширение", ref: "справочник" };
+
+// Ошибки меток одной строки листа (текст после «→ »); used — множество встреченных названий.
+function guideLeafErrors(leaf, used) {
+  const errs = [];
+  const taken = []; // занятые участки строки: «Graphs» внутри «Advanced Graphs» не считается
+  const names = Object.keys(GUIDE_LEAVES).sort((a, b) => b.length - a.length);
+  const found = [];
+  for (const name of names) {
+    let from = 0;
+    for (;;) {
+      const at = leaf.indexOf(name, from);
+      if (at < 0) break;
+      from = at + name.length;
+      if (taken.some(([a, b]) => at < b && from > a)) continue;
+      taken.push([at, from]);
+      found.push({ name, at, end: from });
+    }
+  }
+  if (!found.length) return [`лист «${leaf}» — ни одного названия из GUIDE_LEAVES`];
+  for (const f of found) {
+    used.add(f.name);
+    const lvl = levelOf.get(GUIDE_LEAVES[f.name]);
+    const want = LEVEL_TAG[lvl];
+    const tag = leaf.slice(f.end).match(/^ \[([^\]]+)\]/);
+    if (!want) errs.push(`лист «${leaf}»: у главы ${GUIDE_LEAVES[f.name]} нет уровня ядро/расширение/справочник в progress.js`);
+    else if (!tag) errs.push(`лист «${leaf}»: после «${f.name}» нет метки [${want}]`);
+    else if (tag[1] !== want) errs.push(`лист «${leaf}»: у «${f.name}» метка [${tag[1]}], а уровень главы — [${want}]`);
+  }
+  const tags = (leaf.match(/\[(ядро|расширение|справочник)\]/g) || []).length;
+  if (tags > found.length) errs.push(`лист «${leaf}»: метка уровня без названия из GUIDE_LEAVES`);
+  return errs;
+}
+{
+  const guide = read(path.join(srcDir, "pattern-selection-guide.md"));
+  const tree = guide.match(/## Decision Tree[^\n]*\n[\s\S]*?\n```\n([\s\S]*?)\n```/);
+  if (!tree) {
+    errors.push("src/pattern-selection-guide.md: не нашёл блок дерева решений после «## Decision Tree»");
+  } else {
+    const used = new Set();
+    const leaves = tree[1].split("\n").filter((l) => /└─ →/.test(l)).map((l) => l.replace(/^.*└─ → /, ""));
+    for (const leaf of leaves) for (const e of guideLeafErrors(leaf, used)) errors.push(`src/pattern-selection-guide.md: ${e}`);
+    for (const name of Object.keys(GUIDE_LEAVES)) {
+      if (!used.has(name)) errors.push(`check-registries.js: GUIDE_LEAVES «${name}» — такого листа в дереве решений нет`);
+      if (!levelOf.has(GUIDE_LEAVES[name])) errors.push(`check-registries.js: GUIDE_LEAVES «${name}» → ${GUIDE_LEAVES[name]} — такой главы нет в progress.js`);
+    }
+    guideLeavesCount = leaves.length;
+  }
 }
 
 // ---------- 1c. числа уровней в тексте <-> реестр ----------
@@ -335,5 +433,6 @@ if (errors.length) {
 console.log(
   `✅ check-registries: трекер (${trackerChapters.size} глав: ядро ${coreCount}, ` +
     `остальные ${trackerChapters.size - coreCount}), таблица пакетов (${packages.length}), ` +
-    `traceTargets (${allowed.size} пакетов) и счётчик в CLAUDE.md согласованы`
+    `traceTargets (${allowed.size} пакетов), метки уровня у ${guideLeavesCount} листьев дерева решений ` +
+    `и счётчик в CLAUDE.md согласованы`
 );
