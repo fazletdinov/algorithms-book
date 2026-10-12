@@ -2397,13 +2397,18 @@ body.algo-tp-fslock { overflow: hidden; }
   padding: 0.9em 1em 0.8em;
   margin: 1.2em 0;
   container: algo-fig / inline-size;
+  /* акцент книги — подсветка и изменённые рёбра; синий — спокойная заливка узлов */
+  --fig-accent: var(--th-accent, #4ae08a);
+  --fig-node: var(--th-blue, #3b82f6);
+  --fig-muted: var(--th-muted, #8a91ad);
 }
 .algo-fig__scroll { overflow-x: auto; overflow-y: hidden; }
 .algo-fig__body { width: max-content; min-width: 100%; }
 /* деревья разной высоты — по верху, чтобы заголовки стояли в одну строку */
 .algo-fig__seq { display: flex; align-items: flex-start; justify-content: center; gap: 0.6em 1.2em; }
 .algo-fig__item { display: flex; flex-direction: column; align-items: center; }
-.algo-fig__title { font-size: 0.82em; color: var(--th-muted, #8a91ad); white-space: nowrap; margin-bottom: 0.2em; }
+/* заголовок дерева — как h3 книги: шрифт текста, полужирный, светлый */
+.algo-fig__title { font-family: var(--text-font, system-ui, sans-serif); font-size: 0.92em; font-weight: 650; color: var(--th-strong, #e6e9f2); white-space: nowrap; margin-bottom: 0.25em; }
 .algo-fig__arrow { align-self: center; font-size: 1.5em; color: var(--th-muted, #8a91ad); line-height: 1; }
 /* поддерево-заглушка (A, B, C…): не узел, а «что-то там висит» — треугольник с буквой */
 .algo-fig__sub.algo-tp__tfignode {
@@ -2418,6 +2423,8 @@ body.algo-tp-fslock { overflow: hidden; }
 /* treeFigure начинает ребро на 27px ниже центра узла; с унаследованной высотой строки подпись
    кончалась на 35px, и ребро перечёркивало «[0,1]». Высота строки 1 — подпись кончается у ребра. */
 .algo-fig .algo-tp__tfigsub { line-height: 1; }
+/* отрезок «[l,r]» под узлом — мельче и приглушён, моноширинный, как числа */
+.algo-fig .algo-tp__tfigsub { font-family: var(--mono-font, monospace); font-size: 0.62em; opacity: 1; color: var(--fig-muted); }
 /* ряд под листьями (исходный массив) */
 .algo-fig__cell {
   position: absolute; translate: -50% 0; min-width: 2.2em; height: 1.9em; padding: 0 0.4em;
@@ -2442,3 +2449,71 @@ body.algo-tp-fslock { overflow: hidden; }
   .algo-fig__seq { flex-direction: column; align-items: center; }
   .algo-fig__arrow { rotate: 90deg; }
 }
+
+/* --- цвет со смыслом: спокойная заливка, подсветка — кольцо акцента --- */
+/* :not — чтобы не перебить «выделен» (синяя заливка) и заглушку-треугольник; внутри :where —
+   чтобы правило не стало сильнее кольца подсветки ниже */
+.algo-fig .algo-tp__tfignode:where(:not(.algo-fig__sub):not(.algo-tp__tnode--current)) {
+  font-family: var(--mono-font, monospace); font-weight: 600; color: var(--th-strong, #e6e9f2);
+  background: color-mix(in srgb, var(--fig-node) 14%, var(--tp-panel));
+  border: 1.5px solid color-mix(in srgb, var(--fig-node) 50%, var(--tp-border));
+  box-shadow: 0 0 12px -3px color-mix(in srgb, var(--fig-node) 45%, transparent);
+}
+.algo-fig .algo-tp__tfignode.algo-tp__tnode--current { font-family: var(--mono-font, monospace); box-shadow: 0 0 14px -2px color-mix(in srgb, var(--tp-lo) 70%, transparent); }
+.algo-fig .algo-tp__tfignode.algo-tp__tnode--end:not(.algo-tp__tnode--current) { border: 4px double color-mix(in srgb, var(--fig-node) 45%, var(--fg)); }
+.algo-fig .algo-tp__bstedge { stroke: color-mix(in srgb, var(--fg) 32%, transparent); stroke-width: 1.5; opacity: 1; }
+/* последовательность: ребро, которого не было в прошлом дереве */
+.algo-fig .algo-tp__bstedge.algo-fig__edge--changed { stroke: var(--fig-accent); stroke-width: 2.5; }
+.algo-fig__legend { display: flex; align-items: center; justify-content: center; gap: 0.5em; margin-top: 0.5em; font-size: 0.8em; color: var(--fig-muted); }
+.algo-fig__legline { width: 1.8em; height: 2.5px; border-radius: 2px; background: var(--fig-accent); }
+
+/* --- подсветка: узел — кольцо акцента, путь — кольцо потоньше, остальное приглушено --- */
+.algo-fig__hot { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.algo-fig__hot:focus { outline: none; }
+.algo-fig__hot:focus-visible { outline: 2px dashed var(--fig-accent); outline-offset: 4px; }
+.algo-fig .algo-tp__tfignode.algo-fig__hl { box-shadow: 0 0 0 3px var(--fig-accent), 0 0 18px -2px color-mix(in srgb, var(--fig-accent) 60%, transparent); }
+.algo-fig .algo-tp__tfignode.algo-fig__onpath { box-shadow: 0 0 0 2px color-mix(in srgb, var(--fig-accent) 75%, transparent); }
+.algo-fig__sub.algo-fig__hl { color: var(--fig-accent); box-shadow: none !important; }
+.algo-fig__sub.algo-fig__hl::before { background: color-mix(in srgb, var(--fig-accent) 32%, transparent); }
+.algo-fig--lit .algo-tp__tfignode:not(.algo-fig__hl):not(.algo-fig__onpath),
+.algo-fig--lit .algo-fig__cell:not(.algo-fig__cell--on) { opacity: 0.45; }
+.algo-fig .algo-tp__bstedge.algo-fig__edge--path { stroke: var(--fig-accent); stroke-width: 3; }
+.algo-fig__cell.algo-fig__cell--on { border-color: var(--fig-accent); background: color-mix(in srgb, var(--fig-accent) 18%, var(--tp-panel)); color: var(--th-strong, #e6e9f2); }
+@media (prefers-reduced-motion: no-preference) {
+  .algo-fig .algo-tp__tfignode, .algo-fig__cell, .algo-fig__word { transition: box-shadow 0.15s, opacity 0.15s, background-color 0.15s, border-color 0.15s, color 0.15s; }
+  .algo-fig .algo-tp__bstedge { transition: stroke 0.15s, stroke-width 0.15s; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .algo-fig, .algo-fig * { transition: none !important; }
+}
+
+/* --- бор: список слов рядом с деревом --- */
+.algo-fig__pair { display: flex; align-items: center; justify-content: center; gap: 0.6em 1.6em; }
+.algo-fig__words { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35em; }
+.algo-fig__word {
+  margin: 0; padding: 0.15em 0.65em; border: 1px solid var(--tp-border); border-radius: 999px;
+  font-family: var(--mono-font, monospace); font-size: 0.85em; color: var(--th-strong, #e6e9f2);
+  background: var(--tp-panel);
+}
+.algo-fig__word.algo-fig__word--on { border-color: var(--fig-accent); background: color-mix(in srgb, var(--fig-accent) 18%, var(--tp-panel)); }
+.algo-fig--narrow .algo-fig__pair { flex-direction: column; }
+.algo-fig--narrow .algo-fig__words { flex-direction: row; flex-wrap: wrap; justify-content: center; order: 2; }
+
+/* --- выноски: текст сноски рядом с узлом, тонкая линия к нему --- */
+.algo-fig__stage { position: relative; margin: 0.4em auto; }
+.algo-fig__stage > .algo-tp__tfig { margin: 0; }
+.algo-fig__callout {
+  position: absolute; font-size: 0.8em; line-height: 1.4; color: var(--fg);
+  padding: 0.3em 0.6em; border-left: 2px solid var(--tp-warn); border-radius: 4px;
+  background: color-mix(in srgb, var(--tp-warn) 8%, var(--tp-panel));
+}
+.algo-fig__leaders { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.algo-fig__leaders line { stroke: var(--tp-warn); stroke-width: 1; opacity: 0.75; }
+.algo-fig__leaders circle { fill: var(--tp-warn); }
+/* широко — выноски вместо номеров; узко (JS ставит --narrow, порог FIG_NARROW) — номера и список */
+.algo-fig:not(.algo-fig--narrow) .algo-fig__mark,
+.algo-fig:not(.algo-fig--narrow) .algo-fig__note--call,
+.algo-fig:not(.algo-fig--narrow) .algo-fig__notes--call { display: none; }
+.algo-fig--narrow .algo-fig__callout, .algo-fig--narrow .algo-fig__leaders { display: none; }
+
+.algo-fig__hint { margin-top: 0.3em; font-size: 0.75em; color: var(--fig-muted); text-align: center; }

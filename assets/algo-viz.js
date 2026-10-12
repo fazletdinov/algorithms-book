@@ -16695,6 +16695,15 @@
   // data-titles — заголовки деревьев через «;», data-notes — сноски через «||», data-row — ряд
   // ячеек под листьями первого дерева (по одной на лист), data-row-label — его подпись,
   // data-caption — подпись рисунка. Кривые данные — громкая ошибка в рисунке, а не пустое место.
+  //
+  // Подсветка выводится из тех же данных, своих атрибутов у неё нет. Узел под мышью, пальцем
+  // (касание закрепляет, повтор или касание мимо — снимает) или в фокусе клавиатуры (Esc — снять):
+  //  - одно дерево — путь к корню; подпись «[l,r]» при data-row — ещё и ячейки l…r ряда;
+  //  - одно дерево с ★ — рядом список слов (путь от корня до ★); слово и его ★ подсвечиваются вместе;
+  //  - последовательность («;») — узел с той же меткой во всех деревьях (метки в дереве уникальны),
+  //    а рёбра, которых не было в предыдущем дереве (другой родитель у ребёнка), — акцентом всегда.
+  // Сноска @N на широкой рамке — выноска рядом с узлом с линией к нему, уже FIG_NARROW — номер
+  // у узла и список под рисунком.
   function parseFigTree(src) {
     var i = 0;
     function node() {
@@ -16733,36 +16742,182 @@
       if (m[3]) { cls.push("algo-tp__tnode--end"); label += " ★"; }
       if (m[4]) cls.push("algo-tp__tnode--current");
       var me = out.length;
-      out.push({ parent: parent, label: label, sub: bar < 0 ? null : n.text.slice(bar + 1).trim(), cls: cls.join(" "), note: m[5] ? +m[5] : 0, leaf: !n.kids.length });
+      out.push({ parent: parent, label: label, base: m[2], end: !!m[3], sub: bar < 0 ? null : n.text.slice(bar + 1).trim(), cls: cls.join(" "), note: m[5] ? +m[5] : 0, leaf: !n.kids.length });
       n.kids.forEach(function (k) { walk(k, me); });
     })(root, -1);
     return out;
   }
-  function figTree(src, row, rowLabel, nNotes) {
+  var FIG_NARROW = 520;                   // px ширины рамки: уже — сноски номерами под рисунком
+  var FIG_CALLOUT_W = 200, FIG_CALLOUT_GAP = 28;
+  var FIG_MARKS = ["algo-fig__hl", "algo-fig__onpath", "algo-fig__edge--path", "algo-fig__cell--on", "algo-fig__word--on"];
+  var figClearers = null;                 // касание мимо рисунка снимает закреплённую подсветку
+  // [i, родитель i, …, корень]
+  function figPath(nodes, i) { var p = []; for (; i >= 0; i = nodes[i].parent) p.push(i); return p; }
+  // Слова бора: метки от корня (без него) до каждого ★, в порядке обхода.
+  function figWords(nodes) {
+    var out = [];
+    nodes.forEach(function (n, i) {
+      if (n.end) out.push({ i: i, word: figPath(nodes, i).reverse().slice(1).map(function (j) { return nodes[j].base; }).join("") });
+    });
+    return out;
+  }
+  function figTree(src, opt) {
     var nodes = figTreeNodes(parseFigTree(src));
     var withSub = nodes.some(function (n) { return n.sub != null; });
     // Размеры — как у виджетов: с подписью под узлом — как segFigure, без неё — как trieFigure.
     var fig = treeFigure(nodes, withSub ? { cw: 58, ch: 74 } : { cw: 52, ch: 58 });
+    var box = fig.el, calls = [], cells = [];
     nodes.forEach(function (n, i) {
       if (!n.note) return;
-      if (n.note > nNotes) throw new Error("сноска @" + n.note + " без текста в data-notes");
+      if (n.note > opt.notes.length) throw new Error("сноска @" + n.note + " без текста в data-notes");
       var mk = mkEl("span", "algo-fig__mark", String(n.note));
       mk.style.left = fig.pos[i].x + "px"; mk.style.top = fig.pos[i].y + "px";
-      fig.el.appendChild(mk);
+      box.appendChild(mk);
+      calls.push({ i: i, el: mkEl("div", "algo-fig__callout", opt.notes[n.note - 1]) });
     });
-    if (!row) return fig.el;
-    var leaves = [];
-    nodes.forEach(function (n, i) { if (n.leaf) leaves.push(i); });
-    if (row.length !== leaves.length) throw new Error("data-row: " + row.length + " ячеек на " + leaves.length + " листьев");
-    var h = parseFloat(fig.el.style.height);
-    row.forEach(function (v, k) {
-      var c = mkEl("span", "algo-fig__cell", v);
-      c.style.left = fig.pos[leaves[k]].x + "px"; c.style.top = (h + 4) + "px";
-      fig.el.appendChild(c);
+    if (opt.row) {
+      var leaves = [];
+      nodes.forEach(function (n, i) { if (n.leaf) leaves.push(i); });
+      if (opt.row.length !== leaves.length) throw new Error("data-row: " + opt.row.length + " ячеек на " + leaves.length + " листьев");
+      var h = parseFloat(box.style.height);
+      opt.row.forEach(function (v, k) {
+        var c = mkEl("span", "algo-fig__cell", v);
+        c.style.left = fig.pos[leaves[k]].x + "px"; c.style.top = (h + 4) + "px";
+        box.appendChild(c); cells.push(c);
+      });
+      if (opt.rowLabel) { var lb = mkEl("span", "algo-fig__rowlabel", opt.rowLabel); lb.style.top = (h + 40) + "px"; box.appendChild(lb); }
+      box.style.height = (h + (opt.rowLabel ? 62 : 38)) + "px";
+      // подпись «[l,r]» над рядом — отрезок узла: ячейки l…r
+      nodes.forEach(function (n) {
+        var m = n.sub && /^\[(\d+),\s*(\d+)\]$/.exec(n.sub);
+        if (!m) return;
+        n.lo = +m[1]; n.hi = +m[2];
+        if (n.lo > n.hi || n.hi >= cells.length) throw new Error("отрезок " + n.sub + " вне data-row (" + cells.length + " ячеек)");
+      });
+    }
+    var stage = mkEl("div", "algo-fig__stage"), svg = null;
+    stage.appendChild(box);
+    if (calls.length) {
+      svg = document.createElementNS(SVGNS, "svg");
+      svg.setAttribute("class", "algo-fig__leaders"); svg.setAttribute("aria-hidden", "true");
+      stage.appendChild(svg);
+      calls.forEach(function (c) { stage.appendChild(c.el); });
+    }
+    // Выноски — столбцом слева или справа от дерева (с той стороны, где узел), по высоте узла;
+    // соседние в столбце раздвигаются вниз. Узко — столбцов нет, номера и список (CSS по --narrow).
+    function place(narrow) {
+      var W = parseFloat(box.style.width), H = parseFloat(box.style.height), side = { l: [], r: [] };
+      if (!narrow) calls.forEach(function (c) { side[fig.pos[c.i].x < W / 2 ? "l" : "r"].push(c); });
+      var col = FIG_CALLOUT_W + FIG_CALLOUT_GAP, lw = side.l.length ? col : 0, rw = side.r.length ? col : 0, bottom = H;
+      box.style.marginLeft = lw + "px";
+      if (svg) svg.textContent = "";
+      ["l", "r"].forEach(function (s) {
+        var prev = -Infinity;
+        side[s].sort(function (a, b) { return fig.pos[a.i].y - fig.pos[b.i].y; }).forEach(function (c) {
+          var p = fig.pos[c.i], top = Math.max(p.y - 12, prev + 8), x = s === "l" ? 0 : lw + W + FIG_CALLOUT_GAP;
+          c.el.style.left = x + "px"; c.el.style.top = top + "px"; c.el.style.width = FIG_CALLOUT_W + "px";
+          prev = top + c.el.offsetHeight; bottom = Math.max(bottom, prev);
+          var half = (fig.nodes[c.i].offsetWidth || 32) / 2 + 2, nx = lw + p.x + (s === "l" ? -half : half);
+          var ln = document.createElementNS(SVGNS, "line"), dot = document.createElementNS(SVGNS, "circle");
+          ln.setAttribute("x1", nx); ln.setAttribute("y1", p.y); ln.setAttribute("x2", s === "l" ? FIG_CALLOUT_W : x); ln.setAttribute("y2", top + 12);
+          dot.setAttribute("cx", nx); dot.setAttribute("cy", p.y); dot.setAttribute("r", 2.5);
+          svg.appendChild(ln); svg.appendChild(dot);
+        });
+      });
+      stage.style.width = (lw + W + rw) + "px"; stage.style.height = bottom + "px";
+      if (svg) { svg.setAttribute("width", lw + W + rw); svg.setAttribute("height", bottom); }
+    }
+    return { el: stage, nodes: nodes, fig: fig, cells: cells, calls: calls, place: place, words: [] };
+  }
+  // Рёбра дерева cur, которых нет в prev: у ребёнка другой родитель (или ребёнка не было).
+  function figChanged(prev, cur) {
+    var was = {}, n = 0;
+    prev.nodes.forEach(function (x) { if (x.parent >= 0) was[x.base] = prev.nodes[x.parent].base; });
+    cur.nodes.forEach(function (x, i) {
+      if (x.parent < 0 || was[x.base] === cur.nodes[x.parent].base) return;
+      cur.fig.edges[i].classList.add("algo-fig__edge--changed"); n++;
     });
-    if (rowLabel) { var lb = mkEl("span", "algo-fig__rowlabel", rowLabel); lb.style.top = (h + 40) + "px"; fig.el.appendChild(lb); }
-    fig.el.style.height = (h + (rowLabel ? 62 : 38)) + "px";
-    return fig.el;
+    return n;
+  }
+  // Что подсвечивает каждый ключ: hl — сам узел, path — предки, edges/cells/words.
+  function figGroups(items, multi) {
+    var groups = {}, seen = {};
+    function g(k) { return groups[k] || (groups[k] = { hl: [], path: [], edges: [], cells: [], words: [] }); }
+    function hot(x, key, tab) {
+      x.classList.add("algo-fig__hot"); x.setAttribute("data-fig-key", key);
+      if (tab) x.tabIndex = 0;
+    }
+    items.forEach(function (tr, k) {
+      var labels = {};
+      tr.nodes.forEach(function (n, i) {
+        var node = tr.fig.nodes[i], key;
+        if (multi) {
+          if (labels[n.base]) throw new Error("метка «" + n.base + "» дважды в дереве " + (k + 1) + ": в последовательности узлы сопоставляются по метке");
+          labels[n.base] = 1; key = "L:" + n.base;
+          // в фокус — только первое вхождение: подсветка всё равно общая на все деревья
+          g(key).hl.push(node); hot(node, key, !seen[key]); seen[key] = 1;
+          return;
+        }
+        key = "n" + i;
+        var gr = g(key), path = figPath(tr.nodes, i);
+        gr.hl.push(node); hot(node, key, true);
+        path.forEach(function (j, d) {
+          if (d) gr.path.push(tr.fig.nodes[j]);
+          if (tr.fig.edges[j]) gr.edges.push(tr.fig.edges[j]);
+        });
+        if (n.lo != null) for (var c = n.lo; c <= n.hi; c++) gr.cells.push(tr.cells[c]);
+      });
+      tr.words.forEach(function (w) { g("n" + w.i).words.push(w.el); hot(w.el, "n" + w.i, true); });
+    });
+    return groups;
+  }
+  // Показ: наведение важнее фокуса, фокус — закрепления касанием.
+  function figInteract(el, groups) {
+    var st = { hover: null, focus: null, pin: null }, shown = null;
+    function show() {
+      var key = st.hover || st.focus || st.pin;
+      if (key === shown) return;
+      shown = key;
+      FIG_MARKS.forEach(function (c) { [].slice.call(el.querySelectorAll("." + c)).forEach(function (x) { x.classList.remove(c); }); });
+      el.classList.toggle("algo-fig--lit", !!key);
+      var gr = key && groups[key];
+      if (!gr) return;
+      [["hl", 0], ["path", 1], ["edges", 2], ["cells", 3], ["words", 4]].forEach(function (p) {
+        gr[p[0]].forEach(function (x) { x.classList.add(FIG_MARKS[p[1]]); });
+      });
+    }
+    function keyOf(t) {
+      var h = t && t.closest ? t.closest(".algo-fig__hot") : null;
+      return h && el.contains(h) ? h.getAttribute("data-fig-key") : null;
+    }
+    function clear() {
+      st.hover = st.focus = st.pin = null;
+      var a = document.activeElement;
+      if (a && a !== document.body && el.contains(a) && a.blur) a.blur();
+      show();
+    }
+    el.addEventListener("mouseover", function (e) { var k = keyOf(e.target); if (k) { st.hover = k; show(); } });
+    el.addEventListener("mouseout", function (e) {
+      var k = keyOf(e.target);
+      if (k && keyOf(e.relatedTarget) !== k) { st.hover = null; show(); }
+    });
+    el.addEventListener("focusin", function (e) { st.focus = keyOf(e.target); show(); });
+    el.addEventListener("focusout", function () { st.focus = null; show(); });
+    // Касание: первое закрепляет (палец не «уходит» с узла), повтор или касание мимо — снимает.
+    el.addEventListener("click", function (e) {
+      var k = keyOf(e.target);
+      if (k && st.pin !== k) { st.pin = k; show(); } else clear();
+    });
+    // Esc снимает подсветку и дальше не идёт; стрелки рисунку не нужны — их листает mdBook.
+    el.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape" || !(st.hover || st.focus || st.pin)) return;
+      clear(); e.preventDefault(); e.stopPropagation();
+    });
+    if (!figClearers) {
+      figClearers = [];
+      document.addEventListener("click", function (e) { figClearers.forEach(function (f) { f(e.target); }); });
+    }
+    figClearers.push(function (t) { if (!el.contains(t) && (st.pin || st.hover)) clear(); });
   }
   function splitList(v, sep) { return v ? v.split(sep).map(function (x) { return x.trim(); }) : []; }
   function renderFig(el) {
@@ -16771,34 +16926,70 @@
     var trees = splitList(el.getAttribute("data-tree"), ";"), titles = splitList(el.getAttribute("data-titles"), ";");
     var notes = splitList(el.getAttribute("data-notes"), "||"), row = el.getAttribute("data-row");
     if (!trees.length) throw new Error("пустой data-tree");
+    var multi = trees.length > 1, items = [], noted = {};
     var body = mkEl("div", "algo-fig__body"), seq = mkEl("div", "algo-fig__seq");
     trees.forEach(function (t, k) {
       if (k) seq.appendChild(mkEl("span", "algo-fig__arrow", "⟶"));
       var item = mkEl("div", "algo-fig__item");
       if (titles[k]) item.appendChild(mkEl("div", "algo-fig__title", titles[k]));
-      item.appendChild(figTree(t, row && k === 0 ? splitList(row, ",") : null, el.getAttribute("data-row-label"), notes.length));
-      seq.appendChild(item);
+      var tr = figTree(t, { row: row && k === 0 ? splitList(row, ",") : null, rowLabel: el.getAttribute("data-row-label"), notes: notes });
+      tr.nodes.forEach(function (n) { if (n.note) noted[n.note] = 1; });
+      items.push(tr);
+      var words = multi ? [] : figWords(tr.nodes);
+      if (!words.length) { item.appendChild(tr.el); seq.appendChild(item); return; }
+      var pair = mkEl("div", "algo-fig__pair"), ul = mkEl("ul", "algo-fig__words");
+      ul.setAttribute("aria-label", "слова");
+      words.forEach(function (w) { w.el = mkEl("li", "algo-fig__word", w.word); ul.appendChild(w.el); });
+      tr.words = words;
+      pair.appendChild(ul); pair.appendChild(tr.el); item.appendChild(pair); seq.appendChild(item);
     });
     body.appendChild(seq);
+    var changed = 0;
+    if (multi) for (var k = 1; k < items.length; k++) changed += figChanged(items[k - 1], items[k]);
+    if (changed) {
+      var lg = mkEl("div", "algo-fig__legend");
+      lg.appendChild(mkEl("span", "algo-fig__legline"));
+      lg.appendChild(document.createTextNode("ребро, которого не было на прошлом шаге"));
+      body.appendChild(lg);
+    }
     if (notes.length) {
-      var ol = mkEl("ol", "algo-fig__notes");
-      notes.forEach(function (n) { ol.appendChild(mkEl("li", null, n)); });
+      var ol = mkEl("ol", "algo-fig__notes"), all = true;
+      notes.forEach(function (n, i) {
+        var li = mkEl("li", null, n);
+        // у сноски с узлом на широкой рамке есть выноска — в списке её прячет CSS
+        if (noted[i + 1]) li.className = "algo-fig__note--call"; else all = false;
+        ol.appendChild(li);
+      });
+      if (all) ol.classList.add("algo-fig__notes--call");
       body.appendChild(ol);
     }
     var scroll = mkEl("div", "algo-fig__scroll");
     scroll.appendChild(body); el.appendChild(scroll);
     var cap = el.getAttribute("data-caption");
     if (cap) el.appendChild(mkEl("div", "algo-fig__caption", cap));
+    var what = multi ? "тот же узел на каждом шаге"
+      : items[0].words.length ? "путь от корня; у слова — путь до его ★"
+      : items[0].nodes.some(function (n) { return n.lo != null; }) ? "отрезок узла в массиве и путь к корню" : "путь к корню";
+    el.appendChild(mkEl("div", "algo-fig__hint", "Наведи на узел" + (items[0].words.length ? " или слово" : "") + " (или нажми) — подсветится " + what + "."));
     el.setAttribute("role", "figure");
-    // Как у рисунков деревьев в виджетах: ужать целиком, но не мельче 0.75 — дальше честнее
-    // прокрутка в своём блоке (страница вбок не едет).
-    function fit() {
+    figInteract(el, figGroups(items, multi));
+    // Сначала раскладка без масштаба (выноски меряются в настоящих пикселях), потом — как у
+    // рисунков деревьев в виджетах: ужать целиком, но не мельче 0.75 — дальше честнее прокрутка
+    // в своём блоке (страница вбок не едет). Ширина 0 — рамка скрыта: режим не трогаем.
+    function layout() {
       body.style.zoom = "";
-      var avail = scroll.clientWidth, w = body.scrollWidth;
+      var avail = scroll.clientWidth;
+      if (avail > 0) el.classList.toggle("algo-fig--narrow", avail <= FIG_NARROW);
+      var narrow = el.classList.contains("algo-fig--narrow");
+      items.forEach(function (tr) { tr.place(narrow); });
+      var w = body.scrollWidth;
       if (avail > 0 && w > avail) body.style.zoom = String(Math.round(Math.max(0.75, avail / w) * 1000) / 1000);
     }
-    fit();
-    if (window.ResizeObserver) new ResizeObserver(function () { (window.requestAnimationFrame || setTimeout)(fit); }).observe(scroll);
+    el.__algoFigLayout = layout; // fig-check: у jsdom нет ширины, раскладку он зовёт сам
+    layout();
+    if (window.ResizeObserver) new ResizeObserver(function () { (window.requestAnimationFrame || setTimeout)(layout); }).observe(scroll);
+    // высота выносок зависит от шрифта, а он догружается после первой раскладки
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
   }
   function renderFigSafe(el) {
     el.classList.add("algo-fig--ready");
