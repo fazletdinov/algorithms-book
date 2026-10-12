@@ -9387,7 +9387,7 @@
   function bLowerBound(arr, x) {
     var n = arr.length, lo = 0, hi = n, steps = [];
     function vv(mid) { return { lo: lo, hi: hi, mid: mid == null ? "—" : mid, "nums[mid]": mid == null ? "—" : arr[mid] }; }
-    steps.push({ lo: lo, hi: hi, mid: -1, line: 2, vars: vv(), info: "lo = 0, hi = len(nums) = " + n + " — ответ в [0, " + n + "]: hi = " + n + " значит «nums[i] ≥ target нет нигде»" });
+    steps.push({ lo: lo, hi: hi, mid: -1, line: 2, vars: vv(), info: "lo = 0, hi = len(nums) = " + n + " — ответ в [0, " + n + "], оба конца включены; ответ " + n + " значил бы «nums[i] ≥ target нет нигде»" });
     var guard = 0;
     while (lo < hi && guard++ < 64) {
       steps.push({ lo: lo, hi: hi, mid: -1, line: 3, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — ещё есть кандидаты" });
