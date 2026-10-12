@@ -640,7 +640,7 @@ return merge(left, right)</pre>
 - [Top K Frequent](https://leetcode.com/problems/top-k-frequent-elements/) (LeetCode 347) — раскладка по корзинам (bucket sort) по частоте
 - [Sort Colors](https://leetcode.com/problems/sort-colors/) (LeetCode 75) — голландский флаг, разбиение на 3 зоны; разобран в главе [«Два указателя»](two-pointers.md)
 - [Count of Smaller Numbers After Self](https://leetcode.com/problems/count-of-smaller-numbers-after-self/) (LeetCode 315) — сортировка слиянием + подсчёт инверсий
-- [Maximum Gap](https://leetcode.com/problems/maximum-gap/) (LeetCode 164) — корзины или поразрядная сортировка за O(n)
+- [Maximum Gap](https://leetcode.com/problems/maximum-gap/) (LeetCode 164) — корзины по принципу Дирихле (лучший разрыв не меньше среднего шага) или поразрядная сортировка за O(n) — сверх главы
 
 > 🧭 **Не пошла задача из основы?** В 912 проверь две вещи: базу рекурсии (срез из нуля или
 > одного элемента уже отсортирован) и слияние — пока обе половины не пусты, бери меньшую

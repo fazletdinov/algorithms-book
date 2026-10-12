@@ -600,6 +600,7 @@ LeetCode. Решение не показывается, пока не сдашь
 
 ## 🔗 Связанные шаблоны
 
-- **[Обход графов](graphs.md)** — BFS/DFS и Union-Find (нужен для Kruskal).
+- **[Обход графов](graphs.md)** — BFS/DFS.
+- **[Union-Find](union-find-structure.md)** — нужен для Kruskal.
 - **[Сетки и кратчайшие пути](grids-and-shortest-paths.md)** — Дейкстра, частный случай A* при нулевой эвристике.
 - **[Two Heaps](two-heaps.md)** — приоритетная очередь для A* и Прима.

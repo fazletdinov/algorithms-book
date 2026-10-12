@@ -342,7 +342,7 @@ func minEatingSpeed(piles []int, h int) int {
   </div>
   <div class="algo-explain__item">
     <div class="algo-explain__q">Почему присваивание <code>left = mid</code> (без <code>+1</code>) даёт вечный цикл, а <code>left = mid + 1</code> — нет?</div>
-    <div class="algo-explain__ref"><code>mid = left + (right-left)/2</code> округляет вниз, поэтому при <code>left &lt;= right</code> всегда <code>left &lt;= mid &lt;= right</code>. Тогда <code>left = mid + 1</code> строго больше прежнего <code>left</code>, а <code>right = mid - 1</code> строго меньше прежнего — интервал сужается каждый шаг. С <code>left = mid</code> при <code>right - left == 1</code> получаем <code>mid == left</code>, и присваивание не двигает границу: прогресса нет, цикл вечный. А у <code>lo &lt; hi</code> ответ в <code>[lo, hi]</code>, <code>mid</code> до <code>hi</code> не дотягивается, поэтому <code>hi = mid</code> сужает отрезок. Ошибка — условие цикла из одной формы, сдвиг из другой.</div>
+    <div class="algo-explain__ref"><code>mid = left + (right-left)/2</code> округляет вниз, поэтому при <code>left &lt;= right</code> всегда <code>left &lt;= mid &lt;= right</code>. Тогда <code>left = mid + 1</code> строго больше прежнего <code>left</code>, а <code>right = mid - 1</code> строго меньше прежнего — интервал сужается каждый шаг. С <code>left = mid</code> при <code>right - left == 1</code> получаем <code>mid == left</code>, и присваивание не двигает границу: прогресса нет, цикл вечный. А у <code>lo &lt; hi</code> ответ в <code>[lo, hi]</code>, <code>mid</code> до <code>hi</code> не дотягивается, поэтому <code>hi = mid</code> сужает отрезок.</div>
   </div>
 </div>
 
@@ -390,9 +390,6 @@ func minEatingSpeed(piles []int, h int) int {
 `firstTrue` условие `lo < hi`, и `mid` строго меньше `hi`, поэтому там `hi = mid` сужает
 отрезок, а `lo = mid` так же вечен.
 
-Обе формы верны. Ошибки начинаются, когда условие цикла берут из одной, а сдвиг границы —
-из другой.
-
 ## ⚙️ Цена на практике
 
 `O(log n)` выглядит непобедимо, но у константы есть нюансы.
@@ -421,7 +418,7 @@ func minEatingSpeed(piles []int, h int) int {
 
 ## ⚠️ Типичные ошибки
 
-1. **Переполнение `mid`** — считайте `left + (right-left)/2`, а не
+1. **Переполнение `mid`** — считай `left + (right-left)/2`, а не
    `(left + right)/2`.
 2. **Условие цикла из одной формы, сдвиг из другой** — `left <= right` идёт с `mid±1`,
    `lo < hi` — с `hi = mid`. `lo < hi` с `hi = mid - 1` выбрасывает подошедший `mid` и теряет
@@ -430,7 +427,7 @@ func minEatingSpeed(piles []int, h int) int {
    стоять ещё одно «да». На `[1,2,2,2,3]` с `target = 2` первая середина — индекс 2, а первая
    двойка — на 1.
 4. **Повёрнутый массив** в один проход: забыли определить отсортированную половину перед
-   отбрасыванием — тогда теряете `target`.
+   отбрасыванием — тогда теряешь `target`.
 5. **Не обработаны границы** — пустой массив, один элемент, `target` вне диапазона.
 
 ## 📝 Разбор задачи
@@ -565,7 +562,7 @@ func searchRange(nums []int, target int) [2]int {
 **🔴 Добивка** — когда основа идёт уверенно:
 
 - [Find Peak Element](https://leetcode.com/problems/find-peak-element/) (LeetCode 162) — бинпоиск по склону: вопрос не монотонен, но пик сохраняется в отрезке — сверх главы
-- [Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/) (LeetCode 4) — сложная
+- [Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/) (LeetCode 4) — бинпоиск по разрезу меньшего из двух массивов, а не по значению — сверх главы
 
 > 🧭 **Не пошла задача из основы?** Почти наверняка дело не в задаче, а в границах. Не
 > подбирай `±1` наугад: назови вопрос, на который «нет» сменяется «да», и пиши `firstTrue` —
