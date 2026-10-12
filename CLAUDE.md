@@ -321,6 +321,17 @@ esm.sh, и в `?deps=` закреплён ВЕСЬ граф `@codemirror/*` + `@
 - `<div class="algo-viz" data-viz="ТИП" data-array="..." data-k="..."></div>` — визуализация
   (`algo-viz.js`; типы: `sliding-window-fixed`, `two-pointers-sum`, `binary-search`,
   `cyclic-sort`, `dp-coins`, `tree-bfs`/`tree-dfs`, `graph-bfs` и др.)
+- `<div class="algo-fig" data-fig="tree" data-tree="…" data-caption="…"></div>` — СТАТИЧЕСКИЙ рисунок
+  вместо ASCII-схемы (`renderFig` в `algo-viz.js`, стили `.algo-fig*` в конце `algo-viz.css`): тот же
+  `treeFigure`, что у виджетов, без шагов и управления. Формат `data-tree` — в комментарии над
+  `parseFigTree` (скобки, `метка|подпись`, `*` — ★ конец слова, `!` — выделен, `@N` — сноска,
+  `^` — поддерево-заглушка, `;` — следующее дерево со стрелкой, `data-titles`/`data-notes`/
+  `data-row`). Токены `--tp-*` объявлены на `.algo-tp, .algo-fig`. Узкая рамка: последовательность
+  деревьев встаёт столбцом (`@container algo-fig`), широкое ужимается до 0.75 и дальше
+  прокручивается в своём блоке. Тег — одной строкой. Прототип (2026-10-12): три рисунка —
+  `segment-tree-structure`, `avl-tree-structure`, `trie-structure`; держит `scripts/fig-check.js`
+  (в CI: узлы и рёбра против независимого счёта меток, ряд, сноски, заголовки, подпись; кривые
+  данные — видимая ошибка)
 - `<div class="algo-quiz"></div>` — квиз распознавания паттернов (`quiz.js`, см. `src/quiz.md`): порции по 10 из пройденных
   глав (`window.ALGO_DONE()` в `progress.js`; «по всем главам» — `algoPracticeScope`, общий со смешанной), промахи первыми;
   рекорд полной порции — `algoQuizBestPortion`, прежний `algoQuizBest` не читается и не пишется. Держит `quiz-check.js`

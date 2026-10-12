@@ -16685,6 +16685,129 @@
     });
   }
 
+  // ===== Статические рисунки: <div class="algo-fig" data-fig="tree"> ===========
+  // Замена ASCII-схем в главах: тот же treeFigure, что у виджетов, но без шагов и управления.
+  // data-tree — дерево скобками, «z(x(A,y(B,C)),D)»: метка идёт до «(», «,» или «)»; внутри
+  // «[…]» запятая — часть метки («11|[0,3]»). Несколько деревьев (последовательность «до → после») —
+  // через «;». Метка: «текст|подпись» — подпись под узлом; суффиксы «*» — конец слова (★),
+  // «!» — выделенный узел, «@N» — сноска N из data-notes; префикс «^» — поддерево-заглушка (A, B…).
+  // data-titles — заголовки деревьев через «;», data-notes — сноски через «||», data-row — ряд
+  // ячеек под листьями первого дерева (по одной на лист), data-row-label — его подпись,
+  // data-caption — подпись рисунка. Кривые данные — громкая ошибка в рисунке, а не пустое место.
+  function parseFigTree(src) {
+    var i = 0;
+    function node() {
+      var lbl = "", sq = 0;
+      for (; i < src.length; i++) {
+        var c = src[i];
+        if (c === "[") sq++;
+        else if (c === "]") sq--;
+        else if (sq === 0 && (c === "(" || c === "," || c === ")")) break;
+        lbl += c;
+      }
+      var n = { text: lbl.trim(), kids: [] };
+      if (!n.text) throw new Error("пустая метка в позиции " + i + ": " + src);
+      if (src[i] !== "(") return n;
+      i++;
+      for (;;) {
+        n.kids.push(node());
+        if (src[i] === ",") { i++; continue; }
+        if (src[i] === ")") { i++; return n; }
+        throw new Error("ждали «,» или «)» в позиции " + i + ": " + src);
+      }
+    }
+    var root = node();
+    if (i < src.length) throw new Error("лишнее после дерева в позиции " + i + ": " + src);
+    return root;
+  }
+  // Дерево → плоский список узлов treeFigure (родитель раньше детей, порядок прямого обхода).
+  function figTreeNodes(root) {
+    var out = [];
+    (function walk(n, parent) {
+      var bar = n.text.indexOf("|"), head = (bar < 0 ? n.text : n.text.slice(0, bar)).trim();
+      var m = /^(\^)?(.+?)(\*)?(!)?(?:@(\d+))?$/.exec(head);
+      if (!m) throw new Error("не разобрана метка «" + head + "»");
+      var cls = [], label = m[2];
+      if (m[1]) cls.push("algo-fig__sub");
+      if (m[3]) { cls.push("algo-tp__tnode--end"); label += " ★"; }
+      if (m[4]) cls.push("algo-tp__tnode--current");
+      var me = out.length;
+      out.push({ parent: parent, label: label, sub: bar < 0 ? null : n.text.slice(bar + 1).trim(), cls: cls.join(" "), note: m[5] ? +m[5] : 0, leaf: !n.kids.length });
+      n.kids.forEach(function (k) { walk(k, me); });
+    })(root, -1);
+    return out;
+  }
+  function figTree(src, row, rowLabel, nNotes) {
+    var nodes = figTreeNodes(parseFigTree(src));
+    var withSub = nodes.some(function (n) { return n.sub != null; });
+    // Размеры — как у виджетов: с подписью под узлом — как segFigure, без неё — как trieFigure.
+    var fig = treeFigure(nodes, withSub ? { cw: 58, ch: 74 } : { cw: 52, ch: 58 });
+    nodes.forEach(function (n, i) {
+      if (!n.note) return;
+      if (n.note > nNotes) throw new Error("сноска @" + n.note + " без текста в data-notes");
+      var mk = mkEl("span", "algo-fig__mark", String(n.note));
+      mk.style.left = fig.pos[i].x + "px"; mk.style.top = fig.pos[i].y + "px";
+      fig.el.appendChild(mk);
+    });
+    if (!row) return fig.el;
+    var leaves = [];
+    nodes.forEach(function (n, i) { if (n.leaf) leaves.push(i); });
+    if (row.length !== leaves.length) throw new Error("data-row: " + row.length + " ячеек на " + leaves.length + " листьев");
+    var h = parseFloat(fig.el.style.height);
+    row.forEach(function (v, k) {
+      var c = mkEl("span", "algo-fig__cell", v);
+      c.style.left = fig.pos[leaves[k]].x + "px"; c.style.top = (h + 4) + "px";
+      fig.el.appendChild(c);
+    });
+    if (rowLabel) { var lb = mkEl("span", "algo-fig__rowlabel", rowLabel); lb.style.top = (h + 40) + "px"; fig.el.appendChild(lb); }
+    fig.el.style.height = (h + (rowLabel ? 62 : 38)) + "px";
+    return fig.el;
+  }
+  function splitList(v, sep) { return v ? v.split(sep).map(function (x) { return x.trim(); }) : []; }
+  function renderFig(el) {
+    var kind = el.getAttribute("data-fig") || "";
+    if (kind !== "tree") throw new Error("неизвестный data-fig=\"" + kind + "\"");
+    var trees = splitList(el.getAttribute("data-tree"), ";"), titles = splitList(el.getAttribute("data-titles"), ";");
+    var notes = splitList(el.getAttribute("data-notes"), "||"), row = el.getAttribute("data-row");
+    if (!trees.length) throw new Error("пустой data-tree");
+    var body = mkEl("div", "algo-fig__body"), seq = mkEl("div", "algo-fig__seq");
+    trees.forEach(function (t, k) {
+      if (k) seq.appendChild(mkEl("span", "algo-fig__arrow", "⟶"));
+      var item = mkEl("div", "algo-fig__item");
+      if (titles[k]) item.appendChild(mkEl("div", "algo-fig__title", titles[k]));
+      item.appendChild(figTree(t, row && k === 0 ? splitList(row, ",") : null, el.getAttribute("data-row-label"), notes.length));
+      seq.appendChild(item);
+    });
+    body.appendChild(seq);
+    if (notes.length) {
+      var ol = mkEl("ol", "algo-fig__notes");
+      notes.forEach(function (n) { ol.appendChild(mkEl("li", null, n)); });
+      body.appendChild(ol);
+    }
+    var scroll = mkEl("div", "algo-fig__scroll");
+    scroll.appendChild(body); el.appendChild(scroll);
+    var cap = el.getAttribute("data-caption");
+    if (cap) el.appendChild(mkEl("div", "algo-fig__caption", cap));
+    el.setAttribute("role", "figure");
+    // Как у рисунков деревьев в виджетах: ужать целиком, но не мельче 0.75 — дальше честнее
+    // прокрутка в своём блоке (страница вбок не едет).
+    function fit() {
+      body.style.zoom = "";
+      var avail = scroll.clientWidth, w = body.scrollWidth;
+      if (avail > 0 && w > avail) body.style.zoom = String(Math.round(Math.max(0.75, avail / w) * 1000) / 1000);
+    }
+    fit();
+    if (window.ResizeObserver) new ResizeObserver(function () { (window.requestAnimationFrame || setTimeout)(fit); }).observe(scroll);
+  }
+  function renderFigSafe(el) {
+    el.classList.add("algo-fig--ready");
+    try { renderFig(el); } catch (err) {
+      if (window.console && console.error) console.error("algo-fig: не удалось построить рисунок:", err);
+      el.textContent = "";
+      el.appendChild(mkEl("div", "algo-tp__note", "⚠️ Ошибка рисунка: " + (err && err.message ? err.message : err)));
+    }
+  }
+
   // ===== Внешняя регистрация типов ============================================
   // assets/infra-*.js (темы) грузятся ПОСЛЕ этого файла, а init() стартует на DOMContentLoaded,
   // то есть когда все скрипты уже выполнились и регистрация успела.
@@ -16764,6 +16887,7 @@
     anchorIds();
     initTabs();
     Array.prototype.forEach.call(document.querySelectorAll(".algo-viz:not(.algo-viz--ready)"), render);
+    Array.prototype.forEach.call(document.querySelectorAll(".algo-fig:not(.algo-fig--ready)"), renderFigSafe);
     revealHash();
     if (document.readyState !== "complete") window.addEventListener("load", revealHash);
     window.addEventListener("hashchange", revealHash);

@@ -586,7 +586,8 @@
 /* ===================================================================== */
 /* Two Pointers — расширенная «дашборд»-визуализация                     */
 /* ===================================================================== */
-.algo-tp {
+/* Токены общие у виджета и статического рисунка (.algo-fig): узлы деревьев красятся одинаково. */
+.algo-tp, .algo-fig {
   /* Самодостаточная тёмная «IDE-панель»: палитра фиксирована и НЕ наследует тему книги,
      поэтому виджет одинаково выглядит на любой теме mdBook. --fg/--bg переопределены
      локально, чтобы все color-mix(var(--fg)…) давали светлые полупрозрачные слои на тёмном. */
@@ -612,6 +613,8 @@
   --quote-border: #3d4256;     /* рёбра графов, обводки узлов, рамки ячеек — видны на тёмном */
   --sidebar-bg: #232733;       /* фон ячеек/кнопок легаси-виз */
   --quote-bg: #141720;
+}
+.algo-tp {
   color: var(--fg);
   background: var(--tp-surface);
   border: 1px solid var(--tp-border);
@@ -630,7 +633,7 @@
   container: algo-tp / inline-size;
 }
 .page-wrapper { container-type: inline-size; }
-.algo-tp, .algo-tp * { box-sizing: border-box; }
+.algo-tp, .algo-tp *, .algo-fig, .algo-fig * { box-sizing: border-box; }
 
 /* кнопка полноэкранного режима */
 .algo-tp__fsbtn { font-weight: 600; white-space: nowrap; }
@@ -2379,3 +2382,63 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--rhomeet { background: transparent; border: 2px dashed #22d3ee; }
 /* ярлык рамки снизу, под строкой индексов (сверху стоит плашка) */
 .algo-nn__frame--labbot .algo-nn__framelab { bottom: auto; top: 100%; transform: translateY(2em); }
+
+/* ===================================================================== */
+/* Статический рисунок (.algo-fig): дерево вместо ASCII-схемы в главе.    */
+/* Узлы — те же .algo-tp__tfignode, что у виджетов; рамка — поверхность   */
+/* книги (--th-*), без управления. Широкое ужимается (zoom ≥ 0.75, JS),   */
+/* дальше прокручивается в СВОЁМ блоке: страница вбок не едет.            */
+/* ===================================================================== */
+.algo-fig {
+  color: var(--fg);
+  background: var(--th-surface, #1a1d27);
+  border: 1px solid var(--th-border, #2a2e3d);
+  border-radius: 12px;
+  padding: 0.9em 1em 0.8em;
+  margin: 1.2em 0;
+  container: algo-fig / inline-size;
+}
+.algo-fig__scroll { overflow-x: auto; overflow-y: hidden; }
+.algo-fig__body { width: max-content; min-width: 100%; }
+/* деревья разной высоты — по верху, чтобы заголовки стояли в одну строку */
+.algo-fig__seq { display: flex; align-items: flex-start; justify-content: center; gap: 0.6em 1.2em; }
+.algo-fig__item { display: flex; flex-direction: column; align-items: center; }
+.algo-fig__title { font-size: 0.82em; color: var(--th-muted, #8a91ad); white-space: nowrap; margin-bottom: 0.2em; }
+.algo-fig__arrow { align-self: center; font-size: 1.5em; color: var(--th-muted, #8a91ad); line-height: 1; }
+/* поддерево-заглушка (A, B, C…): не узел, а «что-то там висит» — треугольник с буквой */
+.algo-fig__sub.algo-tp__tfignode {
+  border: none; background: none; border-radius: 0; padding: 0 0 0.15em; min-width: 2.2em; width: 2.2em; height: 2.2em;
+  align-items: flex-end; font-weight: 600; color: var(--th-muted, #8a91ad); isolation: isolate;
+}
+.algo-fig__sub.algo-tp__tfignode::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: color-mix(in srgb, var(--fg) 12%, transparent);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+/* treeFigure начинает ребро на 27px ниже центра узла; с унаследованной высотой строки подпись
+   кончалась на 35px, и ребро перечёркивало «[0,1]». Высота строки 1 — подпись кончается у ребра. */
+.algo-fig .algo-tp__tfigsub { line-height: 1; }
+/* ряд под листьями (исходный массив) */
+.algo-fig__cell {
+  position: absolute; translate: -50% 0; min-width: 2.2em; height: 1.9em; padding: 0 0.4em;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--tp-border); border-radius: 6px; background: var(--tp-panel);
+  font-family: var(--mono-font, monospace); font-size: 0.85em; font-variant-numeric: tabular-nums;
+}
+.algo-fig__rowlabel { position: absolute; left: 50%; translate: -50% 0; font-size: 0.72em; color: var(--th-muted, #8a91ad); white-space: nowrap; }
+/* номер сноски у узла — правый верхний угол */
+.algo-fig__mark {
+  position: absolute; translate: 0.7em -1.55em; min-width: 1.35em; height: 1.35em; padding: 0 0.25em;
+  display: flex; align-items: center; justify-content: center; border-radius: 999px;
+  background: var(--tp-warn); color: #0f1117; font-size: 0.68em; font-weight: 800;
+}
+/* 100cqw — ширина рамки: без него длинная сноска растягивала тело до 34em, и на телефоне
+   ужимался весь рисунок вместе с узким деревом */
+.algo-fig__notes { margin: 0.6em auto 0; padding-left: 1.6em; font-size: 0.85em; max-width: min(34em, 100cqw); }
+.algo-fig__notes li::marker { color: var(--tp-warn); font-weight: 800; }
+.algo-fig__caption { margin-top: 0.6em; padding-top: 0.5em; border-top: 1px solid var(--th-border, #2a2e3d); font-size: 0.85em; color: var(--th-muted, #8a91ad); text-align: center; }
+/* узкая колонка: последовательность деревьев — сверху вниз, стрелка смотрит вниз */
+@container algo-fig (max-width: 520px) {
+  .algo-fig__seq { flex-direction: column; align-items: center; }
+  .algo-fig__arrow { rotate: 90deg; }
+}
