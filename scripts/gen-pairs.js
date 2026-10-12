@@ -28,8 +28,16 @@ const GUIDE = "pattern-selection-guide";
 const GUIDE_HEADING = "## Путаемые пары: что обязано быть верно";
 const GUIDE_LINK = "pattern-selection-guide.md#путаемые-пары-что-обязано-быть-верно";
 const MAX_WORDS = 25;
+// Ключ ряда — глава-ответ банка (по нему ищет смешанная тренировка и сверяется CONFUSABLE),
+// а ссылка для читателя может вести на соседнюю главу, где приём объяснён. «Дерево Фенвика:
+// задачи» — ответ банка, а обновление и запрос учит «устройство», и туда же ведут «Ломается»
+// и «🔗» префиксных сумм. Блок получают обе главы; в каждой своя глава — без ссылки.
+const LINK_TARGET = { "fenwick-tree": "fenwick-tree-structure" };
+const href = (s) => LINK_TARGET[s] || s;
 
-const BLOCK_RE = /<!-- pairs:begin[^\n]*\n[\s\S]*?<!-- pairs:end -->\n\n?/;
+// Перевод строки после END необязателен: блок в самом конце файла тоже снимается, и запись
+// не вставит второй.
+const BLOCK_RE = /<!-- pairs:begin[^\n]*\n[\s\S]*?<!-- pairs:end -->(?:\n\n?)?/;
 const LINKS_RE = /^(## 🔗[^\n]*\n)\n?/m;
 const GUIDE_RE = new RegExp(`^(${GUIDE_HEADING}\n)\n?`, "m");
 
@@ -57,10 +65,10 @@ function validate(pairs, titles, texts) {
       errs.push(`${at}: нет поля ${missing.join(", ")}`);
       return;
     }
-    for (const k of ["use", "not"]) {
-      if (!titles.has(p[k])) errs.push(`${at}: главы «${p[k]}» нет в assets/progress.js`);
-      else if (!texts.has(p[k])) errs.push(`${at}: нет файла src/${p[k]}.md`);
-      else if (!LINKS_RE.test(texts.get(p[k]))) errs.push(`${at}: в src/${p[k]}.md нет раздела «## 🔗»`);
+    for (const s of new Set([p.use, p.not, href(p.use), href(p.not)])) {
+      if (!titles.has(s)) errs.push(`${at}: главы «${s}» нет в assets/progress.js`);
+      else if (!texts.has(s)) errs.push(`${at}: нет файла src/${s}.md`);
+      else if (!LINKS_RE.test(texts.get(s))) errs.push(`${at}: в src/${s}.md нет раздела «## 🔗»`);
     }
     if (p.use === p.not) errs.push(`${at}: use и not — одна глава`);
     if (p.use === GUIDE || p.not === GUIDE) errs.push(`${at}: руководство по выбору — не глава`);
@@ -84,9 +92,10 @@ function validate(pairs, titles, texts) {
 // Блок главы slug или null, если в реестре её нет.
 function blockFor(slug, pairs, titles) {
   const short = (s) => titles.get(s).replace(/:.*$/, "");
-  const name = (s) => (s === slug ? short(s) : `[${short(s)}](${s}.md)`);
+  const own = (s) => s === slug || href(s) === slug;
+  const name = (s) => (own(s) ? short(s) : `[${short(s)}](${href(s)}.md)`);
   const rows = pairs
-    .filter((p) => p.use === slug || p.not === slug)
+    .filter((p) => own(p.use) || own(p.not))
     .map((p) => `- если ${p.must} — ${name(p.use)}, а не ${name(p.not)}: ${p.why}.`);
   if (!rows.length) return null;
   return (
@@ -99,7 +108,7 @@ function blockFor(slug, pairs, titles) {
 // Таблица руководства по выбору: все ряды в порядке реестра.
 function guideBlock(pairs, titles) {
   const short = (s) => titles.get(s).replace(/:.*$/, "");
-  const rows = pairs.map((p) => `| ${p.must} | [${short(p.use)}](${p.use}.md) | не [${short(p.not)}](${p.not}.md): ${p.why} |`);
+  const rows = pairs.map((p) => `| ${p.must} | [${short(p.use)}](${href(p.use)}.md) | не [${short(p.not)}](${href(p.not)}.md): ${p.why} |`);
   return (
     `${GUIDE_BEGIN}\n` +
     "Если в условии верно то, что слева, — бери приём из середины, а не соседа справа. " +
@@ -199,6 +208,9 @@ function selfTest() {
   const g1 = apply(guide, gb, GUIDE_RE);
   if (g1 !== `# Р\n\n${GUIDE_HEADING}\n\n${gb}\n## Дальше\n`) errs.push(`самопроверка (вписывание в руководство): ${JSON.stringify(g1)}`);
   if (apply(g1, gb, GUIDE_RE) !== g1) errs.push("самопроверка: второй прогон меняет руководство");
+  const tail = `${chapter("")}\n${block}`.replace(/\n$/, "");
+  if ((apply(tail, null).match(/pairs:begin/g) || []).length) errs.push("самопроверка: блок в конце файла без перевода строки не снимается");
+  if ((apply(tail, block).match(/pairs:begin/g) || []).length !== 1) errs.push("самопроверка: блок в конце файла удваивается");
   try {
     apply(once.replace(END, ""), block);
     errs.push("самопроверка: метка без пары не замечена");
@@ -244,4 +256,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { BEGIN, GUIDE_BEGIN, END, GUIDE, GUIDE_HEADING, GUIDE_LINK, titlesOf, validate, blockFor, guideBlock, apply, generate, selfTest };
+module.exports = { LINK_TARGET, href, BEGIN, GUIDE_BEGIN, END, GUIDE, GUIDE_HEADING, GUIDE_LINK, titlesOf, validate, blockFor, guideBlock, apply, generate, selfTest };
