@@ -16690,18 +16690,23 @@
   // Замена ASCII-схем в главах: тот же treeFigure, что у виджетов, но без шагов и управления.
   // data-tree — дерево скобками, «z(x(A,y(B,C)),D)»: метка идёт до «(», «,» или «)»; внутри
   // «[…]» запятая — часть метки («11|[0,3]»). Несколько деревьев (последовательность «до → после») —
-  // через «;». Метка: «текст|подпись» — подпись под узлом; суффиксы «*» — конец слова (★),
-  // «!» — выделенный узел, «@N» — сноска N из data-notes; префикс «^» — поддерево-заглушка (A, B…).
+  // через «;». Метка: «текст|подпись» — подпись под узлом; суффиксы (в любом порядке) «*» — конец
+  // слова (★), «!» — выделенный узел, «~» — узел пути поиска/вставки (его ребро от родителя — тоже),
+  // «@N» — сноска N из data-notes; префикс «^» — поддерево-заглушка (A, B…).
   // data-titles — заголовки деревьев через «;», data-notes — сноски через «||», data-row — ряд
   // ячеек под листьями первого дерева (по одной на лист), data-row-label — его подпись,
-  // data-caption — подпись рисунка. Кривые данные — громкая ошибка в рисунке, а не пустое место.
+  // data-path-label — подпись пути «~» в легенде (иначе «путь поиска»), data-diff — в последовательности отметить
+  // рёбра, которых не было на прошлом шаге, data-caption — подпись рисунка. Кривые данные —
+  // громкая ошибка в рисунке, а не пустое место.
   //
   // Подсветка выводится из тех же данных, своих атрибутов у неё нет. Узел под мышью, пальцем
   // (касание закрепляет, повтор или касание мимо — снимает) или в фокусе клавиатуры (Esc — снять):
   //  - одно дерево — путь к корню; подпись «[l,r]» при data-row — ещё и ячейки l…r ряда;
   //  - одно дерево с ★ — рядом список слов (путь от корня до ★); слово и его ★ подсвечиваются вместе;
-  //  - последовательность («;») — узел с той же меткой во всех деревьях (метки в дереве уникальны),
-  //    а рёбра, которых не было в предыдущем дереве (другой родитель у ребёнка), — акцентом всегда.
+  //  - последовательность («;») — узел с той же меткой во всех деревьях (метки в дереве уникальны);
+  //    с data-diff рёбра, которых не было в предыдущем дереве (другой родитель у ребёнка), —
+  //    янтарём всегда (зелёный акцент остаётся за подсветкой).
+  // Строка-подсказка «Наведи на узел…» — только у первого рисунка страницы.
   // Сноска @N на широкой рамке — выноска рядом с узлом с линией к нему, уже FIG_NARROW — номер
   // у узла и список под рисунком.
   function parseFigTree(src) {
@@ -16735,14 +16740,15 @@
     var out = [];
     (function walk(n, parent) {
       var bar = n.text.indexOf("|"), head = (bar < 0 ? n.text : n.text.slice(0, bar)).trim();
-      var m = /^(\^)?(.+?)(\*)?(!)?(?:@(\d+))?$/.exec(head);
+      var m = /^(\^)?(.+?)([*!~]*)(?:@(\d+))?$/.exec(head);
       if (!m) throw new Error("не разобрана метка «" + head + "»");
-      var cls = [], label = m[2];
+      var cls = [], label = m[2], sfx = m[3];
       if (m[1]) cls.push("algo-fig__sub");
-      if (m[3]) { cls.push("algo-tp__tnode--end"); label += " ★"; }
-      if (m[4]) cls.push("algo-tp__tnode--current");
+      if (sfx.indexOf("*") >= 0) { cls.push("algo-tp__tnode--end"); label += " ★"; }
+      if (sfx.indexOf("!") >= 0) cls.push("algo-tp__tnode--current");
+      if (sfx.indexOf("~") >= 0) cls.push("algo-fig__trail");
       var me = out.length;
-      out.push({ parent: parent, label: label, base: m[2], end: !!m[3], sub: bar < 0 ? null : n.text.slice(bar + 1).trim(), cls: cls.join(" "), note: m[5] ? +m[5] : 0, leaf: !n.kids.length });
+      out.push({ parent: parent, label: label, base: m[2], end: sfx.indexOf("*") >= 0, trail: sfx.indexOf("~") >= 0, sub: bar < 0 ? null : n.text.slice(bar + 1).trim(), cls: cls.join(" "), note: m[4] ? +m[4] : 0, leaf: !n.kids.length });
       n.kids.forEach(function (k) { walk(k, me); });
     })(root, -1);
     return out;
@@ -16767,6 +16773,12 @@
     // Размеры — как у виджетов: с подписью под узлом — как segFigure, без неё — как trieFigure.
     var fig = treeFigure(nodes, withSub ? { cw: 58, ch: 74 } : { cw: 52, ch: 58 });
     var box = fig.el, calls = [], cells = [];
+    // путь «~» идёт от корня без разрывов; ребро в узел пути — тоже путь
+    nodes.forEach(function (n, i) {
+      if (!n.trail || n.parent < 0) return;
+      if (!nodes[n.parent].trail) throw new Error("путь «~» разорван: у «" + n.base + "» родитель «" + nodes[n.parent].base + "» не на пути");
+      fig.edges[i].classList.add("algo-fig__edge--trail");
+    });
     nodes.forEach(function (n, i) {
       if (!n.note) return;
       if (n.note > opt.notes.length) throw new Error("сноска @" + n.note + " без текста в data-notes");
@@ -16944,12 +16956,20 @@
       pair.appendChild(ul); pair.appendChild(tr.el); item.appendChild(pair); seq.appendChild(item);
     });
     body.appendChild(seq);
-    var changed = 0;
-    if (multi) for (var k = 1; k < items.length; k++) changed += figChanged(items[k - 1], items[k]);
-    if (changed) {
+    var diff = el.hasAttribute("data-diff"), changed = 0;
+    if (diff && !multi) throw new Error("data-diff — для последовательности деревьев через «;»");
+    if (diff) for (var k = 1; k < items.length; k++) changed += figChanged(items[k - 1], items[k]);
+    var hasTrail = items.some(function (tr) { return tr.nodes.some(function (n) { return n.trail; }); });
+    if (changed || hasTrail) {
       var lg = mkEl("div", "algo-fig__legend");
-      lg.appendChild(mkEl("span", "algo-fig__legline"));
-      lg.appendChild(document.createTextNode("ребро, которого не было на прошлом шаге"));
+      if (changed) {
+        lg.appendChild(mkEl("span", "algo-fig__legline algo-fig__legline--changed"));
+        lg.appendChild(mkEl("span", null, "ребро, которого не было на прошлом шаге"));
+      }
+      if (hasTrail) {
+        lg.appendChild(mkEl("span", "algo-fig__legline algo-fig__legline--trail"));
+        lg.appendChild(mkEl("span", null, el.getAttribute("data-path-label") || "путь поиска"));
+      }
       body.appendChild(lg);
     }
     if (notes.length) {
@@ -16970,7 +16990,8 @@
     var what = multi ? "тот же узел на каждом шаге"
       : items[0].words.length ? "путь от корня; у слова — путь до его ★"
       : items[0].nodes.some(function (n) { return n.lo != null; }) ? "отрезок узла в массиве и путь к корню" : "путь к корню";
-    el.appendChild(mkEl("div", "algo-fig__hint", "Наведи на узел" + (items[0].words.length ? " или слово" : "") + " (или нажми) — подсветится " + what + "."));
+    // подсказка — один раз на страницу: на втором рисунке читатель уже знает, что узлы живые
+    if (document.querySelector(".algo-fig") === el) el.appendChild(mkEl("div", "algo-fig__hint", "Наведи на узел" + (items[0].words.length ? " или слово" : "") + " (или нажми) — подсветится " + what + "."));
     el.setAttribute("role", "figure");
     figInteract(el, figGroups(items, multi));
     // Сначала раскладка без масштаба (выноски меряются в настоящих пикселях), потом — как у

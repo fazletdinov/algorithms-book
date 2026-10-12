@@ -2401,6 +2401,9 @@ body.algo-tp-fslock { overflow: hidden; }
   --fig-accent: var(--th-accent, #4ae08a);
   --fig-node: var(--th-blue, #3b82f6);
   --fig-muted: var(--th-muted, #8a91ad);
+  /* янтарь — «изменилось» (как --nn-amber виджетов), голубой — путь поиска «~» (как --nn-cyan) */
+  --fig-changed: #fbbf24;
+  --fig-trail: #22d3ee;
 }
 .algo-fig__scroll { overflow-x: auto; overflow-y: hidden; }
 .algo-fig__body { width: max-content; min-width: 100%; }
@@ -2462,10 +2465,16 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-fig .algo-tp__tfignode.algo-tp__tnode--current { font-family: var(--mono-font, monospace); box-shadow: 0 0 14px -2px color-mix(in srgb, var(--tp-lo) 70%, transparent); }
 .algo-fig .algo-tp__tfignode.algo-tp__tnode--end:not(.algo-tp__tnode--current) { border: 4px double color-mix(in srgb, var(--fig-node) 45%, var(--fg)); }
 .algo-fig .algo-tp__bstedge { stroke: color-mix(in srgb, var(--fg) 32%, transparent); stroke-width: 1.5; opacity: 1; }
-/* последовательность: ребро, которого не было в прошлом дереве */
-.algo-fig .algo-tp__bstedge.algo-fig__edge--changed { stroke: var(--fig-accent); stroke-width: 2.5; }
-.algo-fig__legend { display: flex; align-items: center; justify-content: center; gap: 0.5em; margin-top: 0.5em; font-size: 0.8em; color: var(--fig-muted); }
-.algo-fig__legline { width: 1.8em; height: 2.5px; border-radius: 2px; background: var(--fig-accent); }
+/* последовательность с data-diff: ребро, которого не было в прошлом дереве */
+.algo-fig .algo-tp__bstedge.algo-fig__edge--changed { stroke: var(--fig-changed); stroke-width: 2.5; }
+/* путь поиска/вставки «~»: рёбра и узлы — голубым, не путать с зелёной подсветкой наведения */
+.algo-fig .algo-tp__bstedge.algo-fig__edge--trail { stroke: var(--fig-trail); stroke-width: 2.5; }
+.algo-fig .algo-tp__tfignode.algo-fig__trail { border-color: var(--fig-trail); box-shadow: 0 0 12px -2px color-mix(in srgb, var(--fig-trail) 60%, transparent); }
+.algo-fig__legend { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5em; margin-top: 0.5em; font-size: 0.8em; color: var(--fig-muted); }
+.algo-fig__legend span + .algo-fig__legline { margin-left: 1em; }
+.algo-fig__legline { width: 1.8em; height: 2.5px; border-radius: 2px; }
+.algo-fig__legline--changed { background: var(--fig-changed); }
+.algo-fig__legline--trail { background: var(--fig-trail); }
 
 /* --- подсветка: узел — кольцо акцента, путь — кольцо потоньше, остальное приглушено --- */
 .algo-fig__hot { cursor: pointer; -webkit-tap-highlight-color: transparent; }

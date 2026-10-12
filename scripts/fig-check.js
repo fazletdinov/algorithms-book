@@ -12,9 +12,12 @@
 // а заведомо кривые данные обязаны дать видимую ошибку, а не пустой блок.
 // Поведение — на каждом узле и слове, ожидание из своего разбора дерева: наведение отмечает
 // ровно свой отрезок ряда и путь к корню (одно дерево), ту же метку во всех деревьях
-// (последовательность), путь до ★ (слово бора); рёбра «не было на прошлом шаге» — по сравнению
-// родителей, у LR AVL ещё и списком из учебника; фокус, Esc (не доходит до document), касание;
-// выноски на рамке 521px и откат к номерам и списку на 520px (по стилям algo-viz.css).
+// (последовательность), путь до ★ (слово бора); рёбра «не было на прошлом шаге» (только с
+// data-diff) — по сравнению родителей, у LR AVL ещё и списком из учебника; путь «~» — ровно его
+// узлы и рёбра, легенда с data-path-label; подсказка «Наведи…» — только у первого рисунка страницы;
+// три цвета со смыслом (наведение, изменилось, путь) — разные токены; фокус, Esc (не доходит до
+// document), касание; выноски на рамке 521px и откат к номерам и списку на 520px (по стилям
+// algo-viz.css). Возможности формата, которых нет в главах, гоняются на образцах.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -49,6 +52,25 @@ for (const f of fs.readdirSync(srcDir).filter((f) => f.endsWith(".md")).sort()) 
 
 const fails = [];
 if (figs.length !== mentioned) fails.push(`class="algo-fig" встречается ${mentioned} раз, а разобранных тегов ${figs.length}: тег должен быть одной строкой <div …></div>`);
+const inChapters = figs.length;
+// Цвета со смыслом (решение автора): наведение — зелёный акцент, «изменилось» — янтарь,
+// путь «~» — голубой. Три разных токена; правила рёбер берут каждый свой.
+{
+  const tok = (n) => (new RegExp(`\\.algo-fig \\{[^}]*--${n}:\\s*([^;]+);`).exec(css) || [])[1];
+  const ruleUses = (cls, n) => new RegExp(`\\.algo-tp__bstedge\\.${cls} \\{[^}]*stroke: var\\(--${n}\\)`).test(css);
+  const [acc, chg, trl] = ["fig-accent", "fig-changed", "fig-trail"].map(tok);
+  if (!acc || !chg || !trl || new Set([acc, chg, trl]).size !== 3) fails.push(`токены цвета рисунка: accent ${acc}, changed ${chg}, trail ${trl} — должны быть заданы и различны`);
+  if (!/^#fbbf24$/i.test(chg || "")) fails.push(`--fig-changed = ${chg}, ждали янтарь #fbbf24 (как --nn-amber виджетов)`);
+  if (!ruleUses("algo-fig__edge--changed", "fig-changed")) fails.push("изменённое ребро красится не --fig-changed");
+  if (!ruleUses("algo-fig__edge--trail", "fig-trail")) fails.push("ребро пути «~» красится не --fig-trail");
+  if (!ruleUses("algo-fig__edge--path", "fig-accent")) fails.push("ребро подсвеченного пути красится не --fig-accent");
+}
+// Образцы возможностей формата, которые главы пока не используют (или используют не везде), —
+// те же проверки, что у рисунков глав.
+[
+  ['<div class="algo-fig" data-fig="tree" data-tree="8~(3~(1,6~(4~,7)),10(14))" data-path-label="путь поиска 4" data-caption="образец: путь «~»"></div>', "путь «~»"],
+  ['<div class="algo-fig" data-fig="tree" data-tree="y(x,C); x(A,y)" data-caption="образец: последовательность без data-diff"></div>', "последовательность без data-diff"],
+].forEach(([tag, what]) => figs.push({ where: "образец (" + what + ")", tag }));
 
 const attr = (tag, name) => {
   const m = new RegExp(`\\s${name}="([^"]*)"`).exec(tag);
@@ -84,7 +106,8 @@ function treeOf(src) {
       lbl += c;
     }
     const raw = lbl.trim(), head = raw.split("|")[0].trim(), me = out.length;
-    out.push({ parent, base: head.replace(/^\^/, "").replace(/@\d+$/, "").replace(/[*!]+$/, ""), end: head.includes("*"), sub: raw.includes("|") ? raw.slice(raw.indexOf("|") + 1).trim() : null });
+    const sfx = /[*!~]*(@\d+)?$/.exec(head)[0];
+    out.push({ parent, base: head.replace(/^\^/, "").slice(0, head.replace(/^\^/, "").length - sfx.length), end: sfx.includes("*"), trail: sfx.includes("~"), sub: raw.includes("|") ? raw.slice(raw.indexOf("|") + 1).trim() : null });
     if (src[i] !== "(") return;
     i++;
     for (;;) { rd(me); if (src[i++] === ")") return; }
@@ -116,6 +139,9 @@ function render(tags) {
 // --- рисунки глав ---
 const { w, doc, errors, close } = await render(figs.map((f) => f.tag));
 errors.forEach((e) => fails.push("рендер: " + e));
+// подсказка «Наведи на узел…» — только у первого рисунка страницы (здесь все рисунки на одной)
+const hints = [...doc.querySelectorAll(".algo-fig__hint")];
+if (hints.length !== 1 || !doc.getElementById("fig0").contains(hints[0])) fails.push(`подсказок «Наведи…» ${hints.length}, ждали одну — у первого рисунка страницы`);
 figs.forEach((f, i) => {
   const el = doc.getElementById("fig" + i), bad = (msg) => fails.push(`${f.where}: ${msg}`);
   if (!el.classList.contains("algo-fig--ready")) return bad("рисунок не построен (нет algo-fig--ready)");
@@ -196,17 +222,17 @@ function behaviour(f, el, trees, bad) {
       out(nodesOf[k][i]);
       expectClear(`уход с «${n.base}» дерева ${k + 1}`);
     }));
-    // изменённые рёбра: у ребёнка другой родитель, чем в прошлом дереве
-    const want = [];
-    for (let k = 1; k < T.length; k++) {
+    // изменённые рёбра (только с data-diff): у ребёнка другой родитель, чем в прошлом дереве
+    const want = [], diff = /\sdata-diff[\s=>]/.test(f.tag);
+    for (let k = 1; diff && k < T.length; k++) {
       const was = {};
       T[k - 1].forEach((n) => { if (n.parent >= 0) was[n.base] = T[k - 1][n.parent].base; });
       T[k].forEach((n) => { if (n.parent >= 0 && was[n.base] !== T[k][n.parent].base) want.push(`${k}:${T[k][n.parent].base}-${n.base}`); });
     }
     const shown = [...el.querySelectorAll(".algo-fig__edge--changed")].map(edgeName);
     if (!sameSet(shown, want)) bad(`изменённые рёбра [${shown}], ждали [${want}]`);
-    if (f.where.startsWith("avl-tree-structure") && !sameSet(shown, ["1:z-y", "1:y-x", "1:x-B", "2:y-z", "2:z-C"])) bad(`LR: изменённые рёбра [${shown}], по учебнику z-y, y-x, x-B; y-z, z-C`);
-    if (!!want.length !== !!el.querySelector(".algo-fig__legend")) bad("легенда изменённых рёбер не совпала с их наличием");
+    if (f.tag.includes("data-titles=\"начало; 1) левый поворот x") && !sameSet(shown, ["1:z-y", "1:y-x", "1:x-B", "2:y-z", "2:z-C"])) bad(`LR: изменённые рёбра [${shown}], по учебнику z-y, y-x, x-B; y-z, z-C`);
+    if (!!want.length !== !!el.querySelector(".algo-fig__legline--changed")) bad("легенда изменённых рёбер не совпала с их наличием");
   } else {
     const t = T[0], ns = nodesOf[0];
     // слова — от корня до каждого ★
@@ -239,6 +265,20 @@ function behaviour(f, el, trees, bad) {
       expectClear(`уход со слова «${x.textContent}»`);
     });
   }
+
+  // путь «~»: узлы с «~» и рёбра в них — ровно они; легенда — с подписью data-path-label
+  const trailWant = [], trailNodes = [];
+  T.forEach((t, k) => t.forEach((n, i) => {
+    if (!n.trail) return;
+    trailNodes.push(all.indexOf(nodesOf[k][i]));
+    if (n.parent >= 0) trailWant.push(`${k}:${t[n.parent].base}-${n.base}`);
+  }));
+  const trailShown = [...el.querySelectorAll(".algo-fig__edge--trail")].map(edgeName);
+  if (!sameSet(trailShown, trailWant)) bad(`рёбра пути [${trailShown}], ждали [${trailWant}]`);
+  if (!sameSet(ix([...el.querySelectorAll(".algo-fig__trail")]).map(String), trailNodes.map(String))) bad("узлы пути «~» не совпали с разметкой");
+  const trailLeg = el.querySelector(".algo-fig__legline--trail");
+  if (!!trailNodes.length !== !!trailLeg) bad("легенда пути не совпала с наличием «~»");
+  else if (trailLeg && trailLeg.nextSibling.textContent !== (attr(f.tag, "data-path-label") || "путь поиска")) bad(`подпись пути «${trailLeg.nextSibling.textContent}»`);
 
   // клавиатура: в фокусе — по узлу на ключ; фокус = наведение; Esc снимает и дальше не идёт
   const hot = [...el.querySelectorAll(".algo-fig__hot")];
@@ -297,6 +337,8 @@ const broken = [
   ['<div class="algo-fig" data-fig="graph" data-tree="a"></div>', "неизвестный data-fig"],
   ['<div class="algo-fig" data-fig="tree" data-tree="a(b,b); a(b)"></div>', "метка дважды в дереве последовательности"],
   ['<div class="algo-fig" data-fig="tree" data-tree="3|[0,2](1|[0,0],2|[1,1])" data-row="1,2"></div>', "отрезок вне ряда"],
+  ['<div class="algo-fig" data-fig="tree" data-tree="a(b(c~))"></div>', "путь «~» с разрывом"],
+  ['<div class="algo-fig" data-fig="tree" data-tree="a(b,c)" data-diff></div>', "data-diff у одного дерева"],
 ];
 const b = await render(broken.map((x) => x[0]));
 broken.forEach(([, what], i) => {
@@ -311,5 +353,5 @@ if (fails.length) {
   console.error("✗ fig-check:\n  " + fails.join("\n  "));
   process.exit(1);
 }
-console.log(`✓ fig-check: ${figs.length} рисунков построены, узлы, рёбра, ряды, сноски и подписи сходятся; подсветка (отрезок, путь, слово, та же метка), изменённые рёбра, фокус/Esc/касание и выноски с откатом ≤ 520px верны; ${broken.length} кривых входа дают видимую ошибку`);
+console.log(`✓ fig-check: ${inChapters} рисунков глав и ${figs.length - inChapters} образца построены, узлы, рёбра, ряды, сноски и подписи сходятся; подсветка (отрезок, путь, слово, та же метка), изменённые рёбра (data-diff), путь «~», подсказка у первого рисунка, фокус/Esc/касание и выноски с откатом ≤ 520px верны; ${broken.length} кривых входа дают видимую ошибку`);
 })().catch((e) => { console.error("✗ fig-check упал:", e); process.exit(1); });
