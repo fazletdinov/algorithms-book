@@ -639,6 +639,9 @@ go test -tags solution ./prefixsum/  # эталон
 
 <div class="algo-runner" data-pkg="prefixsum" data-trace-calls='[{"func": "CountSubarraysWithSum", "call": "CountSubarraysWithSum([]int{1, 2, -2, 3, -1}, 3)"}, {"func": "LongestBalanced", "call": "LongestBalanced([]int{0, 1, 1, 0, 1, 1, 1, 0})"}, {"func": "CountDivisibleSubarrays", "call": "CountDivisibleSubarrays([]int{4, 5, 0, -2, -3, 1}, 5)"}, {"func": "MaxSubarraySum", "call": "MaxSubarraySum([]int{-2, 1, -3, 4, -1, 2, 1, -5, 4})"}, {"func": "ProductExceptSelf", "call": "ProductExceptSelf([]int{1, 2, 3, 4})"}, {"func": "ApplyRangeAdds", "call": "ApplyRangeAdds(5, [][3]int{{1, 3, 2}, {2, 4, 3}, {0, 2, -2}})"}, {"func": "RangeSums", "call": "RangeSums([]int{3, -1, 4, 1, 5}, [][2]int{{0, 2}, {1, 3}})"}, {"func": "MatrixRegionSums", "call": "MatrixRegionSums([][]int{{3, 0, 1}, {5, 6, 3}, {1, 2, 0}}, [][4]int{{1, 1, 2, 2}})"}]'></div>
 
+> 🏁 **Глава сдана выше.** Дальше — инженерный кейс: тысячи запросов «сколько ошибок с минуты t1 по t2» к поминутному
+> счётчику ошибок.
+
 ## 🏗️ Инженерный кейс
 
 > **Ситуация.** Сервис пишет число ошибок 5xx поминутно — за сутки это массив из 1440
@@ -661,6 +664,18 @@ go test -tags solution ./prefixsum/  # эталон
 **Вывод.** «Много запросов суммы к отрезкам неизменных данных» — сигнал **префиксных сумм**:
 O(n) один раз, O(1) на запрос, дописывание в конец — тоже O(1). Данные начали меняться
 посередине — это уже [Фенвик](fenwick-tree-structure.md).
+
+<div class="algo-mental">
+  <div class="algo-mental__icon">📌</div>
+  <div class="algo-mental__body">
+    <div class="algo-mental__title">Что унести</div>
+    <ul>
+      <li><b>Сигнал.</b> «Сумма отрезка [l, r]» много раз, «сколько подмассивов с суммой k», «прибавить ко всем от l до r», отрицательные числа там, где напрашивается окно.</li>
+      <li><b>Должно быть верно.</b> У операции есть обратная — вычитание: сумма отрезка равна разности двух префиксов; и массив между запросами не меняется.</li>
+      <li><b>Ломается</b>, когда массив меняется между запросами, — нужен <a href="fenwick-tree-structure.md">Фенвик</a>; когда у операции нет обратной — максимум, минимум, НОД: «вычесть первые l» нельзя.</li>
+    </ul>
+  </div>
+</div>
 
 ## 🔗 Связанные шаблоны
 

@@ -512,6 +512,9 @@ go test -tags solution ./fastslow/  # эталон
 
 <div class="algo-runner" data-pkg="fastslow" data-trace-calls='[{"func": "HasCycle", "call": "HasCycle(func() *fastslow.ListNode { a := &fastslow.ListNode{Val: 1}; b := &fastslow.ListNode{Val: 2}; c := &fastslow.ListNode{Val: 3}; d := &fastslow.ListNode{Val: 4}; a.Next = b; b.Next = c; c.Next = d; d.Next = b; return a }())"}, {"func": "DetectCycle", "call": "DetectCycle(func() *fastslow.ListNode { a := &fastslow.ListNode{Val: 1}; b := &fastslow.ListNode{Val: 2}; c := &fastslow.ListNode{Val: 3}; d := &fastslow.ListNode{Val: 4}; a.Next = b; b.Next = c; c.Next = d; d.Next = b; return a }())"}, {"func": "CycleLength", "call": "CycleLength(func() *fastslow.ListNode { a := &fastslow.ListNode{Val: 1}; b := &fastslow.ListNode{Val: 2}; c := &fastslow.ListNode{Val: 3}; d := &fastslow.ListNode{Val: 4}; a.Next = b; b.Next = c; c.Next = d; d.Next = b; return a }())"}, {"func": "MiddleNode", "call": "MiddleNode(&fastslow.ListNode{Val: 1, Next: &fastslow.ListNode{Val: 2, Next: &fastslow.ListNode{Val: 3, Next: &fastslow.ListNode{Val: 4, Next: &fastslow.ListNode{Val: 5}}}}})"}]'></div>
 
+> 🏁 **Глава сдана выше.** Дальше — инженерный кейс: зацикленная цепочка обработчиков и дубликат в массиве — оба
+> ищутся за O(1) памяти.
+
 ## 🏗️ Инженерный кейс
 
 > **Ситуация.** Две родственные задачи. (1) В связном списке (например, цепочке обработчиков) закралось
@@ -535,6 +538,18 @@ go test -tags solution ./fastslow/  # эталон
 **Вывод.** «Обнаружить цикл / найти повтор / середину» при жёстком ограничении памяти — сигнал
 **быстрого-медленного указателей** (Флойд). Хеш-множество решает то же, но за O(n) памяти; указатели — за
 O(1).
+
+<div class="algo-mental">
+  <div class="algo-mental__icon">📌</div>
+  <div class="algo-mental__body">
+    <div class="algo-mental__title">Что унести</div>
+    <ul>
+      <li><b>Сигнал.</b> Связный список или переход «значение → следующее», а спрашивают про цикл, его начало, середину или K-й с конца — при O(1) памяти.</li>
+      <li><b>Должно быть верно.</b> Следующий узел задан функцией — у каждого ровно один; тогда внутри кольца быстрый сокращает разрыв на 1 за шаг и не может перепрыгнуть медленного.</li>
+      <li><b>Ломается</b>, когда структура ветвится — дерево или граф: там цикл ищет <a href="graphs.md">обход с пометкой</a>; когда память не жалко, проще хеш-множество посещённых.</li>
+    </ul>
+  </div>
+</div>
 
 ## 🔗 Связанные шаблоны
 

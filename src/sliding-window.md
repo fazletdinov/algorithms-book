@@ -675,6 +675,9 @@ go test -tags solution ./slidingwindow/  # эталон
 
 <div class="algo-runner" data-pkg="slidingwindow" data-trace-calls='[{"func": "MaxSumSubarray", "call": "MaxSumSubarray([]int{2, 3, 5, 1, 8, 2, 6, 4}, 3)"}, {"func": "LongestSubstringKDistinct", "call": "LongestSubstringKDistinct(\"araaci\", 2)"}, {"func": "SmallestSubarrayWithSum", "call": "SmallestSubarrayWithSum([]int{2, 1, 5, 2, 3, 2}, 7)"}, {"func": "LongestSubstringNoRepeat", "call": "LongestSubstringNoRepeat(\"abcabcbb\")"}, {"func": "MaxSlidingWindow", "call": "MaxSlidingWindow([]int{1, 3, -1, -3, 5, 3, 6, 7}, 3)"}]'></div>
 
+> 🏁 **Глава сдана выше.** Дальше — инженерный кейс: лимитер запросов «не больше N за 60 секунд» — окно во времени,
+> а потом то, что берут вместо него в проде.
+
 ## 🏗️ Инженерный кейс
 
 > **Ситуация.** Пишешь rate limiter для API. Правило: **не больше `N` запросов от клиента за последние 60
@@ -777,6 +780,18 @@ func (b *SafeTokenBucket) Allow(nowMs int64) bool // то же, но безоп�
 Мораль инженера: **точный лог хорош, чтобы понять механику; в проде обычно меняют немного точности на `O(1)`
 памяти и терпимость к всплескам** (token bucket) — тот же размен «точность ↔ ресурсы», что и у [вероятностных
 структур](probabilistic-structures.md). Построив оба, ты чувствуешь этот размен руками, а не на словах.
+
+<div class="algo-mental">
+  <div class="algo-mental__icon">📌</div>
+  <div class="algo-mental__body">
+    <div class="algo-mental__title">Что унести</div>
+    <ul>
+      <li><b>Сигнал.</b> «Подстрока», «подмассив», «непрерывный» вместе с «самый длинный / короткий», «не более <code>k</code>», «окно размера <code>k</code>» или «без повторов».</li>
+      <li><b>Должно быть верно.</b> Условие «окно подходит» монотонно: в задачах «самое длинное» его не портит сужение, в «самое короткое» — расширение, поэтому левый край назад не возвращается.</li>
+      <li><b>Ломается</b> на сумме с отрицательными числами: сужение может её увеличить, и окно даёт неверный ответ, — «сколько кусков с суммой k» решают <a href="prefix-sums.md">префиксные суммы с хеш-таблицей</a>.</li>
+    </ul>
+  </div>
+</div>
 
 ## 🔗 Связанные шаблоны
 
