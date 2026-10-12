@@ -179,6 +179,10 @@ jobs:
       # из REBUILT плюс самопроверка на встроенных образцах (ловит сломанный линт).
       - name: Линт формы главы
         run: node scripts/check-chapter-shape.js
+      # Строки «Что унести» и список глав с «объясни сам» сведены в assets/takeaways.js
+      # генератором; правка главы без перегенерации красит этот шаг.
+      - name: Сверка takeaways.js с главами
+        run: node scripts/gen-takeaways.js --check
 
   build-book:
     name: Сборка mdBook

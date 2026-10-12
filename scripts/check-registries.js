@@ -13,6 +13,7 @@
 //  3) data-trace-calls в главах <-> traceTargets  — бэкенд разрешает то, что предлагает глава;
 //  4) data-pkg у algo-runner   <-> exercises/*/   — виджет ссылается на существующий пакет;
 //  4b) RACE_PKGS в assets/srs.js <-> data-race="true" в главах — карточка и смешанная гоняют -race там же;
+//  4c) additional-js в book.toml: assets/takeaways.js раньше assets/srs.js;
 //  5) число пакетов в CLAUDE.md <-> exercises/*/  — счётчик в документации не протух;
 //  6) имена файлов случайных тестов               — они идут после табличных.
 "use strict";
@@ -278,6 +279,23 @@ for (const file of chapterFiles) {
     }
     for (const p of inChapters) if (!listed.has(p)) errors.push(`assets/srs.js: RACE_PKGS без «${p}», а в главах его тесты гоняются с -race — на карточке и в смешанной гонка не ловится`);
     for (const p of listed) if (!inChapters.has(p)) errors.push(`assets/srs.js: RACE_PKGS содержит «${p}», но ни одна глава не гоняет его с -race`);
+  }
+}
+
+// ---------- 4c. порядок подключения: takeaways.js раньше srs.js ----------
+// srs.js читает window.ALGO_TAKEAWAYS при загрузке; подключённый позже реестр он не увидит,
+// и карточки ch: молча останутся прежними (без трёх вопросов главы).
+{
+  const bookToml = read(path.join(root, "book.toml"));
+  const js = (bookToml.match(/additional-js\s*=\s*\[([^\]]*)\]/) || [])[1];
+  if (!js) {
+    errors.push("book.toml: не найден additional-js — порядок takeaways.js и srs.js не проверен");
+  } else {
+    const list = [...js.matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+    const iT = list.indexOf("assets/takeaways.js");
+    const iS = list.indexOf("assets/srs.js");
+    if (iT < 0) errors.push("book.toml: в additional-js нет assets/takeaways.js");
+    else if (iS >= 0 && iT > iS) errors.push("book.toml: в additional-js assets/takeaways.js стоит после assets/srs.js — должен быть раньше");
   }
 }
 
