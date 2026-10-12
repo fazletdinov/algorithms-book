@@ -252,6 +252,12 @@ function selfTest() {
   if (plural.length) errs.push(`самопроверка: ссылка на якорь #-откуда-берутся-… не принята: ${plural.join("; ")}`);
   const pluralHref = checkChapter(sampleChapter({ first: 'Идём от <a href="#-откуда-берутся-префиксы-выведем-их-сами">«🧭»</a>.' }), "образец");
   if (pluralHref.length) errs.push(`самопроверка: href на якорь #-откуда-берутся-… не принят: ${pluralHref.join("; ")}`);
+  const singularHref = checkChapter(sampleChapter({ first: 'Идём от <a href="#-откуда-берётся-обход-графа-выведем-его-сами">«🧭»</a>.' }), "образец");
+  if (singularHref.length) errs.push(`самопроверка: href на якорь #-откуда-берётся-… не принят: ${singularHref.join("; ")}`);
+  // ссылка есть, но не на «🧭» — R6 обязан покраснеть
+  const otherAnchor = checkChapter(sampleChapter({ first: "Код и трасса — [ниже](#-разбор-задачи)." }), "образец");
+  if (!otherAnchor.some((e) => e.includes("R6 «📝»")))
+    errs.push("самопроверка: ссылка на чужой якорь (#-разбор-задачи) принята правилом R6 как ссылка на «🧭»");
   const li3 = "<li><b>Сигнал.</b> а</li><li><b>Должно быть верно.</b> б</li>";
   const lab = (l3) => `    <ul><li><b>Сигнал.</b> а</li><li><b>Должно быть верно.</b> б</li><li>${l3} в</li></ul>`;
   for (const l3 of ["**Ломается**", "<b>Ломается.</b>", "<b>Ломается</b>.", "<b>Ломается</b>"]) {
