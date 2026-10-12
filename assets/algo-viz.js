@@ -16689,19 +16689,22 @@
   // ===== Статические рисунки: <div class="algo-fig" data-fig="tree"> ===========
   // Замена ASCII-схем в главах: тот же treeFigure, что у виджетов, но без шагов и управления.
   // data-tree — дерево скобками, «z(x(A,y(B,C)),D)»: метка идёт до «(», «,» или «)»; внутри
-  // «[…]» запятая — часть метки («11|[0,3]»). Несколько деревьев (последовательность «до → после») —
-  // через «;». Метка: «текст|подпись» — подпись под узлом; суффиксы (в любом порядке) «*» — конец
+  // «[…]» запятая и «|» — часть метки («11|[0,3]», «[2 | 4]»). Несколько деревьев (последовательность
+  // «до → после») — через «;». Ребёнок «_» — пустое место без узла и ребра: держит сторону у
+  // единственного ребёнка двоичного дерева («2(_,5)» — 5 правый). Ширина колонки растёт с самой
+  // длинной меткой. Метка: «текст|подпись» — подпись под узлом; суффиксы (в любом порядке) «*» — конец
   // слова (★), «!» — выделенный узел, «~» — узел пути поиска/вставки (его ребро от родителя — тоже),
   // «@N» — сноска N из data-notes; префикс «^» — поддерево-заглушка (A, B…).
   // data-titles — заголовки деревьев через «;», data-notes — сноски через «||», data-row — ряд
   // ячеек под листьями первого дерева (по одной на лист), data-row-label — его подпись,
-  // data-path-label — подпись пути «~» в легенде (иначе «путь поиска»), data-diff — в последовательности отметить
+  // data-path-label — подпись пути «~» в легенде (иначе «путь поиска»), data-forest — деревья через
+  // «;» стоят рядом без стрелок (лес union-find; элемент — ровно в одном дереве), data-diff — в последовательности отметить
   // рёбра, которых не было на прошлом шаге, data-caption — подпись рисунка. Кривые данные —
   // громкая ошибка в рисунке, а не пустое место.
   //
   // Подсветка выводится из тех же данных, своих атрибутов у неё нет. Узел под мышью, пальцем
   // (касание закрепляет, повтор или касание мимо — снимает) или в фокусе клавиатуры (Esc — снять):
-  //  - одно дерево — путь к корню; подпись «[l,r]» при data-row — ещё и ячейки l…r ряда;
+  //  - одно дерево или дерево леса — путь к корню; подпись «[l,r]» при data-row — ещё и ячейки l…r ряда;
   //  - одно дерево с ★ — рядом список слов (путь от корня до ★); слово и его ★ подсвечиваются вместе;
   //  - последовательность («;») — узел с той же меткой во всех деревьях (метки в дереве уникальны);
   //    с data-diff рёбра, которых не было в предыдущем дереве (другой родитель у ребёнка), —
@@ -16739,7 +16742,20 @@
   function figTreeNodes(root) {
     var out = [];
     (function walk(n, parent) {
-      var bar = n.text.indexOf("|"), head = (bar < 0 ? n.text : n.text.slice(0, bar)).trim();
+      // «|» внутри «[…]» — часть метки (узел B-дерева «[2 | 4]»), подпись — после «|» снаружи
+      var bar = -1, sq = 0;
+      for (var c = 0; c < n.text.length && bar < 0; c++) {
+        if (n.text[c] === "[") sq++;
+        else if (n.text[c] === "]") sq--;
+        else if (n.text[c] === "|" && !sq) bar = c;
+      }
+      var head = (bar < 0 ? n.text : n.text.slice(0, bar)).trim();
+      if (head === "_") {
+        // пустое место: держит сторону у единственного ребёнка двоичного дерева, не рисуется
+        if (n.kids.length || parent < 0 || bar >= 0) throw new Error("«_» — только пустой лист без подписи");
+        out.push({ parent: parent, label: "", base: "_", gap: true, cls: "", note: 0, leaf: false, sub: null });
+        return;
+      }
       var m = /^(\^)?(.+?)([*!~]*)(?:@(\d+))?$/.exec(head);
       if (!m) throw new Error("не разобрана метка «" + head + "»");
       var cls = [], label = m[2], sfx = m[3];
@@ -16750,6 +16766,8 @@
       var me = out.length;
       out.push({ parent: parent, label: label, base: m[2], end: sfx.indexOf("*") >= 0, trail: sfx.indexOf("~") >= 0, sub: bar < 0 ? null : n.text.slice(bar + 1).trim(), cls: cls.join(" "), note: m[4] ? +m[4] : 0, leaf: !n.kids.length });
       n.kids.forEach(function (k) { walk(k, me); });
+      // лист — у кого нет настоящих детей (пустые места «_» не в счёт): под ним ряд data-row
+      out[me].leaf = !n.kids.some(function (k) { return k.text.trim() !== "_"; });
     })(root, -1);
     return out;
   }
@@ -16771,7 +16789,18 @@
     var nodes = figTreeNodes(parseFigTree(src));
     var withSub = nodes.some(function (n) { return n.sub != null; });
     // Размеры — как у виджетов: с подписью под узлом — как segFigure, без неё — как trieFigure.
-    var fig = treeFigure(nodes, withSub ? { cw: 58, ch: 74 } : { cw: 52, ch: 58 });
+    // Длинные метки («[1,2,3]», «[2 | 4]») раздвигают колонку — иначе соседние листья наезжали
+    // друг на друга. Ширину символа берём с запасом, 11px: замер в Chrome на собранной книге —
+    // «[3,2,1]» в выделенном узле 98px при шрифте узла 15.3px, то есть ≈ 11px на символ вместе с полями.
+    var longest = 0;
+    nodes.forEach(function (n) { longest = Math.max(longest, n.label.length); });
+    var cw = Math.max(withSub ? 58 : 52, Math.ceil(longest * 11 + 30));
+    var fig = treeFigure(nodes, withSub ? { cw: cw, ch: 74 } : { cw: cw, ch: 58 });
+    nodes.forEach(function (n, i) {
+      if (!n.gap) return;
+      fig.nodes[i].remove(); fig.edges[i].remove();
+      fig.nodes[i] = null; delete fig.edges[i];
+    });
     var box = fig.el, calls = [], cells = [];
     // путь «~» идёт от корня без разрывов; ребро в узел пути — тоже путь
     nodes.forEach(function (n, i) {
@@ -16846,7 +16875,7 @@
     var was = {}, n = 0;
     prev.nodes.forEach(function (x) { if (x.parent >= 0) was[x.base] = prev.nodes[x.parent].base; });
     cur.nodes.forEach(function (x, i) {
-      if (x.parent < 0 || was[x.base] === cur.nodes[x.parent].base) return;
+      if (x.gap || x.parent < 0 || was[x.base] === cur.nodes[x.parent].base) return;
       cur.fig.edges[i].classList.add("algo-fig__edge--changed"); n++;
     });
     return n;
@@ -16863,6 +16892,7 @@
       var labels = {};
       tr.nodes.forEach(function (n, i) {
         var node = tr.fig.nodes[i], key;
+        if (n.gap) return;
         if (multi) {
           if (labels[n.base]) throw new Error("метка «" + n.base + "» дважды в дереве " + (k + 1) + ": в последовательности узлы сопоставляются по метке");
           labels[n.base] = 1; key = "L:" + n.base;
@@ -16870,7 +16900,7 @@
           g(key).hl.push(node); hot(node, key, !seen[key]); seen[key] = 1;
           return;
         }
-        key = "n" + i;
+        key = "t" + k + "n" + i;   // лес: у каждого дерева свои узлы
         var gr = g(key), path = figPath(tr.nodes, i);
         gr.hl.push(node); hot(node, key, true);
         path.forEach(function (j, d) {
@@ -16879,7 +16909,7 @@
         });
         if (n.lo != null) for (var c = n.lo; c <= n.hi; c++) gr.cells.push(tr.cells[c]);
       });
-      tr.words.forEach(function (w) { g("n" + w.i).words.push(w.el); hot(w.el, "n" + w.i, true); });
+      tr.words.forEach(function (w) { var key = "t" + k + "n" + w.i; g(key).words.push(w.el); hot(w.el, key, true); });
     });
     return groups;
   }
@@ -16938,14 +16968,24 @@
     var trees = splitList(el.getAttribute("data-tree"), ";"), titles = splitList(el.getAttribute("data-titles"), ";");
     var notes = splitList(el.getAttribute("data-notes"), "||"), row = el.getAttribute("data-row");
     if (!trees.length) throw new Error("пустой data-tree");
-    var multi = trees.length > 1, items = [], noted = {};
-    var body = mkEl("div", "algo-fig__body"), seq = mkEl("div", "algo-fig__seq");
+    // лес (data-forest): деревья рядом, без стрелок, каждое подсвечивается само по себе;
+    // иначе несколько деревьев — последовательность шагов «до → после»
+    var forest = el.hasAttribute("data-forest");
+    if (forest && trees.length < 2) throw new Error("data-forest — для двух и больше деревьев через «;»");
+    var multi = trees.length > 1 && !forest, items = [], noted = {}, inForest = {};
+    var body = mkEl("div", "algo-fig__body"), seq = mkEl("div", "algo-fig__seq" + (forest ? " algo-fig__seq--forest" : ""));
     trees.forEach(function (t, k) {
-      if (k) seq.appendChild(mkEl("span", "algo-fig__arrow", "⟶"));
+      if (k && !forest) seq.appendChild(mkEl("span", "algo-fig__arrow", "⟶"));
       var item = mkEl("div", "algo-fig__item");
       if (titles[k]) item.appendChild(mkEl("div", "algo-fig__title", titles[k]));
       var tr = figTree(t, { row: row && k === 0 ? splitList(row, ",") : null, rowLabel: el.getAttribute("data-row-label"), notes: notes });
-      tr.nodes.forEach(function (n) { if (n.note) noted[n.note] = 1; });
+      tr.nodes.forEach(function (n) {
+        if (n.note) noted[n.note] = 1;
+        // лес — разбиение множества: элемент стоит ровно в одном дереве
+        if (!forest || n.gap) return;
+        if (inForest[n.base]) throw new Error("элемент «" + n.base + "» дважды в лесу");
+        inForest[n.base] = 1;
+      });
       items.push(tr);
       var words = multi ? [] : figWords(tr.nodes);
       if (!words.length) { item.appendChild(tr.el); seq.appendChild(item); return; }
