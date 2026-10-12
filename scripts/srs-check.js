@@ -1566,6 +1566,11 @@ if (api) {
   };
   await oldView("two-heaps.html", tk);
   await oldView("graphs.html", [CLOCK(now)]);
+  // запись реестра не из трёх строк (недописанный блок, сбой генератора) — прежний вопрос, а не обрезанный ответ
+  for (const n of [2, 4]) {
+    const odd = `window.ALGO_TAKEAWAYS = { chapters: { "graphs.html": ${JSON.stringify(Array.from({ length: n }, (_, i) => "строка " + (i + 1)))} }, explain: [] };`;
+    await oldView("graphs.html", [CLOCK(now), odd]);
+  }
   // без реестра «объясни сам» неизвестно — заводятся обе карточки, как раньше
   const noReg = await newDom({ algoProgress: marked }, [CLOCK(now)]);
   if (idsOf(noReg) !== "ch:graphs.html,ch:monotonic-stack.html") errors.push(`без реестра: заведены ${idsOf(noReg)}, ожидались ch:graphs.html и ch:monotonic-stack.html`);
