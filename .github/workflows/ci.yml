@@ -183,6 +183,10 @@ jobs:
       # генератором; правка главы без перегенерации красит этот шаг.
       - name: Сверка takeaways.js с главами
         run: node scripts/gen-takeaways.js --check
+      # Таблица путаемых пар — assets/pairs.js; блоки «Не спутай с соседом» в «🔗» глав
+      # вписывает генератор. Правка внутри меток руками или реестра без перегенерации красит шаг.
+      - name: Сверка блоков пар с pairs.js
+        run: node scripts/gen-pairs.js --check
 
   build-book:
     name: Сборка mdBook
