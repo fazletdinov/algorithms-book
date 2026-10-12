@@ -237,7 +237,14 @@ function main() {
     console.error(bad.map((e) => "❌ assets/pairs.js: " + e).join("\n"));
     process.exit(1);
   }
-  const out = generate(pairs, titles, texts);
+  let out;
+  try {
+    out = generate(pairs, titles, texts);
+  } catch (e) {
+    // нет заголовка раздела, непарные метки — понятная строка вместо стека исключения
+    console.error(`❌ ${e.message}`);
+    process.exit(1);
+  }
   const withBlock = [...out.values()].filter((o) => o.want.includes(BEGIN)).length;
   if (!out.get(GUIDE) || !out.get(GUIDE).want.includes(GUIDE_BEGIN)) {
     console.error(`❌ src/${GUIDE}.md: таблица пар не вписана`);

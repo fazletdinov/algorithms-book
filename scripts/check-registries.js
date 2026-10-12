@@ -164,6 +164,14 @@ function guideLeafErrors(leaf, used) {
   }
   const tags = (leaf.match(/\[(ядро|расширение|справочник)\]/g) || []).length;
   if (tags > found.length) errs.push(`лист «${leaf}»: метка уровня без названия из GUIDE_LEAVES`);
+  // Несколько глав в листе разделены « / »; каждая часть обязана начинаться с известного названия —
+  // иначе вторая, незнакомая глава без метки прошла бы молча. Найденные названия сначала маскируются:
+  // в самих названиях тоже бывает « / » («Max Flow / Min Cut»).
+  let masked = leaf;
+  for (const f of [...found].sort((a, b) => b.at - a.at)) masked = masked.slice(0, f.at) + "\u0000" + masked.slice(f.end);
+  for (const part of masked.split(" / ")) {
+    if (!part.startsWith("\u0000")) errs.push(`лист «${leaf}»: часть «${part.replace(/\u0000/g, "…")}» не начинается с названия из GUIDE_LEAVES`);
+  }
   return errs;
 }
 {
