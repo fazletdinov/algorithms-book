@@ -41,6 +41,9 @@ vc.on("error", (...a) => errors.push("console.error: " + a.join(" ")));
 const chapter = fs.readFileSync(path.join(root, "src", "sliding-window.md"), "utf8");
 const vizTag = (chapter.match(/<div class="algo-viz" data-viz="sliding-window-fixed"[^>]*><\/div>/) || [])[0];
 if (!vizTag) { console.error("✗ keys-check: в sliding-window.md не найден виджет sliding-window-fixed"); process.exit(1); }
+// Статический рисунок: узлы в фокусе, Esc снимает подсветку — и только он рисунку нужен.
+const figTag = (fs.readFileSync(path.join(root, "src", "trie-structure.md"), "utf8").match(/<div class="algo-fig"[^>]*><\/div>/) || [])[0];
+if (!figTag) { console.error("✗ keys-check: в trie-structure.md не найден рисунок .algo-fig"); process.exit(1); }
 
 // Подставной runner: заготовка с двумя упражнениями и подсказкой — так у виджета появляются
 // список выбора упражнения и панель подсказок, а в них ← / → тоже не должны листать главу.
@@ -54,6 +57,7 @@ const STUB = {
 const dom = new JSDOM(
   `<!DOCTYPE html><html><body>
      ${vizTag.replace("<div ", '<div id="viz" ')}
+     ${figTag.replace("<div ", '<div id="fig" ')}
      <div id="trace"></div>
      <div class="algo-runner" data-pkg="slidingwindow"></div>
      <script>${read("algo-viz.js")}</script>
@@ -147,12 +151,27 @@ setTimeout(() => {
     expect(press(helpBtn, "x"), "runner: контроль — необработанная «x» из панели не доплыла");
   }
 
+  // 5. Статический рисунок. Esc с подсвеченного узла снимает подсветку и до document не доходит;
+  //    стрелки рисунок не трогает — им положено листать главу, как в остальном тексте.
+  const fig = doc.getElementById("fig");
+  const figNode = fig && fig.querySelector(".algo-fig__hot[tabindex='0']");
+  expect(!!figNode, "algo-fig: нет узла в фокусе");
+  if (figNode) {
+    const lit = () => fig.classList.contains("algo-fig--lit");
+    figNode.focus();
+    expect(lit(), "algo-fig: фокус не подсветил узел");
+    expect(press(figNode, "ArrowRight") && press(figNode, "ArrowLeft"), "algo-fig: ←/→ проглочены рисунком — mdBook не перелистнёт главу");
+    expect(!press(figNode, "Escape"), "algo-fig: Esc с подсвеченного узла доплыл до document");
+    expect(!lit(), "algo-fig: Esc не снял подсветку");
+    expect(press(figNode, "Escape"), "algo-fig: контроль — Esc без подсветки не доплыл (рисунку он уже не нужен)");
+  }
+
   const noise = errors.filter((e) => !/fetch|Failed to fetch|ECONNREFUSED|network/i.test(e));
   if (noise.length) fails.push(...noise.map((e) => "ошибка рантайма: " + e));
   if (fails.length) {
     console.error("✗ keys-check:\n  - " + fails.join("\n  - "));
     process.exit(1);
   }
-  console.log("✓ keys-check: ←/→/Home/End/Space/F/Esc в виджете, трассе, редакторе runner'а, его списке упражнений и панели подсказок не доходят до навигации mdBook");
+  console.log("✓ keys-check: ←/→/Home/End/Space/F/Esc в виджете, трассе, редакторе runner'а, его списке упражнений и панели подсказок не доходят до навигации mdBook; Esc рисунка .algo-fig не доходит, а ←/→ с него — доходят");
   process.exit(0);
 }, 300);
