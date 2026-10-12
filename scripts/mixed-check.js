@@ -23,7 +23,10 @@
 //   8) альтернативы: показан один верный вариант (c, если пройдена, иначе пройденная из a), выбор
 //      альтернативы — не промах, вердикт называет «также решается»; неверные варианты — не c и не из a,
 //      сначала пройденные (на 300 случайных наборах глав с зерном);
-//   9) признак g не виден до ответа; после неверного — «Как это было узнать» раньше подсказок.
+//   9) признак g не виден до ответа; после неверного — «Как это было узнать» раньше подсказок;
+//  10) после промаха — ряд таблицы пар (pairs.js) только в точном направлении «верный = use, выбранный = not»:
+//      в обычном режиме под признаком, в собеседовании — в итоге; ряды с обеими главами-ответами банка лежат
+//      внутри одной группы CONFUSABLE.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -270,6 +273,7 @@ async function main() {
   await practiceScope(bank);
   await alternatives(bank);
   await signBeforeHints(bank);
+  await pairAfterMiss(bank);
   await choicesOnRandomSets(bank);
 
   // --- режим собеседования ---
@@ -734,7 +738,142 @@ async function mockInterview(bank) {
   if (!card2) errors.push("собеседование: при всех годных задачах показанными задача не выдана вовсе");
 }
 
+// pairAfterMiss — (i) ряд таблицы путаемых пар (assets/pairs.js) после промаха, только в точном направлении:
+// верный приём задачи — use, выбранный — not. Обычный режим — сразу под «Как это было узнать»; собеседование —
+// в итоге (в ряду бывают оценки сложности, а их режим прячет до итога). Нет ряда, нет реестра, верный ответ
+// или альтернатива из a — строки нет и нигде нет «undefined». Промах при этом пишется как раньше. Отдельно:
+// обе главы ряда, если обе — главы-ответы банка, стоят в одной группе CONFUSABLE.
+let pairCoverage = "";
+async function pairAfterMiss(bank) {
+  const PAIRS = require(path.join(root, "assets", "pairs.js"));
+  const bankCh = new Set(bank.map((q) => q.c));
+  const scripts = (withPairs) => ["progress.js", "problems.js", "runner.js"].concat(withPairs ? ["pairs.js"] : [], ["mixed.js"]);
+
+  // сверка с CONFUSABLE и пересчёт покрытия (информация)
+  const probe = await boot("mixed.html", scripts(true), {});
+  const groups = probe.window.ALGO_CONFUSABLE || [];
+  if (!probe.window.ALGO_PAIRS) errors.push("(i) pairs.js не выставил window.ALGO_PAIRS");
+  probe.window.close();
+  PAIRS.forEach((r, i) => {
+    if (!bankCh.has(r.use) || !bankCh.has(r.not)) return;
+    if (!groups.some((g) => g.includes(r.use) && g.includes(r.not))) {
+      errors.push(`(i) ряд ${i + 1} пар (${r.use} ← ${r.not}): обе главы — ответы банка, но ни одна группа CONFUSABLE не содержит обе`);
+    }
+  });
+  const cand = new Set();
+  groups.forEach((g) => g.forEach((a) => g.forEach((b) => {
+    if (a < b && bankCh.has(a) && bankCh.has(b)) cand.add(a + "|" + b);
+  })));
+  const covered = [...cand].filter((k) => {
+    const [a, b] = k.split("|");
+    return PAIRS.some((r) => (r.use === a && r.not === b) || (r.use === b && r.not === a));
+  }).length;
+  pairCoverage = `пар глав-ответов внутри групп CONFUSABLE с рядом в реестре: ${covered} из ${cand.size}`;
+
+  const p = bank.find((q) => q.p === "prefixsum" && q.f === "CountSubarraysWithSum");
+  const row = PAIRS.find((r) => r.use === "prefix-sums" && r.not === "sliding-window");
+  if (!p || !row || p.c !== "prefix-sums" || p.a.includes("sliding-window")) {
+    errors.push(`(i) нет опоры сценария: prefixsum.CountSubarraysWithSum (${p && p.c}) или ряда prefix-sums ← sliding-window`);
+    return;
+  }
+  // пройдены: глава задачи, её сосед с рядом и две чужие главы без ряда — варианты повторяемы
+  const done = ["prefix-sums", "sliding-window", "greedy", "tree-bfs"];
+  const seen = {};
+  bank.forEach((q) => { if (q !== p) seen[q.p + "." + q.f] = 1; });
+  const seed = { algoPracticeScope: null, algoProgress: progressOf(done), algoMixedSeen: JSON.stringify(seen) };
+
+  // pick — выдать задачу и нажать вариант главы slug; вернуть окно, виджет и вызовы report
+  async function pick(slug, opts) {
+    const dom = await boot("mixed.html", scripts(opts.pairs), seed, 11);
+    const reports = [];
+    dom.window.ALGO_SRS = { report: (rid, grade) => { reports.push(rid + " " + grade); return { status: "created" }; } };
+    const w = dom.window.document.querySelector(".algo-mixed");
+    if (opts.mock) {
+      const box = w.querySelector(".algo-mixed__mode-box");
+      box.checked = true;
+      box.dispatchEvent(new dom.window.Event("change"));
+    }
+    click(dom, giveBtn(w));
+    const card = w.querySelector(".algo-mixed__card");
+    if (!card || shownProblem(bank, card.textContent) !== p) { errors.push(`(i) выдана не ${p.p}.${p.f}`); return null; }
+    const titleOf = (s) => ((dom.window.ALGO_CHAPTERS || []).find((c) => c.h === s + ".html") || {}).t || s;
+    const btn = optionsOf(w).find((b) => b.textContent === titleOf(slug));
+    if (!btn) { errors.push(`(i) среди вариантов нет «${titleOf(slug)}»: ${optionsOf(w).map((b) => b.textContent).join(" | ")}`); return null; }
+    click(dom, btn);
+    return { dom, w, reports, titleOf };
+  }
+  const missedOf = (dom) => JSON.parse(dom.window.localStorage.getItem("algoMixedMissed") || "{}")[p.p + "." + p.f];
+
+  // промах соседом с рядом: строка пары — сразу под признаком; промах записан как прежде
+  let r = await pick("sliding-window", { pairs: true });
+  if (r) {
+    const pair = r.w.querySelector(".algo-mixed__result .algo-mixed__pair");
+    const want = "Здесь обязано быть верно: " + row.must + " → " + r.titleOf(row.use) +
+      ". Почему не «" + r.titleOf(row.not) + "»: " + row.why + ".";
+    if (!pair) errors.push("(i) промах соседом с рядом в реестре: строки пары нет");
+    else {
+      if (pair.textContent !== want) errors.push(`(i) строка пары «${pair.textContent}», ожидалось «${want}»`);
+      const prev = pair.previousElementSibling;
+      if (!prev || !prev.classList.contains("algo-mixed__sign")) errors.push("(i) строка пары стоит не сразу под «Как это было узнать»");
+    }
+    if (!missedOf(r.dom)) errors.push("(i) промах соседом не записан в algoMixedMissed");
+    if (r.reports.join() !== "mix:" + p.p + "." + p.f + " again") errors.push(`(i) report после промаха: ${JSON.stringify(r.reports)}`);
+    r.dom.window.close();
+  }
+  // промах главой без ряда для этой задачи и промах без загруженного реестра — строки нет, «undefined» нет
+  for (const [slug, withPairs, what] of [["greedy", true, "глава без ряда"], ["sliding-window", false, "реестр не загружен"]]) {
+    r = await pick(slug, { pairs: withPairs });
+    if (!r) continue;
+    if (r.w.querySelector(".algo-mixed__pair")) errors.push(`(i) ${what}: строка пары показана`);
+    if (/undefined/.test(r.w.textContent)) errors.push(`(i) ${what}: в разборе «undefined»`);
+    if (!missedOf(r.dom)) errors.push(`(i) ${what}: промах не записан`);
+    r.dom.window.close();
+  }
+  // верная альтернатива из a — не промах, строки нет, хотя ряд top-k-elements ← sorting в реестре есть
+  const kth = bank.find((q) => q.p === "topk" && q.f === "KthLargest");
+  if (kth && kth.a.includes("sorting") && PAIRS.some((x) => x.use === kth.c && x.not === "sorting")) {
+    const seenK = {};
+    bank.forEach((q) => { if (q !== kth) seenK[q.p + "." + q.f] = 1; });
+    const dom = await boot("mixed.html", scripts(true), { algoPracticeScope: null,
+      algoProgress: progressOf(["sorting", "sliding-window", "prefix-sums"]), algoMixedSeen: JSON.stringify(seenK) }, 5);
+    const w = dom.window.document.querySelector(".algo-mixed");
+    click(dom, giveBtn(w));
+    const titleOf = (s) => ((dom.window.ALGO_CHAPTERS || []).find((c) => c.h === s + ".html") || {}).t || s;
+    const btn = optionsOf(w).find((b) => b.textContent === titleOf("sorting"));
+    if (!btn) errors.push("(i) альтернатива: нет варианта «Сортировки»");
+    else {
+      click(dom, btn);
+      const v = w.querySelector(".algo-mixed__verdict");
+      if (!v || !/^✓/.test(v.textContent)) errors.push("(i) альтернатива: вердикт не «✓»");
+      if (w.querySelector(".algo-mixed__pair")) errors.push("(i) альтернатива из a: показана строка пары");
+    }
+    dom.window.close();
+  } else {
+    errors.push("(i) нет опоры сценария альтернативы: topk.KthLargest с a = sorting и ряд top-k-elements ← sorting");
+  }
+  // собеседование: до итога строки нет (в рядах бывает сложность, а её режим прячет), в итоге — есть
+  r = await pick("sliding-window", { pairs: true, mock: true });
+  if (r) {
+    const w = r.w;
+    if (w.querySelector(".algo-mixed__pair")) errors.push("(i) собеседование: строка пары видна до итога");
+    if (!missedOf(r.dom)) errors.push("(i) собеседование: промах не записан");
+    const ta = w.querySelector(".algo-mixed__plan-text");
+    ta.value = "Префиксные суммы и карта счётчиков: для каждого префикса ищу prefix − k среди прошлых, ответ копится по ходу.";
+    ta.dispatchEvent(new r.dom.window.Event("input"));
+    click(r.dom, w.querySelector(".algo-mixed__to-code"));
+    const giveUp = w.querySelector(".algo-mixed__giveup");
+    if (giveUp) click(r.dom, giveUp);
+    const sum = w.querySelector(".algo-mixed__summary");
+    const pair = sum && sum.querySelector(".algo-mixed__pair");
+    if (!sum) errors.push("(i) собеседование: нет итога");
+    else if (!pair) errors.push("(i) собеседование: в итоге нет строки пары");
+    else if (!pair.textContent.includes(row.why)) errors.push(`(i) собеседование: строка пары «${pair.textContent}»`);
+    r.dom.window.close();
+  }
+}
+
 function finish() {
+  if (pairCoverage) console.log("ℹ️  mixed-check: " + pairCoverage);
   if (errors.length) {
     console.error(`❌ mixed-check: ${errors.length} проблем(ы):`);
     for (const e of errors) console.error("  - " + e);
@@ -748,7 +887,7 @@ function finish() {
       "пускает к коду только после плана, гоняет тесты одной функции с чистой заготовки без подсказок и эталона " +
       "(data-hints=\"off\"), спрашивает сложность до эталона и не выдаёт задач с соседями; по умолчанию — только пройденные главы " +
       "(меньше трёх — сообщение с числом), альтернативы засчитываются и названы в вердикте, неверные варианты — не из них, " +
-      "признак — после ответа, раньше подсказок"
+      "признак — после ответа, раньше подсказок; после промаха — ряд таблицы пар в точном направлении"
   );
   // Явный выход: последняя проверка начинает собеседование, и его часы (setInterval
   // в mixed.js) держат цикл событий jsdom-окна живым — без exit процесс после «✅»

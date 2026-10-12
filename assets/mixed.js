@@ -183,6 +183,16 @@
   function isDone(done, chapter) {
     return !done || !!done[chapter];
   }
+  // pairFor — ряд таблицы путаемых пар (assets/pairs.js) для промаха: верный приём задачи p (c или одна из a) —
+  // use, выбранный — not. Только точное направление; ряда нет или реестр не загрузился — null.
+  function pairFor(p, picked) {
+    var rows = window.ALGO_PAIRS || [];
+    var right = answers(p);
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].not === picked && right.indexOf(rows[i].use) >= 0) return rows[i];
+    }
+    return null;
+  }
   function inScope(p, done) {
     return answers(p).some(function (c) { return isDone(done, c); });
   }
@@ -261,7 +271,7 @@
     var lastKey = null;
     var lastPkg = null;
     var mock = false;
-    var session = null; // текущее собеседование: {p, start, timer, pattern, plan, green, cx}
+    var session = null; // текущее собеседование: {p, start, timer, pattern, picked, plan, green, cx}
 
     // Режим выдачи: «только пройденные главы» (по умолчанию) или «по всем главам» — общий с квизом.
     // Без progress.js выбора нет: пул — весь банк.
@@ -430,8 +440,8 @@
           if (!ok) b.classList.add("algo-challenge__opt--no");
           record(p, ok);
           var named = ok ? chapter : pickOf.shown;
-          if (mock) mockPlan(p, ok, named);
-          else reveal(p, ok, named);
+          if (mock) mockPlan(p, ok, named, chapter);
+          else reveal(p, ok, named, chapter);
           refreshStat();
         };
         b.__chapter = chapter;
@@ -477,6 +487,16 @@
       into.appendChild(el("p", "algo-mixed__sign", "Как это было узнать: " + p.g));
     }
 
+    // pairLine — после промаха: чем верный приём отличается от выбранного соседа (ряд таблицы пар).
+    // Ряда нет — ничего: CONFUSABLE даёт неверные варианты, но объяснение есть не у каждой пары.
+    function pairLine(p, picked, into) {
+      var row = pairFor(p, picked);
+      if (!row) return;
+      into.appendChild(el("p", "algo-mixed__pair",
+        "Здесь обязано быть верно: " + row.must + " → " + chapterTitle(row.use) +
+        ". Почему не «" + chapterTitle(row.not) + "»: " + row.why + "."));
+    }
+
     // hintsBlock — всё, что было скрыто в условии, и ссылка на главу. withSign — признак g первой строкой
     // подсказок (после неверного ответа он уже стоит под вердиктом).
     function hintsBlock(p, into, withSign) {
@@ -497,11 +517,14 @@
 
     // reveal показывает всё, что до ответа было спрятано: тему, подсказки из
     // условия и редактор с настоящими тестами пакета.
-    function reveal(p, ok, named) {
+    function reveal(p, ok, named, picked) {
       var res = el("div", "algo-mixed__result");
       res.appendChild(el("div", "algo-mixed__verdict " + (ok ? "is-ok" : "is-no"),
         verdictText(p, ok, named, "✓ Да, это ", "✗ Нет. Это ")));
-      if (!ok) signLine(p, res);
+      if (!ok) {
+        signLine(p, res);
+        pairLine(p, picked, res);
+      }
       hintsBlock(p, res, ok);
 
       res.appendChild(el("p", "algo-mixed__solve",
@@ -553,10 +576,12 @@
     }
 
     // mockPlan — шаг после шаблона: план словами. Тему называем (продолжать с
-    // неверным приёмом — потерянная сессия), но ни подсказок, ни главы.
-    function mockPlan(p, ok, named) {
+    // неверным приёмом — потерянная сессия), но ни подсказок, ни главы. Строка пары после промаха — тоже
+    // только в итоге: в рядах бывает сложность приёма («куча размера k — O(n log k)»), а её режим спрашивает.
+    function mockPlan(p, ok, named, picked) {
       if (!session) return;
       session.pattern = ok;
+      session.picked = ok ? null : picked;
 
       var res = el("div", "algo-mixed__result algo-mixed__mock");
       res.appendChild(el("div", "algo-mixed__verdict " + (ok ? "is-ok" : "is-no"),
@@ -718,6 +743,7 @@
         table.appendChild(tr);
       });
       sum.appendChild(table);
+      if (session.picked) pairLine(p, session.picked, sum);
       hintsBlock(p, sum, true);
       res.appendChild(sum);
 

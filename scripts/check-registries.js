@@ -15,6 +15,7 @@
 //  4) data-pkg у algo-runner   <-> exercises/*/   — виджет ссылается на существующий пакет;
 //  4b) RACE_PKGS в assets/srs.js <-> data-race="true" в главах — карточка и смешанная гоняют -race там же;
 //  4c) additional-js в book.toml: assets/takeaways.js раньше assets/srs.js;
+//  4d) там же: assets/pairs.js раньше assets/mixed.js;
 //  5) число пакетов в CLAUDE.md <-> exercises/*/  — счётчик в документации не протух;
 //  6) имена файлов случайных тестов               — они идут после табличных.
 "use strict";
@@ -394,6 +395,11 @@ for (const file of chapterFiles) {
     const iS = list.indexOf("assets/srs.js");
     if (iT < 0) errors.push("book.toml: в additional-js нет assets/takeaways.js");
     else if (iS >= 0 && iT > iS) errors.push("book.toml: в additional-js assets/takeaways.js стоит после assets/srs.js — должен быть раньше");
+    // 4d. pairs.js раньше mixed.js: строка пары после промаха читает window.ALGO_PAIRS.
+    const iP = list.indexOf("assets/pairs.js");
+    const iM = list.indexOf("assets/mixed.js");
+    if (iP < 0) errors.push("book.toml: в additional-js нет assets/pairs.js — после промаха в смешанной не будет строки пары");
+    else if (iM >= 0 && iP > iM) errors.push("book.toml: в additional-js assets/pairs.js стоит после assets/mixed.js — должен быть раньше");
   }
 }
 
