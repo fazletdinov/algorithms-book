@@ -13,14 +13,14 @@ mdBook, с тремя слоями обучения:
 3. **Go-тренажёр** (`exercises/`) — рабочий Go-модуль с заготовками функций и тестами:
    читатель пишет реализацию сам и проверяет её тестами.
 
-Проект деплоится на GitHub Pages через CI. Репозиторий: `github.com/fazletdinov/algorithms-book`.
+Книгу читают локально (`mdbook serve`); CI только проверяет, публикации нет. Репозиторий: `github.com/fazletdinov/algorithms-book`.
 
 ## Команды
 
 ### Книга (запускать из корня репозитория)
 ```bash
 mdbook serve        # dev-сервер с авто-пересборкой на http://localhost:3000
-mdbook build        # компиляция src/ -> book/ (артефакт для GitHub Pages)
+mdbook build        # компиляция src/ -> book/
 ```
 mdBook читает из `src/`, пишет в `book/`. `book/` — генерируемый вывод, не редактировать вручную.
 
@@ -919,8 +919,8 @@ for внутри for, или for/range вперемешку) и if/else любо
 ## CI/CD
 
 `.github/workflows/ci.yml`: job `go-tests`, `assets-check` и `build-book` (`mdbook build`
-+ `check-links.js`) должны пройти; затем job `deploy` публикует `book/` на GitHub Pages
-**только из ветки main**. Job `build-book` после сборки прогоняет `node scripts/check-links.js`
++ `check-links.js`) должны пройти. Публикации нет (job `deploy` убран 2026-10-12: репозиторий
+приватный, Pages на бесплатном тарифе недоступны; книгу читают локально). Job `build-book` после сборки прогоняет `node scripts/check-links.js`
 — целостность внутренних ссылок/якорей по собранному `book/`.
 
 Job `go-tests` (working-directory `exercises/`) проверяет четыре инварианта:
