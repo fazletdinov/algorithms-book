@@ -99,12 +99,9 @@ func NewUnionFind(n int) *UnionFind {
 
 ```
 parent = [0, 0, 2, 0, 0, 0, 0]   (после нескольких Union)
-
-множество {0,1,3,4,5,6}:        множество {2}:
-            0 ← корень               2 ← корень
-        ┌───┼───┬───┐
-        1   3   4 …                (одиночка)
 ```
+
+<div class="algo-fig" data-fig="tree" data-forest data-tree="0!(1,3,4,5,6); 2!" data-titles="множество {0,1,3,4,5,6}; множество {2} — одиночка" data-caption="Лес из parent выше: ребро ведёт от i к parent[i]; синие — корни, у них parent[i] == i"></div>
 
 Три факта, которые держат всё:
 
