@@ -16773,7 +16773,7 @@
   }
   var FIG_NARROW = 520;                   // px ширины рамки: уже — сноски номерами под рисунком
   var FIG_CALLOUT_W = 200, FIG_CALLOUT_GAP = 28;
-  var FIG_MARKS = ["algo-fig__hl", "algo-fig__onpath", "algo-fig__edge--path", "algo-fig__cell--on", "algo-fig__word--on"];
+  var FIG_MARKS = ["algo-fig__hl", "algo-fig__onpath", "algo-fig__edge--path", "algo-fig__cell--on", "algo-fig__word--on", "algo-fig__aux--on"];
   var figClearers = null;                 // касание мимо рисунка снимает закреплённую подсветку
   // [i, родитель i, …, корень]
   function figPath(nodes, i) { var p = []; for (; i >= 0; i = nodes[i].parent) p.push(i); return p; }
@@ -16785,16 +16785,57 @@
     });
     return out;
   }
+  // Ширина самой широкой метки в настоящем шрифте узла: зонд-узел с теми же классами внутри рисунка
+  // даёт шрифт и поля (getComputedStyle работает и в свёрнутом <details>), текст меряет canvas.
+  // Нет canvas или это jsdom (там getContext не реализован и шумит в консоль) — 0, и колонку
+  // задаёт пол-оценка в figTree.
+  var figMeasureCtx;
+  function figLabelPx(host, nodes) {
+    if (!host || !host.isConnected) return 0;
+    if (figMeasureCtx === undefined) {
+      figMeasureCtx = null;
+      if (!/jsdom/i.test(navigator.userAgent || "")) try { figMeasureCtx = document.createElement("canvas").getContext("2d"); } catch (e) { figMeasureCtx = null; }
+    }
+    if (!figMeasureCtx) return 0;
+    var best = 0;
+    nodes.forEach(function (n) {
+      if (n.gap) return;
+      var probe = mkEl("div", "algo-tp__tnode algo-tp__tfignode" + (n.cls ? " " + n.cls : ""), "");
+      probe.style.cssText = "position:absolute;visibility:hidden;left:0;top:0";
+      host.appendChild(probe);
+      var cs = getComputedStyle(probe), px = function (v) { return parseFloat(v) || 0; };
+      // выделенный узел увеличен transform: scale(1.15) — на рисунке он шире своей рамки
+      var sc = /^matrix\(([-\d.e]+)/.exec(cs.transform || ""), scale = sc ? Math.abs(+sc[1]) || 1 : 1;
+      figMeasureCtx.font = cs.fontStyle + " " + cs.fontWeight + " " + cs.fontSize + " " + cs.fontFamily;
+      best = Math.max(best, scale * (figMeasureCtx.measureText(n.label).width + px(cs.paddingLeft) + px(cs.paddingRight) + px(cs.borderLeftWidth) + px(cs.borderRightWidth)));
+      host.removeChild(probe);
+    });
+    return best;
+  }
   function figTree(src, opt) {
     var nodes = figTreeNodes(parseFigTree(src));
     var withSub = nodes.some(function (n) { return n.sub != null; });
     // Размеры — как у виджетов: с подписью под узлом — как segFigure, без неё — как trieFigure.
     // Длинные метки («[1,2,3]», «[2 | 4]») раздвигают колонку — иначе соседние листья наезжали
-    // друг на друга. Ширину символа берём с запасом, 11px: замер в Chrome на собранной книге —
-    // «[3,2,1]» в выделенном узле 98px при шрифте узла 15.3px, то есть ≈ 11px на символ вместе с полями.
+    // друг на друга. Ширина узла меряется в настоящем шрифте (figLabelPx) плюс зазор 14px; пол —
+    // прежняя оценка 11px на символ + 30 (замер в Chrome: «[3,2,1]» в выделенном узле — 98px):
+    // шрифт книги может догрузиться после первой раскладки, и узкий запасной шрифт не должен
+    // сжать колонку. Без canvas (jsdom) работает только пол.
     var longest = 0;
     nodes.forEach(function (n) { longest = Math.max(longest, n.label.length); });
-    var cw = Math.max(withSub ? 58 : 52, Math.ceil(longest * 11 + 30));
+    var cw = Math.max(withSub ? 58 : 52, Math.ceil(longest * 11 + 30), Math.ceil(figLabelPx(opt.host, nodes) + 14));
+    // Абсциссы — как в treeFigure (лист — следующий слот, родитель над серединой детей), но
+    // родитель с пустым местом «_» встаёт над этим местом: единственный ребёнок отстоит на целую
+    // колонку, а не на половину — иначе сторону приходилось угадывать.
+    var kidsOf = {}, slotN = 0, rootI = 0;
+    nodes.forEach(function (n, i) { if (n.parent < 0) rootI = i; else (kidsOf[n.parent] = kidsOf[n.parent] || []).push(i); });
+    (function px(i) {
+      var ch = kidsOf[i] || [];
+      if (!ch.length) { nodes[i].x = slotN++; return; }
+      ch.forEach(px);
+      var gaps = ch.filter(function (c) { return nodes[c].gap; });
+      nodes[i].x = ch.length === 2 && gaps.length === 1 ? nodes[gaps[0]].x : (nodes[ch[0]].x + nodes[ch[ch.length - 1]].x) / 2;
+    })(rootI);
     var fig = treeFigure(nodes, withSub ? { cw: cw, ch: 74 } : { cw: cw, ch: 58 });
     nodes.forEach(function (n, i) {
       if (!n.gap) return;
@@ -16880,14 +16921,23 @@
     });
     return n;
   }
-  // Что подсвечивает каждый ключ: hl — сам узел, path — предки, edges/cells/words.
-  function figGroups(items, multi) {
-    var groups = {}, seen = {};
-    function g(k) { return groups[k] || (groups[k] = { hl: [], path: [], edges: [], cells: [], words: [] }); }
-    function hot(x, key, tab) {
-      x.classList.add("algo-fig__hot"); x.setAttribute("data-fig-key", key);
-      if (tab) x.tabIndex = 0;
-    }
+  // Ключи подсветки: что зажигает каждый ключ — hl (сам узел), path (предки, соседи вершины),
+  // edges, cells (ячейки ряда, узлы списка), words (слова бора), aux (плашки, отрезки, подписи
+  // строк и столбцов, строки списка смежности). hot — элемент реагирует на наведение/касание,
+  // tab — встаёт в фокус клавиатуры (атрибутом: у SVG-кругов графа свойство tabIndex есть не везде).
+  function figKeys() {
+    var groups = {};
+    return {
+      groups: groups,
+      g: function (k) { return groups[k] || (groups[k] = { hl: [], path: [], edges: [], cells: [], words: [], aux: [] }); },
+      hot: function (x, key, tab) {
+        x.classList.add("algo-fig__hot"); x.setAttribute("data-fig-key", key);
+        if (tab) x.setAttribute("tabindex", "0");
+      }
+    };
+  }
+  function figGroups(K, items, multi) {
+    var seen = {};
     items.forEach(function (tr, k) {
       var labels = {};
       tr.nodes.forEach(function (n, i) {
@@ -16897,21 +16947,20 @@
           if (labels[n.base]) throw new Error("метка «" + n.base + "» дважды в дереве " + (k + 1) + ": в последовательности узлы сопоставляются по метке");
           labels[n.base] = 1; key = "L:" + n.base;
           // в фокус — только первое вхождение: подсветка всё равно общая на все деревья
-          g(key).hl.push(node); hot(node, key, !seen[key]); seen[key] = 1;
+          K.g(key).hl.push(node); K.hot(node, key, !seen[key]); seen[key] = 1;
           return;
         }
         key = "t" + k + "n" + i;   // лес: у каждого дерева свои узлы
-        var gr = g(key), path = figPath(tr.nodes, i);
-        gr.hl.push(node); hot(node, key, true);
+        var gr = K.g(key), path = figPath(tr.nodes, i);
+        gr.hl.push(node); K.hot(node, key, true);
         path.forEach(function (j, d) {
           if (d) gr.path.push(tr.fig.nodes[j]);
           if (tr.fig.edges[j]) gr.edges.push(tr.fig.edges[j]);
         });
         if (n.lo != null) for (var c = n.lo; c <= n.hi; c++) gr.cells.push(tr.cells[c]);
       });
-      tr.words.forEach(function (w) { var key = "t" + k + "n" + w.i; g(key).words.push(w.el); hot(w.el, key, true); });
+      tr.words.forEach(function (w) { var key = "t" + k + "n" + w.i; K.g(key).words.push(w.el); K.hot(w.el, key, true); });
     });
-    return groups;
   }
   // Показ: наведение важнее фокуса, фокус — закрепления касанием.
   function figInteract(el, groups) {
@@ -16924,7 +16973,7 @@
       el.classList.toggle("algo-fig--lit", !!key);
       var gr = key && groups[key];
       if (!gr) return;
-      [["hl", 0], ["path", 1], ["edges", 2], ["cells", 3], ["words", 4]].forEach(function (p) {
+      [["hl", 0], ["path", 1], ["edges", 2], ["cells", 3], ["words", 4], ["aux", 5]].forEach(function (p) {
         gr[p[0]].forEach(function (x) { x.classList.add(FIG_MARKS[p[1]]); });
       });
     }
@@ -16962,9 +17011,285 @@
     figClearers.push(function (t) { if (!el.contains(t) && (st.pin || st.hover)) clear(); });
   }
   function splitList(v, sep) { return v ? v.split(sep).map(function (x) { return x.trim(); }) : []; }
-  function renderFig(el) {
-    var kind = el.getAttribute("data-fig") || "";
-    if (kind !== "tree") throw new Error("неизвестный data-fig=\"" + kind + "\"");
+
+  // ===== Ряды и таблицы: data-fig="array" (и ряд под деревом — data-array у дерева) =========
+  // Ячейки, индексы и плашки указателей — те же классы, что у неонового ряда виджетов
+  // (algo-nn__cell, algo-nn__idx, algo-nn__tagtx на ножке), но раскладка — CSS-сетка, колонка на
+  // позицию: плашки, отрезки и подписи встают в свои колонки сами, без замеров offsetLeft (у
+  // виджета плашки ездят, у рисунка двигаться нечему).
+  //   data-array   — ряды через «;», ячейки через «,»; «_» — пустое место (ничего не рисуется),
+  //                  суффикс «!» — выделенная ячейка, «@a-b» (или «@a») — значение посчитано по
+  //                  ячейкам a…b первого ряда (наведение их подсветит)
+  //   data-rows    — подписи рядов через «;»; data-index — первый номер позиции («0» по умолчанию,
+  //                  «1» — с единицы, «none» — без номеров); data-index-label — подпись строки номеров
+  //   data-ptrs / data-ptrs-top — указатели под / над первым рядом: «имя@позиция» через «,»
+  //   data-ranges  — отрезки под рядом: «подпись@a-b» через «;», раскладываются по уровням без
+  //                  наложений; data-bars — первый ряд столбиками высотой по значению
+  // Позиции — в номерах data-index (у Фенвика — с единицы). Наведение: указатель или отрезок —
+  // свои ячейки; ячейка — свои плашки, накрывающие её отрезки, подпись своего ряда и номер, а
+  // при «@a-b» — ячейки a…b.
+  function figCellTok(tok, base, n, where) {
+    if (tok === "_") return { gap: true };
+    var m = /^(.*?)(!)?(?:@(\d+)(?:-(\d+))?)?$/.exec(tok);
+    if (!m || !m[1]) throw new Error("пустая ячейка «" + tok + "» в " + where);
+    var t = { v: m[1], mark: !!m[2] };
+    if (m[3] != null) {
+      t.lo = +m[3] - base; t.hi = (m[4] != null ? +m[4] : +m[3]) - base;
+      if (t.lo < 0 || t.hi < t.lo || t.hi >= n) throw new Error("ячейка «" + tok + "»: отрезок вне первого ряда");
+    }
+    return t;
+  }
+  function figPtrList(v) {
+    return splitList(v, ",").filter(Boolean).map(function (s) {
+      var at = s.lastIndexOf("@");
+      if (at <= 0 || !/^\d+$/.test(s.slice(at + 1))) throw new Error("указатель «" + s + "»: ждали «имя@позиция»");
+      return { name: s.slice(0, at).trim(), at: +s.slice(at + 1) };
+    });
+  }
+  function figRangeList(v) {
+    return splitList(v, ";").filter(Boolean).map(function (s) {
+      var at = s.lastIndexOf("@"), m = at > 0 && /^(\d+)(?:-(\d+))?$/.exec(s.slice(at + 1));
+      if (!m) throw new Error("отрезок «" + s + "»: ждали «подпись@a-b»");
+      return { label: s.slice(0, at).trim(), lo: +m[1], hi: m[2] != null ? +m[2] : +m[1] };
+    });
+  }
+  var FIG_BAR_H = 180; // px — высота самого высокого столбика при data-bars: у столбика 1 из 6 — 30px, под цифру хватает
+  function figGrid(o) {
+    var base = o.base == null ? 0 : o.base, rows = o.rows, R = rows.length, n = 0;
+    rows.forEach(function (r) { n = Math.max(n, r.length); });
+    if (!n) throw new Error("пустой data-array");
+    var lab = o.rowLabels.some(Boolean) || !!o.indexLabel, off = lab ? 2 : 1, line = 1;
+    var grid = mkEl("div", "algo-fig__grid" + (o.bars ? " algo-fig__grid--bars" : ""));
+    // колонки позиций равной ширины (по самой широкой ячейке, не уже --fig-col): иначе длинная
+    // ячейка раздвигала только свою колонку, и ряд шёл с неровными промежутками
+    grid.style.gridTemplateColumns = (lab ? "auto " : "") + "repeat(" + n + ", minmax(var(--fig-col), 1fr))";
+    var out = { el: grid, n: n, base: base, cells: [], vals: [], ptrs: [], ranges: [], rowLabs: [], idx: [] };
+    function put(x, row, col, span) {
+      x.style.gridRow = String(row); x.style.gridColumn = col + (span ? " / span " + span : "");
+      grid.appendChild(x); return x;
+    }
+    function pos(p, what) {
+      var c = p - base;
+      if (!(c >= 0 && c < n)) throw new Error(what + ": позиция " + p + " вне ряда");
+      return c;
+    }
+    function ptrRow(list, top) {
+      if (!list.length) return;
+      var row = line++, by = {};
+      list.forEach(function (p) {
+        var c = pos(p.at, "указатель «" + p.name + "»");
+        if (!by[c]) by[c] = put(mkEl("div", "algo-fig__ptrs" + (top ? " algo-fig__ptrs--top" : "")), row, off + c);
+        var t = mkEl("div", "algo-fig__ptr algo-nn__tag--" + (top ? "hi" : "lo")), tx = mkEl("span", "algo-nn__tagtx", p.name), st = mkEl("span", "algo-nn__stem");
+        if (top) { t.appendChild(tx); t.appendChild(st); } else { t.appendChild(st); t.appendChild(tx); }
+        by[c].appendChild(t);
+        out.ptrs.push({ name: p.name, c: c, el: t, top: top });
+      });
+    }
+    function idxRow() {
+      if (o.base === null) return; // data-index="none"
+      var row = line++;
+      if (o.indexLabel) put(mkEl("div", "algo-fig__rowlab algo-fig__rowlab--idx", o.indexLabel), row, 1);
+      for (var c = 0; c < n; c++) out.idx.push(put(mkEl("div", "algo-nn__idx algo-fig__idx", String(c + base)), row, off + c));
+    }
+    ptrRow(o.top, true);
+    if (R > 1) idxRow(); // таблица: номера столбцов — шапкой сверху
+    var max = 0;
+    if (o.bars) {
+      if (R !== 1) throw new Error("data-bars — для одного ряда");
+      rows[0].forEach(function (tok) { var v = parseFloat(tok); if (!(v >= 0)) throw new Error("data-bars: «" + tok + "» — не высота"); max = Math.max(max, v); });
+    }
+    rows.forEach(function (r, ri) {
+      var row = line++, cs = [], vs = [];
+      out.rowLabs.push(o.rowLabels[ri] ? put(mkEl("div", "algo-fig__rowlab", o.rowLabels[ri]), row, 1) : null);
+      r.forEach(function (tok, c) {
+        var t = figCellTok(tok, base, n, "ряду " + (ri + 1));
+        vs.push(t);
+        if (t.gap) { cs.push(null); return; }
+        if (t.lo != null && ri === 0) throw new Error("«@a-b» — у ячеек второго и дальше рядов: они считаются по первому");
+        var cell = mkEl("div", "algo-tp__big algo-nn__cell algo-fig__acell" + (t.mark ? " algo-tp__big--found" : "") + (t.v.length > 3 ? " algo-nn__cell--long" : ""), t.v);
+        if (o.bars) cell.style.height = (max ? parseFloat(t.v) / max * FIG_BAR_H : 0) + "px";
+        cs.push(put(cell, row, off + c));
+      });
+      out.cells.push(cs); out.vals.push(vs);
+    });
+    out.vals.forEach(function (vs) { vs.forEach(function (t) { if (t.lo != null) for (var x = t.lo; x <= t.hi; x++) if (!out.cells[0][x]) throw new Error("«@" + (t.lo + base) + "-" + (t.hi + base) + "» накрывает пустое место первого ряда"); }); });
+    if (R === 1) idxRow();
+    ptrRow(o.bot, false);
+    out.ptrs.forEach(function (p) { if (!out.cells[0][p.c]) throw new Error("указатель «" + p.name + "» смотрит на пустое место"); });
+    var levels = [];
+    o.ranges.forEach(function (rg) {
+      var a = pos(rg.lo, "отрезок «" + rg.label + "»"), b = pos(rg.hi, "отрезок «" + rg.label + "»"), lv = 0;
+      if (b < a) throw new Error("отрезок «" + rg.label + "»: конец раньше начала");
+      while (levels[lv] && levels[lv].some(function (q) { return !(b < q[0] || a > q[1]); })) lv++;
+      (levels[lv] = levels[lv] || []).push([a, b]);
+      out.ranges.push({ label: rg.label, a: a, b: b, lv: lv });
+    });
+    var first = line; line += levels.length;
+    out.ranges.forEach(function (rg) {
+      rg.el = put(mkEl("div", "algo-fig__range"), first + rg.lv, off + rg.a, rg.b - rg.a + 1);
+      rg.el.appendChild(mkEl("span", null, rg.label)); // span — чтобы померить свисающую подпись
+    });
+    // Плашки и подписи отрезков шире своей колонки свисают за край сетки (не раздвигают колонки);
+    // поля сетки — по самому длинному свесу, иначе у крайней позиции плашку срезала рамка.
+    // Зовётся из раскладки рисунка без масштаба; без вёрстки (jsdom, скрытая рамка) — ничего.
+    out.place = function () {
+      grid.style.paddingLeft = grid.style.paddingRight = "";
+      if (!grid.offsetWidth) return;
+      var r = grid.getBoundingClientRect(), l = 0, rr = 0;
+      out.ptrs.map(function (p) { return p.el; }).concat(out.ranges.map(function (rg) { return rg.el.firstChild; })).forEach(function (x) {
+        var b = x.getBoundingClientRect();
+        l = Math.max(l, r.left - b.left); rr = Math.max(rr, b.right - r.right);
+      });
+      if (l > 0) grid.style.paddingLeft = Math.ceil(l) + "px";
+      if (rr > 0) grid.style.paddingRight = Math.ceil(rr) + "px";
+    };
+    return out;
+  }
+  // labelAttr — откуда подписи рядов: «data-rows» у ряда, «data-array-label» у ряда под деревом
+  function figGridFromAttrs(el, labelAttr) {
+    var ix = el.getAttribute("data-index");
+    return figGrid({
+      rows: splitList(el.getAttribute("data-array"), ";").map(function (r) { return splitList(r, ","); }),
+      rowLabels: splitList(el.getAttribute(labelAttr), ";"),
+      base: ix === "none" ? null : ix ? +ix : 0, indexLabel: el.getAttribute("data-index-label") || "",
+      top: figPtrList(el.getAttribute("data-ptrs-top")), bot: figPtrList(el.getAttribute("data-ptrs")),
+      ranges: figRangeList(el.getAttribute("data-ranges")), bars: el.hasAttribute("data-bars")
+    });
+  }
+  function figGridKeys(K, gd) {
+    gd.ptrs.forEach(function (p, q) { var gr = K.g("p" + q); gr.aux.push(p.el); gr.cells.push(gd.cells[0][p.c]); K.hot(p.el, "p" + q, true); });
+    gd.ranges.forEach(function (rg, q) {
+      var gr = K.g("r" + q); gr.aux.push(rg.el);
+      for (var c = rg.a; c <= rg.b; c++) if (gd.cells[0][c]) gr.cells.push(gd.cells[0][c]);
+      K.hot(rg.el, "r" + q, true);
+    });
+    gd.cells.forEach(function (row, r) {
+      row.forEach(function (cell, c) {
+        if (!cell) return;
+        var key = "c" + r + "_" + c, gr = K.g(key), t = gd.vals[r][c];
+        gr.cells.push(cell);
+        if (t.lo != null) for (var x = t.lo; x <= t.hi; x++) gr.cells.push(gd.cells[0][x]);
+        if (gd.rowLabs[r]) gr.aux.push(gd.rowLabs[r]);
+        if (gd.idx[c]) gr.aux.push(gd.idx[c]);
+        if (r === 0) {
+          gd.ptrs.forEach(function (p) { if (p.c === c) gr.aux.push(p.el); });
+          gd.ranges.forEach(function (rg) { if (rg.a <= c && c <= rg.b) gr.aux.push(rg.el); });
+        }
+        K.hot(cell, key, true);
+      });
+    });
+  }
+  function figBuildArray(el, body, K) {
+    var gd = figGridFromAttrs(el, "data-rows");
+    body.appendChild(gd.el);
+    figGridKeys(K, gd);
+    return { place: gd.place, hint: "Наведи на ячейку" + (gd.ptrs.length ? ", указатель" : "") + (gd.ranges.length ? " или отрезок" : "") + " (или нажми) — подсветится, что с ней связано." };
+  }
+
+  // ===== Связные списки: data-fig="list" ======================================
+  // Узлы и стрелки — классы списков виджетов (algo-tp__llnode, algo-tp__llarrow, algo-tp__llnil).
+  //   data-list — списки через «;», значения через «,»; пустой список — «∅»; суффикс «!» — выделен
+  //   data-rows — подписи списков через «;» (бакеты); data-ptrs — «имя@i» или «имя@список:i» над
+  //   узлом; data-end — чем кончается список («nil» по умолчанию, пусто — ничем)
+  // Наведение: узел — путь до него от головы (так до узла и добираются: по Next с начала);
+  // указатель — его узел; подпись — весь список.
+  function figBuildList(el, body, K) {
+    var lists = splitList(el.getAttribute("data-list"), ";"), labs = splitList(el.getAttribute("data-rows"), ";");
+    if (!lists.length) throw new Error("пустой data-list");
+    var end = el.hasAttribute("data-end") ? el.getAttribute("data-end") : "nil";
+    var ptrs = splitList(el.getAttribute("data-ptrs"), ",").filter(Boolean).map(function (s) {
+      var m = /^(.+)@(?:(\d+):)?(\d+)$/.exec(s);
+      if (!m) throw new Error("указатель «" + s + "»: ждали «имя@i» или «имя@список:i»");
+      return { name: m[1].trim(), r: m[2] != null ? +m[2] : 0, i: +m[3] };
+    });
+    var wrap = mkEl("div", "algo-fig__lists" + (ptrs.length ? " algo-fig__lists--ptrs" : ""));
+    var rows = lists.map(function (src, r) {
+      var vals = src ? splitList(src, ",") : [], row = mkEl("div", "algo-fig__lrow");
+      var lab = labs[r] ? mkEl("div", "algo-fig__rowlab", labs[r]) : null;
+      if (lab) row.appendChild(lab);
+      var ll = mkEl("div", "algo-tp__ll algo-fig__ll"), nodes = [], arrows = [];
+      row.appendChild(ll);
+      if (!vals.length) ll.appendChild(mkEl("div", "algo-tp__llnil algo-fig__empty", "∅"));
+      vals.forEach(function (v, i) {
+        var m = /^(.*?)(!)?$/.exec(v);
+        if (!m[1]) throw new Error("пустой узел в списке " + (r + 1));
+        var slot = mkEl("div", "algo-fig__lslot"), pb = mkEl("div", "algo-fig__ptrs algo-fig__ptrs--top");
+        var nd = mkEl("div", "algo-tp__llnode algo-fig__lnode" + (m[2] ? " algo-tp__llnode--found" : ""), m[1]);
+        slot.appendChild(pb); slot.appendChild(nd); ll.appendChild(slot);
+        nodes.push({ el: nd, ptrs: pb });
+        if (i < vals.length - 1 || end) { var a = mkEl("div", "algo-tp__llarrow algo-fig__larrow", "→"); ll.appendChild(a); arrows.push(a); }
+      });
+      if (vals.length && end) ll.appendChild(mkEl("div", "algo-tp__llnil algo-fig__lend", end));
+      wrap.appendChild(row);
+      return { lab: lab, nodes: nodes, arrows: arrows };
+    });
+    body.appendChild(wrap);
+    rows.forEach(function (rw, r) {
+      rw.nodes.forEach(function (nd, i) {
+        var key = "n" + r + "_" + i, gr = K.g(key);
+        for (var j = 0; j <= i; j++) gr.cells.push(rw.nodes[j].el);
+        for (j = 0; j < i; j++) gr.aux.push(rw.arrows[j]);
+        K.hot(nd.el, key, true);
+      });
+      if (rw.lab) {
+        var gr = K.g("row" + r); gr.aux.push(rw.lab);
+        rw.nodes.forEach(function (nd) { gr.cells.push(nd.el); });
+        K.hot(rw.lab, "row" + r, true);
+      }
+    });
+    ptrs.forEach(function (p, q) {
+      var rw = rows[p.r], nd = rw && rw.nodes[p.i];
+      if (!nd) throw new Error("указатель «" + p.name + "»: узла " + p.i + " в списке " + (p.r + 1) + " нет");
+      var t = mkEl("div", "algo-fig__ptr algo-nn__tag--hi");
+      t.appendChild(mkEl("span", "algo-nn__tagtx", p.name)); t.appendChild(mkEl("span", "algo-nn__stem"));
+      nd.ptrs.appendChild(t);
+      var gr = K.g("p" + q); gr.aux.push(t); gr.cells.push(nd.el); K.hot(t, "p" + q, true);
+    });
+    return { hint: "Наведи на узел" + (ptrs.length ? " или указатель" : "") + (rows.some(function (x) { return x.lab; }) ? " или подпись списка" : "") + " (или нажми) — подсветится путь до узла от головы." };
+  }
+
+  // ===== Неориентированный граф: data-fig="graph" =============================
+  // Рисует тот же graphVizFactory, что у виджетов BFS и провинций (послойная раскладка), без шагов.
+  //   data-nodes — метки вершин через «,»; data-edges — «a-b» через «,» по меткам; data-adj —
+  //   под графом список смежности в порядке главы: по рёбрам, в обе стороны (adj[u] = append(…, v)).
+  // Наведение на вершину (или её строку adj) — она, её рёбра и соседи.
+  function figBuildGraph(el, body, K) {
+    var labels = splitList(el.getAttribute("data-nodes"), ","), at = {};
+    if (!labels.length || !labels[0]) throw new Error("пустой data-nodes");
+    labels.forEach(function (l, i) { if (at[l] != null) throw new Error("вершина «" + l + "» дважды"); at[l] = i; });
+    var edges = splitList(el.getAttribute("data-edges"), ",").filter(Boolean).map(function (e) {
+      var p = e.split("-").map(function (x) { return x.trim(); });
+      if (p.length !== 2 || at[p[0]] == null || at[p[1]] == null) throw new Error("ребро «" + e + "»: нет такой вершины");
+      return [at[p[0]], at[p[1]]];
+    });
+    var panel = mkEl("div", "algo-fig__graph");
+    graphVizFactory(false)(panel, { labels: labels, edges: edges, start: 0 });
+    body.appendChild(panel);
+    var circles = panel.querySelectorAll("circle.algo-viz__gnode"), lines = panel.querySelectorAll("line.algo-viz__gedge");
+    var adj = labels.map(function () { return []; });
+    edges.forEach(function (e) { adj[e[0]].push(e[1]); adj[e[1]].push(e[0]); });
+    var rows = null;
+    if (el.hasAttribute("data-adj")) {
+      var ul = mkEl("ul", "algo-fig__adj");
+      ul.setAttribute("aria-label", "список смежности");
+      rows = labels.map(function (l, i) {
+        var li = mkEl("li", "algo-fig__adjrow", "adj[" + l + "] = [" + adj[i].map(function (j) { return labels[j]; }).join(", ") + "]");
+        ul.appendChild(li); return li;
+      });
+      body.appendChild(ul);
+    }
+    labels.forEach(function (l, i) {
+      var key = "v" + i, gr = K.g(key);
+      gr.hl.push(circles[i]); K.hot(circles[i], key, true);
+      adj[i].forEach(function (j) { if (gr.path.indexOf(circles[j]) < 0) gr.path.push(circles[j]); });
+      edges.forEach(function (e, k) { if (e[0] === i || e[1] === i) gr.edges.push(lines[k]); });
+      if (rows) { gr.aux.push(rows[i]); K.hot(rows[i], key, true); }
+    });
+    return { hint: "Наведи на вершину" + (rows ? " или строку adj" : "") + " (или нажми) — подсветятся её рёбра и соседи." };
+  }
+
+  // ===== Деревья: data-fig="tree" ==============================================
+  function figBuildTree(el, body, K) {
     var trees = splitList(el.getAttribute("data-tree"), ";"), titles = splitList(el.getAttribute("data-titles"), ";");
     var notes = splitList(el.getAttribute("data-notes"), "||"), row = el.getAttribute("data-row");
     if (!trees.length) throw new Error("пустой data-tree");
@@ -16973,12 +17298,12 @@
     var forest = el.hasAttribute("data-forest");
     if (forest && trees.length < 2) throw new Error("data-forest — для двух и больше деревьев через «;»");
     var multi = trees.length > 1 && !forest, items = [], noted = {}, inForest = {};
-    var body = mkEl("div", "algo-fig__body"), seq = mkEl("div", "algo-fig__seq" + (forest ? " algo-fig__seq--forest" : ""));
+    var seq = mkEl("div", "algo-fig__seq" + (forest ? " algo-fig__seq--forest" : ""));
     trees.forEach(function (t, k) {
       if (k && !forest) seq.appendChild(mkEl("span", "algo-fig__arrow", "⟶"));
       var item = mkEl("div", "algo-fig__item");
       if (titles[k]) item.appendChild(mkEl("div", "algo-fig__title", titles[k]));
-      var tr = figTree(t, { row: row && k === 0 ? splitList(row, ",") : null, rowLabel: el.getAttribute("data-row-label"), notes: notes });
+      var tr = figTree(t, { row: row && k === 0 ? splitList(row, ",") : null, rowLabel: el.getAttribute("data-row-label"), notes: notes, host: el });
       tr.nodes.forEach(function (n) {
         if (n.note) noted[n.note] = 1;
         // лес — разбиение множества: элемент стоит ровно в одном дереве
@@ -17000,6 +17325,36 @@
     if (diff && !multi) throw new Error("data-diff — для последовательности деревьев через «;»");
     if (diff) for (var k = 1; k < items.length; k++) changed += figChanged(items[k - 1], items[k]);
     var hasTrail = items.some(function (tr) { return tr.nodes.some(function (n) { return n.trail; }); });
+    figGroups(K, items, multi);
+    // Ряд массива под деревом (data-array): куча и parent[] union-find. Ячейка c связана с узлом
+    // по data-link: «index» — подпись узла «[c]», «label» — метка узла «c». Наведение на узел
+    // зажигает и его ячейку, наведение на ячейку — узел с путём к корню.
+    var arrSrc = el.getAttribute("data-array"), gd = null;
+    if (arrSrc != null) {
+      if (multi) throw new Error("data-array — у одного дерева или леса, не у последовательности");
+      var link = el.getAttribute("data-link");
+      if (link !== "index" && link !== "label") throw new Error("data-array у дерева требует data-link=\"index\" или \"label\"");
+      gd = figGridFromAttrs(el, "data-array-label");
+      if (gd.cells.length !== 1) throw new Error("data-array у дерева — один ряд");
+      var linked = 0;
+      gd.cells[0].forEach(function (cell, c) {
+        if (!cell) return;
+        var hit = null;
+        items.forEach(function (tr, k2) {
+          tr.nodes.forEach(function (n, i) {
+            if (n.gap || (link === "index" ? n.sub !== "[" + (c + gd.base) + "]" : n.base !== String(c + gd.base))) return;
+            if (hit) throw new Error("ячейке " + (c + gd.base) + " подходят два узла");
+            hit = "t" + k2 + "n" + i;
+          });
+        });
+        if (!hit) throw new Error("ячейке " + (c + gd.base) + " нет узла (data-link=\"" + link + "\")");
+        K.g(hit).cells.push(cell); K.hot(cell, hit, false); linked++;
+      });
+      var nodeCount = 0;
+      items.forEach(function (tr) { tr.nodes.forEach(function (n) { if (!n.gap) nodeCount++; }); });
+      if (linked !== nodeCount) throw new Error("data-array: ячеек " + linked + ", а узлов " + nodeCount);
+      body.appendChild(gd.el);
+    }
     if (changed || hasTrail) {
       var lg = mkEl("div", "algo-fig__legend");
       if (changed) {
@@ -17023,17 +17378,29 @@
       if (all) ol.classList.add("algo-fig__notes--call");
       body.appendChild(ol);
     }
+    var what = multi ? "тот же узел на каждом шаге"
+      : items[0].words.length ? "путь от корня; у слова — путь до его ★"
+      : items[0].nodes.some(function (n) { return n.lo != null; }) ? "отрезок узла в массиве и путь к корню"
+      : gd ? "путь к корню и ячейка узла в массиве" : "путь к корню";
+    return {
+      hint: "Наведи на узел" + (items[0].words.length ? " или слово" : "") + (gd ? " или ячейку" : "") + " (или нажми) — подсветится " + what + ".",
+      place: function (narrow) { items.forEach(function (tr) { tr.place(narrow); }); if (gd) gd.place(); }
+    };
+  }
+  var FIG_KINDS = { tree: figBuildTree, array: figBuildArray, list: figBuildList, graph: figBuildGraph };
+  function renderFig(el) {
+    var kind = el.getAttribute("data-fig") || "", build = FIG_KINDS.hasOwnProperty(kind) && FIG_KINDS[kind];
+    if (!build) throw new Error("неизвестный data-fig=\"" + kind + "\"");
+    var K = figKeys(), body = mkEl("div", "algo-fig__body");
+    var r = build(el, body, K);
     var scroll = mkEl("div", "algo-fig__scroll");
     scroll.appendChild(body); el.appendChild(scroll);
     var cap = el.getAttribute("data-caption");
     if (cap) el.appendChild(mkEl("div", "algo-fig__caption", cap));
-    var what = multi ? "тот же узел на каждом шаге"
-      : items[0].words.length ? "путь от корня; у слова — путь до его ★"
-      : items[0].nodes.some(function (n) { return n.lo != null; }) ? "отрезок узла в массиве и путь к корню" : "путь к корню";
     // подсказка — один раз на страницу: на втором рисунке читатель уже знает, что узлы живые
-    if (document.querySelector(".algo-fig") === el) el.appendChild(mkEl("div", "algo-fig__hint", "Наведи на узел" + (items[0].words.length ? " или слово" : "") + " (или нажми) — подсветится " + what + "."));
+    if (document.querySelector(".algo-fig") === el) el.appendChild(mkEl("div", "algo-fig__hint", r.hint));
     el.setAttribute("role", "figure");
-    figInteract(el, figGroups(items, multi));
+    figInteract(el, K.groups);
     // Сначала раскладка без масштаба (выноски меряются в настоящих пикселях), потом — как у
     // рисунков деревьев в виджетах: ужать целиком, но не мельче 0.75 — дальше честнее прокрутка
     // в своём блоке (страница вбок не едет). Ширина 0 — рамка скрыта: режим не трогаем.
@@ -17041,8 +17408,7 @@
       body.style.zoom = "";
       var avail = scroll.clientWidth;
       if (avail > 0) el.classList.toggle("algo-fig--narrow", avail <= FIG_NARROW);
-      var narrow = el.classList.contains("algo-fig--narrow");
-      items.forEach(function (tr) { tr.place(narrow); });
+      if (r.place) r.place(el.classList.contains("algo-fig--narrow"));
       var w = body.scrollWidth;
       if (avail > 0 && w > avail) body.style.zoom = String(Math.round(Math.max(0.75, avail / w) * 1000) / 1000);
     }

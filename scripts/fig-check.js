@@ -20,6 +20,10 @@
 // algo-viz.css). Текст каждого узла — метка своего разбора; пустое место «_» держит сторону
 // ребёнка; соседи в ряду не наезжают (ширина по метке); лес (data-forest) — без стрелок, подсветка
 // своего дерева. Возможности формата, которых нет в главах, гоняются на образцах.
+// Ряды (data-fig="array"), списки ("list"), графы ("graph") и ряд под деревом (data-array +
+// data-link) — тем же способом: свой разбор атрибутов, раскладка по grid-row/grid-column (ряды),
+// по порядку узлов и стрелок (списки), по центрам вершин (граф); наведение на каждый указатель,
+// отрезок, ячейку, узел, подпись, вершину и строку adj — ровно ожидаемые отметки.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -72,6 +76,8 @@ const inChapters = figs.length;
 [
   ['<div class="algo-fig" data-fig="tree" data-tree="8~(3~(1,6~(4~,7)),10(14))" data-path-label="путь поиска 4" data-caption="образец: путь «~»"></div>', "путь «~»"],
   ['<div class="algo-fig" data-fig="tree" data-tree="y(x,C); x(A,y)" data-caption="образец: последовательность без data-diff"></div>', "последовательность без data-diff"],
+  ['<div class="algo-fig" data-fig="list" data-list="a,b!; ; c" data-rows="x; y; z" data-ptrs="p@2:0" data-caption="образец: списки, пустой без nil, указатель в третьем, выделенный узел"></div>', "списки"],
+  ['<div class="algo-fig" data-fig="array" data-array="_,4,5!,6" data-index="1" data-ptrs-top="t@2" data-ptrs="b@2,c@4" data-ranges="r@2-3;s@3-4" data-caption="образец: пустое место, плашки сверху и снизу, наложение отрезков"></div>', "ряд"],
 ].forEach(([tag, what]) => figs.push({ where: "образец (" + what + ")", tag }));
 
 const attr = (tag, name) => {
@@ -155,6 +161,16 @@ figs.forEach((f, i) => {
   if (!el.classList.contains("algo-fig--ready")) return bad("рисунок не построен (нет algo-fig--ready)");
   const note = el.querySelector(".algo-tp__note");
   if (note) return bad("движок показал ошибку: " + note.textContent);
+  const cap = attr(f.tag, "data-caption");
+  const shownCap = el.querySelector(".algo-fig__caption");
+  if (!cap) bad("нет data-caption: у рисунка в книге должна быть подпись");
+  else if (!shownCap || shownCap.textContent !== cap) bad("подпись не из data-caption");
+  const kind = attr(f.tag, "data-fig");
+  if (kind === "array") checkArray(f, el, bad);
+  else if (kind === "list") checkList(f, el, bad);
+  else if (kind === "graph") checkGraph(f, el, bad);
+  else if (kind !== "tree") bad(`вид «${kind}» проверкой не покрыт`);
+  if (kind !== "tree") return keyboard(el, bad, false);
   const trees = list(attr(f.tag, "data-tree"), ";");
   const want = trees.reduce((s, t) => s + labels(t).length, 0);
   const nodes = el.querySelectorAll(".algo-tp__tfignode");
@@ -177,11 +193,7 @@ figs.forEach((f, i) => {
   if (cells.join(",") !== row.join(",")) bad(`ряд «${cells}», ждали «${row}»`);
   const notes = list(attr(f.tag, "data-notes"), "||");
   if (el.querySelectorAll(".algo-fig__notes li").length !== notes.length) bad("число сносок не совпало с data-notes");
-  const cap = attr(f.tag, "data-caption");
-  const shownCap = el.querySelector(".algo-fig__caption");
-  if (!cap) bad("нет data-caption: у рисунка в книге должна быть подпись");
-  else if (!shownCap || shownCap.textContent !== cap) bad("подпись не из data-caption");
-  if (!note) behaviour(f, el, trees, bad);
+  behaviour(f, el, trees, bad);
 });
 
 // --- подсветка, изменённые рёбра, выноски ---
@@ -209,6 +221,8 @@ function behaviour(f, el, trees, bad) {
     if (sib < 0) return;
     const px = parseFloat(nodesOf[k][n.parent].style.left), sx = parseFloat(nodesOf[k][sib].style.left);
     if (sib > i ? !(sx > px) : !(sx < px)) bad(`«_» не удержал сторону: «${t[sib].base}» ${sib > i ? "правый" : "левый"} ребёнок «${t[n.parent].base}», а стоит ${sx > px ? "правее" : sx < px ? "левее" : "под ним"}`);
+    // на целую колонку (узкая колонка — 52px), а не на половину: сторону видно сразу
+    else if (Math.abs(sx - px) < 52) bad(`«_»: «${t[sib].base}» отстоит от «${t[n.parent].base}» на ${Math.abs(sx - px)}px — меньше колонки`);
   }));
   // текст узла — метка своего разбора (★ у конца слова): «|» внутри «[…]» — часть метки
   T.forEach((t, k) => t.forEach((n, i) => {
@@ -236,7 +250,23 @@ function behaviour(f, el, trees, bad) {
     edges: [...el.querySelectorAll(".algo-fig__edge--path")].map(edgeName),
     cells: [...el.querySelectorAll(".algo-fig__cell")].map((c, i) => (c.classList.contains("algo-fig__cell--on") ? i : -1)).filter((i) => i >= 0),
     words: [...el.querySelectorAll(".algo-fig__word")].map((x, i) => (x.classList.contains("algo-fig__word--on") ? i : -1)).filter((i) => i >= 0),
+    acells: [...el.querySelectorAll(".algo-fig__acell")].map((x, i) => (x.classList.contains("algo-fig__cell--on") ? i : -1)).filter((i) => i >= 0),
+    aux: [...el.querySelectorAll(".algo-fig__aux--on")].map(descOf(el)),
   });
+  // ряд массива под деревом (data-array + data-link): ячейка c — узел с подписью «[c]» или меткой «c»
+  const arr = attr(f.tag, "data-array"), link = attr(f.tag, "data-link"), linkOf = {};
+  if (arr != null) {
+    const vals = list(arr, ","), acells = [...el.querySelectorAll(".algo-fig__acell")];
+    if (acells.map((x) => x.textContent).join(",") !== vals.join(",")) bad(`ряд под деревом «${acells.map((x) => x.textContent)}», ждали «${vals}»`);
+    const idx = [...el.querySelectorAll(".algo-fig__idx")].map((x) => x.textContent).join(",");
+    if (idx !== vals.map((v, c) => c).join(",")) bad(`номера ряда «${idx}»`);
+    const lab = [...el.querySelectorAll(".algo-fig__rowlab")].map((x) => x.textContent).join("|");
+    if (lab !== (attr(f.tag, "data-array-label") || "")) bad(`подпись ряда «${lab}»`);
+    vals.forEach((v, c) => T.forEach((t, k) => t.forEach((n, i) => {
+      if (!n.gap && (link === "index" ? n.sub === `[${c}]` : n.base === String(c))) linkOf[k + ":" + i] = c;
+    })));
+    if (Object.keys(linkOf).length !== vals.length) bad(`связей узел—ячейка ${Object.keys(linkOf).length}, ячеек ${vals.length}`);
+  }
   const over = (x) => x.dispatchEvent(new w.MouseEvent("mouseover", { bubbles: true }));
   const out = (x) => x.dispatchEvent(new w.MouseEvent("mouseout", { bubbles: true, relatedTarget: doc.body }));
   const expectMarks = (what, want) => {
@@ -295,6 +325,7 @@ function behaviour(f, el, trees, bad) {
         hl: [all.indexOf(ns[i])], path: anc.map((j) => all.indexOf(ns[j])), cells,
         edges: [i, ...anc].filter((j) => t[j].parent >= 0).map((j) => `${k}:${t[t[j].parent].base}-${t[j].base}`),
         words: words.map((x, q) => (x.k === k && x.i === i ? q : -1)).filter((q) => q >= 0),
+        acells: linkOf[k + ":" + i] != null ? [linkOf[k + ":" + i]] : [],
       };
     };
     T.forEach((t, k) => t.forEach((n, i) => {
@@ -309,6 +340,15 @@ function behaviour(f, el, trees, bad) {
       expectMarks(`наведение на слово «${x.textContent}»`, want(words[q].k, words[q].i));
       out(x);
       expectClear(`уход со слова «${x.textContent}»`);
+    });
+    // ячейка ряда — та же подсветка, что у её узла
+    const acells = [...el.querySelectorAll(".algo-fig__acell")];
+    Object.entries(linkOf).forEach(([ki, c]) => {
+      const [k, i] = ki.split(":").map(Number);
+      over(acells[c]);
+      expectMarks(`наведение на ячейку ${c} ряда под деревом`, want(k, i));
+      out(acells[c]);
+      expectClear(`уход с ячейки ${c}`);
     });
   }
 
@@ -326,33 +366,7 @@ function behaviour(f, el, trees, bad) {
   if (!!trailNodes.length !== !!trailLeg) bad("легенда пути не совпала с наличием «~»");
   else if (trailLeg && trailLeg.nextSibling.textContent !== (attr(f.tag, "data-path-label") || "путь поиска")) bad(`подпись пути «${trailLeg.nextSibling.textContent}»`);
 
-  // клавиатура: в фокусе — по узлу на ключ; фокус = наведение; Esc снимает и дальше не идёт
-  const hot = [...el.querySelectorAll(".algo-fig__hot")];
-  const key = (x) => x.getAttribute("data-fig-key"), isNode = (x) => x.classList.contains("algo-tp__tfignode");
-  if (hot.filter(isNode).length !== all.length) bad("не каждый узел реагирует на наведение");
-  const tabs = hot.filter((x) => x.tabIndex === 0), tabNodes = tabs.filter(isNode);
-  if (tabNodes.length !== new Set(hot.filter(isNode).map(key)).size || new Set(tabNodes.map(key)).size !== tabNodes.length) bad("в фокус встаёт не ровно по одному узлу на ключ подсветки");
-  if (!hot.filter((x) => !isNode(x)).every((x) => x.tabIndex === 0)) bad("слово не встаёт в фокус");
-  const first = tabs[0];
-  if (!first) return bad("ни один узел не встаёт в фокус");
-  first.focus();
-  if (!el.classList.contains("algo-fig--lit")) bad("фокус на узле не подсветил его");
-  let leaked = 0;
-  const spy = () => leaked++;
-  doc.addEventListener("keydown", spy);
-  first.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
-  doc.removeEventListener("keydown", spy);
-  if (el.classList.contains("algo-fig--lit")) bad("Esc не снял подсветку");
-  if (leaked) bad("Esc с подсвеченного рисунка доплыл до document");
-  // касание: закрепляет, уход мыши не снимает, касание мимо — снимает, повтор — снимает
-  first.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
-  out(first);
-  if (!el.classList.contains("algo-fig--lit")) bad("касание не закрепило подсветку");
-  doc.body.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
-  if (el.classList.contains("algo-fig--lit")) bad("касание мимо рисунка не сняло подсветку");
-  first.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
-  first.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
-  if (el.classList.contains("algo-fig--lit")) bad("повторное касание не сняло подсветку");
+  keyboard(el, bad, true);
 
   // выноски: широко — выноска с линией, номер и пункт списка скрыты; узко — наоборот
   const calls = [...el.querySelectorAll(".algo-fig__callout")];
@@ -372,6 +386,248 @@ function behaviour(f, el, trees, bad) {
   at(0); // скрытая рамка режим не меняет
   if (!el.classList.contains("algo-fig--narrow")) bad("рамка шириной 0 сбросила режим");
 }
+
+// --- общее для всех видов: имена элементов, отметки, клавиатура ---
+// Элемент рисунка → «вид:номер» среди элементов своего вида (номер — порядок в документе).
+function descOf(el) {
+  const kinds = [["node", ".algo-tp__tfignode"], ["acell", ".algo-fig__acell"], ["lnode", ".algo-fig__lnode"], ["v", "circle.algo-viz__gnode"],
+    ["e", "line.algo-viz__gedge"], ["ptr", ".algo-fig__ptr"], ["range", ".algo-fig__range"], ["row", ".algo-fig__rowlab"], ["idx", ".algo-fig__idx"],
+    ["arrow", ".algo-fig__larrow"], ["adj", ".algo-fig__adjrow"], ["word", ".algo-fig__word"], ["cell", ".algo-fig__cell"]];
+  const map = new Map();
+  kinds.forEach(([p, sel]) => [...el.querySelectorAll(sel)].forEach((x, i) => map.set(x, p + ":" + i)));
+  return (x) => map.get(x) || "?" + (x && x.getAttribute ? x.getAttribute("class") : x);
+}
+// функция, а не константа: объявления ниже цикла по рисункам, а зовутся из него
+function marks() { return { hl: "algo-fig__hl", path: "algo-fig__onpath", edges: "algo-fig__edge--path", cells: "algo-fig__cell--on", aux: "algo-fig__aux--on", words: "algo-fig__word--on" }; }
+function marksOf(el) {
+  const d = descOf(el), g = {};
+  Object.entries(marks()).forEach(([k, c]) => { g[k] = [...el.querySelectorAll("." + c)].map(d); });
+  return g;
+}
+function hover(x) { x.dispatchEvent(new w.MouseEvent("mouseover", { bubbles: true })); }
+function unhover(x) { x.dispatchEvent(new w.MouseEvent("mouseout", { bubbles: true, relatedTarget: doc.body })); }
+// Наведение на x зажигает ровно want (по видам отметок, имена — descOf), уход — снимает всё.
+function expectHover(el, bad, x, what, want) {
+  const d = descOf(el), W = {};
+  Object.keys(marks()).forEach((k) => { W[k] = (want[k] || []).map((y) => (typeof y === "string" ? y : d(y))); });
+  hover(x);
+  const g = marksOf(el);
+  Object.keys(marks()).forEach((k) => { if (!sameSet(g[k], W[k])) bad(`${what}: ${k} = [${g[k]}], ждали [${W[k]}]`); });
+  if (!el.classList.contains("algo-fig--lit")) bad(`${what}: рисунок не помечен --lit`);
+  unhover(x);
+  if (Object.values(marksOf(el)).some((v) => v.length) || el.classList.contains("algo-fig--lit")) bad(`${what}: уход не снял подсветку`);
+}
+// Клавиатура и касание — одинаковы для всех видов: у каждого ключа подсветки есть элемент в фокусе
+// (у дерева — ровно один узел на ключ), фокус = наведение, Esc снимает и не доходит до document,
+// касание закрепляет, касание мимо и повтор — снимают.
+function keyboard(el, bad, isTree) {
+  const hot = [...el.querySelectorAll(".algo-fig__hot")];
+  const key = (x) => x.getAttribute("data-fig-key"), isTab = (x) => x.getAttribute("tabindex") === "0";
+  const tabs = hot.filter(isTab);
+  if (!hot.length) return bad("на рисунке нечего наводить");
+  if (!sameSet([...new Set(hot.map(key))], [...new Set(tabs.map(key))])) bad("не у каждого ключа подсветки есть элемент в фокусе");
+  if (isTree) {
+    const isNode = (x) => x.classList.contains("algo-tp__tfignode"), nodes = el.querySelectorAll(".algo-tp__tfignode");
+    if (hot.filter(isNode).length !== nodes.length) bad("не каждый узел реагирует на наведение");
+    const tabNodes = tabs.filter(isNode);
+    if (tabNodes.length !== new Set(hot.filter(isNode).map(key)).size || new Set(tabNodes.map(key)).size !== tabNodes.length) bad("в фокус встаёт не ровно по одному узлу на ключ подсветки");
+    if (!hot.filter((x) => x.classList.contains("algo-fig__word")).every(isTab)) bad("слово не встаёт в фокус");
+  }
+  const first = tabs[0];
+  if (!first) return bad("ни один элемент не встаёт в фокус");
+  first.focus();
+  if (!el.classList.contains("algo-fig--lit")) bad("фокус не подсветил элемент");
+  let leaked = 0;
+  const spy = () => leaked++;
+  doc.addEventListener("keydown", spy);
+  first.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+  doc.removeEventListener("keydown", spy);
+  if (el.classList.contains("algo-fig--lit")) bad("Esc не снял подсветку");
+  if (leaked) bad("Esc с подсвеченного рисунка доплыл до document");
+  first.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+  unhover(first);
+  if (!el.classList.contains("algo-fig--lit")) bad("касание не закрепило подсветку");
+  doc.body.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+  if (el.classList.contains("algo-fig--lit")) bad("касание мимо рисунка не сняло подсветку");
+  first.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+  first.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+  if (el.classList.contains("algo-fig--lit")) bad("повторное касание не сняло подсветку");
+}
+
+// --- ряд / таблица (data-fig="array") ---
+// Свой разбор атрибутов, раскладка сверяется по grid-row/grid-column элементов: ячейки, номера,
+// плашки и отрезки стоят в колонке своей позиции; ряды по порядку; отрезки одного уровня не
+// наезжают; столбики — высотой по значению (180px у самого высокого).
+function parseArray(tag) {
+  const ix = attr(tag, "data-index"), base = ix === "none" ? null : ix ? +ix : 0, b0 = base || 0;
+  const rows = list(attr(tag, "data-array"), ";").map((r) => list(r, ",").map((t) => {
+    if (t === "_") return { gap: true };
+    const m = /^(.*?)(!)?(?:@(\d+)(?:-(\d+))?)?$/.exec(t);
+    return { v: m[1], mark: !!m[2], lo: m[3] != null ? +m[3] - b0 : null, hi: m[3] != null ? (m[4] != null ? +m[4] : +m[3]) - b0 : null };
+  }));
+  const ptr = (v, top) => list(v, ",").filter(Boolean).map((s) => ({ name: s.slice(0, s.lastIndexOf("@")).trim(), c: +s.slice(s.lastIndexOf("@") + 1) - b0, top }));
+  const ranges = list(attr(tag, "data-ranges"), ";").filter(Boolean).map((s) => {
+    const at = s.lastIndexOf("@"), m = /^(\d+)(?:-(\d+))?$/.exec(s.slice(at + 1));
+    return { label: s.slice(0, at).trim(), a: +m[1] - b0, b: (m[2] != null ? +m[2] : +m[1]) - b0 };
+  });
+  return { base, b0, rows, n: Math.max(...rows.map((r) => r.length)), rowLabels: list(attr(tag, "data-rows"), ";"), idxLabel: attr(tag, "data-index-label") || "",
+    tops: ptr(attr(tag, "data-ptrs-top"), true), bots: ptr(attr(tag, "data-ptrs"), false), ranges, bars: flag(tag, "data-bars") };
+}
+function checkArray(f, el, bad) {
+  const A = parseArray(f.tag), R = A.rows.length;
+  const lab = A.rowLabels.some(Boolean) || !!A.idxLabel, off = lab ? 2 : 1;
+  let line = 1;
+  const topRow = A.tops.length ? line++ : null;
+  let idxRow = R > 1 && A.base !== null ? line++ : null;
+  const dataRow = A.rows.map(() => line++);
+  if (R === 1 && A.base !== null) idxRow = line++;
+  const botRow = A.bots.length ? line++ : null, rangeRow0 = line;
+  const at = (x) => [x.style.gridRow, x.style.gridColumn].join(" | ");
+  // колонки позиций — равной ширины (широкая плашка не делает ряд неровным)
+  const cols = el.querySelector(".algo-fig__grid").style.gridTemplateColumns, wantCols = (lab ? "auto " : "") + `repeat(${A.n}, minmax(var(--fig-col), 1fr))`;
+  if (cols !== wantCols) bad(`колонки сетки «${cols}», ждали «${wantCols}»`);
+  // ячейки: в документе — по рядам, пустые места «_» пропущены
+  const dom = [...el.querySelectorAll(".algo-fig__acell")], cellAt = A.rows.map(() => []);
+  let q = 0;
+  const max = Math.max(...A.rows[0].filter((t) => !t.gap).map((t) => parseFloat(t.v)));
+  A.rows.forEach((r, ri) => r.forEach((t, c) => {
+    if (t.gap) { cellAt[ri][c] = null; return; }
+    const x = dom[q++];
+    cellAt[ri][c] = x;
+    if (!x) return bad(`ячейки ${ri}:${c} нет`);
+    if (x.textContent !== t.v) bad(`ячейка ${ri}:${c} «${x.textContent}», ждали «${t.v}»`);
+    if (at(x) !== `${dataRow[ri]} | ${off + c}`) bad(`ячейка «${t.v}» (${ri}:${c}) стоит в ${at(x)}, ждали ${dataRow[ri]} | ${off + c}`);
+    if (x.classList.contains("algo-tp__big--found") !== t.mark) bad(`ячейка «${t.v}» (${ri}:${c}): выделение «!» не совпало`);
+    if (A.bars && Math.abs(parseFloat(x.style.height) - parseFloat(t.v) / max * 180) > 0.01) bad(`столбик «${t.v}» высотой ${x.style.height}, ждали ${parseFloat(t.v) / max * 180}px`);
+  }));
+  if (q !== dom.length) bad(`ячеек ${dom.length}, а непустых в data-array ${q}`);
+  // подписи рядов и номера позиций
+  const labs = [...el.querySelectorAll(".algo-fig__rowlab:not(.algo-fig__rowlab--idx)")];
+  const wantLabs = A.rowLabels.map((l, ri) => (l ? `${l} @ ${dataRow[ri]} | 1` : null)).filter(Boolean);
+  if (labs.map((x) => `${x.textContent} @ ${at(x)}`).join(" ; ") !== wantLabs.join(" ; ")) bad(`подписи рядов [${labs.map((x) => x.textContent + " @ " + at(x))}], ждали [${wantLabs}]`);
+  const idx = [...el.querySelectorAll(".algo-fig__idx")];
+  const wantIdx = A.base === null ? [] : Array.from({ length: A.n }, (_, c) => `${c + A.base} @ ${idxRow} | ${off + c}`);
+  if (idx.map((x) => `${x.textContent} @ ${at(x)}`).join(" ; ") !== wantIdx.join(" ; ")) bad(`номера [${idx.map((x) => x.textContent + " @ " + at(x))}], ждали [${wantIdx}]`);
+  const idxLab = el.querySelector(".algo-fig__rowlab--idx");
+  if ((idxLab ? idxLab.textContent : "") !== (A.base === null ? "" : A.idxLabel)) bad("подпись номеров не из data-index-label");
+  // плашки: в колонке своей позиции, над рядом (сверху) или под номерами (снизу)
+  const ptrEls = [...el.querySelectorAll(".algo-fig__ptr")], ptrEl = {};
+  const all = A.tops.concat(A.bots);
+  if (ptrEls.length !== all.length) bad(`плашек ${ptrEls.length}, а указателей ${all.length}`);
+  all.forEach((p) => {
+    const x = ptrEls.find((y) => y.textContent === p.name && y.classList.contains(p.top ? "algo-nn__tag--hi" : "algo-nn__tag--lo"));
+    if (!x) return bad(`нет плашки «${p.name}»`);
+    ptrEl[p.name + (p.top ? "^" : "_")] = x;
+    if (at(x.parentNode) !== `${p.top ? topRow : botRow} | ${off + p.c}`) bad(`плашка «${p.name}» стоит в ${at(x.parentNode)}, ждали ${p.top ? topRow : botRow} | ${off + p.c}`);
+  });
+  // отрезки: колонка a, ширина b−a+1, под всем; на одном уровне не наезжают
+  const rgEls = [...el.querySelectorAll(".algo-fig__range")];
+  if (rgEls.length !== A.ranges.length) bad(`отрезков ${rgEls.length}, ждали ${A.ranges.length}`);
+  const byRow = {};
+  A.ranges.forEach((r, k) => {
+    const x = rgEls[k];
+    if (!x) return;
+    if (x.textContent !== r.label) bad(`отрезок «${x.textContent}», ждали «${r.label}»`);
+    if (x.style.gridColumn !== `${off + r.a} / span ${r.b - r.a + 1}`) bad(`отрезок «${r.label}» по колонкам ${x.style.gridColumn}, ждали ${off + r.a} / span ${r.b - r.a + 1}`);
+    if (+x.style.gridRow < rangeRow0) bad(`отрезок «${r.label}» в ряду ${x.style.gridRow} — выше рядов данных и плашек`);
+    (byRow[x.style.gridRow] = byRow[x.style.gridRow] || []).forEach((o) => { if (!(r.b < o.a || r.a > o.b)) bad(`отрезки «${o.label}» и «${r.label}» на одном уровне наезжают`); });
+    byRow[x.style.gridRow].push(r);
+  });
+  // подсветка: указатель → своя ячейка; отрезок → его ячейки; ячейка → свои плашки, отрезки,
+  // подпись ряда, номер и (при «@a-b») ячейки первого ряда
+  all.forEach((p) => {
+    const x = ptrEl[p.name + (p.top ? "^" : "_")];
+    if (x) expectHover(el, bad, x, `наведение на указатель «${p.name}»`, { cells: [cellAt[0][p.c]], aux: [x] });
+  });
+  A.ranges.forEach((r, k) => {
+    const cells = [];
+    for (let c = r.a; c <= r.b; c++) if (cellAt[0][c]) cells.push(cellAt[0][c]);
+    if (rgEls[k]) expectHover(el, bad, rgEls[k], `наведение на отрезок «${r.label}»`, { cells, aux: [rgEls[k]] });
+  });
+  A.rows.forEach((r, ri) => r.forEach((t, c) => {
+    const x = cellAt[ri][c];
+    if (!x) return;
+    const cells = [x], aux = [];
+    if (t.lo != null) for (let y = t.lo; y <= t.hi; y++) cells.push(cellAt[0][y]);
+    const rl = A.rowLabels[ri] ? labs[A.rowLabels.slice(0, ri + 1).filter(Boolean).length - 1] : null;
+    if (rl) aux.push(rl);
+    if (A.base !== null) aux.push(idx[c]);
+    if (ri === 0) {
+      all.forEach((p) => { if (p.c === c) aux.push(ptrEl[p.name + (p.top ? "^" : "_")]); });
+      A.ranges.forEach((rg, k) => { if (rg.a <= c && c <= rg.b) aux.push(rgEls[k]); });
+    }
+    expectHover(el, bad, x, `наведение на ячейку «${t.v}» (${ri}:${c})`, { cells, aux });
+  }));
+}
+
+// --- список (data-fig="list") ---
+function checkList(f, el, bad) {
+  const lists = list(attr(f.tag, "data-list"), ";").map((s) => (s ? list(s, ",") : []));
+  const labels = list(attr(f.tag, "data-rows"), ";"), end = /\sdata-end[\s=>]/.test(f.tag) ? attr(f.tag, "data-end") || "" : "nil";
+  const ptrs = list(attr(f.tag, "data-ptrs"), ",").filter(Boolean).map((s) => { const m = /^(.+)@(?:(\d+):)?(\d+)$/.exec(s); return { name: m[1].trim(), r: m[2] != null ? +m[2] : 0, i: +m[3] }; });
+  const rows = [...el.querySelectorAll(".algo-fig__lrow")];
+  if (rows.length !== lists.length) return bad(`списков ${rows.length}, ждали ${lists.length}`);
+  const nodeAt = [], arrowAt = [], labAt = [];
+  lists.forEach((vals, r) => {
+    const row = rows[r], nodes = [...row.querySelectorAll(".algo-fig__lnode")], arrows = [...row.querySelectorAll(".algo-fig__larrow")];
+    nodeAt.push(nodes); arrowAt.push(arrows);
+    const want = vals.map((v) => v.replace(/!$/, ""));
+    if (nodes.map((x) => x.textContent).join(",") !== want.join(",")) bad(`список ${r + 1}: узлы «${nodes.map((x) => x.textContent)}», ждали «${want}»`);
+    vals.forEach((v, i) => { if (nodes[i] && nodes[i].classList.contains("algo-tp__llnode--found") !== /!$/.test(v)) bad(`список ${r + 1}, узел ${i}: выделение «!» не совпало`); });
+    const wantArrows = vals.length ? vals.length - 1 + (end ? 1 : 0) : 0;
+    if (arrows.length !== wantArrows) bad(`список ${r + 1}: стрелок ${arrows.length}, ждали ${wantArrows}`);
+    // стрелка i стоит сразу за узлом i
+    arrows.forEach((a, i) => { const prev = a.previousElementSibling; if (!prev || !prev.contains(nodes[i])) bad(`список ${r + 1}: стрелка ${i} не за узлом ${i}`); });
+    const endEl = row.querySelector(".algo-fig__lend");
+    if ((endEl ? endEl.textContent : "") !== (vals.length ? end : "")) bad(`список ${r + 1}: конец «${endEl ? endEl.textContent : ""}», ждали «${vals.length ? end : ""}»`);
+    if (!!row.querySelector(".algo-fig__empty") !== !vals.length) bad(`список ${r + 1}: пометка пустого списка ∅ не совпала`);
+    const lab = row.querySelector(".algo-fig__rowlab");
+    labAt.push(lab);
+    if ((lab ? lab.textContent : "") !== (labels[r] || "")) bad(`список ${r + 1}: подпись «${lab ? lab.textContent : ""}», ждали «${labels[r] || ""}»`);
+  });
+  const ptrEls = [...el.querySelectorAll(".algo-fig__ptr")];
+  if (ptrEls.length !== ptrs.length) bad(`плашек ${ptrEls.length}, ждали ${ptrs.length}`);
+  ptrs.forEach((p) => {
+    const x = ptrEls.find((y) => y.textContent === p.name), node = nodeAt[p.r] && nodeAt[p.r][p.i];
+    if (!x || !node) return bad(`указатель «${p.name}» не нарисован над узлом ${p.r}:${p.i}`);
+    if (!x.closest(".algo-fig__lslot") || !x.closest(".algo-fig__lslot").contains(node)) bad(`плашка «${p.name}» не над узлом ${p.r}:${p.i}`);
+    expectHover(el, bad, x, `наведение на указатель «${p.name}»`, { cells: [node], aux: [x] });
+  });
+  // узел — путь до него от головы: узлы 0…i и стрелки между ними; подпись — весь список
+  nodeAt.forEach((nodes, r) => {
+    nodes.forEach((x, i) => expectHover(el, bad, x, `наведение на узел ${r}:${i}`, { cells: nodes.slice(0, i + 1), aux: arrowAt[r].slice(0, i) }));
+    if (labAt[r]) expectHover(el, bad, labAt[r], `наведение на подпись «${labAt[r].textContent}»`, { cells: nodes, aux: [labAt[r]] });
+  });
+}
+
+// --- граф (data-fig="graph") ---
+// Вершины и рёбра — против своего разбора; ребро — отрезок между центрами своих вершин; список
+// смежности — в порядке главы (по рёбрам, в обе стороны); наведение — вершина, её рёбра, соседи.
+function checkGraph(f, el, bad) {
+  const labelsG = list(attr(f.tag, "data-nodes"), ","), at = {};
+  labelsG.forEach((l, i) => (at[l] = i));
+  const edges = list(attr(f.tag, "data-edges"), ",").filter(Boolean).map((e) => e.split("-").map((x) => at[x.trim()]));
+  const circles = [...el.querySelectorAll("circle.algo-viz__gnode")], lines = [...el.querySelectorAll("line.algo-viz__gedge")];
+  const texts = [...el.querySelectorAll("text.algo-viz__gtext")].map((t) => t.textContent);
+  if (texts.join(",") !== labelsG.join(",")) bad(`вершины «${texts}», ждали «${labelsG}»`);
+  if (circles.length !== labelsG.length) bad(`кругов ${circles.length}, вершин ${labelsG.length}`);
+  if (lines.length !== edges.length) return bad(`линий ${lines.length}, рёбер ${edges.length}`);
+  edges.forEach(([a, b], k) => {
+    const ln = lines[k], ca = circles[a], cb = circles[b];
+    if (!ca || !cb) return bad(`ребро ${k}: нет вершины`);
+    if (ln.getAttribute("x1") !== ca.getAttribute("cx") || ln.getAttribute("y1") !== ca.getAttribute("cy") || ln.getAttribute("x2") !== cb.getAttribute("cx") || ln.getAttribute("y2") !== cb.getAttribute("cy")) bad(`ребро ${labelsG[a]}-${labelsG[b]} не соединяет свои вершины`);
+  });
+  const adj = labelsG.map(() => []);
+  edges.forEach(([a, b]) => { adj[a].push(b); adj[b].push(a); });
+  const rows = [...el.querySelectorAll(".algo-fig__adjrow")], withAdj = flag(f.tag, "data-adj");
+  const wantRows = withAdj ? labelsG.map((l, i) => `adj[${l}] = [${adj[i].map((j) => labelsG[j]).join(", ")}]`) : [];
+  if (rows.map((x) => x.textContent).join(" ; ") !== wantRows.join(" ; ")) bad(`список смежности [${rows.map((x) => x.textContent)}], ждали [${wantRows}]`);
+  labelsG.forEach((l, i) => {
+    const want = { hl: [circles[i]], path: [...new Set(adj[i])].map((j) => circles[j]), edges: lines.filter((_, k) => edges[k].includes(i)), aux: withAdj ? [rows[i]] : [] };
+    expectHover(el, bad, circles[i], `наведение на вершину ${l}`, want);
+    if (withAdj) expectHover(el, bad, rows[i], `наведение на строку adj[${l}]`, want);
+  });
+}
 close();
 
 // --- заведомо кривые данные: видимая ошибка вместо пустого блока ---
@@ -380,7 +636,7 @@ const broken = [
   ['<div class="algo-fig" data-fig="tree" data-tree="a(b,,c)"></div>', "пустая метка"],
   ['<div class="algo-fig" data-fig="tree" data-tree="a(b,c)" data-row="1,2,3"></div>', "ряд длиннее листьев"],
   ['<div class="algo-fig" data-fig="tree" data-tree="a(b@2,c)" data-notes="одна"></div>', "сноска без текста"],
-  ['<div class="algo-fig" data-fig="graph" data-tree="a"></div>', "неизвестный data-fig"],
+  ['<div class="algo-fig" data-fig="table" data-tree="a"></div>', "неизвестный data-fig"],
   ['<div class="algo-fig" data-fig="tree" data-tree="a(b,b); a(b)"></div>', "метка дважды в дереве последовательности"],
   ['<div class="algo-fig" data-fig="tree" data-tree="3|[0,2](1|[0,0],2|[1,1])" data-row="1,2"></div>', "отрезок вне ряда"],
   ['<div class="algo-fig" data-fig="tree" data-tree="a(b(c~))"></div>', "путь «~» с разрывом"],
@@ -389,6 +645,20 @@ const broken = [
   ['<div class="algo-fig" data-fig="tree" data-tree="_"></div>', "корень — пустое место"],
   ['<div class="algo-fig" data-fig="tree" data-tree="a(b)" data-forest></div>', "лес из одного дерева"],
   ['<div class="algo-fig" data-fig="tree" data-tree="a(b); c(b)" data-forest></div>', "элемент дважды в лесу"],
+  ['<div class="algo-fig" data-fig="array" data-array="1,2; 3@0-5"></div>', "ряд: «@a-b» вне первого ряда"],
+  ['<div class="algo-fig" data-fig="array" data-array="1,2" data-ptrs="i@9"></div>', "ряд: указатель вне ряда"],
+  ['<div class="algo-fig" data-fig="array" data-array="_,1" data-ptrs="i@0"></div>', "ряд: указатель на пустое место"],
+  ['<div class="algo-fig" data-fig="array" data-array="1@0"></div>', "ряд: «@» в первом ряду"],
+  ['<div class="algo-fig" data-fig="array" data-array="1,2; 3,4" data-bars></div>', "ряд: столбики в два ряда"],
+  ['<div class="algo-fig" data-fig="array" data-array="a,2" data-bars></div>', "ряд: столбик не числом"],
+  ['<div class="algo-fig" data-fig="array" data-array="1,2" data-ranges="r@1-0"></div>', "ряд: отрезок задом наперёд"],
+  ['<div class="algo-fig" data-fig="tree" data-tree="a(b)" data-array="1,2"></div>', "ряд под деревом без data-link"],
+  ['<div class="algo-fig" data-fig="tree" data-tree="1|[0](2|[1])" data-array="5,6,7" data-link="index"></div>', "ряд под деревом: ячейке нет узла"],
+  ['<div class="algo-fig" data-fig="tree" data-tree="0(1,2)" data-array="0,0" data-link="label"></div>', "ряд под деревом: узлов больше ячеек"],
+  ['<div class="algo-fig" data-fig="list" data-list="1,2" data-ptrs="h@5"></div>', "список: указатель мимо узлов"],
+  ['<div class="algo-fig" data-fig="list" data-list="1,,2"></div>', "список: пустой узел"],
+  ['<div class="algo-fig" data-fig="graph" data-nodes="a,b" data-edges="a-c"></div>', "граф: ребро к несуществующей вершине"],
+  ['<div class="algo-fig" data-fig="graph" data-nodes="a,a" data-edges=""></div>', "граф: вершина дважды"],
 ];
 const b = await render(broken.map((x) => x[0]));
 broken.forEach(([, what], i) => {
@@ -403,5 +673,5 @@ if (fails.length) {
   console.error("✗ fig-check:\n  " + fails.join("\n  "));
   process.exit(1);
 }
-console.log(`✓ fig-check: ${inChapters} рисунков глав и ${figs.length - inChapters} образца построены, узлы, рёбра, ряды, сноски и подписи сходятся; подсветка (отрезок, путь, слово, та же метка), изменённые рёбра (data-diff), путь «~», лес, сторона у «_», тексты узлов и зазоры в рядах, подсказка у первого рисунка, фокус/Esc/касание и выноски с откатом ≤ 520px верны; ${broken.length} кривых входа дают видимую ошибку`);
+console.log(`✓ fig-check: ${inChapters} рисунков глав и ${figs.length - inChapters} образца построены, узлы, рёбра, ряды, сноски и подписи сходятся; подсветка (отрезок, путь, слово, та же метка), изменённые рёбра (data-diff), путь «~», лес, сторона у «_» на целую колонку, тексты узлов и зазоры в рядах; ряды, таблицы, столбики, списки и графы — раскладка и подсветка каждого элемента; подсказка у первого рисунка, фокус/Esc/касание и выноски с откатом ≤ 520px верны; ${broken.length} кривых входа дают видимую ошибку`);
 })().catch((e) => { console.error("✗ fig-check упал:", e); process.exit(1); });

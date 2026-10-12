@@ -97,11 +97,7 @@ func NewUnionFind(n int) *UnionFind {
 }
 ```
 
-```
-parent = [0, 0, 2, 0, 0, 0, 0]   (после нескольких Union)
-```
-
-<div class="algo-fig" data-fig="tree" data-forest data-tree="0!(1,3,4,5,6); 2!" data-titles="множество {0,1,3,4,5,6}; множество {2} — одиночка" data-caption="Лес из parent выше: ребро ведёт от i к parent[i]; синие — корни, у них parent[i] == i"></div>
+<div class="algo-fig" data-fig="tree" data-forest data-tree="0!(1,3,4,5,6); 2!" data-titles="множество {0,1,3,4,5,6}; множество {2} — одиночка" data-array="0,0,2,0,0,0,0" data-array-label="parent" data-link="label" data-caption="parent = [0, 0, 2, 0, 0, 0, 0] после нескольких Union: ребро ведёт от i к parent[i]; синие — корни, у них parent[i] == i. Наведи на элемент или его ячейку"></div>
 
 Три факта, которые держат всё:
 
