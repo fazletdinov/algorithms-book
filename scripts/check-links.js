@@ -40,8 +40,10 @@ let total = 0, external = 0;
 
 for (const mf of fs.readdirSync(srcDir).filter((n) => n.endsWith(".md"))) {
   const base = mf.slice(0, -3);
-  // вырезаем fenced-блоки кода, чтобы не ловить link-подобный синтаксис внутри них
-  const text = fs.readFileSync(path.join(srcDir, mf), "utf8").replace(/```[\s\S]*?```/g, "");
+  // вырезаем fenced-блоки кода, чтобы не ловить link-подобный синтаксис внутри них, и теги
+  // рисунков: data-tree дерева отрезков «3|[0,1](2|[0,0],…)» — разметка дерева, а не ссылка
+  // (внутри HTML-тега mdBook ссылок не делает)
+  const text = fs.readFileSync(path.join(srcDir, mf), "utf8").replace(/```[\s\S]*?```/g, "").replace(/<div class="algo-fig"[^>]*>/g, "");
   for (const m of text.matchAll(linkRe)) {
     let tgt = m[1].trim();
     if (/^(https?:|mailto:|tel:)/.test(tgt)) { external++; continue; }
