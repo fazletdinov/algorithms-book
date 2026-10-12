@@ -79,6 +79,8 @@ const bodyOf = (html) =>
     .replace(/<div class="algo-mental__icon">[\s\S]*?<\/div>/, "")
     .replace(/<div class="algo-mental__title">[\s\S]*?<\/div>/, "");
 const itemsOf = (html) => [...html.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => m[1].trim());
+// пункты «Запомни»: <li> и отдельные абзацы <p> — абзац рядом со списком это тот же пункт
+const pointsOf = (html) => [...html.matchAll(/<(?:li|p)>/g)].length;
 
 // Возвращает список сообщений об ошибках для текста одной главы.
 function checkChapter(rawText, file) {
@@ -96,7 +98,7 @@ function checkChapter(rawText, file) {
   if (!zap) fail("R1 «Запомни»", "блока «Запомни» нет");
   else {
     const body = bodyOf(zap.html);
-    const li = itemsOf(body).length;
+    const li = pointsOf(body);
     const words = wordCount(body);
     if (li > ZAPOMNI_MAX_LI) fail("R1 «Запомни»", `пунктов ${li}, допустимо не больше ${ZAPOMNI_MAX_LI}`);
     if (words > ZAPOMNI_MAX_WORDS) fail("R1 «Запомни»", `слов ${words}, допустимо не больше ${ZAPOMNI_MAX_WORDS}`);
@@ -185,13 +187,13 @@ function sampleChapter(o = {}) {
     "    <ul>\n      <li><b>Сигнал.</b> «Можно ли дойти».</li>\n      <li><b>Должно быть верно.</b> Вершина помечена до очереди.</li>\n      <li><b>Ломается</b> на весах — тогда Дейкстра.</li>\n    </ul>";
   const first = o.first ?? "Идём по [перебору из «🧭»](#-откуда-берётся-обход-графа-выведем-его-сами) дальше.";
   const intro = o.taskFrom ? "Задача из «📝 Разбора задачи» ниже." : "Текст.";
-  const finish = o.noFinish || o.swapOrder ? "" : FINISH;
+  const finish = o.noFinish || o.swapOrder || o.finishFirst ? "" : FINISH;
   return [
     "# Граф\n\n",
     o.noZapomni ? "" : block("💡", "Запомни", zapomni) + "\n",
     `## 🧭 Откуда берётся обход: выведем его сами\n\n${intro}\n\n`,
     `## 📝 Разбор задачи\n\n${first}\n\n\`\`\`go\nfunc f() {}\n\`\`\`\n\n`,
-    "## 🧩 Задачи\n\n> 🧭 **Не пошла задача из основы?** Проверь пометку.\n\n",
+    "## 🧩 Задачи\n\n" + (o.finishFirst ? FINISH : "") + "> 🧭 **Не пошла задача из основы?** Проверь пометку.\n\n",
     finish,
     o.noTakeaway ? "" : block("📌", "Что унести", takeaway) + "\n",
     o.extraBlock ? block("🔁", "Вспомни", "    <p>ещё</p>") + "\n" : "",
@@ -215,6 +217,7 @@ function selfTest() {
     ["R1 «Запомни»", { zapomni: "    <ul><li>" + "слово ".repeat(61) + "</li></ul>" }],
     ["R1 «Запомни»", { zapomni: "    <ul><li>условие <code>lo &lt; hi</code></li></ul>" }],
     ["R1 «Запомни»", { zapomni: "    <ul><li>код</li></ul><pre>x</pre>" }],
+    ["R1 «Запомни»", { zapomni: "    <ul><li>а</li><li>б</li><li>в</li></ul><p>четвёртое</p>" }],
     ["R1 «Запомни»", { noZapomni: true }],
     ["R2 черта", { noFinish: true }],
     ["R3 «Что унести»", { noTakeaway: true }],
@@ -223,6 +226,7 @@ function selfTest() {
     ["R3 «Что унести»", { takeaway: lab("Ломается") }],
     ["R3 «Что унести»", { takeaway: `    <ul>${li3}<li><b>Ломается</b> ${"слово ".repeat(41)}</li></ul>` }],
     ["R4 порядок", { swapOrder: true }],
+    ["R4 порядок", { finishFirst: true }],
     ["R4 порядок", { extraBlock: true }],
     ["R5 «🧭»", { taskFrom: true }],
     ["R6 «📝»", { first: "Своего перебора здесь нет." }],

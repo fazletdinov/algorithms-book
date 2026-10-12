@@ -33,6 +33,13 @@
 (function () {
   "use strict";
 
+  function hashText(s) {
+    var h = 5381;
+    s = s || "";
+    for (var i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  }
+
   var ANSWERS = "algoExplain"; // {key: {a: [строки], ts}}
   var DONE = "algoExplainDone"; // {key: {ts, grade}} — источник карточек для srs.js
   var MIN_CHARS = 15;
@@ -95,7 +102,16 @@
 
     var store = loadMap(ANSWERS);
     var done = loadMap(DONE);
-    var previous = (store[key] && store[key].a) || [];
+    var previous = ((store[key] && store[key].a) || []).slice();
+    // Ответы лежат по позициям: если вопрос на месте заменили, старый ответ встал бы под новый.
+    // Виджет с data-track-q сверяет хеш текста вопроса (его пишет каждое сохранение);
+    // data-legacy-reset="2,3" — позиции, ответы на которые в записях без хешей уже чужие.
+    var savedQ = store[key] && store[key].q;
+    var tracked = root.hasAttribute("data-track-q");
+    var legacy = (root.getAttribute("data-legacy-reset") || "").split(",").filter(Boolean).map(Number);
+    previous.forEach(function (_, i) {
+      if (savedQ ? tracked && savedQ[i] !== hashText(items[i] && items[i].q) : legacy.indexOf(i) >= 0) previous[i] = "";
+    });
     var repeat = !!done[key];
 
     root.innerHTML = "";
@@ -182,7 +198,7 @@
         clearTimeout(timer);
         timer = setTimeout(function () {
           var s = loadMap(ANSWERS);
-          s[key] = { a: answers(), ts: Date.now() };
+          s[key] = { a: answers(), q: items.map(function (it) { return hashText(it.q); }), ts: Date.now() };
           save(ANSWERS, s);
         }, 400);
       });
@@ -191,7 +207,7 @@
 
     revealBtn.onclick = function () {
       var s = loadMap(ANSWERS);
-      s[key] = { a: answers(), ts: Date.now() };
+      s[key] = { a: answers(), q: items.map(function (it) { return hashText(it.q); }), ts: Date.now() };
       save(ANSWERS, s);
 
       fields.forEach(function (f) {

@@ -183,6 +183,20 @@ async function main() {
   said = answerAll(early, "Сошлось");
   if (early.window.localStorage.getItem("algoSRS") !== snap) errors.push("самооценка до срока изменила карточку");
   if (/Записано/.test(said) || !/срок/i.test(said)) errors.push(`самооценка до срока: «${said}» — «Записано» тут неправда`);
+  // ответы лежат по позициям: data-legacy-reset сбрасывает позицию в записи без хешей вопросов,
+  // data-track-q прячет ответ под вопросом, чей хеш не совпал
+  const seedA = JSON.stringify({ "sliding-window": { a: ["первый ответ", "второй ответ"], ts: 1 } });
+  const setAttr = (attr) => `document.querySelector(".algo-explain").setAttribute(${JSON.stringify(attr)}, ${JSON.stringify(attr === "data-legacy-reset" ? "1" : "")});`;
+  const legacy = await boot({ algoExplain: seedA }, [setAttr("data-legacy-reset")]);
+  const taL = legacy.window.document.querySelectorAll(".algo-explain__input");
+  if (taL[0].value !== "первый ответ" || taL[1].value !== "") errors.push(`data-legacy-reset: поля «${taL[0].value}» / «${taL[1].value}», ждали ответ на первом и пусто на втором`);
+  const seedQ = JSON.stringify({ "sliding-window": { a: ["первый ответ", "второй ответ"], q: ["zz", "zz"], ts: 1 } });
+  const tracked = await boot({ algoExplain: seedQ }, [setAttr("data-track-q")]);
+  const taT = tracked.window.document.querySelectorAll(".algo-explain__input");
+  if (taT[0].value !== "" || taT[1].value !== "") errors.push("data-track-q: ответ остался под вопросом с другим хешем");
+  const untracked = await boot({ algoExplain: seedQ }, []);
+  if (untracked.window.document.querySelectorAll(".algo-explain__input")[0].value !== "первый ответ") errors.push("без data-track-q ответ не должен пропадать");
+
   // хранилище отказало: так и сказано
   const broken = await boot({}, [CLOCK(NOON), srsJs]);
   broken.window.Storage.prototype.setItem = function () { throw new Error("QuotaExceededError"); };
