@@ -38,7 +38,7 @@ const path = require("path");
 // Слаги перестроенных глав (src/<слаг>.md). Пополняется по мере перестройки.
 const REBUILT = ["graphs", "sorting", "monotonic-stack", "modified-binary-search"];
 // Слаги глав, у которых проверяется только конец (R2–R4). Пополняется задачами 3–6 этапа 3b.
-const ENDED = [];
+const ENDED = ["big-o", "recursion", "invariants", "hash-table-structure", "linked-list-structure"];
 
 const ZAPOMNI_MAX_LI = 3;
 const ZAPOMNI_MAX_WORDS = 60;
