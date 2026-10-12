@@ -71,6 +71,8 @@ function validate(pairs, titles, texts) {
       else if (!LINKS_RE.test(texts.get(s))) errs.push(`${at}: в src/${s}.md нет раздела «## 🔗»`);
     }
     if (p.use === p.not) errs.push(`${at}: use и not — одна глава`);
+    if (p.notFor !== undefined && (!Array.isArray(p.notFor) || !p.notFor.every((id) => /^[a-z0-9]+\.[A-Z]\w*$/.test(id))))
+      errs.push(`${at}: notFor — список «пакет.Функция»`);
     if (p.use === GUIDE || p.not === GUIDE) errs.push(`${at}: руководство по выбору — не глава`);
     const key = `${p.use}|${p.not}`;
     if (seen.has(key)) errs.push(`${at}: пара повторяется`);
@@ -182,6 +184,7 @@ function selfTest() {
   expectErr([row({ must: Array(26).fill("слово").join(" ") })], /must — 26 слов/, "must длиннее 25 слов");
   expectErr([row({ why: "берём `x := 1`" })], /похоже на код/, "код в why");
   expectErr([row({ why: "окно проще." })], /без знака препинания/, "точка в конце");
+  expectErr([row({ notFor: ["NumIslands"] })], /notFor — список/, "notFor без пакета");
   expectErr([row({ must: "числа — любые" })], /must без тире/, "тире в must");
   expectErr([row({ why: "окно: проще" })], /why без двоеточия/, "двоеточие в why");
 

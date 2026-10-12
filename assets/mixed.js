@@ -184,12 +184,15 @@
     return !done || !!done[chapter];
   }
   // pairFor — ряд таблицы путаемых пар (assets/pairs.js) для промаха: верный приём задачи p (c или одна из a) —
-  // use, выбранный — not. Только точное направление; ряда нет или реестр не загрузился — null.
+  // use, выбранный — not. Только точное направление; задача в notFor ряда (ряд противоречил бы её условию),
+  // ряда нет или реестр не загрузился — null.
   function pairFor(p, picked) {
     var rows = window.ALGO_PAIRS || [];
     var right = answers(p);
     for (var i = 0; i < rows.length; i++) {
-      if (rows[i].not === picked && right.indexOf(rows[i].use) >= 0) return rows[i];
+      if (rows[i].not !== picked || right.indexOf(rows[i].use) < 0) continue;
+      if ((rows[i].notFor || []).indexOf(key(p)) >= 0) continue;
+      return rows[i];
     }
     return null;
   }
@@ -487,14 +490,15 @@
       into.appendChild(el("p", "algo-mixed__sign", "Как это было узнать: " + p.g));
     }
 
-    // pairLine — после промаха: чем верный приём отличается от выбранного соседа (ряд таблицы пар).
+    // pairLine — после промаха: чем верный приём отличается от выбранного соседа (ряд таблицы пар). Ряд —
+    // о главах, а не о задаче, поэтому и строка — сравнение приёмов, а не «здесь обязано быть верно».
     // Ряда нет — ничего: CONFUSABLE даёт неверные варианты, но объяснение есть не у каждой пары.
     function pairLine(p, picked, into) {
       var row = pairFor(p, picked);
       if (!row) return;
       into.appendChild(el("p", "algo-mixed__pair",
-        "Здесь обязано быть верно: " + row.must + " → " + chapterTitle(row.use) +
-        ". Почему не «" + chapterTitle(row.not) + "»: " + row.why + "."));
+        "Как отличать эти приёмы: если " + row.must + " — " + chapterTitle(row.use) +
+        ", а не «" + chapterTitle(row.not) + "»: " + row.why + "."));
     }
 
     // hintsBlock — всё, что было скрыто в условии, и ссылка на главу. withSign — признак g первой строкой

@@ -776,14 +776,22 @@ async function pairAfterMiss(bank) {
     errors.push(`(i) нет опоры сценария: prefixsum.CountSubarraysWithSum (${p && p.c}) или ряда prefix-sums ← sliding-window`);
     return;
   }
-  // пройдены: глава задачи, её сосед с рядом и две чужие главы без ряда — варианты повторяемы
-  const done = ["prefix-sums", "sliding-window", "greedy", "tree-bfs"];
-  const seen = {};
-  bank.forEach((q) => { if (q !== p) seen[q.p + "." + q.f] = 1; });
-  const seed = { algoPracticeScope: null, algoProgress: progressOf(done), algoMixedSeen: JSON.stringify(seen) };
+  // notFor — задачи, на которых ряд противоречил бы условию: каждая есть в банке
+  PAIRS.forEach((x, i) => (x.notFor || []).forEach((id) => {
+    if (!bank.some((q) => q.p + "." + q.f === id)) errors.push(`(i) ряд ${i + 1} пар: notFor «${id}» — такой задачи в банке нет`);
+  }));
+  // строка пары — сравнение глав, а не утверждение о задаче
+  const lineOf = (x, titleOf) => "Как отличать эти приёмы: если " + x.must + " — " + titleOf(x.use) +
+    ", а не «" + titleOf(x.not) + "»: " + x.why + ".";
 
-  // pick — выдать задачу и нажать вариант главы slug; вернуть окно, виджет и вызовы report
-  async function pick(slug, opts) {
+  // pick — выдать задачу q (все прочие помечены показанными; пройдены глава задачи, выбираемая глава и две
+  // чужие без ряда — варианты повторяемы) и нажать вариант главы slug; вернуть окно, виджет и вызовы report
+  async function pick(slug, opts, q) {
+    q = q || p;
+    const seen = {};
+    bank.forEach((x) => { if (x !== q) seen[x.p + "." + x.f] = 1; });
+    const done = [q.c, slug, "greedy", "tree-bfs"];
+    const seed = { algoPracticeScope: null, algoProgress: progressOf(done), algoMixedSeen: JSON.stringify(seen) };
     const dom = await boot("mixed.html", scripts(opts.pairs), seed, 11);
     const reports = [];
     dom.window.ALGO_SRS = { report: (rid, grade) => { reports.push(rid + " " + grade); return { status: "created" }; } };
@@ -795,7 +803,7 @@ async function pairAfterMiss(bank) {
     }
     click(dom, giveBtn(w));
     const card = w.querySelector(".algo-mixed__card");
-    if (!card || shownProblem(bank, card.textContent) !== p) { errors.push(`(i) выдана не ${p.p}.${p.f}`); return null; }
+    if (!card || shownProblem(bank, card.textContent) !== q) { errors.push(`(i) выдана не ${q.p}.${q.f}`); return null; }
     const titleOf = (s) => ((dom.window.ALGO_CHAPTERS || []).find((c) => c.h === s + ".html") || {}).t || s;
     const btn = optionsOf(w).find((b) => b.textContent === titleOf(slug));
     if (!btn) { errors.push(`(i) среди вариантов нет «${titleOf(slug)}»: ${optionsOf(w).map((b) => b.textContent).join(" | ")}`); return null; }
@@ -808,8 +816,7 @@ async function pairAfterMiss(bank) {
   let r = await pick("sliding-window", { pairs: true });
   if (r) {
     const pair = r.w.querySelector(".algo-mixed__result .algo-mixed__pair");
-    const want = "Здесь обязано быть верно: " + row.must + " → " + r.titleOf(row.use) +
-      ". Почему не «" + r.titleOf(row.not) + "»: " + row.why + ".";
+    const want = lineOf(row, r.titleOf);
     if (!pair) errors.push("(i) промах соседом с рядом в реестре: строки пары нет");
     else {
       if (pair.textContent !== want) errors.push(`(i) строка пары «${pair.textContent}», ожидалось «${want}»`);
@@ -819,6 +826,52 @@ async function pairAfterMiss(bank) {
     if (!missedOf(r.dom)) errors.push("(i) промах соседом не записан в algoMixedMissed");
     if (r.reports.join() !== "mix:" + p.p + "." + p.f + " again") errors.push(`(i) report после промаха: ${JSON.stringify(r.reports)}`);
     r.dom.window.close();
+  }
+  // обратное направление — отдельно, не завися от порядка рядов: верный «Два указателя», выбрано «Скользящее
+  // окно»; ряд «sliding-window ← two-pointers» есть, ряда «two-pointers ← sliding-window» нет — строки нет
+  const twoSum = bank.find((q) => q.p === "twopointers" && q.f === "PairWithTargetSum");
+  if (!twoSum || twoSum.c !== "two-pointers" || PAIRS.some((x) => x.use === "two-pointers" && x.not === "sliding-window") ||
+      !PAIRS.some((x) => x.use === "sliding-window" && x.not === "two-pointers")) {
+    errors.push("(i) нет опоры сценария обратного направления: twopointers.PairWithTargetSum и ряд только sliding-window ← two-pointers");
+  } else {
+    r = await pick("sliding-window", { pairs: true }, twoSum);
+    if (r) {
+      const shown = r.w.querySelector(".algo-mixed__pair");
+      if (shown) errors.push("(i) обратное направление: показан ряд «" + shown.textContent.slice(0, 60) + "…»");
+      r.dom.window.close();
+    }
+  }
+  // задача без признака g: строка пары — прямо под вердиктом
+  const noSign = bank.find((q) => q.p === "slidingwindow" && q.f === "LongestSubstringNoRepeat");
+  const row3 = PAIRS.find((x) => x.use === "sliding-window" && x.not === "two-pointers");
+  if (!noSign || noSign.g || !row3 || (row3.notFor || []).includes("slidingwindow.LongestSubstringNoRepeat")) {
+    errors.push("(i) нет опоры сценария без признака: slidingwindow.LongestSubstringNoRepeat без g и ряд sliding-window ← two-pointers");
+  } else {
+    r = await pick("two-pointers", { pairs: true }, noSign);
+    if (r) {
+      const pair = r.w.querySelector(".algo-mixed__result .algo-mixed__pair");
+      if (!pair) errors.push("(i) задача без признака: строки пары нет");
+      else {
+        if (pair.textContent !== lineOf(row3, r.titleOf)) errors.push(`(i) задача без признака: строка «${pair.textContent}»`);
+        const prev = pair.previousElementSibling;
+        if (!prev || !prev.classList.contains("algo-mixed__verdict")) errors.push("(i) задача без признака: строка пары не сразу под вердиктом");
+      }
+      if (r.w.querySelector(".algo-mixed__sign")) errors.push("(i) задача без признака: показано «Как это было узнать»");
+      r.dom.window.close();
+    }
+  }
+  // notFor: на MaxSlidingWindow ряд «окно ← префиксы» о пороге суммы противоречил бы условию — строки нет
+  const msw = bank.find((q) => q.p === "slidingwindow" && q.f === "MaxSlidingWindow");
+  const row1 = PAIRS.find((x) => x.use === "sliding-window" && x.not === "prefix-sums");
+  if (!msw || !row1 || !(row1.notFor || []).includes("slidingwindow.MaxSlidingWindow")) {
+    errors.push("(i) нет опоры сценария notFor: ряд sliding-window ← prefix-sums с notFor slidingwindow.MaxSlidingWindow");
+  } else {
+    r = await pick("prefix-sums", { pairs: true }, msw);
+    if (r) {
+      if (r.w.querySelector(".algo-mixed__pair")) errors.push("(i) notFor: ряд показан на slidingwindow.MaxSlidingWindow");
+      if (!JSON.parse(r.dom.window.localStorage.getItem("algoMixedMissed") || "{}")["slidingwindow.MaxSlidingWindow"]) errors.push("(i) notFor: промах не записан");
+      r.dom.window.close();
+    }
   }
   // промах главой без ряда для этой задачи и промах без загруженного реестра — строки нет, «undefined» нет
   for (const [slug, withPairs, what] of [["greedy", true, "глава без ряда"], ["sliding-window", false, "реестр не загружен"]]) {
