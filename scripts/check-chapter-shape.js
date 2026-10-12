@@ -39,7 +39,8 @@ const path = require("path");
 const REBUILT = ["graphs", "sorting", "monotonic-stack", "modified-binary-search"];
 // Слаги глав, у которых проверяется только конец (R2–R4). Пополняется задачами 3–6 этапа 3b.
 const ENDED = ["big-o", "recursion", "invariants", "hash-table-structure", "linked-list-structure",
-  "sliding-window", "prefix-sums", "two-pointers", "fast-slow-pointers", "merge-intervals"];
+  "sliding-window", "prefix-sums", "two-pointers", "fast-slow-pointers", "merge-intervals",
+  "bst-structure", "tree-bfs", "tree-dfs", "heap-structure", "top-k-elements"];
 
 const ZAPOMNI_MAX_LI = 3;
 const ZAPOMNI_MAX_WORDS = 60;
