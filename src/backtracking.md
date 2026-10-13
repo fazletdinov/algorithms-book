@@ -6,7 +6,7 @@
     <div class="algo-hero__tag">Перебор по дереву решений: выбор → рекурсия → отмена выбора</div>
   </div>
   <div class="algo-hero__metrics">
-    <div class="algo-hero__metric"><span>Время</span><b>экспонента</b></div>
+    <div class="algo-hero__metric"><span>Время</span><b>O(2ⁿ) … O(n!)</b></div>
     <div class="algo-hero__metric"><span>Память</span><b>O(n)</b></div>
   </div>
 </div>

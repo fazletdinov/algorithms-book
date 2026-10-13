@@ -6,8 +6,8 @@
     <div class="algo-hero__tag">Перекрывающиеся подзадачи + запоминание → полином вместо экспоненты</div>
   </div>
   <div class="algo-hero__metrics">
-    <div class="algo-hero__metric"><span>Время</span><b>сост.×переход</b></div>
-    <div class="algo-hero__metric"><span>Память</span><b>O(состояний)</b></div>
+    <div class="algo-hero__metric"><span>Время</span><b>O(n) … O(n·m)</b></div>
+    <div class="algo-hero__metric"><span>Память</span><b>O(n), часто O(1)</b></div>
   </div>
 </div>
 
