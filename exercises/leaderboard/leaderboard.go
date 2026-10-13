@@ -1,7 +1,7 @@
 //go:build !solution
 
 // Package leaderboard — боевой мини-проект: топ-K и лидерборд.
-// Теория паттерна — в книге: ../../src/heap-structure.md
+// Теория паттерна — в книге: ../../src/top-k-elements.md
 //
 //	go test ./leaderboard/                 # ваша реализация
 //	go test -tags solution ./leaderboard/  # эталон
