@@ -14,7 +14,7 @@
 | Структура / приём | Где в Go и экосистеме | Зачем именно здесь |
 |---|---|---|
 | **[Хеш-таблица](hash-table-structure.md)** | встроенный `map`; с Go 1.24 — реализация **Swiss Tables** ([`internal/runtime/maps`](https://github.com/golang/go/tree/master/src/internal/runtime/maps)) | O(1) доступ по ключу — базовая структура языка |
-| **[Куча](heap-structure.md)** (priority queue) | [`container/heap`](https://pkg.go.dev/container/heap); **таймеры рантайма** (`time.After`, `time.Timer`, `time.Ticker`) — [`runtime/time.go`](https://github.com/golang/go/blob/master/src/runtime/time.go) хранит таймеры кучей «по времени срабатывания»; планировщик инструкций компилятора ([`ssa/schedule.go`](https://github.com/golang/go/blob/master/src/cmd/compile/internal/ssa/schedule.go)) | «достать ближайшее/минимальное за O(log n)»: следующий таймер, следующая инструкция |
+| **[Куча](heap-structure.md)** (priority queue) | [`container/heap`](https://pkg.go.dev/container/heap); **таймеры рантайма** (`time.Sleep`, `time.AfterFunc`, `context.WithTimeout`; таймер с каналом — `time.After`, `time.Timer`, `time.Ticker` — с Go 1.23 лежит в куче, только пока горутина ждёт на его канале) — [`runtime/time.go`](https://github.com/golang/go/blob/master/src/runtime/time.go) хранит таймеры кучей «по времени срабатывания»; планировщик инструкций компилятора ([`ssa/schedule.go`](https://github.com/golang/go/blob/master/src/cmd/compile/internal/ssa/schedule.go)) | «достать ближайшее/минимальное за O(log n)»: следующий таймер, следующая инструкция |
 | **[Двусвязный список](linked-list-structure.md)** | [`container/list`](https://pkg.go.dev/container/list); пул TCP-соединений в [`net/http.Transport`](https://github.com/golang/go/blob/master/src/net/http/transport.go); хранение TLS-сессий | O(1) вставка/удаление из середины, основа LRU |
 | **[Кольцевой буфер](deque-structure.md)** | **буфер канала** (`chan`) в рантайме — [`runtime/chan.go`](https://github.com/golang/go/blob/master/src/runtime/chan.go) (индексы `sendx`/`recvx` бегут по кругу); [`container/ring`](https://pkg.go.dev/container/ring) | FIFO фиксированного размера без аллокаций на каждый элемент |
 | **[Trie / префиксное дерево](trie-structure.md)** | **маршрутизатор** `net/http.ServeMux` (с Go 1.22) хранит паттерны в **дереве решений**, ветвясь по сегментам пути — [`net/http/routing_tree.go`](https://github.com/golang/go/blob/master/src/net/http/routing_tree.go); radix-роутеры (`httprouter`, `chi`, `gin`); HPACK в HTTP/2 | быстрый матч по префиксам: маршрут `/users/{id}/posts` |
@@ -40,7 +40,9 @@
 Ссылка показывает *где*, но интереснее *почему*. Разберём один пример до конца — на нём виден
 способ рассуждать про любой другой.
 
-Каждый `time.After`, `time.NewTimer`, `context.WithTimeout` регистрирует **таймер**. Рантайму нужно
+Каждый `time.Sleep`, `time.AfterFunc`, `context.WithTimeout` ставит в кучу **таймер**. Таймер с
+каналом (`time.After`, `time.NewTimer`) с Go 1.23 встаёт в неё, только пока какая-то горутина ждёт
+на его канале (`needsAdd` в `runtime/time.go`), — брошенный `time.After` кучу больше не занимает. Рантайму нужно
 из тысяч живых таймеров постоянно доставать **ближайший по времени** (чтобы разбудить горутину
 ровно тогда), при этом таймеры всё время **добавляются** и **отменяются**. Вопрос: какая структура?
 
