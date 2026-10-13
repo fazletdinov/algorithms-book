@@ -287,7 +287,7 @@ async function main() {
   const CYCLE = "Определить, образует ли набор рёбер цикл в НЕориентированном графе.";
   const dom3 = await boot("review.html", ["quiz.js", "progress.js", "problems.js", "review.js"], {
     algoQuizMissed: JSON.stringify({
-      "Вопрос про кучу": { n: 2, pattern: "Two Heaps", href: "two-heaps.html", q: "Вопрос про кучу" },
+      "Вопрос про кучу": { n: 2, pattern: "Две кучи", href: "two-heaps.html", q: "Вопрос про кучу" },
       [CYCLE]: { n: 1, pattern: "Union-Find (DSU)", href: "union-find-structure.html", q: CYCLE },
     }),
     algoMixedMissed: JSON.stringify({
@@ -305,7 +305,7 @@ async function main() {
     );
     if (rows.length < 2) errors.push(`строк в таблице ${rows.length}, ожидалось ≥ 2`);
     const top = rows[0];
-    if (!/Two Heaps/.test(top[0])) {
+    if (!/Две кучи/.test(top[0])) {
       errors.push(`сверху не самый слабый шаблон: ${JSON.stringify(rows)}`);
     }
     if (top[3] !== "5") errors.push(`сумма промахов у верхней строки = ${top[3]}, ожидалось 5 (2 квиз + 3 смешанная)`);

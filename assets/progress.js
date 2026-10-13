@@ -55,7 +55,7 @@
       { t: "Обход дерева в ширину", h: "tree-bfs.html", lvl: "core" },
       { t: "Обход дерева в глубину", h: "tree-dfs.html", lvl: "core" },
       { t: "Куча: устройство", h: "heap-structure.html", lvl: "core" },
-      { t: "Two Heaps", h: "two-heaps.html", lvl: "ext" },
+      { t: "Две кучи", h: "two-heaps.html", lvl: "ext" },
       { t: "Топ K элементов", h: "top-k-elements.html", lvl: "core" },
       { t: "K-way Merge", h: "k-way-merge.html", lvl: "ext" }
     ] },

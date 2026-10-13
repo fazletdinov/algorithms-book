@@ -71,7 +71,7 @@
     {
       level: "easy",
       q: "Вывести значения узлов бинарного дерева по уровням (сверху вниз, по строкам).",
-      options: ["Tree BFS", "Tree DFS", "Two Heaps", "Backtracking"],
+      options: ["Tree BFS", "Tree DFS", "Две кучи", "Backtracking"],
       correct: "Tree BFS",
       explain: "Триггеры: «по уровням / по строкам». Обход в ширину через очередь; на каждой итерации обрабатываем ровно один уровень, фиксируя его размер.",
       href: "tree-bfs.html"
@@ -79,7 +79,7 @@
     {
       level: "medium",
       q: "Проверить, является ли бинарное дерево корректным деревом поиска (BST).",
-      options: ["Tree DFS", "Tree BFS", "Two Heaps", "Sliding Window"],
+      options: ["Tree DFS", "Tree BFS", "Две кучи", "Sliding Window"],
       correct: "Tree DFS",
       explain: "Триггеры: «свойство поддерева / валидация». Рекурсивный обход в глубину с передачей допустимого диапазона (min, max) для каждого узла.",
       href: "tree-dfs.html"
@@ -87,15 +87,15 @@
     {
       level: "medium",
       q: "Поддерживать медиану потока чисел, который поступает в реальном времени.",
-      options: ["Two Heaps", "Top-K Elements", "Modified Binary Search", "Merge Intervals"],
-      correct: "Two Heaps",
+      options: ["Две кучи", "Top-K Elements", "Modified Binary Search", "Merge Intervals"],
+      correct: "Две кучи",
       explain: "Триггеры: «медиана» + «поток». Max-heap для меньшей половины и min-heap для большей; вершины дают медиану, размеры балансируем.",
       href: "two-heaps.html"
     },
     {
       level: "easy",
       q: "Найти K наибольших элементов в большом массиве (полная сортировка не нужна).",
-      options: ["Top-K Elements", "Two Heaps", "Dynamic Programming", "Two Pointers"],
+      options: ["Top-K Elements", "Две кучи", "Dynamic Programming", "Two Pointers"],
       correct: "Top-K Elements",
       explain: "Триггеры: «K наибольших/наименьших». Min-heap размера K даёт O(n log k) — лучше полной сортировки O(n log n), когда нужны только K элементов.",
       href: "top-k-elements.html"
@@ -191,7 +191,7 @@
     {
       level: "medium",
       q: "Определить, образует ли набор рёбер цикл в НЕориентированном графе.",
-      options: ["DFS по графу", "Topological Sort", "Two Heaps", "Binary Search"],
+      options: ["DFS по графу", "Topological Sort", "Две кучи", "Binary Search"],
       correct: "DFS по графу",
       explain: "Триггеры: «цикл» + «неориентированный граф», рёбра даны сразу. Обход в глубину с visited: ребро в уже посещённую вершину — если это не то ребро, по которому пришли в текущую, — замыкает цикл, O(V+E). Если рёбра приходят по одному и цикл надо поймать в момент добавления, удобнее Union-Find: оба конца ребра уже в одном множестве. Топосортировка — для ориентированных графов.",
       href: "graphs.html"
@@ -199,7 +199,7 @@
     {
       level: "medium",
       q: "Найти K-й по величине элемент в неотсортированном массиве.",
-      options: ["Top-K Elements", "Two Heaps", "Sorting", "Binary Search"],
+      options: ["Top-K Elements", "Две кучи", "Sorting", "Binary Search"],
       correct: "Top-K Elements",
       explain: "Триггеры: «K-й по величине». Min-heap размера K за O(n log k); сортировка O(n log n) избыточна, когда нужен лишь один порядковый элемент.",
       href: "top-k-elements.html"
@@ -239,7 +239,7 @@
     {
       level: "medium",
       q: "Найти наименьшего общего предка (LCA) двух узлов в бинарном дереве.",
-      options: ["Tree DFS", "Tree BFS", "Two Heaps", "Binary Search"],
+      options: ["Tree DFS", "Tree BFS", "Две кучи", "Binary Search"],
       correct: "Tree DFS",
       explain: "Триггеры: «предок / структура поддерева». Рекурсивный обход в глубину: узел, из чьих разных поддеревьев приходят оба искомых, и есть LCA.",
       href: "tree-dfs.html"
@@ -327,7 +327,7 @@
     {
       level: "medium",
       q: "Построить ВСЕ подмножества множества (power set), наращивая их добавлением каждого нового элемента.",
-      options: ["Subsets (каскадное построение)", "Backtracking", "Dynamic Programming", "Two Heaps"],
+      options: ["Subsets (каскадное построение)", "Backtracking", "Dynamic Programming", "Две кучи"],
       correct: "Subsets (каскадное построение)",
       explain: "Триггеры: «все подмножества» + «итеративно». Паттерн Subsets: для каждого нового элемента дублируем все имеющиеся подмножества, добавляя в копии этот элемент. 2ⁿ подмножеств. Backtracking даёт тот же результат рекурсией.",
       href: "subsets.html"
@@ -335,7 +335,7 @@
     {
       level: "hard",
       q: "Для каждого окна размера k в массиве найти максимум (sliding window maximum).",
-      options: ["Sliding Window + монотонный дек", "Two Heaps", "Top-K Elements", "Segment Tree"],
+      options: ["Sliding Window + монотонный дек", "Две кучи", "Top-K Elements", "Segment Tree"],
       correct: "Sliding Window + монотонный дек",
       explain: "Триггеры: «максимум в каждом окне». Монотонно убывающий дек хранит индексы кандидатов: голова — текущий максимум, при сдвиге выкидываем вышедшие за окно и меньшие новых. Амортизированно O(n).",
       href: "sliding-window.html"
@@ -375,7 +375,7 @@
     {
       level: "hard",
       q: "Лента: вернуть 10 самых свежих твитов пользователя и тех, на кого он подписан (у каждого свой список твитов по времени).",
-      options: ["Хеш-таблицы + K-way merge", "Two Heaps", "Сегментное дерево", "Sliding Window"],
+      options: ["Хеш-таблицы + K-way merge", "Две кучи", "Сегментное дерево", "Sliding Window"],
       correct: "Хеш-таблицы + K-way merge",
       explain: "Триггеры: «слить несколько отсортированных потоков» → K-way merge кучей их голов. Хеш-таблицы хранят твиты автора и подписки; куча берёт самый свежий твит среди голов, пока не наберём 10.",
       href: "pattern-combinations.html"
@@ -385,7 +385,7 @@
     {
       level: "medium",
       q: "БОЕВАЯ. API-шлюз: клиент не может делать больше 100 запросов за последние 60 секунд; на отказ надо вернуть Retry-After.",
-      options: ["Sliding Window (лог меток времени)", "Two Heaps", "Hash Table + счётчик", "Merge Intervals"],
+      options: ["Sliding Window (лог меток времени)", "Две кучи", "Hash Table + счётчик", "Merge Intervals"],
       correct: "Sliding Window (лог меток времени)",
       explain: "Триггеры: «за последние N секунд» — скользящее окно по времени. Дек/срез меток на клиента: устаревшие выкидываем слева, длина окна = число запросов; Retry-After — когда выйдет из окна нужная метка. Голый счётчик — это fixed window, он врёт на стыке окон (всплеск ×2).",
       href: "sliding-window.html"
@@ -401,8 +401,8 @@
     {
       level: "medium",
       q: "БОЕВАЯ. Дашборд мониторинга должен показывать p50/p99 latency сервиса в реальном времени по потоку измерений.",
-      options: ["Two Heaps / гистограмма", "Сортировка каждого окна", "Sliding Window Maximum", "Top K Elements"],
-      correct: "Two Heaps / гистограмма",
+      options: ["Две кучи / гистограмма", "Сортировка каждого окна", "Sliding Window Maximum", "Top K Elements"],
+      correct: "Две кучи / гистограмма",
       explain: "Триггеры: «медиана/перцентиль» + «поток». Точная бегущая медиана — две кучи (max-куча низа + min-куча верха). В проде чаще гистограмма с фикс. бакетами (Prometheus): любой квантиль за O(бакетов) и мержится между серверами — перцентили не аддитивны, а гистограммы да.",
       href: "two-heaps.html"
     },
@@ -425,7 +425,7 @@
     {
       level: "medium",
       q: "БОЕВАЯ. Биллинг: раз в час приходит список сессий [start, end]; нужно найти суммарное время, когда была активна хотя бы одна сессия.",
-      options: ["Merge Intervals", "Sliding Window", "Two Heaps", "Fenwick Tree"],
+      options: ["Merge Intervals", "Sliding Window", "Две кучи", "Fenwick Tree"],
       correct: "Merge Intervals",
       explain: "Триггеры: «интервалы» + «перекрытия» + «суммарное покрытие». Сортируем по началу, сливаем перекрывающиеся, складываем длины слитых. Дерево Фенвика здесь избыточно: запрос один, обновлений нет.",
       href: "merge-intervals.html"
@@ -497,7 +497,7 @@
     {
       level: "medium",
       q: "Для каждого дня по списку температур узнать, через сколько дней станет теплее.",
-      options: ["Monotonic Stack", "Two Heaps", "Sliding Window", "Binary Search"],
+      options: ["Monotonic Stack", "Две кучи", "Sliding Window", "Binary Search"],
       correct: "Monotonic Stack",
       explain: "Триггеры: «для каждого элемента» + «ближайший больший справа». Стек индексов с убывающими температурами: новый день снимает все более холодные — для них он и есть ответ, расстояние = разность индексов. Каждый индекс кладётся и снимается ≤ 1 раза — O(n).",
       href: "monotonic-stack.html"
@@ -529,7 +529,7 @@
     {
       level: "hard",
       q: "БОЕВАЯ. Мониторинг: для каждой новой точки p99-задержки сразу показать, сколько минут подряд (включая текущую) задержка была не выше текущей.",
-      options: ["Monotonic Stack", "Two Heaps", "Sliding Window", "Top K Elements"],
+      options: ["Monotonic Stack", "Две кучи", "Sliding Window", "Top K Elements"],
       correct: "Monotonic Stack",
       explain: "Триггеры: «сколько подряд не выше меня» = расстояние до ближайшего строго большего слева (задача Online Stock Span). Стек (индекс, значение) со строго убывающими значениями: новая точка снимает всех не выше себя, ответ — расстояние до вершины. Амортизированно O(1) на точку, работает на потоке.",
       href: "monotonic-stack.html"

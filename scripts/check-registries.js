@@ -105,7 +105,7 @@ const GUIDE_LEAVES = {
   "Tree DFS": "tree-dfs",
   "Merge Intervals": "merge-intervals",
   "Top K Elements": "top-k-elements",
-  "Two Heaps": "two-heaps",
+  "Две кучи": "two-heaps",
   "K-way Merge": "k-way-merge",
   "Subsets": "subsets",
   "Backtracking": "backtracking",
