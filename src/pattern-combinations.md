@@ -760,6 +760,6 @@ go test -tags solution ./lru/ ./wordladder/ ./alienorder/ ./meetingrooms/ ./seri
 
 - **[Хеш-таблица](hash-table-structure.md)** — «индекс» поверх любой структуры (LRU, Twitter).
 - **[Графы (BFS/DFS)](graphs.md)** и **[Топологическая сортировка](topological-sort.md)** — Word Ladder, Alien Dictionary.
-- **[Куча](heap-structure.md)**, **[Two Heaps](two-heaps.md)**, **[K-way Merge](k-way-merge.md)** — Meeting Rooms, Twitter, Skyline.
+- **[Куча](heap-structure.md)**, **[Две кучи](two-heaps.md)**, **[K-way Merge](k-way-merge.md)** — Meeting Rooms, Twitter, Skyline.
 - **[Tree DFS](tree-dfs.md)** — сериализация дерева.
 - **[Руководство по выбору шаблона](pattern-selection-guide.md)** — как распознать паттерн по формулировке.

@@ -49,7 +49,7 @@
 | [Reverse Linked List](reverse-linked-list.md) | разворот списка/подсписка на месте | O(n), O(1) | prev / curr / next |
 | [Tree BFS](tree-bfs.md) | по уровням, кратчайший по рёбрам | O(n) | очередь, уровень за уровнем |
 | [Tree DFS](tree-dfs.md) | пути, валидация, свойства поддеревьев, LCA | O(n) | рекурсия pre/in/post |
-| [Two Heaps](two-heaps.md) | медиана потока, разделение на половины | O(log n)/вставка | max-heap + min-heap |
+| [Две кучи](two-heaps.md) | медиана потока, разделение на половины | O(log n)/вставка | max-heap + min-heap |
 | [Top-K Elements](top-k-elements.md) | K наибольших/наименьших, K-й по величине | O(n log k) | heap размера K |
 | [K-way Merge](k-way-merge.md) | слить K отсортированных источников | O(n log k) | min-heap из голов |
 | [Subsets](subsets.md) / [Backtracking](backtracking.md) | «все комбинации/перестановки» | экспонента | выбор → рекурсия → откат |

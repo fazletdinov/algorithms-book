@@ -42,7 +42,7 @@
 - [🌳 Обход дерева в ширину (Tree BFS)](tree-bfs.md)
 - [🌲 Обход дерева в глубину (Tree DFS)](tree-dfs.md)
 - [⛰️ Бинарная куча (Binary Heap): устройство и операции](heap-structure.md)
-- [🗻 Two Heaps (Две кучи)](two-heaps.md)
+- [🗻 Две кучи (Two Heaps)](two-heaps.md)
 - [🏆 Топ K элементов (Top K Elements)](top-k-elements.md)
 - [🧵 K-way Merge (K-way слияние)](k-way-merge.md)
 

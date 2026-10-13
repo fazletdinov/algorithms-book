@@ -3,7 +3,7 @@
 <div class="algo-hero">
   <div class="algo-hero__main">
     <div class="algo-hero__name">Binary Heap <span class="algo-hero__ru">Двоичная куча</span></div>
-    <div class="algo-hero__tag">Полное дерево в массиве + инвариант «родитель ≤ детей». Two Heaps / Top K — применения.</div>
+    <div class="algo-hero__tag">Полное дерево в массиве + инвариант «родитель ≤ детей». Две кучи / Top K — применения.</div>
   </div>
   <div class="algo-hero__metrics">
     <div class="algo-hero__metric"><span>Push / Pop</span><b>O(log n)</b></div>
@@ -17,7 +17,7 @@
 > сдвигает хвост — O(n). Куча берёт середину: вставка и извлечение минимума — за O(log n), а
 > посмотреть минимум — O(1). Платит она тем, что порядка в ней нет: известен только минимум.
 > Как она этого добивается — массив, читаемый как дерево, и два просеивания — вся эта глава;
-> применения ([Two Heaps](two-heaps.md), [Top K](top-k-elements.md),
+> применения ([Две кучи](two-heaps.md), [Top K](top-k-elements.md),
 > [K-way Merge](k-way-merge.md)) — в главах-паттернах.
 
 <div class="algo-cards2">
@@ -496,7 +496,7 @@ heapify за O(n). (Сверено с исходником Go 1.26.5: `addHeap`,
 
 ## 🔗 Связанные шаблоны
 
-- **[Two Heaps](two-heaps.md)** — медиана потока балансом min- и max-кучи.
+- **[Две кучи](two-heaps.md)** — медиана потока балансом min- и max-кучи.
 - **[Top K Elements](top-k-elements.md)** — k наибольших/наименьших кучей размера k.
 - **[K-way Merge](k-way-merge.md)** — слияние k потоков кучей их голов.
 - **[BST](bst-structure.md)** — дерево с полным порядком (в отличие от частичного у кучи).

@@ -517,7 +517,7 @@ go test -tags solution -bench=. ./parallelsort/ # Conc обгоняет Seq
 
 - **[Top K Elements](top-k-elements.md)** — тоже опирается на кучу для выбора
   экстремальных элементов.
-- **[Two Heaps](two-heaps.md)** — другой шаблон на основе куч.
+- **[Две кучи](two-heaps.md)** — другой шаблон на основе куч.
 - **[Modified Binary Search](modified-binary-search.md)** — альтернатива для
   отсортированных данных.
 - Для общей теории по памяти и профилированию в Go см. [приложение](appendix-go-memory.md).
