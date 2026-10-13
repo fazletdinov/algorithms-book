@@ -502,7 +502,7 @@ func searchRange(nums []int, target int) [2]int {
 <div class="algo-challenge__q">Поиск границы <code>lo &lt; hi</code>, <code>hi = mid</code>: если <code>nums[mid] &lt; target</code>, как сдвигаем границу?</div>
 </div>
 
-<div class="algo-challenge" data-type="predict" data-answer="10" data-hint="log₂ 1000, округлённый вверх. Сколько раз 1000 делится пополам?" data-explain="2¹⁰ = 1024 ≥ 1000, значит хватает 10 сравнений.">
+<div class="algo-challenge" data-type="predict" data-answer="10" data-hint="log₂ n, округлённый вниз, плюс 1. Сколько раз 1000 делится пополам?" data-explain="2¹⁰ = 1024 &gt; 1000: после 10 сравнений кандидатов не останется; в общем случае — log₂ n, округлённый вниз, плюс 1.">
 <div class="algo-challenge__q">Сколько сравнений максимум сделает бинарный поиск в массиве из <b>1000</b> элементов?</div>
 </div>
 
