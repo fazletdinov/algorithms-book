@@ -3,7 +3,7 @@
 // Package twopointers — задачи на шаблон «Два указателя».
 // Теория паттерна — в книге: ../../src/two-pointers.md
 //
-//	go test ./twopointers/                 # ваши решения
+//	go test ./twopointers/                 # твои решения
 //	go test -tags solution ./twopointers/  # эталон
 package twopointers
 
@@ -15,9 +15,9 @@ package twopointers
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func PairWithTargetSum(arr []int, target int) []int {
-	// TODO: указатели с двух концов; двигайте left при сумме < target,
+	// TODO: указатели с двух концов; двигай left при сумме < target,
 	// right — при сумме > target.
-	panic("TODO: реализуйте PairWithTargetSum")
+	panic("TODO: реализуй PairWithTargetSum")
 }
 
 // RemoveDuplicates удаляет дубликаты из отсортированного массива «на месте»
@@ -30,7 +30,7 @@ func PairWithTargetSum(arr []int, target int) []int {
 func RemoveDuplicates(arr []int) int {
 	// TODO: «медленный» указатель на позицию следующего уникального элемента,
 	// «быстрый» проходит массив.
-	panic("TODO: реализуйте RemoveDuplicates")
+	panic("TODO: реализуй RemoveDuplicates")
 }
 
 // SortedSquares принимает отсортированный по возрастанию массив (возможны
@@ -42,8 +42,8 @@ func RemoveDuplicates(arr []int) int {
 // Ожидаемая сложность: O(n) по времени, O(n) по памяти.
 func SortedSquares(arr []int) []int {
 	// TODO: указатели с двух концов; наибольший квадрат даёт элемент с
-	// бо́льшим модулем — пишите его в конец результата и сдвигайте указатель.
-	panic("TODO: реализуйте SortedSquares")
+	// бо́льшим модулем — пиши его в конец результата и сдвигай указатель.
+	panic("TODO: реализуй SortedSquares")
 }
 
 // TripletsSumToZero возвращает все уникальные тройки чисел из arr, дающие
@@ -57,11 +57,11 @@ func SortedSquares(arr []int) []int {
 //
 // Ожидаемая сложность: O(n^2) по времени.
 func TripletsSumToZero(arr []int) [][]int {
-	// TODO: отсортируйте массив; фиксируйте arr[i] и ищите пару встречными
+	// TODO: отсортируй массив; фиксируй arr[i] и ищи пару встречными
 	// указателями для -arr[i], пропуская дубликаты i, а после найденной тройки —
 	// дубликаты left (одной стороны достаточно: для пары (i, left) правое
 	// значение единственно).
-	panic("TODO: реализуйте TripletsSumToZero")
+	panic("TODO: реализуй TripletsSumToZero")
 }
 
 // DutchFlagSort сортирует на месте массив, состоящий из значений 0, 1 и 2
@@ -77,7 +77,7 @@ func TripletsSumToZero(arr []int) [][]int {
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func DutchFlagSort(arr []int) {
-	// TODO: три указателя — low, mid, high; при arr[mid]==0 меняйте с low,
-	// при ==2 меняйте с high (mid не двигая), при ==1 двигайте mid.
-	panic("TODO: реализуйте DutchFlagSort")
+	// TODO: три указателя — low, mid, high; при arr[mid]==0 меняй с low,
+	// при ==2 меняй с high (mid не двигая), при ==1 двигай mid.
+	panic("TODO: реализуй DutchFlagSort")
 }

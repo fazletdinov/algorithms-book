@@ -4,7 +4,7 @@
 // шаблонов + ссылки неудачи, то есть префикс-функция KMP, перенесённая на дерево.
 // Теория и замеры — в книге: ../../src/aho-corasick.md
 //
-//	go test ./ahocorasick/                 # ваши решения
+//	go test ./ahocorasick/                 # твои решения
 //	go test -tags solution ./ahocorasick/  # эталон
 //
 // Готовое (не задача) — в naive.go: тип Match, наивный NaiveFindAll и SortMatches.
@@ -12,7 +12,7 @@ package ahocorasick
 
 // Automaton — Trie шаблонов со ссылками неудачи.
 type Automaton struct {
-	// TODO: ваши поля. Подсказка: срез узлов; у узла — переходы по байту,
+	// TODO: твои поля. Подсказка: срез узлов; у узла — переходы по байту,
 	// ссылка неудачи fail, «словарная» ссылка out на ближайший по цепочке fail
 	// узел, где кончается шаблон, и номера шаблонов, кончающихся в самом узле;
 	// плюс длины шаблонов, чтобы из конца вхождения получить его начало.
@@ -31,7 +31,7 @@ type Automaton struct {
 // префикс-функции KMP.
 func NewAutomaton(patterns []string) *Automaton {
 	// TODO: Trie, затем BFS по уровням для fail и out.
-	panic("TODO: реализуйте NewAutomaton")
+	panic("TODO: реализуй NewAutomaton")
 }
 
 // FindAll возвращает все вхождения всех шаблонов в text за один проход, включая
@@ -43,14 +43,14 @@ func NewAutomaton(patterns []string) *Automaton {
 func (a *Automaton) FindAll(text string) []Match {
 	// TODO: иди по тексту, при отсутствии перехода откатывайся по fail; на
 	// каждой позиции собери шаблоны узла и всей цепочки out.
-	panic("TODO: реализуйте FindAll")
+	panic("TODO: реализуй FindAll")
 }
 
 // ContainsAny сообщает, входит ли в text хотя бы один шаблон, и останавливается
 // на первом же вхождении, не дочитывая текст.
 func (a *Automaton) ContainsAny(text string) bool {
 	// TODO: тот же проход, что в FindAll, но с выходом на первом совпадении.
-	panic("TODO: реализуйте ContainsAny")
+	panic("TODO: реализуй ContainsAny")
 }
 
 // Censor заменяет в text все вхождения запрещённых слов из banned на звёздочки:
@@ -62,7 +62,7 @@ func (a *Automaton) ContainsAny(text string) bool {
 //
 // Ожидаемая сложность: O(n + Σm + z) — один проход автомата плюс разметка.
 func Censor(text string, banned []string) string {
-	// TODO: найдите вхождения автоматом, отметьте закрытые байты, затем соберите
+	// TODO: найди вхождения автоматом, отметь закрытые байты, затем собери
 	// результат по рунам.
-	panic("TODO: реализуйте Censor")
+	panic("TODO: реализуй Censor")
 }

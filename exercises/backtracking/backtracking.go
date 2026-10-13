@@ -3,7 +3,7 @@
 // Package backtracking — задачи на шаблон «Поиск с возвратом».
 // Теория паттерна — в книге: ../../src/backtracking.md
 //
-//	go test ./backtracking/                 # ваши решения
+//	go test ./backtracking/                 # твои решения
 //	go test -tags solution ./backtracking/  # эталон
 package backtracking
 
@@ -12,12 +12,12 @@ package backtracking
 //
 // Пример: [1,2,3] -> 6 перестановок.
 //
-// Не забудьте копировать срез перед добавлением в результат и отменять
+// Не забудь копировать срез перед добавлением в результат и отменять
 // выбор после рекурсивного вызова.
 func Permutations(nums []int) [][]int {
-	// TODO: рекурсивно стройте текущую перестановку, отмечая использованные
-	// элементы; при достижении полной длины — копируйте и сохраняйте.
-	panic("TODO: реализуйте Permutations")
+	// TODO: рекурсивно строй текущую перестановку, отмечая использованные
+	// элементы; при достижении полной длины — копируй и сохраняй.
+	panic("TODO: реализуй Permutations")
 }
 
 // GenerateParentheses возвращает все корректные комбинации из n пар скобок.
@@ -29,7 +29,7 @@ func Permutations(nums []int) [][]int {
 // закрывающую — только если закрытых меньше, чем открытых.
 func GenerateParentheses(n int) []string {
 	// TODO: backtracking по числу открытых/закрытых скобок.
-	panic("TODO: реализуйте GenerateParentheses")
+	panic("TODO: реализуй GenerateParentheses")
 }
 
 // CombinationSum возвращает все комбинации из РАЗЛИЧНЫХ кандидатов candidates,
@@ -43,10 +43,10 @@ func GenerateParentheses(n int) []string {
 // Ожидаемая сложность: O(N^(T/M)) по времени, где N — число кандидатов,
 // T — target, M — минимальный кандидат; O(T/M) дополнительной памяти на стек.
 func CombinationSum(candidates []int, target int) [][]int {
-	// TODO: отсортируйте кандидатов; ведите перебор от текущего индекса,
+	// TODO: отсортируй кандидатов; веди перебор от текущего индекса,
 	// разрешая повтор того же кандидата (start не увеличивается при выборе);
-	// отсекайте ветку, как только остаток target становится отрицательным.
-	panic("TODO: реализуйте CombinationSum")
+	// отсекай ветку, как только остаток target становится отрицательным.
+	panic("TODO: реализуй CombinationSum")
 }
 
 // SolveNQueensCount возвращает число способов расставить n ферзей на доске
@@ -57,10 +57,10 @@ func CombinationSum(candidates []int, target int) [][]int {
 //
 // Ожидаемая сложность: O(n!) по времени, O(n) дополнительной памяти.
 func SolveNQueensCount(n int) int {
-	// TODO: размещайте по одному ферзю в строке; для каждого столбца
-	// проверяйте, что он и обе диагонали свободны (используйте множества
+	// TODO: размещай по одному ферзю в строке; для каждого столбца
+	// проверяй, что он и обе диагонали свободны (используй множества
 	// занятых столбцов и диагоналей col-row, col+row).
-	panic("TODO: реализуйте SolveNQueensCount")
+	panic("TODO: реализуй SolveNQueensCount")
 }
 
 // LetterCombinations возвращает все буквенные комбинации, которые можно
@@ -75,7 +75,7 @@ func SolveNQueensCount(n int) int {
 // Ожидаемая сложность: O(4^n · n) по времени, где n = len(digits);
 // O(n) дополнительной памяти на стек.
 func LetterCombinations(digits string) []string {
-	// TODO: сопоставьте каждой цифре её буквы; backtracking по позициям
+	// TODO: сопоставь каждой цифре её буквы; backtracking по позициям
 	// строки digits, на каждой позиции перебирая все буквы текущей цифры.
-	panic("TODO: реализуйте LetterCombinations")
+	panic("TODO: реализуй LetterCombinations")
 }

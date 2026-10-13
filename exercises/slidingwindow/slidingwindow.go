@@ -3,7 +3,7 @@
 // Package slidingwindow — задачи на шаблон «Скользящее окно».
 // Теория паттерна — в книге: ../../src/sliding-window.md
 //
-// Реализуйте функции ниже, затем запустите тесты:
+// Реализуй функции ниже, затем запусти тесты:
 //
 //	go test ./slidingwindow/
 //
@@ -14,15 +14,15 @@
 package slidingwindow
 
 // MaxSumSubarray возвращает максимальную сумму подмассива фиксированного
-// размера k. Если k <= 0 или k > len(arr) — верните 0.
+// размера k. Если k <= 0 или k > len(arr) — верни 0.
 //
 // Пример: arr=[2,1,5,1,3,2], k=3 -> 9 (подмассив [5,1,3]).
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func MaxSumSubarray(arr []int, k int) int {
-	// TODO: реализуйте инкрементальное окно: посчитайте сумму первых k
-	// элементов, затем двигайте окно, добавляя arr[i] и вычитая arr[i-k].
-	panic("TODO: реализуйте MaxSumSubarray")
+	// TODO: реализуй инкрементальное окно: посчитай сумму первых k
+	// элементов, затем двигай окно, добавляя arr[i] и вычитая arr[i-k].
+	panic("TODO: реализуй MaxSumSubarray")
 }
 
 // LongestSubstringKDistinct возвращает длину самой длинной подстроки,
@@ -32,22 +32,22 @@ func MaxSumSubarray(arr []int, k int) int {
 //
 // Ожидаемая сложность: O(n) по времени, O(k) по памяти.
 func LongestSubstringKDistinct(s string, k int) int {
-	// TODO: ведите map[byte]int частот символов в окне; при росте числа
-	// различных символов выше k — сжимайте окно слева.
-	panic("TODO: реализуйте LongestSubstringKDistinct")
+	// TODO: веди map[byte]int частот символов в окне; при росте числа
+	// различных символов выше k — сжимай окно слева.
+	panic("TODO: реализуй LongestSubstringKDistinct")
 }
 
 // SmallestSubarrayWithSum возвращает наименьшую длину непрерывного подмассива,
 // сумма которого >= target. Все элементы строго положительны. Если такого
-// подмассива нет — верните 0.
+// подмассива нет — верни 0.
 //
 // Пример: arr=[2,1,5,2,3,2], target=7 -> 2 (подмассив [5,2]); target=8 -> 3.
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func SmallestSubarrayWithSum(arr []int, target int) int {
-	// TODO: расширяйте окно правой границей, накапливая сумму; пока сумма
-	// >= target — обновляйте минимум длины и сжимайте окно слева.
-	panic("TODO: реализуйте SmallestSubarrayWithSum")
+	// TODO: расширяй окно правой границей, накапливая сумму; пока сумма
+	// >= target — обновляй минимум длины и сжимай окно слева.
+	panic("TODO: реализуй SmallestSubarrayWithSum")
 }
 
 // LongestSubstringNoRepeat возвращает длину самой длинной подстроки без
@@ -57,13 +57,13 @@ func SmallestSubarrayWithSum(arr []int, target int) int {
 //
 // Ожидаемая сложность: O(n) по времени, O(σ) по памяти (σ — размер алфавита).
 func LongestSubstringNoRepeat(s string) int {
-	// TODO: храните последнюю позицию каждого символа в map[byte]int; при
-	// повторе сдвигайте left за предыдущую позицию символа в текущем окне.
-	panic("TODO: реализуйте LongestSubstringNoRepeat")
+	// TODO: храни последнюю позицию каждого символа в map[byte]int; при
+	// повторе сдвигай left за предыдущую позицию символа в текущем окне.
+	panic("TODO: реализуй LongestSubstringNoRepeat")
 }
 
 // MaxSlidingWindow возвращает максимум в каждом окне размера k. Если k <= 0
-// или k > len(arr) — верните пустой срез []int{}.
+// или k > len(arr) — верни пустой срез []int{}.
 //
 // Пример: arr=[1,3,-1,-3,5,3,6,7], k=3 -> [3,3,5,5,6,7].
 //
@@ -73,7 +73,7 @@ func LongestSubstringNoRepeat(s string) int {
 //
 // Ожидаемая сложность: O(n) по времени, O(k) по памяти.
 func MaxSlidingWindow(arr []int, k int) []int {
-	// TODO: держите монотонно убывающий дек индексов; удаляйте из хвоста
+	// TODO: держи монотонно убывающий дек индексов; удаляй из хвоста
 	// меньшие элементы, из головы — вышедшие за окно, голова = максимум окна.
-	panic("TODO: реализуйте MaxSlidingWindow")
+	panic("TODO: реализуй MaxSlidingWindow")
 }

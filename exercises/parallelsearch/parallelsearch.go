@@ -3,7 +3,7 @@
 // Package parallelsearch — подсчёт вхождений подстроки: синхронно и конкурентно.
 // Теория — в книге: ../../src/string-algorithms.md (раздел «Конкурентный поиск»).
 //
-//	go test ./parallelsearch/                        # ваши решения (красные)
+//	go test ./parallelsearch/                        # твои решения (красные)
 //	go test -tags solution ./parallelsearch/         # эталон (зелёные)
 //	go test -tags solution -race ./parallelsearch/   # проверка на гонки
 //
@@ -17,7 +17,7 @@ package parallelsearch
 func CountOccurrencesSeq(text, pat string) int {
 	// TODO: для каждого i от 0 до len(text)-len(pat) сравни text[i:i+m] с pat.
 	// Пустой pat или pat длиннее text → 0.
-	panic("TODO: реализуйте CountOccurrencesSeq")
+	panic("TODO: реализуй CountOccurrencesSeq")
 }
 
 // CountOccurrencesConc — то же, но диапазон начальных позиций делится между
@@ -28,5 +28,5 @@ func CountOccurrencesConc(text, pat string) int {
 	// считает вхождения в своём диапазоне начал и пишет в свою ячейку; в конце
 	// просуммируй. Делить ПО НАЧАЛАМ, а не по байтам текста — иначе потеряешь
 	// совпадения на границе чанков.
-	panic("TODO: реализуйте CountOccurrencesConc")
+	panic("TODO: реализуй CountOccurrencesConc")
 }

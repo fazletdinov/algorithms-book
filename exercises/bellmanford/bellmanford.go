@@ -3,7 +3,7 @@
 // Package bellmanford — кратчайшие пути с отрицательными весами (Bellman–Ford).
 // Теория паттерна — в книге: ../../src/advanced-graph-algorithms.md
 //
-//	go test ./bellmanford/                 # ваши решения
+//	go test ./bellmanford/                 # твои решения
 //	go test -tags solution ./bellmanford/  # эталон
 package bellmanford
 
@@ -16,9 +16,9 @@ package bellmanford
 //
 // Ожидаемая сложность: O(V · E).
 func ShortestPath(n int, edges [][]int, src, dst int) (int, bool) {
-	// TODO: инициализируйте расстояния «бесконечностью», dist[src]=0; выполните
+	// TODO: инициализируй расстояния «бесконечностью», dist[src]=0; выполни
 	// n-1 проходов релаксации всех рёбер (проверяя dist[u] != INF).
-	panic("TODO: реализуйте ShortestPath")
+	panic("TODO: реализуй ShortestPath")
 }
 
 // HasNegativeCycle сообщает, содержит ли ОРИЕНТИРОВАННЫЙ взвешенный граф с n
@@ -34,10 +34,10 @@ func ShortestPath(n int, edges [][]int, src, dst int) (int, bool) {
 //
 // Ожидаемая сложность: O(V · E).
 func HasNegativeCycle(n int, edges [][]int) bool {
-	// TODO: dist[i]=0 для всех вершин; выполните n-1 проходов релаксации всех
-	// рёбер, затем сделайте ещё один проход — если хоть одно ребро всё ещё
-	// релаксируется, верните true.
-	panic("TODO: реализуйте HasNegativeCycle")
+	// TODO: dist[i]=0 для всех вершин; выполни n-1 проходов релаксации всех
+	// рёбер, затем сделай ещё один проход — если хоть одно ребро всё ещё
+	// релаксируется, верни true.
+	panic("TODO: реализуй HasNegativeCycle")
 }
 
 // ShortestPathWithAtMostKEdges возвращает минимальную стоимость пути из src в
@@ -54,8 +54,8 @@ func HasNegativeCycle(n int, edges [][]int) bool {
 //
 // Ожидаемая сложность: O(k · E).
 func ShortestPathWithAtMostKEdges(n int, edges [][]int, src, dst, k int) int {
-	// TODO: dist[src]=0, остальные INF. Повторите k раз: скопируйте dist в
-	// snapshot и релаксируйте каждое ребро из snapshot. В конце верните
+	// TODO: dist[src]=0, остальные INF. Повтори k раз: скопируй dist в
+	// snapshot и релаксируй каждое ребро из snapshot. В конце верни
 	// dist[dst] либо -1, если она осталась INF.
-	panic("TODO: реализуйте ShortestPathWithAtMostKEdges")
+	panic("TODO: реализуй ShortestPathWithAtMostKEdges")
 }

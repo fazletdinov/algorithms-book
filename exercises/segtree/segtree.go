@@ -3,7 +3,7 @@
 // Package segtree — дерево отрезков для суммы на диапазоне.
 // Теория паттерна — в книге: ../../src/segment-tree.md
 //
-//	go test ./segtree/                 # ваши решения
+//	go test ./segtree/                 # твои решения
 //	go test -tags solution ./segtree/  # эталон
 package segtree
 
@@ -15,22 +15,22 @@ type SegmentTree struct {
 
 // NewSegmentTree строит дерево по массиву за O(n).
 func NewSegmentTree(arr []int) *SegmentTree {
-	// TODO: положите листья в [n, 2n), затем посчитайте внутренние узлы
+	// TODO: положи листья в [n, 2n), затем посчитай внутренние узлы
 	// снизу вверх как сумму двух детей.
-	panic("TODO: реализуйте NewSegmentTree")
+	panic("TODO: реализуй NewSegmentTree")
 }
 
 // Update устанавливает arr[i] = val за O(log n).
 func (st *SegmentTree) Update(i, val int) {
-	// TODO: обновите лист и всех его предков.
-	panic("TODO: реализуйте Update")
+	// TODO: обнови лист и всех его предков.
+	panic("TODO: реализуй Update")
 }
 
 // Query возвращает сумму на ВКЛЮЧИТЕЛЬНОМ диапазоне [l, r] за O(log n).
 func (st *SegmentTree) Query(l, r int) int {
-	// TODO: поднимайтесь от листьев, добавляя к ответу узлы, целиком
+	// TODO: поднимайся от листьев, добавляя к ответу узлы, целиком
 	// попадающие в диапазон (классический итеративный обход).
-	panic("TODO: реализуйте Query")
+	panic("TODO: реализуй Query")
 }
 
 // MinSegmentTree — дерево отрезков (минимум, точечное обновление).
@@ -45,9 +45,9 @@ type MinSegmentTree struct {
 //
 // Ожидаемая сложность: O(n).
 func NewMinSegmentTree(arr []int) *MinSegmentTree {
-	// TODO: положите листья в [n, 2n), затем посчитайте внутренние узлы
+	// TODO: положи листья в [n, 2n), затем посчитай внутренние узлы
 	// снизу вверх как минимум двух детей.
-	panic("TODO: реализуйте NewMinSegmentTree")
+	panic("TODO: реализуй NewMinSegmentTree")
 }
 
 // Update устанавливает arr[i] = val за O(log n).
@@ -56,8 +56,8 @@ func NewMinSegmentTree(arr []int) *MinSegmentTree {
 //
 // Ожидаемая сложность: O(log n).
 func (st *MinSegmentTree) Update(i, val int) {
-	// TODO: обновите лист и всех его предков (пересчёт как минимум детей).
-	panic("TODO: реализуйте MinSegmentTree.Update")
+	// TODO: обнови лист и всех его предков (пересчёт как минимум детей).
+	panic("TODO: реализуй MinSegmentTree.Update")
 }
 
 // Query возвращает минимум на ВКЛЮЧИТЕЛЬНОМ диапазоне [l, r] за O(log n).
@@ -67,9 +67,9 @@ func (st *MinSegmentTree) Update(i, val int) {
 //
 // Ожидаемая сложность: O(log n).
 func (st *MinSegmentTree) Query(l, r int) int {
-	// TODO: поднимайтесь от листьев, беря минимум по узлам, целиком
+	// TODO: поднимайся от листьев, беря минимум по узлам, целиком
 	// попадающим в диапазон (классический итеративный обход).
-	panic("TODO: реализуйте MinSegmentTree.Query")
+	panic("TODO: реализуй MinSegmentTree.Query")
 }
 
 // LazySegmentTree — дерево отрезков с отложенными обновлениями
@@ -81,19 +81,19 @@ type LazySegmentTree struct {
 
 // NewLazySegmentTree строит дерево по массиву.
 func NewLazySegmentTree(arr []int) *LazySegmentTree {
-	// TODO: рекурсивно постройте дерево; tree и lazy размера 4n.
-	panic("TODO: реализуйте NewLazySegmentTree")
+	// TODO: рекурсивно построй дерево; tree и lazy размера 4n.
+	panic("TODO: реализуй NewLazySegmentTree")
 }
 
 // RangeUpdate прибавляет delta ко всем элементам включительного [l, r].
 func (t *LazySegmentTree) RangeUpdate(l, r, delta int) {
-	// TODO: если узел целиком в диапазоне — примените прибавку и отложите её
-	// детям (lazy); иначе спускайтесь, не забыв push.
-	panic("TODO: реализуйте RangeUpdate")
+	// TODO: если узел целиком в диапазоне — примени прибавку и отложи её
+	// детям (lazy); иначе спускайся, не забыв push.
+	panic("TODO: реализуй RangeUpdate")
 }
 
 // RangeQuery возвращает сумму на включительном [l, r].
 func (t *LazySegmentTree) RangeQuery(l, r int) int {
-	// TODO: перед спуском к детям проталкивайте отложенные значения (push).
-	panic("TODO: реализуйте RangeQuery")
+	// TODO: перед спуском к детям проталкивай отложенные значения (push).
+	panic("TODO: реализуй RangeQuery")
 }

@@ -3,7 +3,7 @@
 // Package probabilistic — вероятностные структуры данных.
 // Теория — в книге: ../../src/probabilistic-structures.md
 //
-// Реализуйте Bloom-фильтр, затем запустите тесты:
+// Реализуй Bloom-фильтр, затем запусти тесты:
 //
 //	go test ./probabilistic/
 //
@@ -12,7 +12,7 @@
 //   - «возможно да» — если все k бит стоят (может быть ложным срабатыванием).
 //
 // Подсказка: k позиций удобно получить из ДВУХ хешей приёмом
-// Кирша — Мицендмахера: p_i = (h1 + i*h2) % m. Возьмите, например,
+// Кирша — Мицендмахера: p_i = (h1 + i*h2) % m. Возьми, например,
 // hash/fnv (fnv.New64a и fnv.New64) для двух независимых хешей.
 package probabilistic
 
@@ -25,16 +25,16 @@ type Bloom struct {
 
 // NewBloom создаёт фильтр на m бит с k хеш-функциями.
 func NewBloom(m, k uint) *Bloom {
-	panic("TODO: реализуйте NewBloom — выделите битовый массив на m бит")
+	panic("TODO: реализуй NewBloom — выдели битовый массив на m бит")
 }
 
 // Add добавляет элемент: ставит в 1 все k его бит.
 func (b *Bloom) Add(data []byte) {
-	panic("TODO: реализуйте Add — зажгите k бит по k хешам")
+	panic("TODO: реализуй Add — зажги k бит по k хешам")
 }
 
 // MightContain возвращает false, если элемента ТОЧНО не было,
 // и true, если он ВОЗМОЖНО был (либо ложное срабатывание).
 func (b *Bloom) MightContain(data []byte) bool {
-	panic("TODO: реализуйте MightContain — верните false на первом нулевом бите")
+	panic("TODO: реализуй MightContain — верни false на первом нулевом бите")
 }

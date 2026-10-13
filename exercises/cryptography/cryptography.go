@@ -4,7 +4,7 @@
 // расширенный Евклид, обратный элемент по модулю, тест Миллера — Рабина и RSA.
 // Теория и разбор — в книге: ../../src/cryptography.md
 //
-// Реализуйте функции ниже, затем запустите тесты:
+// Реализуй функции ниже, затем запусти тесты:
 //
 //	go test ./cryptography/
 //
@@ -14,7 +14,7 @@
 //	go test -tags solution ./cryptography/
 //
 // ВНИМАНИЕ: это учебные реализации для понимания математики. В продакшене
-// НИКОГДА не пишите криптографию сами — используйте пакет crypto/* stdlib.
+// НИКОГДА не пиши криптографию сами — используй пакет crypto/* stdlib.
 package cryptography
 
 // ExtendedGCD возвращает (g, x, y), где g = НОД(a, b), а x, y удовлетворяют
@@ -24,10 +24,10 @@ package cryptography
 //
 // Ожидаемая сложность: O(log(min(a, b))).
 func ExtendedGCD(a, b int) (g, x, y int) {
-	// TODO: итеративный расширенный Евклид. Держите две тройки коэффициентов
+	// TODO: итеративный расширенный Евклид. Держи две тройки коэффициентов
 	// (old_r,r), (old_s,s), (old_t,t); на каждом шаге q = old_r/r и
 	// (old, cur) = (cur, old - q*cur) для каждой из трёх пар. Ответ — old_*.
-	panic("TODO: реализуйте ExtendedGCD")
+	panic("TODO: реализуй ExtendedGCD")
 }
 
 // ModInverse возвращает обратный к a по модулю m — такое x в [0, m), что
@@ -38,9 +38,9 @@ func ExtendedGCD(a, b int) (g, x, y int) {
 //
 // Ожидаемая сложность: O(log m).
 func ModInverse(a, m int) (inv int, ok bool) {
-	// TODO: приведите a к [0, m); через ExtendedGCD получите g, x. Если g != 1 —
-	// обратного нет. Иначе верните ((x % m) + m) % m.
-	panic("TODO: реализуйте ModInverse")
+	// TODO: приведи a к [0, m); через ExtendedGCD получи g, x. Если g != 1 —
+	// обратного нет. Иначе верни ((x % m) + m) % m.
+	panic("TODO: реализуй ModInverse")
 }
 
 // ModExp возвращает (base^exp) mod m методом быстрого возведения в степень.
@@ -52,7 +52,7 @@ func ModInverse(a, m int) (inv int, ok bool) {
 func ModExp(base, exp, m int) int {
 	// TODO: бинарное возведение по модулю. result=1%m, base%=m; пока exp>0:
 	// при младшем бите result=result*base%m; затем base=base*base%m, exp>>=1.
-	panic("TODO: реализуйте ModExp")
+	panic("TODO: реализуй ModExp")
 }
 
 // IsProbablePrime сообщает, простое ли n, по тесту Миллера — Рабина с
@@ -65,11 +65,11 @@ func ModExp(base, exp, m int) int {
 //
 // Ожидаемая сложность: O(k·log³n), где k — число свидетелей.
 func IsProbablePrime(n int) bool {
-	// TODO: отсеките n < 2, малые простые и чётные. Разложите n-1 = d·2^s (d нечётно).
+	// TODO: отсеки n < 2, малые простые и чётные. Разложи n-1 = d·2^s (d нечётно).
 	// Для каждого свидетеля a < n: x = ModExp(a, d, n); если x==1 или x==n-1 —
-	// свидетель не уличает. Иначе возведите в квадрат s-1 раз, ища n-1; если не
+	// свидетель не уличает. Иначе возведи в квадрат s-1 раз, ища n-1; если не
 	// нашли — n составное. Прошли всех свидетелей — n простое.
-	panic("TODO: реализуйте IsProbablePrime")
+	panic("TODO: реализуй IsProbablePrime")
 }
 
 // RSAPrivateExponent вычисляет закрытую экспоненту d по открытой e и простым
@@ -80,8 +80,8 @@ func IsProbablePrime(n int) bool {
 //
 // Ожидаемая сложность: O(log φ).
 func RSAPrivateExponent(e, p, q int) (d int, ok bool) {
-	// TODO: φ = (p-1)*(q-1); верните ModInverse(e, φ).
-	panic("TODO: реализуйте RSAPrivateExponent")
+	// TODO: φ = (p-1)*(q-1); верни ModInverse(e, φ).
+	panic("TODO: реализуй RSAPrivateExponent")
 }
 
 // RSAEncrypt шифрует сообщение m открытым ключом (e, n): c = m^e mod n.
@@ -90,7 +90,7 @@ func RSAPrivateExponent(e, p, q int) (d int, ok bool) {
 // Ожидаемая сложность: O(log e).
 func RSAEncrypt(m, e, n int) int {
 	// TODO: это ровно ModExp(m, e, n).
-	panic("TODO: реализуйте RSAEncrypt")
+	panic("TODO: реализуй RSAEncrypt")
 }
 
 // RSADecrypt расшифровывает шифртекст c закрытым ключом (d, n): m = c^d mod n.
@@ -99,5 +99,5 @@ func RSAEncrypt(m, e, n int) int {
 // Ожидаемая сложность: O(log d).
 func RSADecrypt(c, d, n int) int {
 	// TODO: это ровно ModExp(c, d, n).
-	panic("TODO: реализуйте RSADecrypt")
+	panic("TODO: реализуй RSADecrypt")
 }

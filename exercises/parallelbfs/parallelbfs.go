@@ -3,7 +3,7 @@
 // Package parallelbfs — BFS по уровням: сначала синхронно, затем конкурентно.
 // Теория — в книге: ../../src/graphs.md (раздел «Конкурентный BFS»).
 //
-//	go test ./parallelbfs/                        # ваши решения (красные)
+//	go test ./parallelbfs/                        # твои решения (красные)
 //	go test -tags solution ./parallelbfs/         # эталон (зелёные)
 //	go test -tags solution -race ./parallelbfs/   # проверка на гонки данных
 //
@@ -19,7 +19,7 @@ func BFSLevelsSeq(adj [][]int, start int) [][]int {
 	// TODO: классический BFS волной; на каждой итерации текущий фронт —
 	// очередной уровень (отсортируй его), затем собери следующий фронт из
 	// непосещённых соседей.
-	panic("TODO: реализуйте последовательный BFS по уровням")
+	panic("TODO: реализуй последовательный BFS по уровням")
 }
 
 // BFSLevelsConc — тот же BFS, но соседи каждого уровня обрабатываются
@@ -30,7 +30,7 @@ func BFSLevelsConc(adj [][]int, start int) [][]int {
 	// TODO: та же волна, но на каждом уровне запусти по горутине на вершину
 	// фронта; внутри — захвати mutex вокруг проверки-и-пометки visited и
 	// добавления в следующий фронт. Дождись всех (WaitGroup) перед переходом.
-	panic("TODO: реализуйте конкурентный BFS по уровням (синхронизируйте visited)")
+	panic("TODO: реализуй конкурентный BFS по уровням (синхронизируй visited)")
 }
 
 // BFSLevelsConcLocal — масштабируемый вариант без мьютекса на горячем пути:
@@ -42,5 +42,5 @@ func BFSLevelsConcLocal(adj [][]int, start int) [][]int {
 	// TODO: visited — []int32; застолбить v через atomic.CompareAndSwapInt32
 	// (&visited[v], 0, 1) — кто выиграл CAS, тот кладёт v в свой локальный срез;
 	// после WaitGroup слей локальные срезы в следующий фронт.
-	panic("TODO: реализуйте BFSLevelsConcLocal (atomic CAS + локальные фронты)")
+	panic("TODO: реализуй BFSLevelsConcLocal (atomic CAS + локальные фронты)")
 }

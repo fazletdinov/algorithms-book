@@ -3,7 +3,7 @@
 // Package fastslow — задачи на шаблон «Быстрые и медленные указатели».
 // Теория паттерна — в книге: ../../src/fast-slow-pointers.md
 //
-//	go test ./fastslow/                 # ваши решения
+//	go test ./fastslow/                 # твои решения
 //	go test -tags solution ./fastslow/  # эталон
 package fastslow
 
@@ -13,9 +13,9 @@ package fastslow
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func HasCycle(head *ListNode) bool {
-	// TODO: ведите два указателя — slow (на 1 шаг) и fast (на 2 шага);
+	// TODO: веди два указателя — slow (на 1 шаг) и fast (на 2 шага);
 	// если они встретятся — цикл есть, если fast дойдёт до nil — цикла нет.
-	panic("TODO: реализуйте HasCycle")
+	panic("TODO: реализуй HasCycle")
 }
 
 // DetectCycle возвращает узел, с которого начинается цикл, либо nil, если цикла нет.
@@ -24,9 +24,9 @@ func HasCycle(head *ListNode) bool {
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func DetectCycle(head *ListNode) *ListNode {
-	// TODO: сначала найдите точку встречи slow/fast; затем переставьте один
-	// указатель в head и двигайте оба по шагу — встретятся в начале цикла.
-	panic("TODO: реализуйте DetectCycle")
+	// TODO: сначала найди точку встречи slow/fast; затем переставь один
+	// указатель в head и двигай оба по шагу — встретятся в начале цикла.
+	panic("TODO: реализуй DetectCycle")
 }
 
 // MiddleNode возвращает средний узел списка. Для чётной длины возвращается
@@ -36,9 +36,9 @@ func DetectCycle(head *ListNode) *ListNode {
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func MiddleNode(head *ListNode) *ListNode {
-	// TODO: двигайте slow на 1 шаг, fast на 2; когда fast дойдёт до конца,
+	// TODO: двигай slow на 1 шаг, fast на 2; когда fast дойдёт до конца,
 	// slow окажется на середине.
-	panic("TODO: реализуйте MiddleNode")
+	panic("TODO: реализуй MiddleNode")
 }
 
 // IsHappyNumber сообщает, является ли число счастливым. Счастливое число — это
@@ -53,11 +53,11 @@ func MiddleNode(head *ListNode) *ListNode {
 //
 // Ожидаемая сложность: O(log n) на шаг и O(1) по памяти.
 func IsHappyNumber(n int) bool {
-	// TODO: заведите функцию «следующего числа» (сумма квадратов цифр);
-	// ведите slow на 1 шаг и fast на 2 шага по этой последовательности.
+	// TODO: заведи функцию «следующего числа» (сумма квадратов цифр);
+	// веди slow на 1 шаг и fast на 2 шага по этой последовательности.
 	// Если fast достигнет 1 — число счастливое; если slow == fast (не 1) —
 	// нашли цикл, значит число несчастливое.
-	panic("TODO: реализуйте IsHappyNumber")
+	panic("TODO: реализуй IsHappyNumber")
 }
 
 // CycleLength возвращает длину цикла в списке, либо 0, если цикла нет.
@@ -67,7 +67,7 @@ func IsHappyNumber(n int) bool {
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func CycleLength(head *ListNode) int {
-	// TODO: найдите точку встречи slow/fast; затем зафиксируйте один указатель
-	// и пройдите по циклу, считая шаги до возврата в ту же точку.
-	panic("TODO: реализуйте CycleLength")
+	// TODO: найди точку встречи slow/fast; затем зафиксируй один указатель
+	// и пройди по циклу, считая шаги до возврата в ту же точку.
+	panic("TODO: реализуй CycleLength")
 }

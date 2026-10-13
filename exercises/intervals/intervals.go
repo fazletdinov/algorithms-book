@@ -3,7 +3,7 @@
 // Package intervals — задачи на шаблон «Слияние интервалов».
 // Теория паттерна — в книге: ../../src/merge-intervals.md
 //
-//	go test ./intervals/                 # ваши решения
+//	go test ./intervals/                 # твои решения
 //	go test -tags solution ./intervals/  # эталон
 package intervals
 
@@ -15,9 +15,9 @@ package intervals
 //
 // Ожидаемая сложность: O(n log n) по времени.
 func MergeIntervals(intervals [][]int) [][]int {
-	// TODO: отсортируйте интервалы по началу, затем проходите по ним,
+	// TODO: отсортируй интервалы по началу, затем проходи по ним,
 	// сливая текущий со следующим, когда next.start <= cur.end.
-	panic("TODO: реализуйте MergeIntervals")
+	panic("TODO: реализуй MergeIntervals")
 }
 
 // InsertInterval вставляет newInterval в уже отсортированный по началу и
@@ -28,9 +28,9 @@ func MergeIntervals(intervals [][]int) [][]int {
 //
 // Ожидаемая сложность: O(n) по времени.
 func InsertInterval(intervals [][]int, newInterval []int) [][]int {
-	// TODO: скопируйте интервалы, идущие до newInterval; слейте все
-	// пересекающиеся с newInterval; добавьте оставшиеся интервалы.
-	panic("TODO: реализуйте InsertInterval")
+	// TODO: скопируй интервалы, идущие до newInterval; слей все
+	// пересекающиеся с newInterval; добавь оставшиеся интервалы.
+	panic("TODO: реализуй InsertInterval")
 }
 
 // IntervalsIntersection возвращает пересечения двух списков интервалов a и b.
@@ -42,10 +42,10 @@ func InsertInterval(intervals [][]int, newInterval []int) [][]int {
 //
 // Ожидаемая сложность: O(n + m) по времени.
 func IntervalsIntersection(a, b [][]int) [][]int {
-	// TODO: идите двумя указателями по a и b; пересечение —
+	// TODO: иди двумя указателями по a и b; пересечение —
 	// [max(start), min(end)], оно валидно при max(start) <= min(end);
-	// сдвигайте указатель того интервала, что заканчивается раньше.
-	panic("TODO: реализуйте IntervalsIntersection")
+	// сдвигай указатель того интервала, что заканчивается раньше.
+	panic("TODO: реализуй IntervalsIntersection")
 }
 
 // CanAttendAllMeetings сообщает, можно ли посетить все встречи без наложений.
@@ -56,9 +56,9 @@ func IntervalsIntersection(a, b [][]int) [][]int {
 //
 // Ожидаемая сложность: O(n log n) по времени.
 func CanAttendAllMeetings(intervals [][]int) bool {
-	// TODO: отсортируйте встречи по началу; если у соседних
-	// next.start < cur.end — есть наложение, верните false.
-	panic("TODO: реализуйте CanAttendAllMeetings")
+	// TODO: отсортируй встречи по началу; если у соседних
+	// next.start < cur.end — есть наложение, верни false.
+	panic("TODO: реализуй CanAttendAllMeetings")
 }
 
 // MinMeetingRooms возвращает минимальное число переговорок, нужных, чтобы
@@ -70,8 +70,8 @@ func CanAttendAllMeetings(intervals [][]int) bool {
 //
 // Ожидаемая сложность: O(n log n) по времени.
 func MinMeetingRooms(intervals [][]int) int {
-	// TODO: отсортируйте отдельно начала и концы; идите двумя указателями,
-	// при каждом начале до ближайшего конца занимайте комнату, иначе
-	// освобождайте; ответ — максимум одновременно занятых комнат.
-	panic("TODO: реализуйте MinMeetingRooms")
+	// TODO: отсортируй отдельно начала и концы; иди двумя указателями,
+	// при каждом начале до ближайшего конца занимай комнату, иначе
+	// освобождай; ответ — максимум одновременно занятых комнат.
+	panic("TODO: реализуй MinMeetingRooms")
 }

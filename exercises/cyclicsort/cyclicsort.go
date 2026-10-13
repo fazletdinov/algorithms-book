@@ -3,7 +3,7 @@
 // Package cyclicsort — задачи на шаблон «Циклическая сортировка».
 // Теория паттерна — в книге: ../../src/cyclic-sort.md
 //
-//	go test ./cyclicsort/                 # ваши решения
+//	go test ./cyclicsort/                 # твои решения
 //	go test -tags solution ./cyclicsort/  # эталон
 package cyclicsort
 
@@ -12,9 +12,9 @@ package cyclicsort
 //
 // Пример: [3,1,5,4,2] -> [1,2,3,4,5].
 func CyclicSort(nums []int) {
-	// TODO: значение v должно стоять на индексе v-1; меняйте местами,
+	// TODO: значение v должно стоять на индексе v-1; меняй местами,
 	// пока элемент не окажется на своём месте.
-	panic("TODO: реализуйте CyclicSort")
+	panic("TODO: реализуй CyclicSort")
 }
 
 // FindMissingNumber принимает массив из n различных чисел, взятых из
@@ -25,9 +25,9 @@ func CyclicSort(nums []int) {
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func FindMissingNumber(nums []int) int {
-	// TODO: разложите числа по местам (v -> индекс v), затем найдите
+	// TODO: разложи числа по местам (v -> индекс v), затем найди
 	// первый индекс i, где nums[i] != i.
-	panic("TODO: реализуйте FindMissingNumber")
+	panic("TODO: реализуй FindMissingNumber")
 }
 
 // FindAllMissingNumbers принимает массив длины n, содержащий числа из
@@ -38,9 +38,9 @@ func FindMissingNumber(nums []int) int {
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти (без учёта результата).
 func FindAllMissingNumbers(nums []int) []int {
-	// TODO: разложите число x на индекс x-1 циклической сортировкой; затем
+	// TODO: разложи число x на индекс x-1 циклической сортировкой; затем
 	// каждый индекс i, где nums[i] != i+1, даёт отсутствующее число i+1.
-	panic("TODO: реализуйте FindAllMissingNumbers")
+	panic("TODO: реализуй FindAllMissingNumbers")
 }
 
 // FindDuplicate принимает n+1 чисел из диапазона [1, n], где ровно одно
@@ -50,9 +50,9 @@ func FindAllMissingNumbers(nums []int) []int {
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func FindDuplicate(nums []int) int {
-	// TODO: ставьте число x на индекс x-1; если целевая позиция уже занята
+	// TODO: ставь число x на индекс x-1; если целевая позиция уже занята
 	// таким же значением — это дубликат.
-	panic("TODO: реализуйте FindDuplicate")
+	panic("TODO: реализуй FindDuplicate")
 }
 
 // FindAllDuplicates принимает массив длины n с числами из диапазона [1, n],
@@ -63,8 +63,8 @@ func FindDuplicate(nums []int) int {
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти (без учёта результата).
 func FindAllDuplicates(nums []int) []int {
-	// TODO: разложите число x на индекс x-1; затем каждый индекс i, где
-	// nums[i] != i+1, содержит дубликат nums[i] — соберите такие значения
-	// и отсортируйте для вывода по возрастанию.
-	panic("TODO: реализуйте FindAllDuplicates")
+	// TODO: разложи число x на индекс x-1; затем каждый индекс i, где
+	// nums[i] != i+1, содержит дубликат nums[i] — собери такие значения
+	// и отсортируй для вывода по возрастанию.
+	panic("TODO: реализуй FindAllDuplicates")
 }

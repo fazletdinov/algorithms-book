@@ -3,7 +3,7 @@
 // Package dp — задачи на динамическое программирование.
 // Теория паттерна — в книге: ../../src/dynamic-programming.md
 //
-//	go test ./dp/                 # ваши решения
+//	go test ./dp/                 # твои решения
 //	go test -tags solution ./dp/  # эталон
 package dp
 
@@ -21,7 +21,7 @@ package dp
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func ClimbStairs(n int) int {
 	// TODO: dp[i] = dp[i-1] + dp[i-2]; достаточно двух переменных.
-	panic("TODO: реализуйте ClimbStairs")
+	panic("TODO: реализуй ClimbStairs")
 }
 
 // CoinChange возвращает минимальное число монет номиналами coins, дающих в
@@ -33,7 +33,7 @@ func ClimbStairs(n int) int {
 // Ожидаемая сложность: O(amount · len(coins)).
 func CoinChange(coins []int, amount int) int {
 	// TODO: dp[a] = min по монетам c (dp[a-c] + 1); dp[0] = 0.
-	panic("TODO: реализуйте CoinChange")
+	panic("TODO: реализуй CoinChange")
 }
 
 // LongestCommonSubsequence возвращает длину наибольшей общей
@@ -45,7 +45,7 @@ func CoinChange(coins []int, amount int) int {
 func LongestCommonSubsequence(a, b string) int {
 	// TODO: 2D-таблица dp[i][j]; при совпадении символов — диагональ+1,
 	// иначе — максимум из двух соседних состояний.
-	panic("TODO: реализуйте LongestCommonSubsequence")
+	panic("TODO: реализуй LongestCommonSubsequence")
 }
 
 // EditDistance возвращает минимальное число операций (вставка, удаление,
@@ -57,7 +57,7 @@ func LongestCommonSubsequence(a, b string) int {
 func EditDistance(a, b string) int {
 	// TODO: dp[i][j] — расстояние между префиксами; база dp[i][0]=i,
 	// dp[0][j]=j; при несовпадении символов берём 1 + минимум из трёх соседей.
-	panic("TODO: реализуйте EditDistance")
+	panic("TODO: реализуй EditDistance")
 }
 
 // LongestIncreasingSubsequence возвращает длину наибольшей строго
@@ -67,9 +67,9 @@ func EditDistance(a, b string) int {
 //
 // Ожидаемая сложность: O(n log n) (или O(n²) простым ДП).
 func LongestIncreasingSubsequence(nums []int) int {
-	// TODO: ведите массив tails, где tails[k] — наименьший возможный «хвост»
-	// возрастающей подпоследовательности длины k+1; обновляйте бинарным поиском.
-	panic("TODO: реализуйте LongestIncreasingSubsequence")
+	// TODO: веди массив tails, где tails[k] — наименьший возможный «хвост»
+	// возрастающей подпоследовательности длины k+1; обновляй бинарным поиском.
+	panic("TODO: реализуй LongestIncreasingSubsequence")
 }
 
 // Knapsack01 решает задачу о рюкзаке 0/1: максимальная суммарная ценность
@@ -80,9 +80,9 @@ func LongestIncreasingSubsequence(nums []int) int {
 //
 // Ожидаемая сложность: O(n · capacity).
 func Knapsack01(weights, values []int, capacity int) int {
-	// TODO: 1D-массив dp[w]; для каждого предмета идите по w СВЕРХУ ВНИЗ
+	// TODO: 1D-массив dp[w]; для каждого предмета иди по w СВЕРХУ ВНИЗ
 	// (от capacity к weights[i]), чтобы не взять предмет повторно.
-	panic("TODO: реализуйте Knapsack01")
+	panic("TODO: реализуй Knapsack01")
 }
 
 // HouseRobber возвращает максимальную сумму, которую можно набрать из nums,
@@ -93,7 +93,7 @@ func Knapsack01(weights, values []int, capacity int) int {
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func HouseRobber(nums []int) int {
 	// TODO: dp[i] = max(dp[i-1], dp[i-2] + nums[i]); достаточно двух переменных.
-	panic("TODO: реализуйте HouseRobber")
+	panic("TODO: реализуй HouseRobber")
 }
 
 // UniquePaths возвращает число путей из левого верхнего в правый нижний угол
@@ -104,7 +104,7 @@ func HouseRobber(nums []int) int {
 // Ожидаемая сложность: O(m · n) по времени, O(n) по памяти.
 func UniquePaths(m, n int) int {
 	// TODO: 1D-массив dp[j]; dp[j] += dp[j-1], начальная строка из единиц.
-	panic("TODO: реализуйте UniquePaths")
+	panic("TODO: реализуй UniquePaths")
 }
 
 // WordBreak сообщает, можно ли разбить строку s на последовательность слов из
@@ -117,6 +117,6 @@ func UniquePaths(m, n int) int {
 // Ожидаемая сложность: O(len(s)² · k), где k — стоимость сравнения слова.
 func WordBreak(s string, dict []string) bool {
 	// TODO: dp[i] — можно ли разбить префикс s[:i]; dp[0]=true; для каждого i
-	// ищите j<i такой, что dp[j] && s[j:i] есть в словаре.
-	panic("TODO: реализуйте WordBreak")
+	// ищи j<i такой, что dp[j] && s[j:i] есть в словаре.
+	panic("TODO: реализуй WordBreak")
 }

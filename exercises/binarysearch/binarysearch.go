@@ -3,7 +3,7 @@
 // Package binarysearch — задачи на шаблон «Модифицированный бинарный поиск».
 // Теория паттерна — в книге: ../../src/modified-binary-search.md
 //
-//	go test ./binarysearch/                 # ваши решения
+//	go test ./binarysearch/                 # твои решения
 //	go test -tags solution ./binarysearch/  # эталон
 package binarysearch
 
@@ -14,7 +14,7 @@ package binarysearch
 func Search(arr []int, target int) int {
 	// TODO: классический бинарный поиск; mid := low + (high-low)/2,
 	// чтобы избежать переполнения.
-	panic("TODO: реализуйте Search")
+	panic("TODO: реализуй Search")
 }
 
 // FindCeiling возвращает индекс наименьшего элемента, который >= key
@@ -26,7 +26,7 @@ func Search(arr []int, target int) int {
 // Ожидаемая сложность: O(log n).
 func FindCeiling(arr []int, key int) int {
 	// TODO: вариант бинарного поиска — после цикла low указывает на потолок.
-	panic("TODO: реализуйте FindCeiling")
+	panic("TODO: реализуй FindCeiling")
 }
 
 // FindFloor возвращает индекс наибольшего элемента, который <= target
@@ -39,7 +39,7 @@ func FindCeiling(arr []int, key int) int {
 // Ожидаемая сложность: O(log n).
 func FindFloor(arr []int, target int) int {
 	// TODO: вариант бинарного поиска — после цикла high указывает на пол.
-	panic("TODO: реализуйте FindFloor")
+	panic("TODO: реализуй FindFloor")
 }
 
 // SearchRotated возвращает индекс target в повёрнутом отсортированном массиве
@@ -50,9 +50,9 @@ func FindFloor(arr []int, target int) int {
 //
 // Ожидаемая сложность: O(log n).
 func SearchRotated(arr []int, target int) int {
-	// TODO: на каждом шаге одна из половин отсортирована; определите её через
-	// arr[low] <= arr[mid] и ищите target в отсортированной половине.
-	panic("TODO: реализуйте SearchRotated")
+	// TODO: на каждом шаге одна из половин отсортирована; определи её через
+	// arr[low] <= arr[mid] и ищи target в отсортированной половине.
+	panic("TODO: реализуй SearchRotated")
 }
 
 // FindFirstLast возвращает срез [первый, последний] из индексов первого и
@@ -64,9 +64,9 @@ func SearchRotated(arr []int, target int) int {
 //
 // Ожидаемая сложность: O(log n).
 func FindFirstLast(arr []int, target int) []int {
-	// TODO: два бинарных поиска — для первого вхождения при равенстве двигайте
+	// TODO: два бинарных поиска — для первого вхождения при равенстве двигай
 	// right влево, для последнего — left вправо.
-	panic("TODO: реализуйте FindFirstLast")
+	panic("TODO: реализуй FindFirstLast")
 }
 
 // IntSqrt возвращает floor(sqrt(x)) — наибольшее целое m, такое что m*m <= x.
@@ -76,6 +76,6 @@ func FindFirstLast(arr []int, target int) []int {
 //
 // Ожидаемая сложность: O(log x).
 func IntSqrt(x int) int {
-	// TODO: бинарный поиск по ответу в диапазоне [0, x]; сравнивайте mid*mid с x.
-	panic("TODO: реализуйте IntSqrt")
+	// TODO: бинарный поиск по ответу в диапазоне [0, x]; сравнивай mid*mid с x.
+	panic("TODO: реализуй IntSqrt")
 }

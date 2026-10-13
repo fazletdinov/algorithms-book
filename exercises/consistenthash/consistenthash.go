@@ -5,7 +5,7 @@
 // очередей: остаток от деления против кольца с виртуальными узлами и jump hash.
 // Теория и замеры — в книге: ../../src/consistent-hashing.md
 //
-//	go test ./consistenthash/                 # ваши решения
+//	go test ./consistenthash/                 # твои решения
 //	go test -tags solution ./consistenthash/  # эталон
 //
 // Готовое (не задача) — в hash.go: HashKey, HashKey64 и наивный ModShard,
@@ -14,15 +14,15 @@ package consistenthash
 
 // Ring — кольцо консистентного хеширования с виртуальными узлами.
 type Ring struct {
-	// TODO: ваши поля. Подсказка: число реплик; отсортированный срез точек
+	// TODO: твои поля. Подсказка: число реплик; отсортированный срез точек
 	// {хеш, узел}; множество добавленных узлов (чтобы Add был идемпотентным).
 }
 
 // NewRing создаёт пустое кольцо, где у каждого узла replicas виртуальных узлов.
 // replicas < 1 считается как 1.
 func NewRing(replicas int) *Ring {
-	// TODO: верните пустое кольцо с запомненным числом реплик.
-	panic("TODO: реализуйте NewRing")
+	// TODO: верни пустое кольцо с запомненным числом реплик.
+	panic("TODO: реализуй NewRing")
 }
 
 // Add добавляет узлы на кольцо. Узел, который уже есть, добавляется повторно
@@ -33,15 +33,15 @@ func NewRing(replicas int) *Ring {
 // replicas-1. Точки на кольце упорядочены по хешу, а при равных хешах — по
 // имени узла.
 func (r *Ring) Add(nodes ...string) {
-	// TODO: для каждого нового узла добавьте его replicas точек и держите срез
+	// TODO: для каждого нового узла добавь его replicas точек и держи срез
 	// точек отсортированным.
-	panic("TODO: реализуйте Add")
+	panic("TODO: реализуй Add")
 }
 
 // Remove убирает узел со всеми его виртуальными точками. Неизвестный узел — no-op.
 func (r *Ring) Remove(node string) {
-	// TODO: удалите точки узла; порядок оставшихся не меняется.
-	panic("TODO: реализуйте Remove")
+	// TODO: удали точки узла; порядок оставшихся не меняется.
+	panic("TODO: реализуй Remove")
 }
 
 // Get возвращает узел, которому принадлежит ключ: первую по часовой стрелке точку
@@ -51,7 +51,7 @@ func (r *Ring) Remove(node string) {
 // Ожидаемая сложность: O(log(N·V)) на запрос, где N — число узлов, V — реплик.
 func (r *Ring) Get(key string) string {
 	// TODO: бинарный поиск по отсортированным точкам + переход через ноль.
-	panic("TODO: реализуйте Get")
+	panic("TODO: реализуй Get")
 }
 
 // MovedFraction возвращает долю ключей, которые сменили владельца при переходе
@@ -62,8 +62,8 @@ func (r *Ring) Get(key string) string {
 // Пример: при before = ModShard на 10 узлах и after = ModShard на 11 доля
 // около 0.9 — остаток от деления перетасовывает почти всё.
 func MovedFraction(keys []string, before, after func(string) string) float64 {
-	// TODO: посчитайте ключи, у которых before(k) != after(k).
-	panic("TODO: реализуйте MovedFraction")
+	// TODO: посчитай ключи, у которых before(k) != after(k).
+	panic("TODO: реализуй MovedFraction")
 }
 
 // JumpHash — консистентный хеш Lamping и Veach (Google, 2014): номер корзины от 0
@@ -79,5 +79,5 @@ func MovedFraction(keys []string, before, after func(string) string) float64 {
 // Ожидаемая сложность: O(log buckets) по времени, O(1) по памяти.
 func JumpHash(key uint64, buckets int) int {
 	// TODO: цикл «прыжков», пока следующий номер не выйдет за buckets.
-	panic("TODO: реализуйте JumpHash")
+	panic("TODO: реализуй JumpHash")
 }

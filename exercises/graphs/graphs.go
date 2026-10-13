@@ -3,7 +3,7 @@
 // Package graphs — задачи на шаблон «Обход графов».
 // Теория паттерна — в книге: ../../src/graphs.md
 //
-//	go test ./graphs/                 # ваши решения
+//	go test ./graphs/                 # твои решения
 //	go test -tags solution ./graphs/  # эталон
 package graphs
 
@@ -14,9 +14,9 @@ package graphs
 //
 // Ожидаемая сложность: O(V + E).
 func CountComponents(n int, edges [][]int) int {
-	// TODO: постройте список смежности, затем запускайте BFS/DFS из каждой
+	// TODO: построй список смежности, затем запускай BFS/DFS из каждой
 	// непосещённой вершины — число запусков и есть число компонент.
-	panic("TODO: реализуйте CountComponents")
+	panic("TODO: реализуй CountComponents")
 }
 
 // HasCycleUndirected сообщает, есть ли цикл в неориентированном графе с n
@@ -37,11 +37,11 @@ func CountComponents(n int, edges [][]int) int {
 //
 // Ожидаемая сложность: O(V + E).
 func HasCycleUndirected(n int, edges [][]int) bool {
-	// TODO: постройте список смежности, где у соседа записан и номер ребра; запускайте
+	// TODO: построй список смежности, где у соседа записан и номер ребра; запускай
 	// DFS из каждой непосещённой вершины, передавая номер ребра, по которому пришли.
-	// Ребро с этим номером пропустите, а любое другое в посещённую вершину — цикл.
+	// Ребро с этим номером пропусти, а любое другое в посещённую вершину — цикл.
 	// (Второй способ — Union-Find: оба конца ребра уже в одной компоненте.)
-	panic("TODO: реализуйте HasCycleUndirected")
+	panic("TODO: реализуй HasCycleUndirected")
 }
 
 // BFSOrder возвращает порядок обхода в ширину неориентированного графа с n
@@ -53,9 +53,9 @@ func HasCycleUndirected(n int, edges [][]int) bool {
 //
 // Ожидаемая сложность: O(V + E) (плюс O(E·log E) на сортировку соседей).
 func BFSOrder(n int, edges [][]int, start int) []int {
-	// TODO: постройте список смежности, отсортируйте соседей по возрастанию,
-	// затем обходите граф очередью, помечая вершину посещённой ПРИ добавлении.
-	panic("TODO: реализуйте BFSOrder")
+	// TODO: построй список смежности, отсортируй соседей по возрастанию,
+	// затем обходи граф очередью, помечая вершину посещённой ПРИ добавлении.
+	panic("TODO: реализуй BFSOrder")
 }
 
 // DFSOrder возвращает порядок обхода в глубину неориентированного графа с n
@@ -66,10 +66,10 @@ func BFSOrder(n int, edges [][]int, start int) []int {
 //
 // Ожидаемая сложность: O(V + E) (плюс O(E·log E) на сортировку соседей).
 func DFSOrder(n int, edges [][]int, start int) []int {
-	// TODO: постройте список смежности, отсортируйте соседей по возрастанию,
-	// затем рекурсивно (или стеком) обходите граф, добавляя вершину в порядок
+	// TODO: построй список смежности, отсортируй соседей по возрастанию,
+	// затем рекурсивно (или стеком) обходи граф, добавляя вершину в порядок
 	// при первом посещении.
-	panic("TODO: реализуйте DFSOrder")
+	panic("TODO: реализуй DFSOrder")
 }
 
 // ShortestPathUnweighted возвращает число рёбер в кратчайшем пути из src в dst
@@ -83,7 +83,7 @@ func DFSOrder(n int, edges [][]int, start int) []int {
 func ShortestPathUnweighted(n int, edges [][]int, src, dst int) int {
 	// TODO: BFS из src, отслеживая расстояние по уровням; первая встреча dst
 	// даёт кратчайшее число рёбер.
-	panic("TODO: реализуйте ShortestPathUnweighted")
+	panic("TODO: реализуй ShortestPathUnweighted")
 }
 
 // IsBipartite сообщает, является ли неориентированный граф с n вершинами
@@ -97,5 +97,5 @@ func ShortestPathUnweighted(n int, edges [][]int, src, dst int) int {
 func IsBipartite(n int, edges [][]int) bool {
 	// TODO: раскраска BFS/DFS из каждой непосещённой вершины; если сосед уже
 	// окрашен в тот же цвет, что и текущая вершина, граф не двудольный.
-	panic("TODO: реализуйте IsBipartite")
+	panic("TODO: реализуй IsBipartite")
 }

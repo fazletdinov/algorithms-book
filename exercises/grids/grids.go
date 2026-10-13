@@ -3,7 +3,7 @@
 // Package grids — задачи на обход двумерных сеток как графов.
 // Теория паттерна — в книге: ../../src/grids-and-shortest-paths.md
 //
-//	go test ./grids/                 # ваши решения
+//	go test ./grids/                 # твои решения
 //	go test -tags solution ./grids/  # эталон
 package grids
 
@@ -18,9 +18,9 @@ package grids
 //
 // Ожидаемая сложность: O(rows · cols).
 func NumIslands(grid [][]int) int {
-	// TODO: для каждой непосещённой клетки-суши увеличивайте счётчик и
-	// обходом (DFS/BFS) «затапливайте» весь остров, помечая клетки посещёнными.
-	panic("TODO: реализуйте NumIslands")
+	// TODO: для каждой непосещённой клетки-суши увеличивай счётчик и
+	// обходом (DFS/BFS) «затапливай» весь остров, помечая клетки посещёнными.
+	panic("TODO: реализуй NumIslands")
 }
 
 // MaxAreaOfIsland возвращает площадь (число клеток) наибольшего «острова» в
@@ -35,9 +35,9 @@ func NumIslands(grid [][]int) int {
 //
 // Ожидаемая сложность: O(rows · cols).
 func MaxAreaOfIsland(grid [][]int) int {
-	// TODO: для каждой непосещённой клетки-суши посчитайте площадь её острова
-	// обходом (DFS/BFS) и обновите максимум.
-	panic("TODO: реализуйте MaxAreaOfIsland")
+	// TODO: для каждой непосещённой клетки-суши посчитай площадь её острова
+	// обходом (DFS/BFS) и обнови максимум.
+	panic("TODO: реализуй MaxAreaOfIsland")
 }
 
 // FloodFill выполняет «заливку»: начиная с клетки (sr, sc), перекрашивает в
@@ -53,9 +53,9 @@ func MaxAreaOfIsland(grid [][]int) int {
 //
 // Ожидаемая сложность: O(rows · cols).
 func FloodFill(image [][]int, sr, sc, newColor int) [][]int {
-	// TODO: запомните исходный цвет; если он равен newColor — верните image без
-	// изменений. Иначе обходом (DFS/BFS) перекрасьте всю связную область.
-	panic("TODO: реализуйте FloodFill")
+	// TODO: запомни исходный цвет; если он равен newColor — верни image без
+	// изменений. Иначе обходом (DFS/BFS) перекрась всю связную область.
+	panic("TODO: реализуй FloodFill")
 }
 
 // RottingOranges возвращает число минут, за которое сгниют все свежие
@@ -71,9 +71,9 @@ func FloodFill(image [][]int, sr, sc, newColor int) [][]int {
 //
 // Ожидаемая сложность: O(rows · cols).
 func RottingOranges(grid [][]int) int {
-	// TODO: multi-source BFS — загрузите в очередь все гнилые апельсины, обходите
+	// TODO: multi-source BFS — загрузи в очередь все гнилые апельсины, обходи
 	// по уровням (минутам), считая оставшиеся свежие.
-	panic("TODO: реализуйте RottingOranges")
+	panic("TODO: реализуй RottingOranges")
 }
 
 // ShortestPathInBinaryMatrix возвращает длину (в КЛЕТКАХ) кратчайшего пути из
@@ -88,6 +88,6 @@ func RottingOranges(grid [][]int) int {
 // Ожидаемая сложность: O(rows · cols).
 func ShortestPathInBinaryMatrix(grid [][]int) int {
 	// TODO: BFS по 8 направлениям от (0,0); длина пути считается в клетках,
-	// поэтому стартовая клетка имеет длину 1. Проверьте, что старт/финиш свободны.
-	panic("TODO: реализуйте ShortestPathInBinaryMatrix")
+	// поэтому стартовая клетка имеет длину 1. Проверь, что старт/финиш свободны.
+	panic("TODO: реализуй ShortestPathInBinaryMatrix")
 }

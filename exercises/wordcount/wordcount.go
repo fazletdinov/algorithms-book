@@ -3,7 +3,7 @@
 // Package wordcount — подсчёт частот: синхронно и конкурентно (worker pool).
 // Теория — в книге: ../../src/top-k-elements.md (раздел «Конкурентный подсчёт»).
 //
-//	go test ./wordcount/                        # ваши решения (красные)
+//	go test ./wordcount/                        # твои решения (красные)
 //	go test -tags solution ./wordcount/         # эталон (зелёные)
 //	go test -tags solution -race ./wordcount/   # проверка на гонки
 //
@@ -16,7 +16,7 @@ package wordcount
 // FreqSeq возвращает карту «число → сколько раз встретилось».
 func FreqSeq(items []int) map[int]int {
 	// TODO: пройди срез, увеличивая m[x] для каждого x.
-	panic("TODO: реализуйте FreqSeq")
+	panic("TODO: реализуй FreqSeq")
 }
 
 // FreqConc — то же через пул воркеров: раздели items на чанки, посчитай частоты
@@ -25,5 +25,5 @@ func FreqSeq(items []int) map[int]int {
 func FreqConc(items []int) map[int]int {
 	// TODO: запусти несколько воркеров; каждый считает СВОЮ карту по своему
 	// чанку (без общей карты!); после WaitGroup слей локальные карты в итоговую.
-	panic("TODO: реализуйте FreqConc")
+	panic("TODO: реализуй FreqConc")
 }

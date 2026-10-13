@@ -1,6 +1,6 @@
 // Package treebfs — задачи на шаблон «Обход дерева в ширину».
 //
-//	go test ./treebfs/                 # ваши решения
+//	go test ./treebfs/                 # твои решения
 //	go test -tags solution ./treebfs/  # эталон
 //
 // Тип TreeNode объявлен здесь (без build-тега), чтобы он был доступен и в

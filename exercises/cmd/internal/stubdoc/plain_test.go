@@ -20,7 +20,7 @@ func TestPlainSlidingWindow(t *testing.T) {
 	if !strings.Contains(string(plain), want) {
 		t.Errorf("в Plain нет %q:\n%s", want, plain)
 	}
-	const body = "func MaxSumSubarray(arr []int, k int) int {\n\tpanic(\"TODO: реализуйте MaxSumSubarray\")\n}\n"
+	const body = "func MaxSumSubarray(arr []int, k int) int {\n\tpanic(\"TODO: реализуй MaxSumSubarray\")\n}\n"
 	if !strings.Contains(string(plain), body) {
 		t.Errorf("тело заготовки должно остаться одним panic(\"TODO…\"):\n%s", plain)
 	}

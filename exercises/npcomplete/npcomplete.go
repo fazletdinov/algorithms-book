@@ -5,13 +5,13 @@
 // берут приближение с доказуемой гарантией (Bin Packing, Vertex Cover).
 // Теория — в книге: ../../src/complexity-classes.md
 //
-//	go test ./npcomplete/                 # ваши решения
+//	go test ./npcomplete/                 # твои решения
 //	go test -tags solution ./npcomplete/  # эталон
 package npcomplete
 
 // VerifySubsetSum проверяет СЕРТИФИКАТ решения Subset Sum: chosen — индексы
 // в nums (без повторов, каждый в диапазоне [0, len(nums))), задающие
-// подмножество. Верните true, если сертификат корректен (индексы валидны и
+// подмножество. Верни true, если сертификат корректен (индексы валидны и
 // без повторов) И сумма выбранных элементов равна target. Некорректный
 // сертификат — false, а не паника: проверка должна быть безопасной для
 // любого чужого входа.
@@ -22,11 +22,11 @@ package npcomplete
 // Ожидаемая сложность: O(len(nums) + len(chosen)) — ровно то, что делает
 // задачу «проверяемой за полином» и потому принадлежащей классу NP.
 func VerifySubsetSum(nums []int, chosen []int, target int) bool {
-	// TODO: заведите []bool длины len(nums) под «индекс уже использован»;
-	// для каждого i из chosen проверьте 0<=i<len(nums) и !used[i], иначе
-	// сразу верните false; иначе used[i]=true и sum += nums[i]. В конце —
+	// TODO: заведи []bool длины len(nums) под «индекс уже использован»;
+	// для каждого i из chosen проверь 0<=i<len(nums) и !used[i], иначе
+	// сразу верни false; иначе used[i]=true и sum += nums[i]. В конце —
 	// sum == target.
-	panic("TODO: реализуйте VerifySubsetSum")
+	panic("TODO: реализуй VerifySubsetSum")
 }
 
 // SubsetSumExact сообщает, есть ли подмножество nums (неотрицательные числа),
@@ -41,7 +41,7 @@ func SubsetSumExact(nums []int, target int) bool {
 	// TODO: рекурсия «взять/не взять» nums[i], как hasSubsetSum в главе:
 	// на каждом шаге либо sum+nums[i], либо sum без него; отсечение —
 	// если sum уже превысил target, дальше не идём (числа неотрицательны).
-	panic("TODO: реализуйте SubsetSumExact")
+	panic("TODO: реализуй SubsetSumExact")
 }
 
 // FirstFitDecreasing раскладывает weights по корзинам вместимости cap
@@ -55,11 +55,11 @@ func SubsetSumExact(nums []int, target int) bool {
 // Ожидаемая сложность: O(n²) (n корзин, n весов). Это NP-трудный Bin Packing,
 // но FFD — доказуемое приближение ≤ 11/9·OPT + константа, не точный оптимум.
 func FirstFitDecreasing(weights []int, cap int) int {
-	// TODO: sort.SliceStable по убыванию (скопируйте срез — не мутируйте
+	// TODO: sort.SliceStable по убыванию (скопируй срез — не мутируй
 	// чужой вход); затем на каждый вес — линейный проход по срезу «остаток
 	// места» существующих корзин; не влезло никуда — append новой корзины
 	// с остатком cap-w.
-	panic("TODO: реализуйте FirstFitDecreasing")
+	panic("TODO: реализуй FirstFitDecreasing")
 }
 
 // VertexCoverGreedy2Approx возвращает вершинное покрытие графа на n вершинах
@@ -78,8 +78,8 @@ func FirstFitDecreasing(weights []int, cap int) int {
 // обязано взять хотя бы одну вершину на каждое ребро этого паросочетания.
 func VertexCoverGreedy2Approx(n int, edges [][2]int) []int {
 	// TODO: covered := make([]bool, n); для каждого [u,v] из edges — если
-	// !covered[u] && !covered[v], поставьте оба в true; в конце соберите
+	// !covered[u] && !covered[v], поставь оба в true; в конце собери
 	// индексы i с covered[i]==true в порядке возрастания i (сортировать не
-	// придётся — просто идите i от 0 до n-1).
-	panic("TODO: реализуйте VertexCoverGreedy2Approx")
+	// придётся — просто иди i от 0 до n-1).
+	panic("TODO: реализуй VertexCoverGreedy2Approx")
 }

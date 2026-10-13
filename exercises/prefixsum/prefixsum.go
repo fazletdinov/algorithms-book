@@ -3,7 +3,7 @@
 // Package prefixsum — задачи на шаблон «Префиксные суммы и разностные массивы».
 // Теория паттерна — в книге: ../../src/prefix-sums.md
 //
-//	go test ./prefixsum/                 # ваши решения
+//	go test ./prefixsum/                 # твои решения
 //	go test -tags solution ./prefixsum/  # эталон
 package prefixsum
 
@@ -16,9 +16,9 @@ package prefixsum
 //
 // Ожидаемая сложность: O(n + q) по времени — один предподсчёт, затем O(1) на запрос.
 func RangeSums(nums []int, queries [][2]int) []int {
-	// TODO: постройте prefix длиной n+1 (prefix[0] = 0, prefix[i+1] = prefix[i] + nums[i]);
+	// TODO: построй prefix длиной n+1 (prefix[0] = 0, prefix[i+1] = prefix[i] + nums[i]);
 	// сумма [l, r] — это prefix[r+1] - prefix[l].
-	panic("TODO: реализуйте RangeSums")
+	panic("TODO: реализуй RangeSums")
 }
 
 // CountSubarraysWithSum возвращает число непрерывных подмассивов nums, сумма
@@ -32,11 +32,11 @@ func RangeSums(nums []int, queries [][2]int) []int {
 //
 // Ожидаемая сложность: O(n) по времени.
 func CountSubarraysWithSum(nums []int, k int) int {
-	// TODO: идите слева направо с текущей префиксной суммой sum; подмассив,
+	// TODO: иди слева направо с текущей префиксной суммой sum; подмассив,
 	// заканчивающийся здесь, имеет сумму k ровно тогда, когда раньше встречался
-	// префикс sum-k. Храните в map, сколько раз встречался каждый префикс;
-	// не забудьте пустой префикс (сумма 0 встречена один раз до начала).
-	panic("TODO: реализуйте CountSubarraysWithSum")
+	// префикс sum-k. Храни в map, сколько раз встречался каждый префикс;
+	// не забудь пустой префикс (сумма 0 встречена один раз до начала).
+	panic("TODO: реализуй CountSubarraysWithSum")
 }
 
 // LongestBalanced возвращает длину самого длинного непрерывного подмассива
@@ -45,14 +45,14 @@ func CountSubarraysWithSum(nums []int, k int) int {
 //
 // Пример: [0,1,0] -> 2; [0,1,1,0,1,1,1,0] -> 4; [1,1,1] -> 0.
 //
-// Подсказка: замените 0 на -1 — «поровну» станет «сумма равна нулю».
+// Подсказка: замени 0 на -1 — «поровну» станет «сумма равна нулю».
 //
 // Ожидаемая сложность: O(n) по времени.
 func LongestBalanced(bits []int) int {
-	// TODO: ведите сумму (+1 за единицу, -1 за ноль) и запоминайте ПЕРВЫЙ индекс,
+	// TODO: веди сумму (+1 за единицу, -1 за ноль) и запоминай ПЕРВЫЙ индекс,
 	// на котором встретилась каждая сумма; повтор суммы на индексе i означает
 	// баланс на отрезке от первого вхождения до i.
-	panic("TODO: реализуйте LongestBalanced")
+	panic("TODO: реализуй LongestBalanced")
 }
 
 // CountDivisibleSubarrays возвращает число непрерывных подмассивов nums, сумма
@@ -63,9 +63,9 @@ func LongestBalanced(bits []int) int {
 // Ожидаемая сложность: O(n) по времени.
 func CountDivisibleSubarrays(nums []int, k int) int {
 	// TODO: разность двух префиксов делится на k, когда их остатки равны.
-	// Считайте, сколько раз встречался каждый остаток. Осторожно: в Go
+	// Считай, сколько раз встречался каждый остаток. Осторожно: в Go
 	// -2 % 5 == -2, а не 3 — остаток нужно привести к [0, k).
-	panic("TODO: реализуйте CountDivisibleSubarrays")
+	panic("TODO: реализуй CountDivisibleSubarrays")
 }
 
 // MaxSubarraySum возвращает наибольшую сумму непустого непрерывного подмассива
@@ -83,9 +83,9 @@ func CountDivisibleSubarrays(nums []int, k int) int {
 // Ожидаемая сложность: O(n) по времени и O(1) по памяти.
 func MaxSubarraySum(nums []int) int {
 	// TODO: сумма подмассива, кончающегося в j, — это prefix(j+1) минус какой-то
-	// более ранний префикс; лучший — минимальный из встреченных. Ведите текущую
+	// более ранний префикс; лучший — минимальный из встреченных. Веди текущую
 	// сумму и минимум префиксов до неё (это и есть алгоритм Кадане).
-	panic("TODO: реализуйте MaxSubarraySum")
+	panic("TODO: реализуй MaxSubarraySum")
 }
 
 // ProductExceptSelf для каждого i возвращает произведение всех элементов nums,
@@ -99,7 +99,7 @@ func ProductExceptSelf(nums []int) []int {
 	// TODO: ответ для i — произведение префикса слева от i на произведение
 	// суффикса справа от i. Первый проход слева направо кладёт в res префиксы,
 	// второй — справа налево домножает на суффикс, который копится в переменной.
-	panic("TODO: реализуйте ProductExceptSelf")
+	panic("TODO: реализуй ProductExceptSelf")
 }
 
 // ApplyRangeAdds применяет пачку прибавлений к массиву из n нулей и возвращает
@@ -113,7 +113,7 @@ func ProductExceptSelf(nums []int) []int {
 func ApplyRangeAdds(n int, updates [][3]int) []int {
 	// TODO: разностный массив diff длиной n+1: обновление — это diff[l] += delta
 	// и diff[r+1] -= delta; итоговые значения — префиксные суммы diff.
-	panic("TODO: реализуйте ApplyRangeAdds")
+	panic("TODO: реализуй ApplyRangeAdds")
 }
 
 // MatrixRegionSums отвечает на пачку запросов «сумма прямоугольника» в матрице.
@@ -129,5 +129,5 @@ func MatrixRegionSums(matrix [][]int, queries [][4]int) []int {
 	// TODO: P[i+1][j+1] — сумма прямоугольника от (0,0) до (i,j); строится как
 	// matrix[i][j] + P[i][j+1] + P[i+1][j] - P[i][j]. Ответ на запрос —
 	// включения-исключения: P[r2+1][c2+1] - P[r1][c2+1] - P[r2+1][c1] + P[r1][c1].
-	panic("TODO: реализуйте MatrixRegionSums")
+	panic("TODO: реализуй MatrixRegionSums")
 }

@@ -3,10 +3,10 @@
 // Package leaderboard — боевой мини-проект: топ-K и лидерборд.
 // Теория паттерна — в книге: ../../src/top-k-elements.md
 //
-//	go test ./leaderboard/                 # ваша реализация
+//	go test ./leaderboard/                 # твоя реализация
 //	go test -tags solution ./leaderboard/  # эталон
 //
-// Реализуйте ДВА подхода и сравните:
+// Реализуй ДВА подхода и сравни:
 //  1. TopK — min-куча размера K (паттерн главы): топ-K значений из потока;
 //  2. Leaderboard — то, что реально в проде (модель Redis Sorted Set):
 //     именованные участники, обновляемые очки, топ-N и ранг.
@@ -23,12 +23,12 @@ func NewTopK(k int) *TopK { return &TopK{k: k} }
 // Add добавляет значение потока: если в куче меньше k — кладём; иначе, если x
 // больше корня (наименьшего в топе), заменяем корень и просеиваем.
 func (t *TopK) Add(x int) {
-	panic("TODO: реализуйте Add")
+	panic("TODO: реализуй Add")
 }
 
 // Top возвращает текущие K наибольших значений по убыванию.
 func (t *TopK) Top() []int {
-	panic("TODO: реализуйте Top")
+	panic("TODO: реализуй Top")
 }
 
 // Leaderboard — упорядоченный набор участников с очками (модель Redis ZSET).
@@ -42,26 +42,26 @@ func NewLeaderboard() *Leaderboard { return &Leaderboard{score: make(map[string]
 
 // Set задаёт очки участнику (ZADD).
 func (l *Leaderboard) Set(member string, score int) {
-	panic("TODO: реализуйте Set")
+	panic("TODO: реализуй Set")
 }
 
 // Incr прибавляет delta к очкам участника (ZINCRBY) и возвращает новое значение.
 func (l *Leaderboard) Incr(member string, delta int) int {
-	panic("TODO: реализуйте Incr")
+	panic("TODO: реализуй Incr")
 }
 
 // Score возвращает очки участника (ZSCORE); ok=false, если его нет.
 func (l *Leaderboard) Score(member string) (int, bool) {
-	panic("TODO: реализуйте Score")
+	panic("TODO: реализуй Score")
 }
 
 // TopN возвращает первых n участников по убыванию очков (ZREVRANGE).
 // Тай-брейк: при равных очках — по имени лексикографически по возрастанию.
 func (l *Leaderboard) TopN(n int) []string {
-	panic("TODO: реализуйте TopN")
+	panic("TODO: реализуй TopN")
 }
 
 // Rank возвращает 0-based позицию участника сверху (ZREVRANK); -1, если его нет.
 func (l *Leaderboard) Rank(member string) int {
-	panic("TODO: реализуйте Rank")
+	panic("TODO: реализуй Rank")
 }

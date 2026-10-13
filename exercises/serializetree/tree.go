@@ -2,11 +2,11 @@
 // DFS (прямой обход) + парсинг (комбинация паттернов). Разбор — в книге:
 // ../../src/pattern-combinations.md (раздел «Serialize / Deserialize Binary Tree»).
 //
-//	go test ./serializetree/                 # ваши решения
+//	go test ./serializetree/                 # твои решения
 //	go test -tags solution ./serializetree/  # эталон
 //
 // Тип TreeNode и хелперы — без build-тега (общие для заготовки, эталона и тестов).
-// Реализуйте Serialize (дерево → строка) и Deserialize (строка → дерево) так, чтобы
+// Реализуй Serialize (дерево → строка) и Deserialize (строка → дерево) так, чтобы
 // Deserialize(Serialize(t)) давало исходное дерево. Подсказка: прямой обход
 // (корень, лево, право) с ЯВНЫМ маркером пустого узла — без него форму не восстановить.
 package serializetree

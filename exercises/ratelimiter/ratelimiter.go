@@ -3,10 +3,10 @@
 // Package ratelimiter — боевой мини-проект: два лимитера частоты запросов.
 // Теория паттерна — в книге: ../../src/sliding-window.md
 //
-//	go test ./ratelimiter/                 # ваша реализация
+//	go test ./ratelimiter/                 # твоя реализация
 //	go test -tags solution ./ratelimiter/  # эталон
 //
-// Реализуйте ДВА подхода и сравните:
+// Реализуй ДВА подхода и сравни:
 //  1. RateLimiter — sliding window log (паттерн главы): точный, память O(окна);
 //  2. TokenBucket — то, что реально в проде (модель golang.org/x/time/rate):
 //     терпит всплески, память O(1).
@@ -39,7 +39,7 @@ func (r *RateLimiter) Allow(clientID string, nowMs int64) bool {
 	//    карта растёт с числом когда-либо виденных клиентов, а не активных);
 	// 2) если оставшихся меньше limit — добавить nowMs в конец и вернуть true;
 	// 3) иначе вернуть false (лимит исчерпан).
-	panic("TODO: реализуйте Allow")
+	panic("TODO: реализуй Allow")
 }
 
 // RetryAfter возвращает, через сколько миллисекунд запрос от clientID снова
@@ -49,7 +49,7 @@ func (r *RateLimiter) RetryAfter(clientID string, nowMs int64) int64 {
 	// TODO: если в окне есть место — 0; иначе вычислить, когда из окна выйдет
 	// метка, стоящая limit-й с конца (после её ухода останется limit-1), и
 	// вернуть, сколько до этого ждать.
-	panic("TODO: реализуйте RetryAfter")
+	panic("TODO: реализуй RetryAfter")
 }
 
 // TokenBucket — лимитер на «ведре токенов» (модель golang.org/x/time/rate):
@@ -72,7 +72,7 @@ func (b *TokenBucket) Allow(nowMs int64) bool {
 	// TODO: 1) пополнить токены на прошедшее с прошлого вызова время
 	// (tokens += elapsedMs * refillPerMs), не превышая capacity;
 	// 2) если токенов >= 1 — вычесть 1 и вернуть true; иначе false.
-	panic("TODO: реализуйте Allow (token bucket)")
+	panic("TODO: реализуй Allow (token bucket)")
 }
 
 // SafeTokenBucket — потокобезопасная обёртка над TokenBucket: в реальном
@@ -82,7 +82,7 @@ func (b *TokenBucket) Allow(nowMs int64) bool {
 // значение и ОБЕ пропустят запрос по последнему токену (lost update).
 type SafeTokenBucket struct {
 	inner *TokenBucket
-	// TODO: добавьте sync.Mutex, который сделает вызов inner.Allow атомарным.
+	// TODO: добавь sync.Mutex, который сделает вызов inner.Allow атомарным.
 }
 
 // NewSafeTokenBucket создаёт потокобезопасное ведро ёмкости capacity,
@@ -93,9 +93,9 @@ func NewSafeTokenBucket(capacity int, refillPerSec float64) *SafeTokenBucket {
 
 // Allow — как TokenBucket.Allow, но безопасен для вызова из многих горутин.
 func (b *SafeTokenBucket) Allow(nowMs int64) bool {
-	// TODO: возьмите мьютекс на время всего вызова b.inner.Allow(nowMs) —
+	// TODO: возьми мьютекс на время всего вызова b.inner.Allow(nowMs) —
 	// пара «проверить токены → потратить» должна выполняться атомарно.
 	// Без замка -race покажет гонку, а конкурентный тест насчитает лишние
 	// пропущенные запросы.
-	panic("TODO: реализуйте Allow (потокобезопасно)")
+	panic("TODO: реализуй Allow (потокобезопасно)")
 }

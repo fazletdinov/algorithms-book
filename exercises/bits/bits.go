@@ -3,7 +3,7 @@
 // Package bits — задачи на шаблон «Битовые операции».
 // Теория паттерна — в книге: ../../src/bit-manipulation.md
 //
-//	go test ./bits/                 # ваши решения
+//	go test ./bits/                 # твои решения
 //	go test -tags solution ./bits/  # эталон
 package bits
 
@@ -15,7 +15,7 @@ package bits
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func SingleNumber(nums []int) int {
 	// TODO: XOR всех элементов; парные взаимно уничтожаются.
-	panic("TODO: реализуйте SingleNumber")
+	panic("TODO: реализуй SingleNumber")
 }
 
 // IsPowerOfTwo возвращает true тогда и только тогда, когда n — положительная
@@ -26,7 +26,7 @@ func SingleNumber(nums []int) int {
 // Ожидаемая сложность: O(1) по времени, O(1) по памяти.
 func IsPowerOfTwo(n int) bool {
 	// TODO: n > 0 && n&(n-1) == 0.
-	panic("TODO: реализуйте IsPowerOfTwo")
+	panic("TODO: реализуй IsPowerOfTwo")
 }
 
 // HammingWeight возвращает количество установленных битов в n (population count).
@@ -35,8 +35,8 @@ func IsPowerOfTwo(n int) bool {
 //
 // Ожидаемая сложность: O(k) по времени (k — число единиц), O(1) по памяти.
 func HammingWeight(n uint32) int {
-	// TODO: повторяйте n &= n - 1, сбрасывая младший установленный бит.
-	panic("TODO: реализуйте HammingWeight")
+	// TODO: повторяй n &= n - 1, сбрасывая младший установленный бит.
+	panic("TODO: реализуй HammingWeight")
 }
 
 // MissingNumber принимает массив из n различных чисел из диапазона [0..n]
@@ -47,7 +47,7 @@ func HammingWeight(n uint32) int {
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func MissingNumber(nums []int) int {
 	// TODO: XOR индексов 0..n и всех элементов; останется отсутствующее число.
-	panic("TODO: реализуйте MissingNumber")
+	panic("TODO: реализуй MissingNumber")
 }
 
 // CountBits для каждого i в [0..n] возвращает количество единичных битов в i.
@@ -58,7 +58,7 @@ func MissingNumber(nums []int) int {
 // Ожидаемая сложность: O(n) по времени.
 func CountBits(n int) []int {
 	// TODO: ДП по bits[i] = bits[i>>1] + (i&1).
-	panic("TODO: реализуйте CountBits")
+	panic("TODO: реализуй CountBits")
 }
 
 // TwoSingleNumbers принимает массив, в котором каждое число встречается дважды,
@@ -69,6 +69,6 @@ func CountBits(n int) []int {
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func TwoSingleNumbers(nums []int) []int {
 	// TODO: XOR всех чисел даёт a^b; по младшему различающему биту
-	// (xor & -xor) разделите элементы на две группы и сверните каждую.
-	panic("TODO: реализуйте TwoSingleNumbers")
+	// (xor & -xor) раздели элементы на две группы и сверни каждую.
+	panic("TODO: реализуй TwoSingleNumbers")
 }

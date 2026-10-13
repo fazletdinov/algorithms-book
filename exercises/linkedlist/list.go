@@ -1,6 +1,6 @@
 // Package linkedlist — задачи на шаблон «Разворот связного списка».
 //
-//	go test ./linkedlist/                 # ваши решения
+//	go test ./linkedlist/                 # твои решения
 //	go test -tags solution ./linkedlist/  # эталон
 //
 // Тип ListNode и хелперы объявлены здесь (без build-тега), чтобы быть

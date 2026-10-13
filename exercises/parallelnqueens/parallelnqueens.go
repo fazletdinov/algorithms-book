@@ -3,7 +3,7 @@
 // Package parallelnqueens — счёт решений N ферзей: синхронно и конкурентно.
 // Теория — в книге: ../../src/backtracking.md (раздел «Конкурентный перебор»).
 //
-//	go test ./parallelnqueens/                        # ваши решения (красные)
+//	go test ./parallelnqueens/                        # твои решения (красные)
 //	go test -tags solution ./parallelnqueens/         # эталон (зелёные)
 //	go test -tags solution -race ./parallelnqueens/   # проверка на гонки
 //	go test -tags solution -bench=. ./parallelnqueens/
@@ -18,7 +18,7 @@ package parallelnqueens
 func CountNQueensSeq(n int) int {
 	// TODO: бэктрекинг по строкам; занятость столбцов и двух диагоналей держи
 	// в булевых срезах (диагонали индексируй r+c и r-c+n).
-	panic("TODO: реализуйте CountNQueensSeq")
+	panic("TODO: реализуй CountNQueensSeq")
 }
 
 // CountNQueensConc — то же, но n вариантов первого ферзя считаются в отдельных
@@ -28,5 +28,5 @@ func CountNQueensConc(n int) int {
 	// TODO: на каждый столбец c первой строки запусти горутину со СВОИМИ
 	// срезами занятости (поставь туда первого ферзя) и досчитай поддерево
 	// последовательно; результат пиши в свою ячейку, в конце просуммируй.
-	panic("TODO: реализуйте CountNQueensConc")
+	panic("TODO: реализуй CountNQueensConc")
 }

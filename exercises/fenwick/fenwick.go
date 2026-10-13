@@ -3,7 +3,7 @@
 // Package fenwick — дерево Фенвика (Binary Indexed Tree) для префиксных сумм.
 // Теория паттерна — в книге: ../../src/fenwick-tree.md
 //
-//	go test ./fenwick/                 # ваши решения
+//	go test ./fenwick/                 # твои решения
 //	go test -tags solution ./fenwick/  # эталон
 package fenwick
 
@@ -15,27 +15,27 @@ type Fenwick struct {
 
 // NewFenwick строит дерево по массиву.
 func NewFenwick(arr []int) *Fenwick {
-	// TODO: создайте tree длины len(arr)+1 и прибавьте каждый элемент через
+	// TODO: создай tree длины len(arr)+1 и прибавь каждый элемент через
 	// внутреннюю операцию обновления.
-	panic("TODO: реализуйте NewFenwick")
+	panic("TODO: реализуй NewFenwick")
 }
 
 // Update прибавляет delta к элементу с 0-индексом i (добавление, не запись).
 func (f *Fenwick) Update(i, delta int) {
-	// TODO: идите вверх по дереву, прибавляя младший бит: i += i & (-i).
-	panic("TODO: реализуйте Update")
+	// TODO: иди вверх по дереву, прибавляя младший бит: i += i & (-i).
+	panic("TODO: реализуй Update")
 }
 
 // PrefixSum возвращает сумму элементов [0..i] включительно (0-индексация).
 func (f *Fenwick) PrefixSum(i int) int {
-	// TODO: идите вниз, вычитая младший бит: i -= i & (-i).
-	panic("TODO: реализуйте PrefixSum")
+	// TODO: иди вниз, вычитая младший бит: i -= i & (-i).
+	panic("TODO: реализуй PrefixSum")
 }
 
 // RangeSum возвращает сумму на включительном диапазоне [l, r].
 func (f *Fenwick) RangeSum(l, r int) int {
-	// TODO: выразите через PrefixSum.
-	panic("TODO: реализуйте RangeSum")
+	// TODO: вырази через PrefixSum.
+	panic("TODO: реализуй RangeSum")
 }
 
 // CountInversions возвращает число инверсий — пар индексов i < j,
@@ -45,10 +45,10 @@ func (f *Fenwick) RangeSum(l, r int) int {
 //
 // Ожидаемая сложность: O(n log n) через BIT с координатным сжатием.
 func CountInversions(arr []int) int {
-	// TODO: сожмите значения в ранги, идите справа налево (или слева направо),
-	// для каждого элемента спросите у BIT, сколько уже встречено меньших,
-	// затем добавьте текущий ранг в BIT.
-	panic("TODO: реализуйте CountInversions")
+	// TODO: сожми значения в ранги, иди справа налево (или слева направо),
+	// для каждого элемента спроси у BIT, сколько уже встречено меньших,
+	// затем добавь текущий ранг в BIT.
+	panic("TODO: реализуй CountInversions")
 }
 
 // CountSmallerToRight возвращает срез, где для каждого элемента указано число
@@ -58,8 +58,8 @@ func CountInversions(arr []int) int {
 //
 // Ожидаемая сложность: O(n log n) через BIT с координатным сжатием.
 func CountSmallerToRight(arr []int) []int {
-	// TODO: сожмите значения в ранги, идите справа налево; для каждого элемента
-	// спросите у BIT сумму на префиксе строго меньших рангов, затем добавьте
+	// TODO: сожми значения в ранги, иди справа налево; для каждого элемента
+	// спроси у BIT сумму на префиксе строго меньших рангов, затем добавь
 	// текущий ранг в BIT.
-	panic("TODO: реализуйте CountSmallerToRight")
+	panic("TODO: реализуй CountSmallerToRight")
 }

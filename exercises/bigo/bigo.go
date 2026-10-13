@@ -3,7 +3,7 @@
 // Package bigo — амортизированный анализ на практике: монотонный стек и
 // удвоение ёмкости. Теория Big-O и амортизации — в книге: ../../src/big-o.md
 //
-// Реализуйте функции ниже, затем запустите тесты:
+// Реализуй функции ниже, затем запусти тесты:
 //
 //	go test ./bigo/
 //
@@ -16,37 +16,37 @@ package bigo
 // MinStack — стек с получением минимума за O(1). Каждая операция (Push/Pop/Top/
 // GetMin) — O(1) в худшем случае: рядом с данными храним стек префиксных минимумов.
 type MinStack struct {
-	// TODO: добавьте поля — основной стек и стек минимумов.
+	// TODO: добавь поля — основной стек и стек минимумов.
 }
 
 // NewMinStack создаёт пустой MinStack.
 func NewMinStack() *MinStack {
-	// TODO: верните указатель на новый пустой стек.
-	panic("TODO: реализуйте NewMinStack")
+	// TODO: верни указатель на новый пустой стек.
+	panic("TODO: реализуй NewMinStack")
 }
 
 // Push кладёт val на вершину.
 func (s *MinStack) Push(val int) {
-	// TODO: положите val; в стек минимумов — min(val, текущий минимум).
-	panic("TODO: реализуйте Push")
+	// TODO: положи val; в стек минимумов — min(val, текущий минимум).
+	panic("TODO: реализуй Push")
 }
 
 // Pop снимает вершину. Гарантируется непустой стек.
 func (s *MinStack) Pop() {
-	// TODO: снимите вершину с обоих стеков.
-	panic("TODO: реализуйте Pop")
+	// TODO: сними вершину с обоих стеков.
+	panic("TODO: реализуй Pop")
 }
 
 // Top возвращает вершину. Гарантируется непустой стек.
 func (s *MinStack) Top() int {
-	// TODO: верните верхний элемент основного стека.
-	panic("TODO: реализуйте Top")
+	// TODO: верни верхний элемент основного стека.
+	panic("TODO: реализуй Top")
 }
 
 // GetMin возвращает минимум стека за O(1). Гарантируется непустой стек.
 func (s *MinStack) GetMin() int {
-	// TODO: верните вершину стека минимумов.
-	panic("TODO: реализуйте GetMin")
+	// TODO: верни вершину стека минимумов.
+	panic("TODO: реализуй GetMin")
 }
 
 // NextGreaterElement для каждого элемента возвращает ближайший БОЛЬШИЙ элемент
@@ -64,9 +64,9 @@ func (s *MinStack) GetMin() int {
 // Подсказка: монотонный стек даёт амортизированно O(n): каждый индекс кладётся
 // и снимается ровно один раз.
 func NextGreaterElement(nums []int) []int {
-	// TODO: держите стек индексов с убывающими значениями; встретив больший
-	// элемент, снимайте со стека все меньшие и записывайте им ответ.
-	panic("TODO: реализуйте NextGreaterElement")
+	// TODO: держи стек индексов с убывающими значениями; встретив больший
+	// элемент, снимай со стека все меньшие и записывай им ответ.
+	panic("TODO: реализуй NextGreaterElement")
 }
 
 // DailyTemperatures для каждого дня возвращает, через сколько дней станет теплее
@@ -84,8 +84,8 @@ func NextGreaterElement(nums []int) []int {
 // Подсказка: монотонный стек индексов, амортизированно O(n).
 func DailyTemperatures(temperatures []int) []int {
 	// TODO: монотонный стек индексов по убыванию температур; при потеплении
-	// снимайте индексы и записывайте разницу дней.
-	panic("TODO: реализуйте DailyTemperatures")
+	// снимай индексы и записывай разницу дней.
+	panic("TODO: реализуй DailyTemperatures")
 }
 
 // CountCopies моделирует рост среза при n добавлениях с удвоением ёмкости
@@ -94,7 +94,7 @@ func DailyTemperatures(temperatures []int) []int {
 //
 // Пример: CountCopies(5) = 7 (копии при росте 1->2, 2->4, 4->8: 1+2+4).
 func CountCopies(n int) int {
-	// TODO: ведите length и capacity (старт 1); при length == capacity
-	// прибавляйте length к счётчику копий и удваивайте capacity.
-	panic("TODO: реализуйте CountCopies")
+	// TODO: веди length и capacity (старт 1); при length == capacity
+	// прибавляй length к счётчику копий и удваивай capacity.
+	panic("TODO: реализуй CountCopies")
 }

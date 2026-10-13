@@ -3,18 +3,18 @@
 // Package twoheaps — задачи на шаблон «Две кучи».
 // Теория паттерна — в книге: ../../src/two-heaps.md
 //
-//	go test ./twoheaps/                 # ваши решения
+//	go test ./twoheaps/                 # твои решения
 //	go test -tags solution ./twoheaps/  # эталон
 package twoheaps
 
-// MedianFinder поддерживает медиану потока чисел. Заполните поля в решении
+// MedianFinder поддерживает медиану потока чисел. Заполни поля в решении
 // (две кучи: max-heap для меньшей половины, min-heap для большей).
 type MedianFinder struct{}
 
 // NewMedianFinder создаёт пустой MedianFinder.
 func NewMedianFinder() *MedianFinder {
-	// TODO: инициализируйте обе кучи.
-	panic("TODO: реализуйте NewMedianFinder")
+	// TODO: инициализируй обе кучи.
+	panic("TODO: реализуй NewMedianFinder")
 }
 
 // AddNum добавляет число num в поток.
@@ -23,9 +23,9 @@ func NewMedianFinder() *MedianFinder {
 //
 // Ожидаемая сложность: O(log n) на вставку.
 func (mf *MedianFinder) AddNum(num int) {
-	// TODO: кладите num в max-heap, если он не больше его вершины, иначе в min-heap;
-	// затем выравнивайте размеры куч (разница не более 1).
-	panic("TODO: реализуйте AddNum")
+	// TODO: клади num в max-heap, если он не больше его вершины, иначе в min-heap;
+	// затем выравнивай размеры куч (разница не более 1).
+	panic("TODO: реализуй AddNum")
 }
 
 // FindMedian возвращает медиану всех добавленных чисел. При чётном количестве —
@@ -36,7 +36,7 @@ func (mf *MedianFinder) AddNum(num int) {
 // Ожидаемая сложность: O(1).
 func (mf *MedianFinder) FindMedian() float64 {
 	// TODO: медиана — вершина большей кучи либо среднее двух вершин при равных размерах.
-	panic("TODO: реализуйте FindMedian")
+	panic("TODO: реализуй FindMedian")
 }
 
 // SlidingWindowMedian возвращает медиану каждого окна размера k, скользящего по nums
@@ -46,10 +46,10 @@ func (mf *MedianFinder) FindMedian() float64 {
 //
 // Ожидаемая сложность: O(n log k) при использовании двух куч с ленивым удалением.
 func SlidingWindowMedian(nums []int, k int) []float64 {
-	// TODO: поддерживайте две кучи (меньшая половина — max-heap, большая — min-heap)
-	// для текущего окна; при сдвиге добавляйте новый элемент и помечайте выбывший
-	// для ленивого удаления, после чего балансируйте размеры и читайте медиану с вершин.
-	panic("TODO: реализуйте SlidingWindowMedian")
+	// TODO: поддерживай две кучи (меньшая половина — max-heap, большая — min-heap)
+	// для текущего окна; при сдвиге добавляй новый элемент и помечай выбывший
+	// для ленивого удаления, после чего балансируй размеры и читай медиану с вершин.
+	panic("TODO: реализуй SlidingWindowMedian")
 }
 
 // MaximizeCapital решает задачу IPO: имея начальный капитал w, можно выполнить не более k
@@ -62,9 +62,9 @@ func SlidingWindowMedian(nums []int, k int) []float64 {
 //
 // Ожидаемая сложность: O((n+k) log n).
 func MaximizeCapital(k, w int, profits, capital []int) int {
-	// TODO: отсортируйте проекты по капиталу (или используйте min-heap по capital);
-	// на каждом из k шагов перекладывайте в max-heap по прибыли все проекты с
-	// capital[i] <= w, затем берите вершину max-heap, прибавляя её к w; если доступных
-	// проектов нет — останавливайтесь.
-	panic("TODO: реализуйте MaximizeCapital")
+	// TODO: отсортируй проекты по капиталу (или используй min-heap по capital);
+	// на каждом из k шагов перекладывай в max-heap по прибыли все проекты с
+	// capital[i] <= w, затем бери вершину max-heap, прибавляя её к w; если доступных
+	// проектов нет — останавливайся.
+	panic("TODO: реализуй MaximizeCapital")
 }

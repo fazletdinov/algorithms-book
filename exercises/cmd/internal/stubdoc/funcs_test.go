@@ -42,8 +42,8 @@ func TestFuncsSlidingWindow(t *testing.T) {
 	if first.Hint != "Ожидаемая сложность: O(n) по времени, O(1) по памяти." {
 		t.Errorf("Hint = %q", first.Hint)
 	}
-	wantRecipe := "реализуйте инкрементальное окно: посчитайте сумму первых k элементов, " +
-		"затем двигайте окно, добавляя arr[i] и вычитая arr[i-k]."
+	wantRecipe := "реализуй инкрементальное окно: посчитай сумму первых k элементов, " +
+		"затем двигай окно, добавляя arr[i] и вычитая arr[i-k]."
 	if first.Recipe != wantRecipe {
 		t.Errorf("Recipe = %q, ожидалось %q", first.Recipe, wantRecipe)
 	}

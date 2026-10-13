@@ -3,7 +3,7 @@
 // Package greedy — жадные алгоритмы.
 // Теория паттерна — в книге: ../../src/greedy.md
 //
-//	go test ./greedy/                 # ваши решения
+//	go test ./greedy/                 # твои решения
 //	go test -tags solution ./greedy/  # эталон
 package greedy
 
@@ -21,9 +21,9 @@ package greedy
 //
 // Ожидаемая сложность: O(n log n).
 func MaxNonOverlapping(intervals [][]int) int {
-	// TODO: отсортируйте по времени ОКОНЧАНИЯ и жадно берите интервал, чьё
+	// TODO: отсортируй по времени ОКОНЧАНИЯ и жадно бери интервал, чьё
 	// начало не раньше конца последнего выбранного.
-	panic("TODO: реализуйте MaxNonOverlapping")
+	panic("TODO: реализуй MaxNonOverlapping")
 }
 
 // CanJump сообщает, можно ли допрыгнуть из nums[0] до последнего индекса, если
@@ -33,9 +33,9 @@ func MaxNonOverlapping(intervals [][]int) int {
 //
 // Ожидаемая сложность: O(n).
 func CanJump(nums []int) bool {
-	// TODO: ведите самую дальнюю достижимую позицию; если индекс i её
+	// TODO: веди самую дальнюю достижимую позицию; если индекс i её
 	// превысил — допрыгнуть нельзя.
-	panic("TODO: реализуйте CanJump")
+	panic("TODO: реализуй CanJump")
 }
 
 // MinJumps возвращает минимальное число прыжков, чтобы из nums[0] добраться до
@@ -46,10 +46,10 @@ func CanJump(nums []int) bool {
 //
 // Ожидаемая сложность: O(n).
 func MinJumps(nums []int) int {
-	// TODO: BFS по «уровням» — для текущего окна [start, end] ведите самую
-	// дальнюю достижимую позицию; дойдя до конца окна, увеличьте счётчик и
-	// перейдите к следующему уровню.
-	panic("TODO: реализуйте MinJumps")
+	// TODO: BFS по «уровням» — для текущего окна [start, end] веди самую
+	// дальнюю достижимую позицию; дойдя до конца окна, увеличь счётчик и
+	// перейди к следующему уровню.
+	panic("TODO: реализуй MinJumps")
 }
 
 // MaxProfit получает цены акции по дням (prices[i] — цена в день i) и возвращает
@@ -62,9 +62,9 @@ func MinJumps(nums []int) int {
 //
 // Ожидаемая сложность: O(n).
 func MaxProfit(prices []int) int {
-	// TODO: пройдите по соседним парам и прибавляйте к ответу каждую
+	// TODO: пройди по соседним парам и прибавляй к ответу каждую
 	// положительную разницу prices[i] - prices[i-1].
-	panic("TODO: реализуйте MaxProfit")
+	panic("TODO: реализуй MaxProfit")
 }
 
 // FractionalKnapsack возвращает максимальную суммарную стоимость, которую можно
@@ -77,8 +77,8 @@ func MaxProfit(prices []int) int {
 //
 // Ожидаемая сложность: O(n log n).
 func FractionalKnapsack(values, weights []int, capacity int) float64 {
-	// TODO: отсортируйте предметы по убыванию удельной стоимости
-	// value/weight и жадно набирайте, добивая остаток вместимости дробной
+	// TODO: отсортируй предметы по убыванию удельной стоимости
+	// value/weight и жадно набирай, добивая остаток вместимости дробной
 	// частью последнего предмета.
-	panic("TODO: реализуйте FractionalKnapsack")
+	panic("TODO: реализуй FractionalKnapsack")
 }

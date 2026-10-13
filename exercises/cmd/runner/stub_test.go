@@ -98,7 +98,7 @@ func TestHandleStubSlidingWindow(t *testing.T) {
 	if strings.Contains(r.Plain, "Ожидаемая сложность") || strings.Contains(r.Plain, "// TODO") {
 		t.Errorf("в plain подсказок быть не должно:\n%s", r.Plain)
 	}
-	if !strings.Contains(r.Plain, `panic("TODO: реализуйте MaxSumSubarray")`) {
+	if !strings.Contains(r.Plain, `panic("TODO: реализуй MaxSumSubarray")`) {
 		t.Errorf("в plain остаётся panic(\"TODO…\") — это и есть заготовка")
 	}
 	if len(r.Funcs) != 5 || r.Funcs[0].Name != "MaxSumSubarray" {
@@ -111,7 +111,7 @@ func TestHandleStubSlidingWindow(t *testing.T) {
 	if first.Hint != "Ожидаемая сложность: O(n) по времени, O(1) по памяти." {
 		t.Errorf("hint = %q", first.Hint)
 	}
-	if !strings.HasPrefix(first.Recipe, "реализуйте инкрементальное окно:") {
+	if !strings.HasPrefix(first.Recipe, "реализуй инкрементальное окно:") {
 		t.Errorf("recipe = %q", first.Recipe)
 	}
 }

@@ -3,7 +3,7 @@
 // Package parallelsort — сортировка слиянием: синхронно и конкурентно.
 // Теория — в книге: ../../src/k-way-merge.md (раздел «Конкурентная сортировка»).
 //
-//	go test ./parallelsort/                        # ваши решения (красные)
+//	go test ./parallelsort/                        # твои решения (красные)
 //	go test -tags solution ./parallelsort/         # эталон (зелёные)
 //	go test -tags solution -race ./parallelsort/   # проверка на гонки
 //	go test -tags solution -bench=. ./parallelsort/ # Seq против Conc
@@ -18,7 +18,7 @@ package parallelsort
 func MergeSortSeq(a []int) []int {
 	// TODO: база — длина <= 1 (верни копию); иначе раздели пополам, отсортируй
 	// половины рекурсивно и слей два отсортированных среза в один.
-	panic("TODO: реализуйте MergeSortSeq")
+	panic("TODO: реализуй MergeSortSeq")
 }
 
 // MergeSortConc — то же, но половины сортируются в отдельных горутинах; ниже
@@ -27,5 +27,5 @@ func MergeSortSeq(a []int) []int {
 func MergeSortConc(a []int) []int {
 	// TODO: база и cutoff → MergeSortSeq; иначе запусти две горутины на половины
 	// (каждая пишет в свою переменную l/r), дождись (WaitGroup) и слей.
-	panic("TODO: реализуйте MergeSortConc")
+	panic("TODO: реализуй MergeSortConc")
 }
