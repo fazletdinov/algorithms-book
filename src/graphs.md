@@ -16,7 +16,7 @@
     <div class="algo-card__hdr">Когда применять</div>
     <ul>
       <li>путь / достижимость между вершинами</li>
-      <li>число <b>компонент связности</b> (групп, где из любой вершины можно дойти до любой), «островов»</li>
+      <li>число <b>компонент связности</b> (групп, где из любой вершины можно дойти до любой, а рёбер наружу нет), «островов»</li>
       <li>обнаружить цикл</li>
       <li>кратчайший путь по числу рёбер (BFS)</li>
     </ul>
@@ -535,7 +535,7 @@ grid[r][c] = ______
 **🔴 Добивка** — когда основа идёт уверенно:
 
 - [Number of Connected Components](https://leetcode.com/problems/number-of-connected-components-in-an-undirected-graph/) (LeetCode 323) — обходом, как 547, только граф дан рёбрами; Union-Find — отдельный приём из [главы расширения](union-find-structure.md); на LeetCode по подписке; в тренажёре: `graphs.CountComponents`
-- [Rotting Oranges](https://leetcode.com/problems/rotting-oranges/) (LeetCode 994) — BFS сразу из всех гнилых: волны `d=` из виджета, только стартов много
+- [Rotting Oranges](https://leetcode.com/problems/rotting-oranges/) (LeetCode 994) — гниль за минуту переходит на соседние апельсины; через сколько минут сгниют все: BFS сразу из всех гнилых: волны `d=` из виджета, только стартов много
 - [Clone Graph](https://leetcode.com/problems/clone-graph/) (LeetCode 133) — обход + `map` «оригинал → копия»
 - [Word Ladder](https://leetcode.com/problems/word-ladder/) (LeetCode 127) — BFS по неявному графу: соседей вычисляют на ходу, весь граф не строят
 
