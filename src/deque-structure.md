@@ -192,7 +192,7 @@ func (d *Deque) PopFront() int   { x := d.data[0]; d.data = d.data[1:]; return x
 
 ```bash
 cd exercises
-go test ./deque/                 # ваша реализация (красные)
+go test ./deque/                 # твоя реализация (красные)
 go test -tags solution ./deque/  # эталон (зелёные)
 ```
 

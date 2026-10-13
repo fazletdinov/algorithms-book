@@ -670,7 +670,7 @@ BFS выигрывает, только когда **работа на верши
 
 ```bash
 cd exercises
-go test ./parallelbfs/                          # ваши решения (красные)
+go test ./parallelbfs/                          # твои решения (красные)
 go test -tags solution ./parallelbfs/           # эталон (зелёные)
 go test -tags solution -race ./parallelbfs/     # проверка на гонки
 go test -tags solution -bench=. ./parallelbfs/  # Seq vs Conc(mutex) vs ConcLocal

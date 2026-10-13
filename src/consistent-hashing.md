@@ -253,7 +253,7 @@ go test -p 1 -tags solution -run='^$' -bench=. -count=5 ./consistenthash/
 
 ```bash
 cd exercises
-go test ./consistenthash/                 # ваши решения
+go test ./consistenthash/                 # твои решения
 go test -tags solution ./consistenthash/  # эталон
 ```
 

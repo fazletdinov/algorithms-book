@@ -311,7 +311,7 @@ O(1): каждую ссылку переписали ровно один раз,
 
 ```bash
 cd exercises
-go test ./listcrud/                 # ваши решения
+go test ./listcrud/                 # твои решения
 go test -tags solution ./listcrud/  # эталон
 ```
 
@@ -319,7 +319,7 @@ go test -tags solution ./listcrud/  # эталон
 
 ```bash
 cd exercises
-go test ./linkedlist/                 # ваши решения
+go test ./linkedlist/                 # твои решения
 go test -tags solution ./linkedlist/  # эталон
 ```
 

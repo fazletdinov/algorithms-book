@@ -434,7 +434,7 @@ func diameterOfTree(root *TreeNode) int {
 
 ```bash
 cd exercises
-go test ./treedfs/                 # ваши решения
+go test ./treedfs/                 # твои решения
 go test -tags solution ./treedfs/  # эталон
 ```
 

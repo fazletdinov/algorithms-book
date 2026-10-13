@@ -476,7 +476,7 @@ for skip := range connections { // спрячь ребро skip и пересч�
 
 ```bash
 cd exercises
-go test ./scc/                 # ваши решения
+go test ./scc/                 # твои решения
 go test -tags solution ./scc/  # эталон
 ```
 

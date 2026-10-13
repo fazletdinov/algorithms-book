@@ -261,7 +261,7 @@ func del(n *Node, k int) {
 
 ```bash
 cd exercises
-go test ./btree/                 # ваша реализация (красные)
+go test ./btree/                 # твоя реализация (красные)
 go test -tags solution ./btree/  # эталон (зелёные)
 ```
 

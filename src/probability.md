@@ -393,11 +393,11 @@ O(n log n), но naive-версия на подобранном входе — O
 
 ```bash
 cd exercises
-go test ./sampling/                 # ваши реализации (красные)
+go test ./sampling/                 # твои реализации (красные)
 go test -tags solution ./sampling/  # эталон (зелёные)
 ```
 
-Реализуйте `Shuffle` (Fisher–Yates на месте), `ReservoirSample` (алгоритм R, один проход,
+Реализуй `Shuffle` (Fisher–Yates на месте), `ReservoirSample` (алгоритм R, один проход,
 O(k) памяти), `ExpectedCollisions` (формула C(n,2)/m) и `BirthdayThreshold` (минимальное n,
 при котором ожидаемое число коллизий достигает 1). Тесты проверяют не только корректность,
 но и **равномерность**: смещённый shuffle или резервуар провалят частотный тест.

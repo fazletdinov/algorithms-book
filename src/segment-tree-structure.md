@@ -252,7 +252,7 @@ func (t *Seg) Query(node, lo, hi, ql, qr int) int {
 
 ```bash
 cd exercises
-go test ./segtree/                 # ваши решения
+go test ./segtree/                 # твои решения
 go test -tags solution ./segtree/  # эталон
 go test -bench=. ./segtree/        # асимптотика
 ```

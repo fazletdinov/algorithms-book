@@ -190,7 +190,7 @@ func countInversionsNaive(nums []int) int {
 просматриваем весь хвост справа, хотя по сути нас интересует одно и то же: «сколько уже
 виденных элементов меньше текущего». Этот повторяющийся подсчёт «меньших» и убирает BIT.
 
-Прогоните перебор по шагам на `nums = [5,2,6,1]`: для каждого левого `i` указатель `j`
+Прогони перебор по шагам на `nums = [5,2,6,1]`: для каждого левого `i` указатель `j`
 проходит весь хвост, и каждая инверсия (`nums[i] > nums[j]`) подсвечивается:
 
 <div class="algo-viz" data-viz="count-inversions-naive" data-array="5,2,6,1"></div>
@@ -251,10 +251,10 @@ func countInversionsBIT(nums []int) int {
 Сортировка для сжатия — O(n log n), затем `n` пар операций `add`/`prefix` по O(log m) —
 итого **O(n log n)**, память **O(n)**.
 
-Прогоните оптимум на тех же `nums = [5,2,6,1]`. Идём справа налево; внизу — BIT частот
+Прогони оптимум на тех же `nums = [5,2,6,1]`. Идём справа налево; внизу — BIT частот
 рангов `tree[1..4]`. На каждом элементе сначала спуск `prefix(rank−1)` собирает вклад
 (сколько меньших уже справа), затем подъём `add(rank)` регистрирует текущий ранг —
-сравните накопленный `inv` с колонкой трассировки ниже:
+сравни накопленный `inv` с колонкой трассировки ниже:
 
 <div class="algo-viz" data-viz="count-inversions-bit" data-array="5,2,6,1"></div>
 
@@ -334,11 +334,11 @@ func countInversionsBIT(nums []int) int {
 
 ```bash
 cd exercises
-go test ./fenwick/                 # ваши решения
+go test ./fenwick/                 # твои решения
 go test -tags solution ./fenwick/  # эталон
 ```
 
-Реализуйте `NewFenwick`, `Update`, `PrefixSum`, `RangeSum`, `CountInversions` (число инверсий через BIT) и `CountSmallerToRight` (меньших справа).
+Реализуй `NewFenwick`, `Update`, `PrefixSum`, `RangeSum`, `CountInversions` (число инверсий через BIT) и `CountSmallerToRight` (меньших справа).
 
 ### 💻 Реши прямо здесь — пакет `fenwick`
 

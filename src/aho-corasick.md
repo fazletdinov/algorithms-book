@@ -214,7 +214,7 @@ Censor("classic", []string{"ass"}) // "cl***ic"
 
 ```bash
 cd exercises
-go test ./ahocorasick/                 # ваши решения
+go test ./ahocorasick/                 # твои решения
 go test -tags solution ./ahocorasick/  # эталон
 ```
 

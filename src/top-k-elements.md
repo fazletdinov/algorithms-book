@@ -389,7 +389,7 @@ if h.Len() &gt; ______ {
 
 ```bash
 cd exercises
-go test ./topk/                 # ваши решения
+go test ./topk/                 # твои решения
 go test -tags solution ./topk/  # эталон
 ```
 

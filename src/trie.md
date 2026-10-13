@@ -115,7 +115,7 @@ func replaceWords(dict []string, sentence string) string {
 }
 ```
 
-Прогоните спуск `shortestRoot("cattle")` по бору с корнями `cat`, `bat`, `rat`: подсветка
+Прогони спуск `shortestRoot("cattle")` по бору с корнями `cat`, `bat`, `rat`: подсветка
 идёт по символам, и на узле `t` (конец корня `cat`) спуск останавливается — это первый, а
 значит кратчайший корень-префикс, до конца слова идти не пришлось:
 
@@ -211,7 +211,7 @@ func replaceWords(dict []string, sentence string) string {
 
 ```bash
 cd exercises
-go test ./trie/                 # ваши решения
+go test ./trie/                 # твои решения
 go test -tags solution ./trie/  # эталон
 ```
 

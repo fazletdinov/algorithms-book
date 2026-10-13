@@ -558,7 +558,7 @@ if sum &lt; target {
 
 ```bash
 cd exercises
-go test ./twopointers/                 # ваши решения
+go test ./twopointers/                 # твои решения
 go test -tags solution ./twopointers/  # эталон
 ```
 

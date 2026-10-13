@@ -629,11 +629,11 @@ seen[r]++</pre>
 
 ```bash
 cd exercises
-go test ./prefixsum/                 # ваши решения
+go test ./prefixsum/                 # твои решения
 go test -tags solution ./prefixsum/  # эталон
 ```
 
-Реализуйте `RangeSums` (пачка запросов суммы отрезка), `CountSubarraysWithSum` (сумма ровно
+Реализуй `RangeSums` (пачка запросов суммы отрезка), `CountSubarraysWithSum` (сумма ровно
 `k`), `LongestBalanced` (поровну нулей и единиц), `CountDivisibleSubarrays` (кратно `k`),
 `MaxSubarraySum` (Кадане через префиксы), `ProductExceptSelf`, `ApplyRangeAdds`
 (разностный массив) и `MatrixRegionSums` (двумерный префикс). Каждая функция, кроме

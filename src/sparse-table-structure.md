@@ -203,7 +203,7 @@ func query(l, r int) int {           // min на [l, r]
 
 ```bash
 cd exercises
-go test ./sparsetable/                 # ваша реализация (красные)
+go test ./sparsetable/                 # твоя реализация (красные)
 go test -tags solution ./sparsetable/  # эталон (зелёные)
 ```
 

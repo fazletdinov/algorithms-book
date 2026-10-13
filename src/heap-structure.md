@@ -378,11 +378,11 @@ x := heap.Pop(h).(int) // 0 — минимум
 
 ## 🏋️ Тренажёр
 
-Соберите min-кучу на срезе руками (без `container/heap`) — `siftUp`/`siftDown` и есть весь алгоритм:
+Собери min-кучу на срезе руками (без `container/heap`) — `siftUp`/`siftDown` и есть весь алгоритм:
 
 ```bash
 cd exercises
-go test ./binheap/                 # ваша реализация (красные)
+go test ./binheap/                 # твоя реализация (красные)
 go test -tags solution ./binheap/  # эталон (зелёные)
 ```
 

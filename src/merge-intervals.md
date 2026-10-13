@@ -425,7 +425,7 @@ if iv[0] &lt;= last[1] {        // перекрытие/касание
 
 ```bash
 cd exercises
-go test ./intervals/                 # ваши решения
+go test ./intervals/                 # твои решения
 go test -tags solution ./intervals/  # эталон
 ```
 

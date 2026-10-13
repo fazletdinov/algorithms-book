@@ -399,7 +399,7 @@ func (r *Ring) Lookup(key string) string {
 
 ```bash
 cd exercises
-go test ./hashtable/                 # ваша реализация (красные)
+go test ./hashtable/                 # твоя реализация (красные)
 go test -tags solution ./hashtable/  # эталон (зелёные)
 ```
 

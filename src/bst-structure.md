@@ -317,7 +317,7 @@ func inorder(node *Node, out *[]int) {
 
 ```bash
 cd exercises
-go test ./bst/                 # ваша реализация (красные)
+go test ./bst/                 # твоя реализация (красные)
 go test -tags solution ./bst/  # эталон (зелёные)
 ```
 

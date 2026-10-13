@@ -379,7 +379,7 @@ func uniquePaths(m, n int) int {
 
 ```bash
 cd exercises
-go test ./combinatorics/                 # ваши реализации (красные)
+go test ./combinatorics/                 # твои реализации (красные)
 go test -tags solution ./combinatorics/  # эталон (зелёные)
 ```
 

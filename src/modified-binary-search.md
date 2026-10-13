@@ -576,7 +576,7 @@ func searchRange(nums []int, target int) [2]int {
 
 ```bash
 cd exercises
-go test ./binarysearch/                 # ваши решения
+go test ./binarysearch/                 # твои решения
 go test -tags solution ./binarysearch/  # эталон
 ```
 

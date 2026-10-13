@@ -280,7 +280,7 @@ func (t *AVL) Delete(val int) {
 
 ```bash
 cd exercises
-go test ./avl/                 # ваша реализация (красные)
+go test ./avl/                 # твоя реализация (красные)
 go test -tags solution ./avl/  # эталон (зелёные)
 ```
 

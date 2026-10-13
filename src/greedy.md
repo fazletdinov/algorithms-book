@@ -465,11 +465,11 @@ if tank &lt; 0 {
 
 ```bash
 cd exercises
-go test ./greedy/                 # ваши решения
+go test ./greedy/                 # твои решения
 go test -tags solution ./greedy/  # эталон
 ```
 
-Реализуйте `MaxNonOverlapping` (выбор заявок), `CanJump` (Jump Game), `MinJumps` (мин. число прыжков), `MaxProfit` (акции, много сделок) и `FractionalKnapsack` (дробный рюкзак).
+Реализуй `MaxNonOverlapping` (выбор заявок), `CanJump` (Jump Game), `MinJumps` (мин. число прыжков), `MaxProfit` (акции, много сделок) и `FractionalKnapsack` (дробный рюкзак).
 
 ### 💻 Реши прямо здесь — пакет `greedy`
 

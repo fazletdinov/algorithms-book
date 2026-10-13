@@ -414,7 +414,7 @@ if ______ {
 
 ```bash
 cd exercises
-go test ./toposort/                 # ваши решения
+go test ./toposort/                 # твои решения
 go test -tags solution ./toposort/  # эталон
 ```
 

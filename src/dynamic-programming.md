@@ -507,7 +507,7 @@ func rob(nums []int) int {
 `dp[i]` зависит только от двух предыдущих ячеек, поэтому весь массив держать не нужно —
 это ровно тот [скользящий массив](#память-скользящий-массив) из «⚙️ Цены на практике».
 
-Прогоните свёртку на `nums = [2,7,9,3,1]`: для каждого дома `cur = max(пропустить prev1,
+Прогони свёртку на `nums = [2,7,9,3,1]`: для каждого дома `cur = max(пропустить prev1,
 взять prev2+x)`, и всё ДП живёт в двух переменных `prev2`, `prev1`. Строка `dp[i]` под
 домами — полная таблица для наглядности: обведены две ячейки, которые код ещё держит, а
 левее всё погашено, потому что уже забыто. На финале зелёным — дома, из которых собран ответ:
@@ -609,11 +609,11 @@ best = max(best, cur)</pre>
 
 ```bash
 cd exercises
-go test ./dp/                 # ваши решения
+go test ./dp/                 # твои решения
 go test -tags solution ./dp/  # эталон
 ```
 
-Реализуйте `ClimbStairs`, `CoinChange`, `LongestCommonSubsequence`, `EditDistance`,
+Реализуй `ClimbStairs`, `CoinChange`, `LongestCommonSubsequence`, `EditDistance`,
 `LongestIncreasingSubsequence`, `Knapsack01`, `HouseRobber`, `UniquePaths` и `WordBreak`.
 
 > 🧵 **Конкурентность?** Почти нет — у ДП **цепочки зависимостей**: `dp[i]` опирается на уже

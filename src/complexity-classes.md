@@ -397,7 +397,7 @@ Bin Packing) и `VertexCoverGreedy2Approx` (2-приближение для Vert
 
 ```bash
 cd exercises
-go test ./npcomplete/                 # ваши реализации (красные)
+go test ./npcomplete/                 # твои реализации (красные)
 go test -tags solution ./npcomplete/  # эталон (зелёные)
 ```
 
