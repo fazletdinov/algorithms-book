@@ -420,7 +420,7 @@ for i := 1; i &lt; n; i *= 2 {
 <div class="algo-challenge__q">Два вложенных цикла по n каждый — это…</div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="O(n log n)|O(n²)|Одинаково — оба растут не быстрее степени n|Зависит от констант даже при огромных n" data-answer="0" data-explain="На больших n O(n log n) растёт медленнее O(n²), поэтому он быстрее (хотя на малых n константы могут перевернуть картину). При достаточно большом n разрыв n / log n перекроет любую константу.">
+<div class="algo-challenge" data-type="choice" data-options="O(n log n)|O(n²)|Одинаково — разницы на больших n нет|Зависит от констант даже при огромных n" data-answer="0" data-explain="На больших n O(n log n) растёт медленнее O(n²), поэтому он быстрее (хотя на малых n константы могут перевернуть картину). При достаточно большом n разрыв n / log n перекроет любую константу.">
 <div class="algo-challenge__q">Что быстрее на <b>больших</b> n: O(n log n) или O(n²)?</div>
 </div>
 
