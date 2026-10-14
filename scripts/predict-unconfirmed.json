@@ -155,6 +155,10 @@
   "глава probabilistic-structures.md (elems=user_8143,user_2290,user_5561,user_9033,user_1204,user_7788,user_4415,user_6672,user_8143) — шаг 25, строка 5: if rho > h.reg[j] {"
  ],
  "insertion-sort": [
+  "глава invariants.md (array=3,7,1,6,2,5) — шаг 5, строка 5: for j >= 0 && a[j] > key {",
+  "глава invariants.md (array=3,7,1,6,2,5) — шаг 24, строка 5: for j >= 0 && a[j] > key {",
+  "глава invariants.md (array=3,7,1,6,2,5) — шаг 38, строка 5: for j >= 0 && a[j] > key {",
+  "глава invariants.md (array=3,7,1,6,2,5) — шаг 49, строка 5: for j >= 0 && a[j] > key {",
   "глава sorting.md (array=5,2,4,1,3,6) — шаг 16, строка 5: for j >= 0 && a[j] > key {",
   "глава sorting.md (array=5,2,4,1,3,6) — шаг 41, строка 5: for j >= 0 && a[j] > key {"
  ],
