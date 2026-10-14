@@ -150,6 +150,7 @@
   var VIZ_MOVED = {
     "heap-sort": { from: "sorting.html", to: "heap-structure.html" }, // этап 3a: пирамидальная — в главу о куче
     "binary-search-first": { from: "modified-binary-search.html", to: "go-stdlib-structures.html" }, // этап 3a: в главе бинпоиска одна форма границы, виджет с кандидатом остался в главе о stdlib
+    "hash-ring": { from: "hash-table-structure.html", to: "consistent-hashing.html" }, // этап 3d: кольцо — в главе расширения, в ядре осталась ссылка
   };
   var TODAY = "algoToday"; // счётчик дня: { day, done, heavy, later } — в экспорт прогресса не входит
   // Черновик виджета на карточке пакета (data-draft="review", ключ пишет runner.js). Владелец — карточка:

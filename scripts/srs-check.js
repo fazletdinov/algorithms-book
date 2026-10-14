@@ -320,6 +320,8 @@ async function main() {
     ["heap-sort", "sorting.html", "viz-4", "heap-structure.html?viz=heap-sort"],
     ["heap-sort", "heap-structure.html", "viz-4", "heap-structure.html?viz=heap-sort#viz-4"],
     ["binary-search-first", "modified-binary-search.html", "viz-2", "go-stdlib-structures.html?viz=binary-search-first"],
+    ["hash-ring", "hash-table-structure.html", "viz-4", "consistent-hashing.html?viz=hash-ring"],
+    ["hash-ring", "consistent-hashing.html", "viz-1", "consistent-hashing.html?viz=hash-ring#viz-1"],
   ]) {
     const VIZ_M = { n: 1, page, anchor, title: type, line: 5, code: "if x {" };
     const vizM = await newDom({
