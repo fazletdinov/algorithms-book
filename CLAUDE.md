@@ -418,7 +418,7 @@ esm.sh, и в `?deps=` закреплён ВЕСЬ граф `@codemirror/*` + `@
   сорок файлов руками не нужно (две разметки неизбежно разъехались бы). Оттуда же `markToc()`
   приглушает в боковом оглавлении ссылки на главы `ext`/`ref`: класс `algo-toc--ext` / `algo-toc--ref`
   и `title` = `LEVELS[lvl].hint` (стиль — `theme.css`, `--th-muted`: 5.39:1 на фоне панели; на
-  `:hover`, `:focus-visible` и у `.active` — обычный цвет). Оглавление mdBook 0.5.4 — custom element
+  `:hover` — акцент `--sidebar-active`, как у ядра; на `:focus-visible` и у `.active` — обычный цвет). Оглавление mdBook 0.5.4 — custom element
   `mdbook-sidebar-scrollbox`, `toc-*.js` заполняет его в `connectedCallback`, то есть до
   `progress.js` в конце body; если оглавления ещё нет, один `MutationObserver` ждёт ссылок (не дольше
   5 с). Вызов вручную — `window.ALGO_MARK_TOC()`. У глав ядра и

@@ -176,9 +176,9 @@ mark { color: var(--th-bg); border-radius: 2px; }
 .chapter li a { color: var(--sidebar-fg); }
 .chapter li a.active { font-weight: 600; }
 /* Главы вне ядра (расширение, справочник) приглушены: класс и подсказку ставит progress.js из GROUPS.
-   --th-muted на фоне панели (--th-surface) — 5.39:1; наведение, фокус и открытая глава — обычный цвет. */
+   --th-muted на фоне панели (--th-surface) — 5.39:1; наведение — акцент, как у ядра; фокус и открытая глава — обычный цвет. */
 .chapter li a.algo-toc--ext:not(.active), .chapter li a.algo-toc--ref:not(.active) { color: var(--th-muted); }
-.chapter li a.algo-toc--ext:not(.active):hover, .chapter li a.algo-toc--ref:not(.active):hover,
+.chapter li a.algo-toc--ext:not(.active):hover, .chapter li a.algo-toc--ref:not(.active):hover { color: var(--sidebar-active); }
 .chapter li a.algo-toc--ext:not(.active):focus-visible, .chapter li a.algo-toc--ref:not(.active):focus-visible { color: var(--sidebar-fg); }
 .on-this-page { border-inline-start-width: 2px; }
 /* Номера разделов — моноширинные и приглушённые: «терминальный» штрих без моноширинного текста. */
