@@ -234,7 +234,7 @@ setTimeout(function () {
     errors.push(`storage: отметка из другой вкладки не показана в трекере: «${label.textContent}»`);
   }
 
-  chapterDoneChecks().then(function () {
+  chapterDoneChecks().then(function () { return tocChecks(declaredLevels); }).then(function () {
     if (errors.length) {
       console.error(`❌ progress-render-check: ${errors.length} проблем(ы):`);
       for (const e of errors) console.error("  - " + e);
@@ -245,7 +245,8 @@ setTimeout(function () {
         `(ядро ${core.length}, вне ядра ${nonCore.length}), процент считается только по ядру, ` +
         `отметка обновляет счётчик группы/localStorage и пишет метку времени, снятие её убирает, сброс работает; ` +
         `галочка «Глава пройдена» стоит в конце каждой главы (и только главы), пишет те же ключи по свежему чтению, ` +
-        `зовёт sync и слышит другую вкладку`
+        `зовёт sync и слышит другую вкладку; ссылки оглавления на главы ext/ref приглушены классом и подсказкой уровня, ` +
+        `остальные не тронуты`
     );
     // явный выход: страницы с настоящим srs.js взводят таймер до местной полуночи и держали бы процесс
     process.exit(0);
@@ -274,6 +275,63 @@ function pageDom(file, opts) {
     );
     d.window.addEventListener("load", () => resolve(d));
   });
+}
+
+// Приглушённое оглавление: ссылки на главы ext/ref получают класс и подсказку из реестра уровней,
+// ядро, инструменты и страницы вне реестра — ничего. Уровень берётся из GROUPS, второго списка нет.
+async function tocChecks(declaredLevels) {
+  const lvlOf = (h) => (declaredLevels.find((d) => d.h + ".html" === h) || {}).lvl;
+  const hints = {};
+  for (const m of js.matchAll(/(ext|ref|core|tool):\s*\{\s*badge:\s*"[^"]*",\s*hint:\s*"([^"]*)"/g)) hints[m[1]] = m[2];
+  const sample = ["sliding-window.html", "deque-structure.html", "avl-tree-structure.html", "quiz.html", "glossary.html"];
+  const want = { "sliding-window.html": "core", "deque-structure.html": "ext", "avl-tree-structure.html": "ref", "quiz.html": "tool" };
+  for (const h of Object.keys(want)) {
+    if (lvlOf(h) !== want[h]) errors.push(`образец оглавления устарел: ${h} теперь «${lvlOf(h)}», в проверке «${want[h]}»`);
+  }
+  if (lvlOf("glossary.html")) errors.push("образец «вне реестра» (glossary.html) попал в реестр — возьми другую страницу");
+  const toc = (hrefs) =>
+    '<mdbook-sidebar-scrollbox class="sidebar-scrollbox"><ol class="chapter">' +
+    hrefs.map((h) => `<li class="chapter-item"><span class="chapter-link-wrapper"><a href="${h}"><strong aria-hidden="true">1.</strong> Название</a></span></li>`).join("") +
+    "</ol></mdbook-sidebar-scrollbox>";
+
+  const verify = (d, where) => {
+    const doc = d.window.document;
+    for (const h of sample) {
+      const a = doc.querySelector(`.chapter a[href="${h}"]`);
+      if (!a) { errors.push(`${where}: нет ссылки ${h}`); continue; }
+      const lvl = lvlOf(h);
+      const marked = lvl === "ext" || lvl === "ref";
+      const classes = [...a.classList].filter((c) => c.startsWith("algo-toc"));
+      if (marked) {
+        if (classes.join() !== "algo-toc--" + lvl) errors.push(`${where}: у ${h} классы «${classes.join()}», ожидался algo-toc--${lvl}`);
+        if (a.title !== hints[lvl] || !a.title) errors.push(`${where}: у ${h} title «${a.title}», ожидалась подсказка уровня ${lvl}`);
+      } else {
+        if (classes.length) errors.push(`${where}: ${h} (${lvl || "вне реестра"}) получила класс ${classes.join()}`);
+        if (a.hasAttribute("title")) errors.push(`${where}: ${h} (${lvl || "вне реестра"}) получила title`);
+      }
+    }
+  };
+
+  // 1) оглавление уже на месте к DOMContentLoaded (так custom element mdBook и делает); повторный вызов не дублирует
+  const d = await pageDom("sliding-window.html", { menu: toc(sample) });
+  verify(d, "оглавление к загрузке");
+  if (typeof d.window.ALGO_MARK_TOC !== "function") errors.push("window.ALGO_MARK_TOC не экспортирован");
+  else {
+    d.window.ALGO_MARK_TOC();
+    verify(d, "повторный вызов");
+    const a = d.window.document.querySelector('.chapter a[href="deque-structure.html"]');
+    if (a.className.split(/\s+/).filter((c) => c === "algo-toc--ext").length !== 1) errors.push("повторный вызов задвоил класс");
+  }
+
+  // 2) оглавление вставлено ПОСЛЕ загрузки страницы (запас, если порядок скриптов изменится)
+  const d2 = await pageDom("sliding-window.html", {});
+  const holder = d2.window.document.createElement("div");
+  holder.innerHTML = toc(sample);
+  d2.window.document.body.appendChild(holder);
+  await new Promise((r) => setTimeout(r, 100));
+  verify(d2, "оглавление, вставленное позже");
+  d.window.close();
+  d2.window.close();
 }
 
 // Галочка «Глава пройдена» в конце главы: тот же реестр и те же ключи, что у трекера.

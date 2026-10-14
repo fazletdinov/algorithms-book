@@ -499,12 +499,14 @@
   // Ядро и инструменты не помечаем — молчание и означает «ты на пути».
   // Глава реестра, чья страница открыта; null — страница не из реестра (введение, глоссарий,
   // «Повторение», print.html — вся книга одной страницей).
-  function currentChapter() {
-    var file = (location.pathname.split("/").pop() || "index.html").split("#")[0];
+  function chapterByFile(file) {
     for (var i = 0; i < CHAPTERS.length; i++) {
       if (CHAPTERS[i].h === file) return CHAPTERS[i];
     }
     return null;
+  }
+  function currentChapter() {
+    return chapterByFile((location.pathname.split("/").pop() || "index.html").split("#")[0]);
   }
 
   function markPage() {
@@ -523,6 +525,34 @@
     note.appendChild(document.createTextNode(" " + LEVELS[ch.lvl].hint));
     h1.parentNode.insertBefore(note, h1.nextSibling);
   }
+
+  // Боковое оглавление: ссылки на главы расширения и справочника приглушены классом уровня и
+  // подсказкой — шестьдесят глав в списке иначе выглядят одинаково обязательными. Уровень берётся
+  // из того же GROUPS; ядро и инструменты не помечаем (молчание = «ты на пути»), ссылки остаются
+  // обычными и кликабельными. Оглавление mdBook (custom element, connectedCallback) обычно уже
+  // заполнено к этому моменту; если нет — один MutationObserver ждёт ссылок и отключается.
+  var tocWatch = null;
+  function markToc() {
+    var links = document.querySelectorAll(".sidebar-scrollbox .chapter a[href]");
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i];
+      var ch = chapterByFile((a.getAttribute("href") || "").split("#")[0].split("/").pop());
+      if (!ch || (ch.lvl !== "ext" && ch.lvl !== "ref")) continue;
+      a.classList.add("algo-toc--" + ch.lvl);
+      a.title = LEVELS[ch.lvl].hint;
+    }
+    return links.length > 0;
+  }
+  function initToc() {
+    if (markToc() || tocWatch || typeof MutationObserver === "undefined") return;
+    tocWatch = new MutationObserver(function () {
+      if (!markToc()) return;
+      tocWatch.disconnect();
+    });
+    tocWatch.observe(document.body, { childList: true, subtree: true });
+    setTimeout(function () { tocWatch.disconnect(); }, 5000);
+  }
+  window.ALGO_MARK_TOC = markToc;
 
   // Галочка «Глава пройдена» в конце главы. Раньше отметить главу можно было только в трекере на
   // шпаргалке — на другой странице, до которой ещё надо дойти; отметку забывали, и карточка главы
@@ -581,6 +611,7 @@
 
   function init() {
     markPage();
+    initToc();
     chapterDone();
     Array.prototype.forEach.call(document.querySelectorAll(".algo-progress:not(.algo-progress--ready)"), function (el) {
       el.classList.add("algo-progress--ready"); build(el);
