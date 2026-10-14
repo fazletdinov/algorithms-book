@@ -6,8 +6,8 @@
     <div class="algo-hero__tag">Как растёт время и память с размером входа — и почему «редко дорого» это дёшево</div>
   </div>
   <div class="algo-hero__metrics">
-    <div class="algo-hero__metric"><span>Цикл в цикле по n</span><b>O(n²)</b></div>
-    <div class="algo-hero__metric"><span>append (на одну вставку из серии)</span><b>O(1)</b></div>
+    <div class="algo-hero__metric"><span>Цикл в цикле по n: шагов порядка n²</span><b>O(n²)</b></div>
+    <div class="algo-hero__metric"><span>append: средняя цена вставки по серии не растёт с n</span><b>O(1)</b></div>
   </div>
 </div>
 
@@ -420,7 +420,7 @@ for i := 1; i &lt; n; i *= 2 {
 <div class="algo-challenge__q">Два вложенных цикла по n каждый — это…</div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="O(n log n)|O(n²)|Одинаково — оба полиномиальные|Зависит от констант даже при огромных n" data-answer="0" data-explain="На больших n O(n log n) растёт медленнее O(n²), поэтому он быстрее (хотя на малых n константы могут перевернуть картину). При достаточно большом n разрыв n / log n перекроет любую константу.">
+<div class="algo-challenge" data-type="choice" data-options="O(n log n)|O(n²)|Одинаково — оба растут не быстрее степени n|Зависит от констант даже при огромных n" data-answer="0" data-explain="На больших n O(n log n) растёт медленнее O(n²), поэтому он быстрее (хотя на малых n константы могут перевернуть картину). При достаточно большом n разрыв n / log n перекроет любую константу.">
 <div class="algo-challenge__q">Что быстрее на <b>больших</b> n: O(n log n) или O(n²)?</div>
 </div>
 
