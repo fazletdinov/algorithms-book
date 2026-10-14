@@ -22,7 +22,9 @@
 //     их назвать — иначе виджет предложит её последней, а читатель не поймёт почему;
 //  6) у главы ЯДРА абзац «Эта глава стоит на главе <a href="X.md">…» (первое
 //     предложение «Вспомни») ведёт только на главы ядра: «Введение» обещает, что ядро
-//     на главы расширения не опирается.
+//     на главы расширения не опирается. И только на главы ядра РАНЬШЕ этой по маршруту
+//     (порядок GROUPS в assets/progress.js): опора, которая стоит дальше, — ссылка вперёд,
+//     и читатель по маршруту приходит к главе, не зная того, на чём она стоит.
 //
 // Уровень главы (core/ext/ref/tool) берётся из ЕДИНОГО реестра — assets/progress.js,
 // того же, что питает трекер и плашку на странице.
@@ -42,6 +44,8 @@ const progressJs = read(path.join(root, "assets", "progress.js"));
 const levelOf = new Map(
   [...progressJs.matchAll(/h:\s*"([\w-]+)\.html",\s*lvl:\s*"(\w+)"/g)].map((m) => [m[1], m[2]])
 );
+// место главы в маршруте — порядок GROUPS (с оглавлением его сверяет check-registries.js)
+const routePos = new Map([...levelOf.keys()].map((slug, i) => [slug, i]));
 
 // соседи функций из банка задач: «pkg.F» → [имена]
 const bankNeeds = new Map();
@@ -97,6 +101,7 @@ let withLadder = 0;
 let coreSkipped = 0;
 let trainerTails = 0;
 let coreLeans = 0;
+let coreLeanLinks = 0;
 
 for (const file of fs.readdirSync(srcDir).filter((f) => f.endsWith(".md") && f !== "SUMMARY.md")) {
   const slug = file.replace(/\.md$/, "");
@@ -104,17 +109,23 @@ for (const file of fs.readdirSync(srcDir).filter((f) => f.endsWith(".md") && f !
   const where = `src/${file}`;
   const isCore = levelOf.get(slug) === "core";
 
-  // 6) «Вспомни» главы ядра стоит только на ядре
+  // 6) «Вспомни» главы ядра стоит только на ядре, пройденном раньше неё
   if (isCore) {
     const lean = text.match(/Эта глава стоит на глав[еах]+ ([\s\S]*?)\.(?:\s|<)/);
     if (lean) {
       coreLeans++;
       for (const m of lean[1].matchAll(/href="([\w-]+)\.md"/g)) {
+        coreLeanLinks++;
         const lvl = levelOf.get(m[1]);
         if (lvl !== "core") {
           errors.push(
             `${where}: «Вспомни» главы ядра стоит на главе ${m[1]}.md уровня «${lvl || "нет в реестре"}» — ` +
               `ядро не должно опираться на расширение (опора — глава ядра, расширение — ссылка «подробнее»)`
+          );
+        } else if (routePos.get(m[1]) >= routePos.get(slug)) {
+          errors.push(
+            `${where}: «Вспомни» стоит на главе ${m[1]}.md, а она по маршруту позже ` +
+              `(место ${routePos.get(m[1]) + 1} против ${routePos.get(slug) + 1} в GROUPS) — опора обязана быть пройдена раньше`
           );
         }
       }
@@ -225,5 +236,6 @@ console.log(
   `✅ check-ladder: лестница задач в ${withLadder} главах — три ступени по порядку, ` +
     `каждая непустая, подсказка «не пошло» на месте; хвостов «в тренажёре»: ${trainerTails}, ` +
     `у каждого — функция заготовки со своими тестами; «Вспомни» ${coreLeans} глав ядра стоит только на ядре ` +
+    `раньше по маршруту (опор проверено: ${coreLeanLinks}) ` +
     `(глав ядра без списка задач: ${coreSkipped} — практика там в пакете тренажёра или в задачах самой главы)`
 );

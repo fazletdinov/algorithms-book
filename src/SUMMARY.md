@@ -15,7 +15,6 @@
 
 - [📈 Big-O и амортизированный анализ](big-o.md)
 - [🔁 Рекурсия и мастер-теорема](recursion.md)
-- [🧭 Инварианты и индукция: доказываем, что код правильный](invariants.md)
 - [🗂️ Хеш-таблица: устройство и операции](hash-table-structure.md)
 - [🔗 Связный список: устройство и операции](linked-list-structure.md)
 - [↔️ Дек (Deque): устройство и операции](deque-structure.md)
@@ -26,6 +25,7 @@
 - [🪟 Скользящее окно (Sliding Window)](sliding-window.md)
 - [➕ Префиксные суммы и разностные массивы (Prefix Sums)](prefix-sums.md)
 - [🎯 Два указателя (Two Pointers)](two-pointers.md)
+- [🧭 Инварианты и индукция: доказываем, что код правильный](invariants.md)
 - [📚 Стек и монотонный стек (Monotonic Stack)](monotonic-stack.md)
 - [🐢 Быстрый и медленный указатели (Fast & Slow Pointers)](fast-slow-pointers.md)
 - [↩️ Reverse Linked List (Разворот связанного списка)](reverse-linked-list.md)

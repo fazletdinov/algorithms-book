@@ -9,6 +9,7 @@
 // от книги на 19 глав. Проверяем семь связей:
 //
 //  1) assets/progress.js  <-> src/SUMMARY.md      — трекер знает все главы книги;
+//  1a) там же: порядок глав в GROUPS = порядок в оглавлении (это маршрут для check-ladder.js);
 //  1b') листья дерева в pattern-selection-guide.md <-> lvl в progress.js — метки уровня верны;
 //  2) exercises/README.md <-> exercises/*/        — таблица пакетов полна;
 //  3) data-trace-calls в главах <-> traceTargets  — бэкенд разрешает то, что предлагает глава;
@@ -58,6 +59,25 @@ const summarySet = new Set(summaryChapters);
 for (const ch of trackerChapters) {
   if (!summarySet.has(ch)) {
     errors.push(`трекер прогресса: «${ch}» есть в GROUPS, но такой главы нет в src/SUMMARY.md`);
+  }
+}
+
+// ---------- 1a. порядок глав: GROUPS <-> оглавление ----------
+// Порядок GROUPS — это маршрут: по нему check-ladder.js решает, какая глава «раньше».
+// Разойдись он с оглавлением, читатель шёл бы одним путём, а линты считали бы другой.
+const trackerOrder = [...progressJs.matchAll(/h:\s*"([\w-]+)\.html"/g)]
+  .map((m) => m[1])
+  .filter((ch) => summarySet.has(ch));
+const summaryOrder = summaryChapters.filter((ch) => trackerChapters.has(ch));
+const orderLen = Math.min(trackerOrder.length, summaryOrder.length);
+for (let i = 0; i < orderLen; i++) {
+  if (trackerOrder[i] !== summaryOrder[i]) {
+    errors.push(
+      `порядок глав: на месте ${i + 1} в GROUPS (assets/progress.js) стоит «${trackerOrder[i]}», ` +
+        `а в src/SUMMARY.md — «${summaryOrder[i]}»: первая расходящаяся пара, порядок GROUPS ` +
+        `обязан повторять оглавление`
+    );
+    break;
   }
 }
 
@@ -446,7 +466,7 @@ if (errors.length) {
 }
 console.log(
   `✅ check-registries: трекер (${trackerChapters.size} глав: ядро ${coreCount}, ` +
-    `остальные ${trackerChapters.size - coreCount}), таблица пакетов (${packages.length}), ` +
+    `остальные ${trackerChapters.size - coreCount}; порядок совпал с оглавлением у ${orderLen} глав), таблица пакетов (${packages.length}), ` +
     `traceTargets (${allowed.size} пакетов), метки уровня у ${guideLeavesCount} листьев дерева решений ` +
     `и счётчик в CLAUDE.md согласованы`
 );
