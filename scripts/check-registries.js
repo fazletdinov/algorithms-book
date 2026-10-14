@@ -42,9 +42,8 @@ const TRACKER_EXEMPT = new Set(["README", "glossary", "review", "mixed"]);
 const summary = read(path.join(srcDir, "SUMMARY.md"));
 const summaryChapters = [...summary.matchAll(/\]\(([\w-]+)\.md\)/g)].map((m) => m[1]);
 const progressJs = read(path.join(root, "assets", "progress.js"));
-const trackerChapters = new Set(
-  [...progressJs.matchAll(/h:\s*"([\w-]+)\.html"/g)].map((m) => m[1])
-);
+const trackerList = [...progressJs.matchAll(/h:\s*"([\w-]+)\.html"/g)].map((m) => m[1]);
+const trackerChapters = new Set(trackerList);
 
 for (const ch of summaryChapters) {
   if (TRACKER_EXEMPT.has(ch)) continue;
@@ -65,9 +64,7 @@ for (const ch of trackerChapters) {
 // ---------- 1a. порядок глав: GROUPS <-> оглавление ----------
 // Порядок GROUPS — это маршрут: по нему check-ladder.js решает, какая глава «раньше».
 // Разойдись он с оглавлением, читатель шёл бы одним путём, а линты считали бы другой.
-const trackerOrder = [...progressJs.matchAll(/h:\s*"([\w-]+)\.html"/g)]
-  .map((m) => m[1])
-  .filter((ch) => summarySet.has(ch));
+const trackerOrder = trackerList.filter((ch) => summarySet.has(ch));
 const summaryOrder = summaryChapters.filter((ch) => trackerChapters.has(ch));
 const orderLen = Math.min(trackerOrder.length, summaryOrder.length);
 for (let i = 0; i < orderLen; i++) {
