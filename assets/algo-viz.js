@@ -7340,22 +7340,33 @@
     }
     // Тело siftDown построчно — только в ПЕРВОМ СПУСКЕ фазы: в первом вызове, который опускает
     // узел хотя бы на уровень (вызов, где узел уже на месте, строки обмена не показал бы). Нет
-    // такого — построчно первый вызов фазы. Остальные вызовы сжаты. Номера вызовов — сухим прогоном.
+    // такого — построчно первый вызов фазы. В фазе 2 построчным берётся первый вызов, где на одном
+    // уровне срабатывают ОБЕ строки `largest = l` и `largest = r` (иначе `largest = l` на входе главы
+    // не подсвечивался ни разу), а нет такого — первый спуск. Остальные вызовы сжаты. Номера
+    // вызовов — сухим прогоном.
     function firstDescents() {
-      var b = a.slice(), d1 = -1, d2 = -1;
+      var b = a.slice(), d1 = -1, d2 = -1, both = -1;
+      // 0 — узел на месте, 1 — опустился, 2 — опустился, и на каком-то уровне сработали обе строки largest = …
       function dry(i, size) {
+        var res = 0;
         for (var g = 0; g < 64; g++) {
-          var l = 2 * i + 1, r = 2 * i + 2, lg = i;
-          if (l < size && b[l] > b[lg]) lg = l;
-          if (r < size && b[r] > b[lg]) lg = r;
-          if (lg === i) return g > 0;
+          var l = 2 * i + 1, r = 2 * i + 2, lg = i, byL = false;
+          if (l < size && b[l] > b[lg]) { lg = l; byL = true; }
+          if (r < size && b[r] > b[lg]) { lg = r; if (byL) res = 2; }
+          if (lg === i) return res;
           var t = b[i]; b[i] = b[lg]; b[lg] = t; i = lg;
+          if (!res) res = 1;
         }
-        return true;
+        return res;
       }
       for (var i = Math.floor(n / 2) - 1; i >= 0; i--) if (dry(i, n) && d1 < 0) d1 = i;
-      for (var e = n - 1; e > 0; e--) { var t = b[0]; b[0] = b[e]; b[e] = t; if (dry(0, e) && d2 < 0) d2 = e; }
-      return { p1: d1 < 0 ? Math.floor(n / 2) - 1 : d1, p2: d2 < 0 ? n - 1 : d2 };
+      for (var e = n - 1; e > 0; e--) {
+        var t = b[0]; b[0] = b[e]; b[e] = t;
+        var k = dry(0, e);
+        if (k && d2 < 0) d2 = e;
+        if (k === 2 && both < 0) both = e;
+      }
+      return { p1: d1 < 0 ? Math.floor(n / 2) - 1 : d1, p2: both >= 0 ? both : d2 >= 0 ? d2 : n - 1 };
     }
     // Сжатый вызов (detailed = false) — кадр на уровень спуска: обмен — на строке обмена
     // (кадр строки i = largest не ставится), остановка — на `if largest == i {` с явным
@@ -7417,7 +7428,7 @@
       var t = a[0]; a[0] = a[end]; a[end] = t; swaps++; sorted++;
       snap({ line: 6, end: end, lo: 0, hi: end, mid: end, ptrNames: { lo: "—", hi: "end" }, info: "Максимум " + a[end] + " из корня — в конец (позиция " + end + "): хвост вырос. В корень встал " + a[0] + " — куча сломана" });
       if (end === first.p2) {
-        snap({ line: 7, end: end, lo: 0, ptrNames: { lo: "—" }, info: "siftDown(a, 0, " + end + ") — чиним кучу на a[0.." + (end - 1) + "]. Первый спуск фазы — снова строка за строкой" });
+        snap({ line: 7, end: end, lo: 0, ptrNames: { lo: "—" }, info: "siftDown(a, 0, " + end + ") — чиним кучу на a[0.." + (end - 1) + "]. Этот вызов фазы 2 покажем строка за строкой, остальные — по кадру на уровень" });
         siftDown(0, end, true);
       } else siftDown(0, end, false, "siftDown(a, 0, " + end + "): ");
     }

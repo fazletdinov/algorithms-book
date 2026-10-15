@@ -137,7 +137,8 @@
  "heap-sort": [
   "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 7, строка 14: if l < size && a[l] > a[largest] {",
   "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 15, строка 17: if r < size && a[r] > a[largest] {",
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 34, строка 17: if r < size && a[r] > a[largest] {"
+  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 38, строка 14: if l < size && a[l] > a[largest] {",
+  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 39, строка 17: if r < size && a[r] > a[largest] {"
  ],
  "hll-add": [
   "глава probabilistic-structures.md (elems=user_8143,user_2290,user_5561,user_9033,user_1204,user_7788,user_4415,user_6672,user_8143) — шаг 25, строка 5: if rho > h.reg[j] {"
