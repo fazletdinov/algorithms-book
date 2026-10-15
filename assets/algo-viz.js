@@ -2455,19 +2455,22 @@
   // «нет» — нет: шаг вне тела бывает и при истинном условии, если тело не дало кадра
   // (вложенный цикл без итераций, continue, return, запись без кадра). Поэтому генератор,
   // у которого такое возможно, ОБЯЗАН ставить s.branch; сверку держит predict-check.js.
-  // Когда спрашивать (predictionQuestions): при первой встрече строки, при смене её исхода
-  // (цикл кончился, условие впервые ложно) и ещё на второй-третьей встрече с тем же исходом,
-  // если ключ надёжен (назван генератором или «да» по вхождению в тело). Раньше спрашивали
-  // только при смене исхода — и каждый повторный вопрос строки был противоположен прошлому:
-  // угадывалось чередованием «да / нет», не глядя на шаг. На каждой развилке подряд —
-  // утомительно (в ядре 777 развилок против 311 «переворотов», замер этапа 3a), поэтому повторы
-  // ограничены PRED_REPEAT встречами. Выведенное «нет» (ненадёжное) повтором не спрашивается:
-  // его спрашивают только первая встреча и смена исхода, как раньше, — так список прочитанных
-  // ключей predict-unconfirmed.json от этого правила не растёт.
+  // Когда спрашивать (predChoose). Сам факт вопроса не должен выдавать ответ. Раньше строку
+  // спрашивали при первой встрече и при СМЕНЕ исхода — повторный вопрос был всегда противоположен
+  // прошлому, и «🎯» угадывался чередованием. Теперь выбор встречи смотрит только на номер
+  // встречи строки n, её вид и надёжность строки — не на исход этой встречи:
+  //   • n = 1 — спрашиваем всегда;
+  //   • if и строки с cfg.ask: n ≤ PRED_REPEAT — всегда, дальше — детерминированная выборка
+  //     (хеш типа, строки и n, без Math.random — проверки воспроизводимы) с долей PRED_LATE_SHARE;
+  //   • заголовки for/range без cfg.ask (польза меньше, а встреч больше) — после первой встречи
+  //     только выборка с долей PRED_HEAD_SHARE;
+  //   • строка, где в этом прогоне есть выведенное «нет» (ключ ненадёжен), — только n = 1, а на
+  //     своём вводе читателя не спрашивается вовсе: её «нет» никто не прочитал. Повтор такой строки
+  //     спрашивал бы «нет» без подтверждения, а пропуск только «нет» снова выдавал бы ответ. В ядре
+  //     таких строк нет — исход назван генераторами (s.branch).
   // s.noAsk = true — генератор просит не спрашивать на этом шаге (вопрос ещё не на что
-  // опереть: сжатый siftDown до первого построчного спуска); исход строки запоминается, а
-  // встреча не считается.
-  var PRED_REPEAT = 3;
+  // опереть: сжатый siftDown до первого построчного спуска); встреча не считается.
+  var PRED_REPEAT = 3, PRED_LATE_SHARE = 1 / 3, PRED_HEAD_SHARE = 1 / 10;
   function branchOf(line) {
     var t = String(line).replace(/\/\/.*$/, "").trim();
     if (!/\{$/.test(t)) return null;
@@ -2492,15 +2495,22 @@
     }
     return -1;
   }
-  // onlySure — прогон на своём вводе читателя: выведенное «нет» там никем не прочитано и не
-  // сверено, такой вопрос не задаётся (исход строки при этом запоминается, как обычно).
-  function predictionQuestions(steps, code, onlySure) {
-    var qs = {}, last = {}, met = {};
+  // Доля выборки встреч: хеш FNV-1a с перемешиванием, [0, 1).
+  function predPick(seed, L, n) {
+    var h = 2166136261, t = seed + "|" + L + "|" + n;
+    for (var i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    h ^= h >>> 16; h = Math.imul(h, 2246822507) >>> 0; h ^= h >>> 13;
+    return (h >>> 0) / 4294967296;
+  }
+  // Встречи развилок: { at, line, kind, cond, entered, said, loose }. loose — на строке в этом прогоне
+  // есть выведенное «нет».
+  function predCandidates(steps, code) {
+    var cand = [], loose = {};
     for (var k = 1; k + 1 < steps.length; k++) {
       var L = steps[k].line, M = steps[k + 1].line;
       if (typeof L !== "number" || typeof M !== "number" || M === L || !code[L]) continue;
       var b = branchOf(code[L]);
-      if (!b) continue;
+      if (!b || steps[k].noAsk) continue;
       var said = typeof steps[k].branch === "boolean", entered = steps[k].branch;
       if (!said) {
         // «Вошли в тело» — следующий шаг внутри блока строки L. Раньше считалось по L+1, и
@@ -2508,15 +2518,35 @@
         var E = blockEnd(code, L);
         entered = E < 0 ? M === L + 1 : (M > L && M < E);
       }
-      if (steps[k].noAsk) { last[L] = entered; continue; }
-      met[L] = (met[L] || 0) + 1;
-      var fresh = !(L in last) || last[L] !== entered, sure = said || entered;
-      if ((fresh || (sure && met[L] <= PRED_REPEAT)) && (!onlySure || sure)) qs[k] = { at: k, line: L, kind: b.kind, cond: b.cond, entered: entered, said: said };
-      last[L] = entered;
+      if (!said && !entered) loose[L] = true;
+      cand.push({ at: k, line: L, kind: b.kind, cond: b.cond, entered: entered, said: said });
     }
+    cand.forEach(function (q) { q.loose = !!loose[q.line]; });
+    return cand;
+  }
+  // Выбор (правило — над PRED_REPEAT). Читает у встречи только line, kind и loose — исход
+  // (entered, said) не читает; это проверяет predict-check, переворачивая исходы. onlySure — свой
+  // ввод читателя; seed — тип виджета; askLines — строки с cfg.ask.
+  function predChoose(cand, onlySure, seed, askLines) {
+    var qs = {}, met = {};
+    seed = seed || "";
+    cand.forEach(function (q) {
+      var L = q.line, n = met[L] = (met[L] || 0) + 1;
+      var head = q.kind !== "if" && !(askLines && askLines.indexOf(L) >= 0);
+      var ask = q.loose ? n === 1 && !onlySure
+        : n === 1 || (head ? predPick(seed, L, n) < PRED_HEAD_SHARE : (n <= PRED_REPEAT || predPick(seed, L, n) < PRED_LATE_SHARE));
+      q.met = n;
+      if (ask) qs[q.at] = q;
+    });
     return qs;
   }
-  // Формулировка вопроса. cfg.ask = { <номер строки листинга с 0>: { q, yes, no } } — вопрос
+  function predictionQuestions(steps, code, onlySure, seed, askLines, info) {
+    var cand = predCandidates(steps, code);
+    if (info) info.cand = cand;
+    return predChoose(cand, onlySure, seed, askLines);
+  }
+  // Формулировка вопроса. cfg.ask = { <номер строки листинга с 0>: { cond, q, yes, no } } — cond —
+  // фрагмент условия этой строки (сверка в askProblems), q — вопрос
   // языком приёма («Окно придётся сжимать?») и ответы — что будет дальше; каждое поле — строка
   // или функция (шаг развилки, ctx) → строка (номер вершины, которой на экране ещё нет). Без
   // записи — общая формулировка по виду развилки.
@@ -2531,12 +2561,14 @@
     };
   }
   // Кривой cfg.ask — ошибка сборки виджета, а не молчаливая общая формулировка: строка не
-  // развилка листинга (вопрос там не задаётся никогда) или вопрос без знака вопроса.
+  // развилка листинга (вопрос там не задаётся никогда), cond не из этой строки или вопрос без «?».
   function askProblems(cfg, code) {
     var out = [];
     Object.keys(cfg.ask || {}).forEach(function (n) {
       var a = cfg.ask[n];
       if (!code[n] || !branchOf(code[n])) out.push("cfg.ask[" + n + "]: строка " + (+n + 1) + " «" + String(code[n] || "").trim() + "» — не развилка if / for");
+      // фрагмент условия держит запись на своей строке: сдвиг листинга не прицепит её к чужой развилке
+      else if (!a || !a.cond || String(code[n]).indexOf(a.cond) < 0) out.push("cfg.ask[" + n + "]: cond «" + (a && a.cond) + "» не найден в строке " + (+n + 1) + " «" + String(code[n]).trim() + "»");
       if (!a || a.q == null || a.yes == null || a.no == null) out.push("cfg.ask[" + n + "]: нужны q, yes и no");
       else if (typeof a.q === "string" && a.q.indexOf("?") < 0) out.push("cfg.ask[" + n + "]: в вопросе «" + a.q + "» нет знака вопроса");
     });
@@ -2596,7 +2628,7 @@
       sum += arr[r] - arr[r - k];
       steps.push({ lo: lo, hi: r, gone: r - k, added: r, ptrNames: { lo: "i-k+1", hi: "i" }, frames: fr(lo, r, sum), line: 7, vars: vv(r, sum, maxSum), info: "windowSum += arr[" + r + "] − arr[" + (r - k) + "]: +" + arr[r] + " (вошёл, янтарный) − " + arr[r - k] + " (выбыл, зачёркнут) → " + sum + ". Сумма заново не пересчитывается — O(1)" });
       var improved = sum > maxSum;
-      steps.push({ lo: lo, hi: r, ptrNames: { lo: "i-k+1", hi: "i" }, frames: fr(lo, r, sum), line: 8, vars: vv(r, sum, maxSum), info: "windowSum " + sum + (improved ? " > " : " ≤ ") + "maxSum " + maxSum + (improved ? " — да" : " — нет, максимум прежний") });
+      steps.push({ lo: lo, hi: r, ptrNames: { lo: "i-k+1", hi: "i" }, frames: fr(lo, r, sum), line: 8, branch: improved, vars: vv(r, sum, maxSum), info: "windowSum " + sum + (improved ? " > " : " ≤ ") + "maxSum " + maxSum + (improved ? " — да" : " — нет, максимум прежний") });
       if (improved) {
         maxSum = sum; bestLo = lo;
         steps.push({ lo: lo, hi: r, improved: true, ptrNames: { lo: "i-k+1", hi: "i" }, frames: fr(lo, r, sum), line: 9, vars: vv(r, sum, maxSum), info: "maxSum = windowSum = " + maxSum + " — новый максимум: зелёная рамка переехала сюда" });
@@ -2619,28 +2651,28 @@
     function fr(label, kind) { return lo < hi ? [{ lo: lo, hi: hi, label: label || "", kind: kind || "cur" }] : []; }
     steps.push({ lo: lo, hi: hi, frames: fr(), line: 1, vars: vv(), info: "lo = 0, hi = " + hi + " — концы отсортированного массива" });
     while (lo < hi) {
-      steps.push({ lo: lo, hi: hi, frames: fr(), line: 2, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — да, продолжаем" });
+      steps.push({ lo: lo, hi: hi, frames: fr(), line: 2, branch: true, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — да, продолжаем" });
       var sum = arr[lo] + arr[hi];
       steps.push({ lo: lo, hi: hi, frames: fr("sum = " + arr[lo] + " + " + arr[hi] + " = " + sum), line: 3, vars: vv(sum), info: "sum = arr[" + lo + "] + arr[" + hi + "] = " + arr[lo] + " + " + arr[hi] + " = " + sum });
       if (sum === target) {
-        steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " == " + target, "hit"), line: 4, vars: vv(sum), info: "sum " + sum + " == target " + target + " — да!" });
+        steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " == " + target, "hit"), line: 4, branch: true, vars: vv(sum), info: "sum " + sum + " == target " + target + " — да!" });
         steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " == " + target, "hit"), found: true, done: true, line: 5, vars: vv(sum), info: "return " + lo + ", " + hi + " — пара (" + arr[lo] + ", " + arr[hi] + ") даёт " + target });
         return steps;
       }
-      steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " ≠ " + target), line: 4, note: "sum ≠ target — не пара; решаем, какой указатель сдвинуть", vars: vv(sum), info: "sum " + sum + " ≠ target " + target + " — нет" });
+      steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " ≠ " + target), line: 4, branch: false, note: "sum ≠ target — не пара; решаем, какой указатель сдвинуть", vars: vv(sum), info: "sum " + sum + " ≠ target " + target + " — нет" });
       if (sum < target) {
-        steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " < " + target, "lo"), line: 6, note: "Да: сумма мала → сдвинем lo вправо", vars: vv(sum), info: "sum " + sum + " < target " + target + " — да, сумма мала" });
+        steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " < " + target, "lo"), line: 6, branch: true, note: "Да: сумма мала → сдвинем lo вправо", vars: vv(sum), info: "sum " + sum + " < target " + target + " — да, сумма мала" });
         var goneL = lo; lo++;
         // отброшенный элемент гаснет: с arr[hi] — самым большим из оставшихся — он даёт
         // слишком мало, а с остальными ещё меньше
         steps.push({ lo: lo, hi: hi, frames: fr(), line: 7, vars: vv(), info: "lo++ → lo = " + lo + ". arr[" + goneL + "] = " + arr[goneL] + " отброшен: даже с самым большим из оставшихся (" + arr[hi] + ") сумма мала" });
       } else {
-        steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " > " + target, "hi"), line: 6, note: "Нет: сумма велика → идём в else, сдвинем hi влево", vars: vv(sum), info: "sum " + sum + " < target " + target + " — нет (сумма велика) → else" });
+        steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " > " + target, "hi"), line: 6, branch: false, note: "Нет: сумма велика → идём в else, сдвинем hi влево", vars: vv(sum), info: "sum " + sum + " < target " + target + " — нет (сумма велика) → else" });
         var goneH = hi; hi--;
         steps.push({ lo: lo, hi: hi, frames: fr(), line: 9, vars: vv(), info: "hi-- → hi = " + hi + ". arr[" + goneH + "] = " + arr[goneH] + " отброшен: даже с самым маленьким из оставшихся (" + arr[lo] + ") сумма велика" });
       }
     }
-    steps.push({ lo: lo, hi: hi, frames: [], line: 2, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — нет, указатели сошлись" });
+    steps.push({ lo: lo, hi: hi, frames: [], line: 2, branch: false, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — нет, указатели сошлись" });
     steps.push({ lo: lo, hi: hi, frames: [], done: true, line: 12, vars: vv(), info: "return −1, −1 — пары с суммой " + target + " нет" });
     return steps;
   }
@@ -2670,7 +2702,7 @@
       fast = nextIdx(fnext);
       steps.push({ slow: slow, fast: fast, line: 4, vars: { slow: val(slow), fast: val(fast) }, info: "fast = fast.Next.Next → " + val(fast) + " (+2 шага)" });
       var meet = slow >= 0 && slow === fast;
-      steps.push({ slow: slow, fast: fast, line: 5, vars: { slow: val(slow), fast: val(fast) }, info: meet ? "slow == fast на " + val(slow) + " — указатели встретились!" : "slow (" + val(slow) + ") ≠ fast (" + val(fast) + ") — пока не встретились" });
+      steps.push({ slow: slow, fast: fast, line: 5, branch: meet, vars: { slow: val(slow), fast: val(fast) }, info: meet ? "slow == fast на " + val(slow) + " — указатели встретились!" : "slow (" + val(slow) + ") ≠ fast (" + val(fast) + ") — пока не встретились" });
       if (meet && !entry) { steps.push({ slow: slow, fast: fast, meet: true, found: true, done: true, line: 6, vars: { slow: val(slow), fast: val(fast) }, info: "return true — в списке есть цикл!" }); break; }
       if (meet) {
         steps.push({ slow: slow, fast: fast, line: 6, vars: { slow: val(slow), fast: val(fast) }, info: "break — встреча в узле " + val(slow) + " (индекс " + slow + "): цикл есть, но это ещё не вход" });
@@ -2684,13 +2716,13 @@
         steps.push({ slow: slow, fast: fast, phase2: true, line: 12, ptrNames: { lo: "slow", hi: "fast" }, vars: { slow: val(slow), fast: val(fast) }, info: "Фаза 2: slow — в голову, fast остаётся в точке встречи. a = " + a + " (голова → вход), b = " + b + " (вход → встреча), L = " + L + ": a ≡ L − b по модулю L, поэтому по одному шагу они сойдутся ровно на входе" });
         var g2 = 0;
         while (slow !== fast && g2++ < 2 * n + 4) {
-          steps.push({ slow: slow, fast: fast, phase2: true, line: 13, vars: { slow: val(slow), fast: val(fast) }, info: "slow (" + val(slow) + ") ≠ fast (" + val(fast) + ") — ещё не сошлись" });
+          steps.push({ slow: slow, fast: fast, phase2: true, line: 13, branch: true, vars: { slow: val(slow), fast: val(fast) }, info: "slow (" + val(slow) + ") ≠ fast (" + val(fast) + ") — ещё не сошлись" });
           slow = nextIdx(slow);
           steps.push({ slow: slow, fast: fast, phase2: true, line: 14, vars: { slow: val(slow), fast: val(fast) }, info: "slow = slow.Next → " + val(slow) + " (+1)" });
           fast = nextIdx(fast);
           steps.push({ slow: slow, fast: fast, phase2: true, line: 15, vars: { slow: val(slow), fast: val(fast) }, info: "fast = fast.Next → " + val(fast) + " (+1, теперь тоже по одному)" });
         }
-        steps.push({ slow: slow, fast: fast, phase2: true, line: 13, vars: { slow: val(slow), fast: val(fast) }, info: "slow == fast на " + val(slow) + " — сошлись" });
+        steps.push({ slow: slow, fast: fast, phase2: true, line: 13, branch: false, vars: { slow: val(slow), fast: val(fast) }, info: "slow == fast на " + val(slow) + " — сошлись" });
         steps.push({ slow: slow, fast: fast, phase2: true, entryAt: slow, found: true, done: true, line: 17, vars: { slow: val(slow), fast: val(fast) }, info: "return slow — вход в цикл: узел " + val(slow) + " (индекс " + slow + "), без единого байта памяти под посещённые узлы" });
         break;
       }
@@ -3051,7 +3083,7 @@
       steps.push(at(i, left, right, { frames: tri(i, right, ""), line: 7, vars: vv(i, left, right), info: "left = " + left + ", right = " + right + " — пара ищется в остатке справа от i" }));
       for (;;) {
         var go = left < right;
-        steps.push(at(i, left, right, { frames: go ? tri(i, right, "") : [], line: 8, vars: vv(i, left, right), info: "left < right? " + left + (go ? " < " : " ≥ ") + right + (go ? " — да" : " — нет, указатели сошлись: с этим i всё") }));
+        steps.push(at(i, left, right, { frames: go ? tri(i, right, "") : [], line: 8, branch: go, vars: vv(i, left, right), info: "left < right? " + left + (go ? " < " : " ≥ ") + right + (go ? " — да" : " — нет, указатели сошлись: с этим i всё") }));
         if (!go) break;
         var sum = a[i] + a[left] + a[right];
         steps.push(at(i, left, right, { frames: tri(i, right, "sum = " + a[i] + " + " + num(a[left]) + " + " + num(a[right]) + " = " + sum), line: 9, vars: vv(i, left, right, sum), info: "sum = " + a[i] + " + " + a[left] + " + " + a[right] + " = " + sum }));
@@ -3104,7 +3136,7 @@
     for (var fast = 1; fast < n; fast++) {
       steps.push({ slow: slow, fast: fast, line: 3, branch: fast < n, values: a.slice(), vars: vv(slow, fast), info: "fast = " + fast + ": " + fast + " < " + n + " — сканируем nums[" + fast + "] = " + a[fast] });
       var diff = a[slow] !== a[fast];
-      steps.push({ slow: slow, fast: fast, line: 4, values: a.slice(), vars: vv(slow, fast), info: "nums[slow]=" + a[slow] + (diff ? " ≠ " : " == ") + "nums[fast]=" + a[fast] + (diff ? " — новый уникальный" : " — дубликат, пропускаем") });
+      steps.push({ slow: slow, fast: fast, line: 4, branch: diff, values: a.slice(), vars: vv(slow, fast), info: "nums[slow]=" + a[slow] + (diff ? " ≠ " : " == ") + "nums[fast]=" + a[fast] + (diff ? " — новый уникальный" : " — дубликат, пропускаем") });
       if (diff) {
         slow++;
         steps.push({ slow: slow, fast: fast, line: 5, values: a.slice(), vars: vv(slow, fast), info: "slow++ → slow = " + slow + " (двигаем границу уникальных)" });
@@ -3148,26 +3180,26 @@
     function fr(label, kind) { return [{ lo: mid, hi: mid, label: label, kind: kind || "cur" }]; }
     steps.push({ lo: lo, hi: hi, mid: -1, frames: [], line: 1, vars: vv(-1), info: "left = 0, right = " + hi + " — ищем во всём массиве" });
     while (lo <= hi) {
-      steps.push({ lo: lo, hi: hi, mid: -1, frames: [], line: 2, vars: vv(-1), info: "left(" + lo + ") ≤ right(" + hi + ") — да, диапазон не пуст" });
+      steps.push({ lo: lo, hi: hi, mid: -1, frames: [], line: 2, branch: true, vars: vv(-1), info: "left(" + lo + ") ≤ right(" + hi + ") — да, диапазон не пуст" });
       mid = lo + ((hi - lo) >> 1);
       steps.push({ lo: lo, hi: hi, mid: mid, frames: fr("arr[mid] = " + arr[mid]), line: 3, vars: vv(mid), info: "mid = left + (right−left)/2 = " + mid + " → arr[" + mid + "] = " + arr[mid] });
       if (arr[mid] === target) {
-        steps.push({ lo: lo, hi: hi, mid: mid, frames: fr(arr[mid] + " == " + target, "hit"), line: 4, vars: vv(mid), info: "arr[" + mid + "] = " + arr[mid] + " == target " + target + " — да!" });
+        steps.push({ lo: lo, hi: hi, mid: mid, frames: fr(arr[mid] + " == " + target, "hit"), line: 4, branch: true, vars: vv(mid), info: "arr[" + mid + "] = " + arr[mid] + " == target " + target + " — да!" });
         steps.push({ lo: mid, hi: mid, mid: mid, frames: fr(arr[mid] + " == " + target, "hit"), found: true, done: true, line: 5, vars: vv(mid), info: "return " + mid + " — target найден на индексе " + mid });
         return steps;
       }
-      steps.push({ lo: lo, hi: hi, mid: mid, frames: fr(arr[mid] + " ≠ " + target), line: 4, vars: vv(mid), info: "arr[" + mid + "] = " + arr[mid] + " ≠ target " + target + " — нет" });
+      steps.push({ lo: lo, hi: hi, mid: mid, frames: fr(arr[mid] + " ≠ " + target), line: 4, branch: false, vars: vv(mid), info: "arr[" + mid + "] = " + arr[mid] + " ≠ target " + target + " — нет" });
       if (arr[mid] < target) {
-        steps.push({ lo: lo, hi: hi, mid: mid, frames: fr(arr[mid] + " < " + target + " → правее", "lo"), line: 6, vars: vv(mid), info: "arr[" + mid + "] " + arr[mid] + " < target " + target + " — да, target правее" });
+        steps.push({ lo: lo, hi: hi, mid: mid, frames: fr(arr[mid] + " < " + target + " → правее", "lo"), line: 6, branch: true, vars: vv(mid), info: "arr[" + mid + "] " + arr[mid] + " < target " + target + " — да, target правее" });
         lo = mid + 1;
         steps.push({ lo: lo, hi: hi, mid: -1, frames: [], line: 7, vars: vv(mid), info: "left = mid+1 = " + lo + " — отбросили левую половину" });
       } else {
-        steps.push({ lo: lo, hi: hi, mid: mid, frames: fr(arr[mid] + " > " + target + " → левее", "hi"), line: 6, vars: vv(mid), info: "arr[" + mid + "] " + arr[mid] + " < target " + target + " — нет (больше) → else" });
+        steps.push({ lo: lo, hi: hi, mid: mid, frames: fr(arr[mid] + " > " + target + " → левее", "hi"), line: 6, branch: false, vars: vv(mid), info: "arr[" + mid + "] " + arr[mid] + " < target " + target + " — нет (больше) → else" });
         hi = mid - 1;
         steps.push({ lo: lo, hi: hi, mid: -1, frames: [], line: 9, vars: vv(mid), info: "right = mid−1 = " + hi + " — отбросили правую половину" });
       }
     }
-    steps.push({ lo: 0, hi: -1, mid: -1, frames: [], line: 2, vars: vv(-1), info: "left(" + lo + ") ≤ right(" + hi + ") — нет, диапазон пуст" });
+    steps.push({ lo: 0, hi: -1, mid: -1, frames: [], line: 2, branch: false, vars: vv(-1), info: "left(" + lo + ") ≤ right(" + hi + ") — нет, диапазон пуст" });
     steps.push({ lo: 0, hi: -1, mid: -1, frames: [], done: true, line: 12, vars: vv(-1), info: "return −1 — target " + target + " в массиве нет" });
     return steps;
   }
@@ -3542,7 +3574,7 @@
         var mk = { b: i, j: j, cls: "cmp", tag: "e" };
         st({ line: 2, branch: j < chain.length, e: chain[j], mark: mk, info: (j ? "Следующая запись цепочки" : "Берём первую запись цепочки") + ": e.key = " + chain[j] });
         var eq = chain[j] === key;
-        st({ line: 3, e: chain[j], mark: mk, info: "Сравниваем: e.key == key → " + chain[j] + " == " + key + "? " + (eq ? "Да" : "Нет — мимо") });
+        st({ line: 3, branch: eq, e: chain[j], mark: mk, info: "Сравниваем: e.key == key → " + chain[j] + " == " + key + "? " + (eq ? "Да" : "Нет — мимо") });
         if (eq) {
           st({ line: 4, e: chain[j], mark: { b: i, j: j, cls: "found", tag: "e" }, found: true, done: last, info: "Нашли " + key + " за " + (j + 1) + " " + ruPlural(j + 1, "сравнение", "сравнения", "сравнений") + " — возвращаем e.val, true" });
           return;
@@ -4979,7 +5011,7 @@
     for (var i = 0; i < n; i++) {
       steps.push({ lo: 0, hi: H(), mid: i, frames: fr(mr()), line: 2, vars: vv(i), info: "i = " + i + ", nums[" + i + "] = " + arr[i] });
       var unreachable = i > maxReach;
-      steps.push({ lo: 0, hi: H(), mid: i, frames: fr("i = " + i + (unreachable ? " > " : " ≤ ") + mr(), unreachable ? "no" : "reach"), line: 3, vars: vv(i), info: "i(" + i + ") " + (unreachable ? "> " : "≤ ") + "maxReach(" + maxReach + ")" + (unreachable ? " — сюда не допрыгнуть" : " — индекс достижим") });
+      steps.push({ lo: 0, hi: H(), mid: i, frames: fr("i = " + i + (unreachable ? " > " : " ≤ ") + mr(), unreachable ? "no" : "reach"), line: 3, branch: unreachable, vars: vv(i), info: "i(" + i + ") " + (unreachable ? "> " : "≤ ") + "maxReach(" + maxReach + ")" + (unreachable ? " — сюда не допрыгнуть" : " — индекс достижим") });
       if (unreachable) {
         steps.push({ lo: 0, hi: H(), mid: i, frames: fr("i = " + i + " > " + mr(), "no"), done: true, line: 4, vars: vv(i), info: "return false — индекс " + i + " недостижим (maxReach=" + maxReach + ")" });
         return steps;
@@ -7502,7 +7534,7 @@
         snap(base({ line: 16, largest: largest, hi: largest, branch: rBig, info: r < size ? "Правый ребёнок a[" + r + "] = " + a[r] + (rBig ? " > " : " ≤ ") + "a[largest] = " + a[largest] + (rBig ? " — да" : " — нет") : "r = " + r + " ≥ size — правого ребёнка нет" }));
         if (rBig) { largest = r; snap(base({ line: 17, largest: largest, hi: largest, info: "largest = r = " + r })); }
         var stop = largest === i;
-        snap(base({ line: 19, largest: largest, hi: largest, info: "largest == i? " + (stop ? "да: a[" + i + "] = " + a[i] + " не меньше детей — куча в порядке" : "нет: ребёнок a[" + largest + "] = " + a[largest] + " больше, чем a[" + i + "] = " + a[i]) }));
+        snap(base({ line: 19, largest: largest, hi: largest, branch: stop, info: "largest == i? " + (stop ? "да: a[" + i + "] = " + a[i] + " не меньше детей — куча в порядке" : "нет: ребёнок a[" + largest + "] = " + a[largest] + " больше, чем a[" + i + "] = " + a[i]) }));
         if (stop) { snap(base({ line: 20, largest: largest, info: "return — просеивание закончено" })); return; }
         var t = a[i]; a[i] = a[largest]; a[largest] = t; swaps++;
         snap(base({ line: 22, largest: largest, hi: largest, mid: largest, info: "Обмен: больший " + a[i] + " поднимается в a[" + i + "], " + a[largest] + " опускается в a[" + largest + "]" }));
@@ -8175,7 +8207,7 @@
       tree.push({ parent: parent, k: k, from: from, to: to });
       frames.push(f); state[f.id] = 1;
       steps.push(snap(0, f, { info: "Вызов " + sig(f) + ": перенести " + disks(k) + " с " + names[from] + " на " + names[to] + " через " + names[via] + ". Новый кадр — на верх стека (глубина " + frames.length + ")" }));
-      steps.push(snap(1, f, { info: "n == 0? n = " + k + (k === 0 ? " — да: это база, переносить нечего" : " — нет, задача не пустая: идём в рекурсию") }));
+      steps.push(snap(1, f, { branch: k === 0, info: "n == 0? n = " + k + (k === 0 ? " — да: это база, переносить нечего" : " — нет, задача не пустая: идём в рекурсию") }));
       if (k === 0) {
         steps.push(snap(2, f, { info: "return — пустой вызов закончился сразу. Кадр снимается" + back() }));
         frames.pop(); state[f.id] = 2;
@@ -8280,7 +8312,7 @@
     steps.push(snap({ line: 0, resized: false, copied: 0, x: "—", info: "Старт: пустой срез, ёмкость " + cap }));
     for (var x = 1; x <= n; x++) {
       var full = len === cap;
-      steps.push(snap({ line: 1, resized: false, copied: 0, x: x, info: "append(" + x + "): сначала проверяем len == cap? " + len + " == " + cap + " → " + (full ? "ДА, места нет — нужен рост" : "нет, место есть") }));
+      steps.push(snap({ line: 1, branch: full, resized: false, copied: 0, x: x, info: "append(" + x + "): сначала проверяем len == cap? " + len + " == " + cap + " → " + (full ? "ДА, места нет — нужен рост" : "нет, место есть") }));
       if (full) {
         // Два массива на экране: рост — это НЕ расширение на месте, а новый массив +
         // копия. Раньше оба были слиты в одну строку, и copy выглядел перекраской.
@@ -8428,7 +8460,7 @@
         a[to] = v; a[i] = 0;
         steps.push(snap({ hi: i, line: 5, hot: true, vars: vars(i), info: "Обмен: " + v + " встаёт на позицию " + to + ", а ноль оттуда — на место " + i + " (между insertPos и i только нули)" }));
       } else {
-        steps.push(snap({ hi: i, line: 4, vars: vars(i), info: "i == insertPos — " + v + " уже на своём месте, ничего не двигаем" }));
+        steps.push(snap({ hi: i, line: 4, branch: false, vars: vars(i), info: "i == insertPos — " + v + " уже на своём месте, ничего не двигаем" }));
       }
       ins++;
       steps.push(snap({ hi: i, line: 7, vars: vars(i), info: "insertPos++ → " + ins + (ins < n ? "" : " — ненулевых больше нет") }));
@@ -8674,7 +8706,7 @@
     function vv(v) { return { low: low, mid: mid, high: high, v: v == null ? "—" : v }; }
     // каждой строке листинга — свой кадр: low++ / mid++ / high-- несут ключевые комментарии
     while (mid <= high && guard++ < 4 * n + 8) {
-      steps.push(snap({ line: 2, vars: vv(), info: "mid(" + mid + ") ≤ high(" + high + ") — есть непросмотренные, продолжаем" }));
+      steps.push(snap({ line: 2, branch: true, vars: vv(), info: "mid(" + mid + ") ≤ high(" + high + ") — есть непросмотренные, продолжаем" }));
       var v = a[mid];
       steps.push(snap({ line: 3, vars: vv(v), info: "Смотрим nums[mid] = nums[" + mid + "] = " + v + (v === 0 ? " — ноль, ему место слева" : v === 1 ? " — единица, она уже там, где надо" : " — двойка, ей место справа") }));
       if (v === 0) {
@@ -8694,7 +8726,7 @@
         steps.push(snap({ line: 12, hot: true, vars: vv(v), info: "high−− → " + high + ", а mid СТОИТ: с позиции high приехал НЕпросмотренный элемент (" + a[mid] + "), его ещё надо разобрать" }));
       }
     }
-    steps.push(snap({ line: 2, vars: vv(), info: "mid(" + mid + ") > high(" + high + ") — непросмотренных не осталось, выходим из цикла" }));
+    steps.push(snap({ line: 2, branch: false, vars: vv(), info: "mid(" + mid + ") > high(" + high + ") — непросмотренных не осталось, выходим из цикла" }));
     steps.push(snap({ done: true, line: 15, vars: { low: low, mid: mid, high: high, v: "—" }, info: "mid перегнал high — непросмотренного не осталось: [" + a.join(",") + "]. Один проход, O(n) времени, O(1) памяти" }));
     return steps;
   }
@@ -9586,13 +9618,13 @@
     steps.push({ lo: lo, hi: hi, mid: -1, line: 2, vars: vv(), info: "lo = 0, hi = len(nums) = " + n + " — ответ в [0, " + n + "], оба конца включены; ответ " + n + " значил бы «nums[i] ≥ target нет нигде»" });
     var guard = 0;
     while (lo < hi && guard++ < 64) {
-      steps.push({ lo: lo, hi: hi, mid: -1, line: 3, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — ещё есть кандидаты" });
+      steps.push({ lo: lo, hi: hi, mid: -1, line: 3, branch: true, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — ещё есть кандидаты" });
       var mid = lo + ((hi - lo) >> 1);
       steps.push({ lo: lo, hi: hi, mid: mid, line: 4, vars: vv(mid), info: "mid = " + lo + " + (" + hi + "−" + lo + ")/2 = " + mid + ", nums[mid] = " + arr[mid] });
       if (arr[mid] < x) { lo = mid + 1; steps.push({ lo: lo, hi: hi, mid: mid, line: 6, vars: vv(mid), info: arr[mid] + " < " + x + " → граница строго правее: lo = mid + 1 = " + lo }); }
       else { hi = mid; steps.push({ lo: lo, hi: hi, mid: mid, line: 8, vars: vv(mid), info: arr[mid] + " < " + x + " ложно → mid — кандидат: hi = mid = " + hi + " (без −1: mid остаётся в [lo, hi])" }); }
     }
-    steps.push({ lo: lo, hi: hi, mid: -1, line: 3, vars: vv(), info: "lo == hi = " + lo + " → выход" });
+    steps.push({ lo: lo, hi: hi, mid: -1, line: 3, branch: false, vars: vv(), info: "lo == hi = " + lo + " → выход" });
     steps.push({ lo: lo, hi: hi, mid: -1, found: true, done: true, line: 11, vars: vv(), info: "return lo = " + lo + (lo === n ? " — все элементы меньше " + x + " (граница за концом массива)" : " — первый индекс, где nums[i] ≥ " + x + (arr[lo] === x ? " (" + x + " найден: first = " + lo + ")" : " (" + x + " в массиве нет — сюда бы его вставили)")) });
     return steps;
   }
@@ -10800,6 +10832,9 @@
     "bfs-local-timeline": {
       badge: "Atomic CAS", desc: "Масштабируемый конкурентный BFS: вершину столбит атомарный CAS, у каждой горутины свой локальный фронт — без мьютекса и без гонки.",
       valuesLabel: "", codeKey: "bfs-local-timeline", fillRange: false,
+      // чип показывает горутину прошлого кадра, поэтому вопрос называет свою
+      ask: { 2: { cond: "atomic.CompareAndSwapInt32", q: function (s) { return "CAS горутины " + s.vars.g + " пройдёт?"; },
+        yes: function (s) { return "Да — " + s.vars.g + " столбит вершину 3"; }, no: "Нет — вершину 3 уже взяли" } },
       complexity: { time: "O(V+E)", space: "O(V)", good: "✓ Без гонки и без замка" },
       varOrder: ["горутина", "действие"],
       metrics: ["горутина", "действие"],
@@ -10870,8 +10905,8 @@
       frames: 1,
       valuesLabel: "Массив (отсортирован)", codeKey: "two-pointers-sum", fillRange: false,
       ask: {
-        4: { q: "Пара даёт ровно target?", yes: "Да — ответ найден", no: "Нет — сдвинем один из указателей" },
-        6: { q: "Сумма меньше target?", yes: "Да — нужна сумма больше: lo++", no: "Нет — сумма больше: hi--" }
+        4: { cond: "sum == target", q: "Пара даёт ровно target?", yes: "Да — ответ найден", no: "Нет — сдвинем один из указателей" },
+        6: { cond: "sum < target", q: "Сумма меньше target?", yes: "Да — нужна сумма больше: lo++", no: "Нет — сумма больше: hi--" }
       },
       ptr1: { name: "lo", cap: "(левый)" }, ptr2: { name: "hi", cap: "(правый)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Отсортированных массивов" },
@@ -11087,7 +11122,7 @@
       legend: [{ cls: "span", nn: "span", label: "внутри окна" }, { cls: "found", nn: "found", label: "границы лучшего окна" }],
       valuesLabel: "Строка", codeKey: "sliding-window-var", fillRange: true,
       // 🎯 языком приёма (cfg.ask: номер строки листинга с 0 → вопрос и ответы — что будет дальше)
-      ask: { 5: { q: "Окно придётся сжимать?", yes: "Да — разных символов больше k: двигаем left", no: "Нет — окно годится: обновляем maxLen" } },
+      ask: { 5: { cond: "len(freq) > k", q: "Окно придётся сжимать?", yes: "Да — разных символов больше k: двигаем left", no: "Нет — окно годится: обновляем maxLen" } },
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(n)", space: "O(k)", good: "★ Подстрок под условие" },
       varOrder: ["left", "right", "len(freq)", "maxLen"],
@@ -11210,7 +11245,7 @@
       legend: [{ cls: "span", nn: "span", label: "окно [left..right]" }, { cls: "frcmp", label: "рамка окна, ярлык — sum против target: обведён зелёным — сожмём слева (left), голубым — расширим (right); залит зелёным — окно короче best" }, { cls: "frleft", label: "лучшее окно (пунктир)" }, { cls: "found", nn: "found", label: "ответ — кратчайшее окно" }],
       frames: 2,
       valuesLabel: "Массив (положительные)", codeKey: "min-subarray-window", fillRange: true,
-      ask: { 5: { q: "Сумма окна дотянула до target?", yes: "Да — запомним длину и сожмём слева", no: "Нет — расширяем окно вправо" } },
+      ask: { 5: { cond: "sum >= target", q: "Сумма окна дотянула до target?", yes: "Да — запомним длину и сожмём слева", no: "Нет — расширяем окно вправо" } },
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Подотрезок под условие суммы" },
       varOrder: ["left", "right", "sum", "best", "сложений"],
@@ -11563,6 +11598,7 @@
       valuesLabel: "Города", codeKey: "num-provinces", fillRange: false,
       // u кадра вопроса на экране ещё нет (кадр до него — строка выше), поэтому вопрос его называет
       ask: { 7: {
+        cond: "!visited[u]",
         q: function (s) { return "Сосед u = " + s.vars.u + " вершины v = " + s.vars.v + " ещё не посещён?"; },
         yes: function (s) { return "Да — спускаемся в dfs(" + s.vars.u + ")"; },
         no: "Нет — он уже в провинции, берём следующего соседа"
@@ -11934,8 +11970,8 @@
       frames: 1,
       valuesLabel: "Массив (отсортирован)", codeKey: "binary-search", fillRange: false,
       ask: {
-        4: { q: "В середине стоит target?", yes: "Да — нашли, возвращаем mid", no: "Нет — отбросим половину" },
-        6: { q: "arr[mid] меньше target?", yes: "Да — target правее: left = mid + 1", no: "Нет — target левее: right = mid − 1" }
+        4: { cond: "arr[mid] == target", q: "В середине стоит target?", yes: "Да — нашли, возвращаем mid", no: "Нет — отбросим половину" },
+        6: { cond: "arr[mid] < target", q: "arr[mid] меньше target?", yes: "Да — target правее: left = mid + 1", no: "Нет — target левее: right = mid − 1" }
       },
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Отсортированных массивов" },
@@ -12598,7 +12634,8 @@
       badge: "Heap Sort",
       desc: "Пирамидальная сортировка: строим max-heap просеиванием, затем n−1 раз меняем корень (максимум) с концом кучи и чиним кучу. Отсортированный суффикс (зелёный) растёт справа. O(n log n), память O(1).",
       valuesLabel: "Массив (отсортированный суффикс — зелёный)", codeKey: "heap-sort", fillRange: false,
-      ask: { 19: { q: "Узел a[i] не меньше своих детей?", yes: "Да — он на месте, спуск окончен", no: "Нет — меняем с большим ребёнком и спускаемся" } },
+      // q называет узел: чип i на экранном шаге — ещё прошлого уровня (кадр до вопроса)
+      ask: { 19: { cond: "largest == i", q: function (s) { return "Узел a[" + s.vars.i + "] не меньше своих детей?"; }, yes: "Да — он на месте, спуск окончен", no: "Нет — меняем с большим ребёнком и спускаемся" } },
       ptr1: { name: "i", cap: "(просеиваемый узел)" }, ptr2: { name: "largest", cap: "(больший из узла и детей; в фазе 2 — end, конец кучи)" },
       complexity: { time: "O(n log n)", space: "O(1)", good: "★ Гарантия n log n, на месте" },
       varOrder: ["i", "size", "largest", "end", "обменов"],
@@ -14531,8 +14568,8 @@
       frames: 1,
       valuesLabel: "Массив (макс. прыжок)", codeKey: "jump-game", fillRange: false,
       ask: {
-        3: { q: "Клетка i дальше, чем maxReach?", yes: "Да — сюда не допрыгнуть: false", no: "Нет — до неё достаём, идём дальше" },
-        6: { q: "Прыжок отсюда дальше maxReach?", yes: "Да — maxReach растёт до i + v", no: "Нет — maxReach прежний" }
+        3: { cond: "i > maxReach", q: "Клетка i дальше, чем maxReach?", yes: "Да — сюда не допрыгнуть: вернём false", no: "Нет — до неё достаём, идём дальше" },
+        6: { cond: "i+v > maxReach", q: "Прыжок отсюда дальше maxReach?", yes: "Да — maxReach растёт до i + v", no: "Нет — maxReach прежний" }
       },
       ptr1: { name: "i", cap: "(текущий)" }, ptr2: { name: "", cap: "" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Жадных проходов" },
@@ -14561,7 +14598,7 @@
     "graph-bfs": {
       badge: "Graph BFS", desc: "Обход графа в ширину через очередь: ближние вершины раньше дальних.",
       valuesLabel: "Вершины", codeKey: "graph-bfs", fillRange: false,
-      ask: { 10: { q: "Сосед nb ещё не посещён?", yes: "Да — отмечаем и ставим в очередь", no: "Нет — уже в очереди или пройден, пропускаем" } },
+      ask: { 10: { cond: "!visited[nb]", q: "Сосед nb ещё не посещён?", yes: "Да — отмечаем и ставим в очередь", no: "Нет — уже в очереди или пройден, пропускаем" } },
       complexity: { time: "O(V+E)", space: "O(V)", good: "★ Кратчайший путь по рёбрам" },
       varOrder: ["node", "nb", "queue", "order"],
       varDesc: { "node": "Извлечённая вершина (текущий узел)", "nb": "Сосед node, которого проверяем", "queue": "Очередь: волна d, за ней — d+1", "order": "Порядок обхода" },
@@ -14675,7 +14712,7 @@
       legend: [{ cls: "lo", nn: "lo", label: "dp[a] — сумма, которую считаем" }, { cls: "hi", nn: "hi", label: "dp[a−c] — остаток после монеты c" }, { cls: "found", nn: "found", label: "ответ dp[amount]" }],
       jumps: true,
       valuesLabel: "Таблица dp[]", codeKey: "dp-coins", arrLabel: "dp", fillRange: false,
-      ask: { 6: { q: "Монета c улучшит best?", yes: "Да — best = dp[a−c] + 1", no: "Нет — не влезает или не лучше, best прежний" } },
+      ask: { 6: { cond: "dp[a-c]+1 < best", q: "Монета c улучшит best?", yes: "Да — best = dp[a−c] + 1", no: "Нет — не влезает или не лучше, best прежний" } },
       ptr1: { name: "a", cap: "(сумма)" },
       complexity: { time: "O(amount·k)", space: "O(amount)", good: "★ Перекрывающихся подзадач" },
       varOrder: ["a", "c", "dp[a−c]", "best", "dp[a]"],
@@ -15697,7 +15734,7 @@
     "knapsack": {
       badge: "Dynamic Programming", desc: "0/1 рюкзак: dp[i][c] — максимальная ценность из первых i предметов при вместимости c. Выбор «взять / не взять».",
       valuesLabel: "", codeKey: "knapsack", fillRange: false,
-      ask: { 5: { q: "Предмет i влезает при вместимости c?", yes: "Да — сравним «брать» и «не брать»", no: "Нет — остаётся «не брать»" } },
+      ask: { 5: { cond: "wt[i-1] <= c", q: "Предмет i влезает при вместимости c?", yes: "Да — сравним «брать» и «не брать»", no: "Нет — остаётся «не брать»" } },
       complexity: { time: "O(n·W)", space: "O(n·W) → O(W)", good: "★ Выбор подмножества с ограничением" },
       varOrder: ["i", "wt[i-1], val[i-1]", "c", "правило", "dp[i][c]"],
       metrics: ["правило"],
@@ -16766,7 +16803,8 @@
     //     (отбор развилок — predictionQuestions). Промах пишется в algoVizMissed, откуда
     //     srs.js заводит карточку viz:<тип>. Режим общий для всех виджетов книги.
     var PRED_KEY = "algoVizPredict", PRED_MISS = "algoVizMissed";
-    var predQs = predictionQuestions(steps, codeLines, ownInput);
+    var predAskLines = Object.keys(cfg.ask || {}).map(Number), predSeed = root.getAttribute("data-viz") || cfg.codeKey || "";
+    var predInfo = {}, predQs = predictionQuestions(steps, codeLines, ownInput, predSeed, predAskLines, predInfo);
     var askBad = askProblems(cfg, codeLines);
     Object.keys(predQs).forEach(function (k) {
       var q = predQs[k], t = predText(q, steps[q.at], cfg, ctx);
@@ -16776,12 +16814,12 @@
     if (askBad.length) throw new Error(askBad.join("; "));
     // для scripts/predict-check.js: вопросы (с текстом), строки шагов, листинг и чипы шага (как на экране)
     root.__algoPredict = { qs: predQs, own: ownInput, lines: steps.map(function (s) { return s.line; }), code: codeLines,
-      askLines: Object.keys(cfg.ask || {}).map(Number),
+      askLines: predAskLines, cand: predInfo.cand, seed: predSeed,
       chips: function (k) { var c = cfg.varsOf(steps[k], ctx), o = {}; cfg.varOrder.forEach(function (n) { o[n] = c[n]; }); return o; } };
     var predHas = Object.keys(predQs).length > 0;
     // Кнопка выключена по двум разным причинам: у виджета развилок нет вовсе или свой ввод
     // убрал все вопросы (выведенное «нет» там не спрашивается). Подсказка не должна путать их.
-    var predOwnEmpty = ownInput && !predHas && Object.keys(predictionQuestions(steps, codeLines, false)).length > 0;
+    var predOwnEmpty = ownInput && !predHas && Object.keys(predictionQuestions(steps, codeLines, false, predSeed, predAskLines)).length > 0;
     var predOwnWhere = cfg.presets ? "на примере главы и пресетах" : "на примере главы";
     var predOn = false, predPending = null, predAnswered = {}, predVerdict = null, predRight = 0, predTotal = 0, predBox = null;
     try { predOn = localStorage.getItem(PRED_KEY) === "1"; } catch (e) { /* приватный режим */ }
@@ -17888,6 +17926,8 @@
       CODE[cfg.codeKey] = code;
     },
     mkEl: mkEl,
+    // для scripts/predict-check.js: выбор встреч 🎯 (проверка «факт вопроса не зависит от исхода»)
+    predChoose: predChoose,
     // Подсветка Go одна на книгу: ею же красят панель трассы (trace-viz.js) и эталон «Сдаюсь»
     // (runner.js). Цвета классов algo-tp__tok--* — токены --hl-* из theme.css.
     hlGo: hlGo,
