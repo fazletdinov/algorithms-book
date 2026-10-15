@@ -1342,14 +1342,19 @@ if (api) {
 
   // Старая карточка: промах записан, когда ответом на вопрос о цикле в неориентированном графе был
   // «Union-Find (DSU)». Ответ и глава берутся из банка квиза по тексту вопроса, снимок meta — только у
-  // вопроса, которого в банке больше нет.
+  // вопроса, которого в банке больше нет. Так же — промах, записанный до перевода вариантов квиза на
+  // русский: снимок «Sliding Window», ответ карточки — «Скользящее окно» из банка.
   const CYCLE = "Определить, образует ли набор рёбер цикл в НЕориентированном графе.";
+  const CYCLE_ANSWER = "Обход графа в глубину (DFS)";
+  const WINDOW_Q = "Найти длину самой длинной подстроки без повторяющихся символов.";
   const cycleMeta = { n: 1, pattern: "Union-Find (DSU)", href: "union-find-structure.html", q: CYCLE };
+  const windowMeta = { n: 2, pattern: "Sliding Window", href: "sliding-window.html", q: WINDOW_Q };
   const goneMeta = { n: 1, pattern: "Старый шаблон", href: "old.html", q: "Вопроса больше нет" };
-  for (const [meta, wantText, wantHref] of [[cycleMeta, "DFS по графу", "graphs.html"], [goneMeta, "Старый шаблон", "old.html"]]) {
+  for (const [meta, wantText, wantHref] of [[cycleMeta, CYCLE_ANSWER, "graphs.html"], [windowMeta, "Скользящее окно", "sliding-window.html"], [goneMeta, "Старый шаблон", "old.html"]]) {
     const d = await newDom({ algoQuizMissed: JSON.stringify({ [meta.q]: meta }), algoSRS: JSON.stringify({ ["quiz:" + meta.q]: missCard(meta, now - DAY) }) }, [CLOCK(now), quizJs], PAGE);
     const bank = d.window.ALGO_QUIZ && d.window.ALGO_QUIZ.questions.find((x) => x.q === CYCLE);
-    if (!bank || bank.correct !== "DFS по графу") errors.push(`в банке квиза у вопроса о цикле ответ «${bank && bank.correct}» — проверка рассчитана на «DFS по графу»`);
+    if (!bank || bank.correct !== CYCLE_ANSWER) errors.push(`в банке квиза у вопроса о цикле ответ «${bank && bank.correct}» — проверка рассчитана на «${CYCLE_ANSWER}»`);
+    if (!d.window.ALGO_QUIZ.questions.some((x) => x.q === WINDOW_Q)) errors.push(`в банке квиза нет вопроса «${WINDOW_Q}» — проверка старого промаха с английским ответом его ищет`);
     if (click(d, "Показать ответ")) {
       const a = d.window.document.querySelector(".algo-today__answer a");
       if (!a || a.textContent !== wantText || a.getAttribute("href") !== wantHref) errors.push(`карточка quiz: «${meta.q}» отвечает ${a && a.outerHTML}, ожидалось «${wantText}» → ${wantHref}`);

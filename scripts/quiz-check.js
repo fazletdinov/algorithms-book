@@ -17,7 +17,10 @@
 //   (e) сборка порции на случайных наборах (зерно): размер — min(10, вопросов в пуле), только главы
 //       пула, без повторов, порядок «промахи → не показанные → давно показанные», а пропущенные
 //       не «лучше» взятых (промах не уступает место показанному, давний — недавнему);
-//   (f) повторная порция маленького пула: показанные идут каждый раз в другом порядке, промах — первым.
+//   (f) повторная порция маленького пула: показанные идут каждый раз в другом порядке, промах — первым;
+//   (g) один язык: варианты без латиницы (кроме имён Go и аббревиатур BFS, DFS, MST, KMP, NP, BST, A*, K),
+//       без повторов, ответ среди вариантов, ответ-название главы ведёт в эту главу; английское
+//       название (en) после ответа показано ровно один раз и не повторено в тексте пояснения.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -279,6 +282,52 @@ async function main() {
     }
     if (orders.size < 10) errors.push(`(f) 20 повторных порций из 7 показанных дали ${orders.size} разных порядков — порция идёт одной очередью`);
   }
+
+  // --- (g) один язык: варианты по-русски, английское название — один раз, в пояснении ---
+  // Оглавление и «Слабые места» называют главы по-русски; вариант «Sliding Window» рядом со «Скользящим
+  // окном» читался бы как другой приём. Латиница в варианте — только имена Go и аббревиатуры из ALLOWED.
+  {
+    const ALLOWED = /\b(?:BFS|DFS|MST|KMP|NP|BST)\b|A\*|\bK\b|map\[string\]bool/g;
+    const probe = await boot({}, 1);
+    const bank = probe.window.ALGO_QUIZ.questions;
+    const chapters = probe.window.ALGO_CHAPTERS || [];
+    const short = (t) => String(t).split(":")[0].trim();
+    for (const item of bank) {
+      const where = `«${item.q.slice(0, 50)}»`;
+      if (!item.options.includes(item.correct)) errors.push(`(g) ${where}: ответа «${item.correct}» нет среди вариантов`);
+      if (new Set(item.options).size !== item.options.length) errors.push(`(g) ${where}: повтор среди вариантов ${JSON.stringify(item.options)}`);
+      for (const o of item.options) {
+        const left = o.replace(ALLOWED, "");
+        if (/[A-Za-z]/.test(left)) errors.push(`(g) ${where}: вариант на латинице «${o}»`);
+      }
+      // ответ, совпавший с названием главы, ведёт в эту главу
+      const named = chapters.filter((c) => short(c.t) === item.correct).map((c) => c.h);
+      if (named.length && !named.includes(item.href)) errors.push(`(g) ${where}: ответ «${item.correct}» — название главы ${named.join(", ")}, а ссылка ведёт на ${item.href}`);
+      if (item.en != null) {
+        if (!/[A-Za-z]/.test(item.en)) errors.push(`(g) ${where}: en без латиницы «${item.en}»`);
+        if (item.explain.includes(item.en)) errors.push(`(g) ${where}: английское «${item.en}» повторено в тексте пояснения`);
+      }
+    }
+    // после ответа пояснение называет английское имя ровно один раз
+    toggleAll(probe, true);
+    let withEn = 0;
+    for (let i = 0; i < 10; i++) {
+      const v = view(probe);
+      if (!v.opts.length) break;
+      const item = bank.find((x) => x.q === v.q);
+      click(probe, v.opts.find((o) => o.textContent !== item.correct));
+      click(probe, v.btn);
+      const text = probe.window.document.querySelector(".algo-quiz__explain").textContent;
+      if (!text.includes(item.correct)) errors.push(`(g) после ответа на «${item.q.slice(0, 50)}» не назван ответ «${item.correct}»`);
+      if (item.en) {
+        withEn++;
+        const n = text.split(item.en).length - 1;
+        if (n !== 1) errors.push(`(g) после ответа на «${item.q.slice(0, 50)}» английское «${item.en}» названо ${n} раз(а), ожидался один`);
+      }
+      click(probe, view(probe).btn);
+    }
+    if (!withEn) errors.push("(g) в порции из 10 нет ни одного вопроса с английским названием — проверка показа en не сработала");
+  }
 }
 
 main().then(finish, (e) => { console.error("❌ quiz-check: неожиданная ошибка:", e); process.exit(1); });
@@ -302,7 +351,8 @@ function finish() {
     "✅ quiz-check: пустой трекер — объяснение и «по всем главам» (выбор сохраняется, без хранилища — в памяти); " +
       "две главы — порция из их 7 вопросов, промах первым, «Следующая порция»; показы пишутся по свежему чтению; " +
       "рекорд — только у порции из 10 и под своим ключом, «40/64» не показан и не тронут; сборка порции на 400 случайных наборах " +
-      "держит размер, главы, порядок групп; повторная порция — в новом порядке"
+      "держит размер, главы, порядок групп; повторная порция — в новом порядке; " +
+      "варианты по-русски, английское название — один раз в пояснении"
   );
   process.exit(0);
 }

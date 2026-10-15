@@ -133,30 +133,58 @@
   var QUIZ_MISSED = "algoQuizMissed";
   var MIXED_MISSED = "algoMixedMissed";
 
+  // Строка — одна на главу, ключ — href главы. По имени сливать нельзя: квиз и смешанная называли один
+  // приём по-разному («Sliding Window» в старых записях квиза, «Скользящее окно» у смешанной), и у главы
+  // выходило две строки; у одной главы бывает и несколько ответов квиза («Комбинации паттернов»).
+  // Запись без главы — строка по своему названию (pattern), без ссылки.
   function weakSpots() {
-    var byPattern = {};
+    var byChapter = {};
+    function spot(href, fallback) {
+      var key = href || "?" + fallback;
+      return (byChapter[key] = byChapter[key] || {
+        name: (href && chapterName(href)) || fallback,
+        quiz: 0,
+        mixed: 0,
+        href: href
+      });
+    }
     var quiz = load(QUIZ_MISSED);
     Object.keys(quiz).forEach(function (q) {
       var rec = quiz[q] || {};
       // ответ и глава — из банка квиза: у вопроса они могли смениться после промаха (снимок — вне банка)
       var cur = quizQuestion(rec.q || q);
-      var name = (cur ? cur.correct : rec.pattern) || "?";
-      var href = (cur ? cur.href : rec.href) || "";
-      var w = (byPattern[name] = byPattern[name] || { name: name, quiz: 0, mixed: 0, href: href });
-      w.quiz += rec.n || 1;
+      var href = pageHref(cur ? cur.href : rec.href);
+      spot(href, (cur ? cur.correct : rec.pattern) || "?").quiz += rec.n || 1;
     });
     var mixed = load(MIXED_MISSED);
     Object.keys(mixed).forEach(function (k) {
       var rec = mixed[k] || {};
       var chapter = bankChapter(rec.pkg, rec.fn) || rec.chapter;
-      var name = chapterTitle(chapter);
-      var w = (byPattern[name] = byPattern[name] || { name: name, quiz: 0, mixed: 0, href: (chapter || "") + ".html" });
-      w.mixed += rec.n || 1;
-      if (!w.href) w.href = (chapter || "") + ".html";
+      spot(chapter ? chapter + ".html" : "", chapter || "?").mixed += rec.n || 1;
     });
-    return Object.keys(byPattern)
-      .map(function (k) { return byPattern[k]; })
+    return Object.keys(byChapter)
+      .map(function (k) { return byChapter[k]; })
       .sort(function (a, b) { return b.quiz + b.mixed - (a.quiz + a.mixed); });
+  }
+
+  // pageHref — файл главы из href записи: без «./», якоря и запроса ("" — главы нет).
+  function pageHref(href) {
+    return String(href || "").replace(/^\.\//, "").split("#")[0].split("?")[0];
+  }
+
+  // chapterName — название главы по реестру (progress.js) без приписки после двоеточия, как в блоках
+  // «Не спутай с соседом». Если без приписки название совпало бы с другой главой («Графы: продвинутые» и
+  // «Графы: связность»), остаётся полным. "" — главы нет в реестре.
+  function chapterName(href) {
+    var list = window.ALGO_CHAPTERS || [];
+    var short = function (t) { return String(t).split(":")[0].trim(); };
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].h !== href) continue;
+      var name = short(list[i].t);
+      var twin = list.some(function (c) { return c.h !== href && short(c.t) === name; });
+      return twin ? list[i].t : name;
+    }
+    return "";
   }
 
   // quizQuestion — вопрос банка квиза (window.ALGO_QUIZ из quiz.js) по тексту; null — вопроса больше нет.
@@ -179,14 +207,6 @@
     return "";
   }
 
-  function chapterTitle(chapter) {
-    var list = window.ALGO_CHAPTERS || [];
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].h === chapter + ".html") return list[i].t;
-    }
-    return chapter || "?";
-  }
-
   function buildWeak(root) {
     root.innerHTML = "";
     var spots = weakSpots();
@@ -198,7 +218,7 @@
     }
     var list = el("table", "algo-weak__table");
     var head = el("tr");
-    ["Шаблон", "Квиз", "Смешанная", "Всего"].forEach(function (h) {
+    ["Глава", "Квиз", "Смешанная", "Всего"].forEach(function (h) {
       head.appendChild(el("th", null, h));
     });
     list.appendChild(head);
