@@ -48,11 +48,16 @@
 //   изменился; «сдвиг на 0 px» (плашка осталась) — нет. Сменилась только подсвеченная строка
 //   кода или чип — переход холостой по холсту.
 //   Таймеры (setTimeout, requestAnimationFrame) между переходами не исполняются: обход
-//   синхронный, подпись снимается сразу после show() — как кадр, на который смотрит читатель.
+//   синхронный, подпись снимается сразу после show(). Это НЕ ровно тот кадр, который видит читатель:
+//   отложенная работа движка (rAF/таймеры — __syncEdges у деревьев, followCurrent, markScroll,
+//   min-width SVG) в подпись не попадает. Она подгоняет раскладку под уже нарисованное состояние,
+//   поэтому холостой кадр не делает изменённым, но и не проверяется здесь.
 //
 // ПОТОЛОК (scripts/viz-idle-budget.json): { "<тип>": <максимум холст∅ в процентах> }. Проверяется
 // КАЖДЫЙ виджет типа в главах ядра: доля холст∅ (с одним знаком) не выше потолка. Превышение —
-// красный с именем типа; тип из потолка, которого нет в главах ядра, — тоже красный. Потолок
+// красный с именем типа; тип из потолка, которого нет в главах ядра, — тоже красный. Ключ "__core__" —
+// общий потолок: доля холст∅ по всем виджетам ядра (с одним знаком, не выше). С --type проверяются
+// только типы из пересечения потолка и --type, общий потолок — нет; --json с --check не сочетается. Потолок
 // понижают вслед за правкой генератора (новое значение — из вывода этого скрипта, округлённое
 // вверх до целого); повышают только с причиной в отчёте задачи.
 //
@@ -72,7 +77,11 @@ const wantCheck = args.includes("--check");
 const typeArg = args.indexOf("--type");
 const onlyTypes = typeArg >= 0 ? new Set(String(args[typeArg + 1] || "").split(",").filter(Boolean)) : null;
 if (typeArg >= 0 && !onlyTypes.size) { console.error("❌ viz-idle: --type ждёт список типов через запятую"); process.exit(2); }
-const MAX_STEPS = 2000; // обход ограничен: виджет с бесконечным счётчиком не повесит прогон
+// --json печатает замер и выходит — потолок он не проверял бы, а зелёный код выхода выглядел бы проверкой
+if (wantJson && wantCheck) { console.error("❌ viz-idle: --json и --check вместе не бывают — запусти по отдельности"); process.exit(2); }
+const MAX_STEPS = 2000;
+// ключ общего потолка в viz-idle-budget.json: доля холст∅ по всем виджетам ядра, с одним знаком
+const CORE_KEY = "__core__"; // обход ограничен: виджет с бесконечным счётчиком не повесит прогон
 
 let JSDOM, VirtualConsole;
 try {
@@ -151,25 +160,30 @@ function idleCounts(sigs) {
 const pct = (k, steps) => (steps > 1 ? (100 * k) / (steps - 1) : 0);
 const fmt = (x) => x.toFixed(1);
 
-// jsdom без раскладки: offsetWidth/Height = 40 (как в check-viz-names), offsetLeft/Top —
-// по номеру узла среди братьев, накопленно до body. Значение — функция места узла в дереве,
-// поэтому одна и та же ячейка всегда даёт одну координату, а соседние — разные.
+// jsdom без раскладки: offsetWidth/Height = 40 (как в check-viz-names), offsetLeft/Top — по номерам
+// узла и его предков среди братьев (i0 — сам узел, i1 — родитель, …). x = i0 + i1·1000 + i2·10⁶ + i3·10⁹,
+// y = i1 + i2·1000 + i3·10⁶ + i4·10⁹: вместе они различают узлы, расходящиеся в пяти нижних уровнях
+// дерева, пока у узла меньше 1000 братьев (числа < 2⁵³ — без потери точности). Одна и та же ячейка
+// всегда даёт одну координату, разные ячейки — разные: прежняя сумма Σ i·7^глубина склеивала
+// ячейку (r, 7) с (r+1, 0) у ряда из 8 и больше детей.
 function layoutStub(w) {
   const P = w.HTMLElement.prototype;
-  const pos = (el, axis) => {
-    // номер самого узла — с весом 1, предков — с весами 7, 49…: соседние ячейки отличаются на 1
-    let s = 0, mult = 1;
-    for (let x = el; x && x.parentElement && x !== x.ownerDocument.body; x = x.parentElement) {
+  const W = 1000, LEVELS = 5;
+  const idx = (el) => {
+    const out = [];
+    for (let x = el; out.length < LEVELS && x && x.parentElement && x !== x.ownerDocument.body; x = x.parentElement) {
       let i = 0;
       for (let y = x.previousElementSibling; y; y = y.previousElementSibling) i++;
-      s = (s + i * mult) % 99991; mult = (mult * 7) % 99991;
+      out.push(Math.min(i, W - 1));
     }
-    return axis ? s * 3 : s * 2;
+    while (out.length < LEVELS) out.push(0);
+    return out;
   };
+  const num = (ds) => ds.reduce((s, d, k) => s + d * W ** k, 0);
   Object.defineProperty(P, "offsetWidth", { get() { return 40; } });
   Object.defineProperty(P, "offsetHeight", { get() { return 40; } });
-  Object.defineProperty(P, "offsetLeft", { get() { return pos(this, 0); } });
-  Object.defineProperty(P, "offsetTop", { get() { return pos(this, 1); } });
+  Object.defineProperty(P, "offsetLeft", { get() { return num(idx(this).slice(0, 4)); } });
+  Object.defineProperty(P, "offsetTop", { get() { return num(idx(this).slice(1, 5)); } });
 }
 
 // ---------- самопроверка ----------
@@ -188,7 +202,9 @@ function selfTest() {
     <div class="algo-tp__panel"><div class="algo-tp__panelhdr">Визуализация</div><div class="algo-tp__legend">л</div>
       <div class="algo-tp__vizhost"><div class="algo-nn__track algo-nn__track--still">
         <div class="algo-nn__row"><div class="algo-nn__col"><div class="algo-tp__big algo-nn__cell">1</div></div><div class="algo-nn__col"><div class="algo-tp__big algo-nn__cell">2</div></div></div>
-        <div class="algo-nn__tag algo-nn__tag--lo"><span class="algo-nn__tagtx">i</span></div></div></div></div>
+        <div class="algo-nn__tag algo-nn__tag--lo"><span class="algo-nn__tagtx">i</span></div>
+        <div class="algo-nn__frame"><span class="algo-nn__framelab">1 + 2 = 3 &lt; 5</span></div>
+        <div class="algo-nn__zone"><span class="algo-nn__zonelab">нули</span></div></div></div></div>
     <div class="algo-tp__card algo-tp__status">шаг 1</div><div class="algo-tp__curline">x := 1</div>
     <div class="algo-tp__vchips"><span class="algo-tp__vchip">i 0</span></div><div class="algo-tp__main"><div class="algo-tp__panel">код</div></div>
   </div></body>`, { beforeParse: layoutStub });
@@ -218,6 +234,20 @@ function selfTest() {
   if (s3 === s2) errs.push("подпись: плашка спряталась, а холст не изменился");
   put(0); tag.querySelector(".algo-nn__tagtx").textContent = "j";
   if (canvasSig(canvasOf(w)) !== s3) errs.push("подпись: координаты и текст СКРЫТОЙ плашки изменили холст");
+  // сравнение на холсте (этап 4) живёт в ярлыке рамки или зоны: его смена — изменение холста
+  d.querySelector(".algo-nn__framelab").textContent = "1 + 4 = 5 == 5";
+  const s4 = canvasSig(canvasOf(w));
+  if (s4 === s3) errs.push("подпись: сменился только ярлык рамки, а холст не изменился");
+  d.querySelector(".algo-nn__zonelab").textContent = "двойки";
+  if (canvasSig(canvasOf(w)) === s4) errs.push("подпись: сменился только ярлык зоны, а холст не изменился");
+  // координаты: ячейка (ряд r, колонка 7) и (ряд r+1, колонка 0) не совпадают (прежний вес 7 их склеивал)
+  const g = dom.window.document.createElement("div");
+  g.innerHTML = "<div>" + "<i></i>".repeat(9) + "</div><div>" + "<i></i>".repeat(9) + "</div>";
+  d.body.appendChild(g);
+  const [ra, rb] = g.children, pt = (e) => e.offsetLeft + "," + e.offsetTop;
+  if (pt(ra.children[7]) === pt(rb.children[0])) errs.push("layoutStub: ячейки (0, 7) и (1, 0) получили одни координаты");
+  const all = new Set([...g.querySelectorAll("i")].map(pt));
+  if (all.size !== 18) errs.push(`layoutStub: 18 ячеек двух рядов дали ${all.size} разных координат`);
   dom.window.close();
   return errs;
 }
@@ -304,7 +334,9 @@ async function main() {
 
   const budget = JSON.parse(fs.readFileSync(path.join(__dirname, "viz-idle-budget.json"), "utf8"));
   const bad = [];
-  for (const [type, cap] of Object.entries(budget)) {
+  const types = Object.keys(budget).filter((t) => t !== CORE_KEY && (!onlyTypes || onlyTypes.has(t)));
+  for (const type of types) {
+    const cap = budget[type];
     const mine = rows.filter((r) => r.type === type);
     if (!mine.length) { bad.push(`${type}: типа из viz-idle-budget.json нет в главах ядра — убери запись`); continue; }
     mine.forEach((r) => {
@@ -312,8 +344,16 @@ async function main() {
       if (+fmt(p) > cap) bad.push(`${type} (${r.chapter}:${r.index}): холст∅ ${fmt(p)} % (${r.idleCanvas} из ${r.steps - 1}) выше потолка ${cap} %`);
     });
   }
+  // общий потолок — только на полном прогоне: с --type итог считается по части виджетов
+  const total = tr ? 100 * ic / tr : 0;
+  if (!onlyTypes) {
+    if (typeof budget[CORE_KEY] !== "number") bad.push(`в viz-idle-budget.json нет общего потолка «${CORE_KEY}»`);
+    else if (+fmt(total) > budget[CORE_KEY]) bad.push(`${CORE_KEY}: холст∅ по ядру ${fmt(total)} % (${ic} из ${tr}) выше потолка ${budget[CORE_KEY]} %`);
+  }
   if (bad.length) { console.error("❌ viz-idle --check:\n  - " + bad.join("\n  - ")); process.exit(1); }
-  console.log(`✅ viz-idle: ${Object.keys(budget).length} типов под потолком; ядро — ${rows.length} виджетов, холст∅ ${fmt(tr ? 100 * ic / tr : 0)} %, всё∅ ${fmt(tr ? 100 * ia / tr : 0)} %`);
+  console.log(onlyTypes
+    ? `✅ viz-idle: ${types.length} типов из --type под потолком (общий потолок ядра на частичном прогоне не проверяется)`
+    : `✅ viz-idle: ${types.length} типов под потолком; ядро — ${rows.length} виджетов, холст∅ ${fmt(total)} % (потолок ${budget[CORE_KEY]} %), всё∅ ${fmt(tr ? 100 * ia / tr : 0)} %`);
   process.exit(0);
 }
 
