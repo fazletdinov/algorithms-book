@@ -1,4 +1,4 @@
-# 🔄 Cyclic Sort (Циклическая сортировка)
+# 🔄 Циклическая сортировка (Cyclic Sort)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

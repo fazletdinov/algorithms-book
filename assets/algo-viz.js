@@ -2927,11 +2927,11 @@
       steps.push({ lo: left, hi: right, frames: fr(right, "sum = " + sum), line: 4, vars: vv(right), info: "sum += nums[" + right + "] = " + arr[right] + " → sum = " + sum });
       while (true) {
         var ok = sum >= target;
-        steps.push({ lo: left, hi: right, frames: fr(right, "sum = " + sum + (ok ? " ≥ " : " < ") + target, ok ? "lo" : right < n - 1 ? "hi" : "cur"), line: 5, branch: ok, vars: vv(right), info: "sum " + sum + (ok ? " ≥ " : " < ") + "target " + target + (ok ? " — окно валидно, жадно сжимаем слева" : " — окно мало, расширяем дальше") });
+        steps.push({ lo: left, hi: right, frames: fr(right, "sum = " + sum + (ok ? " ≥ " : " < ") + target, ok ? "lo" : right < n - 1 ? "hi" : "cur"), line: 5, branch: ok, vars: vv(right), info: "sum " + sum + (ok ? " ≥ " : " < ") + "target " + target + (ok ? " — окно валидно, жадно сжимаем слева" : right < n - 1 ? " — окно мало, расширяем дальше" : " — окно мало, а правее элементов нет: цикл for кончится") });
         if (!ok) break;
         var len = right - left + 1, was = bv(), improved = len < best;
         if (improved) { best = len; bestLo = left; bestHi = right; }
-        steps.push({ lo: left, hi: right, frames: fr(right, "right-left+1 = " + len + (improved ? " < " : " ≥ ") + "best " + was, improved ? "hit" : "cur"), improved: improved, line: 6, vars: vv(right), info: improved ? "right−left+1 = " + len + " < best (было " + was + ") → best = " + len + " (новый минимум [" + left + ".." + right + "])" : "длина " + len + " ≥ best " + bv() + " — не короче" });
+        steps.push({ lo: left, hi: right, frames: fr(right, "right-left+1 = " + len + (improved ? " < " : " ≥ ") + "best " + was, improved ? "hit" : "cur"), improved: improved, line: 6, vars: vv(right), info: improved ? "right−left+1 = " + len + " < best (было " + was + ") → best = " + len + " (новый минимум [" + left + ".." + right + "])" : "right−left+1 = " + len + " ≥ best " + bv() + " — не короче" });
         sum -= arr[left];
         steps.push({ lo: left, hi: right, frames: fr(right, "sum = " + (sum + arr[left]) + " − " + arr[left] + " = " + sum), line: 7, vars: vv(right), info: "sum −= nums[" + left + "] = " + arr[left] + " → sum = " + sum + " (убрали левый элемент)" });
         left++;
@@ -9343,12 +9343,13 @@
     ops.forEach(function (op) {
       if (op.kind === "put") {
         var k = op.key, v = op.val, label = "Put(" + k + ", " + v + ")";
-        push({ line: 7, op: label, key: k, seq: snap(null), info: label + ": ищем ключ " + k + " в map" });
         var i = idxOf(k);
+        // исход строки `if n, ok := c.m[key]; ok` назван явно: без него «да» (ключ уже есть) вывелось бы
+        // по следующему кадру как «нет»
+        push({ line: 7, op: label, key: k, seq: snap(null), info: label + ": ищем ключ " + k + " в map" }); steps[steps.length - 1].branch = i >= 0;
         if (i >= 0) {
-          push({ line: 7, op: label, key: k, seq: snap(mark(k, "found")), info: "ключ " + k + " уже есть — обновим значение на " + v });
           list[i].val = v; var nd = list.splice(i, 1)[0]; list.unshift(nd);
-          push({ line: 8, op: label, key: k, hit: true, seq: snap(mark(k, "cur")), info: k + ":" + v + " — двигаем в голову (свежий)" });
+          push({ line: 8, op: label, key: k, hit: true, seq: snap(mark(k, "cur")), info: "ключ " + k + " уже есть — значение теперь " + v + ", " + k + ":" + v + " двигаем в голову (свежий)" });
         } else {
           if (list.length >= cap) {
             var old = list[list.length - 1];
@@ -10859,7 +10860,7 @@
     },
 
     "bfs-local-timeline": {
-      badge: "Atomic CAS", desc: "Масштабируемый конкурентный BFS: вершину столбит атомарный CAS, у каждой горутины свой локальный фронт — без мьютекса и без гонки.",
+      badge: "Атомарный CAS", desc: "Масштабируемый конкурентный BFS: вершину столбит атомарный CAS, у каждой горутины свой локальный фронт — без мьютекса и без гонки.",
       valuesLabel: "", codeKey: "bfs-local-timeline", fillRange: false,
       // чип показывает горутину прошлого кадра, поэтому вопрос называет свою
       ask: { 2: { cond: "atomic.CompareAndSwapInt32", q: function (s) { return "CAS горутины " + s.vars.g + " пройдёт?"; },
@@ -10906,7 +10907,7 @@
     },
 
     "wordcount-local": {
-      badge: "Worker pool", desc: "Каждая горутина считает в свою карту, после барьера локальные карты сливаются — без гонки и без паники.",
+      badge: "Пул горутин (worker pool)", desc: "Каждая горутина считает в свою карту, после барьера локальные карты сливаются — без гонки и без паники.",
       valuesLabel: "", codeKey: "wordcount-local", fillRange: false,
       complexity: { time: "O(n)", space: "O(уник.)", good: "✓ map-reduce без гонки" },
       varOrder: ["горутина", "действие"],
@@ -10928,7 +10929,7 @@
     },
 
     "two-pointers-sum": {
-      badge: "Two Pointers",
+      badge: "Два указателя",
       desc: "Дан отсортированный массив. Найти пару чисел, сумма которых равна target.",
       legend: [{ cls: "frcmp", label: "рамка — живые числа [lo, hi]; ярлык — sum против target: обведён зелёным — сумма мала, сдвинется lo; голубым — велика, сдвинется hi; залит зелёным — пара найдена" }, { cls: "dim", nn: "dim", label: "отброшено: в пару не входит" }, { cls: "found", nn: "found", label: "найденная пара" }],
       frames: 1,
@@ -10980,7 +10981,7 @@
     },
 
     "dutch-flag": {
-      badge: "Dutch National Flag",
+      badge: "Три указателя",
       desc: "Сортировка 0/1/2 за один проход: mid сканирует непросмотренное, low — граница нулей, high — граница двоек. Ноль улетает влево (оба указателя вперёд), двойка — вправо (mid стоит: приехал непросмотренный).",
       valuesLabel: "Массив", codeKey: "dutch-flag", fillRange: false,
       // легенда — у основной сетки и в её настоящих цветах (раньше подпись над мини-строкой
@@ -11015,7 +11016,7 @@
         { label: "обратный", set: { "data-array": "2,2,1,1,0,0" }, hint: "Худший порядок для зон" }
       ],
       values: function (ctx) { return ctx.arr; },
-      title: function (ctx) { return "Dutch National Flag: [" + ctx.arr.join(", ") + "]"; },
+      title: function (ctx) { return "Три указателя: [" + ctx.arr.join(", ") + "]"; },
       cellState: function (s, j) { var st = {}; if (j < s.low) st.found = true; else if (j < s.mid) st.span = true; if (j > s.high) st.hi = true; if (j === s.mid && !s.done) st.mid = true; return st; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
       // v — значение, которое классифицировал switch; после обмена в клетке mid уже другое
@@ -11028,7 +11029,7 @@
     },
 
     "sliding-window-fixed": {
-      badge: "Sliding Window",
+      badge: "Скользящее окно",
       desc: "Максимальная сумма непрерывного окна размера k.",
       legend: [{ cls: "span", nn: "span", label: "внутри окна (рамка — его сумма)" }, { cls: "mid", nn: "mid", label: "вошёл в окно на этом шаге" }, { cls: "out", nn: "out", label: "выбыл из окна" }, { cls: "found", nn: "found", label: "лучшее окно (пунктирная рамка — maxSum)" }, { cls: "dim", nn: "dim", label: "вне ответа" }],
       frames: true,
@@ -11067,7 +11068,7 @@
     },
 
     "list-cycle": {
-      badge: "Fast & Slow",
+      badge: "Быстрый и медленный указатели",
       desc: "Обнаружение цикла в связном списке (заяц и черепаха).",
       legend: [{ cls: "rhoslow", label: "slow — черепаха, +1 (внутри кольца)" }, { cls: "rhofast", label: "fast — заяц, +2 (снаружи кольца)" }, { cls: "rhofound", label: "здесь встретились" }],
       valuesLabel: "Связный список", codeKey: "list-cycle", arrLabel: "list", fillRange: false,
@@ -11107,7 +11108,7 @@
     },
 
     "list-cycle-entry": {
-      badge: "Fast & Slow",
+      badge: "Быстрый и медленный указатели",
       desc: "Вход в цикл (алгоритм Флойда): фаза 1 — заяц и черепаха встречаются внутри кольца; фаза 2 — slow в голову, оба по одному шагу, и они сходятся ровно на входе.",
       legend: [{ cls: "rhoslow", label: "slow (внутри кольца)" }, { cls: "rhofast", label: "fast (снаружи кольца)" }, { cls: "rhoentry", label: "вход в цикл (фаза 2)" }, { cls: "rhomeet", label: "где встретились в фазе 1" }, { cls: "rhofound", label: "slow и fast сошлись на входе" }],
       valuesLabel: "Связный список", codeKey: "list-cycle-entry", arrLabel: "list", fillRange: false,
@@ -11146,7 +11147,7 @@
     },
 
     "sliding-window-var": {
-      badge: "Sliding Window",
+      badge: "Скользящее окно",
       desc: "Самая длинная подстрока, где не более k различных символов (переменное окно).",
       legend: [{ cls: "span", nn: "span", label: "внутри окна" }, { cls: "found", nn: "found", label: "границы лучшего окна" }],
       valuesLabel: "Строка", codeKey: "sliding-window-var", fillRange: true,
@@ -11269,12 +11270,12 @@
     },
 
     "min-subarray-window": {
-      badge: "Sliding Window",
+      badge: "Скользящее окно",
       desc: "Оптимум O(n): переменное окно. right расширяет окно, при sum ≥ target жадно сжимаем слева. left только вперёд — отсюда линейность.",
-      legend: [{ cls: "span", nn: "span", label: "окно [left..right]" }, { cls: "frcmp", label: "рамка окна, ярлык — sum против target: обведён зелёным — сожмём слева (left), голубым — расширим (right); залит зелёным — окно короче best" }, { cls: "frleft", label: "лучшее окно (пунктир)" }, { cls: "found", nn: "found", label: "ответ — кратчайшее окно" }],
+      legend: [{ cls: "span", nn: "span", label: "окно [left..right]" }, { cls: "frcmp", label: "рамка окна, ярлык — sum против target: обведён зелёным — сожмём слева (left), голубым — расширим (right); залит зелёным — окно короче best; без цвета — просто sum или сравнение, после которого ничего не сдвинется (окно не короче best; правее элементов нет)" }, { cls: "frleft", label: "лучшее окно (пунктир)" }, { cls: "found", nn: "found", label: "ответ — кратчайшее окно" }],
       frames: 2,
       valuesLabel: "Массив (положительные)", codeKey: "min-subarray-window", fillRange: true,
-      ask: { 5: { cond: "sum >= target", q: "Сумма окна дотянула до target?", yes: "Да — запомним длину и сожмём слева", no: "Нет — расширяем окно вправо" } },
+      ask: { 5: { cond: "sum >= target", q: "Сумма окна дотянула до target?", yes: "Да — запомним длину и сожмём слева", no: function (s, ctx) { return s.vars.right < ctx.arr.length - 1 ? "Нет — расширяем окно вправо" : "Нет — а правее элементов нет: цикл for кончится"; } } },
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Подотрезок под условие суммы" },
       varOrder: ["left", "right", "sum", "best", "сложений"],
@@ -11356,7 +11357,7 @@
     },
 
     "aho-corasick": {
-      badge: "Aho — Corasick", desc: "Trie + префикс-функция: у каждого узла ссылка неудачи на самый длинный собственный суффикс, который тоже путь в Trie. Нет перехода — откат по ней, текст назад не читаем. Словарные ссылки сообщают о шаблонах, вложенных в текущий.",
+      badge: "Ахо — Корасик", desc: "Trie + префикс-функция: у каждого узла ссылка неудачи на самый длинный собственный суффикс, который тоже путь в Trie. Нет перехода — откат по ней, текст назад не читаем. Словарные ссылки сообщают о шаблонах, вложенных в текущий.",
       valuesLabel: "", codeKey: "aho-corasick", fillRange: false,
       complexity: { time: "O(n + m + z)", space: "O(m·Σ)", good: "★ Много шаблонов за один проход" },
       varOrder: ["node", "fail", "i", "found"],
@@ -11389,7 +11390,7 @@
     },
 
     "list-reverse-between": {
-      badge: "In-place Reversal · участок", desc: "Разворот участка [m, n]: prev (перед участком) и curr (его первый узел) стоят на месте, а узел за curr вынимается и вставляется в начало участка — четыре присваивания на итерацию, n − m итераций.",
+      badge: "Разворот на месте · участок", desc: "Разворот участка [m, n]: prev (перед участком) и curr (его первый узел) стоят на месте, а узел за curr вынимается и вставляется в начало участка — четыре присваивания на итерацию, n − m итераций.",
       valuesLabel: "", codeKey: "list-reverse-between", fillRange: false,
       complexity: { time: "O(n)", space: "O(1)", good: "★ Разворот части списка без аллокаций" },
       varOrder: ["prev", "curr", "next", "i"],
@@ -11410,7 +11411,7 @@
     },
 
     "tree-right-view": {
-      badge: "Tree BFS · по уровням", desc: "Вид справа: BFS по уровням со снимком levelSize = len(queue); последний снятый с уровня узел — самый правый, он и идёт в ответ.",
+      badge: "Обход дерева в ширину · по уровням", desc: "Вид справа: BFS по уровням со снимком levelSize = len(queue); последний снятый с уровня узел — самый правый, он и идёт в ответ.",
       valuesLabel: "", codeKey: "tree-right-view", fillRange: false,
       complexity: { time: "O(n)", space: "O(w)", good: "★ Ответ «по уровням»: вид справа/слева, среднее, зигзаг" },
       varOrder: ["номер уровня", "levelSize", "i", "node", "res"],
@@ -11441,7 +11442,7 @@
     },
 
     "lower-bound": {
-      badge: "Binary Search · граница", desc: "Поиск границы: наименьший индекс, где nums[i] ≥ target. Ответ в [lo, hi], оба конца включены; mid не равен hi, поэтому hi = mid (без −1) сужает отрезок, а mid остаётся кандидатом; ответ может быть len(nums).",
+      badge: "Бинарный поиск · граница", desc: "Поиск границы: наименьший индекс, где nums[i] ≥ target. Ответ в [lo, hi], оба конца включены; mid не равен hi, поэтому hi = mid (без −1) сужает отрезок, а mid остаётся кандидатом; ответ может быть len(nums).",
       legend: [{ cls: "span", nn: "span", label: "ещё под подозрением: [lo, hi]" }, { cls: "mid", nn: "mid", label: "mid — проверяем" }, { cls: "dim", nn: "dim", label: "отброшено" }, { cls: "found", nn: "found", label: "ответ" }],
       valuesLabel: "", codeKey: "lower-bound", arrLabel: "nums", fillRange: true,
       ptr1: { name: "lo", cap: "левый край [lo, hi]" }, ptr2: { name: "hi", cap: "правый край, тоже кандидат (может быть «за концом»)" },
@@ -11471,7 +11472,7 @@
     },
 
     "diameter-dfs": {
-      badge: "Tree DFS · post-order", desc: "Диаметр одним обходом: высота считается снизу вверх, и в каждом узле, когда высоты детей l и r уже известны, путь через него = l + r. Максимум копим сбоку, наверх отдаём высоту 1 + max(l, r).",
+      badge: "Обход дерева в глубину · post-order", desc: "Диаметр одним обходом: высота считается снизу вверх, и в каждом узле, когда высоты детей l и r уже известны, путь через него = l + r. Максимум копим сбоку, наверх отдаём высоту 1 + max(l, r).",
       valuesLabel: "", codeKey: "diameter-dfs", fillRange: false,
       complexity: { time: "O(n)", space: "O(h)", good: "★ Ответ узла = функция от ответов детей" },
       varOrder: ["node", "l", "r", "best"],
@@ -11622,7 +11623,7 @@
     },
 
     "num-provinces": {
-      badge: "Graph DFS",
+      badge: "DFS по графу",
       desc: "Оптимум O(V²): каждый незатронутый узел запускает DFS новой компоненты и красит всё достижимое. Число запусков = число провинций.",
       valuesLabel: "Города", codeKey: "num-provinces", fillRange: false,
       // u кадра вопроса на экране ещё нет (кадр до него — строка выше), поэтому вопрос его называет
@@ -11668,7 +11669,7 @@
     },
 
     "subsets-with-dup": {
-      badge: "Backtracking",
+      badge: "Поиск с возвратом",
       desc: "Оптимум: подмножества массива с дубликатами. sort + skip на уровне (i>start && nums[i]==nums[i-1] → continue) — без set и конкатенации ключей.",
       valuesLabel: "Множество (с дублями)", codeKey: "subsets-with-dup", fillRange: false,
       complexity: { time: "O(2ⁿ·n)", space: "O(n)", good: "★ Подмножества без дублей" },
@@ -11692,7 +11693,7 @@
     },
 
     "combination-sum": {
-      badge: "Backtracking",
+      badge: "Поиск с возвратом",
       desc: "Оптимум: все комбинации с суммой target (повтор кандидата разрешён). Несём остаток remain: база remain==0, отсечение candidates[i] > remain.",
       valuesLabel: "Кандидаты", codeKey: "combination-sum", fillRange: false,
       complexity: { time: "экспонента (с отсечением)", space: "O(target)", good: "★ Перебор с обрезкой ветвей" },
@@ -11716,7 +11717,7 @@
     },
 
     "oranges-rotting": {
-      badge: "Multi-source BFS",
+      badge: "BFS из нескольких источников",
       desc: "Оптимум O(R·C): все гнилые апельсины (2) — источники на минуте 0; каждая минута заражает свежих 4-соседей. Уровни BFS = минуты.",
       valuesLabel: "", codeKey: "oranges-rotting", fillRange: false,
       complexity: { time: "O(R·C)", space: "O(R·C)", good: "★ Волны от многих источников" },
@@ -11739,7 +11740,7 @@
     },
 
     "first-missing-positive": {
-      badge: "Cyclic Sort",
+      badge: "Циклическая сортировка",
       desc: "Оптимум O(n): раскладываем число v на индекс v−1 (на месте), значения вне [1,n] пропускаем. Затем первый индекс, где nums[i] ≠ i+1, и есть ответ.",
       valuesLabel: "Массив", codeKey: "first-missing-positive", fillRange: false,
       ptr1: { name: "i", cap: "(текущий)" }, ptr2: { name: "correct", cap: "(куда ставим)" },
@@ -11762,7 +11763,7 @@
     },
 
     "house-robber": {
-      badge: "Dynamic Programming",
+      badge: "Динамическое программирование",
       desc: "Оптимум O(n), O(1): dp[i] = max(пропустить dp[i−1], взять dp[i−2]+nums[i]). Вся таблица свёрнута в две переменные prev2, prev1.",
       legend: [{ cls: "found", nn: "found", label: "дом в ответе" }, { cls: "dim", nn: "dim", label: "не берём" }],
       valuesLabel: "Дома (деньги)", codeKey: "house-robber", fillRange: false,
@@ -11804,7 +11805,7 @@
     },
 
     "two-single": {
-      badge: "Bit Manipulation",
+      badge: "Битовые операции",
       desc: "Оптимум O(n), O(1): xorAll = a^b (пары сокращаются); diff — младший различающий бит; второй проход делит числа по diff и копит XOR в группах a и b.",
       valuesLabel: "Массив", codeKey: "two-single", fillRange: false,
       ptr1: { name: "i", cap: "(текущий)" }, ptr2: { name: "—", cap: "" },
@@ -11898,9 +11899,9 @@
     },
 
     "three-sum": {
-      badge: "Two Pointers",
+      badge: "Два указателя",
       desc: "Оптимум O(n²): сортируем, фиксируем nums[i], а пару с суммой −nums[i] ищем встречными указателями. Дедуп даётся отсортированным массивом даром.",
-      legend: [{ cls: "mid", nn: "mid", label: "i — зафиксированный первый элемент" }, { cls: "span", nn: "span", label: "между left и right — ещё рассматриваем" }, { cls: "frcmp", label: "рамка от i до right; ярлык — сумма nums[i] + nums[left] + nums[right] против 0: обведён зелёным — сдвинется left, голубым — right; залит зелёным — тройка найдена. Над двумя соседями — проверка дубля: совпали — пропуск (красный — continue по i)" }],
+      legend: [{ cls: "mid", nn: "mid", label: "i — зафиксированный первый элемент" }, { cls: "span", nn: "span", label: "между left и right — ещё рассматриваем" }, { cls: "frcmp", label: "рамка от i до right; ярлык — сумма nums[i] + nums[left] + nums[right] против 0: обведён зелёным — сдвинется left, голубым — right; залит зелёным — тройка найдена. Рамка на двух соседях — проверка дубля; совпали — пропуск: ярлык красный — continue по i, обведён зелёным — left++, голубым (под рядом) — right--" }],
       frames: 1,
       valuesLabel: "Массив (отсортирован)", codeKey: "three-sum", fillRange: false,
       ptr1: { name: "left", cap: "(левый)" }, ptr2: { name: "right", cap: "(правый)" },
@@ -11943,7 +11944,7 @@
     },
 
     "two-pointers-dedup": {
-      badge: "Two Pointers",
+      badge: "Два указателя",
       desc: "Удаление дубликатов из отсортированного массива на месте (одно направление).",
       legend: [{ cls: "found", nn: "found", label: "готовая часть без дублей" }],
       valuesLabel: "Массив (отсортирован, с дубликатами)", codeKey: "two-pointers-dedup", fillRange: false,
@@ -11967,7 +11968,7 @@
     },
 
     "list-middle": {
-      badge: "Fast & Slow",
+      badge: "Быстрый и медленный указатели",
       desc: "Поиск середины списка: fast идёт вдвое быстрее, slow останавливается в центре.",
       legend: [{ cls: "found", nn: "found", label: "середина" }],
       valuesLabel: "Связный список", codeKey: "list-middle", arrLabel: "list", fillRange: false,
@@ -11993,7 +11994,7 @@
     },
 
     "binary-search": {
-      badge: "Binary Search",
+      badge: "Бинарный поиск",
       desc: "Поиск точного значения в отсортированном массиве делением пополам.",
       legend: [{ cls: "span", nn: "span", label: "ещё под подозрением: [left, right]" }, { cls: "mid", nn: "mid", label: "mid — проверяем" }, { cls: "frcmp", label: "ярлык у mid — arr[mid] против target: обведён зелёным — сдвинется left, голубым — right; залит зелёным — найдено" }, { cls: "dim", nn: "dim", label: "отброшено" }, { cls: "found", nn: "found", label: "найдено" }],
       frames: 1,
@@ -12032,7 +12033,7 @@
     },
 
     "binary-search-first": {
-      badge: "Binary Search",
+      badge: "Бинарный поиск",
       desc: "Поиск ПЕРВОГО вхождения: при равенстве не останавливаемся, а идём левее.",
       legend: [{ cls: "span", nn: "span", label: "ещё под подозрением: [left, right]" }, { cls: "mid", nn: "mid", label: "mid — проверяем" }, { cls: "dim", nn: "dim", label: "отброшено" }, { cls: "found", nn: "found", label: "res — лучший кандидат" }],
       valuesLabel: "Массив (с дубликатами)", codeKey: "binary-search-first", fillRange: false,
@@ -12060,7 +12061,7 @@
     },
 
     "cyclic-sort": {
-      badge: "Cyclic Sort",
+      badge: "Циклическая сортировка",
       desc: "Сортировка чисел 1..N на месте: значение v отправляется на индекс v−1.",
       valuesLabel: "Массив (числа 1..N)", codeKey: "cyclic-sort", fillRange: false,
       ptr1: { name: "i", cap: "(текущий)" }, ptr2: { name: "цель", cap: "(куда уйдёт)" },
@@ -12090,7 +12091,7 @@
     },
 
     "insertion-sort": {
-      badge: "Insertion Sort",
+      badge: "Сортировка вставками",
       desc: "Сортировка вставками: отсортированный префикс растёт слева. key вынимается, большие элементы сдвигаются вправо, и key встаёт в освободившуюся клетку (погашена).",
       legend: [{ cls: "found", nn: "found", label: "отсортированная часть" }, { cls: "mid", nn: "mid", label: "сюда записали на этом шаге" }, { cls: "dim", nn: "dim", label: "«дыра»: значение уже скопировано" }],
       valuesLabel: "Массив", codeKey: "insertion-sort", fillRange: false,
@@ -12103,7 +12104,7 @@
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bInsertionSort(arr) }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return ctx.arr; },
-      title: function () { return "Сортировка вставками"; },
+      title: function () { return "Отсортированный префикс растёт слева"; },
       cellState: function (s, j) { if (s.done) return { found: true }; var st = {}; if (j === s.hole) { st.dim = true; } else if (j < s.sorted) st.found = true; if (j === s.lo && s.lo >= 0) st.lo = true; if (j === s.hi && s.hi >= 0 && j !== s.hole) st.hi = true; if (j === s.mid && s.mid >= 0) st.mid = true; return st; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: (s.hi == null ? -1 : s.hi) }; },
       mapViz: function (panel) {
@@ -12124,7 +12125,7 @@
     },
 
     "merge-sort": {
-      badge: "Merge Sort",
+      badge: "Сортировка слиянием",
       desc: "Слияние двух отсортированных половин: сравниваем головы, меньшую переносим в out. Выданная клетка входа гаснет, а out растёт слева направо — и уже отсортирован.",
       legend: [{ cls: "frleft", label: "левая половина — уже отсортирована, голова i" }, { cls: "frright", label: "правая половина — уже отсортирована, голова j" }, { cls: "mid", nn: "mid", label: "mid — граница половин" }, { cls: "dim", nn: "dim", label: "уже выдан в out" }],
       frames: true,
@@ -12171,7 +12172,7 @@
     },
 
     "quick-sort": {
-      badge: "Quick Sort",
+      badge: "Быстрая сортировка",
       desc: "Разбиение Ломуто — ядро быстрой сортировки: всё меньше pivot уезжает влево, pivot встаёт на финальное место.",
       legend: [{ cls: "mid", nn: "mid", label: "pivot" }, { cls: "found", nn: "found", label: "меньше pivot — уже слева" }],
       valuesLabel: "Массив (pivot — последний)", codeKey: "quick-sort", fillRange: false,
@@ -12195,7 +12196,7 @@
     },
 
     "sieve": {
-      badge: "Sieve of Eratosthenes",
+      badge: "Решето Эратосфена",
       desc: "Решето Эратосфена: каждое невычеркнутое число — простое; его кратные вычёркиваются как составные.",
       valuesLabel: "", codeKey: "sieve", fillRange: false,
       complexity: { time: "O(n log log n)", space: "O(n)", good: "★ Всех простых до n" },
@@ -12257,7 +12258,7 @@
     },
 
     "lsm-put": {
-      badge: "LSM-дерево · Put",
+      badge: "LSM-дерево · запись",
       desc: "Запись идёт в memtable (память, отсортирован); при заполнении — flush в неизменяемый SSTable одной последовательной записью. Фоновая компакция сливает SSTable k-way merge'ем, схлопывая перезаписанные ключи.",
       valuesLabel: "", codeKey: "lsm-put", fillRange: false,
       complexity: { time: "запись O(log n) в RAM", space: "O(n)", good: "★ диск — только последовательно" },
@@ -12284,7 +12285,7 @@
     },
 
     "hash-ring": {
-      badge: "Consistent hashing",
+      badge: "Консистентное хеширование",
       desc: "Кольцо 0–359°: хешируются и серверы, и ключи. Ключ принадлежит первому серверу по часовой. Добавленный сервер крадёт один сегмент — переезжает ~1/N ключей, а не почти все, как при hash % N.",
       valuesLabel: "", codeKey: "hash-ring", fillRange: false,
       complexity: { time: "O(log N)", space: "O(N)", good: "★ переезд ~K/N ключей" },
@@ -12311,7 +12312,7 @@
     },
 
     "bloom-add": {
-      badge: "Bloom filter · Add",
+      badge: "Bloom-фильтр · добавление",
       desc: "Добавление в Bloom-фильтр: URL прогоняется через k хешей, каждый указывает на бит — эти биты ставятся в 1. Сам URL не хранится.",
       valuesLabel: "Битовый массив фильтра", codeKey: "bloom-add", fillRange: false,
       ptr1: { name: "бит", cap: "(текущая позиция хеша)" },
@@ -12324,7 +12325,7 @@
       parse: function (root) { var add = (root.getAttribute("data-add") || "reddit,github,medium").split(",").map(function (x) { return x.trim(); }); return { add: add, m: 16, k: 3, steps: bBloomAdd(add, 16, 3) }; },
       inputs: [],
       values: function (ctx) { return bBloomAdd(ctx.add, 16, 3)[0].values; },
-      title: function (ctx) { return "Bloom · добавляем: " + ctx.add.join(", "); },
+      title: function (ctx) { return "Bloom-фильтр · добавляем: " + ctx.add.join(", "); },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
       sumCells: ["горит бит", "хеш"],
       sumValues: function (s) { return [{ text: s.vars.set, cls: "gt" }, { text: s.vars.hash }]; },
@@ -12335,7 +12336,7 @@
     },
 
     "bloom-check": {
-      badge: "Bloom filter · Check",
+      badge: "Bloom-фильтр · проверка",
       desc: "Проверка «видели ли»: считаем те же k бит. Хоть один 0 — элемента ТОЧНО не было. Все 1 — ВОЗМОЖНО был (либо ложное срабатывание: биты зажгли другие элементы).",
       valuesLabel: "Битовый массив фильтра (после всех Add)", codeKey: "bloom-check", fillRange: false,
       ptr1: { name: "бит", cap: "(проверяемая позиция)" },
@@ -12348,7 +12349,7 @@
       parse: function (root) { var add = (root.getAttribute("data-add") || "reddit,github,medium").split(",").map(function (x) { return x.trim(); }); var q = (root.getAttribute("data-check") || "discord").trim(); return { add: add, q: q, m: 16, k: 3, steps: bBloomCheck(add, q, 16, 3) }; },
       inputs: [],
       values: function (ctx) { return bBloomCheck(ctx.add, ctx.q, 16, 3)[0].values; },
-      title: function (ctx) { return "Bloom · проверяем «" + ctx.q + "»"; },
+      title: function (ctx) { return "Bloom-фильтр · проверяем «" + ctx.q + "»"; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
       sumCells: ["бит", "вердикт"],
       sumValues: function (s) { return [{ text: s.vars.bit }, { text: s.no ? "точно нет" : (s.fp ? "ложное да" : "…"), cls: s.no ? "gt" : "lt" }]; },
@@ -12359,7 +12360,7 @@
     },
 
     "hll-add": {
-      badge: "HyperLogLog · Add",
+      badge: "HyperLogLog · добавление",
       desc: "Счёт уникальных: ID хешируется, старшие биты выбирают регистр, в остатке считаем длину серии нулей rho. Регистр хранит МАКСИМУМ rho — а он ≈ log2 числа уникальных в бакете (как «самая длинная серия решек» ≈ log2 числа бросков).",
       valuesLabel: "Регистры: макс. rho (серия нулей + 1)", codeKey: "hll-add", arrLabel: "reg", fillRange: false,
       ptr1: { name: "рег", cap: "(текущий регистр)" },
@@ -12403,7 +12404,7 @@
     },
 
     "cms-add": {
-      badge: "Count-Min · Add",
+      badge: "Count-Min · добавление",
       desc: "Добавление в поток: d хеш-функций, для каждой инкрементим её ячейку. Один элемент задевает по одной ячейке в каждой строке. Память фиксированная — не зависит от числа разных элементов.",
       valuesLabel: "", codeKey: "cms-add", fillRange: false,
       complexity: { time: "O(d)", space: "O(d·w)", good: "★ частоты потока, фикс. память" },
@@ -12426,7 +12427,7 @@
     },
 
     "cms-query": {
-      badge: "Count-Min · Count",
+      badge: "Count-Min · оценка",
       desc: "Оценка частоты: смотрим по одной ячейке в каждой строке и берём МИНИМУМ. Коллизии только завышают счётчики, поэтому наименьший из d — ближе всего к правде. Никогда не занижает.",
       valuesLabel: "", codeKey: "cms-query", fillRange: false,
       complexity: { time: "O(d)", space: "O(1)", good: "★ частота ≥ истинной, min точнее" },
@@ -12449,7 +12450,7 @@
     },
 
     "rb-insert": {
-      badge: "Red-Black · Insert",
+      badge: "Красно-чёрное дерево · вставка",
       desc: "Вставка в красно-чёрное дерево: новый узел красим красным, затем чиним нарушения «красный-красный» вверх по дереву — перекраской (если дядя красный) или поворотом (если чёрный). Так высота остаётся O(log n) без строгой балансировки AVL.",
       valuesLabel: "", codeKey: "rb-insert", fillRange: false,
       complexity: { time: "O(log n)", space: "O(1)", good: "★ ≤2 поворотов на вставку" },
@@ -12471,7 +12472,7 @@
     },
 
     "rb-delete": {
-      badge: "Red-Black · Delete",
+      badge: "Красно-чёрное дерево · удаление",
       desc: "Удаление из красно-чёрного дерева: убираем узел как в BST (у узла с двумя детьми — через преемника). Если ушёл ЧЁРНЫЙ узел — на его месте «двойной чёрный», который чиним вверх по дереву перекрасками и поворотами (4 случая по цвету брата и его детей).",
       valuesLabel: "", codeKey: "rb-delete", fillRange: false,
       complexity: { time: "O(log n)", space: "O(1)", good: "★ ≤3 поворотов на удаление" },
@@ -12493,7 +12494,7 @@
     },
 
     "skip-search": {
-      badge: "Skip-list · Search",
+      badge: "Skip-list · поиск",
       desc: "Поиск по express-полосам: идём сверху вниз, на каждом уровне прыгаем вправо, пока следующий ключ ≤ цели, иначе спускаемся. Верхние (редкие) полосы перепрыгивают через кучу узлов — как экспресс-метро.",
       valuesLabel: "", codeKey: "skip-search", fillRange: false,
       complexity: { time: "O(log n)", space: "O(n)", good: "★ проще balanced-дерева" },
@@ -12516,7 +12517,7 @@
     },
 
     "mod-exp": {
-      badge: "Modular Exponentiation",
+      badge: "Возведение в степень по модулю",
       desc: "Быстрое возведение base^exp mod m (square-and-multiply) — ядро RSA. Степень читается по битам справа налево: на бите 1 домножаем result, на каждом шаге возводим base в квадрат — всё по модулю.",
       valuesLabel: "Биты exp (MSB слева, читаем справа налево)", codeKey: "mod-exp", arrLabel: "exp", fillRange: false,
       ptr1: { name: "бит", cap: "(текущий бит exp)" },
@@ -12553,7 +12554,7 @@
     },
 
     "ext-gcd": {
-      badge: "Extended Euclid",
+      badge: "Расширенный Евклид",
       desc: "Расширенный алгоритм Евклида: цепочка остатков a, b, a%b, … сходится к НОД (последний ненулевой). У каждого остатка своя пара (s, t) с r = a·s + b·t, и считается она той же формулой, что и сам остаток. Пара у НОД — коэффициенты Безу, основа обратного по модулю.",
       valuesLabel: "Цепочка остатков (последний ненулевой = НОД)", codeKey: "ext-gcd", fillRange: false,
       ptr1: { name: "r", cap: "новый остаток" }, ptr2: { name: "oldR", cap: "предыдущий остаток" },
@@ -12593,7 +12594,7 @@
     },
 
     "miller-rabin": {
-      badge: "Miller — Rabin",
+      badge: "Миллер — Рабин",
       desc: "Тест простоты для одного свидетеля a: цепочка x = a^d, x², x⁴, … mod n. Если a^d = 1 или в цепочке встретилось n−1 (≡ −1), a не уличает n. Иначе уличает: либо цепочка пришла к 1 через x ≠ ±1 — нетривиальный корень из единицы, которого у простого n нет, — либо до 1 не дошла вовсе (не проходит даже Ферма). Так ловятся числа Кармайкла.",
       valuesLabel: "Цепочка возведений в квадрат x = a^d, (a^d)², … mod n", codeKey: "miller-rabin", fillRange: false,
       ptr1: { name: "x", cap: "(текущий член цепочки)" },
@@ -12617,7 +12618,7 @@
     },
 
     "counting-sort": {
-      badge: "Counting Sort",
+      badge: "Сортировка подсчётом",
       desc: "Сортировка подсчётом: без сравнений. Ячейки — гистограмма count[v] (индекс = значение). Сначала считаем, сколько раз встретилось каждое значение, потом обходим бакеты по возрастанию и выдаём. O(n + k), устойчива.",
       legend: [{ cls: "found", nn: "found", label: "бакет не пуст" }],
       valuesLabel: "Гистограмма count[v] (индекс ячейки = значение)", codeKey: "counting-sort", arrLabel: "count", fillRange: false,
@@ -12630,7 +12631,7 @@
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bCountingSort(arr) }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return bCountingSort(ctx.arr)[0].values; },
-      title: function () { return "Counting Sort — сортировка подсчётом"; },
+      title: function () { return "Считаем значения, затем раскладываем по счётчикам"; },
       cellState: function (s, j) { var o = {}; if (s.values[j] > 0) o.found = true; if (j === s.lo && s.lo >= 0) o.lo = true; return o; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
       // Вход и результат: без них видна только гистограмма, и финальный кадр — шесть нулей
@@ -12660,7 +12661,7 @@
     },
 
     "heap-sort": {
-      badge: "Heap Sort",
+      badge: "Пирамидальная сортировка",
       desc: "Пирамидальная сортировка: строим max-heap просеиванием, затем n−1 раз меняем корень (максимум) с концом кучи и чиним кучу. Отсортированный суффикс (зелёный) растёт справа. O(n log n), память O(1).",
       valuesLabel: "Массив (отсортированный суффикс — зелёный)", codeKey: "heap-sort", fillRange: false,
       // q называет узел: чип i на экранном шаге — ещё прошлого уровня (кадр до вопроса)
@@ -12676,7 +12677,7 @@
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bHeapSort(arr) }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return ctx.arr; },
-      title: function () { return "Heap Sort — пирамидальная сортировка"; },
+      title: function () { return "Строим кучу, затем максимум — в конец"; },
       cellState: function (s, j) { var start = s.values.length - (s.sorted || 0); if (j >= start) return { found: true }; var o = {}; if (j === s.mid && s.mid >= 0) o.mid = true; if (j === s.lo && s.lo >= 0) o.lo = true; if (j === s.hi && s.hi >= 0) o.hi = true; return o; },
       // Тот же массив деревом: на плоском ряду просеивание (i → 2i+1, 2i+2) не читается.
       mapViz: function (panel, ctx) {
@@ -12709,7 +12710,7 @@
     },
 
     "rabin-karp": {
-      badge: "Rabin — Karp",
+      badge: "Rabin–Karp",
       desc: "Поиск подстроки по хешам: окно длины m скользит по тексту, сравниваем ХЕШ окна с хешем образца (за O(1) на сдвиг). При совпадении хешей проверяем строки — защита от коллизий. В среднем O(n + m).",
       valuesLabel: "Текст", codeKey: "rabin-karp", fillRange: true,
       ptr1: { name: "i", cap: "(начало окна)" }, ptr2: { name: "i+m−1", cap: "(конец окна)" },
@@ -12732,7 +12733,7 @@
     },
 
     "ring-buffer": {
-      badge: "Ring Buffer (chan)",
+      badge: "Кольцевой буфер (chan)",
       desc: "Кольцевой буфер — как устроен буфер канала Go. Слоты выделены одним блоком; sendx (запись) и recvx (чтение) бегут по кругу, заворачиваясь в 0. FIFO фиксированной ёмкости без аллокаций; при заполнении send блокируется, при пустом — recv.",
       valuesLabel: "Слоты кольца (· — свободно)", codeKey: "ring-buffer", arrLabel: "buf", fillRange: false,
       ptr1: { name: "sendx", cap: "(куда пишем)" }, ptr2: { name: "recvx", cap: "(откуда читаем)" },
@@ -12755,7 +12756,7 @@
     },
 
     "route-match": {
-      badge: "ServeMux routing",
+      badge: "ServeMux · маршрутизация",
       desc: "Маршрутизатор http.ServeMux (Go 1.22+) — дерево по сегментам пути. Запрос спускается сегмент за сегментом: сперва точный литерал; если его нет или его ветка упёрлась в тупик — откат и wildcard {id} (с захватом значения); ничего не дошло до обработчика — 404. Литерал раньше wildcard = «самый конкретный побеждает».",
       valuesLabel: "", codeKey: "route-match", fillRange: false,
       complexity: { time: "O(длина пути)", space: "O(паттернов)", good: "★ Матч по префиксам, а не перебор" },
@@ -12825,7 +12826,7 @@
     },
 
     "tls-handshake": {
-      badge: "TLS 1.3 handshake",
+      badge: "TLS 1.3 · рукопожатие",
       desc: "Защищённый канал за один round-trip: стороны согласуют общий секрет ECDHE, не передавая его; сервер доказывает, что владеет ключом из сертификата, — подписью CertificateVerify над всем рукопожатием; из секрета выводятся ключи, и данные идут под AES-GCM. Асимметрикой согласуют и подписывают — данные шифруют симметрикой.",
       valuesLabel: "", codeKey: "tls-handshake", fillRange: false,
       complexity: { timeLabel: "Задержка", time: "1-RTT до данных", spaceLabel: "Что даёт", space: "ключ + подлинность + шифр", good: "★ Защита от MITM без общего пароля" },
@@ -13218,7 +13219,7 @@
     },
 
     "quick-select": {
-      badge: "QuickSelect",
+      badge: "Быстрый выбор",
       desc: "k-й элемент за O(n): рекурсия только в ту половину, где лежит искомый ранг. Окно поиска сужается, pivot отбрасывает половину.",
       legend: [{ cls: "frtarget", label: "target — сюда встанет k-й" }, { cls: "mid", nn: "mid", label: "pivot — встал на своё место" }, { cls: "span", nn: "span", label: "меньше pivot (ушли влево)" }, { cls: "dim", nn: "dim", label: "отброшено: ответа там нет" }, { cls: "found", nn: "found", label: "ответ" }],
       frames: true,
@@ -13232,7 +13233,7 @@
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var k = parseInt(root.getAttribute("data-k"), 10); if (isNaN(k)) k = Math.ceil(arr.length / 2); return { arr: arr, k: k, steps: bQuickSelect(arr, k) }; },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-k", label: "k" }],
       values: function (ctx) { return ctx.arr; },
-      title: function (ctx) { return "QuickSelect: " + ctx.k + "-й по порядку"; },
+      title: function (ctx) { return "Быстрый выбор: " + ctx.k + "-й по порядку"; },
       cellState: function (s, j) { if (s.done && j === s.foundIdx) return { found: true }; var st = {}; if (j < s.rangeLo || j > s.rangeHi) st.dim = true; if (j === s.mid && s.mid >= 0) st.mid = true; else if (s.less && j >= s.less[0] && j <= s.less[1] && !st.dim) st.span = true; return st; },
       pointers: function (s) { return { lo: (s.rangeLo == null ? -1 : s.rangeLo), hi: (s.rangeHi == null ? -1 : s.rangeHi) }; },
       sumCells: ["окно [lo..hi]", "сравнений всего"],
@@ -13243,7 +13244,7 @@
     },
 
     "hanoi": {
-      badge: "Tower of Hanoi",
+      badge: "Ханойская башня",
       desc: "Ханойская башня — классическая рекурсия: перенести (n−1) дисков на запасной стержень, сдвинуть самый большой, перенести (n−1) поверх. T(n) = 2·T(n−1) + 1.",
       valuesLabel: "", codeKey: "hanoi", fillRange: false,
       complexity: { time: "O(2ⁿ)", space: "O(n)", good: "★ Канон рекурсии; глубина стека n + 1 = O(n)" },
@@ -13271,7 +13272,7 @@
     },
 
     "dynarray": {
-      badge: "Amortized — рост среза",
+      badge: "Амортизация — рост среза",
       desc: "Динамический массив с удвоением ёмкости: дорогая копия при росте случается редко, поэтому append амортизированно O(1) (суммарно копий < 2n).",
       valuesLabel: "", codeKey: "dynarray", fillRange: false,
       complexity: { time: "O(1)*", space: "O(n)", good: "★ Амортизированный append (* при росте — O(len))" },
@@ -13424,7 +13425,7 @@
     },
 
     "move-zeroes": {
-      badge: "Two Pointers",
+      badge: "Два указателя",
       desc: "Сдвиг нулей в конец на месте: insertPos — куда встанет следующий ненулевой, i сканирует массив. Ненулевой не на своём месте меняется местами с нулём на insertPos.",
       legend: [{ cls: "found", nn: "found", label: "ненулевые — уже на месте" }, { cls: "dim", nn: "dim", label: "ноль" }],
       valuesLabel: "Массив", codeKey: "move-zeroes", fillRange: false,
@@ -13989,7 +13990,7 @@
     },
 
     "bit-xor": {
-      badge: "Bit Manipulation",
+      badge: "Битовые операции",
       desc: "Single Number: XOR всех элементов — пары обнуляются, остаётся одиночка.",
       valuesLabel: "Массив (пары + одиночка)", codeKey: "bit-xor", fillRange: false,
       ptr1: { name: "i", cap: "(текущий)" }, ptr2: { name: "", cap: "" },
@@ -14045,7 +14046,7 @@
     },
 
     "merge-intervals": {
-      badge: "Merge Intervals",
+      badge: "Слияние интервалов",
       desc: "Слияние перекрывающихся интервалов после сортировки по началу.",
       valuesLabel: "Интервалы (по началу)", codeKey: "merge-intervals", fillRange: false,
       ptr1: { name: "i", cap: "(текущий)" }, ptr2: { name: "", cap: "" },
@@ -14069,7 +14070,7 @@
         { label: "один интервал", set: { "data-intervals": "3-6" }, hint: "Минимальный вход" }
       ],
       values: function (ctx) { return ctx.ivs.map(function (p) { return p[0] + "–" + p[1]; }); },
-      title: function () { return "Слияние интервалов"; },
+      title: function () { return "Сортировка по началу и один проход"; },
       pointers: function (s) { return { lo: s.cur, hi: -1 }; },
       sumCells: ["Текущий интервал", "Интервалов в ответе"],
       sumValues: function (s) { return [{ text: s.vars.interval }, { text: s.vars.result, cls: "eq" }]; },
@@ -14142,7 +14143,7 @@
     },
 
     "list-reverse": {
-      badge: "Reverse Linked List",
+      badge: "Разворот связанного списка",
       desc: "Разворот односвязного списка на месте тремя указателями prev / curr / next.",
       valuesLabel: "Связный список", codeKey: "list-reverse", fillRange: false,
       ptr1: { name: "curr", cap: "(текущий)" }, ptr2: { name: "prev", cap: "(развёрнутая часть)" },
@@ -14166,7 +14167,7 @@
     },
 
     "ll-insert": {
-      badge: "Linked List", desc: "Вставка узла: доходим до позиции, создаём узел и перецепляем два указателя.",
+      badge: "Связный список", desc: "Вставка узла: доходим до позиции, создаём узел и перецепляем два указателя.",
       valuesLabel: "", codeKey: "ll-insert", fillRange: false,
       complexity: { time: "O(n)", space: "O(1)", good: "★ Вставки по ссылке" },
       varOrder: ["prev", "node"],
@@ -14193,7 +14194,7 @@
     },
 
     "ll-search": {
-      badge: "Linked List", desc: "Поиск значения: идём по ссылкам от головы, сравнивая Val с целью.",
+      badge: "Связный список", desc: "Поиск значения: идём по ссылкам от головы, сравнивая Val с целью.",
       valuesLabel: "", codeKey: "ll-search", fillRange: false,
       complexity: { time: "O(n)", space: "O(1)", good: "★ Линейный поиск" },
       varOrder: ["node", "target"],
@@ -14219,7 +14220,7 @@
     },
 
     "ll-delete": {
-      badge: "Linked List", desc: "Удаление по значению: доходим до узла перед целью и перецепляем prev.Next через него.",
+      badge: "Связный список", desc: "Удаление по значению: доходим до узла перед целью и перецепляем prev.Next через него.",
       valuesLabel: "", codeKey: "ll-delete", fillRange: false,
       complexity: { time: "O(n)", space: "O(1)", good: "★ Удаления по ссылке" },
       varOrder: ["prev", "prev.Next", "target"],
@@ -14246,7 +14247,7 @@
     },
 
     "lru": {
-      badge: "Hash + Список", desc: "LRU-кэш: map(key→узел) даёт O(1) доступ, двусвязный список держит порядок свежести (голова — свежий, хвост — кандидат на вытеснение).",
+      badge: "Хеш-таблица + список", desc: "LRU-кэш: map(key→узел) даёт O(1) доступ, двусвязный список держит порядок свежести (голова — свежий, хвост — кандидат на вытеснение).",
       valuesLabel: "", codeKey: "lru", fillRange: false,
       complexity: { time: "O(1) Get/Put", space: "O(ёмкость)", good: "★ Кэш с вытеснением" },
       varOrder: ["op", "key", "result", "size"],
@@ -14333,7 +14334,7 @@
     },
 
     "heap-push": {
-      badge: "Binary Heap", desc: "Вставка в min-кучу: новый лист в конец массива, затем просеивание вверх до родителя.",
+      badge: "Двоичная куча", desc: "Вставка в min-кучу: новый лист в конец массива, затем просеивание вверх до родителя.",
       valuesLabel: "", codeKey: "heap-push", fillRange: false,
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Вставка в кучу" },
       varOrder: ["i"],
@@ -14355,7 +14356,7 @@
     },
 
     "heap-pop": {
-      badge: "Binary Heap", desc: "Извлечение минимума: корень забираем, последний лист → в корень, затем просеивание вниз.",
+      badge: "Двоичная куча", desc: "Извлечение минимума: корень забираем, последний лист → в корень, затем просеивание вниз.",
       valuesLabel: "", codeKey: "heap-pop", fillRange: false,
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Извлечение минимума" },
       varOrder: ["i"],
@@ -14377,7 +14378,7 @@
     },
 
     "heap-build": {
-      badge: "Binary Heap · Build", desc: "Построение кучи из массива за O(n) (Флойд): siftDown от последнего внутреннего узла (n/2−1) к корню. Нижняя половина — листья, уже кучи по одному узлу. Дешевле, чем n вставок за O(n log n).",
+      badge: "Двоичная куча · построение", desc: "Построение кучи из массива за O(n) (Флойд): siftDown от последнего внутреннего узла (n/2−1) к корню. Нижняя половина — листья, уже кучи по одному узлу. Дешевле, чем n вставок за O(n log n).",
       valuesLabel: "", codeKey: "heap-build", fillRange: false,
       complexity: { time: "O(n)", space: "O(1)", good: "★ Куча из массива за O(n)" },
       varOrder: ["i", "small"],
@@ -14399,7 +14400,7 @@
     },
 
     "tree-bfs": {
-      badge: "Tree BFS · по уровням", desc: "Обход по уровням: levelSize = len(queue) — снимок, в очереди ровно текущий уровень. Сняли его целиком — уровень закрыт; дети, вставшие в хвост, и есть следующий.",
+      badge: "Обход дерева в ширину · по уровням", desc: "Обход по уровням: levelSize = len(queue) — снимок, в очереди ровно текущий уровень. Сняли его целиком — уровень закрыт; дети, вставшие в хвост, и есть следующий.",
       valuesLabel: "", codeKey: "tree-bfs", fillRange: false,
       complexity: { time: "O(n)", space: "O(w)", good: "★ Обхода по уровням" },
       varOrder: ["номер уровня", "levelSize", "i", "level", "result"],
@@ -14443,7 +14444,7 @@
     },
 
     "tree-dfs": {
-      badge: "Tree DFS",
+      badge: "Обход дерева в глубину",
       desc: "Обход дерева в глубину (preorder): корень → левое поддерево → правое.",
       valuesLabel: "Узлы (preorder)", codeKey: "tree-dfs", fillRange: false,
       ptr1: { name: "узел", cap: "(текущий)" }, ptr2: { name: "", cap: "" },
@@ -14479,7 +14480,7 @@
     },
 
     "two-heaps-median": {
-      badge: "Two Heaps", desc: "Медиана потока двумя кучами: max-heap (меньшая половина) и min-heap (большая).",
+      badge: "Две кучи", desc: "Медиана потока двумя кучами: max-heap (меньшая половина) и min-heap (большая).",
       valuesLabel: "Поток чисел", codeKey: "two-heaps", fillRange: false,
       complexity: { time: "O(log n) вставка", space: "O(n)", good: "★ Медианы потока" },
       varOrder: ["num", "loSize", "hiSize", "median"],
@@ -14500,7 +14501,7 @@
     },
 
     "top-k": {
-      badge: "Top K Elements", desc: "K наибольших элементов через min-heap размера k.",
+      badge: "Топ K элементов", desc: "K наибольших элементов через min-heap размера k.",
       valuesLabel: "Массив", codeKey: "top-k", fillRange: false,
       complexity: { time: "O(n log k)", space: "O(k)", good: "★ Топ-K из потока" },
       varOrder: ["num", "h.Len()", "выкинули"],
@@ -14524,7 +14525,7 @@
     },
 
     "top-k-freq": {
-      badge: "Top K Frequent", desc: "K самых частых элементов: частоты в map, затем min-куча размера k по частоте — вершина кучи и есть порог попадания в топ.",
+      badge: "Топ K частых", desc: "K самых частых элементов: частоты в map, затем min-куча размера k по частоте — вершина кучи и есть порог попадания в топ.",
       valuesLabel: "Массив", codeKey: "top-k-freq", fillRange: false,
       complexity: { time: "O(n log k)", space: "O(n)", good: "★ Топ-K по частоте (LeetCode 347)" },
       varOrder: ["num", "count", "h.Len()", "выкинули"],
@@ -14548,7 +14549,7 @@
     },
 
     "k-way-merge": {
-      badge: "K-way Merge", desc: "Слияние K отсортированных списков в один через min-heap голов.",
+      badge: "Слияние K списков", desc: "Слияние K отсортированных списков в один через min-heap голов.",
       valuesLabel: "Списки", codeKey: "k-way-merge", fillRange: false,
       complexity: { time: "O(n log k)", space: "O(k)", good: "★ Слияния K списков" },
       varOrder: ["min", "list", "outLen"],
@@ -14569,7 +14570,7 @@
     },
 
     "subsets-bt": {
-      badge: "Backtracking", desc: "Генерация всех подмножеств: выбрать → рекурсия → откат.",
+      badge: "Поиск с возвратом", desc: "Генерация всех подмножеств: выбрать → рекурсия → откат.",
       valuesLabel: "Множество", codeKey: "subsets-bt", fillRange: false,
       complexity: { time: "O(n·2ⁿ)", space: "O(n)", good: "★ Перебор всех вариантов" },
       varOrder: ["cur", "len(res)"],
@@ -14592,7 +14593,7 @@
     },
 
     "jump-game": {
-      badge: "Greedy", desc: "Jump Game: можно ли допрыгнуть до конца, ведя самую дальнюю достижимую позицию.",
+      badge: "Жадный алгоритм", desc: "Jump Game: можно ли допрыгнуть до конца, ведя самую дальнюю достижимую позицию.",
       legend: [{ cls: "mid", nn: "mid", label: "i — где стоим" }, { cls: "span", nn: "span", label: "достижимо: ≤ maxReach" }, { cls: "frreach", label: "рамка 0…maxReach; ярлык — maxReach или сравнение шага; красный — i за границей, зелёный «конец достижим» — ответ true" }, { cls: "dim", nn: "dim", label: "пока недостижимо" }, { cls: "found", nn: "found", label: "достижимо" }],
       frames: 1,
       valuesLabel: "Массив (макс. прыжок)", codeKey: "jump-game", fillRange: false,
@@ -14625,7 +14626,7 @@
     },
 
     "graph-bfs": {
-      badge: "Graph BFS", desc: "Обход графа в ширину через очередь: ближние вершины раньше дальних.",
+      badge: "BFS по графу", desc: "Обход графа в ширину через очередь: ближние вершины раньше дальних.",
       valuesLabel: "Вершины", codeKey: "graph-bfs", fillRange: false,
       ask: { 10: { cond: "!visited[nb]", q: "Сосед nb ещё не посещён?", yes: "Да — отмечаем и ставим в очередь", no: "Нет — уже в очереди или пройден, пропускаем" } },
       complexity: { time: "O(V+E)", space: "O(V)", good: "★ Кратчайший путь по рёбрам" },
@@ -14665,7 +14666,7 @@
     },
 
     "grid-bfs": {
-      badge: "Grid BFS", desc: "Кратчайший путь по сетке (BFS): движемся по 4 направлениям, минуя стены.",
+      badge: "BFS по сетке", desc: "Кратчайший путь по сетке (BFS): движемся по 4 направлениям, минуя стены.",
       valuesLabel: "", codeKey: "grid-bfs", fillRange: false,
       complexity: { time: "O(R·C)", space: "O(R·C)", good: "★ Кратчайший путь по сетке" },
       varOrder: ["cell", "dist", "visited"],
@@ -14698,7 +14699,7 @@
     },
 
     "topo-kahn": {
-      badge: "Topological Sort", desc: "Топологический порядок (алгоритм Кана): убираем вершины с нулевой входящей степенью.",
+      badge: "Топологическая сортировка", desc: "Топологический порядок (алгоритм Кана): убираем вершины с нулевой входящей степенью.",
       valuesLabel: "Вершины", codeKey: "topo-kahn", fillRange: false,
       complexity: { time: "O(V+E)", space: "O(V)", good: "★ Зависимостей и порядка" },
       varOrder: ["u", "order"],
@@ -14737,7 +14738,7 @@
     },
 
     "dp-coins": {
-      badge: "Dynamic Programming", desc: "Coin Change: dp[a] = минимум монет на сумму a, перебираем каждую монету.",
+      badge: "Динамическое программирование", desc: "Coin Change: dp[a] = минимум монет на сумму a, перебираем каждую монету.",
       legend: [{ cls: "lo", nn: "lo", label: "dp[a] — сумма, которую считаем" }, { cls: "hi", nn: "hi", label: "dp[a−c] — остаток после монеты c" }, { cls: "found", nn: "found", label: "ответ dp[amount]" }],
       jumps: true,
       valuesLabel: "Таблица dp[]", codeKey: "dp-coins", arrLabel: "dp", fillRange: false,
@@ -14791,7 +14792,7 @@
     },
 
     "trie-search": {
-      badge: "Trie", desc: "Префиксное дерево: поиск слова спускается по символам от корня.",
+      badge: "Префиксное дерево", desc: "Префиксное дерево: поиск слова спускается по символам от корня.",
       valuesLabel: "", codeKey: "trie-search", fillRange: false,
       complexity: { time: "O(L)", space: "O(Σ·N·L)", good: "★ Префиксов и автодополнения" },
       varOrder: ["char", "node", "isWord"],
@@ -14801,7 +14802,7 @@
       parse: function (root) { var words = (root.getAttribute("data-words") || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); var query = (root.getAttribute("data-query") || "").trim(); var r = bTrie(words, query); return { words: words, query: query, nodes: r.nodes, path: r.path, steps: r.steps }; },
       inputs: [{ attr: "data-words", label: "Слова (через запятую)" }, { attr: "data-query", label: "запрос" }],
       values: function () { return []; },
-      title: function (ctx) { return "Trie: поиск «" + ctx.query + "»"; },
+      title: function (ctx) { return "Префиксное дерево: поиск «" + ctx.query + "»"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Текущий узел", "Это слово?"],
       sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.isWord, cls: "eq" }]; },
@@ -14812,7 +14813,7 @@
     },
 
     "trie-shortest-root": {
-      badge: "Trie", desc: "Replace Words: спускаемся по слову и возвращаем первый встреченный корень-префикс (узел с isEnd) — он же кратчайший.",
+      badge: "Префиксное дерево", desc: "Replace Words: спускаемся по слову и возвращаем первый встреченный корень-префикс (узел с isEnd) — он же кратчайший.",
       valuesLabel: "", codeKey: "trie-shortest-root", fillRange: false,
       complexity: { time: "O(L)", space: "O(Σ·N·L)", good: "★ Замена по словарю префиксов" },
       varOrder: ["i", "char", "node", "isEnd"],
@@ -14822,7 +14823,7 @@
       parse: function (root) { var words = (root.getAttribute("data-words") || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); var query = (root.getAttribute("data-query") || "").trim(); var r = bTrieShortestRoot(words, query); return { words: words, query: query, nodes: r.nodes, path: r.path, steps: r.steps }; },
       inputs: [{ attr: "data-words", label: "Корни словаря (через запятую)" }, { attr: "data-query", label: "слово" }],
       values: function () { return []; },
-      title: function (ctx) { return "Trie: кратчайший корень для «" + ctx.query + "»"; },
+      title: function (ctx) { return "Префиксное дерево: кратчайший корень для «" + ctx.query + "»"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Текущий узел", "isEnd?"],
       sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.isEnd, cls: s.vars.isEnd === "да" ? "eq" : "" }]; },
@@ -14847,7 +14848,7 @@
     },
 
     "trie-insert": {
-      badge: "Trie", desc: "Вставка слова: спускаемся по символам, создавая узел только там, где ребра ещё нет.",
+      badge: "Префиксное дерево", desc: "Вставка слова: спускаемся по символам, создавая узел только там, где ребра ещё нет.",
       valuesLabel: "", codeKey: "trie-insert", fillRange: false,
       complexity: { time: "O(L)", space: "O(Σ·N·L)", good: "★ Построение бора" },
       varOrder: ["char", "node", "action"],
@@ -14857,7 +14858,7 @@
       parse: function (root) { var words = (root.getAttribute("data-words") || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); var ins = (root.getAttribute("data-insert") || "").trim(); var r = bTrieInsert(words, ins); return { words: words, ins: ins, nodes: r.nodes, path: r.path, steps: r.steps, endId: r.endId, endAt: r.endAt }; },
       inputs: [{ attr: "data-words", label: "Уже в боре (через запятую)" }, { attr: "data-insert", label: "вставляем" }],
       values: function () { return []; },
-      title: function (ctx) { return "Trie: вставка «" + ctx.ins + "»"; },
+      title: function (ctx) { return "Префиксное дерево: вставка «" + ctx.ins + "»"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Текущий узел", "Действие"],
       sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: s.created ? "gt" : "lt" }]; },
@@ -14868,7 +14869,7 @@
     },
 
     "trie-delete": {
-      badge: "Trie", desc: "Удаление слова: снимаем isEnd, затем обрезаем висячие узлы снизу вверх.",
+      badge: "Префиксное дерево", desc: "Удаление слова: снимаем isEnd, затем обрезаем висячие узлы снизу вверх.",
       valuesLabel: "", codeKey: "trie-delete", fillRange: false,
       complexity: { time: "O(L)", space: "O(L)", good: "★ Удаление с обрезкой" },
       varOrder: ["char", "node", "child", "action"],
@@ -14878,7 +14879,7 @@
       parse: function (root) { var words = (root.getAttribute("data-words") || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); var del = (root.getAttribute("data-delete") || "").trim(); var r = bTrieDelete(words, del); return { words: words, del: del, nodes: r.nodes, path: r.path, steps: r.steps }; },
       inputs: [{ attr: "data-words", label: "В боре (через запятую)" }, { attr: "data-delete", label: "удаляем" }],
       values: function () { return []; },
-      title: function (ctx) { return "Trie: удаление «" + ctx.del + "»"; },
+      title: function (ctx) { return "Префиксное дерево: удаление «" + ctx.del + "»"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Текущий узел", "Действие"],
       sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.action, cls: s.removed ? "gt" : "lt" }]; },
@@ -14889,7 +14890,7 @@
     },
 
     "trie-words": {
-      badge: "Trie", desc: "Все слова с префиксом: спускаемся к префиксу, затем DFS собирает слова (a→z).",
+      badge: "Префиксное дерево", desc: "Все слова с префиксом: спускаемся к префиксу, затем DFS собирает слова (a→z).",
       valuesLabel: "", codeKey: "trie-words", fillRange: false,
       complexity: { time: "O(узлов поддерева)", space: "O(L)", good: "★ Автодополнение" },
       varOrder: ["node", "word", "found"],
@@ -14899,7 +14900,7 @@
       parse: function (root) { var words = (root.getAttribute("data-words") || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); var prefix = (root.getAttribute("data-prefix") || "").trim(); var r = bTrieWords(words, prefix); return { words: words, prefix: prefix, nodes: r.nodes, path: r.path, steps: r.steps }; },
       inputs: [{ attr: "data-words", label: "В боре (через запятую)" }, { attr: "data-prefix", label: "префикс" }],
       values: function () { return []; },
-      title: function (ctx) { return "Trie: слова с префиксом «" + ctx.prefix + "»"; },
+      title: function (ctx) { return "Префиксное дерево: слова с префиксом «" + ctx.prefix + "»"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Текущий узел", "Собрано слов"],
       sumValues: function (s) { return [{ text: s.vars.node }, { text: (s.out ? s.out.length : 0) + "", cls: "eq" }]; },
@@ -14911,7 +14912,7 @@
     },
 
     "kmp": {
-      badge: "String Matching", desc: "KMP: образец скользит под текстом; при несовпадении сдвиг по префикс-функции.",
+      badge: "Поиск подстроки", desc: "KMP: образец скользит под текстом; при несовпадении сдвиг по префикс-функции.",
       valuesLabel: "", codeKey: "kmp", fillRange: false,
       complexity: { time: "O(n+m)", space: "O(m)", good: "★ Поиск подстроки" },
       varOrder: ["i", "j", "shift", "compare"],
@@ -14944,7 +14945,7 @@
     },
 
     "kmp-all": {
-      badge: "String Matching", desc: "KMP, все вхождения: найдя совпадение, не выходим, а откатываем j = lps[m−1] — хвост вхождения становится началом следующего (перекрытия), i назад не идёт.",
+      badge: "Поиск подстроки", desc: "KMP, все вхождения: найдя совпадение, не выходим, а откатываем j = lps[m−1] — хвост вхождения становится началом следующего (перекрытия), i назад не идёт.",
       valuesLabel: "", codeKey: "kmp-all", fillRange: false,
       complexity: { time: "O(n+m)", space: "O(m)", good: "★ Поиск подстроки" },
       varOrder: ["i", "j", "shift", "compare", "res"],
@@ -15018,7 +15019,7 @@
     },
 
     "fenwick-prefix": {
-      badge: "Fenwick Tree", desc: "Префиксная сумма через дерево Фенвика (BIT): складываем зоны ответственности узлов.",
+      badge: "Дерево Фенвика", desc: "Префиксная сумма через дерево Фенвика (BIT): складываем зоны ответственности узлов.",
       valuesLabel: "Массив", codeKey: "fenwick-prefix", fillRange: true,
       ptr1: { name: "lo", cap: "(начало зоны)" }, ptr2: { name: "hi", cap: "(конец зоны)" },
       complexity: { time: "O(log n)", space: "O(n)", good: "★ Префиксных сумм с обновлением" },
@@ -15029,7 +15030,7 @@
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var target = parseInt(root.getAttribute("data-index"), 10); return { arr: arr, target: target, steps: bFenwick(arr, target) }; },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-index", label: "индекс", sm: true }],
       values: function (ctx) { return ctx.arr; },
-      title: function (ctx) { return "Fenwick: префиксная сумма до индекса " + ctx.target; },
+      title: function (ctx) { return "Дерево Фенвика: префиксная сумма до индекса " + ctx.target; },
       param: function (ctx) { return { label: "Индекс", value: ctx.target }; },
       cellState: function (s, j) { if (s.done) return { found: j <= s.hi }; var cov = (s.covered || []).some(function (z) { return j >= z[0] && j <= z[1]; }); var inZ = s.lo >= 0 && j >= s.lo && j <= s.hi; return { found: cov && !inZ, span: inZ, lo: j === s.lo, hi: j === s.hi }; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
@@ -15042,7 +15043,7 @@
     },
 
     "fenwick-add": {
-      badge: "Fenwick Tree", desc: "Точечное добавление в дерево Фенвика (BIT): обновляем узлы, поднимаясь i += i & (−i).",
+      badge: "Дерево Фенвика", desc: "Точечное добавление в дерево Фенвика (BIT): обновляем узлы, поднимаясь i += i & (−i).",
       valuesLabel: "Массив", codeKey: "fenwick-add", fillRange: true,
       ptr1: { name: "lo", cap: "(начало зоны)" }, ptr2: { name: "hi", cap: "(конец зоны)" },
       complexity: { time: "O(log n)", space: "O(n)", good: "★ Точечное обновление" },
@@ -15053,7 +15054,7 @@
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var idx = parseInt(root.getAttribute("data-index"), 10); var delta = parseInt(root.getAttribute("data-delta"), 10); return { arr: arr, idx: idx, delta: delta, steps: bFenwickAdd(arr, idx, delta) }; },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-index", label: "индекс", sm: true }, { attr: "data-delta", label: "delta", sm: true }],
       values: function (ctx) { return ctx.arr; },
-      title: function (ctx) { return "Fenwick: добавить " + ctx.delta + " в индекс " + ctx.idx; },
+      title: function (ctx) { return "Дерево Фенвика: добавить " + ctx.delta + " в индекс " + ctx.idx; },
       param: function (ctx) { return { label: "Индекс", value: ctx.idx }; },
       cellState: function (s, j) { var inZ = s.lo >= 0 && j >= s.lo && j <= s.hi; return { mid: j === s.idx, span: inZ && j !== s.idx, lo: j === s.lo && j !== s.idx, hi: j === s.hi && j !== s.idx }; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
@@ -15107,7 +15108,7 @@
     },
 
     "count-inversions-bit": {
-      badge: "Fenwick Tree",
+      badge: "Дерево Фенвика",
       desc: "Оптимум O(n log n): идём справа налево, вклад nums[i] = prefix(rank−1) (меньших уже справа), затем add(rank). Снизу — частоты рангов freq и узлы BIT tree с их зонами.",
       valuesLabel: "Массив", codeKey: "count-inversions-bit", fillRange: false,
       ptr1: { name: "i", cap: "(текущий, справа налево)" }, ptr2: { name: "—", cap: "" },
@@ -15168,7 +15169,7 @@
     },
 
     "union-find-find": {
-      badge: "Union-Find", desc: "Find со сжатием пути: поднимаемся к корню, затем подвешиваем все узлы пути прямо к нему.",
+      badge: "Непересекающиеся множества", desc: "Find со сжатием пути: поднимаемся к корню, затем подвешиваем все узлы пути прямо к нему.",
       valuesLabel: "", codeKey: "union-find-find", fillRange: false,
       complexity: { time: "O(α(n)) ≈ O(1)", space: "O(1)", good: "★ Проверка «в одной группе»" },
       varOrder: ["x", "root"],
@@ -15178,7 +15179,7 @@
       parse: function (root) { var parentInit = nums(root.getAttribute("data-parent")); var x = parseInt(root.getAttribute("data-find"), 10); var r = bUFFind(parentInit, x); return { parentInit: parentInit, x: x, steps: r.steps }; },
       inputs: [{ attr: "data-parent", label: "parent[] (через запятую)" }, { attr: "data-find", label: "Find(x)", sm: true }],
       values: function () { return []; },
-      title: function (ctx) { return "Union-Find: Find(" + ctx.x + ") со сжатием пути"; },
+      title: function (ctx) { return "Непересекающиеся множества: Find(" + ctx.x + ") со сжатием пути"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Текущий узел", "Корень"],
       sumValues: function (s) { return [{ text: s.vars.node }, { text: s.vars.root, cls: "eq" }]; },
@@ -15189,7 +15190,7 @@
     },
 
     "union-find-union": {
-      badge: "Union-Find", desc: "Union по размеру: находим корни двух элементов и подвешиваем меньшее дерево под большее.",
+      badge: "Непересекающиеся множества", desc: "Union по размеру: находим корни двух элементов и подвешиваем меньшее дерево под большее.",
       valuesLabel: "", codeKey: "union-find-union", fillRange: false,
       complexity: { time: "O(α(n)) ≈ O(1)", space: "O(n)", good: "★ Объединение групп" },
       varOrder: ["rx", "ry", "action"],
@@ -15199,7 +15200,7 @@
       parse: function (root) { var n = parseInt(root.getAttribute("data-n"), 10); var unions = (root.getAttribute("data-unions") || "").split(",").map(function (s) { return s.trim().split("-").map(Number); }).filter(function (p) { return p.length === 2; }); var r = bUFUnion(n, unions); return { n: n, unions: unions, steps: r.steps }; },
       inputs: [{ attr: "data-n", label: "Элементов", sm: true }, { attr: "data-unions", label: "Union'ы (a-b,...)" }],
       values: function () { return []; },
-      title: function () { return "Union-Find: объединение по размеру"; },
+      title: function () { return "Непересекающиеся множества: объединение по размеру"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Корни", "Действие"],
       sumValues: function (s) { return [{ text: s.vars.a + " / " + s.vars.b }, { text: s.vars.action, cls: "eq" }]; },
@@ -15210,7 +15211,7 @@
     },
 
     "hash-put": {
-      badge: "Hash Map", desc: "Вставка в хеш-таблицу (цепочки): hash(key) % m даёт бакет, запись уходит в конец его цепочки.",
+      badge: "Хеш-таблица", desc: "Вставка в хеш-таблицу (цепочки): hash(key) % m даёт бакет, запись уходит в конец его цепочки.",
       valuesLabel: "", codeKey: "hash-put", fillRange: false,
       complexity: { time: "O(1) сред.", space: "O(n)", good: "★ Доступ по ключу" },
       varOrder: ["key", "i", "j"],
@@ -15237,7 +15238,7 @@
     },
 
     "hash-get": {
-      badge: "Hash Map", desc: "Поиск в хеш-таблице (цепочки): hash(key) % m даёт бакет, сканируем только его цепочку.",
+      badge: "Хеш-таблица", desc: "Поиск в хеш-таблице (цепочки): hash(key) % m даёт бакет, сканируем только его цепочку.",
       valuesLabel: "", codeKey: "hash-get", fillRange: false,
       complexity: { time: "O(1) сред.", space: "O(1)", good: "★ Доступ по ключу" },
       varOrder: ["key", "i", "e.key"],
@@ -15263,7 +15264,7 @@
     },
 
     "hash-resize": {
-      badge: "Hash Map · Resize", desc: "Рост таблицы: когда load factor (ключей на бакет) превышает порог, массив удваивается и ВСЕ ключи перехешируются по новому модулю % 2m. Ключи, что коллизировали при m, часто расходятся при 2m — цепочки снова короткие.",
+      badge: "Хеш-таблица · расширение", desc: "Рост таблицы: когда load factor (ключей на бакет) превышает порог, массив удваивается и ВСЕ ключи перехешируются по новому модулю % 2m. Ключи, что коллизировали при m, часто расходятся при 2m — цепочки снова короткие.",
       valuesLabel: "", codeKey: "hash-resize", fillRange: false,
       complexity: { time: "O(n) разово", space: "O(n)", good: "★ амортизированно O(1) на Put" },
       varOrder: ["e.key", "i", "загрузка"],
@@ -15286,7 +15287,7 @@
     },
 
     "deque-ops": {
-      badge: "Deque · кольцевой буфер", desc: "Двусторонняя очередь на кольцевом буфере, как в эталоне тренажёра: массив, head и size; индексы идут по модулю ёмкости. PushFront сдвигает head назад по кругу, PushBack пишет в (head + size) % cap — ни один элемент не двигается, оба конца O(1).",
+      badge: "Дек · кольцевой буфер", desc: "Двусторонняя очередь на кольцевом буфере, как в эталоне тренажёра: массив, head и size; индексы идут по модулю ёмкости. PushFront сдвигает head назад по кругу, PushBack пишет в (head + size) % cap — ни один элемент не двигается, оба конца O(1).",
       valuesLabel: "", codeKey: "deque-ops", fillRange: false,
       complexity: { time: "O(1) оба конца (grow — амортизированно)", space: "O(n)", good: "★ Очередь/стек с двух концов" },
       varOrder: ["op", "x", "head", "size", "tail", "cap"],
@@ -15308,7 +15309,7 @@
     },
 
     "sparse-build": {
-      badge: "Sparse Table", desc: "Построение разреженной таблицы: table[k][i] = минимум на отрезке длины 2^k, снизу вверх.",
+      badge: "Разреженная таблица", desc: "Построение разреженной таблицы: table[k][i] = минимум на отрезке длины 2^k, снизу вверх.",
       valuesLabel: "", codeKey: "sparse-build", fillRange: false,
       complexity: { time: "O(n log n)", space: "O(n log n)", good: "★ Препроцессинг для O(1) запросов" },
       varOrder: ["k", "range"],
@@ -15318,7 +15319,7 @@
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var r = bSparseBuild(arr); return { arr: arr, steps: r.steps }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function () { return []; },
-      title: function () { return "Sparse table: построение"; },
+      title: function () { return "Разреженная таблица: построение"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Уровень k", "Отрезок"],
       sumValues: function (s) { return [{ text: s.vars.k }, { text: s.vars.range, cls: "eq" }]; },
@@ -15329,7 +15330,7 @@
     },
 
     "sparse-query": {
-      badge: "Sparse Table", desc: "Запрос min на [l, r] за O(1): два перекрывающихся отрезка длины 2^k покрывают диапазон.",
+      badge: "Разреженная таблица", desc: "Запрос min на [l, r] за O(1): два перекрывающихся отрезка длины 2^k покрывают диапазон.",
       valuesLabel: "", codeKey: "sparse-query", fillRange: false,
       complexity: { time: "O(1)", space: "O(n log n)", good: "★ Статический range-min/max" },
       varOrder: ["k", "a", "b", "ans"],
@@ -15339,7 +15340,7 @@
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); var l = parseInt(root.getAttribute("data-l"), 10); var r = parseInt(root.getAttribute("data-r"), 10); var res = bSparseQuery(arr, l, r); return { arr: arr, l: l, r: r, steps: res.steps }; },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-l", label: "l", sm: true }, { attr: "data-r", label: "r", sm: true }],
       values: function () { return []; },
-      title: function (ctx) { return "Sparse table: min на [" + ctx.l + ", " + ctx.r + "]"; },
+      title: function (ctx) { return "Разреженная таблица: min на [" + ctx.l + ", " + ctx.r + "]"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Степень k", "Ответ (min)"],
       sumValues: function (s) { return [{ text: s.vars.k }, { text: s.vars.ans, cls: "eq" }]; },
@@ -15350,7 +15351,7 @@
     },
 
     "avl-insert": {
-      badge: "AVL Tree", desc: "Вставка в АВЛ-дерево: как в BST, затем балансировка поворотом (LL/RR/LR/RL).",
+      badge: "AVL-дерево", desc: "Вставка в АВЛ-дерево: как в BST, затем балансировка поворотом (LL/RR/LR/RL).",
       valuesLabel: "", codeKey: "avl-insert", fillRange: false,
       complexity: { time: "O(log n)", space: "O(log n)", good: "★ Сбалансированное BST" },
       varOrder: ["node", "action"],
@@ -15371,7 +15372,7 @@
     },
 
     "avl-delete": {
-      badge: "AVL Tree · Delete", desc: "Удаление из АВЛ-дерева: убираем узел как в BST (у узла с двумя детьми — через преемника), затем балансируем поворотами ВВЕРХ по всему пути — в отличие от вставки, поворотов может быть несколько.",
+      badge: "AVL-дерево · удаление", desc: "Удаление из АВЛ-дерева: убираем узел как в BST (у узла с двумя детьми — через преемника), затем балансируем поворотами ВВЕРХ по всему пути — в отличие от вставки, поворотов может быть несколько.",
       valuesLabel: "", codeKey: "avl-delete", fillRange: false,
       complexity: { time: "O(log n)", space: "O(log n)", good: "★ до O(log n) поворотов" },
       varOrder: ["node", "action"],
@@ -15392,7 +15393,7 @@
     },
 
     "btree-insert": {
-      badge: "B-Tree", desc: "Вставка в B-дерево: спускаемся, деля полные узлы заранее; средний ключ поднимается в родителя.",
+      badge: "B-дерево", desc: "Вставка в B-дерево: спускаемся, деля полные узлы заранее; средний ключ поднимается в родителя.",
       valuesLabel: "", codeKey: "btree-insert", fillRange: false,
       complexity: { time: "O(log n)", space: "O(n)", good: "★ Многопутевое дерево (БД, ФС)" },
       varOrder: ["node", "action"],
@@ -15413,7 +15414,7 @@
     },
 
     "btree-search": {
-      badge: "B-Tree", desc: "Поиск в B-дереве: в каждом узле ищем позицию ключа и спускаемся к нужному ребёнку.",
+      badge: "B-дерево", desc: "Поиск в B-дереве: в каждом узле ищем позицию ключа и спускаемся к нужному ребёнку.",
       valuesLabel: "", codeKey: "btree-search", fillRange: false,
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Поиск по ключу" },
       varOrder: ["node", "key", "i"],
@@ -15434,7 +15435,7 @@
     },
 
     "btree-delete": {
-      badge: "B-Tree · Delete", desc: "Удаление из B-дерева: спускаемся к ключу, но перед входом в «бедный» узел (t−1 ключей) чиним его — заимствуем ключ у соседа через родителя или сливаем два узла. Из внутреннего узла удаляем через предшественника/преемника. Все листья остаются на одной глубине.",
+      badge: "B-дерево · удаление", desc: "Удаление из B-дерева: спускаемся к ключу, но перед входом в «бедный» узел (t−1 ключей) чиним его — заимствуем ключ у соседа через родителя или сливаем два узла. Из внутреннего узла удаляем через предшественника/преемника. Все листья остаются на одной глубине.",
       valuesLabel: "", codeKey: "btree-delete", fillRange: false,
       complexity: { time: "O(log n)", space: "O(1)", good: "★ баланс без поворотов" },
       varOrder: ["node", "action"],
@@ -15455,7 +15456,7 @@
     },
 
     "segtree-query": {
-      badge: "Segment Tree", desc: "Дерево отрезков: сумма на диапазоне разбивается на готовые суммы поддеревьев.",
+      badge: "Дерево отрезков", desc: "Дерево отрезков: сумма на диапазоне разбивается на готовые суммы поддеревьев.",
       valuesLabel: "", codeKey: "segtree-query", fillRange: false,
       complexity: { time: "O(log n)", space: "O(n)", good: "★ Запросов на диапазоне" },
       varOrder: ["node", "nodeSum", "total"],
@@ -15476,7 +15477,7 @@
     },
 
     "segtree-build": {
-      badge: "Segment Tree", desc: "Построение дерева отрезков снизу вверх: лист = элемент, узел = сумма детей.",
+      badge: "Дерево отрезков", desc: "Построение дерева отрезков снизу вверх: лист = элемент, узел = сумма детей.",
       valuesLabel: "", codeKey: "segtree-build", fillRange: false,
       complexity: { time: "O(n)", space: "O(n)", good: "★ Построение за O(n)" },
       varOrder: ["node", "отрезок", "глубина", "action"],
@@ -15497,7 +15498,7 @@
     },
 
     "segtree-update": {
-      badge: "Segment Tree", desc: "Точечное обновление: меняем лист и пересчитываем суммы по пути к корню.",
+      badge: "Дерево отрезков", desc: "Точечное обновление: меняем лист и пересчитываем суммы по пути к корню.",
       valuesLabel: "", codeKey: "segtree-update", fillRange: false,
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Обновление элемента" },
       varOrder: ["node", "action"],
@@ -15518,7 +15519,7 @@
     },
 
     "lazy-range": {
-      badge: "Segment Tree · Lazy",
+      badge: "Дерево отрезков · ленивое проталкивание",
       desc: "Обновление диапазона с ленивым проталкиванием: узел целиком внутри — меняем его сумму и вешаем lazy-метку (оранжевый бейдж), к детям НЕ идём. Долг спускается push'ем, только когда запрос реально заходит ниже.",
       valuesLabel: "", codeKey: "lazy-range", fillRange: false,
       complexity: { time: "O(log n) на операцию", space: "O(n)", good: "★ Обновление сразу диапазона" },
@@ -15541,7 +15542,7 @@
       },
       inputs: [{ attr: "data-array", label: "Массив" }, { attr: "data-add", label: "+d", sm: true }, { attr: "data-l", label: "l", sm: true }, { attr: "data-r", label: "r", sm: true }],
       values: function () { return []; },
-      title: function (ctx) { return "Lazy: Update(" + ctx.ql + "," + ctx.qr + ",+" + ctx.d + "), затем Query(" + ctx.sl + "," + ctx.sr + ")"; },
+      title: function (ctx) { return "Ленивое проталкивание: Update(" + ctx.ql + "," + ctx.qr + ",+" + ctx.d + "), затем Query(" + ctx.sl + "," + ctx.sr + ")"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       legend: [{ cls: "curring", label: "текущий узел (обводка поверх роли)" }, { cls: "take", label: "apply / take (целиком внутри)" }, { cls: "split", label: "частичное пересечение (спуск)" }, { cls: "skip", label: "мимо диапазона" }],
       sumCells: ["Текущий узел", "lazy узла", "Ответ запроса"],
@@ -15611,7 +15612,7 @@
     },
 
     "dijkstra": {
-      badge: "Dijkstra", desc: "Кратчайшие пути от источника при неотрицательных весах: жадно финализируем ближайшую вершину и релаксируем её рёбра.",
+      badge: "Дейкстра", desc: "Кратчайшие пути от источника при неотрицательных весах: жадно финализируем ближайшую вершину и релаксируем её рёбра.",
       valuesLabel: "", codeKey: "dijkstra", fillRange: false,
       complexity: { time: "O((V+E) log V)", space: "O(V)", good: "★ Кратчайшие пути, неотриц. веса" },
       varOrder: ["u", "u.d", "dist[u]", "edge", "dist[v]"],
@@ -15655,7 +15656,7 @@
     },
 
     "max-flow": {
-      badge: "Max Flow", desc: "Эдмондс—Карп: пока BFS находит дополняющий путь в остаточной сети, проталкиваем поток по узкому месту. Обратные рёбра дают возможность отмены. В конце — минимальный разрез.",
+      badge: "Максимальный поток", desc: "Эдмондс—Карп: пока BFS находит дополняющий путь в остаточной сети, проталкиваем поток по узкому месту. Обратные рёбра дают возможность отмены. В конце — минимальный разрез.",
       valuesLabel: "", codeKey: "max-flow", fillRange: false,
       complexity: { time: "O(V·E²)", space: "O(V²)", good: "★ Макс. поток = мин. разрез" },
       varOrder: ["путь", "узкое место", "поток", "аугментаций"],
@@ -15677,7 +15678,7 @@
     },
 
     "parallel-dc": {
-      badge: "Concurrency", desc: "Параллельный merge sort: divide-and-conquer с fan-out (горутина на половину) и cutoff (мелочь — последовательно), затем merge на подъёме (join). Ветви независимы — гонки нет.",
+      badge: "Конкурентность", desc: "Параллельный merge sort: divide-and-conquer с fan-out (горутина на половину) и cutoff (мелочь — последовательно), затем merge на подъёме (join). Ветви независимы — гонки нет.",
       valuesLabel: "", codeKey: "parallel-dc", fillRange: false,
       complexity: { time: "O(n log n)", space: "O(n)", good: "★ Независимые ветви → параллель почти бесплатна" },
       varOrder: ["подзадача", "размер", "режим", "горутин запущено"],
@@ -15699,7 +15700,7 @@
     },
 
     "dp-lcs": {
-      badge: "Dynamic Programming", desc: "Longest Common Subsequence: 2D-таблица dp[i][j] по префиксам. Совпали символы → диагональ +1, иначе → max(верх, слева).",
+      badge: "Динамическое программирование", desc: "Longest Common Subsequence: 2D-таблица dp[i][j] по префиксам. Совпали символы → диагональ +1, иначе → max(верх, слева).",
       valuesLabel: "", codeKey: "dp-lcs", fillRange: false,
       complexity: { time: "O(m·n)", space: "O(m·n)", good: "★ 2D-ДП по двум последовательностям" },
       varOrder: ["i", "j", "a[i-1], b[j-1]", "правило", "dp[i][j]"],
@@ -15761,7 +15762,7 @@
     },
 
     "knapsack": {
-      badge: "Dynamic Programming", desc: "0/1 рюкзак: dp[i][c] — максимальная ценность из первых i предметов при вместимости c. Выбор «взять / не взять».",
+      badge: "Динамическое программирование", desc: "0/1 рюкзак: dp[i][c] — максимальная ценность из первых i предметов при вместимости c. Выбор «взять / не взять».",
       valuesLabel: "", codeKey: "knapsack", fillRange: false,
       ask: { 5: { cond: "wt[i-1] <= c", q: "Предмет i влезает при вместимости c?", yes: "Да — сравним «брать» и «не брать»", no: "Нет — остаётся «не брать»" } },
       complexity: { time: "O(n·W)", space: "O(n·W) → O(W)", good: "★ Выбор подмножества с ограничением" },

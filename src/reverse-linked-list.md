@@ -1,4 +1,4 @@
-# ↩️ Reverse Linked List (Разворот связанного списка)
+# ↩️ Разворот связанного списка (Reverse Linked List)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

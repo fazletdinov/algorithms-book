@@ -1,4 +1,4 @@
-# 🔭 Sparse Table: устройство и операции
+# 🔭 Разреженная таблица (Sparse Table): устройство и операции
 
 <div class="algo-hero">
   <div class="algo-hero__main">

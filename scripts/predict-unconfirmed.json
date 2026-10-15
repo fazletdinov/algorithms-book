@@ -13,10 +13,6 @@
  "grid-bfs": [
   "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 8, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {"
  ],
- "lru": [
-  "глава go-stdlib-structures.md (cap=3; ops=put 1 1; put 2 2; put 3 3; get 1; put 4 4; get 2; get 3) — шаг 3, строка 8: if n, ok := c.m[key]; ok {        // ключ уже есть",
-  "глава pattern-combinations.md (cap=2; ops=put 1 1; put 2 2; get 1; put 3 3; get 2; put 4 4; get 1; get 3; get 4) — шаг 3, строка 8: if n, ok := c.m[key]; ok {        // ключ уже есть"
- ],
  "mod-exp": [
   "глава number-theory.md (base=2; exp=10; m=1000) — шаг 2, строка 5: if exp&1 == 1 {"
  ],

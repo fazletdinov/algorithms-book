@@ -1,4 +1,4 @@
-# 🌿 Trie: разбор задач
+# 🌿 Префиксное дерево (Trie): разбор задач
 
 <div class="algo-hero">
   <div class="algo-hero__main">
