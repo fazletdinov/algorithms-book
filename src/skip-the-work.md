@@ -252,7 +252,7 @@ cd exercises && go test -p 1 -tags solution -run='^$' -bench=StaticRangeSum -cou
 ## 🔗 Связанные главы
 
 - **[Postgres: EXPLAIN как pprof](postgres-plans.md)** — как увидеть, какую работу делает база.
-- **[Top-K Elements](top-k-elements.md)** — алгоритм, который Postgres выбирает для `LIMIT`.
+- **[Топ K элементов](top-k-elements.md)** — алгоритм, который Postgres выбирает для `LIMIT`.
 - **[Дерево отрезков](segment-tree-structure.md)** — когда оно окупается, а когда нет.
 - **[Вероятностные структуры](probabilistic-structures.md)** — приблизительный ответ за копейки.
 - **[Параллельные алгоритмы](parallel-algorithms.md)** — ещё один способ, который часто

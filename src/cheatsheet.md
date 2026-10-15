@@ -50,7 +50,7 @@
 | [Tree BFS](tree-bfs.md) | по уровням, кратчайший по рёбрам | O(n) | очередь, уровень за уровнем |
 | [Tree DFS](tree-dfs.md) | пути, валидация, свойства поддеревьев, LCA | O(n) | рекурсия pre/in/post |
 | [Две кучи](two-heaps.md) | медиана потока, разделение на половины | O(log n)/вставка | max-heap + min-heap |
-| [Top-K Elements](top-k-elements.md) | K наибольших/наименьших, K-й по величине | O(n log k) | heap размера K |
+| [Топ K элементов](top-k-elements.md) | K наибольших/наименьших, K-й по величине | O(n log k) | heap размера K |
 | [K-way Merge](k-way-merge.md) | слить K отсортированных источников | O(n log k) | min-heap из голов |
 | [Subsets](subsets.md) / [Backtracking](backtracking.md) | «все комбинации/перестановки» | экспонента | выбор → рекурсия → откат |
 | [Graphs (обход)](graphs.md) | обход, связность, компоненты, цикл (неориент.) | O(V+E) | visited + очередь/рекурсия |
