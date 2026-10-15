@@ -331,6 +331,21 @@ async function main() {
     const mLink = vizM.window.document.querySelector(".algo-today__title");
     if (!mLink || mLink.getAttribute("href") !== want) errors.push(`карточка viz:${type} со страницы ${page} ведёт на ${mLink && mLink.getAttribute("href")}, ожидалось ${want}`);
   }
+  // Промах, записанный на старом виджете heap-sort (этап 4 сжал кадры siftDown; до этапа 3a в
+  // листинге не было тела siftDown): строки и номера, которой в нынешнем листинге нет. Карточка
+  // заводится из одной записи algoVizMissed и показывает развилку так, как она была записана.
+  const VIZ_OLD = { n: 3, page: "heap-structure.html", anchor: "viz-4", title: "Heap Sort — пирамидальная сортировка", line: 31, code: "if child+1 < end && a[child] < a[child+1] {" };
+  const oldNew = await newDom({ algoVizMissed: JSON.stringify({ "heap-sort": VIZ_OLD }) });
+  if (!cards(oldNew)["viz:heap-sort"]) errors.push("промах heap-sort со строкой старого листинга не завёл карточку viz:");
+  const oldViz = await newDom({
+    algoVizMissed: JSON.stringify({ "heap-sort": VIZ_OLD }),
+    algoSRS: JSON.stringify({ "viz:heap-sort": missCard(VIZ_OLD, now - HOUR) }),
+  });
+  const oldText = oldViz.window.document.querySelector(".algo-today").textContent;
+  const oldLink = oldViz.window.document.querySelector(".algo-today__title");
+  if (!/Предсказание шага/.test(oldText) || !oldText.includes("строка 31: if child+1 < end && a[child] < a[child+1]") || !oldLink || oldLink.getAttribute("href") !== "heap-structure.html?viz=heap-sort#viz-4") {
+    errors.push(`карточка viz:heap-sort со строкой старого листинга не построилась: «${oldText.slice(0, 200)}», ссылка ${oldLink && oldLink.getAttribute("href")}`);
+  }
 
   if (click(mix, "Показать ответ")) {
     const ans = box.querySelector(".algo-today__answer a");

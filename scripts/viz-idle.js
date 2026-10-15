@@ -53,8 +53,10 @@
 //   min-width SVG) в подпись не попадает. Она подгоняет раскладку под уже нарисованное состояние,
 //   поэтому холостой кадр не делает изменённым, но и не проверяется здесь.
 //
-// ПОТОЛОК (scripts/viz-idle-budget.json): { "<тип>": <максимум холст∅ в процентах> }. Проверяется
-// КАЖДЫЙ виджет типа в главах ядра: доля холст∅ (с одним знаком) не выше потолка. Превышение —
+// ПОТОЛОК (scripts/viz-idle-budget.json): { "<тип>": <максимум холст∅ в процентах> } или
+// { "<тип>": { "idle": <проценты>, "steps": <максимум шагов> } } — steps необязателен. Проверяется
+// КАЖДЫЙ виджет типа в главах ядра: доля холст∅ (с одним знаком) не выше потолка, число шагов (кадров,
+// не переходов) — не больше steps. Превышение —
 // красный с именем типа; тип из потолка, которого нет в главах ядра, — тоже красный. Ключ "__core__" —
 // общий потолок: доля холст∅ по всем виджетам ядра (с одним знаком, не выше). С --type проверяются
 // только типы из пересечения потолка и --type, общий потолок — нет; --json с --check не сочетается. Потолок
@@ -336,12 +338,17 @@ async function main() {
   const bad = [];
   const types = Object.keys(budget).filter((t) => t !== CORE_KEY && (!onlyTypes || onlyTypes.has(t)));
   for (const type of types) {
-    const cap = budget[type];
+    // запись — число (потолок холст∅) или { idle, steps }: steps — необязательный потолок числа шагов
+    const entry = budget[type];
+    const cap = typeof entry === "number" ? entry : entry && entry.idle;
+    const maxSteps = entry && typeof entry === "object" ? entry.steps : undefined;
+    if (typeof cap !== "number" || (maxSteps !== undefined && typeof maxSteps !== "number")) { bad.push(`${type}: запись в viz-idle-budget.json — число или { "idle": число, "steps": число }`); continue; }
     const mine = rows.filter((r) => r.type === type);
     if (!mine.length) { bad.push(`${type}: типа из viz-idle-budget.json нет в главах ядра — убери запись`); continue; }
     mine.forEach((r) => {
       const p = pct(r.idleCanvas, r.steps);
       if (+fmt(p) > cap) bad.push(`${type} (${r.chapter}:${r.index}): холст∅ ${fmt(p)} % (${r.idleCanvas} из ${r.steps - 1}) выше потолка ${cap} %`);
+      if (maxSteps !== undefined && r.steps > maxSteps) bad.push(`${type} (${r.chapter}:${r.index}): ${r.steps} шагов — больше потолка ${maxSteps}`);
     });
   }
   // общий потолок — только на полном прогоне: с --type итог считается по части виджетов

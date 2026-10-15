@@ -7334,13 +7334,55 @@
     var a = arr.slice(), n = a.length, steps = [], swaps = 0, sorted = 0;
     function snap(o) {
       var v = { i: o.i == null ? "—" : o.i, size: o.size == null ? "—" : o.size, largest: o.largest == null ? "—" : o.largest, end: o.end == null ? "—" : o.end, "обменов": swaps };
-      steps.push({ values: a.slice(), lo: o.lo == null ? -1 : o.lo, hi: o.hi == null ? -1 : o.hi, mid: o.mid == null ? -1 : o.mid, kids: o.kids || null, sorted: sorted, ptrNames: o.ptrNames, line: o.line, vars: v, info: o.info, done: o.done });
+      var s = { values: a.slice(), lo: o.lo == null ? -1 : o.lo, hi: o.hi == null ? -1 : o.hi, mid: o.mid == null ? -1 : o.mid, kids: o.kids || null, sorted: sorted, ptrNames: o.ptrNames, line: o.line, vars: v, info: o.info, done: o.done };
+      if (typeof o.branch === "boolean") s.branch = o.branch;
+      steps.push(s);
     }
-    function siftDown(i, size) {
+    // Тело siftDown построчно — только в ПЕРВОМ СПУСКЕ фазы: в первом вызове, который опускает
+    // узел хотя бы на уровень (вызов, где узел уже на месте, строки обмена не показал бы). Нет
+    // такого — построчно первый вызов фазы. Остальные вызовы сжаты. Номера вызовов — сухим прогоном.
+    function firstDescents() {
+      var b = a.slice(), d1 = -1, d2 = -1;
+      function dry(i, size) {
+        for (var g = 0; g < 64; g++) {
+          var l = 2 * i + 1, r = 2 * i + 2, lg = i;
+          if (l < size && b[l] > b[lg]) lg = l;
+          if (r < size && b[r] > b[lg]) lg = r;
+          if (lg === i) return g > 0;
+          var t = b[i]; b[i] = b[lg]; b[lg] = t; i = lg;
+        }
+        return true;
+      }
+      for (var i = Math.floor(n / 2) - 1; i >= 0; i--) if (dry(i, n) && d1 < 0) d1 = i;
+      for (var e = n - 1; e > 0; e--) { var t = b[0]; b[0] = b[e]; b[e] = t; if (dry(0, e) && d2 < 0) d2 = e; }
+      return { p1: d1 < 0 ? Math.floor(n / 2) - 1 : d1, p2: d2 < 0 ? n - 1 : d2 };
+    }
+    // Сжатый вызов (detailed = false) — кадр на уровень спуска: обмен — на строке обмена
+    // (кадр строки i = largest не ставится), остановка — на `if largest == i {` с явным
+    // s.branch = true (следующий кадр уже у вызывающего, вывод по телу дал бы «нет»).
+    // pre — текст первого кадра вызова («siftDown(a, 0, 5): »): кадра строки вызова у сжатого нет.
+    function siftDown(i, size, detailed, pre) {
       for (var guard = 0; guard < 64; guard++) {
         var l = 2 * i + 1, r = 2 * i + 2, largest = i;
         var kids = [l, r].filter(function (c) { return c < size; });
         var base = function (o) { o.i = i; o.size = size; o.lo = i; o.kids = kids; o.ptrNames = { lo: "i", hi: "largest" }; return o; };
+        if (!detailed) {
+          // больший ребёнок; при равенстве — левый, как в листинге (строгое > у правого)
+          var big = !kids.length ? -1 : (kids.length === 2 && a[r] > a[l] ? r : l);
+          if (big >= 0 && a[big] > a[i]) largest = big;
+          var head = (pre || "") + "a[" + i + "] = " + a[i] + ", ";
+          var kidsTxt = kids.length === 2 ? "дети " + a[l] + " и " + a[r] + ", больший " + a[big] : kids.length ? "ребёнок один — " + a[l] : "";
+          pre = "";
+          if (largest === i) {
+            snap(base({ line: 19, largest: largest, hi: largest, branch: true, info: head + (big >= 0 ? kidsTxt + " ≤ " + a[i] + " → стоп: узел не меньше детей" : "детей в куче нет (l = " + l + " ≥ size = " + size + ") → стоп") }));
+            return;
+          }
+          var up = a[largest], down = a[i];
+          a[i] = up; a[largest] = down; swaps++;
+          snap(base({ line: 22, largest: largest, hi: largest, mid: largest, info: head + kidsTxt + " > " + down + " → обмен: " + up + " поднимается в a[" + i + "], " + down + " опускается в a[" + largest + "]" }));
+          i = largest;
+          continue;
+        }
         snap(base({ line: 12, largest: largest, hi: largest, info: "l = " + l + ", r = " + r + (kids.length ? " — дети a[" + i + "] = " + a[i] + ": " + kids.map(function (c) { return "a[" + c + "] = " + a[c]; }).join(", ") : " — детей в куче нет (≥ size = " + size + ")") + "; largest = i" }));
         var lBig = l < size && a[l] > a[largest];
         snap(base({ line: 13, largest: largest, hi: largest, info: l < size ? "Левый ребёнок a[" + l + "] = " + a[l] + (lBig ? " > " : " ≤ ") + "a[largest] = " + a[largest] + (lBig ? " — да" : " — нет") : "l = " + l + " ≥ size — левого ребёнка нет" }));
@@ -7358,22 +7400,29 @@
       }
     }
     if (n <= 1) { snap({ done: true, line: 9, info: "Массив из " + n + " элемента(ов) уже отсортирован" }); return steps; }
+    var first = firstDescents();
+    // Исход заголовков циклов назван явно: за заголовком `for i` сжатого вызова сразу идёт кадр
+    // из тела siftDown, вне тела цикла, и вывод по следующему кадру дал бы «нет».
     snap({ line: 1, info: "n = " + n + ". Фаза 1 — превратить массив в max-кучу (под массивом он же деревом), фаза 2 — снимать максимум в конец" });
     for (var i = Math.floor(n / 2) - 1; i >= 0; i--) {
-      snap({ line: 2, i: i, lo: i, ptrNames: { lo: "i" }, info: i === Math.floor(n / 2) - 1 ? "i = " + i + ": начинаем с последнего родителя — узлы правее n/2 − 1 листья, а лист сам по себе уже куча. Чиним поддерево с корнем a[" + i + "]" : "i = " + i + ": следующий родитель снизу вверх — его поддеревья уже кучи, осталось опустить сам a[" + i + "]" });
-      snap({ line: 3, i: i, lo: i, ptrNames: { lo: "i" }, info: "siftDown(a, " + i + ", " + n + ") — вызов: дальше строки его тела" });
-      siftDown(i, n);
+      snap({ line: 2, i: i, lo: i, ptrNames: { lo: "i" }, branch: true, info: i === Math.floor(n / 2) - 1 ? "i = " + i + ": начинаем с последнего родителя — узлы правее n/2 − 1 листья, а лист сам по себе уже куча. Чиним поддерево с корнем a[" + i + "]" : "i = " + i + ": следующий родитель снизу вверх — его поддеревья уже кучи, осталось опустить сам a[" + i + "]" });
+      if (i === first.p1) {
+        snap({ line: 3, i: i, lo: i, ptrNames: { lo: "i" }, info: "siftDown(a, " + i + ", " + n + ") — вызов. Это первый спуск фазы: его покажем строка за строкой, остальные вызовы — по кадру на уровень" });
+        siftDown(i, n, true);
+      } else siftDown(i, n, false, "siftDown(a, " + i + ", " + n + "): ");
     }
-    snap({ line: 2, info: "i = −1 < 0 — фаза 1 окончена: max-куча готова, наибольший элемент в корне a[0] = " + a[0] });
+    snap({ line: 2, i: -1, branch: false, info: "i = −1 < 0 — фаза 1 окончена: max-куча готова, наибольший элемент в корне a[0] = " + a[0] });
     for (var end = n - 1; end > 0; end--) {
-      snap({ line: 5, end: end, hi: end, ptrNames: { hi: "end" }, info: "end = " + end + ": куча — a[0.." + end + "], правее — уже отсортированный хвост" });
+      snap({ line: 5, end: end, hi: end, ptrNames: { hi: "end" }, branch: true, info: "end = " + end + ": куча — a[0.." + end + "], правее — уже отсортированный хвост" });
       var t = a[0]; a[0] = a[end]; a[end] = t; swaps++; sorted++;
       snap({ line: 6, end: end, lo: 0, hi: end, mid: end, ptrNames: { lo: "—", hi: "end" }, info: "Максимум " + a[end] + " из корня — в конец (позиция " + end + "): хвост вырос. В корень встал " + a[0] + " — куча сломана" });
-      snap({ line: 7, end: end, lo: 0, ptrNames: { lo: "—" }, info: "siftDown(a, 0, " + end + ") — чиним кучу на a[0.." + (end - 1) + "]" });
-      siftDown(0, end);
+      if (end === first.p2) {
+        snap({ line: 7, end: end, lo: 0, ptrNames: { lo: "—" }, info: "siftDown(a, 0, " + end + ") — чиним кучу на a[0.." + (end - 1) + "]. Первый спуск фазы — снова строка за строкой" });
+        siftDown(0, end, true);
+      } else siftDown(0, end, false, "siftDown(a, 0, " + end + "): ");
     }
     sorted = n;
-    snap({ line: 5, end: 0, info: "end = 0 — не > 0: в куче остался один элемент, он и так на месте" });
+    snap({ line: 5, end: 0, branch: false, info: "end = 0 — не > 0: в куче остался один элемент, он и так на месте" });
     snap({ done: true, line: 9, info: "Готово за O(n log n), " + swaps + " обменов, память O(1)" });
     return steps;
   }
@@ -9966,22 +10015,58 @@
   function bHeapBuild(initial) {
     var h = initial.slice(), n = h.length, steps = [], ok = {}, sifts = 0, work = 0;
     function marks(extra) { var m = {}; for (var k in ok) m[k] = "heapok"; for (var q in extra) m[q] = extra[q]; return m; }
-    function push(o) { steps.push({ si: steps.length, line: o.line, heap: h.slice(), marks: o.marks || marks({}), note: o.note, vars: { i: (o.i == null ? "—" : String(o.i)), small: (o.small == null ? "—" : String(o.small)), action: (o.action || "—") }, info: o.info, done: o.done }); }
+    function push(o) { var s = { si: steps.length, line: o.line, heap: h.slice(), marks: o.marks || marks({}), note: o.note, vars: { i: (o.i == null ? "—" : String(o.i)), small: (o.small == null ? "—" : String(o.small)), action: (o.action || "—") }, info: o.info, done: o.done }; if (typeof o.branch === "boolean") s.branch = o.branch; steps.push(s); }
     function subtree(r) { var st = [r], out = []; while (st.length) { var x = st.pop(); if (x >= n) continue; out.push(x); st.push(2 * x + 1, 2 * x + 2); } return out; }
     push({ line: 0, marks: {}, action: "старт", info: "Массив [" + h.join(", ") + "] — ещё не куча. Строим min-кучу на месте, за O(n)" });
     var firstInternal = Math.floor(n / 2) - 1;
     if (firstInternal < 0) { push({ line: 4, marks: {}, done: true, action: "готово", info: "0–1 элемент — уже куча" }); return { steps: steps }; }
     for (var L = firstInternal + 1; L < n; L++) ok[L] = true;
+    // Тело siftDown построчно — только в ПЕРВОМ СПУСКЕ: в первом вызове, который опускает узел
+    // хотя бы на уровень (нет такого — в первом вызове). Остальные вызовы сжаты: кадр на уровень.
+    var firstDescent = firstInternal;
+    (function () {
+      var b = h.slice();
+      for (var s0 = firstInternal; s0 >= 0; s0--) {
+        var i0 = s0, moved = false;
+        for (var g = 0; g < 64; g++) {
+          var sm = i0, l0 = 2 * i0 + 1, r0 = 2 * i0 + 2;
+          if (l0 < n && b[l0] < b[sm]) sm = l0;
+          if (r0 < n && b[r0] < b[sm]) sm = r0;
+          if (sm === i0) break;
+          var t0 = b[i0]; b[i0] = b[sm]; b[sm] = t0; i0 = sm; moved = true;
+        }
+        if (moved) { firstDescent = s0; return; }
+      }
+    })();
     push({ line: 1, action: "листья", info: "Нижняя половина (индексы " + (firstInternal + 1) + ".." + (n - 1) + ") — листья: каждый уже куча из одного узла (зелёная рамка), их НЕ трогаем" });
     for (var start = firstInternal; start >= 0; start--) {
       var mp = {}; mp[start] = "current";
-      push({ line: 2, marks: marks(mp), i: start, action: "for i = " + start, note: "Внешний цикл: i = " + start + " (от n/2−1 = " + firstInternal + " к 0)", info: "i = " + start + ": внутренний узел " + h[start] + " (индекс " + start + ")" });
       var kidsTxt = [2 * start + 1, 2 * start + 2].filter(function (c) { return c < n; });
-      push({ line: 3, marks: marks(mp), i: start, action: "siftDown", info: "siftDown(a, " + start + "): поддеревья под узлом (индексы " + kidsTxt.join(" и ") + ") уже кучи — зелёные рамки. Осталось опустить сам " + h[start] + " до места, где он не больше детей" });
+      var detailed = start === firstDescent, under = "(индексы " + kidsTxt.join(" и ") + ") уже кучи — зелёные рамки. Осталось опустить сам " + h[start] + " до места, где он не больше детей";
+      // у сжатого вызова нет кадра строки вызова (как в heap-sort): про поддеревья говорит заголовок,
+      // а первый кадр уровня называет вызов. Исход заголовка назван явно: за ним сразу кадр из
+      // тела siftDown, вне тела цикла, и вывод по следующему кадру дал бы «нет».
+      push({ line: 2, marks: marks(mp), i: start, action: "for i = " + start, note: "Внешний цикл: i = " + start + " (от n/2−1 = " + firstInternal + " к 0)", branch: true, info: "i = " + start + ": внутренний узел " + h[start] + " (индекс " + start + ")" + (detailed ? "" : ". Поддеревья под ним " + under) });
+      if (detailed) push({ line: 3, marks: marks(mp), i: start, action: "siftDown", info: "siftDown(a, " + start + "): поддеревья под узлом " + under + ". Это первый спуск: его покажем строка за строкой, остальные вызовы — по кадру на уровень" });
+      var pre = "siftDown(a, " + start + "): ";
       var i = start, depth = 0; sifts++;
       for (var guard = 0; guard < 64; guard++) {
         var l = 2 * i + 1, r = 2 * i + 2, small = i;
         var mc = {}; mc[i] = "current"; if (l < n) mc[l] = "path"; if (r < n) mc[r] = "path";
+        if (!detailed) {
+          // сжатый вызов — кадр на уровень: обмен на строке обмена, остановка на `if small == i`
+          var kids = [l, r].filter(function (c) { return c < n; });
+          var least = !kids.length ? -1 : (kids.length === 2 && h[r] < h[l] ? r : l); // при равенстве — левый, как в листинге
+          if (least >= 0 && h[least] < h[i]) small = least;
+          var head = pre + "a[" + i + "] = " + h[i] + ", " + (kids.length === 2 ? "дети " + h[l] + " и " + h[r] + ", меньший " + h[least] : kids.length ? "ребёнок один — " + h[l] : "");
+          if (small === i) { push({ line: 12, marks: marks(mc), i: i, small: small, action: "стоп", info: least >= 0 ? head + " ≥ " + h[i] + " → стоп: узел не больше детей" : pre + "a[" + i + "] = " + h[i] + ", детей нет (l = " + l + " ≥ n = " + n + ") → стоп" }); break; }
+          var down = h[i], up = h[small];
+          h[i] = up; h[small] = down; depth++; work++;
+          var mw = {}; mw[i] = "path"; mw[small] = "current";
+          push({ line: 13, marks: marks(mw), i: i, small: small, action: "swap↓", info: head + " < " + down + " → обмен: " + up + " поднимается в индекс " + i + ", " + down + " опускается в " + small });
+          i = small; pre = "";
+          continue;
+        }
         push({ line: 9, marks: marks(mc), i: i, small: small, action: "дети", info: l < n ? "l = " + l + ", r = " + r + ": дети " + h[i] + " — " + h[l] + (r < n ? " и " + h[r] : " (правого нет)") + "; small = i" : "l = " + l + " ≥ n: у " + h[i] + " детей нет — это лист; small = i" });
         var lSm = l < n && h[l] < h[small];
         if (lSm) small = l;
@@ -9998,8 +10083,11 @@
         push({ line: 14, marks: marks((function () { var m = {}; m[i] = "current"; return m; })()), i: i, small: small, action: "i = small", info: "i = small = " + i + " — просеиваем дальше вниз" });
       }
       subtree(start).forEach(function (x) { ok[x] = true; });
-      push({ line: 2, i: start, action: "поддерево " + start + " — куча", info: "Поддерево с корнем в индексе " + start + " теперь куча (" + depth + " " + ruPlural(depth, "обмен", "обмена", "обменов") + ") — вся его рамка зелёная" });
+      // кадр возврата — на строке вызова: чип i здесь снова i цикла BuildHeap (на заголовке `for`
+      // он показывал бы i до декремента, а i из siftDown — чужая переменная)
+      push({ line: 3, i: start, action: "поддерево " + start + " — куча", info: "siftDown вернулся: поддерево с корнем в индексе " + start + " теперь куча (" + depth + " " + ruPlural(depth, "обмен", "обмена", "обменов") + ") — вся его рамка зелёная" });
     }
+    push({ line: 2, marks: marks({}), i: -1, branch: false, action: "конец цикла", info: "i-- → i = −1 < 0: цикл окончен — все внутренние узлы просеяны" });
     push({ line: 6, marks: {}, done: true, action: "готово", info: "Куча построена: [" + h.join(", ") + "]. " + sifts + " " + ruPlural(sifts, "просеивание", "просеивания", "просеиваний") + ", всего " + work + " " + ruPlural(work, "обмен", "обмена", "обменов") + ": нижние узлы спускаются на 0–1 уровень, глубоко идёт только корень — поэтому O(n), а не O(n log n)" });
     return { steps: steps };
   }

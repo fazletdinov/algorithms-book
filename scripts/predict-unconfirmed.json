@@ -130,26 +130,14 @@
   "пресет «много бакетов» — шаг 15, строка 4: if h.buckets[i][j].key == key {",
   "пресет «много бакетов» — шаг 16, строка 3: for j := range h.buckets[i] {   // уже есть такой ключ?"
  ],
- "heap-build": [
-  "глава heap-structure.md (array=9,4,7,1,8,3,6,2,5) — шаг 66, строка 3: for i := len(a)/2 - 1; i >= 0; i-- {"
- ],
  "heap-push": [
   "глава go-stdlib-structures.md (heap=10,40,25,90,50,30; val=15) — шаг 4, строка 6: if h.data[parent] <= h.data[i] {",
   "глава heap-structure.md (heap=1,3,5,7,4,6; val=2) — шаг 4, строка 6: if h.data[parent] <= h.data[i] {"
  ],
  "heap-sort": [
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 5, строка 14: if l < size && a[l] > a[largest] {",
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 6, строка 17: if r < size && a[r] > a[largest] {",
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 20, строка 17: if r < size && a[r] > a[largest] {",
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 33, строка 14: if l < size && a[l] > a[largest] {",
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 37, строка 3: for i := n/2 - 1; i >= 0; i-- {",
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 50, строка 17: if r < size && a[r] > a[largest] {",
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 65, строка 14: if l < size && a[l] > a[largest] {",
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 66, строка 17: if r < size && a[r] > a[largest] {",
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 80, строка 14: if l < size && a[l] > a[largest] {",
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 96, строка 14: if l < size && a[l] > a[largest] {",
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 97, строка 17: if r < size && a[r] > a[largest] {",
-  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 111, строка 14: if l < size && a[l] > a[largest] {"
+  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 7, строка 14: if l < size && a[l] > a[largest] {",
+  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 15, строка 17: if r < size && a[r] > a[largest] {",
+  "глава heap-structure.md (array=5,2,8,1,9,3,7) — шаг 34, строка 17: if r < size && a[r] > a[largest] {"
  ],
  "hll-add": [
   "глава probabilistic-structures.md (elems=user_8143,user_2290,user_5561,user_9033,user_1204,user_7788,user_4415,user_6672,user_8143) — шаг 25, строка 5: if rho > h.reg[j] {"
