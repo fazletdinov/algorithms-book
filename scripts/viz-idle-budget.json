@@ -1,5 +1,5 @@
 {
-  "__core__": 21.7,
+  "__core__": 19.6,
   "two-pointers-sum": 21,
   "three-sum": 19,
   "min-subarray-window": 5,
@@ -7,6 +7,6 @@
   "jump-game": 7,
   "heap-sort": { "idle": 23, "steps": 60 },
   "heap-build": { "idle": 30, "steps": 40 },
-  "num-provinces": 65,
-  "dp-lcs": 32
+  "num-provinces": 0,
+  "dp-lcs": 0
 }

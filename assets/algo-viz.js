@@ -5190,6 +5190,12 @@
         if (bfs) {
           badges.forEach(function (b, j) { b.textContent = s.dist[j] >= 0 ? "d=" + s.dist[j] : ""; });
           edgeEls.forEach(function (ln, k) { var e = edges[k]; ln.classList.toggle("algo-viz__gedge--cur", s.nb >= 0 && ((e[0] === s.current && e[1] === s.nb) || (e[1] === s.current && e[0] === s.nb))); });
+        } else if (!directed && s.badge) {
+          // провинции: s.badge — имена листинга у вершин ({ v, u } в dfs, { i } во внешнем цикле),
+          // s.nb — проверяемая вершина (пунктирное кольцо), ребро current–nb — жёлтым
+          circles.forEach(function (c, j) { c.classList.toggle("algo-viz__gnode--nb", s.nb >= 0 && j === s.nb); });
+          badges.forEach(function (b, j) { b.textContent = Object.keys(s.badge).filter(function (k) { return s.badge[k] === j; }).join(", "); });
+          edgeEls.forEach(function (ln, k) { var e = edges[k]; ln.classList.toggle("algo-viz__gedge--cur", s.current >= 0 && s.nb >= 0 && ((e[0] === s.current && e[1] === s.nb) || (e[1] === s.current && e[0] === s.nb))); });
         }
         if (directed) {
           badges.forEach(function (b, j) { b.textContent = s.removed[j] ? "" : ("in:" + s.deg[j]); });
@@ -5454,36 +5460,80 @@
     return steps;
   }
   // Разбор graphs: Number of Provinces — DFS по компонентам связности. Каждый новый
-  // незатронутый узел = новая провинция, запускаем DFS и красим достижимое. Рисует graphViz.
+  // незатронутый узел = новая провинция, запускаем DFS и красим достижимое. Рисует graphViz,
+  // стек вызовов — mapViz конфига.
+  // Что видно на холсте: проверяемая вершина (сосед u в dfs, i во внешнем цикле) — пунктирное
+  // кольцо и подпись, ребро v–u — жёлтым, стек — кадры numProvinces (i, count) и dfs(v) (u, на
+  // котором кадр ждёт возврата). Кадр строки `}` в конце dfs — возврат: стек уже снят, чипы —
+  // вызывающего (так снимок остаётся состоянием ПОСЛЕ строки). Кадр `if` ставится только для u,
+  // связанных с v дорогой (нули строки и диагональ isConnected[v][v] пропущены); заголовки обоих
+  // `for` кадров не дают — итерацию по i видно кадром `if !visited[i]`, по u — кадром `if`.
+  // Исход обоих `if` назван branch: за «нет» идёт кадр вне тела, за «да» у внешнего — count++.
   function bNumProvinces(labels, edges) {
     var n = labels.length, adj = labels.map(function () { return []; });
     edges.forEach(function (e) { adj[e[0]].push(e[1]); adj[e[1]].push(e[0]); });
     // листинг перебирает u := 0..n-1 по матрице — соседи строго по возрастанию индекса,
     // а не в порядке рёбер из data-edges (на «0-2,0-1» DFS шёл бы в 2 раньше 1)
     adj.forEach(function (a) { a.sort(function (x, y) { return x - y; }); });
-    var visited = new Array(n).fill(false), count = 0, steps = [], comp = new Array(n).fill(0);
-    function vv(v, c) { return { "вершина": (v < 0 ? "—" : labels[v]), "провинций": c, "посещено": visited.filter(Boolean).length + "/" + n }; }
-    // comp — номер провинции у вершины: каждая компонента своим цветом (раньше все синие)
-    function push(line, cur, c, info, done) { var s = { current: cur, visited: visited.slice(), comp: comp.slice(), line: line, vars: vv(cur, c), info: info }; if (done) { s.done = true; s.found = true; } steps.push(s); }
-    push(2, -1, "—", "visited := make([]bool, n) — все вершины не посещены"); // count := 0 ещё впереди
+    var visited = new Array(n).fill(false), count = null, outerI = null, steps = [], comp = new Array(n).fill(0);
+    // стек кадров dfs: { v, u } — u, на котором кадр ждёт (или проверяет) соседа
+    var stack = [];
+    // comp — номер провинции у вершины: каждая компонента своим цветом (раньше все синие).
+    // Чипы — по области видимости листинга: i и count живут в numProvinces (dfs объявлена до
+    // них и их не видит), v и u — в dfs, u — только в теле цикла по u.
+    function push(line, o) {
+      // caller — кадр строки вызова: новый кадр уже на стеке, а чипы и подсветка — того, кто вызвал
+      var depth = stack.length - (o.caller ? 1 : 0), top = depth > 0 ? stack[depth - 1] : null, inDfs = !!top && !o.outer;
+      var u = inDfs && top.u != null ? top.u : -1;
+      var s = {
+        current: inDfs ? top.v : -1, nb: inDfs ? u : (o.mark != null ? o.mark : -1),
+        badge: inDfs ? (u >= 0 ? { v: top.v, u: u } : { v: top.v }) : (outerI != null && o.mark != null ? { i: outerI } : {}),
+        visited: visited.slice(), comp: comp.slice(), line: line, branch: o.branch,
+        frames: { i: outerI, count: count, dfs: stack.map(function (f) { return { v: f.v, u: f.u }; }) },
+        vars: {
+          i: inDfs || outerI == null ? "—" : labels[outerI], count: inDfs || count == null ? "—" : count,
+          v: inDfs ? labels[top.v] : "—", u: u >= 0 ? labels[u] : "—",
+          visited: visited.filter(Boolean).length + "/" + n
+        },
+        info: o.info, improved: o.improved
+      };
+      if (o.done) { s.done = true; s.found = true; }
+      steps.push(s);
+    }
+    push(2, { info: "visited := make([]bool, n) — все вершины не посещены" }); // count := 0 ещё впереди
+    count = 0;
+    function dfs(v) {
+      visited[v] = true; comp[v] = count;
+      push(5, { info: "visited[" + labels[v] + "] = true — вершина " + labels[v] + " в провинции #" + count });
+      var fr = stack[stack.length - 1];
+      adj[v].forEach(function (u) {
+        fr.u = u;
+        var go = !visited[u];
+        push(7, { branch: go, info: "u = " + labels[u] + ": дорога " + labels[v] + "–" + labels[u] + " есть, " + (go ? "visited[" + labels[u] + "] = false → спускаемся в " + labels[u] : "visited[" + labels[u] + "] = true — уже в провинции, не идём") });
+        if (go) {
+          stack.push({ v: u, u: null });
+          push(8, { caller: true, info: "dfs(" + labels[u] + ") — новый кадр на стеке; dfs(" + labels[v] + ") ждёт его на u = " + labels[u] });
+          dfs(u);
+        }
+      });
+      stack.pop();
+      var back = stack.length ? stack[stack.length - 1] : null;
+      push(11, { info: "dfs(" + labels[v] + ") закончила: непосещённых соседей у " + labels[v] + " больше нет → " + (back ? "возврат в dfs(" + labels[back.v] + "), u = " + labels[back.u] : "возврат в цикл по i (i = " + labels[outerI] + ")"), outer: !back, mark: back ? null : outerI });
+    }
     for (var i = 0; i < n; i++) {
-      push(13, -1, count, "i = " + i + ": вершина " + labels[i] + " — посещена?");
-      if (!visited[i]) {
+      outerI = i;
+      var fresh = !visited[i];
+      push(14, { branch: fresh, mark: i, info: "i = " + labels[i] + ": visited[" + labels[i] + "] = " + !fresh + (fresh ? " → " + labels[i] + " ещё ни в одной провинции, начинаем новую" : " — уже в провинции, пропуск") });
+      if (fresh) {
         count++;
-        steps.push({ current: i, visited: visited.slice(), comp: comp.slice(), improved: true, line: 15, vars: vv(i, count), info: "вершина " + labels[i] + " не посещена → НОВАЯ провинция #" + count + ", запускаем DFS" });
-        (function dfs(v) {
-          visited[v] = true; comp[v] = count;
-          push(5, v, count, "visited[" + labels[v] + "] = true — вошли в DFS компоненты #" + count);
-          adj[v].forEach(function (u) {
-            push(7, v, count, "сосед " + labels[u] + ": ребро есть и " + (visited[u] ? "уже посещён — пропуск" : "не посещён → спускаемся"));
-            if (!visited[u]) { push(8, v, count, "dfs(" + labels[u] + ")"); dfs(u); }
-          });
-        })(i);
-      } else {
-        push(14, -1, count, "вершина " + labels[i] + " уже посещена — та же провинция, пропуск");
+        push(15, { mark: i, improved: true, info: "count++ → " + count + ": вершина " + labels[i] + " открывает провинцию #" + count });
+        stack.push({ v: i, u: null });
+        push(16, { caller: true, mark: i, info: "dfs(" + labels[i] + ") — первый кадр на стеке: обойдём всё, что достижимо из " + labels[i] });
+        dfs(i);
       }
     }
-    push(19, -1, count, "return count = " + count + " — число компонент связности (провинций)", true);
+    outerI = null;
+    push(19, { done: true, info: "return count = " + count + " — число компонент связности (провинций)" });
     return steps;
   }
 
@@ -10389,29 +10439,53 @@
 
   // ===== 2D-ДП: Longest Common Subsequence (заполнение таблицы) ==============
   // LCS — построчный (debugger) проход; 2D-таблицу dp рисует dpTableViz (fillStep = кадр заполнения).
+  // Обратный ход LCS по заполненной таблице: path — клетки от (m, n) до края, pairs — клетки
+  // совпадений (i, j) слева направо. Ничья ↑ = ← решается вверх (как chosen в bDpLcs).
+  function lcsTraceback(a, b, dp) {
+    var i = a.length, j = b.length, path = [], pairs = [];
+    while (i > 0 && j > 0) {
+      path.push([i, j]);
+      if (a[i - 1] === b[j - 1]) { pairs.unshift([i, j]); i--; j--; }
+      else if (dp[i - 1][j] >= dp[i][j - 1]) i--;
+      else j--;
+    }
+    path.push([i, j]);
+    return { path: path, pairs: pairs };
+  }
+  // Заголовки таблицы — сами буквы: строка i подписана a[i-1], столбец j — b[j-1]. s.heads
+  // подсвечивает их: { r, c, eq } — буква текущей строки / столбца, на шаге сравнения eq —
+  // исход (зелёные — совпали, красные — нет); { lcs: [[i, j]…] } в финале — буквы ответа.
+  // Финал — обратный ход по той же рекурренте (в листинге его нет, как у рюкзака): совпали —
+  // буква в ответ и шаг по диагонали; нет — к большему из ↑ и ←, при равенстве ↑ — тот же выбор,
+  // что у стрелки «выбранная» на кадрах заполнения (chosen: up >= left).
   function bDpLcs(a, b) {
     var m = a.length, nn = b.length, dp = [], fillStep = [], steps = [], filled = 0;
     for (var r = 0; r <= m; r++) { dp.push(new Array(nn + 1).fill(0)); fillStep.push(new Array(nn + 1).fill(-1)); }
     function snap() { return dp.map(function (row) { return row.slice(); }); }
-    function push(o) { steps.push({ dp: snap(), i: (o.i == null ? -1 : o.i), j: (o.j == null ? -1 : o.j), match: (o.match == null ? null : o.match), src: (o.src || null), card: o.card || null, line: o.line, vars: { "i": (o.i == null ? "—" : o.i), "j": (o.j == null ? "—" : o.j), "a[i-1], b[j-1]": (o.chars || "—"), "rule": (o.rule || "—"), "dp[i][j]": (o.dpij == null ? "—" : o.dpij), "заполнено": filled + "/" + (m * nn) }, info: o.info, done: o.done, found: o.found }); }
+    function push(o) { steps.push({ dp: snap(), i: (o.i == null ? -1 : o.i), j: (o.j == null ? -1 : o.j), match: (o.match == null ? null : o.match), branch: o.branch, heads: o.heads || null, src: (o.src || null), card: o.card || null, path: o.path || null, line: o.line, vars: { "i": (o.i == null ? "—" : o.i), "j": (o.j == null ? "—" : o.j), "a[i-1], b[j-1]": (o.chars || "—"), "rule": (o.rule || "—"), "dp[i][j]": (o.dpij == null ? "—" : o.dpij), "заполнено": filled + "/" + (m * nn) }, info: o.info, done: o.done, found: o.found }); if (o.done) { steps[steps.length - 1].vars.i = "—"; steps[steps.length - 1].vars.j = "—"; } }
     push({ line: 1, info: "dp — таблица (m+1)×(n+1), нулевые края: с пустым префиксом LCS = 0" });
     for (var i = 1; i <= m; i++) {
-      push({ line: 2, i: i, info: "строка i = " + i + " (символ a[" + (i - 1) + "] = '" + a[i - 1] + "')" });
+      push({ line: 2, i: i, heads: { r: i }, info: "строка i = " + i + " (символ a[" + (i - 1) + "] = '" + a[i - 1] + "')" });
       for (var j = 1; j <= nn; j++) {
-        push({ line: 3, i: i, j: j, info: "столбец j = " + j + " (символ b[" + (j - 1) + "] = '" + b[j - 1] + "')" });
         var ca = a[i - 1], cb = b[j - 1], match = ca === cb, chars = "'" + ca + "', '" + cb + "'";
-        push({ line: 4, i: i, j: j, match: match, chars: chars, info: "a[" + (i - 1) + "]='" + ca + "' " + (match ? "==" : "≠") + " b[" + (j - 1) + "]='" + cb + "'" });
+        // буквы уже известны на заголовке: i и j живы, a[i-1] и b[j-1] — их выражение
+        push({ line: 3, i: i, j: j, heads: { r: i, c: j }, chars: chars, info: "столбец j = " + j + " (символ b[" + (j - 1) + "] = '" + cb + "')" });
+        // branch: исход сравнения — кадр «нет» идёт в else, вне тела if, и 🎯 вывел бы его
+        // лишь по отступам; так ключ назван генератором
+        push({ line: 4, i: i, j: j, match: match, branch: match, heads: { r: i, c: j, eq: match }, chars: chars, info: "a[" + (i - 1) + "]='" + ca + "' " + (match ? "==" : "≠") + " b[" + (j - 1) + "]='" + cb + "'" });
         if (match) {
           var val = dp[i - 1][j - 1] + 1; dp[i][j] = val; fillStep[i][j] = steps.length; filled++;
-          push({ line: 5, i: i, j: j, match: true, src: { kind: "diag", cells: [[i - 1, j - 1]], labels: ["+1"] }, card: { title: "dp[" + i + "][" + j + "]: '" + ca + "' == '" + cb + "'", rows: [{ k: "совпало", v: "символ входит в общую подпоследовательность" }, { k: "↖ +1", v: "dp[" + (i - 1) + "][" + (j - 1) + "] + 1 = " + val, cls: "win" }] }, chars: chars, rule: "диагональ +1", dpij: val, info: "совпало → dp[" + i + "][" + j + "] = dp[" + (i - 1) + "][" + (j - 1) + "]+1 = " + dp[i - 1][j - 1] + "+1 = " + val });
+          push({ line: 5, i: i, j: j, match: true, heads: { r: i, c: j, eq: true }, src: { kind: "diag", cells: [[i - 1, j - 1]], labels: ["+1"] }, card: { title: "dp[" + i + "][" + j + "]: '" + ca + "' == '" + cb + "'", rows: [{ k: "совпало", v: "символ входит в общую подпоследовательность" }, { k: "↖ +1", v: "dp[" + (i - 1) + "][" + (j - 1) + "] + 1 = " + val, cls: "win" }] }, chars: chars, rule: "диагональ +1", dpij: val, info: "совпало → dp[" + i + "][" + j + "] = dp[" + (i - 1) + "][" + (j - 1) + "]+1 = " + dp[i - 1][j - 1] + "+1 = " + val });
         } else {
           var up = dp[i - 1][j], left = dp[i][j - 1], val2 = Math.max(up, left); dp[i][j] = val2; fillStep[i][j] = steps.length; filled++;
           var chosen = up >= left ? [i - 1, j] : [i, j - 1];
-          push({ line: 7, i: i, j: j, match: false, src: { kind: "max", cells: [[i - 1, j], [i, j - 1]], chosen: chosen, labels: ["↑ " + up, "← " + left] }, card: { title: "dp[" + i + "][" + j + "]: '" + ca + "' ≠ '" + cb + "'", rows: [{ k: "↑ без '" + ca + "'", v: "dp[" + (i - 1) + "][" + j + "] = " + up, cls: up >= left ? "" : "lose" }, { k: "← без '" + cb + "'", v: "dp[" + i + "][" + (j - 1) + "] = " + left, cls: up >= left ? "lose" : "" }, { k: "итог", v: "max(" + up + ", " + left + ") = " + val2, cls: "win" }] }, chars: chars, rule: "max(↑, ←)", dpij: val2, info: "не совпало → dp[" + i + "][" + j + "] = max(↑" + up + ", ←" + left + ") = " + val2 });
+          push({ line: 7, i: i, j: j, match: false, heads: { r: i, c: j, eq: false }, src: { kind: "max", cells: [[i - 1, j], [i, j - 1]], chosen: chosen, labels: ["↑ " + up, "← " + left] }, card: { title: "dp[" + i + "][" + j + "]: '" + ca + "' ≠ '" + cb + "'", rows: [{ k: "↑ без '" + ca + "'", v: "dp[" + (i - 1) + "][" + j + "] = " + up, cls: up >= left ? "" : "lose" }, { k: "← без '" + cb + "'", v: "dp[" + i + "][" + (j - 1) + "] = " + left, cls: up >= left ? "lose" : "" }, { k: "итог", v: "max(" + up + ", " + left + ") = " + val2, cls: "win" }] }, chars: chars, rule: "max(↑, ←)", dpij: val2, info: "не совпало → dp[" + i + "][" + j + "] = max(↑" + up + ", ←" + left + ") = " + val2 });
         }
       }
     }
-    push({ line: 11, i: m, j: nn, done: true, found: true, rule: "ответ", dpij: dp[m][nn], info: "return dp[" + m + "][" + nn + "] = " + dp[m][nn] + " — длина наибольшей общей подпоследовательности" });
+    var tb = lcsTraceback(a, b, dp), word = tb.pairs.map(function (p) { return a[p[0] - 1]; }).join("");
+    var pairsTxt = tb.pairs.map(function (p) { return "a[" + (p[0] - 1) + "] = b[" + (p[1] - 1) + "] = '" + a[p[0] - 1] + "'"; }).join(" · ");
+    push({ line: 11, i: m, j: nn, done: true, found: true, path: tb.path, heads: { lcs: tb.pairs }, card: { title: "Сама подпоследовательность (обратный ход от dp[" + m + "][" + nn + "])", rows: [{ k: "LCS", v: word.length ? "«" + word + "»" : "пустая — общих букв нет", cls: "win" }, { k: "совпадения", v: pairsTxt || "—" }, { k: "ход", v: "совпали — буква в ответ, шаг ↖; нет — к большему из ↑ и ←, при равенстве ↑" }] }, rule: "ответ", dpij: dp[m][nn], info: "return dp[" + m + "][" + nn + "] = " + dp[m][nn] + " — длина наибольшей общей подпоследовательности. " + (word.length ? "Саму её даёт обратный ход от этой клетки: «" + word + "»" : "Общих букв нет — подпоследовательность пустая") });
     steps.forEach(function (s, k) { s._i = k; });
     var rowHeads = ["ε"].concat(a.split(""));
     var colHeads = ["ε"].concat(b.split(""));
@@ -10481,7 +10555,8 @@
     var wrap = document.createElement("div"); wrap.className = "algo-tp__dptable";
     wrap.style.gridTemplateColumns = rowHeadW + " repeat(" + (nn + 1) + ", 2.2em)";
     wrap.appendChild(cell("algo-tp__dhead", "")); // верхний левый угол
-    for (var hj = 0; hj <= nn; hj++) wrap.appendChild(cell("algo-tp__dhead", colHeads[hj]));
+    var colHeadEls = [], rowHeadEls = [];
+    for (var hj = 0; hj <= nn; hj++) { var ch = cell("algo-tp__dhead", colHeads[hj]); wrap.appendChild(ch); colHeadEls.push(ch); }
     var cellEls = [];
     for (var i = 0; i <= m; i++) {
       cellEls.push([]);
@@ -10489,8 +10564,8 @@
       if (rh && typeof rh === "object") {
         var h2 = cell("algo-tp__dhead algo-tp__dhead--row algo-tp__dhead--two", "");
         h2.appendChild(mkEl("span", "algo-tp__dheadt", rh.t)); h2.appendChild(mkEl("span", "algo-tp__dheads", rh.sub));
-        wrap.appendChild(h2);
-      } else wrap.appendChild(cell("algo-tp__dhead algo-tp__dhead--row", rh));
+        wrap.appendChild(h2); rowHeadEls.push(h2);
+      } else { var h1 = cell("algo-tp__dhead algo-tp__dhead--row", rh); wrap.appendChild(h1); rowHeadEls.push(h1); }
       for (var j = 0; j <= nn; j++) { var c = cell("algo-tp__dcell", ""); wrap.appendChild(c); cellEls[i].push(c); }
     }
     box.appendChild(wrap);
@@ -10563,6 +10638,18 @@
         c.classList.toggle("algo-tp__dcell--path", !!path[i + "," + j]);
         c.classList.toggle("algo-tp__dcell--done", !!s.done && i === m && j === nn);
       }
+      // s.heads (LCS): буквы текущей строки и столбца, исход сравнения, в финале — буквы ответа
+      var hd = s.heads || {}, lr = {}, lc = {};
+      (hd.lcs || []).forEach(function (p) { lr[p[0]] = true; lc[p[1]] = true; });
+      function mark(el, k, axis) {
+        var on = hd[axis] === k;
+        el.classList.toggle("algo-tp__dhead--on", on && hd.eq == null);
+        el.classList.toggle("algo-tp__dhead--eq", on && hd.eq === true);
+        el.classList.toggle("algo-tp__dhead--ne", on && hd.eq === false);
+        el.classList.toggle("algo-tp__dhead--lcs", !!(axis === "r" ? lr[k] : lc[k]));
+      }
+      rowHeadEls.forEach(function (el, k) { mark(el, k, "r"); });
+      colHeadEls.forEach(function (el, k) { mark(el, k, "c"); });
       arrows(s);
       card.innerHTML = "";
       card.classList.toggle("algo-tp__dpcard--off", !s.card);
@@ -11415,21 +11502,36 @@
       desc: "Оптимум O(V²): каждый незатронутый узел запускает DFS новой компоненты и красит всё достижимое. Число запусков = число провинций.",
       valuesLabel: "Города", codeKey: "num-provinces", fillRange: false,
       complexity: { time: "O(V²)", space: "O(V)", good: "★ Компоненты связности" },
-      varOrder: ["v", "count", "visited"],
-      varDesc: { "v": "Текущая вершина DFS", "count": "Найдено компонент", "visited": "Посещённых вершин" },
-      lineNotes: { 2: "visited — массив посещённости (все false)", 5: "visited[v] = true — вошли в DFS компоненты", 7: "Сосед связан (=1) и ещё не посещён?", 8: "dfs(u) — спускаемся в соседа той же компоненты", 13: "Внешний цикл по всем вершинам", 14: "Вершина уже посещена — та же провинция", 15: "Незатронутая вершина → count++ и новый DFS", 19: "Число запусков DFS = число провинций" },
+      varOrder: ["i", "count", "v", "u", "visited"],
+      varDesc: { "i": "Вершина внешнего цикла (только в numProvinces)", "count": "Найдено провинций (только в numProvinces)", "v": "Вершина текущего вызова dfs", "u": "Сосед v, которого проверяем", "visited": "Посещённых вершин" },
+      lineNotes: { 2: "visited — массив посещённости (все false)", 5: "visited[v] = true — вершина v в текущей провинции", 7: "Дорога v–u есть и u ещё не посещена?", 8: "dfs(u) — новый кадр на стеке, спускаемся в соседа", 11: "dfs(v) закончила — возврат к вызвавшему кадру", 14: "Вершина i ещё ничья?", 15: "Незатронутая вершина → count++", 16: "dfs(i) обойдёт всю её провинцию", 19: "Число запусков DFS = число провинций" },
       rules: [{ head: "Незатронутая вершина", body: "→ новая провинция + DFS", cls: "eq" }, { head: "Связана и не посещена", body: "→ та же провинция", cls: "lt" }, { head: "Уже посещена", body: "→ пропуск", cls: "gt" }],
       parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = parseEdges(root.getAttribute("data-edges")); return { labels: labels, edges: edges, steps: bNumProvinces(labels, edges) }; },
       inputs: [{ attr: "data-nodes", label: "Города" }, { attr: "data-edges", label: "Связи a-b" }],
       values: function (ctx) { return ctx.labels; },
       title: function () { return "Число провинций (DFS по компонентам)"; },
-      legend: [{ cls: "current", label: "текущая" }, { cls: "visited", label: "в компоненте (свой цвет у каждой провинции)" }, { cls: "idle", label: "не обработана" }],
+      legend: [{ cls: "current", label: "v — вершина текущего вызова dfs" }, { cls: "gnb", label: "проверяем: соседа u (дорога v–u — жёлтая) или i во внешнем цикле" }, { cls: "visited", label: "в провинции (свой цвет у каждой)" }, { cls: "idle", label: "не посещена" }],
       pointers: function (s) { return { lo: s.current, hi: -1 }; },
       sumCells: ["Вершина", "Провинций"],
-      sumValues: function (s) { return [{ text: s.vars["вершина"] }, { text: s.vars["провинций"], cls: "eq" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Провинций: " + s.vars["провинций"], text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars["провинций"] + " провинций", c: "DFS", cls: "eq" }; return { a: "вершина " + s.vars["вершина"], b: "провинций " + s.vars["провинций"], c: s.improved ? "новая!" : "→", cls: s.improved ? "eq" : "lt" }; },
-      varsOf: function (s) { return { "v": s.vars["вершина"], "count": s.vars["провинций"], "visited": s.vars["посещено"] }; },
+      sumValues: function (s) { return [{ text: s.vars.v }, { text: s.frames.count == null ? "—" : s.frames.count, cls: "eq" }]; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Провинций: " + s.vars.count, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.count + " провинций", c: "DFS", cls: "eq" }; return { a: s.vars.v === "—" ? "i = " + s.vars.i : "v = " + s.vars.v, b: "провинций " + (s.frames.count == null ? "—" : s.frames.count), c: s.improved ? "новая!" : "→", cls: s.improved ? "eq" : "lt" }; },
+      varsOf: function (s) { return { "i": s.vars.i, "count": s.vars.count, "v": s.vars.v, "u": s.vars.u, "visited": s.vars.visited }; },
+      // Стек вызовов: слева numProvinces со своими i и count, правее — кадры dfs(v) с u, на
+      // котором кадр проверяет соседа или ждёт возврата из dfs(u). Справа — текущий кадр.
+      mapViz: function (panel, ctx) {
+        var labels = ctx.labels;
+        var p = structPanel(panel, "стек вызовов: слева дно (numProvinces), справа — текущий кадр");
+        return function (s) {
+          p.grid.innerHTML = "";
+          var f = s.frames || { dfs: [] }, fr = f.dfs || [], all = [];
+          var outer = []; if (f.i != null) outer.push("i=" + labels[f.i]); if (f.count != null) outer.push("count=" + f.count);
+          all.push({ k: "numProvinces", v: outer.length ? outer.join(" ") : "—" });
+          fr.forEach(function (d) { all.push({ k: "dfs(" + labels[d.v] + ")", v: d.u == null ? "—" : "u=" + labels[d.u] }); });
+          all.forEach(function (c, k) { var top = k === all.length - 1; p.grid.appendChild(structCell(c.k, c.v, top ? "algo-tp__mapcell--on algo-tp__mapcell--hot algo-tp__mapcell--dec" : "algo-tp__mapcell--on")); });
+          p.foot.textContent = fr.length ? "глубина рекурсии dfs: " + fr.length : "dfs не запущена";
+        };
+      },
       customViz: graphViz
     },
 
@@ -15459,7 +15561,7 @@
       varOrder: ["i", "j", "a[i-1], b[j-1]", "правило", "dp[i][j]"],
       metrics: ["правило"],
       varDesc: { "i": "Строка: префикс a длины i", "j": "Столбец: префикс b длины j", "a[i-1], b[j-1]": "Сравниваемые символы", "правило": "Какой переход применён", "dp[i][j]": "Длина LCS этих префиксов" },
-      legend: [{ cls: "dcur", label: "текущая клетка dp[i][j]" }, { cls: "dsrc", label: "откуда взяли значение" }, { cls: "dcand", label: "отвергнутый вариант" }],
+      legend: [{ cls: "dcur", label: "текущая клетка dp[i][j]" }, { cls: "dsrc", label: "откуда взяли значение" }, { cls: "dcand", label: "отвергнутый вариант" }, { cls: "dheq", label: "буквы a[i-1] и b[j-1]: зелёные — совпали, красные — нет" }, { cls: "dpath", label: "обратный ход и буквы ответа (в конце)" }],
       lineNotes: { 1: "Нулевая строка и столбец = 0: с пустым префиксом общей подпоследовательности нет", 2: "Идём по строкам (символам a)", 3: "Внутри строки — по столбцам (символам b)", 4: "Сравниваем текущие символы a[i-1] и b[j-1]", 5: "Совпали → продлеваем диагональ dp[i-1][j-1] на +1", 7: "Не совпали → берём лучшее из накопленного: max(сверху, слева)", 11: "dp[m][n] — длина наибольшей общей подпоследовательности" },
       rules: [{ head: "a[i-1] = b[j-1]", body: "→ dp[i-1][j-1] + 1 (диагональ)", cls: "eq" }, { head: "a[i-1] ≠ b[j-1]", body: "→ max(верх, слева)", cls: "lt" }, { head: "Ответ", body: "правый нижний угол", cls: "gt" }],
       parse: function (root) { var a = (root.getAttribute("data-a") || "").trim(); var b = (root.getAttribute("data-b") || "").trim(); var r = bDpLcs(a, b); return { a: a, b: b, m: r.m, n: r.n, fillStep: r.fillStep, rowHeads: r.rowHeads, colHeads: r.colHeads, steps: r.steps }; },

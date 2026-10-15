@@ -57,13 +57,6 @@
   "пресет «одна монета» — шаг 31, строка 7: if c <= a && dp[a-c]+1 < best {",
   "пресет «сдачу не дать» — шаг 16, строка 7: if c <= a && dp[a-c]+1 < best {"
  ],
- "dp-lcs": [
-  "глава dynamic-programming.md (a=AGCAT; b=GAC) — шаг 4, строка 5: if a[i-1] == b[j-1] {",
-  "глава dynamic-programming.md (a=AGCAT; b=GAC) — шаг 10, строка 5: if a[i-1] == b[j-1] {",
-  "глава dynamic-programming.md (a=AGCAT; b=GAC) — шаг 17, строка 5: if a[i-1] == b[j-1] {",
-  "глава dynamic-programming.md (a=AGCAT; b=GAC) — шаг 34, строка 5: if a[i-1] == b[j-1] {",
-  "глава dynamic-programming.md (a=AGCAT; b=GAC) — шаг 40, строка 5: if a[i-1] == b[j-1] {"
- ],
  "gc-mark": [
   "глава go-runtime.md () — шаг 20, строка 6: if c.color == white {",
   "глава go-runtime.md () — шаг 24, строка 5: for _, c := range o.pointers {",
@@ -256,12 +249,6 @@
  ],
  "mst-kruskal": [
   "глава advanced-graph-algorithms.md (nodes=A,B,C,D,E; edges=A-B-2,A-D-6,B-C-3,B-D-8,B-E-5,C-E-7,D-E-9) — шаг 17, строка 6: if uf.Union(e.u, e.v) { // разные компоненты?"
- ],
- "num-provinces": [
-  "глава graphs.md (nodes=0,1,2,3,4,5,6,7; edges=0-1,1-2,3-4,5-6,6-7,5-7) — шаг 12, строка 8: if isConnected[v][u] == 1 && !visited[u] {",
-  "глава graphs.md (nodes=0,1,2,3,4,5,6,7; edges=0-1,1-2,3-4,5-6,6-7,5-7) — шаг 14, строка 15: if !visited[i] {",
-  "глава graphs.md (nodes=0,1,2,3,4,5,6,7; edges=0-1,1-2,3-4,5-6,6-7,5-7) — шаг 23, строка 8: if isConnected[v][u] == 1 && !visited[u] {",
-  "глава graphs.md (nodes=0,1,2,3,4,5,6,7; edges=0-1,1-2,3-4,5-6,6-7,5-7) — шаг 38, строка 8: if isConnected[v][u] == 1 && !visited[u] {"
  ],
  "pg-join-hash": [
   "глава postgres-plans.md (users=1-8; orders=r14; filter=0) — шаг 29, строка 8: for _, u := range h[o.UserID] {",

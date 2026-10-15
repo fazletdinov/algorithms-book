@@ -1650,6 +1650,7 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__legdot--ready { background: color-mix(in srgb, #2e9b57 35%, transparent); border: 2px solid #2e9b57; }
 .algo-tp__legdot--goneln { background: transparent; border: 2px dashed #888; border-radius: 3px; }
 .algo-viz__gnode--nb { stroke: #e0a500; stroke-width: 3.5; stroke-dasharray: 4 3; }
+.algo-tp__legdot--gnb { background: transparent; border: 2px dashed #e0a500; border-radius: 50%; }
 /* Провинции: у каждой компоненты свой цвет */
 .algo-viz__gnode--c0 { fill: #3b82f6; stroke: #3b82f6; }
 .algo-viz__gnode--c1 { fill: #16a34a; stroke: #16a34a; }
@@ -2226,6 +2227,12 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__dheadt { font-size: 0.9em; }
 .algo-tp__dheads { font-size: 0.72em; font-weight: 600; opacity: 0.75; white-space: nowrap; }
 .algo-tp__dcell--path { outline: 2px solid #e0a500; outline-offset: 1px; }
+/* LCS: буквы-заголовки — текущая строка/столбец, исход сравнения, буквы ответа в финале */
+.algo-tp__dhead--on { opacity: 1; color: var(--tp-lo); box-shadow: inset 0 -2px 0 var(--tp-lo); }
+.algo-tp__dhead--eq { opacity: 1; background: var(--tp-ok); color: #fff; border-radius: 6px; }
+.algo-tp__dhead--ne { opacity: 1; background: color-mix(in srgb, var(--tp-bad) 28%, transparent); color: var(--fg, #c9d1d9); border-radius: 6px; box-shadow: inset 0 0 0 2px var(--tp-bad); }
+.algo-tp__dhead--lcs { opacity: 1; color: #e0a500; border-radius: 6px; box-shadow: inset 0 0 0 2px #e0a500; }
+.algo-tp__legdot--dheq { background: linear-gradient(90deg, var(--tp-ok) 50%, var(--tp-bad) 50%); border-color: transparent; border-radius: 3px; }
 .algo-tp__dpcard { max-width: 34em; margin: 0.2em auto 0.6em; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--tp-border); background: color-mix(in srgb, var(--tp-panel2) 70%, transparent); font-variant-numeric: tabular-nums; }
 .algo-tp__dpcard--off { visibility: hidden; }
 .algo-tp__dpcardt { font-size: 0.8em; font-weight: 700; opacity: 0.8; margin-bottom: 3px; }
