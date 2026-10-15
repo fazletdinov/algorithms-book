@@ -198,6 +198,11 @@ const YES_EMPTY_BODY = new Set([
   "string-match-naive|9",  // тело — append без кадра; следующий кадр — заголовок внешнего for
   "mutex-bits|10",         // быстрый путь CAS: тело — return без кадра
   "route-match|7",         // условие само вызывает c.match(...): следующие кадры — строки рекурсивного вызова
+  // ниже — встречи без вопроса (их ключи сверяются с этапа 4, когда вопрос стал выборкой):
+  "three-sum-naive|4",     // i = n−1: цикл по j без итераций — тело кадра не даёт
+  "three-sum-naive|5",     // j = n−1: цикл по k без итераций — тело кадра не даёт
+  "jump-game-dp|5",        // последнее i: кадра строки `if !reachable[i]` у генератора нет, внутренний цикл пуст
+  "count-inversions-naive|3", // i = n−1: цикл по j без итераций
 ]);
 // Таймлайн горутин: следующий кадр — ДРУГАЯ горутина, и «внутри тела» по нему ничего не значит.
 // Исход назван генератором; правило (3) «явное нет при следующем кадре в теле» здесь не действует:
@@ -250,6 +255,18 @@ async function keyAudit() {
       if (a !== b) { c.dep++; bad.push(`${where} — выбор вопросов зависит от исхода: [${a}] против [${b}] при перевёрнутых исходах`); }
     } else bad.push(`${where} — движок не отдал встречи (cand) или predChoose`);
     if (!label) { askUsed[t.type] = askUsed[t.type] || { lines: askLines, used: new Set() }; }
+    // Ключи НЕзаданных встреч сверяются теми же правилами (1)–(4): вопрос задаётся выборкой, и без этого
+    // перевёрнутый явный исход на невыбранной встрече (кадр выхода из цикла) был бы невидим проверке.
+    for (const q of p.cand || []) {
+      if (p.qs[q.at]) continue;
+      const next = p.lines[q.at + 1], inside = insideByIndent(p.code, q.line, next), id = `${t.type}|${q.line + 1}`;
+      const at = `${where}, шаг ${q.at + 1} (без вопроса), строка ${q.line + 1} «${p.code[q.line].trim()}»`;
+      if (!q.said && q.entered !== inside) bad.push(`${at} — ключ «${q.entered ? "да" : "нет"}», а следующий шаг ${inside ? "внутри" : "вне"} тела`);
+      if (q.said && !q.entered && inside && !INTERLEAVED.has(id)) bad.push(`${at} — генератор назвал исход «нет», а следующий шаг внутри тела`);
+      if (q.said && q.entered && !inside && !YES_EMPTY_BODY.has(id)) bad.push(`${at} — генератор назвал исход «да», а следующий шаг вне тела`);
+      const o = STALE_CHIP.has(id) ? null : oracle(p.code[q.line], p.chips(q.at));
+      if (o != null && o !== q.entered) bad.push(`${at} — ключ «${q.entered ? "да" : "нет"}», а по чипам условие ${o ? "истинно" : "ложно"}`);
+    }
     for (const k of Object.keys(p.qs)) {
       const q = p.qs[k], next = p.lines[+k + 1], code = p.code[q.line].trim(), key = q.entered ? "да" : "нет";
       const at = `${where}, шаг ${+k + 1}, строка ${q.line + 1} «${code}»`, inside = insideByIndent(p.code, q.line, next);
