@@ -332,6 +332,68 @@ async function tocChecks(declaredLevels) {
   verify(d2, "оглавление, вставленное позже");
   d.window.close();
   d2.window.close();
+
+  // 3) ссылка с «./» и с якорем ведёт на тот же файл главы: markToc отрезает якорь и путь
+  {
+    const odd = { "./deque-structure.html": "ext", "avl-tree-structure.html#раздел": "ref", "./sliding-window.html#x": "" };
+    const d3 = await pageDom("sliding-window.html", { menu: toc(Object.keys(odd)) });
+    for (const h of Object.keys(odd)) {
+      const a = d3.window.document.querySelector(`.chapter a[href="${h}"]`);
+      const got = a ? [...a.classList].filter((c) => c.startsWith("algo-toc")).join() : "нет ссылки";
+      const want = odd[h] ? "algo-toc--" + odd[h] : "";
+      if (got !== want) errors.push(`оглавление: у ссылки ${h} классы «${got}», ожидалось «${want}»`);
+    }
+    d3.window.close();
+  }
+
+  // 4) наблюдатель: один, на коробке оглавления (а не на всём body, где меняется каждый виджет), и после
+  //    разметки или срока отключается и забывается — повторный initToc без ссылок заводит новый, а не молчит.
+  //    Подставной MutationObserver считает наблюдателей; таймер срока (5000 мс) перехватывается и зовётся руками.
+  const spy =
+    "window.__toc = { made: 0, active: 0, targets: [], timers: [] };" +
+    "(function () { var MO = window.MutationObserver, s = window.__toc, st = window.setTimeout;" +
+    "  window.MutationObserver = function (cb) { var o = new MO(cb), on = false; s.made++; return {" +
+    "    observe: function (t, opt) { if (!on) { on = true; s.active++; } s.targets.push(t.tagName.toLowerCase()); o.observe(t, opt); }," +
+    "    disconnect: function () { if (on) { on = false; s.active--; } o.disconnect(); } }; };" +
+    "  window.setTimeout = function (fn, ms) { if (ms === 5000) { s.timers.push(fn); return 0; } return st.apply(window, arguments); };" +
+    "})();";
+  const fireTimers = (dd, where) => {
+    const t = dd.window.__toc.timers.splice(0);
+    for (const fn of t) {
+      try { fn(); } catch (e) { errors.push(`${where}: срок наблюдателя бросил «${e.message}»`); }
+    }
+  };
+  {
+    // а) коробка оглавления есть, ссылки придут позже
+    const d4 = await pageDom("sliding-window.html", { menu: '<mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>', before: spy });
+    const s = d4.window.__toc;
+    if (typeof d4.window.ALGO_INIT_TOC !== "function") errors.push("window.ALGO_INIT_TOC не экспортирован");
+    else {
+      if (s.targets.join() !== "mdbook-sidebar-scrollbox") errors.push(`наблюдатель оглавления смотрит на «${s.targets.join()}», ожидалась коробка mdbook-sidebar-scrollbox`);
+      d4.window.ALGO_INIT_TOC();
+      if (s.made !== 1 || s.active !== 1) errors.push(`повторный initToc до ссылок: наблюдателей заведено ${s.made}, активно ${s.active}, ожидался один`);
+      d4.window.document.querySelector("mdbook-sidebar-scrollbox").innerHTML = toc(sample).replace(/<\/?mdbook-sidebar-scrollbox[^>]*>/g, "");
+      await new Promise((r) => setTimeout(r, 50));
+      verify(d4, "ссылки, пришедшие в пустую коробку");
+      if (s.active !== 0) errors.push(`после разметки оглавления наблюдатель не отключился (активно ${s.active})`);
+      d4.window.ALGO_INIT_TOC();
+      if (s.made !== 1) errors.push(`повторный initToc после разметки завёл второй наблюдатель (заведено ${s.made})`);
+      fireTimers(d4, "после разметки");
+    }
+    d4.window.close();
+
+    // б) коробки нет вовсе — наблюдатель на body; срок вышел, ссылок нет — повторный initToc снова ждёт
+    const d5 = await pageDom("sliding-window.html", { before: spy });
+    const s5 = d5.window.__toc;
+    if (s5.targets.join() !== "body") errors.push(`без коробки оглавления наблюдатель смотрит на «${s5.targets.join()}», ожидался body`);
+    fireTimers(d5, "срок без ссылок");
+    if (s5.active !== 0) errors.push(`по сроку наблюдатель не отключился (активно ${s5.active})`);
+    if (typeof d5.window.ALGO_INIT_TOC === "function") {
+      d5.window.ALGO_INIT_TOC();
+      if (s5.made !== 2 || s5.active !== 1) errors.push(`после срока повторный initToc: заведено ${s5.made}, активно ${s5.active} — отключённый наблюдатель не забыт, ожидались 2 и 1`);
+    }
+    d5.window.close();
+  }
 }
 
 // Галочка «Глава пройдена» в конце главы: тот же реестр и те же ключи, что у трекера.

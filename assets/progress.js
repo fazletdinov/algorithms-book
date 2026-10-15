@@ -543,16 +543,24 @@
     }
     return links.length > 0;
   }
+  // Наблюдатель смотрит на коробку оглавления mdBook, если она уже в документе: на body его будил бы
+  // каждый шаг любого виджета. После разметки или срока он отключается и забывается (tocWatch = null),
+  // чтобы повторный initToc мог завести новый, а запоздалый срок не трогал уже чужой.
   function initToc() {
     if (markToc() || tocWatch || typeof MutationObserver === "undefined") return;
-    tocWatch = new MutationObserver(function () {
-      if (!markToc()) return;
-      tocWatch.disconnect();
+    var watch = new MutationObserver(function () {
+      if (markToc()) stop();
     });
-    tocWatch.observe(document.body, { childList: true, subtree: true });
-    setTimeout(function () { tocWatch.disconnect(); }, 5000);
+    function stop() {
+      watch.disconnect();
+      if (tocWatch === watch) tocWatch = null;
+    }
+    tocWatch = watch;
+    watch.observe(document.querySelector("mdbook-sidebar-scrollbox") || document.body, { childList: true, subtree: true });
+    setTimeout(stop, 5000);
   }
   window.ALGO_MARK_TOC = markToc;
+  window.ALGO_INIT_TOC = initToc;
 
   // Галочка «Глава пройдена» в конце главы. Раньше отметить главу можно было только в трекере на
   // шпаргалке — на другой странице, до которой ещё надо дойти; отметку забывали, и карточка главы
