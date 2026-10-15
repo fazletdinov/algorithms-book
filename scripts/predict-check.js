@@ -20,7 +20,8 @@
 //   7) ключи всех виджетов книги — на входах глав и на всех пресетах. Что именно держится:
 //      • ключ «да» выводится по вхождению следующего шага в тело блока — это надёжно
 //        (вошли в тело — условие истинно); движок считает по парной скобке, проверка —
-//        независимо, по отступам листинга;
+//        независимо, по отступам листинга. Исключение — таймлайны горутин: следующий кадр там
+//        бывает другой горутиной, поэтому исход назван генератором (INTERLEAVED ниже);
 //      • ключ «нет» по следующему шагу НЕНАДЁЖЕН: шаг вне тела бывает и при ложном
 //        условии, и при истинном с телом без кадров (вложенный цикл без итераций,
 //        `continue`, `return`). Поэтому «нет» считается подтверждённым, только если его
@@ -50,7 +51,11 @@
 //      первый промах без карточки заводит её на начало завтра, без оценки, и чистый проход в тот же день
 //      её не оценивает;
 //  11) якорь: id корня viz-<номер на странице> по порядку документа (с неактивными вкладками), занятый id
-//      не перебивается; «страница#якорь» открывает вкладку и <details> виджета и прокручивает к нему.
+//      не перебивается; «страница#якорь» открывает вкладку и <details> виджета и прокручивает к нему;
+//  12) вопрос без подсказок: строка с надёжным ключом спрашивается и повтором с тем же исходом (до
+//      PRED_REPEAT встреч; выведенное «нет» повтором — никогда), строка из cfg.ask — своей формулировкой
+//      (каждая запись спрошена хоть раз на входе главы), хвоста «Посмотри на значения в чипах» нет; пока
+//      вопрос открыт, у корня algo-tp--asking (CSS прячет [data-pred-hide]); кривой cfg.ask — ошибка сборки.
 //
 //   node scripts/predict-check.js --report   # напечатать текущий список неподтверждённых
 //                                            # «нет» в формате predict-unconfirmed.json
@@ -192,6 +197,11 @@ const YES_EMPTY_BODY = new Set([
   "mutex-bits|10",         // быстрый путь CAS: тело — return без кадра
   "route-match|7",         // условие само вызывает c.match(...): следующие кадры — строки рекурсивного вызова
 ]);
+// Таймлайн горутин: следующий кадр — ДРУГАЯ горутина, и «внутри тела» по нему ничего не значит.
+// Исход назван генератором; правило (3) «явное нет при следующем кадре в теле» здесь не действует:
+const INTERLEAVED = new Set([
+  "bfs-local-timeline|3", // G3 проигрывает CAS («занято»), следующий кадр — append победителя G1
+]);
 // «Нет», выведенное по следующему шагу и не подтверждённое ни оракулом, ни явным исходом
 // генератора (s.branch): шаг вне тела бывает и при ложном условии, и при истинном с телом
 // без кадров. Каждый такой вопрос записан поимённо в predict-unconfirmed.json — это список
@@ -220,17 +230,33 @@ async function keyAudit() {
     for (const m of fs.readFileSync(path.join(root, "src", f), "utf8").matchAll(/<div class="algo-viz"[^>]*><\/div>/g)) tags.push({ f, tag: m[0], type: m[0].match(/data-viz="([^"]+)"/)[1] });
   }
   const bad = [], cover = {}, loose = {};
-  ["главы", "пресеты"].forEach((s) => { cover[s] = { runs: 0, all: 0, yes: 0, yesSaid: 0, yesOracle: 0, noOracle: 0, noSaid: 0, noLoose: 0 }; });
+  ["главы", "пресеты"].forEach((s) => { cover[s] = { runs: 0, all: 0, yes: 0, yesSaid: 0, yesOracle: 0, noOracle: 0, noSaid: 0, noLoose: 0, again: 0, flip: 0, same: 0, sameLoose: 0 }; });
+  const askUsed = {}; // тип → строки cfg.ask, на которых на входах глав задан вопрос
   function audit(scope, t, label, node) {
     const p = node.__algoPredict, c = cover[scope], where = `${t.f}: ${t.type}${label ? `, пресет «${label}»` : ""}`;
     if (!p) { bad.push(`${where} — движок не отдал __algoPredict`); return; }
     c.runs++;
+    const lastAt = {};
+    const askLines = p.askLines || [];
+    if (!label) { askUsed[t.type] = askUsed[t.type] || { lines: askLines, used: new Set() }; }
     for (const k of Object.keys(p.qs)) {
       const q = p.qs[k], next = p.lines[+k + 1], code = p.code[q.line].trim(), key = q.entered ? "да" : "нет";
       const at = `${where}, шаг ${+k + 1}, строка ${q.line + 1} «${code}»`, inside = insideByIndent(p.code, q.line, next);
       if (!q.said && q.entered !== inside) bad.push(`${at} — ключ «${key}», а следующий шаг (строка ${next + 1}) ${inside ? "внутри" : "вне"} тела`);
-      if (q.said && !q.entered && inside) bad.push(`${at} — генератор назвал исход «нет», а следующий шаг (строка ${next + 1}) внутри тела`);
+      if (q.said && !q.entered && inside && !INTERLEAVED.has(`${t.type}|${q.line + 1}`)) bad.push(`${at} — генератор назвал исход «нет», а следующий шаг (строка ${next + 1}) внутри тела`);
       if (q.said && q.entered && !inside && !YES_EMPTY_BODY.has(`${t.type}|${q.line + 1}`)) bad.push(`${at} — генератор назвал исход «да», а следующий шаг (строка ${next + 1}) вне тела: если тело здесь законно без кадра, впиши «${t.type}|${q.line + 1}» в YES_EMPTY_BODY с причиной`);
+      // формулировка: строка из cfg.ask — её вопрос, со знаком вопроса; без записи — общая
+      if (!!q.own !== askLines.includes(q.line)) bad.push(`${at} — вопрос ${q.own ? "из cfg.ask, а строки там нет" : "общий, хотя у строки есть cfg.ask"}`);
+      if (!/\?/.test(q.ask || "") || !q.yes || !q.no) bad.push(`${at} — вопрос «${q.ask}» без знака вопроса или без ответов`);
+      if (q.own && !label) askUsed[t.type].used.add(q.line);
+      // повтор строки: исход тот же, что у прошлого вопроса этой строки, — допустим только при надёжном
+      // ключе (явный исход или «да» по вхождению в тело); выведенное «нет» повтором не спрашивается
+      if (q.line in lastAt) {
+        c.again++;
+        if (lastAt[q.line] !== q.entered) c.flip++;
+        else { c.same++; if (!q.said && !q.entered) { c.sameLoose++; bad.push(`${at} — повтор с тем же исходом при выведенном «нет»: такой ключ спрашивается только при первой встрече и смене исхода`); } }
+      }
+      lastAt[q.line] = q.entered;
       const chips = p.chips(+k), o = STALE_CHIP.has(`${t.type}|${q.line + 1}`) ? null : oracle(p.code[q.line], chips);
       if (o != null && o !== q.entered) bad.push(`${at} — ключ «${key}», а по чипам ${JSON.stringify(chips)} условие ${o ? "истинно" : "ложно"}`);
       c.all++;
@@ -283,7 +309,10 @@ async function keyAudit() {
       list.filter((e) => !have.has(e)).forEach((e) => bad.push(`${type}: «${e}» больше не встречается (ключ подтверждён или вопрос исчез) — убери из scripts/predict-unconfirmed.json`));
     }
   }
-  return { bad, cover, widgets: tags.length, presetTypes, list: now, listedCount };
+  // запись cfg.ask, на которой ни на одном входе главы вопрос не задаётся, — мёртвая формулировка
+  for (const [type, a] of Object.entries(askUsed)) a.lines.filter((n) => !a.used.has(n)).forEach((n) => bad.push(`${type}: cfg.ask[${n}] — на входах глав вопроса на строке ${n + 1} нет ни разу`));
+  const askTypes = Object.values(askUsed).filter((a) => a.lines.length).length;
+  return { bad, cover, widgets: tags.length, presetTypes, list: now, listedCount, askTypes };
 }
 
 // 8) вход в цикл: эталон — свой прогон Флойда со счётчиком шагов slow. До встречи slow
@@ -525,6 +554,57 @@ async function anchorMismatches() {
   return bad;
 }
 
+// 12) вопрос без подсказок. (а) Строка с надёжным ключом спрашивается и на повторной встрече с тем же
+// исходом (до PRED_REPEAT встреч): раньше повтор был только при смене исхода, и каждый повторный вопрос
+// угадывался чередованием. Окно переменной длины на входе главы — `for len(freq) > k`: «нет» подряд.
+// (б) Строка из cfg.ask спрашивается своей формулировкой, а не общей, хвоста «Посмотри на значения в
+// чипах» нет. (в) Пока вопрос открыт, у корня класс algo-tp--asking (CSS прячет [data-pred-hide] —
+// сравнение «> k → сжимаем» на панели map), после ответа его нет. (г) Кривой cfg.ask — ошибка сборки:
+// строка не развилка или вопрос без «?» (мутант исходника, как его написал бы автор).
+async function askMismatches() {
+  const bad = [];
+  const T = tagOf("sliding-window.md", "sliding-window-var"), SHRINK = 5;
+  const d = pageWith(T, "http://localhost:3000/sliding-window.html", { algoVizPredict: "1" });
+  await ready(d);
+  const W = d.window, v = W.document.querySelector(".algo-viz"), p = v.__algoPredict;
+  const onShrink = Object.values(p.qs).filter((q) => q.line === SHRINK);
+  if (!onShrink.some((q, i) => i > 0 && q.entered === onShrink[i - 1].entered)) bad.push(`(а) «for len(freq) > k»: вопросы ${JSON.stringify(onShrink.map((q) => q.entered))} — повтора с тем же исходом нет`);
+  const at = () => +v.querySelector(".algo-viz__counter").textContent.match(/(\d+)\s*\//)[1];
+  let seenShrink = false, seenOther = false;
+  for (let g = 0; g < 400 && at() < p.lines.length; g++) {
+    v.querySelector(".algo-tp__nextbtn").dispatchEvent(new W.MouseEvent("click", { bubbles: true }));
+    const box = v.querySelector(".algo-tp__pred");
+    if (!box) { if (v.classList.contains("algo-tp--asking")) bad.push(`(в) шаг ${at()}: вопроса нет, а класс algo-tp--asking остался`); continue; }
+    const q = p.qs[at()], text = box.querySelector(".algo-tp__predq").textContent, ans = [...box.querySelectorAll(".algo-tp__predans")].map((b) => b.textContent);
+    if (/Посмотри на значения/.test(box.textContent)) bad.push(`(б) шаг ${at()}: в вопросе остался хвост «Посмотри на значения в чипах»`);
+    if (text !== q.ask || ans.join("|") !== q.yes + "|" + q.no) bad.push(`(б) шаг ${at()}: на экране «${text}» [${ans.join(" | ")}], а у вопроса «${q.ask}» [${q.yes} | ${q.no}]`);
+    if (q.line === SHRINK) {
+      seenShrink = true;
+      if (text !== "Окно придётся сжимать?") bad.push(`(б) шаг ${at()}: на строке «for len(freq) > k» вопрос «${text}», а в cfg.ask — «Окно придётся сжимать?»`);
+    } else seenOther = true;
+    if (!v.classList.contains("algo-tp--asking")) bad.push(`(в) шаг ${at()}: вопрос открыт, а у корня нет algo-tp--asking`);
+    if (!v.querySelector(".algo-tp__mapsize [data-pred-hide]")) bad.push(`(в) шаг ${at()}: сравнение len(freq) с k не помечено data-pred-hide`);
+    box.querySelectorAll(".algo-tp__predans")[q.entered ? 0 : 1].dispatchEvent(new W.MouseEvent("click", { bubbles: true }));
+    if (v.classList.contains("algo-tp--asking")) bad.push(`(в) шаг ${at()}: ответ дан, а algo-tp--asking остался`);
+  }
+  if (!seenShrink || !seenOther) bad.push(`(б) проход не встретил ${seenShrink ? "общего вопроса" : "вопроса на «for len(freq) > k»"} — проверка пуста`);
+  W.close();
+  // (г) мутанты cfg.ask: строка-не-развилка (4 — freq[s[right]]++) и вопрос без «?»
+  const ASK = 'ask: { 5: { q: "Окно придётся сжимать?"';
+  if (!js.includes(ASK)) { bad.push(`(г) в algo-viz.js нет записи ${ASK} — мутанты не построить`); return bad; }
+  for (const [what, mut, want] of [["строка не развилка", js.replace(ASK, 'ask: { 4: { q: "Окно придётся сжимать?"'), /не развилка/],
+    ["вопрос без знака вопроса", js.replace(ASK, 'ask: { 5: { q: "Окно придётся сжимать"'), /нет знака вопроса/]]) {
+    const m = new JSDOM(`<!DOCTYPE html><html><body>${T}<script>${mut}</script>${infraScriptTags(root)}</body></html>`, {
+      runScripts: "dangerously", virtualConsole: new VirtualConsole(), pretendToBeVisual: true, url: "http://localhost:3000/x.html",
+    });
+    await ready(m);
+    const el = m.window.document.querySelector(".algo-viz"), note = el.querySelector(".algo-tp__note");
+    if (el.__algoPredict || !note || !want.test(note.textContent)) bad.push(`(г) ${what}: виджет ${el.__algoPredict ? "собрался" : "не собрался"}, сообщение «${note ? note.textContent : "—"}» — ожидалась ошибка сборки`);
+    m.window.close();
+  }
+  return bad;
+}
+
 setTimeout(async () => {
   const keys = await keyAudit();
   if (REPORT) { console.log(JSON.stringify(keys.list, null, 1)); process.exit(0); }
@@ -532,7 +612,7 @@ setTimeout(async () => {
   expect(keys.cover["главы"].all > 0 && keys.cover["пресеты"].all > 0, "ключи: на входах глав или на пресетах не нашлось ни одного вопроса 🎯 — сверка пуста");
   const coverage = Object.keys(keys.cover).map((s) => {
     const c = keys.cover[s];
-    return `${s} — ${c.all} вопросов в ${c.runs} прогонах: «да» ${c.yes} (из них по явному исходу ${c.yesSaid}, остальные — по вхождению в тело; по чипам совпало ${c.yesOracle}), «нет» по чипам ${c.noOracle}, «нет» по явному исходу ${c.noSaid}, «нет» по списку прочитанных ${c.noLoose}`;
+    return `${s} — ${c.all} вопросов в ${c.runs} прогонах (повторных по строке ${c.again}: противоположны прошлому ${c.flip}, тот же исход ${c.same}): «да» ${c.yes} (из них по явному исходу ${c.yesSaid}, остальные — по вхождению в тело; по чипам совпало ${c.yesOracle}), «нет» по чипам ${c.noOracle}, «нет» по явному исходу ${c.noSaid}, «нет» по списку прочитанных ${c.noLoose}`;
   }).join("; ");
 
   // до включения режима: с 🎯 «›» вставал бы на вопросах
@@ -649,6 +729,7 @@ setTimeout(async () => {
 
   (await engineMismatches()).forEach((b) => fails.push("движок повторений: " + b));
   (await anchorMismatches()).forEach((b) => fails.push("якорь виджета: " + b));
+  (await askMismatches()).forEach((b) => fails.push("вопрос 🎯: " + b));
 
   // 6) автопроигрывание на 4× останавливается на первом вопросе
   key(el, "Home");
@@ -671,6 +752,6 @@ setTimeout(async () => {
     console.error("❌ predict-check:\n  - " + fails.join("\n  - "));
     process.exit(1);
   }
-  console.log(`✅ predict-check: без режима листается как раньше; с 🎯 на развилках «›» ждёт ответа, ответ сверяется со следующим шагом (${asked} вопросов: ${right} верно, ${wrong} промахов записано), счёт и промахи сходятся, автопроигрывание встаёт на вопросе, у виджета без развилок кнопка выключена; исход прохода уходит в report — промах «Забыл», чистый проход «Помню», по разу за проход (и в настоящем srs.js); якорь viz-N открывает вкладку и <details> виджета; a, b, L входа в цикл сошлись со своим прогоном Флойда на ${cyc.runs} входах.\n   Ключи (${keys.widgets} виджетов глав; пресеты ${keys.presetTypes} типов): ${coverage}. Выведенные ключи сошлись с отступами листинга, вычислимые по чипам — с оракулом; каждое «нет» без оракула и без явного исхода стоит в predict-unconfirmed.json (${keys.listedCount} записей, лишних и недостающих нет). На своём вводе читателя выведенное «нет» не спрашивается.`);
+  console.log(`✅ predict-check: без режима листается как раньше; с 🎯 на развилках «›» ждёт ответа, ответ сверяется со следующим шагом (${asked} вопросов: ${right} верно, ${wrong} промахов записано), счёт и промахи сходятся, автопроигрывание встаёт на вопросе, у виджета без развилок кнопка выключена; исход прохода уходит в report — промах «Забыл», чистый проход «Помню», по разу за проход (и в настоящем srs.js); якорь viz-N открывает вкладку и <details> виджета; a, b, L входа в цикл сошлись со своим прогоном Флойда на ${cyc.runs} входах.\n   Ключи (${keys.widgets} виджетов глав; пресеты ${keys.presetTypes} типов): ${coverage}. Вопрос языком приёма (cfg.ask) — у ${keys.askTypes} типов, каждая запись спрошена на входе главы; строка с надёжным ключом спрашивается и повтором с тем же исходом, без хвоста-подсказки, а пока вопрос открыт, холст прячет [data-pred-hide]; кривой cfg.ask — ошибка сборки. Выведенные ключи сошлись с отступами листинга, вычислимые по чипам — с оракулом; каждое «нет» без оракула и без явного исхода стоит в predict-unconfirmed.json (${keys.listedCount} записей, лишних и недостающих нет). На своём вводе читателя выведенное «нет» не спрашивается.`);
   process.exit(0);
 }, 400);

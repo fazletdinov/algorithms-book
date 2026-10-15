@@ -2455,9 +2455,19 @@
   // «нет» — нет: шаг вне тела бывает и при истинном условии, если тело не дало кадра
   // (вложенный цикл без итераций, continue, return, запись без кадра). Поэтому генератор,
   // у которого такое возможно, ОБЯЗАН ставить s.branch; сверку держит predict-check.js.
-  // Спрашиваем при первой встрече строки и когда её исход сменился (цикл кончился,
-  // условие впервые ложно): на каждой развилке — утомительно (в ядре 777 развилок против
-  // 311 таких «переворотов»).
+  // Когда спрашивать (predictionQuestions): при первой встрече строки, при смене её исхода
+  // (цикл кончился, условие впервые ложно) и ещё на второй-третьей встрече с тем же исходом,
+  // если ключ надёжен (назван генератором или «да» по вхождению в тело). Раньше спрашивали
+  // только при смене исхода — и каждый повторный вопрос строки был противоположен прошлому:
+  // угадывалось чередованием «да / нет», не глядя на шаг. На каждой развилке подряд —
+  // утомительно (в ядре 777 развилок против 311 «переворотов», замер этапа 3a), поэтому повторы
+  // ограничены PRED_REPEAT встречами. Выведенное «нет» (ненадёжное) повтором не спрашивается:
+  // его спрашивают только первая встреча и смена исхода, как раньше, — так список прочитанных
+  // ключей predict-unconfirmed.json от этого правила не растёт.
+  // s.noAsk = true — генератор просит не спрашивать на этом шаге (вопрос ещё не на что
+  // опереть: сжатый siftDown до первого построчного спуска); исход строки запоминается, а
+  // встреча не считается.
+  var PRED_REPEAT = 3;
   function branchOf(line) {
     var t = String(line).replace(/\/\/.*$/, "").trim();
     if (!/\{$/.test(t)) return null;
@@ -2485,7 +2495,7 @@
   // onlySure — прогон на своём вводе читателя: выведенное «нет» там никем не прочитано и не
   // сверено, такой вопрос не задаётся (исход строки при этом запоминается, как обычно).
   function predictionQuestions(steps, code, onlySure) {
-    var qs = {}, last = {};
+    var qs = {}, last = {}, met = {};
     for (var k = 1; k + 1 < steps.length; k++) {
       var L = steps[k].line, M = steps[k + 1].line;
       if (typeof L !== "number" || typeof M !== "number" || M === L || !code[L]) continue;
@@ -2498,10 +2508,39 @@
         var E = blockEnd(code, L);
         entered = E < 0 ? M === L + 1 : (M > L && M < E);
       }
-      if ((!(L in last) || last[L] !== entered) && (!onlySure || said || entered)) qs[k] = { at: k, line: L, kind: b.kind, cond: b.cond, entered: entered, said: said };
+      if (steps[k].noAsk) { last[L] = entered; continue; }
+      met[L] = (met[L] || 0) + 1;
+      var fresh = !(L in last) || last[L] !== entered, sure = said || entered;
+      if ((fresh || (sure && met[L] <= PRED_REPEAT)) && (!onlySure || sure)) qs[k] = { at: k, line: L, kind: b.kind, cond: b.cond, entered: entered, said: said };
       last[L] = entered;
     }
     return qs;
+  }
+  // Формулировка вопроса. cfg.ask = { <номер строки листинга с 0>: { q, yes, no } } — вопрос
+  // языком приёма («Окно придётся сжимать?») и ответы — что будет дальше; каждое поле — строка
+  // или функция (шаг развилки, ctx) → строка (номер вершины, которой на экране ещё нет). Без
+  // записи — общая формулировка по виду развилки.
+  function predText(q, step, cfg, ctx) {
+    var a = cfg.ask && cfg.ask[q.line];
+    var pick = function (v, dflt) { return a && v != null ? String(typeof v === "function" ? v(step, ctx) : v) : dflt; };
+    return {
+      own: !!a,
+      q: pick(a && a.q, q.kind === "if" ? "Условие выполнится?" : (q.kind === "range" ? "Цикл по " + q.cond + " сделает ещё итерацию?" : "Условие цикла выполнится?")),
+      yes: pick(a && a.yes, q.kind === "if" ? "Да — войдём в ветку" : "Да — ещё итерация"),
+      no: pick(a && a.no, q.kind === "if" ? "Нет — пропустим" : "Нет — выйдем из цикла")
+    };
+  }
+  // Кривой cfg.ask — ошибка сборки виджета, а не молчаливая общая формулировка: строка не
+  // развилка листинга (вопрос там не задаётся никогда) или вопрос без знака вопроса.
+  function askProblems(cfg, code) {
+    var out = [];
+    Object.keys(cfg.ask || {}).forEach(function (n) {
+      var a = cfg.ask[n];
+      if (!code[n] || !branchOf(code[n])) out.push("cfg.ask[" + n + "]: строка " + (+n + 1) + " «" + String(code[n] || "").trim() + "» — не развилка if / for");
+      if (!a || a.q == null || a.yes == null || a.no == null) out.push("cfg.ask[" + n + "]: нужны q, yes и no");
+      else if (typeof a.q === "string" && a.q.indexOf("?") < 0) out.push("cfg.ask[" + n + "]: в вопросе «" + a.q + "» нет знака вопроса");
+    });
+    return out;
   }
 
   // ===== Общий степпер ========================================================
@@ -3750,6 +3789,9 @@
     for (var k = 0; k < E.length; k++) {
       steps.push({
         si: k, line: lineOf[k],
+        // все читают false — условие истинно у каждой; названо явно, как у CAS в bLocalTimeline:
+        // следующий кадр — чужая горутина, и вывод по нему верен лишь по совпадению
+        branch: lineOf[k] === 2 ? true : undefined,
         vars: { g: "G" + (E[k].lane + 1), act: E[k].label },
         info: infoOf[k],
         tl: { events: E, now: k, race: [0, lastWrite] }
@@ -3787,6 +3829,9 @@
     for (var k = 0; k < E.length; k++) {
       steps.push({
         si: k, line: lineOf[k],
+        // Исход CAS назван явно: следующий кадр — другая горутина (у G3 после неудачного CAS идёт
+        // append победителя G1), и вывод «вошли в тело» по следующему кадру давал G3 «да».
+        branch: lineOf[k] === 2 ? E[k].kind === "claim" : undefined,
         vars: { g: "G" + (E[k].lane + 1), act: E[k].label },
         info: infoOf[k],
         tl: { events: E, now: k, race: null }
@@ -7386,8 +7431,12 @@
       var v = { i: o.i == null ? "—" : o.i, size: o.size == null ? "—" : o.size, largest: o.largest == null ? "—" : o.largest, end: o.end == null ? "—" : o.end, "обменов": swaps };
       var s = { values: a.slice(), lo: o.lo == null ? -1 : o.lo, hi: o.hi == null ? -1 : o.hi, mid: o.mid == null ? -1 : o.mid, kids: o.kids || null, sorted: sorted, ptrNames: o.ptrNames, line: o.line, vars: v, info: o.info, done: o.done };
       if (typeof o.branch === "boolean") s.branch = o.branch;
+      if (o.noAsk) s.noAsk = true;
       steps.push(s);
     }
+    // Остановка сжатого вызова ДО первого построчного спуска — без вопроса 🎯: строки сравнения
+    // детей читатель ещё не видел, и «largest == i?» спрашивало бы о том, чего на экране не было.
+    var lineByLine = false;
     // Тело siftDown построчно — только в ПЕРВОМ СПУСКЕ фазы: в первом вызове, который опускает
     // узел хотя бы на уровень (вызов, где узел уже на месте, строки обмена не показал бы). Нет
     // такого — построчно первый вызов фазы. В фазе 2 построчным берётся первый вызов, где на одном
@@ -7435,7 +7484,7 @@
           var kidsTxt = kids.length === 2 ? "дети " + a[l] + " и " + a[r] + ", больший " + a[big] : kids.length ? "ребёнок один — " + a[l] : "";
           pre = "";
           if (largest === i) {
-            snap(base({ line: 19, largest: largest, hi: largest, branch: true, info: head + (big >= 0 ? kidsTxt + " ≤ " + a[i] + " → стоп: узел не меньше детей" : "детей в куче нет (l = " + l + " ≥ size = " + size + ") → стоп") }));
+            snap(base({ line: 19, largest: largest, hi: largest, branch: true, noAsk: !lineByLine, info: head + (big >= 0 ? kidsTxt + " ≤ " + a[i] + " → стоп: узел не меньше детей" : "детей в куче нет (l = " + l + " ≥ size = " + size + ") → стоп") }));
             return;
           }
           var up = a[largest], down = a[i];
@@ -7444,6 +7493,7 @@
           i = largest;
           continue;
         }
+        lineByLine = true;
         snap(base({ line: 12, largest: largest, hi: largest, info: "l = " + l + ", r = " + r + (kids.length ? " — дети a[" + i + "] = " + a[i] + ": " + kids.map(function (c) { return "a[" + c + "] = " + a[c]; }).join(", ") : " — детей в куче нет (≥ size = " + size + ")") + "; largest = i" }));
         var lBig = l < size && a[l] > a[largest];
         snap(base({ line: 13, largest: largest, hi: largest, branch: lBig, info: l < size ? "Левый ребёнок a[" + l + "] = " + a[l] + (lBig ? " > " : " ≤ ") + "a[largest] = " + a[largest] + (lBig ? " — да" : " — нет") : "l = " + l + " ≥ size — левого ребёнка нет" }));
@@ -10819,6 +10869,10 @@
       legend: [{ cls: "frcmp", label: "рамка — живые числа [lo, hi]; ярлык — sum против target: обведён зелёным — сумма мала, сдвинется lo; голубым — велика, сдвинется hi; залит зелёным — пара найдена" }, { cls: "dim", nn: "dim", label: "отброшено: в пару не входит" }, { cls: "found", nn: "found", label: "найденная пара" }],
       frames: 1,
       valuesLabel: "Массив (отсортирован)", codeKey: "two-pointers-sum", fillRange: false,
+      ask: {
+        4: { q: "Пара даёт ровно target?", yes: "Да — ответ найден", no: "Нет — сдвинем один из указателей" },
+        6: { q: "Сумма меньше target?", yes: "Да — нужна сумма больше: lo++", no: "Нет — сумма больше: hi--" }
+      },
       ptr1: { name: "lo", cap: "(левый)" }, ptr2: { name: "hi", cap: "(правый)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Отсортированных массивов" },
       varOrder: ["lo", "hi", "arr[lo]", "arr[hi]", "sum", "target"],
@@ -11032,6 +11086,8 @@
       desc: "Самая длинная подстрока, где не более k различных символов (переменное окно).",
       legend: [{ cls: "span", nn: "span", label: "внутри окна" }, { cls: "found", nn: "found", label: "границы лучшего окна" }],
       valuesLabel: "Строка", codeKey: "sliding-window-var", fillRange: true,
+      // 🎯 языком приёма (cfg.ask: номер строки листинга с 0 → вопрос и ответы — что будет дальше)
+      ask: { 5: { q: "Окно придётся сжимать?", yes: "Да — разных символов больше k: двигаем left", no: "Нет — окно годится: обновляем maxLen" } },
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(n)", space: "O(k)", good: "★ Подстрок под условие" },
       varOrder: ["left", "right", "len(freq)", "maxLen"],
@@ -11106,7 +11162,10 @@
           var over = live > ctx.k;
           size.innerHTML = "";
           size.appendChild(mkEl("span", "algo-tp__mapsizek", "len(freq) = " + live));
-          size.appendChild(mkEl("span", "algo-tp__mapsizecmp" + (over ? " algo-tp__mapsizecmp--bad" : " algo-tp__mapsizecmp--ok"), (over ? " > " : " ≤ ") + "k = " + ctx.k + (over ? "  → окно невалидно, сжимаем" : "  → окно валидно")));
+          // сравнение с k — готовый ответ на вопрос 🎯 «Окно придётся сжимать?»: пока он открыт, прячется
+          var cmp = mkEl("span", "algo-tp__mapsizecmp" + (over ? " algo-tp__mapsizecmp--bad" : " algo-tp__mapsizecmp--ok"), (over ? " > " : " ≤ ") + "k = " + ctx.k + (over ? "  → окно невалидно, сжимаем" : "  → окно валидно"));
+          cmp.setAttribute("data-pred-hide", "");
+          size.appendChild(cmp);
         };
       }
     },
@@ -11151,6 +11210,7 @@
       legend: [{ cls: "span", nn: "span", label: "окно [left..right]" }, { cls: "frcmp", label: "рамка окна, ярлык — sum против target: обведён зелёным — сожмём слева (left), голубым — расширим (right); залит зелёным — окно короче best" }, { cls: "frleft", label: "лучшее окно (пунктир)" }, { cls: "found", nn: "found", label: "ответ — кратчайшее окно" }],
       frames: 2,
       valuesLabel: "Массив (положительные)", codeKey: "min-subarray-window", fillRange: true,
+      ask: { 5: { q: "Сумма окна дотянула до target?", yes: "Да — запомним длину и сожмём слева", no: "Нет — расширяем окно вправо" } },
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Подотрезок под условие суммы" },
       varOrder: ["left", "right", "sum", "best", "сложений"],
@@ -11501,6 +11561,12 @@
       badge: "Graph DFS",
       desc: "Оптимум O(V²): каждый незатронутый узел запускает DFS новой компоненты и красит всё достижимое. Число запусков = число провинций.",
       valuesLabel: "Города", codeKey: "num-provinces", fillRange: false,
+      // u кадра вопроса на экране ещё нет (кадр до него — строка выше), поэтому вопрос его называет
+      ask: { 7: {
+        q: function (s) { return "Сосед u = " + s.vars.u + " вершины v = " + s.vars.v + " ещё не посещён?"; },
+        yes: function (s) { return "Да — спускаемся в dfs(" + s.vars.u + ")"; },
+        no: "Нет — он уже в провинции, берём следующего соседа"
+      } },
       complexity: { time: "O(V²)", space: "O(V)", good: "★ Компоненты связности" },
       varOrder: ["i", "count", "v", "u", "visited"],
       varDesc: { "i": "Вершина внешнего цикла (только в numProvinces)", "count": "Найдено провинций (только в numProvinces)", "v": "Вершина текущего вызова dfs", "u": "Сосед v, которого проверяем", "visited": "Посещённых вершин" },
@@ -11867,6 +11933,10 @@
       legend: [{ cls: "span", nn: "span", label: "ещё под подозрением: [left, right]" }, { cls: "mid", nn: "mid", label: "mid — проверяем" }, { cls: "frcmp", label: "ярлык у mid — arr[mid] против target: обведён зелёным — сдвинется left, голубым — right; залит зелёным — найдено" }, { cls: "dim", nn: "dim", label: "отброшено" }, { cls: "found", nn: "found", label: "найдено" }],
       frames: 1,
       valuesLabel: "Массив (отсортирован)", codeKey: "binary-search", fillRange: false,
+      ask: {
+        4: { q: "В середине стоит target?", yes: "Да — нашли, возвращаем mid", no: "Нет — отбросим половину" },
+        6: { q: "arr[mid] меньше target?", yes: "Да — target правее: left = mid + 1", no: "Нет — target левее: right = mid − 1" }
+      },
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Отсортированных массивов" },
       varOrder: ["left", "right", "mid", "arr[mid]", "target"],
@@ -12528,6 +12598,7 @@
       badge: "Heap Sort",
       desc: "Пирамидальная сортировка: строим max-heap просеиванием, затем n−1 раз меняем корень (максимум) с концом кучи и чиним кучу. Отсортированный суффикс (зелёный) растёт справа. O(n log n), память O(1).",
       valuesLabel: "Массив (отсортированный суффикс — зелёный)", codeKey: "heap-sort", fillRange: false,
+      ask: { 19: { q: "Узел a[i] не меньше своих детей?", yes: "Да — он на месте, спуск окончен", no: "Нет — меняем с большим ребёнком и спускаемся" } },
       ptr1: { name: "i", cap: "(просеиваемый узел)" }, ptr2: { name: "largest", cap: "(больший из узла и детей; в фазе 2 — end, конец кучи)" },
       complexity: { time: "O(n log n)", space: "O(1)", good: "★ Гарантия n log n, на месте" },
       varOrder: ["i", "size", "largest", "end", "обменов"],
@@ -14459,6 +14530,10 @@
       legend: [{ cls: "mid", nn: "mid", label: "i — где стоим" }, { cls: "span", nn: "span", label: "достижимо: ≤ maxReach" }, { cls: "frreach", label: "рамка 0…maxReach; ярлык — maxReach или сравнение шага; красный — i за границей, зелёный «конец достижим» — ответ true" }, { cls: "dim", nn: "dim", label: "пока недостижимо" }, { cls: "found", nn: "found", label: "достижимо" }],
       frames: 1,
       valuesLabel: "Массив (макс. прыжок)", codeKey: "jump-game", fillRange: false,
+      ask: {
+        3: { q: "Клетка i дальше, чем maxReach?", yes: "Да — сюда не допрыгнуть: false", no: "Нет — до неё достаём, идём дальше" },
+        6: { q: "Прыжок отсюда дальше maxReach?", yes: "Да — maxReach растёт до i + v", no: "Нет — maxReach прежний" }
+      },
       ptr1: { name: "i", cap: "(текущий)" }, ptr2: { name: "", cap: "" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Жадных проходов" },
       varOrder: ["i", "nums[i]", "maxReach"],
@@ -14486,6 +14561,7 @@
     "graph-bfs": {
       badge: "Graph BFS", desc: "Обход графа в ширину через очередь: ближние вершины раньше дальних.",
       valuesLabel: "Вершины", codeKey: "graph-bfs", fillRange: false,
+      ask: { 10: { q: "Сосед nb ещё не посещён?", yes: "Да — отмечаем и ставим в очередь", no: "Нет — уже в очереди или пройден, пропускаем" } },
       complexity: { time: "O(V+E)", space: "O(V)", good: "★ Кратчайший путь по рёбрам" },
       varOrder: ["node", "nb", "queue", "order"],
       varDesc: { "node": "Извлечённая вершина (текущий узел)", "nb": "Сосед node, которого проверяем", "queue": "Очередь: волна d, за ней — d+1", "order": "Порядок обхода" },
@@ -14599,6 +14675,7 @@
       legend: [{ cls: "lo", nn: "lo", label: "dp[a] — сумма, которую считаем" }, { cls: "hi", nn: "hi", label: "dp[a−c] — остаток после монеты c" }, { cls: "found", nn: "found", label: "ответ dp[amount]" }],
       jumps: true,
       valuesLabel: "Таблица dp[]", codeKey: "dp-coins", arrLabel: "dp", fillRange: false,
+      ask: { 6: { q: "Монета c улучшит best?", yes: "Да — best = dp[a−c] + 1", no: "Нет — не влезает или не лучше, best прежний" } },
       ptr1: { name: "a", cap: "(сумма)" },
       complexity: { time: "O(amount·k)", space: "O(amount)", good: "★ Перекрывающихся подзадач" },
       varOrder: ["a", "c", "dp[a−c]", "best", "dp[a]"],
@@ -15620,6 +15697,7 @@
     "knapsack": {
       badge: "Dynamic Programming", desc: "0/1 рюкзак: dp[i][c] — максимальная ценность из первых i предметов при вместимости c. Выбор «взять / не взять».",
       valuesLabel: "", codeKey: "knapsack", fillRange: false,
+      ask: { 5: { q: "Предмет i влезает при вместимости c?", yes: "Да — сравним «брать» и «не брать»", no: "Нет — остаётся «не брать»" } },
       complexity: { time: "O(n·W)", space: "O(n·W) → O(W)", good: "★ Выбор подмножества с ограничением" },
       varOrder: ["i", "wt[i-1], val[i-1]", "c", "правило", "dp[i][c]"],
       metrics: ["правило"],
@@ -15688,6 +15766,7 @@
     var nnPlace = null; // неоновый массив компактного режима: расстановка указателей-плашек
 
     root.classList.add("algo-viz--ready", "algo-tp");
+    root.classList.remove("algo-tp--asking"); // перезапуск при открытом вопросе 🎯 — вопроса больше нет
     root.innerHTML = "";
 
     // --- Доступность: виджет — это группа с понятным именем и подсказкой по
@@ -16688,8 +16767,16 @@
     //     srs.js заводит карточку viz:<тип>. Режим общий для всех виджетов книги.
     var PRED_KEY = "algoVizPredict", PRED_MISS = "algoVizMissed";
     var predQs = predictionQuestions(steps, codeLines, ownInput);
-    // для scripts/predict-check.js: вопросы, строки шагов, листинг и чипы шага (как на экране)
+    var askBad = askProblems(cfg, codeLines);
+    Object.keys(predQs).forEach(function (k) {
+      var q = predQs[k], t = predText(q, steps[q.at], cfg, ctx);
+      q.ask = t.q; q.yes = t.yes; q.no = t.no; q.own = t.own;
+      if (t.q.indexOf("?") < 0) askBad.push("cfg.ask[" + q.line + "]: на шаге " + (q.at + 1) + " вопрос «" + t.q + "» без знака вопроса");
+    });
+    if (askBad.length) throw new Error(askBad.join("; "));
+    // для scripts/predict-check.js: вопросы (с текстом), строки шагов, листинг и чипы шага (как на экране)
     root.__algoPredict = { qs: predQs, own: ownInput, lines: steps.map(function (s) { return s.line; }), code: codeLines,
+      askLines: Object.keys(cfg.ask || {}).map(Number),
       chips: function (k) { var c = cfg.varsOf(steps[k], ctx), o = {}; cfg.varOrder.forEach(function (n) { o[n] = c[n]; }); return o; } };
     var predHas = Object.keys(predQs).length > 0;
     // Кнопка выключена по двум разным причинам: у виджета развилок нет вовсе или свой ввод
@@ -16766,17 +16853,17 @@
     function predAsk(q) {
       finishNow(); // недоделанный пересчёт высоты — до вопроса, а не поверх него
       predPending = q;
-      var yes = q.kind === "if" ? "Да — войдём в ветку" : "Да — ещё итерация";
-      var no = q.kind === "if" ? "Нет — пропустим" : "Нет — выйдем из цикла";
-      var ask = q.kind === "if" ? "Условие выполнится?" : (q.kind === "range" ? "Цикл по " + q.cond + " сделает ещё итерацию?" : "Условие цикла выполнится?");
+      // на время вопроса холст прячет то, что выдаёт исход (data-pred-hide у генератора):
+      // visibility, а не display — место остаётся, высота не прыгает
+      root.classList.add("algo-tp--asking");
       predBox = mkEl("div", "algo-tp__pred");
       var line = mkEl("div", "algo-tp__predline");
       line.appendChild(mkEl("span", "algo-tp__curlineno", String(q.line + 1)));
       var code = mkEl("code", "algo-tp__curlinetx"); code.appendChild(hlGo(codeLines[q.line].trim())); line.appendChild(code);
       predBox.appendChild(line);
-      predBox.appendChild(mkEl("div", "algo-tp__predq", ask + " Посмотри на значения в чипах."));
+      predBox.appendChild(mkEl("div", "algo-tp__predq", q.ask));
       var row = mkEl("div", "algo-tp__predrow");
-      [[yes, true], [no, false]].forEach(function (o) {
+      [[q.yes, true], [q.no, false]].forEach(function (o) {
         var b = mkEl("button", "algo-tp__predans", o[0]); b.type = "button";
         b.onclick = function () { predAnswer(o[1]); };
         row.appendChild(b);
@@ -16794,6 +16881,7 @@
     function predClose() {
       if (predBox && predBox.parentNode) predBox.parentNode.removeChild(predBox);
       predBox = null; predPending = null;
+      root.classList.remove("algo-tp--asking");
       cStat.classList.remove("algo-tp__status--pred");
       if (armed) reserve(); // ширина могла смениться, пока вопрос был открыт
     }

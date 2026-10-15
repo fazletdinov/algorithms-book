@@ -2096,6 +2096,9 @@ body.algo-tp-fslock { overflow: hidden; }
   overflow-x: auto; white-space: nowrap;
 }
 .algo-tp__predq { font-weight: 600; }
+/* пока вопрос открыт, холст прячет подсказку исхода (генератор метит её data-pred-hide):
+   visibility, а не display, — место остаётся, высота холста и прилипший вопрос не прыгают */
+.algo-tp--asking [data-pred-hide] { visibility: hidden; }
 .algo-tp__predrow { display: flex; flex-wrap: wrap; gap: 0.5em; }
 .algo-tp__predans, .algo-tp__predskip {
   font: inherit; font-size: 0.9em; cursor: pointer; border-radius: 8px; padding: 0.45em 0.9em;
