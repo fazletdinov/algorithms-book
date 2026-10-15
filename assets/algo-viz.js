@@ -2574,31 +2574,35 @@
     var steps = [], n = arr.length, lo = 0, hi = n - 1;
     function av(i) { return i >= 0 && i < n ? arr[i] : "—"; }
     function vv(s) { return { lo: lo, hi: hi, "arr[lo]": av(lo), "arr[hi]": av(hi), sum: (s === undefined ? "—" : s), target: target }; }
-    steps.push({ lo: lo, hi: hi, line: 1, vars: vv(), info: "lo = 0, hi = " + hi + " — концы отсортированного массива" });
+    // Рамка — живой отрезок [lo, hi]: вне него числа вычеркнуты. Ярлык — сравнение, которое
+    // решает ход (раньше оно жило только в чипе sum и строке шага), цвет — исход: lo — сдвинется
+    // зелёная плашка lo, hi — голубая hi, hit — пара найдена.
+    function fr(label, kind) { return lo < hi ? [{ lo: lo, hi: hi, label: label || "", kind: kind || "cur" }] : []; }
+    steps.push({ lo: lo, hi: hi, frames: fr(), line: 1, vars: vv(), info: "lo = 0, hi = " + hi + " — концы отсортированного массива" });
     while (lo < hi) {
-      steps.push({ lo: lo, hi: hi, line: 2, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — да, продолжаем" });
+      steps.push({ lo: lo, hi: hi, frames: fr(), line: 2, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — да, продолжаем" });
       var sum = arr[lo] + arr[hi];
-      steps.push({ lo: lo, hi: hi, line: 3, vars: vv(sum), info: "sum = arr[" + lo + "] + arr[" + hi + "] = " + arr[lo] + " + " + arr[hi] + " = " + sum });
+      steps.push({ lo: lo, hi: hi, frames: fr("sum = " + arr[lo] + " + " + arr[hi] + " = " + sum), line: 3, vars: vv(sum), info: "sum = arr[" + lo + "] + arr[" + hi + "] = " + arr[lo] + " + " + arr[hi] + " = " + sum });
       if (sum === target) {
-        steps.push({ lo: lo, hi: hi, line: 4, vars: vv(sum), info: "sum " + sum + " == target " + target + " — да!" });
-        steps.push({ lo: lo, hi: hi, found: true, done: true, line: 5, vars: vv(sum), info: "return " + lo + ", " + hi + " — пара (" + arr[lo] + ", " + arr[hi] + ") даёт " + target });
+        steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " == " + target, "hit"), line: 4, vars: vv(sum), info: "sum " + sum + " == target " + target + " — да!" });
+        steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " == " + target, "hit"), found: true, done: true, line: 5, vars: vv(sum), info: "return " + lo + ", " + hi + " — пара (" + arr[lo] + ", " + arr[hi] + ") даёт " + target });
         return steps;
       }
-      steps.push({ lo: lo, hi: hi, line: 4, note: "sum ≠ target — не пара; решаем, какой указатель сдвинуть", vars: vv(sum), info: "sum " + sum + " ≠ target " + target + " — нет" });
+      steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " ≠ " + target), line: 4, note: "sum ≠ target — не пара; решаем, какой указатель сдвинуть", vars: vv(sum), info: "sum " + sum + " ≠ target " + target + " — нет" });
       if (sum < target) {
-        steps.push({ lo: lo, hi: hi, line: 6, note: "Да: сумма мала → сдвинем lo вправо", vars: vv(sum), info: "sum " + sum + " < target " + target + " — да, сумма мала" });
+        steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " < " + target, "lo"), line: 6, note: "Да: сумма мала → сдвинем lo вправо", vars: vv(sum), info: "sum " + sum + " < target " + target + " — да, сумма мала" });
         var goneL = lo; lo++;
         // отброшенный элемент гаснет: с arr[hi] — самым большим из оставшихся — он даёт
         // слишком мало, а с остальными ещё меньше
-        steps.push({ lo: lo, hi: hi, line: 7, vars: vv(), info: "lo++ → lo = " + lo + ". arr[" + goneL + "] = " + arr[goneL] + " отброшен: даже с самым большим из оставшихся (" + arr[hi] + ") сумма мала" });
+        steps.push({ lo: lo, hi: hi, frames: fr(), line: 7, vars: vv(), info: "lo++ → lo = " + lo + ". arr[" + goneL + "] = " + arr[goneL] + " отброшен: даже с самым большим из оставшихся (" + arr[hi] + ") сумма мала" });
       } else {
-        steps.push({ lo: lo, hi: hi, line: 6, note: "Нет: сумма велика → идём в else, сдвинем hi влево", vars: vv(sum), info: "sum " + sum + " < target " + target + " — нет (сумма велика) → else" });
+        steps.push({ lo: lo, hi: hi, frames: fr("sum = " + sum + " > " + target, "hi"), line: 6, note: "Нет: сумма велика → идём в else, сдвинем hi влево", vars: vv(sum), info: "sum " + sum + " < target " + target + " — нет (сумма велика) → else" });
         var goneH = hi; hi--;
-        steps.push({ lo: lo, hi: hi, line: 9, vars: vv(), info: "hi-- → hi = " + hi + ". arr[" + goneH + "] = " + arr[goneH] + " отброшен: даже с самым маленьким из оставшихся (" + arr[lo] + ") сумма велика" });
+        steps.push({ lo: lo, hi: hi, frames: fr(), line: 9, vars: vv(), info: "hi-- → hi = " + hi + ". arr[" + goneH + "] = " + arr[goneH] + " отброшен: даже с самым маленьким из оставшихся (" + arr[lo] + ") сумма велика" });
       }
     }
-    steps.push({ lo: lo, hi: hi, line: 2, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — нет, указатели сошлись" });
-    steps.push({ lo: lo, hi: hi, done: true, line: 12, vars: vv(), info: "return −1, −1 — пары с суммой " + target + " нет" });
+    steps.push({ lo: lo, hi: hi, frames: [], line: 2, vars: vv(), info: "lo(" + lo + ") < hi(" + hi + ") — нет, указатели сошлись" });
+    steps.push({ lo: lo, hi: hi, frames: [], done: true, line: 12, vars: vv(), info: "return −1, −1 — пары с суммой " + target + " нет" });
     return steps;
   }
   // Заяц и черепаха: slow и fast как индексы в списке (vars хранит значения узлов).
@@ -2821,32 +2825,44 @@
     function bv() { return best === n + 1 ? "∞" : best; }
     var adds = 0; // sum += nums[right] — ровно по разу на элемент (сравни с перебором выше)
     function vv(right) { return { left: left, right: (right === undefined ? "—" : right), sum: sum, best: bv(), "сложений": adds }; }
-    if (!n) return [{ lo: 0, hi: -1, done: true, line: 12, vars: { left: "—", right: "—", sum: 0, best: "∞", "сложений": 0 }, info: "Пустой массив" }];
-    steps.push({ lo: 0, hi: -1, line: 1, vars: { left: 0, right: "—", sum: 0, best: "—", "сложений": 0 }, info: "left = 0, sum = 0 — окно пустое (right появится в заголовке for)" });
-    steps.push({ lo: 0, hi: -1, line: 2, vars: { left: 0, right: "—", sum: 0, best: bv(), "сложений": 0 }, info: "best = len(nums)+1 = " + (n + 1) + " — «бесконечность», ответа пока нет" });
+    if (!n) return [{ lo: 0, hi: -1, frames: [], done: true, line: 12, vars: { left: "—", right: "—", sum: 0, best: "∞", "сложений": 0 }, info: "Пустой массив" }];
+    // Рамки, как у окна постоянной длины: окно [left..right] с ярлыком — sum или сравнение,
+    // решающее шаг (раньше sum жил только в чипе), и лучшее окно — зелёным пунктиром, ярлык
+    // best у него только на финале (иначе два ярлыка налезали бы друг на друга). Цвет ярлыка
+    // сравнения — какая плашка сдвинется следом: lo — зелёная left (сжимаем), hi — голубая
+    // right (расширяем); hit — окно короче best.
+    function fr(right, label, kind) {
+      var f = [{ lo: left, hi: right, label: label || "", kind: kind || "cur" }];
+      if (bestLo >= 0) f.push({ lo: bestLo, hi: bestHi, label: "", kind: "best" });
+      return f;
+    }
+    steps.push({ lo: 0, hi: -1, frames: [], line: 1, vars: { left: 0, right: "—", sum: 0, best: "—", "сложений": 0 }, info: "left = 0, sum = 0 — окно пустое (right появится в заголовке for)" });
+    steps.push({ lo: 0, hi: -1, frames: [], line: 2, vars: { left: 0, right: "—", sum: 0, best: bv(), "сложений": 0 }, info: "best = len(nums)+1 = " + (n + 1) + " — «бесконечность», ответа пока нет" });
     for (var right = 0; right < n; right++) {
-      steps.push({ lo: left, hi: right, line: 3, vars: vv(right), info: "right = " + right + ": расширяем окно вправо на индекс " + right });
+      // nums[right] ещё не в sum — ярлыка нет, сумма прошлого окна осталась в чипе
+      steps.push({ lo: left, hi: right, frames: fr(right), line: 3, vars: vv(right), info: "right = " + right + ": расширяем окно вправо на индекс " + right });
       sum += arr[right]; adds++;
-      steps.push({ lo: left, hi: right, line: 4, vars: vv(right), info: "sum += nums[" + right + "] = " + arr[right] + " → sum = " + sum });
+      steps.push({ lo: left, hi: right, frames: fr(right, "sum = " + sum), line: 4, vars: vv(right), info: "sum += nums[" + right + "] = " + arr[right] + " → sum = " + sum });
       while (true) {
         var ok = sum >= target;
-        steps.push({ lo: left, hi: right, line: 5, vars: vv(right), info: "sum " + sum + (ok ? " ≥ " : " < ") + "target " + target + (ok ? " — окно валидно, жадно сжимаем слева" : " — окно мало, расширяем дальше") });
+        steps.push({ lo: left, hi: right, frames: fr(right, "sum = " + sum + (ok ? " ≥ " : " < ") + target, ok ? "lo" : "hi"), line: 5, vars: vv(right), info: "sum " + sum + (ok ? " ≥ " : " < ") + "target " + target + (ok ? " — окно валидно, жадно сжимаем слева" : " — окно мало, расширяем дальше") });
         if (!ok) break;
-        var len = right - left + 1, improved = len < best;
+        var len = right - left + 1, was = bv(), improved = len < best;
         if (improved) { best = len; bestLo = left; bestHi = right; }
-        steps.push({ lo: left, hi: right, improved: improved, line: 6, vars: vv(right), info: improved ? "right−left+1 = " + len + " < best → best = " + len + " (новый минимум [" + left + ".." + right + "])" : "длина " + len + " ≥ best " + bv() + " — не короче" });
+        steps.push({ lo: left, hi: right, frames: fr(right, "длина " + len + (improved ? " < " : " ≥ ") + "best " + was, improved ? "hit" : "cur"), improved: improved, line: 6, vars: vv(right), info: improved ? "right−left+1 = " + len + " < best → best = " + len + " (новый минимум [" + left + ".." + right + "])" : "длина " + len + " ≥ best " + bv() + " — не короче" });
         sum -= arr[left];
-        steps.push({ lo: left, hi: right, line: 7, vars: vv(right), info: "sum −= nums[" + left + "] = " + arr[left] + " → sum = " + sum + " (убрали левый элемент)" });
+        steps.push({ lo: left, hi: right, frames: fr(right, "sum = " + sum), line: 7, vars: vv(right), info: "sum −= nums[" + left + "] = " + arr[left] + " → sum = " + sum + " (убрали левый элемент)" });
         left++;
-        steps.push({ lo: left, hi: right, line: 8, vars: vv(right), info: "left++ → left = " + left + " (сжали окно слева; назад left не вернётся)" });
+        steps.push({ lo: left, hi: right, frames: fr(right, "sum = " + sum), line: 8, vars: vv(right), info: "left++ → left = " + left + " (сжали окно слева; назад left не вернётся)" });
       }
     }
     var found = best !== n + 1, bestSum = 0;
     for (var q = bestLo; found && q <= bestHi; q++) bestSum += arr[q];
     // После цикла right вне области видимости, а указатели больше не двигаются: на
     // массиве — лучшее окно (зелёным), в карточках — его сумма, а не текущего остатка.
-    steps.push({ lo: found ? bestLo : 0, hi: found ? bestHi : -1, final: true, bestSum: bestSum, line: 11, note: found ? "best ≠ ∞ — условие ложно, return 0 пропускаем" : null, vars: { left: left, right: "—", sum: sum, best: bv(), "сложений": adds }, info: found ? "best = " + best + " ≠ ∞ — ответ найден" : "best всё ещё ∞ → вернём 0" });
-    steps.push({ lo: found ? bestLo : 0, hi: found ? bestHi : -1, final: true, bestSum: bestSum, done: true, line: found ? 12 : 11, vars: { left: left, right: "—", sum: sum, best: bv(), "сложений": adds }, info: found ? "return best = " + best + " — минимальный подмассив [" + bestLo + ".." + bestHi + "] (сумма ≥ " + target + ")" : "return 0 — подмассива с суммой ≥ " + target + " нет" });
+    var fin = found ? [{ lo: bestLo, hi: bestHi, label: "best = " + best, kind: "best" }] : [];
+    steps.push({ lo: found ? bestLo : 0, hi: found ? bestHi : -1, frames: fin, final: true, bestSum: bestSum, line: 11, note: found ? "best ≠ ∞ — условие ложно, return 0 пропускаем" : null, vars: { left: left, right: "—", sum: sum, best: bv(), "сложений": adds }, info: found ? "best = " + best + " ≠ ∞ — ответ найден" : "best всё ещё ∞ → вернём 0" });
+    steps.push({ lo: found ? bestLo : 0, hi: found ? bestHi : -1, frames: fin, final: true, bestSum: bestSum, done: true, line: found ? 12 : 11, vars: { left: left, right: "—", sum: sum, best: bv(), "сложений": adds }, info: found ? "return best = " + best + " — минимальный подмассив [" + bestLo + ".." + bestHi + "] (сумма ≥ " + target + ")" : "return 0 — подмассива с суммой ≥ " + target + " нет" });
     return steps;
   }
   // Разбор cyclic-sort: «первое пропущенное положительное». Раскладываем число v на индекс
@@ -2974,56 +2990,64 @@
     var a = arr.slice().sort(function (x, y) { return x - y; }), n = a.length, steps = [], found = 0, res = [];
     function P(o) { o.res = res.slice(); return o; } // снимок накопленного res на каждом шаге
     function vv(i, l, r, sum) { return { i: (i == null ? "—" : i), left: (l == null ? "—" : l), right: (r == null ? "—" : r), sum: (sum == null ? "—" : sum), found: found }; }
-    function at(i, l, r, o) { o.lo = l == null ? -1 : l; o.mid = i == null ? -1 : i; o.hi = r == null ? -1 : r; return P(o); }
-    steps.push(P({ lo: -1, mid: -1, hi: -1, line: 1, vars: vv(), info: "sort.Ints(nums) → [" + a.join(", ") + "] — появилась монотонность" }));
+    function at(i, l, r, o) { o.lo = l == null ? -1 : l; o.mid = i == null ? -1 : i; o.hi = r == null ? -1 : r; if (!o.frames) o.frames = []; return P(o); }
+    // Ярлык рамки — сравнение, которое решает шаг (раньше — только чип sum и строка шага):
+    // над тройкой [i..right] — сумма и её знак, над парой соседей — проверка дубля. Цвет —
+    // исход: lo — сдвинется зелёная плашка left, hi — голубая right, hit — тройка найдена.
+    function tri(i, r, label, kind) { return [{ lo: i, hi: r, label: label, kind: kind || "cur" }]; }
+    // у правого дубля ярлык снизу: сверху над right стоит его голубая плашка
+    function nb(j, k, label, pos) { return [{ lo: j, hi: k, label: label, kind: "cur", labelPos: pos || "top" }]; }
+    function num(x) { return x < 0 ? "(" + x + ")" : String(x); } // слагаемое: −1 + (−1) + 2
+    function cmp(x, y) { return x + (x === y ? " == " : " ≠ ") + y; }
+    steps.push(P({ lo: -1, mid: -1, hi: -1, frames: [], line: 1, vars: vv(), info: "sort.Ints(nums) → [" + a.join(", ") + "] — появилась монотонность" }));
     for (var i = 0; ; i++) {
       if (!(i < n - 2)) { steps.push(at(null, null, null, { line: 3, vars: vv(), info: "i = " + i + ": i < len(nums) − 2 — нет, на тройку элементов не хватает" })); break; }
       steps.push(at(i, null, null, { line: 3, vars: vv(i), info: "i = " + i + ": фиксируем первый элемент тройки nums[" + i + "] = " + a[i] }));
       var dupI = i > 0 && a[i] === a[i - 1];
-      steps.push(at(i, null, null, { line: 4, vars: vv(i), info: i > 0 ? "nums[" + i + "] = " + a[i] + (dupI ? " == " : " ≠ ") + "nums[" + (i - 1) + "] = " + a[i - 1] + (dupI ? " — дубль первого элемента" : " — не дубль") : "i = 0 — сравнивать не с чем" }));
+      steps.push(at(i, null, null, { frames: i > 0 ? nb(i - 1, i, cmp(a[i], a[i - 1])) : [], line: 4, vars: vv(i), info: i > 0 ? "nums[" + i + "] = " + a[i] + (dupI ? " == " : " ≠ ") + "nums[" + (i - 1) + "] = " + a[i - 1] + (dupI ? " — дубль первого элемента" : " — не дубль") : "i = 0 — сравнивать не с чем" }));
       if (dupI) { steps.push(at(i, null, null, { line: 5, vars: vv(i), info: "continue — все тройки с первым " + a[i] + " уже найдены на прошлом i" })); continue; }
       var left = i + 1, right = n - 1;
-      steps.push(at(i, left, right, { line: 7, vars: vv(i, left, right), info: "left = " + left + ", right = " + right + " — пара ищется в остатке справа от i" }));
+      steps.push(at(i, left, right, { frames: tri(i, right, ""), line: 7, vars: vv(i, left, right), info: "left = " + left + ", right = " + right + " — пара ищется в остатке справа от i" }));
       for (;;) {
         var go = left < right;
-        steps.push(at(i, left, right, { line: 8, vars: vv(i, left, right), info: "left < right? " + left + (go ? " < " : " ≥ ") + right + (go ? " — да" : " — нет, указатели сошлись: с этим i всё") }));
+        steps.push(at(i, left, right, { frames: go ? tri(i, right, "") : [], line: 8, vars: vv(i, left, right), info: "left < right? " + left + (go ? " < " : " ≥ ") + right + (go ? " — да" : " — нет, указатели сошлись: с этим i всё") }));
         if (!go) break;
         var sum = a[i] + a[left] + a[right];
-        steps.push(at(i, left, right, { line: 9, vars: vv(i, left, right, sum), info: "sum = " + a[i] + " + " + a[left] + " + " + a[right] + " = " + sum }));
+        steps.push(at(i, left, right, { frames: tri(i, right, "sum = " + a[i] + " + " + num(a[left]) + " + " + num(a[right]) + " = " + sum), line: 9, vars: vv(i, left, right, sum), info: "sum = " + a[i] + " + " + a[left] + " + " + a[right] + " = " + sum }));
         if (sum === 0) {
           found++; res.push("[" + a[i] + ", " + a[left] + ", " + a[right] + "]");
-          steps.push(at(i, left, right, { line: 11, vars: vv(i, left, right, sum), info: "case sum == 0 — подходит" }));
-          steps.push(at(i, left, right, { improved: true, line: 12, vars: vv(i, left, right, sum), info: "res = append(res, [" + a[i] + ", " + a[left] + ", " + a[right] + "]) — тройка №" + found }));
+          steps.push(at(i, left, right, { frames: tri(i, right, "sum == 0", "hit"), line: 11, vars: vv(i, left, right, sum), info: "case sum == 0 — подходит" }));
+          steps.push(at(i, left, right, { frames: tri(i, right, "sum == 0", "hit"), improved: true, line: 12, vars: vv(i, left, right, sum), info: "res = append(res, [" + a[i] + ", " + a[left] + ", " + a[right] + "]) — тройка №" + found }));
           left++;
-          steps.push(at(i, left, right, { line: 13, vars: vv(i, left, right, sum), info: "left++ → " + left }));
+          steps.push(at(i, left, right, { frames: tri(i, right, ""), line: 13, vars: vv(i, left, right, sum), info: "left++ → " + left }));
           right--;
-          steps.push(at(i, left, right, { line: 14, vars: vv(i, left, right, sum), info: "right-- → " + right }));
+          steps.push(at(i, left, right, { frames: tri(i, right, ""), line: 14, vars: vv(i, left, right, sum), info: "right-- → " + right }));
           for (;;) {
             var dl = left < right && a[left] === a[left - 1];
-            steps.push(at(i, left, right, { line: 15, vars: vv(i, left, right, sum), info: left < right ? "nums[" + left + "] = " + a[left] + (dl ? " == " : " ≠ ") + "nums[" + (left - 1) + "] = " + a[left - 1] + (dl ? " — та же тройка повторилась бы, перешагиваем" : " — дублей слева нет") : "left ≥ right — перешагивать некуда" }));
+            steps.push(at(i, left, right, { frames: left < right ? nb(left - 1, left, cmp(a[left], a[left - 1])) : [], line: 15, vars: vv(i, left, right, sum), info: left < right ? "nums[" + left + "] = " + a[left] + (dl ? " == " : " ≠ ") + "nums[" + (left - 1) + "] = " + a[left - 1] + (dl ? " — та же тройка повторилась бы, перешагиваем" : " — дублей слева нет") : "left ≥ right — перешагивать некуда" }));
             if (!dl) break;
             left++;
-            steps.push(at(i, left, right, { line: 16, vars: vv(i, left, right, sum), info: "left++ → " + left + " (дубль слева пропущен)" }));
+            steps.push(at(i, left, right, { frames: tri(i, right, ""), line: 16, vars: vv(i, left, right, sum), info: "left++ → " + left + " (дубль слева пропущен)" }));
           }
           for (;;) {
             var dr = left < right && a[right] === a[right + 1];
-            steps.push(at(i, left, right, { line: 18, vars: vv(i, left, right, sum), info: left < right ? "nums[" + right + "] = " + a[right] + (dr ? " == " : " ≠ ") + "nums[" + (right + 1) + "] = " + a[right + 1] + (dr ? " — дубль справа, перешагиваем" : " — дублей справа нет") : "left ≥ right — перешагивать некуда" }));
+            steps.push(at(i, left, right, { frames: left < right ? nb(right, right + 1, cmp(a[right], a[right + 1]), "bottom") : [], line: 18, vars: vv(i, left, right, sum), info: left < right ? "nums[" + right + "] = " + a[right] + (dr ? " == " : " ≠ ") + "nums[" + (right + 1) + "] = " + a[right + 1] + (dr ? " — дубль справа, перешагиваем" : " — дублей справа нет") : "left ≥ right — перешагивать некуда" }));
             if (!dr) break;
             right--;
-            steps.push(at(i, left, right, { line: 19, vars: vv(i, left, right, sum), info: "right-- → " + right + " (дубль справа пропущен)" }));
+            steps.push(at(i, left, right, { frames: tri(i, right, ""), line: 19, vars: vv(i, left, right, sum), info: "right-- → " + right + " (дубль справа пропущен)" }));
           }
         } else if (sum < 0) {
-          steps.push(at(i, left, right, { line: 21, vars: vv(i, left, right, sum), info: "case sum < 0: " + sum + " < 0 — нужна сумма больше" }));
+          steps.push(at(i, left, right, { frames: tri(i, right, "sum = " + sum + " < 0", "lo"), line: 21, vars: vv(i, left, right, sum), info: "case sum < 0: " + sum + " < 0 — нужна сумма больше" }));
           left++;
-          steps.push(at(i, left, right, { line: 22, vars: vv(i, left, right, sum), info: "left++ → " + left + ": двигаем меньший край вправо" }));
+          steps.push(at(i, left, right, { frames: tri(i, right, ""), line: 22, vars: vv(i, left, right, sum), info: "left++ → " + left + ": двигаем меньший край вправо" }));
         } else {
-          steps.push(at(i, left, right, { line: 23, vars: vv(i, left, right, sum), info: "default: " + sum + " > 0 — нужна сумма меньше" }));
+          steps.push(at(i, left, right, { frames: tri(i, right, "sum = " + sum + " > 0", "hi"), line: 23, vars: vv(i, left, right, sum), info: "default: " + sum + " > 0 — нужна сумма меньше" }));
           right--;
-          steps.push(at(i, left, right, { line: 24, vars: vv(i, left, right, sum), info: "right-- → " + right + ": двигаем больший край влево" }));
+          steps.push(at(i, left, right, { frames: tri(i, right, ""), line: 24, vars: vv(i, left, right, sum), info: "right-- → " + right + ": двигаем больший край влево" }));
         }
       }
     }
-    steps.push(P({ lo: -1, mid: -1, hi: -1, done: true, line: 28, vars: vv(), info: "return res — всего уникальных троек: " + found }));
+    steps.push(P({ lo: -1, mid: -1, hi: -1, frames: [], done: true, line: 28, vars: vv(), info: "return res — всего уникальных троек: " + found }));
     return steps;
   }
   // Одно направление: удаление дубликатов из отсортированного массива на месте.
@@ -3076,29 +3100,34 @@
   function bBinarySearch(arr, target) {
     var steps = [], n = arr.length, lo = 0, hi = n - 1, mid = -1;
     function vv(m) { return { left: lo, right: hi, mid: (m < 0 ? "—" : m), "arr[mid]": (m < 0 ? "—" : arr[m]), target: target }; }
-    steps.push({ lo: lo, hi: hi, mid: -1, line: 1, vars: vv(-1), info: "left = 0, right = " + hi + " — ищем во всём массиве" });
+    // Ярлык у mid — сравнение arr[mid] с target, которое решает шаг (раньше — только чип).
+    // Цвет — какая граница сдвинется: lo — зелёная плашка left, hi — голубая right, hit —
+    // найдено. Ярлык сверху; если там голубая плашка right, движок сдвигает его влево
+    // (над клетками левее mid плашек нет).
+    function fr(label, kind) { return [{ lo: mid, hi: mid, label: label, kind: kind || "cur" }]; }
+    steps.push({ lo: lo, hi: hi, mid: -1, frames: [], line: 1, vars: vv(-1), info: "left = 0, right = " + hi + " — ищем во всём массиве" });
     while (lo <= hi) {
-      steps.push({ lo: lo, hi: hi, mid: -1, line: 2, vars: vv(-1), info: "left(" + lo + ") ≤ right(" + hi + ") — да, диапазон не пуст" });
+      steps.push({ lo: lo, hi: hi, mid: -1, frames: [], line: 2, vars: vv(-1), info: "left(" + lo + ") ≤ right(" + hi + ") — да, диапазон не пуст" });
       mid = lo + ((hi - lo) >> 1);
-      steps.push({ lo: lo, hi: hi, mid: mid, line: 3, vars: vv(mid), info: "mid = left + (right−left)/2 = " + mid + " → arr[" + mid + "] = " + arr[mid] });
+      steps.push({ lo: lo, hi: hi, mid: mid, frames: fr("arr[mid] = " + arr[mid]), line: 3, vars: vv(mid), info: "mid = left + (right−left)/2 = " + mid + " → arr[" + mid + "] = " + arr[mid] });
       if (arr[mid] === target) {
-        steps.push({ lo: lo, hi: hi, mid: mid, line: 4, vars: vv(mid), info: "arr[" + mid + "] = " + arr[mid] + " == target " + target + " — да!" });
-        steps.push({ lo: mid, hi: mid, mid: mid, found: true, done: true, line: 5, vars: vv(mid), info: "return " + mid + " — target найден на индексе " + mid });
+        steps.push({ lo: lo, hi: hi, mid: mid, frames: fr(arr[mid] + " == " + target, "hit"), line: 4, vars: vv(mid), info: "arr[" + mid + "] = " + arr[mid] + " == target " + target + " — да!" });
+        steps.push({ lo: mid, hi: mid, mid: mid, frames: fr(arr[mid] + " == " + target, "hit"), found: true, done: true, line: 5, vars: vv(mid), info: "return " + mid + " — target найден на индексе " + mid });
         return steps;
       }
-      steps.push({ lo: lo, hi: hi, mid: mid, line: 4, vars: vv(mid), info: "arr[" + mid + "] = " + arr[mid] + " ≠ target " + target + " — нет" });
+      steps.push({ lo: lo, hi: hi, mid: mid, frames: fr(arr[mid] + " ≠ " + target), line: 4, vars: vv(mid), info: "arr[" + mid + "] = " + arr[mid] + " ≠ target " + target + " — нет" });
       if (arr[mid] < target) {
-        steps.push({ lo: lo, hi: hi, mid: mid, line: 6, vars: vv(mid), info: "arr[" + mid + "] " + arr[mid] + " < target " + target + " — да, target правее" });
+        steps.push({ lo: lo, hi: hi, mid: mid, frames: fr(arr[mid] + " < " + target + " → правее", "lo"), line: 6, vars: vv(mid), info: "arr[" + mid + "] " + arr[mid] + " < target " + target + " — да, target правее" });
         lo = mid + 1;
-        steps.push({ lo: lo, hi: hi, mid: -1, line: 7, vars: vv(mid), info: "left = mid+1 = " + lo + " — отбросили левую половину" });
+        steps.push({ lo: lo, hi: hi, mid: -1, frames: [], line: 7, vars: vv(mid), info: "left = mid+1 = " + lo + " — отбросили левую половину" });
       } else {
-        steps.push({ lo: lo, hi: hi, mid: mid, line: 6, vars: vv(mid), info: "arr[" + mid + "] " + arr[mid] + " < target " + target + " — нет (больше) → else" });
+        steps.push({ lo: lo, hi: hi, mid: mid, frames: fr(arr[mid] + " > " + target + " → левее", "hi"), line: 6, vars: vv(mid), info: "arr[" + mid + "] " + arr[mid] + " < target " + target + " — нет (больше) → else" });
         hi = mid - 1;
-        steps.push({ lo: lo, hi: hi, mid: -1, line: 9, vars: vv(mid), info: "right = mid−1 = " + hi + " — отбросили правую половину" });
+        steps.push({ lo: lo, hi: hi, mid: -1, frames: [], line: 9, vars: vv(mid), info: "right = mid−1 = " + hi + " — отбросили правую половину" });
       }
     }
-    steps.push({ lo: 0, hi: -1, mid: -1, line: 2, vars: vv(-1), info: "left(" + lo + ") ≤ right(" + hi + ") — нет, диапазон пуст" });
-    steps.push({ lo: 0, hi: -1, mid: -1, done: true, line: 12, vars: vv(-1), info: "return −1 — target " + target + " в массиве нет" });
+    steps.push({ lo: 0, hi: -1, mid: -1, frames: [], line: 2, vars: vv(-1), info: "left(" + lo + ") ≤ right(" + hi + ") — нет, диапазон пуст" });
+    steps.push({ lo: 0, hi: -1, mid: -1, frames: [], done: true, line: 12, vars: vv(-1), info: "return −1 — target " + target + " в массиве нет" });
     return steps;
   }
   // Бинарный поиск ПЕРВОГО вхождения — построчный (debugger) проход:
@@ -4894,23 +4923,28 @@
     var n = arr.length, steps = [], maxReach = 0;
     function H() { return Math.min(maxReach, n - 1); }
     function vv(i) { return { i: (i < 0 ? "—" : i), "nums[i]": (i >= 0 && i < n ? arr[i] : "—"), maxReach: maxReach }; }
-    steps.push({ lo: 0, hi: H(), mid: -1, line: 1, vars: vv(-1), info: "maxReach = 0 — пока достижим только старт" });
+    // Рамка — достижимое 0…maxReach, правый край — граница (раньше её не было: только заливка);
+    // ярлык — maxReach или сравнение, которое решает шаг: i против maxReach (красным, если i за
+    // границей) и i+v против maxReach. Сверху плашек нет, ярлык никому не мешает.
+    function fr(label, kind) { return [{ lo: 0, hi: H(), label: label, kind: kind || "reach" }]; }
+    function mr() { return "maxReach = " + maxReach; }
+    steps.push({ lo: 0, hi: H(), mid: -1, frames: fr(mr()), line: 1, vars: vv(-1), info: "maxReach = 0 — пока достижим только старт" });
     for (var i = 0; i < n; i++) {
-      steps.push({ lo: 0, hi: H(), mid: i, line: 2, vars: vv(i), info: "i = " + i + ", nums[" + i + "] = " + arr[i] });
+      steps.push({ lo: 0, hi: H(), mid: i, frames: fr(mr()), line: 2, vars: vv(i), info: "i = " + i + ", nums[" + i + "] = " + arr[i] });
       var unreachable = i > maxReach;
-      steps.push({ lo: 0, hi: H(), mid: i, line: 3, vars: vv(i), info: "i(" + i + ") " + (unreachable ? "> " : "≤ ") + "maxReach(" + maxReach + ")" + (unreachable ? " — сюда не допрыгнуть" : " — индекс достижим") });
+      steps.push({ lo: 0, hi: H(), mid: i, frames: fr("i = " + i + (unreachable ? " > " : " ≤ ") + mr(), unreachable ? "no" : "reach"), line: 3, vars: vv(i), info: "i(" + i + ") " + (unreachable ? "> " : "≤ ") + "maxReach(" + maxReach + ")" + (unreachable ? " — сюда не допрыгнуть" : " — индекс достижим") });
       if (unreachable) {
-        steps.push({ lo: 0, hi: H(), mid: i, done: true, line: 4, vars: vv(i), info: "return false — индекс " + i + " недостижим (maxReach=" + maxReach + ")" });
+        steps.push({ lo: 0, hi: H(), mid: i, frames: fr("i = " + i + " > " + mr(), "no"), done: true, line: 4, vars: vv(i), info: "return false — индекс " + i + " недостижим (maxReach=" + maxReach + ")" });
         return steps;
       }
       var better = i + arr[i] > maxReach;
-      steps.push({ lo: 0, hi: H(), mid: i, line: 6, vars: vv(i), info: "i+nums[i] = " + i + "+" + arr[i] + " = " + (i + arr[i]) + (better ? " > " : " ≤ ") + "maxReach " + maxReach + (better ? " — да" : " — нет") });
+      steps.push({ lo: 0, hi: H(), mid: i, frames: fr("i+v = " + (i + arr[i]) + (better ? " > " : " ≤ ") + mr()), line: 6, vars: vv(i), info: "i+nums[i] = " + i + "+" + arr[i] + " = " + (i + arr[i]) + (better ? " > " : " ≤ ") + "maxReach " + maxReach + (better ? " — да" : " — нет") });
       if (better) {
         maxReach = i + arr[i];
-        steps.push({ lo: 0, hi: H(), mid: i, line: 7, vars: vv(i), info: "maxReach = i+nums[i] = " + maxReach + (maxReach >= n - 1 ? " — конец достижим!" : "") });
+        steps.push({ lo: 0, hi: H(), mid: i, frames: fr(mr()), line: 7, vars: vv(i), info: "maxReach = i+nums[i] = " + maxReach + (maxReach >= n - 1 ? " — конец достижим!" : "") });
       }
     }
-    steps.push({ lo: 0, hi: n - 1, found: true, done: true, line: 10, vars: vv(-1), info: "return true — последний индекс достижим, можно допрыгнуть!" });
+    steps.push({ lo: 0, hi: n - 1, frames: fr("конец достижим", "hit"), found: true, done: true, line: 10, vars: vv(-1), info: "return true — последний индекс достижим, можно допрыгнуть!" });
     return steps;
   }
   // Backtracking: все подмножества (выбрать → рекурсия → откат).
@@ -10594,7 +10628,8 @@
     "two-pointers-sum": {
       badge: "Two Pointers",
       desc: "Дан отсортированный массив. Найти пару чисел, сумма которых равна target.",
-      legend: [{ cls: "dim", nn: "dim", label: "отброшено: в пару не входит" }, { cls: "found", nn: "found", label: "найденная пара" }],
+      legend: [{ cls: "frcmp", label: "рамка — живые числа [lo, hi]; ярлык — sum против target: зелёный — сдвинется lo, голубой — hi" }, { cls: "dim", nn: "dim", label: "отброшено: в пару не входит" }, { cls: "found", nn: "found", label: "найденная пара" }],
+      frames: 1,
       valuesLabel: "Массив (отсортирован)", codeKey: "two-pointers-sum", fillRange: false,
       ptr1: { name: "lo", cap: "(левый)" }, ptr2: { name: "hi", cap: "(правый)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Отсортированных массивов" },
@@ -10925,7 +10960,8 @@
     "min-subarray-window": {
       badge: "Sliding Window",
       desc: "Оптимум O(n): переменное окно. right расширяет окно, при sum ≥ target жадно сжимаем слева. left только вперёд — отсюда линейность.",
-      legend: [{ cls: "span", nn: "span", label: "окно [left..right]" }, { cls: "found", nn: "found", label: "ответ — кратчайшее окно" }],
+      legend: [{ cls: "span", nn: "span", label: "окно [left..right]" }, { cls: "frcmp", label: "рамка окна, ярлык — sum против target: зелёный — сожмём слева (left), голубой — расширим (right)" }, { cls: "frleft", label: "лучшее окно (пунктир)" }, { cls: "found", nn: "found", label: "ответ — кратчайшее окно" }],
+      frames: 2,
       valuesLabel: "Массив (положительные)", codeKey: "min-subarray-window", fillRange: true,
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Подотрезок под условие суммы" },
@@ -11205,7 +11241,7 @@
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bJumpGameDp(arr) }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return ctx.arr; },
-      title: function () { return "Jump Game — наивная динамика O(n²)"; },
+      title: function () { return "Jump Game — флаги достижимости, O(n²)"; },
       // повторно помеченная клетка — янтарной рамкой mid: видно, что работа выброшена
       cellState: function (s, j) { var r = s.reach && s.reach[j]; return { found: !!r && j !== s.lo && !(s.dup && j === s.hi), lo: j === s.lo && s.lo >= 0, hi: j === s.hi && s.hi >= 0 && !s.dup, mid: !!s.dup && j === s.hi }; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
@@ -11529,7 +11565,8 @@
     "three-sum": {
       badge: "Two Pointers",
       desc: "Оптимум O(n²): сортируем, фиксируем nums[i], а пару с суммой −nums[i] ищем встречными указателями. Дедуп даётся отсортированным массивом даром.",
-      legend: [{ cls: "mid", nn: "mid", label: "i — зафиксированный первый элемент" }, { cls: "span", nn: "span", label: "между left и right — ещё рассматриваем" }],
+      legend: [{ cls: "mid", nn: "mid", label: "i — зафиксированный первый элемент" }, { cls: "span", nn: "span", label: "между left и right — ещё рассматриваем" }, { cls: "frcmp", label: "рамка — тройка i…right; ярлык — sum против 0: зелёный — сдвинется left, голубой — right; над двумя соседями — проверка дубля" }],
+      frames: 1,
       valuesLabel: "Массив (отсортирован)", codeKey: "three-sum", fillRange: false,
       ptr1: { name: "left", cap: "(левый)" }, ptr2: { name: "right", cap: "(правый)" },
       complexity: { time: "O(n²)", space: "O(1)", good: "★ Тройки/пары в отсортированном массиве" },
@@ -11623,7 +11660,8 @@
     "binary-search": {
       badge: "Binary Search",
       desc: "Поиск точного значения в отсортированном массиве делением пополам.",
-      legend: [{ cls: "span", nn: "span", label: "ещё под подозрением: [left, right]" }, { cls: "mid", nn: "mid", label: "mid — проверяем" }, { cls: "dim", nn: "dim", label: "отброшено" }, { cls: "found", nn: "found", label: "найдено" }],
+      legend: [{ cls: "span", nn: "span", label: "ещё под подозрением: [left, right]" }, { cls: "mid", nn: "mid", label: "mid — проверяем" }, { cls: "frcmp", label: "ярлык у mid — arr[mid] против target: зелёный — сдвинется left, голубой — right" }, { cls: "dim", nn: "dim", label: "отброшено" }, { cls: "found", nn: "found", label: "найдено" }],
+      frames: 1,
       valuesLabel: "Массив (отсортирован)", codeKey: "binary-search", fillRange: false,
       ptr1: { name: "left", cap: "(левая граница)" }, ptr2: { name: "right", cap: "(правая граница)" },
       complexity: { time: "O(log n)", space: "O(1)", good: "★ Отсортированных массивов" },
@@ -14214,7 +14252,8 @@
 
     "jump-game": {
       badge: "Greedy", desc: "Jump Game: можно ли допрыгнуть до конца, ведя самую дальнюю достижимую позицию.",
-      legend: [{ cls: "mid", nn: "mid", label: "i — где стоим" }, { cls: "span", nn: "span", label: "достижимо: ≤ maxReach" }, { cls: "dim", nn: "dim", label: "пока недостижимо" }, { cls: "found", nn: "found", label: "достижимо" }],
+      legend: [{ cls: "mid", nn: "mid", label: "i — где стоим" }, { cls: "span", nn: "span", label: "достижимо: ≤ maxReach" }, { cls: "frreach", label: "рамка 0…maxReach; ярлык — maxReach или сравнение шага (красный — i за границей)" }, { cls: "dim", nn: "dim", label: "пока недостижимо" }, { cls: "found", nn: "found", label: "достижимо" }],
+      frames: 1,
       valuesLabel: "Массив (макс. прыжок)", codeKey: "jump-game", fillRange: false,
       ptr1: { name: "i", cap: "(текущий)" }, ptr2: { name: "", cap: "" },
       complexity: { time: "O(n)", space: "O(1)", good: "★ Жадных проходов" },
@@ -15923,6 +15962,27 @@
         var pn = s.ptrNames || {};
         placeTag(tagHi, tagHiTx, hi, pn.hi || (cfg.ptr2 && cfg.ptr2.name), false);
         placeTag(tagLo, tagLoTx, lo, pn.lo || (cfg.ptr1 && cfg.ptr1.name), true);
+        // Ярлык рамки сверху растёт вправо от её левого края и на узком ряду (телефон, рамка в
+        // две клетки) заезжал под верхнюю плашку hi. Тогда ярлык сдвигается влево, чтобы
+        // кончиться перед плашкой: левее — вычеркнутые клетки, сверху над ними пусто. Клеток
+        // левее не хватает (рамка от нулевой) — ярлык заходит и в поле слева от ряда, над его
+        // подписью (та на высоте клеток), но не дальше края холста. Не хватает и этого —
+        // ярлык поднимается над плашкой (рамка в две клетки от нулевой на телефоне).
+        var hiOn = !tagHi.classList.contains("algo-nn__tag--off") && hi >= 0 && hi < n;
+        var padL = Math.max(0, track.getBoundingClientRect().left - vizHost.getBoundingClientRect().left - 4);
+        nnFrames.forEach(function (F) {
+          F.lab.style.left = ""; F.lab.style.transform = "";
+          if (!hiOn || F.el.classList.contains("algo-nn__frame--off") || F.el.classList.contains("algo-nn__frame--labbot") || !F.lab.textContent) return;
+          var fl = parseFloat(F.el.style.left) || 0, lw = F.lab.offsetWidth, base = 8;
+          var hc = bigCells[hi], tagL = hc.offsetLeft + hc.offsetWidth / 2 - tagHiTx.offsetWidth / 2;
+          if (fl + base >= tagL + tagHiTx.offsetWidth || fl + base + lw <= tagL - 4) return; // ярлык целиком левее или правее плашки
+          var want = tagL - 4 - lw - fl, left = Math.max(-fl - padL, want);
+          F.lab.style.left = left + "px";
+          // низ ярлыка — на 2px выше верха плашки: плашка высотой tagH стоит на клетке, а рамка
+          // выступает над клеткой на ins
+          var ins = hc.offsetTop - (parseFloat(F.el.style.top) || 0);
+          if (left > want) F.lab.style.transform = "translateY(" + -(tagHi.offsetHeight - ins + 2) + "px)";
+        });
         if (still) { nnMoved = true; void track.offsetWidth; track.classList.remove("algo-nn__track--still"); }
       };
       if (window.ResizeObserver) new ResizeObserver(function () {

@@ -2345,6 +2345,20 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-nn__frame--target { border: 2px dashed #c084fc; border-radius: 12px; }
 .algo-nn__frame--target .algo-nn__framelab { background: #c084fc; }
 .algo-tp__legdot--frtarget { background: transparent; border: 2px dashed #c084fc; border-radius: 3px; }
+/* Сравнение на холсте (cfg.frames, этап 4): ярлык рамки — сравнение, решающее шаг, его цвет —
+   исход. lo / hi — цветом плашки, которая сдвинется следом (lo — зелёная снизу, hi — голубая
+   сверху), ярлык контуром, чтобы не спутать с заливкой ответа; hit — попадание (как заливка
+   found); no — тупик; reach — достижимое 0…maxReach у Jump Game. */
+.algo-nn__frame--lo .algo-nn__framelab, .algo-nn__frame--hi .algo-nn__framelab { background: var(--nn-cell); color: var(--nn-green); box-shadow: inset 0 0 0 1.5px var(--nn-green); }
+.algo-nn__frame--hi .algo-nn__framelab { color: var(--nn-cyan); box-shadow: inset 0 0 0 1.5px var(--nn-cyan); }
+.algo-nn__frame--hit { border: 2.5px solid var(--nn-green); }
+.algo-nn__frame--hit .algo-nn__framelab { background: var(--nn-green); }
+.algo-nn__frame--no { border: 2px dashed var(--nn-red); }
+.algo-nn__frame--no .algo-nn__framelab { background: var(--nn-red); }
+.algo-nn__frame--reach { border: 2px dashed var(--nn-cyan); }
+.algo-nn__frame--reach .algo-nn__framelab { background: var(--nn-cyan); }
+.algo-tp__legdot--frcmp { background: transparent; border: 2.5px solid var(--nn-amber, #fbbf24); border-radius: 3px; }
+.algo-tp__legdot--frreach { background: transparent; border: 2px dashed var(--nn-cyan, #22d3ee); border-radius: 3px; }
 .algo-tp__legdot--tkids { background: transparent; border: 2px dashed #e0a500; }
 .algo-tp__tnode--kid { outline: 2px dashed #e0a500; outline-offset: 3px; }
 
