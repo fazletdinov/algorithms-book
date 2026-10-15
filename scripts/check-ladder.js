@@ -25,6 +25,14 @@
 //     на главы расширения не опирается. И только на главы ядра РАНЬШЕ этой по маршруту
 //     (порядок GROUPS в assets/progress.js): опора, которая стоит дальше, — ссылка вперёд,
 //     и читатель по маршруту приходит к главе, не зная того, на чём она стоит.
+//  7) вопрос-повторение (data-from, формат data-id держит check-challenges.js) в главе ЯДРА
+//     стоит в блоке «Вспомни» (от его врезки до следующего «## ») и повторяет главу ядра раньше
+//     по маршруту. Если в блоке есть прежние вопросы (без data-id), новый — «накопительный»: его
+//     data-from на 2–4 места раньше по GROUPS и не та глава, что названа в «Эта глава стоит на…»
+//     (о ней уже спрашивают прежние два). И наоборот: у главы с прежними вопросами, для которой
+//     такая глава есть, накопительный вопрос обязан быть (у hash-table-structure нет: на 2–4 места
+//     раньше только big-o, а она и есть опора). Блок, где все вопросы новые (вспомни появилось на
+//     этапе 4), может опираться на любую главу ядра раньше.
 //
 // Уровень главы (core/ext/ref/tool) берётся из ЕДИНОГО реестра — assets/progress.js,
 // того же, что питает трекер и плашку на странице.
@@ -46,6 +54,9 @@ const levelOf = new Map(
 );
 // место главы в маршруте — порядок GROUPS (с оглавлением его сверяет check-registries.js)
 const routePos = new Map([...levelOf.keys()].map((slug, i) => [slug, i]));
+// место среди глав ЯДРА (маршрут ядра): «на 2–4 главы назад» считается по нему, главы
+// расширения между главами ядра в GROUPS в счёт не идут
+const corePos = new Map([...levelOf].filter(([, l]) => l === "core").map(([slug], i) => [slug, i]));
 
 // соседи функций из банка задач: «pkg.F» → [имена]
 const bankNeeds = new Map();
@@ -102,6 +113,35 @@ let coreSkipped = 0;
 let trainerTails = 0;
 let coreLeans = 0;
 let coreLeanLinks = 0;
+let recallQs = 0;
+let cumulative = 0;
+
+// содержимое тега от start до закрывающего «>», не считая «>» внутри кавычек (как в check-challenges.js)
+function readTag(text, start) {
+  let inQuote = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') inQuote = !inQuote;
+    else if (ch === ">" && !inQuote) return text.slice(start, i);
+  }
+  return text.slice(start);
+}
+// задачи главы: позиция, data-id, data-from (упоминание в инлайн-коде — не задача)
+function challengesOf(text) {
+  const res = [];
+  const re = /<div class="algo-challenge"/g;
+  let m;
+  while ((m = re.exec(text))) {
+    if (text[m.index - 1] === "`") continue;
+    const tag = readTag(text, m.index + m[0].length);
+    const attr = (n) => {
+      const a = new RegExp(`\\bdata-${n}="([^"]*)"`).exec(tag);
+      return a ? a[1] : null;
+    };
+    res.push({ at: m.index, id: attr("id"), from: attr("from") });
+  }
+  return res;
+}
 
 for (const file of fs.readdirSync(srcDir).filter((f) => f.endsWith(".md") && f !== "SUMMARY.md")) {
   const slug = file.replace(/\.md$/, "");
@@ -110,12 +150,14 @@ for (const file of fs.readdirSync(srcDir).filter((f) => f.endsWith(".md") && f !
   const isCore = levelOf.get(slug) === "core";
 
   // 6) «Вспомни» главы ядра стоит только на ядре, пройденном раньше неё
+  const leanSlugs = [];
   if (isCore) {
     const lean = text.match(/Эта глава стоит на глав[еах]+ ([\s\S]*?)\.(?:\s|<)/);
     if (lean) {
       coreLeans++;
       for (const m of lean[1].matchAll(/href="([\w-]+)\.md"/g)) {
         coreLeanLinks++;
+        leanSlugs.push(m[1]);
         const lvl = levelOf.get(m[1]);
         if (lvl !== "core") {
           errors.push(
@@ -129,6 +171,57 @@ for (const file of fs.readdirSync(srcDir).filter((f) => f.endsWith(".md") && f !
           );
         }
       }
+    }
+  }
+
+  // 7) вопросы-повторения «Вспомни»: опора раньше по маршруту, накопительный — на 2–4 места
+  if (isCore) {
+    const all = challengesOf(text);
+    const recallAt = text.search(/algo-mental__title">Вспомни/);
+    const blockEnd = recallAt === -1 ? -1 : (() => {
+      const r = text.slice(recallAt).search(/^## /m);
+      return r === -1 ? text.length : recallAt + r;
+    })();
+    const inBlock = all.filter((c) => recallAt !== -1 && c.at > recallAt && c.at < blockEnd);
+    const hasOld = inBlock.some((c) => !c.id);
+    const here = corePos.get(slug);
+    // главы, о которых может спрашивать накопительный вопрос: на 2–4 места раньше, не опора
+    const candidates = [...corePos.entries()]
+      .filter(([s, p]) => here - p >= 2 && here - p <= 4 && !leanSlugs.includes(s))
+      .map(([s]) => s);
+    let hasCumulative = false;
+    for (const c of all.filter((c) => c.from)) {
+      recallQs++;
+      const label = `${where}: вопрос ${c.id || "(без data-id)"} с data-from="${c.from}"`;
+      if (!inBlock.includes(c)) {
+        errors.push(`${label} стоит вне блока «Вспомни» — повторение живёт там`);
+        continue;
+      }
+      if (levelOf.get(c.from) !== "core") {
+        errors.push(`${label}: глава уровня «${levelOf.get(c.from) || "нет в реестре"}» — ядро повторяет только ядро`);
+        continue;
+      }
+      const back = here - corePos.get(c.from);
+      if (back < 1) {
+        errors.push(`${label}: эта глава по маршруту не раньше (${back < 0 ? "позже на " + -back : "та же"}) — повторяют пройденное`);
+        continue;
+      }
+      if (hasOld) {
+        if (back < 2 || back > 4) {
+          errors.push(`${label}: накопительный вопрос — о главе на 2–4 места раньше по маршруту, а эта на ${back}`);
+        } else if (leanSlugs.includes(c.from)) {
+          errors.push(`${label}: о главе-опоре из «Эта глава стоит на…» уже спрашивают прежние вопросы — нужна другая`);
+        } else {
+          hasCumulative = true;
+        }
+      }
+    }
+    if (hasCumulative) cumulative++;
+    if (hasOld && candidates.length && !hasCumulative) {
+      errors.push(
+        `${where}: в «Вспомни» нет накопительного вопроса (data-id + data-from о главе на 2–4 места раньше: ` +
+          `${candidates.join(", ")})`
+      );
     }
   }
 
@@ -236,6 +329,7 @@ console.log(
   `✅ check-ladder: лестница задач в ${withLadder} главах — три ступени по порядку, ` +
     `каждая непустая, подсказка «не пошло» на месте; хвостов «в тренажёре»: ${trainerTails}, ` +
     `у каждого — функция заготовки со своими тестами; «Вспомни» ${coreLeans} глав ядра стоит только на ядре ` +
-    `раньше по маршруту (опор проверено: ${coreLeanLinks}) ` +
+    `раньше по маршруту (опор проверено: ${coreLeanLinks}); вопросов-повторений: ${recallQs}, ` +
+    `накопительный вопрос на 2–4 главы назад — в ${cumulative} главах ` +
     `(глав ядра без списка задач: ${coreSkipped} — практика там в пакете тренажёра или в задачах самой главы)`
 );

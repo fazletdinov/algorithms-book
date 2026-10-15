@@ -233,6 +233,36 @@ console.log("report → srs:");
   assert(cardOf(dom).iv === 1, "первая настоящая проверка после пустого ответа оценивает карточку");
 }
 
+// ---- 6. узел с data-id не занимает номер: id и якорь остальных — как будто его нет ----
+// «Вспомни» ставит новые вопросы в НАЧАЛО главы; займи они номер, у всех задач ниже сдвинулись бы
+// id (отметки «решено», промахи, карточки task:) и якоря task-N (ссылки «повторить»).
+console.log("data-id вне счёта:");
+{
+  const Q = (id, q) =>
+    `<div class="algo-challenge"${id ? ` data-id="${id}"` : ""} data-type="predict" data-answer="1" data-explain="e"><div class="algo-challenge__q">${q}</div></div>`;
+  const dom = new JSDOM(`<body>${Q(null, "A")}${Q("p#r1", "B")}${Q(null, "C")}</body>`, {
+    runScripts: "outside-only",
+    url: "https://example.test/p.html",
+  });
+  dom.window.eval(src);
+  if (dom.window.document.readyState === "loading") {
+    await new Promise((r) => dom.window.document.addEventListener("DOMContentLoaded", r));
+  }
+  const nodes = [...dom.window.document.querySelectorAll(".algo-challenge")];
+  const ids = nodes.map((n) => n.__algoId).join(",");
+  const anchors = nodes.map((n) => n.id).join(",");
+  assert(ids === "p#0,p#r1,p#1", `id: p#0,p#r1,p#1 — получено ${ids}`);
+  assert(anchors === "task-0,task-p-r1,task-1", `якоря: task-0,task-p-r1,task-1 — получено ${anchors}`);
+  // промах по вопросу с data-id пишется под его id и с его якорем — по ним ведёт ссылка «повторить»
+  nodes[1].querySelector(".algo-challenge__input").value = "7";
+  nodes[1].querySelector(".algo-challenge__btn").click();
+  const missed = JSON.parse(dom.window.localStorage.getItem("algoChallengeMissed") || "{}");
+  assert(
+    missed["p#r1"] && missed["p#r1"].anchor === "task-p-r1" && missed["p#r1"].page === "p",
+    `промах вопроса с data-id: ключ p#r1, якорь task-p-r1 — ${JSON.stringify(missed)}`
+  );
+}
+
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURES`);
 process.exit(failures === 0 ? 0 : 1);
 }
