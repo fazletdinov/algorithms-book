@@ -1,0 +1,11 @@
+{
+  "two-pointers-sum": 80,
+  "three-sum": 61,
+  "min-subarray-window": 71,
+  "binary-search": 56,
+  "jump-game": 63,
+  "heap-sort": 42,
+  "heap-build": 57,
+  "num-provinces": 65,
+  "dp-lcs": 32
+}
