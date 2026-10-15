@@ -2088,8 +2088,10 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp .algo-tp__predbtn--on { background: color-mix(in srgb, var(--nn-amber, #fbbf24) 22%, var(--tp-panel2)); border-color: var(--nn-amber, #fbbf24); }
 .algo-tp__predscore { font-size: 0.85em; font-variant-numeric: tabular-nums; color: var(--nn-amber, #fbbf24); min-width: 0; }
 .algo-tp__predscore:empty { display: none; }
-.algo-tp__status--pred { border-color: var(--nn-amber, #fbbf24); }
-.algo-tp__pred { display: flex; flex-direction: column; gap: 0.55em; margin-top: 0.3em; text-align: left; }
+/* на телефоне вопрос встаёт под «🎯 Предскажи» во всю ширину: без переноса строка кода (nowrap)
+   растягивала блок, и заголовок уезжал за левый край, а «Пропустить» — за правый (390px) */
+.algo-tp__status--pred { border-color: var(--nn-amber, #fbbf24); flex-wrap: wrap; }
+.algo-tp__pred { display: flex; flex-direction: column; gap: 0.55em; margin-top: 0.3em; text-align: left; flex: 1 1 16em; min-width: 0; }
 .algo-tp__predline {
   display: flex; align-items: baseline; gap: 0.7em; padding: 0.35em 0.8em; border-radius: 8px;
   background: #0b0f1a; border: 1px solid var(--tp-border); font-family: var(--mono-font, ui-monospace, monospace); font-size: 0.85em;
