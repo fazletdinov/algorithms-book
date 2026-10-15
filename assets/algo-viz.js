@@ -2508,10 +2508,15 @@
     var cand = [], loose = {};
     for (var k = 1; k + 1 < steps.length; k++) {
       var L = steps[k].line, M = steps[k + 1].line;
-      if (typeof L !== "number" || typeof M !== "number" || M === L || !code[L]) continue;
+      if (typeof L !== "number" || typeof M !== "number" || !code[L]) continue;
       var b = branchOf(code[L]);
       if (!b || steps[k].noAsk) continue;
       var said = typeof steps[k].branch === "boolean", entered = steps[k].branch;
+      // Следующий шаг на той же строке. У if это исход «нет» (тело не исполнилось) — отбрасывать его
+      // нельзя: кандидатами остались бы одни «да», и сам факт вопроса снова выдавал бы ответ. У
+      // заголовка цикла без явного исхода вывода нет вовсе (итерация без кадра или выход — не различить),
+      // такая встреча не кандидат; с s.branch исход назван, и встреча — кандидат.
+      if (M === L && b.kind !== "if" && !said) continue;
       if (!said) {
         // «Вошли в тело» — следующий шаг внутри блока строки L. Раньше считалось по L+1, и
         // генератор, пропустивший первую строку тела, превращал верное «Да» в промах.
@@ -2521,6 +2526,12 @@
       if (!said && !entered) loose[L] = true;
       cand.push({ at: k, line: L, kind: b.kind, cond: b.cond, entered: entered, said: said });
     }
+    // Заголовок цикла, исход которого генератор не назвал ни на одной встрече, даёт только выведенное
+    // «да»: кадра выхода у таких генераторов нет (dp-coins, knapsack, обходы range). Ответ угадывается по
+    // виду строки — не кандидат.
+    var named = {};
+    cand.forEach(function (q) { if (q.said) named[q.line] = true; });
+    cand = cand.filter(function (q) { return q.kind === "if" || named[q.line]; });
     cand.forEach(function (q) { q.loose = !!loose[q.line]; });
     return cand;
   }
@@ -3033,10 +3044,11 @@
     // Кадр на заголовке for i / for j ставится только для ИСПОЛНЕННОЙ итерации — условие на нём
     // истинно (branch: true). По следующему шагу это не вывести: при j = n−1 цикл по k не
     // делает ни одной итерации, тело не даёт кадра, и 🎯 засчитывал верное «Да» как промах.
+    // Кадра выхода у этих заголовков нет — ответ всегда «да», поэтому они без вопроса (noAsk).
     for (var i = 0; i < n; i++) {
-      steps.push(P({ lo: i, hi: -1, line: 3, branch: true, vars: vv(i), info: "i = " + i + ": первый элемент тройки nums[" + i + "] = " + arr[i] }));
+      steps.push(P({ lo: i, hi: -1, line: 3, branch: true, noAsk: true, vars: vv(i), info: "i = " + i + ": первый элемент тройки nums[" + i + "] = " + arr[i] }));
       for (var j = i + 1; j < n; j++) {
-        steps.push(P({ lo: i, mid: j, hi: -1, line: 4, branch: true, vars: vv(i, j), info: "j = " + j + ": второй элемент nums[" + j + "] = " + arr[j] }));
+        steps.push(P({ lo: i, mid: j, hi: -1, line: 4, branch: true, noAsk: true, vars: vv(i, j), info: "j = " + j + ": второй элемент nums[" + j + "] = " + arr[j] }));
         for (var k = j + 1; k < n; k++) {
           var sum = arr[i] + arr[j] + arr[k], zero = sum === 0; checked++;
           // проверка суммы и запись в res — разные строки: addUnique (L8) получает свой кадр
@@ -5481,10 +5493,10 @@
     // Оба кадра-развилки ставятся только при ИСТИННОМ условии (branch: true): заголовок for —
     // для исполненной итерации, `if !reachable[i]` — когда клетка недостижима. Тело при этом
     // может не дать кадра (continue; цикл по step без итераций), и по следующему шагу 🎯
-    // вывел бы «нет».
+    // вывел бы «нет». Другого исхода у этих кадров не бывает — они без вопроса (noAsk).
     for (var i = 0; i < n; i++) {
-      steps.push({ lo: i, hi: -1, reach: snap(), line: 4, branch: true, vars: vv(i), info: "i = " + i });
-      if (!reach[i]) { steps.push({ lo: i, hi: -1, reach: snap(), line: 5, branch: true, vars: vv(i), info: "reachable[" + i + "] = false → сюда не допрыгнуть, continue" }); continue; }
+      steps.push({ lo: i, hi: -1, reach: snap(), line: 4, branch: true, noAsk: true, vars: vv(i), info: "i = " + i });
+      if (!reach[i]) { steps.push({ lo: i, hi: -1, reach: snap(), line: 5, branch: true, noAsk: true, vars: vv(i), info: "reachable[" + i + "] = false → сюда не допрыгнуть, continue" }); continue; }
       for (var step = 1; step <= arr[i] && i + step < n; step++) {
         // повторная пометка — сама суть O(n²): клетку, уже помеченную раньше, помечаем снова
         var was = reach[i + step];
@@ -6663,7 +6675,7 @@
     steps.push({ values: a.slice(), lo: i, hi: -1, mid: hi, part: i, line: 2, vars: vv(), info: "i = 0 — левая граница зоны «меньше pivot» (пока пустая)" });
     for (var j = 0; j < hi; j++) {
       var less = a[j] < pivot; cmp++;
-      steps.push({ values: a.slice(), lo: i, hi: j, mid: hi, part: i, line: 4, vars: vv(j), info: "сравнение №" + cmp + ": a[" + j + "]=" + a[j] + (less ? " < " : " ≥ ") + pivot + (less ? " — должно уйти влево" : " — оставляем справа") });
+      steps.push({ values: a.slice(), lo: i, hi: j, mid: hi, part: i, line: 4, branch: less, vars: vv(j), info: "сравнение №" + cmp + ": a[" + j + "]=" + a[j] + (less ? " < " : " ≥ ") + pivot + (less ? " — должно уйти влево" : " — оставляем справа") });
       if (less) {
         var t = a[i]; a[i] = a[j]; a[j] = t; swp++;
         steps.push({ values: a.slice(), lo: i, hi: j, mid: hi, part: i, line: 5, vars: vv(j), info: "обмен №" + swp + ": swap a[" + i + "] ↔ a[" + j + "] — меньшее переехало в левую зону" });
@@ -8453,14 +8465,15 @@
     steps.push(snap({ line: 1, vars: vars(-1), info: "insertPos = 0 — сюда встанет следующий ненулевой элемент" }));
     for (var i = 0; i < n; i++) {
       var v = a[i];
-      steps.push(snap({ hi: i, line: 3, vars: vars(i), info: "Проверяем nums[" + i + "] = " + v + (v === 0 ? " — ноль, пропускаем: insertPos остаётся на " + ins : " — не ноль, его место в начале") }));
+      steps.push(snap({ hi: i, line: 3, branch: v !== 0, vars: vars(i), info: "Проверяем nums[" + i + "] = " + v + (v === 0 ? " — ноль, пропускаем: insertPos остаётся на " + ins : " — не ноль, его место в начале") }));
       if (v === 0) continue;
       if (i !== ins) {
         var to = ins;
         a[to] = v; a[i] = 0;
         steps.push(snap({ hi: i, line: 5, hot: true, vars: vars(i), info: "Обмен: " + v + " встаёт на позицию " + to + ", а ноль оттуда — на место " + i + " (между insertPos и i только нули)" }));
       } else {
-        steps.push(snap({ hi: i, line: 4, branch: false, vars: vars(i), info: "i == insertPos — " + v + " уже на своём месте, ничего не двигаем" }));
+        // кадр строки `if i != insertPos` бывает только при «нет» (при «да» сразу кадр обмена) — без вопроса
+      steps.push(snap({ hi: i, line: 4, branch: false, noAsk: true, vars: vars(i), info: "i == insertPos — " + v + " уже на своём месте, ничего не двигаем" }));
       }
       ins++;
       steps.push(snap({ hi: i, line: 7, vars: vars(i), info: "insertPos++ → " + ins + (ins < n ? "" : " — ненулевых больше нет") }));
@@ -16815,6 +16828,7 @@
     // для scripts/predict-check.js: вопросы (с текстом), строки шагов, листинг и чипы шага (как на экране)
     root.__algoPredict = { qs: predQs, own: ownInput, lines: steps.map(function (s) { return s.line; }), code: codeLines,
       askLines: predAskLines, cand: predInfo.cand, seed: predSeed,
+      meta: steps.map(function (s) { return { said: typeof s.branch === "boolean", noAsk: !!s.noAsk }; }),
       chips: function (k) { var c = cfg.varsOf(steps[k], ctx), o = {}; cfg.varOrder.forEach(function (n) { o[n] = c[n]; }); return o; } };
     var predHas = Object.keys(predQs).length > 0;
     // Кнопка выключена по двум разным причинам: у виджета развилок нет вовсе или свой ввод

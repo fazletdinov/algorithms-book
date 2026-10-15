@@ -103,8 +103,9 @@ const dom = new JSDOM(
      ${tagOf("monotonic-stack.md", "monotonic-stack").replace("<div ", '<div id="stk" ')}
      ${cycTags.map((t, i) => t.replace("<div ", `<div id="cyc${i}" `)).join("\n")}
      ${tagOf("miniredis.md", "redis-resp").replace("<div ", '<div id="own1" ')}
+     ${tagOf("go-stdlib-structures.md", "lru").replace("<div ", '<div id="own5" ')}
      ${tagOf("string-algorithms.md", "string-match-naive").replace("<div ", '<div id="own2" ')}
-     ${tagOf("union-find-structure.md", "union-find-find").replace("<div ", '<div id="own3" ')}
+     ${tagOf("go-stdlib-structures.md", "swiss-lookup").replace("<div ", '<div id="own3" ')}
      ${tagOf("monotonic-stack.md", "monotonic-stack").replace("<div ", '<div id="own4" ')}
      <script>${js}</script>${infraScriptTags(root)}
    </body></html>`,
@@ -199,15 +200,14 @@ const YES_EMPTY_BODY = new Set([
   "mutex-bits|10",         // быстрый путь CAS: тело — return без кадра
   "route-match|7",         // условие само вызывает c.match(...): следующие кадры — строки рекурсивного вызова
   // ниже — встречи без вопроса (их ключи сверяются с этапа 4, когда вопрос стал выборкой):
-  "three-sum-naive|4",     // i = n−1: цикл по j без итераций — тело кадра не даёт
-  "three-sum-naive|5",     // j = n−1: цикл по k без итераций — тело кадра не даёт
-  "jump-game-dp|5",        // последнее i: кадра строки `if !reachable[i]` у генератора нет, внутренний цикл пуст
   "count-inversions-naive|3", // i = n−1: цикл по j без итераций
 ]);
 // Таймлайн горутин: следующий кадр — ДРУГАЯ горутина, и «внутри тела» по нему ничего не значит.
-// Исход назван генератором; правило (3) «явное нет при следующем кадре в теле» здесь не действует:
+// Исход назван генератором; правила (3) и (4) («явное нет при следующем кадре в теле», «явное да при
+// следующем кадре вне тела») здесь не действуют:
 const INTERLEAVED = new Set([
   "bfs-local-timeline|3", // G3 проигрывает CAS («занято»), следующий кадр — append победителя G1
+  "race-timeline|3",      // G2 прочитала false (условие истинно), следующий кадр — чтение G3 на той же строке
 ]);
 // «Нет», выведенное по следующему шагу и не подтверждённое ни оракулом, ни явным исходом
 // генератора (s.branch): шаг вне тела бывает и при ложном условии, и при истинном с телом
@@ -255,6 +255,21 @@ async function keyAudit() {
       if (a !== b) { c.dep++; bad.push(`${where} — выбор вопросов зависит от исхода: [${a}] против [${b}] при перевёрнутых исходах`); }
     } else bad.push(`${where} — движок не отдал встречи (cand) или predChoose`);
     if (!label) { askUsed[t.type] = askUsed[t.type] || { lines: askLines, used: new Set() }; }
+    // СОСТАВ кандидатов: каждый шаг на строке-развилке (есть следующий шаг, нет noAsk) — кандидат. Исключения
+    // только у заголовка цикла (for / range): следующий шаг на той же строке без явного исхода и строка, где
+    // генератор не назвал исход ни разу (ответ — всегда «да»). У if шаг с повтором строки — исход «нет», и
+    // выбросить его значит снова выдавать ответ фактом вопроса.
+    if (p.cand && p.meta) {
+      const inCand = new Set(p.cand.map((q) => q.at)), isLoop = {}, named = {};
+      const kindOf = (L) => { const x = String(p.code[L] || "").replace(/\/\/.*$/, "").trim(); return /^(\}\s*else\s+)?if\s.+\{$/.test(x) ? "if" : /^for\s+\S.*\{$/.test(x) ? "loop" : null; };
+      for (let k = 1; k + 1 < p.lines.length; k++) if (kindOf(p.lines[k]) === "loop" && p.meta[k].said && !p.meta[k].noAsk) named[p.lines[k]] = true;
+      for (let k = 1; k + 1 < p.lines.length; k++) {
+        const L = p.lines[k], kind = kindOf(L);
+        if (!kind || p.meta[k].noAsk || inCand.has(k)) continue;
+        if (kind === "loop" && ((p.lines[k + 1] === L && !p.meta[k].said) || !named[L])) continue;
+        bad.push(`${where}, шаг ${k + 1}, строка ${L + 1} «${p.code[L].trim()}» — шаг на строке-развилке не стал кандидатом 🎯 (выбор без него зависел бы от исхода)`);
+      }
+    }
     // Ключи НЕзаданных встреч сверяются теми же правилами (1)–(4): вопрос задаётся выборкой, и без этого
     // перевёрнутый явный исход на невыбранной встрече (кадр выхода из цикла) был бы невидим проверке.
     for (const q of p.cand || []) {
@@ -263,7 +278,7 @@ async function keyAudit() {
       const at = `${where}, шаг ${q.at + 1} (без вопроса), строка ${q.line + 1} «${p.code[q.line].trim()}»`;
       if (!q.said && q.entered !== inside) bad.push(`${at} — ключ «${q.entered ? "да" : "нет"}», а следующий шаг ${inside ? "внутри" : "вне"} тела`);
       if (q.said && !q.entered && inside && !INTERLEAVED.has(id)) bad.push(`${at} — генератор назвал исход «нет», а следующий шаг внутри тела`);
-      if (q.said && q.entered && !inside && !YES_EMPTY_BODY.has(id)) bad.push(`${at} — генератор назвал исход «да», а следующий шаг вне тела`);
+      if (q.said && q.entered && !inside && !YES_EMPTY_BODY.has(id) && !INTERLEAVED.has(id)) bad.push(`${at} — генератор назвал исход «да», а следующий шаг вне тела`);
       const o = STALE_CHIP.has(id) ? null : oracle(p.code[q.line], p.chips(q.at));
       if (o != null && o !== q.entered) bad.push(`${at} — ключ «${q.entered ? "да" : "нет"}», а по чипам условие ${o ? "истинно" : "ложно"}`);
     }
@@ -272,7 +287,7 @@ async function keyAudit() {
       const at = `${where}, шаг ${+k + 1}, строка ${q.line + 1} «${code}»`, inside = insideByIndent(p.code, q.line, next);
       if (!q.said && q.entered !== inside) bad.push(`${at} — ключ «${key}», а следующий шаг (строка ${next + 1}) ${inside ? "внутри" : "вне"} тела`);
       if (q.said && !q.entered && inside && !INTERLEAVED.has(`${t.type}|${q.line + 1}`)) bad.push(`${at} — генератор назвал исход «нет», а следующий шаг (строка ${next + 1}) внутри тела`);
-      if (q.said && q.entered && !inside && !YES_EMPTY_BODY.has(`${t.type}|${q.line + 1}`)) bad.push(`${at} — генератор назвал исход «да», а следующий шаг (строка ${next + 1}) вне тела: если тело здесь законно без кадра, впиши «${t.type}|${q.line + 1}» в YES_EMPTY_BODY с причиной`);
+      if (q.said && q.entered && !inside && !YES_EMPTY_BODY.has(`${t.type}|${q.line + 1}`) && !INTERLEAVED.has(`${t.type}|${q.line + 1}`)) bad.push(`${at} — генератор назвал исход «да», а следующий шаг (строка ${next + 1}) вне тела: если тело здесь законно без кадра, впиши «${t.type}|${q.line + 1}» в YES_EMPTY_BODY с причиной`);
       // формулировка: строка из cfg.ask — её вопрос, со знаком вопроса; без записи — общая
       if (!!q.own !== askLines.includes(q.line)) bad.push(`${at} — вопрос ${q.own ? "из cfg.ask, а строки там нет" : "общий, хотя у строки есть cfg.ask"}`);
       if (!/\?/.test(q.ask || "") || !q.yes || !q.no) bad.push(`${at} — вопрос «${q.ask}» без знака вопроса или без ответов`);
@@ -388,8 +403,9 @@ function cycleEntryMismatches() {
   return { bad: [...bad], runs };
 }
 
-// 9) свой ввод читателя. Виджет own1 (разбор RESP, вне ядра) — выведенные «нет»: на входе
-// главы и на пресете они спрашиваются, на своём вводе — нет, а «да» остаются. Виджет own2
+// 9) свой ввод читателя. Виджет own1 (разбор RESP, вне ядра) — выведенные «нет» на входе главы и на
+// пресете спрашиваются; own5 (LRU, вне ядра; пресетов нет) — на своём вводе строка с выведенным «нет»
+// молчит, а надёжные «да» остаются, на возвращённом входе главы «нет» снова спрашивается. Виджет own2
 // (наивный поиск подстроки) — явное «нет» генератора: на своём вводе оно спрашивается.
 function ownInputMismatches() {
   const bad = [];
@@ -410,11 +426,14 @@ function ownInputMismatches() {
   click(doc.getElementById("own1").querySelectorAll(".algo-tp__preset")[1]);
   k = kinds("own1");
   if (k.own || !k.noGuess) bad.push(`пресет: ${show(k)} — выведенные «нет» здесь прочитаны и должны спрашиваться`);
-  type("own1", ["*3\\r\\n$3\\r\\nSET\\r\\n$1\\r\\nk\\r\\n$1\\r\\nv\\r\\n", "k=v"]);
-  k = kinds("own1");
+  const orig5 = [...doc.getElementById("own5").querySelectorAll(".algo-tp__input")].map((inp) => inp.value);
+  k = kinds("own5");
+  if (k.own || !k.noGuess || !k.yes) bad.push(`LRU, вход главы: ${show(k)} — ожидались и выведенное «нет», и «да»`);
+  type("own5", ["2", "put 1 1; put 2 2; get 1; put 3 3; get 2; put 4 4; get 1; get 3; get 4"]);
+  k = kinds("own5");
   if (!k.own || k.noGuess || !k.yes) bad.push(`свой ввод: ${show(k)} — выведенное «нет» не должно спрашиваться, «да» — должно`);
-  type("own1", orig);
-  k = kinds("own1");
+  type("own5", orig5);
+  k = kinds("own5");
   if (k.own || !k.noGuess) bad.push(`вернули вход главы вручную: ${show(k)} — это снова не «свой ввод»`);
   type("own2", ["abcabd", "abd"]);
   k = kinds("own2");
@@ -424,8 +443,9 @@ function ownInputMismatches() {
   // случае неправда: на примере главы они есть (own3), а на стеке (own4) их нет нигде.
   const off = (id) => { const b = doc.getElementById(id).querySelector(".algo-tp__predbtn"); return { off: b.disabled, text: b.title }; };
   let h = off("own3");
-  if (h.off) bad.push("подсказка: на примере главы у union-find-find кнопка 🎯 выключена — проверка потеряла смысл");
-  type("own3", ["0,1,2,3,4", "0"]); // все узлы — корни: ни «да», ни явного «нет», остаются одни выведенные «нет»
+  if (h.off) bad.push("подсказка: на примере главы у swiss-lookup кнопка 🎯 выключена — проверка потеряла смысл");
+  // слот 0 — тот же h2, но не тот ключ: единственная развилка даёт выведенное «нет», и строка молчит целиком
+  type("own3", ["42,7,-,42,13,99,-,6", "42"]);
   k = kinds("own3");
   h = off("own3");
   if (!k.own || k.yes || k.noSaid || k.noGuess || !h.off) bad.push(`свой ввод убрал все вопросы: ${show(k)}, кнопка ${h.off ? "выключена" : "включена"} — проверка рассчитана на ввод без вопросов`);
