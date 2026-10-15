@@ -107,6 +107,7 @@ const dom = new JSDOM(
      ${tagOf("string-algorithms.md", "string-match-naive").replace("<div ", '<div id="own2" ')}
      ${tagOf("go-stdlib-structures.md", "swiss-lookup").replace("<div ", '<div id="own3" ')}
      ${tagOf("monotonic-stack.md", "monotonic-stack").replace("<div ", '<div id="own4" ')}
+     ${tagOf("backtracking.md", "subsets-bt").replace("<div ", '<div id="own6" ')}
      <script>${js}</script>${infraScriptTags(root)}
    </body></html>`,
   { runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true, url: "http://localhost:3000/sliding-window.html" }
@@ -456,6 +457,10 @@ function ownInputMismatches() {
   h = off("own4");
   if (!k.own || !h.off) bad.push(`стек на своём вводе: own=${k.own}, кнопка ${h.off ? "выключена" : "включена"} — должна быть выключена`);
   else if (!/развилок на шагах нет/.test(h.text) || /своём вводе/.test(h.text)) bad.push(`подсказка выключенной кнопки у виджета без развилок: «${h.text}» — должна говорить «развилок на шагах нет» и не упоминать свой ввод`);
+  // развилки есть, но ни одна не кандидат (заголовок цикла без кадра выхода — ответ всегда «да»):
+  // кнопка выключена, и подсказка говорит, почему, а не «развилок нет»
+  h = off("own6");
+  if (!h.off || /развилок на шагах нет/.test(h.text) || !/Развилки здесь есть/.test(h.text)) bad.push(`подсказка у subsets-bt (развилки есть, вопросов нет): кнопка ${h.off ? "выключена" : "включена"}, «${h.text}» — ожидалось «Развилки здесь есть, но вопросов 🎯 нет…»`);
   return bad;
 }
 

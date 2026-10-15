@@ -16834,6 +16834,9 @@
     // Кнопка выключена по двум разным причинам: у виджета развилок нет вовсе или свой ввод
     // убрал все вопросы (выведенное «нет» там не спрашивается). Подсказка не должна путать их.
     var predOwnEmpty = ownInput && !predHas && Object.keys(predictionQuestions(steps, codeLines, false, predSeed, predAskLines)).length > 0;
+    // Развилки на шагах есть, но ни одна не кандидат: исход каждой виден по виду строки (заголовок цикла
+    // без кадра выхода, кадр только одного исхода) — подсказка не должна говорить «развилок нет».
+    var predForked = !predHas && steps.some(function (s, k) { return k > 0 && k + 1 < steps.length && typeof s.line === "number" && !!codeLines[s.line] && !!branchOf(codeLines[s.line]); });
     var predOwnWhere = cfg.presets ? "на примере главы и пресетах" : "на примере главы";
     var predOn = false, predPending = null, predAnswered = {}, predVerdict = null, predRight = 0, predTotal = 0, predBox = null;
     try { predOn = localStorage.getItem(PRED_KEY) === "1"; } catch (e) { /* приватный режим */ }
@@ -16873,7 +16876,7 @@
       bPred.disabled = !predHas;
       bPred.title = predOwnEmpty
         ? "На своём вводе вопросов 🎯 нет: ответ «нет» проверен только " + predOwnWhere + (cfg.presets ? " — вернись к «пример главы»" : " — верни вход из главы")
-        : !predHas ? "В этом виджете развилок на шагах нет — листай как обычно"
+        : !predHas ? (predForked ? "Развилки здесь есть, но вопросов 🎯 нет: исход каждой виден по виду строки — листай как обычно" : "В этом виджете развилок на шагах нет — листай как обычно")
         : (predOn ? "🎯 включён: на развилках виджет спросит исход до показа шага (Y — да, N — нет)" : "Включить 🎯: предсказывать исход на развилках if / for")
           + (ownInput ? ". На своём вводе часть вопросов не задаётся: ответ «нет» проверен только " + predOwnWhere : "");
       predScore.textContent = predTotal ? predRight + "/" + predTotal : "";
