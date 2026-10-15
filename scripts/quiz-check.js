@@ -287,6 +287,8 @@ async function main() {
   // Оглавление и «Слабые места» называют главы по-русски; вариант «Sliding Window» рядом со «Скользящим
   // окном» читался бы как другой приём. Латиница в варианте — только имена Go и аббревиатуры из ALLOWED.
   {
+    // en бывает из нескольких имён («Fenwick Tree, BIT», «Segment Tree / Fenwick Tree»): каждое — без учёта регистра
+    const enParts = (en) => String(en).split(/[,/]/).map((x) => x.trim().toLowerCase()).filter(Boolean);
     const ALLOWED = /\b(?:BFS|DFS|MST|KMP|NP|BST)\b|A\*|\bK\b|map\[string\]bool/g;
     const probe = await boot({}, 1);
     const bank = probe.window.ALGO_QUIZ.questions;
@@ -305,7 +307,9 @@ async function main() {
       if (named.length && !named.includes(item.href)) errors.push(`(g) ${where}: ответ «${item.correct}» — название главы ${named.join(", ")}, а ссылка ведёт на ${item.href}`);
       if (item.en != null) {
         if (!/[A-Za-z]/.test(item.en)) errors.push(`(g) ${where}: en без латиницы «${item.en}»`);
-        if (item.explain.includes(item.en)) errors.push(`(g) ${where}: английское «${item.en}» повторено в тексте пояснения`);
+        for (const part of enParts(item.en)) {
+          if (item.explain.toLowerCase().includes(part)) errors.push(`(g) ${where}: английское «${part}» (из en «${item.en}») повторено в тексте пояснения`);
+        }
       }
     }
     // после ответа пояснение называет английское имя ровно один раз
@@ -321,8 +325,10 @@ async function main() {
       if (!text.includes(item.correct)) errors.push(`(g) после ответа на «${item.q.slice(0, 50)}» не назван ответ «${item.correct}»`);
       if (item.en) {
         withEn++;
-        const n = text.split(item.en).length - 1;
-        if (n !== 1) errors.push(`(g) после ответа на «${item.q.slice(0, 50)}» английское «${item.en}» названо ${n} раз(а), ожидался один`);
+        for (const part of enParts(item.en)) {
+          const n = text.toLowerCase().split(part).length - 1;
+          if (n !== 1) errors.push(`(g) после ответа на «${item.q.slice(0, 50)}» английское «${part}» (из en «${item.en}») названо ${n} раз(а), ожидался один`);
+        }
       }
       click(probe, view(probe).btn);
     }

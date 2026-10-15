@@ -1345,7 +1345,7 @@ if (api) {
   // вопроса, которого в банке больше нет. Так же — промах, записанный до перевода вариантов квиза на
   // русский: снимок «Sliding Window», ответ карточки — «Скользящее окно» из банка.
   const CYCLE = "Определить, образует ли набор рёбер цикл в НЕориентированном графе.";
-  const CYCLE_ANSWER = "Обход графа в глубину (DFS)";
+  const CYCLE_ANSWER = "Обход в глубину (DFS)";
   const WINDOW_Q = "Найти длину самой длинной подстроки без повторяющихся символов.";
   const cycleMeta = { n: 1, pattern: "Union-Find (DSU)", href: "union-find-structure.html", q: CYCLE };
   const windowMeta = { n: 2, pattern: "Sliding Window", href: "sliding-window.html", q: WINDOW_Q };
