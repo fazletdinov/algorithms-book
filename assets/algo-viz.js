@@ -3836,6 +3836,9 @@
         // все читают false — условие истинно у каждой; названо явно, как у CAS в bLocalTimeline:
         // следующий кадр — чужая горутина, и вывод по нему верен лишь по совпадению
         branch: lineOf[k] === 2 ? true : undefined,
+        // …и без вопроса: в этом чередовании все чтения идут до первой записи, исход «нет» не
+        // встречается никогда — сам вопрос выдавал бы ответ
+        noAsk: lineOf[k] === 2 || undefined,
         vars: { g: "G" + (E[k].lane + 1), act: E[k].label },
         info: infoOf[k],
         tl: { events: E, now: k, race: [0, lastWrite] }
@@ -3869,10 +3872,12 @@
     E.push({ lane: 0, t: t++, kind: "append", label: "local ← 3" });
     lineOf.push(3);
     infoOf.push("Победитель CAS (G1) кладёт 3 в свой локальный фронт");
-    var steps = [];
+    // Вступление до первого CAS: первый шаг 🎯 не спрашивает, и без него CAS победителя (G1, «да»)
+    // оставался без вопроса — спрашивались одни проигравшие, и сам вопрос выдавал «нет».
+    var steps = [{ si: 0, line: 0, vars: { g: "—", act: "—" }, info: "Фронт {1, 2}: " + n + " " + ruPlural(n, "горутина", "горутины", "горутин") + " доходят до общего соседа 3 и пробуют застолбить его атомарным CAS.", tl: { events: E, now: -1, race: null } }];
     for (var k = 0; k < E.length; k++) {
       steps.push({
-        si: k, line: lineOf[k],
+        si: k + 1, line: lineOf[k],
         // Исход CAS назван явно: следующий кадр — другая горутина (у G3 после неудачного CAS идёт
         // append победителя G1), и вывод «вошли в тело» по следующему кадру давал G3 «да».
         branch: lineOf[k] === 2 ? E[k].kind === "claim" : undefined,
@@ -3882,7 +3887,7 @@
       });
     }
     steps.push({
-      si: E.length, line: 4, done: true,
+      si: E.length + 1, line: 4, done: true,
       vars: { g: "merge", act: "next ← [3]" },
       info: "После барьера фронты сливаются: 3 добавлен РОВНО раз, кто бы из " + n + " ни выиграл CAS. Ни мьютекса, ни гонки.",
       tl: { events: E, now: E.length - 1, race: null }
@@ -4301,7 +4306,7 @@
         var atLast = (i === n.keys.length);
         if (n.children[i].keys.length < BT_T) {
           var mp0 = {}; mp0[n.id] = "current"; mp0[n.children[i].id] = "fix";
-          push({ line: 8, node: n.children[i].keys.join(","), action: "ребёнок беден", marks: mp0, info: "путь к " + k + " идёт через [" + n.children[i].keys.join(",") + "], а в нём " + n.children[i].keys.length + " ключ (= t−1): войти — и удаление оставит его ниже минимума. Сначала чиним" });
+          push({ line: 8, node: n.children[i].keys.join(","), action: "ребёнок беден", marks: mp0, info: "путь к " + k + " идёт через [" + n.children[i].keys.join(",") + "], а в нём " + n.children[i].keys.length + " ключ (= t−1): войти — и удаление оставит его ниже минимума. Сначала чиним" }); steps[steps.length - 1].noAsk = true; // кадр строки if — только при «да» (при «нет» сразу спуск): ответ предсказуем без расчёта
           fill(n, i);
           if (atLast && i > n.keys.length) { i = i - 1; var mi2 = {}; mi2[n.id] = "current"; mi2[n.children[i].id] = "fix"; push({ line: 11, node: n.children[i].keys.join(","), action: "i--", marks: mi2, info: "крайний правый ребёнок слился с левым → i-- = " + i + ": спускаемся в слитый узел" }); }
         }
@@ -6795,7 +6800,7 @@
         return steps;
       }
       qp[qp.length - 1].cls = "hit";
-      steps.push(snap({ lo: p, line: 4, vars: { url: query, pos: p, bit: 1 }, info: "бит " + p + " стоит ✓ (зажёг " + bloomWho(own, addWords, p) + ") — пока сходится, проверяем дальше" }));
+      steps.push(snap({ lo: p, line: 4, noAsk: true, vars: { url: query, pos: p, bit: 1 }, info: "бит " + p + " стоит ✓ (зажёг " + bloomWho(own, addWords, p) + ") — пока сходится, проверяем дальше" })); // кадр строки if — только при «нет» (при «да» сразу return): без вопроса
     }
     var who = ps.map(function (p) { return p + " ← " + bloomWho(own, addWords, p); }).join("; ");
     steps.push(snap(wasAdded
@@ -6834,7 +6839,7 @@
       steps.push(snap({ lo: j, hx: { x: x, p: P, r: r, stage: 3 }, line: 3, vars: vv(id, j, r), info: r === 1 ? "сразу за ними 1 — нулей в серии нет → rho = 0 + 1 = 1" : "дальше серия из " + (r - 1) + " " + ruPlural(r - 1, "нуля", "нулей", "нулей") + ", затем 1 → rho = " + (r - 1) + " + 1 = " + r }));
       var old = reg[j], grew = r > old; if (grew) reg[j] = r;
       // строка 6 (присваивание) — только если регистр реально вырос; иначе стоим на if
-      steps.push(snap({ lo: j, hx: { x: x, p: P, r: r, stage: 3 }, line: grew ? 5 : 4, vars: vv(id, j, r), info: grew ? "rho " + r + " > " + old + " → регистр " + j + " растёт до " + r : "rho " + r + " ≤ " + old + " → регистр не меняем (храним максимум)" + (rep ? ". Повтор ничего не меняет: тот же хеш даёт те же регистр и rho — поэтому HLL и считает УНИКАЛЬНЫЕ" : "") }));
+      steps.push(snap({ lo: j, hx: { x: x, p: P, r: r, stage: 3 }, line: grew ? 5 : 4, noAsk: !grew, vars: vv(id, j, r), info: grew ? "rho " + r + " > " + old + " → регистр " + j + " растёт до " + r : "rho " + r + " ≤ " + old + " → регистр не меняем (храним максимум)" + (rep ? ". Повтор ничего не меняет: тот же хеш даёт те же регистр и rho — поэтому HLL и считает УНИКАЛЬНЫЕ" : "") })); // кадр строки if — только при «нет»: без вопроса
     }
     var uniq = Object.keys(seen).length;
     steps.push(snap({ done: true, line: 7, vars: vv("—", "—", "—"), info: "Сырая формула: ≈ " + raw() + " при " + uniq + " " + ruPlural(uniq, "уникальном", "уникальных", "уникальных") + " — на малых n промах в разы. С поправкой linear counting (как в Redis: m·ln(m/V), пустых регистров V = " + reg.filter(function (x) { return x === 0; }).length + ") — ≈ " + lc() + ". На миллионах поправка не нужна: ошибка сырой формулы ~2%" }));
@@ -7769,6 +7774,11 @@
     var fast = snap(0, 9, "G1.Lock(): CAS 0→locked удался → бит 0 (locked) = 1. Быстрый путь, без блокировки.");
     fast.branch = true;
     steps.push(fast);
+    // Тот же if у G2 — исход «нет»: без этого кадра строка 10 бывала только с «да», и сам
+    // вопрос 🎯 выдавал ответ
+    var slow = snap(null, 9, "G2.Lock(): CAS 0→locked — в state уже 1 (лок у G1), а не 0 → не удался, быстрый путь закрыт.");
+    slow.branch = false;
+    steps.push(slow);
     state += (1 << WSHIFT);
     steps.push(snap(WSHIFT, 12, "G2.Lock(): лок занят → атомарно +1 к счётчику ожидающих (бит 3). Флаги не тронуты."));
     // Пробуждение — два CAS, а не быстрый путь (сверено с internal/sync/mutex.go, Go 1.26):
@@ -7957,7 +7967,7 @@
     counter = 6; hist.push(6); ev("G1", "CAS(5→6) ✓", "ok");
     steps.push(snap({ act: "G1", hot: true, line: 4, info: "G1: CompareAndSwap(5, 6) — в памяти всё ещё 5, совпало → записано 6, break." }));
     ev("G2", "CAS(5→6) ✗", "fail");
-    steps.push(snap({ act: "G2", hot: true, line: 3, note: "CAS вернул false: в памяти уже не old — цикл идёт на новый круг", info: "G2: CompareAndSwap(5, 6) — в памяти 6, а G2 ждёт 5 → false. Ничего не записано: старая 5 у G2 устарела, её +1 не затёр чужой." }));
+    steps.push(snap({ act: "G2", hot: true, line: 3, noAsk: true, note: "CAS вернул false: в памяти уже не old — цикл идёт на новый круг", info: "G2: CompareAndSwap(5, 6) — в памяти 6, а G2 ждёт 5 → false. Ничего не записано: старая 5 у G2 устарела, её +1 не затёр чужой." })); // кадр строки if — только у проигравшего CAS (успех идёт кадром break): без вопроса
     old.G2 = counter; ev("G2", "Load → 6", "read");
     steps.push(snap({ act: "G2", line: 2, info: "G2: новый круг, old := counter.Load() → 6." }));
     counter = 7; hist.push(7); ev("G2", "CAS(6→7) ✓", "ok");
@@ -7976,19 +7986,25 @@
     // (G4). Раньше шаг «G2, G3 выходят по быстрому пути» выдавал double-check за лишний.
     var g = ["G1", "G2", "G3", "G4"], state = ["call", "call", "call", "later"], steps = [];
     function snap(extra) { var o = { values: g.slice(), state: state.slice(), lo: -1, vars: { done: state.indexOf("ranok") >= 0 ? "да" : "нет", ran: state.indexOf("init") >= 0 || state.indexOf("ranok") >= 0 ? 1 : 0, "владелец лока": "—" } }; for (var k in extra) { o[k] = extra[k]; } return o; }
-    steps.push(snap({ line: 1, info: "G1, G2, G3 почти одновременно зовут once.Do(init): у всех быстрый чек видит done == false → все идут в doSlow. G4 придёт позже." }));
+    // Быстрый чек (строка 2) — отдельным кадром после вступления: первый шаг 🎯 не спрашивает,
+    // и строка 2 иначе спрашивалась бы только у G4 — с одним исходом «нет».
+    steps.push(snap({ line: 0, info: "G1, G2, G3 почти одновременно зовут once.Do(init). G4 придёт позже." }));
+    steps.push(snap({ line: 1, branch: true, info: "У всех трёх быстрый чек видит done == false → все идут в doSlow." }));
+    // Повторная проверка под локом (строка 9) — с обоими исходами: у G1 «да», у G2 и G3 «нет».
+    // Без кадра G1 строка бывала только с «нет», и сам вопрос 🎯 выдавал ответ.
+    steps.push(snap({ lo: 0, line: 8, branch: true, vars: { done: "нет", ran: 0, "владелец лока": "G1" }, info: "G1 первой взяла лок. Повторная проверка под локом: done всё ещё false — да, init ещё никто не запускал." }));
     state[0] = "init";
-    steps.push(snap({ lo: 0, hot: true, line: 10, vars: { done: "нет", ran: 1, "владелец лока": "G1" }, info: "G1 первой взяла лок; повторная проверка под локом: done всё ещё false → выполняет init (единственный раз)." }));
+    steps.push(snap({ lo: 0, hot: true, line: 10, vars: { done: "нет", ran: 1, "владелец лока": "G1" }, info: "G1 выполняет init (единственный раз)." }));
     state[1] = "wait"; state[2] = "wait";
     steps.push(snap({ lo: 1, line: 6, vars: { done: "нет", ran: 1, "владелец лока": "G1" }, info: "G2 и G3 уже прошли быстрый чек (тогда done был false) и стоят на o.m.Lock() — мьютекс у G1, они ЖДУТ." }));
     state[0] = "ranok";
     steps.push(snap({ lo: 0, line: 9, vars: { done: "да", ran: 1, "владелец лока": "G1" }, info: "G1 закончила init → defer ставит done = true, затем Unlock." }));
     state[1] = "skip";
-    steps.push(snap({ lo: 1, hot: true, line: 8, vars: { done: "да", ran: 1, "владелец лока": "G2" }, info: "G2 получает лок. Повторная проверка под локом: done == true → f НЕ вызывается, Unlock. Без этой второй проверки G2 запустила бы init ещё раз." }));
+    steps.push(snap({ lo: 1, hot: true, line: 8, branch: false, vars: { done: "да", ran: 1, "владелец лока": "G2" }, info: "G2 получает лок. Повторная проверка под локом: done == true → f НЕ вызывается, Unlock. Без этой второй проверки G2 запустила бы init ещё раз." }));
     state[2] = "skip";
-    steps.push(snap({ lo: 2, line: 8, vars: { done: "да", ran: 1, "владелец лока": "G3" }, info: "G3 — то же самое: лок → done == true → выход без init." }));
+    steps.push(snap({ lo: 2, line: 8, branch: false, vars: { done: "да", ran: 1, "владелец лока": "G3" }, info: "G3 — то же самое: лок → done == true → выход без init." }));
     state[3] = "fast";
-    steps.push(snap({ lo: 3, line: 1, vars: { done: "да", ran: 1, "владелец лока": "—" }, info: "G4 пришла после init: быстрый атомарный чек сразу видит done == true → выходит, мьютекс даже не трогает. Это и есть быстрый путь." }));
+    steps.push(snap({ lo: 3, line: 1, branch: false, vars: { done: "да", ran: 1, "владелец лока": "—" }, info: "G4 пришла после init: быстрый атомарный чек сразу видит done == true → выходит, мьютекс даже не трогает. Это и есть быстрый путь." }));
     steps.push(snap({ done: true, line: 1, vars: { done: "да", ran: 1, "владелец лока": "—" }, info: "init выполнен РОВНО один раз. Кто пришёл во время init — ждал на локе и вышел по повторной проверке; кто пришёл после — один атомарный Load." }));
     return steps;
   }
@@ -9336,7 +9352,7 @@
         } else {
           if (list.length >= cap) {
             var old = list[list.length - 1];
-            push({ line: 10, op: label, key: k, removed: true, seq: snap(mark(old.key, "removed")), info: "кэш полон (" + cap + ") — вытесняем самый старый: " + old.key });
+            push({ line: 10, op: label, key: k, removed: true, seq: snap(mark(old.key, "removed")), info: "кэш полон (" + cap + ") — вытесняем самый старый: " + old.key }); steps[steps.length - 1].noAsk = true; // кадр строки if — только при «да» (иначе сразу addFront): без вопроса
             list.pop();
             push({ line: 11, op: label, key: k, seq: snap(null), info: old.key + " удалён из списка и из map" });
           }

@@ -4,24 +4,14 @@
   "глава advanced-graph-algorithms.md (nodes=1,2,3,4; edges=2-1-1,2-3-1,3-4-1; start=2) — шаг 27, строка 11: if dist[e.u] != INF && dist[e.u]+e.w < dist[e.v] {",
   "глава advanced-graph-algorithms.md (nodes=A,B,C,D; edges=C-D-4,B-D-8,B-C--3,A-C-5,A-B-4; start=A) — шаг 41, строка 11: if dist[e.u] != INF && dist[e.u]+e.w < dist[e.v] {"
  ],
- "bloom-check": [
-  "глава probabilistic-structures.md (add=reddit,github,medium; check=discord) — шаг 3, строка 5: if b.bits[p] == 0 {",
-  "глава probabilistic-structures.md (add=reddit,github,medium; check=twitter) — шаг 3, строка 5: if b.bits[p] == 0 {"
- ],
  "build-lps": [
   "глава string-algorithms.md (pattern=abcaby) — шаг 2, строка 5: if pattern[i] == pattern[length] {"
- ],
- "cas-loop": [
-  "глава go-stdlib-structures.md () — шаг 5, строка 4: if counter.CompareAndSwap(old, old+1) {"
  ],
  "cyclic-sort": [
   "пресет «уже на местах» — шаг 4, строка 5: if nums[i] != nums[correct] {"
  ],
  "grid-bfs": [
   "глава grids-and-shortest-paths.md (grid=0,0,0,0,0;0,1,1,1,0;0,0,0,1,0;1,1,0,1,0;0,0,0,0,0) — шаг 8, строка 11: if free(nr, nc) && dist[nr][nc] < 0 {"
- ],
- "hll-add": [
-  "глава probabilistic-structures.md (elems=user_8143,user_2290,user_5561,user_9033,user_1204,user_7788,user_4415,user_6672,user_8143) — шаг 25, строка 5: if rho > h.reg[j] {"
  ],
  "lru": [
   "глава go-stdlib-structures.md (cap=3; ops=put 1 1; put 2 2; put 3 3; get 1; put 4 4; get 2; get 3) — шаг 3, строка 8: if n, ok := c.m[key]; ok {        // ключ уже есть",
@@ -115,10 +105,6 @@
  ],
  "sieve": [
   "глава number-theory.md (n=30) — шаг 2, строка 5: if isComposite[p] {"
- ],
- "sync-once": [
-  "глава go-stdlib-structures.md () — шаг 5, строка 9: if !o.done.Load() {           // double-check под локом",
-  "глава go-stdlib-structures.md () — шаг 7, строка 2: if !o.done.Load() {           // быстрый атомарный чек"
  ],
  "trie-delete": [
   "глава trie-structure.md (words=cat,car,card; delete=card) — шаг 6, строка 3: if node == nil || !node.isEnd {",
