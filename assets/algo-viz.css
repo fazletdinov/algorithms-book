@@ -1649,7 +1649,8 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-viz__gnode--ready { fill: color-mix(in srgb, #2e9b57 35%, transparent); stroke: #2e9b57; stroke-width: 3; }
 .algo-tp__legdot--ready { background: color-mix(in srgb, #2e9b57 35%, transparent); border: 2px solid #2e9b57; }
 .algo-tp__legdot--goneln { background: transparent; border: 2px dashed #888; border-radius: 3px; }
-.algo-viz__gnode--nb { stroke: #e0a500; stroke-width: 3.5; stroke-dasharray: 4 3; }
+/* двойной класс: у посещённого соседа (провинции) кольцо иначе перекрашивал --c0…c3 ниже */
+.algo-viz__gnode.algo-viz__gnode--nb { stroke: #e0a500; stroke-width: 3.5; stroke-dasharray: 4 3; }
 .algo-tp__legdot--gnb { background: transparent; border: 2px dashed #e0a500; border-radius: 50%; }
 /* Провинции: у каждой компоненты свой цвет */
 .algo-viz__gnode--c0 { fill: #3b82f6; stroke: #3b82f6; }

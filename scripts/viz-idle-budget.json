@@ -7,6 +7,6 @@
   "jump-game": 7,
   "heap-sort": { "idle": 23, "steps": 60 },
   "heap-build": { "idle": 30, "steps": 40 },
-  "num-provinces": 0,
-  "dp-lcs": 0
+  "num-provinces": 5,
+  "dp-lcs": 5
 }

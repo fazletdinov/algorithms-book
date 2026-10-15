@@ -10462,7 +10462,7 @@
     var m = a.length, nn = b.length, dp = [], fillStep = [], steps = [], filled = 0;
     for (var r = 0; r <= m; r++) { dp.push(new Array(nn + 1).fill(0)); fillStep.push(new Array(nn + 1).fill(-1)); }
     function snap() { return dp.map(function (row) { return row.slice(); }); }
-    function push(o) { steps.push({ dp: snap(), i: (o.i == null ? -1 : o.i), j: (o.j == null ? -1 : o.j), match: (o.match == null ? null : o.match), branch: o.branch, heads: o.heads || null, src: (o.src || null), card: o.card || null, path: o.path || null, line: o.line, vars: { "i": (o.i == null ? "—" : o.i), "j": (o.j == null ? "—" : o.j), "a[i-1], b[j-1]": (o.chars || "—"), "rule": (o.rule || "—"), "dp[i][j]": (o.dpij == null ? "—" : o.dpij), "заполнено": filled + "/" + (m * nn) }, info: o.info, done: o.done, found: o.found }); if (o.done) { steps[steps.length - 1].vars.i = "—"; steps[steps.length - 1].vars.j = "—"; } }
+    function push(o) { steps.push({ dp: snap(), i: (o.i == null ? -1 : o.i), j: (o.j == null ? -1 : o.j), match: (o.match == null ? null : o.match), branch: o.branch, heads: o.heads || null, src: (o.src || null), card: o.card || null, path: o.path || null, line: o.line, vars: { "i": (o.i == null ? "—" : o.i), "j": (o.j == null ? "—" : o.j), "a[i-1], b[j-1]": (o.chars || "—"), "rule": (o.rule || "—"), "dp[i][j]": (o.dpij == null ? "—" : o.dpij), "заполнено": filled + "/" + (m * nn) }, info: o.info, done: o.done, found: o.found }); if (o.done) { var dv = steps[steps.length - 1].vars; dv.i = "—"; dv.j = "—"; dv["dp[i][j]"] = "—"; } }
     push({ line: 1, info: "dp — таблица (m+1)×(n+1), нулевые края: с пустым префиксом LCS = 0" });
     for (var i = 1; i <= m; i++) {
       push({ line: 2, i: i, heads: { r: i }, info: "строка i = " + i + " (символ a[" + (i - 1) + "] = '" + a[i - 1] + "')" });
@@ -10485,7 +10485,7 @@
     }
     var tb = lcsTraceback(a, b, dp), word = tb.pairs.map(function (p) { return a[p[0] - 1]; }).join("");
     var pairsTxt = tb.pairs.map(function (p) { return "a[" + (p[0] - 1) + "] = b[" + (p[1] - 1) + "] = '" + a[p[0] - 1] + "'"; }).join(" · ");
-    push({ line: 11, i: m, j: nn, done: true, found: true, path: tb.path, heads: { lcs: tb.pairs }, card: { title: "Сама подпоследовательность (обратный ход от dp[" + m + "][" + nn + "])", rows: [{ k: "LCS", v: word.length ? "«" + word + "»" : "пустая — общих букв нет", cls: "win" }, { k: "совпадения", v: pairsTxt || "—" }, { k: "ход", v: "совпали — буква в ответ, шаг ↖; нет — к большему из ↑ и ←, при равенстве ↑" }] }, rule: "ответ", dpij: dp[m][nn], info: "return dp[" + m + "][" + nn + "] = " + dp[m][nn] + " — длина наибольшей общей подпоследовательности. " + (word.length ? "Саму её даёт обратный ход от этой клетки: «" + word + "»" : "Общих букв нет — подпоследовательность пустая") });
+    push({ line: 11, i: m, j: nn, done: true, found: true, path: tb.path, heads: { lcs: tb.pairs }, card: { title: "Сама подпоследовательность (обратный ход от dp[" + m + "][" + nn + "])", rows: [{ k: "LCS", v: word.length ? "«" + word + "»" : "пустая — общих букв нет", cls: "win" }, { k: "совпадения", v: pairsTxt || "—" }, { k: "ход", v: "совпали — буква в ответ, шаг ↖; нет — к большему из ↑ и ←, при равенстве ↑" }] }, rule: "ответ", dpij: dp[m][nn], info: "return dp[" + m + "][" + nn + "] = " + dp[m][nn] + " — длина наибольшей общей подпоследовательности. " + (word.length ? "Саму её даёт обратный ход от этой клетки: «" + word + "»" : "Общих букв нет — подпоследовательность пустая") + ". В коде выше обратного хода нет — он в разделе «🧾 Восстановление ответа» главы" });
     steps.forEach(function (s, k) { s._i = k; });
     var rowHeads = ["ε"].concat(a.split(""));
     var colHeads = ["ε"].concat(b.split(""));
@@ -11517,11 +11517,12 @@
       status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Провинций: " + s.vars.count, text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
       stepCard: function (s) { if (s.done) return { a: "готово", b: s.vars.count + " провинций", c: "DFS", cls: "eq" }; return { a: s.vars.v === "—" ? "i = " + s.vars.i : "v = " + s.vars.v, b: "провинций " + (s.frames.count == null ? "—" : s.frames.count), c: s.improved ? "новая!" : "→", cls: s.improved ? "eq" : "lt" }; },
       varsOf: function (s) { return { "i": s.vars.i, "count": s.vars.count, "v": s.vars.v, "u": s.vars.u, "visited": s.vars.visited }; },
-      // Стек вызовов: слева numProvinces со своими i и count, правее — кадры dfs(v) с u, на
-      // котором кадр проверяет соседа или ждёт возврата из dfs(u). Справа — текущий кадр.
+      // Стек вызовов: первым numProvinces со своими i и count, за ним — кадры dfs(v) с u, на
+      // котором кадр проверяет соседа или ждёт возврата из dfs(u). Текущий — последний (на
+      // телефоне ряд переносится, поэтому «справа» в подписи не годится).
       mapViz: function (panel, ctx) {
         var labels = ctx.labels;
-        var p = structPanel(panel, "стек вызовов: слева дно (numProvinces), справа — текущий кадр");
+        var p = structPanel(panel, "стек вызовов: первый — numProvinces, текущий — последний, в синей рамке");
         return function (s) {
           p.grid.innerHTML = "";
           var f = s.frames || { dfs: [] }, fr = f.dfs || [], all = [];
@@ -15571,8 +15572,8 @@
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Символы a[i-1], b[j-1]", "dp[i][j]", "Заполнено ячеек"],
       sumValues: function (s) { return [{ text: s.vars["a[i-1], b[j-1]"] }, { text: s.vars["dp[i][j]"], cls: "eq" }, { text: s.vars["заполнено"], cls: "gt" }]; },
-      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Длина LCS = " + s.vars["dp[i][j]"], text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
-      stepCard: function (s) { if (s.done) return { a: "dp[m][n]", b: "LCS = " + s.vars["dp[i][j]"], c: "готово", cls: "eq" }; if (s.i < 0) return { a: "база", b: "края = 0", c: "старт", cls: "lt" }; return { a: "dp[" + s.i + "][" + s.j + "] " + s.vars["a[i-1], b[j-1]"], b: s.match ? "совпали" : "не совпали", c: s.match ? "диаг +1" : "max(↑,←)", cls: s.match ? "eq" : "lt" }; },
+      status: function (s, idx, total) { if (s.done) return { kind: "ok", icon: "✓", head: "Длина LCS = " + s.dp[s.i][s.j], text: s.info }; return { kind: "info", icon: idx + 1, head: "Шаг " + (idx + 1) + " из " + total, text: s.info }; },
+      stepCard: function (s) { if (s.done) return { a: "dp[m][n]", b: "LCS = " + s.dp[s.i][s.j], c: "готово", cls: "eq" }; if (s.i < 0) return { a: "база", b: "края = 0", c: "старт", cls: "lt" }; return { a: "dp[" + s.i + "][" + s.j + "] " + s.vars["a[i-1], b[j-1]"], b: s.match ? "совпали" : "не совпали", c: s.match ? "диаг +1" : "max(↑,←)", cls: s.match ? "eq" : "lt" }; },
       varsOf: function (s) { return { "i": s.vars.i, "j": s.vars.j, "a[i-1], b[j-1]": s.vars["a[i-1], b[j-1]"], "правило": s.vars["rule"], "dp[i][j]": s.vars["dp[i][j]"] }; },
       customViz: dpTableViz
     },
