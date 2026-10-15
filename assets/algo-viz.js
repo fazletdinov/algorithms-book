@@ -1112,7 +1112,7 @@
       "}"
     ],
     "cas-loop": [
-      "// лок-free инкремент через Compare-And-Swap",
+      "// инкремент без блокировки (lock-free) через Compare-And-Swap",
       "for {",
       "    old := counter.Load()           // читаем текущее значение",
       "    if counter.CompareAndSwap(old, old+1) {",
@@ -4587,7 +4587,7 @@
     var total = 0, added = 0, edgeStep = edges.map(function () { return -1; }), edgeState = edges.map(function () { return ""; }), steps = [];
     function push(o) { steps.push({ line: o.line, vars: { "ребро": (o.e || "—"), "вес": (o.w == null ? "—" : o.w), "вес MST": total, "рёбер": added + "/" + (n - 1) }, parent: parent.slice(), roots: o.roots || null, merged: !!o.merged, info: o.info, done: o.done, found: o.found }); }
     push({ line: 1, info: "Рёбра отсортированы по возрастанию веса: " + sorted.map(function (e) { return labels[e.u] + "–" + labels[e.v] + ":" + e.w; }).join(", ") });
-    push({ line: 2, info: "Union-Find: каждая вершина — своя компонента (parent[i] = i)" });
+    push({ line: 2, info: "Система непересекающихся множеств: каждая вершина — своя компонента (parent[i] = i)" });
     push({ line: 3, info: "total = 0 — суммарный вес остова" });
     sorted.forEach(function (e) {
       var ei = edges.indexOf(e), el = labels[e.u] + "–" + labels[e.v];
@@ -7948,7 +7948,7 @@
     return steps;
   }
 
-  // sync/atomic CAS-цикл — лок-free инкремент. Две горутины делают +1 без мьютекса:
+  // sync/atomic CAS-цикл — инкремент без блокировки (lock-free). Две горутины делают +1 без мьютекса:
   // read → CompareAndSwap(old, old+1). Если между read и CAS значение изменилось,
   // CAS проваливается → перечитать и повторить. Оба инкремента доходят, потерь нет.
   // Ячейки = значения счётчика во времени (5 → 6 → 7).
@@ -9344,8 +9344,8 @@
       if (op.kind === "put") {
         var k = op.key, v = op.val, label = "Put(" + k + ", " + v + ")";
         var i = idxOf(k);
-        // исход строки `if n, ok := c.m[key]; ok` назван явно: без него «да» (ключ уже есть) вывелось бы
-        // по следующему кадру как «нет»
+        // исход строки `if n, ok := c.m[key]; ok` назван явно: «нет» иначе выводилось бы по следующему кадру
+        // и требовало записи в predict-unconfirmed.json; «да» держит пресет «обновление ключа»
         push({ line: 7, op: label, key: k, seq: snap(null), info: label + ": ищем ключ " + k + " в map" }); steps[steps.length - 1].branch = i >= 0;
         if (i >= 0) {
           list[i].val = v; var nd = list.splice(i, 1)[0]; list.unshift(nd);
@@ -10874,7 +10874,7 @@
       parse: function (root) { var n = parseInt(root.getAttribute("data-goroutines"), 10); if (!(n >= 2)) n = 2; if (n > 4) n = 4; root.setAttribute("data-goroutines", n); return bLocalTimeline(n); },
       inputs: [{ attr: "data-goroutines", label: "горутин (2–4)", sm: true }],
       values: function () { return []; },
-      title: function () { return "Atomic-захват вершины (без гонки)"; },
+      title: function () { return "Атомарный захват вершины (без гонки)"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Горутина", "Действие"],
       sumValues: function (s) { return [{ text: s.vars.g }, { text: s.vars.act, cls: (s.vars.act && s.vars.act.indexOf("✓") >= 0) ? "eq" : "lt" }]; },
@@ -11272,7 +11272,7 @@
     "min-subarray-window": {
       badge: "Скользящее окно",
       desc: "Оптимум O(n): переменное окно. right расширяет окно, при sum ≥ target жадно сжимаем слева. left только вперёд — отсюда линейность.",
-      legend: [{ cls: "span", nn: "span", label: "окно [left..right]" }, { cls: "frcmp", label: "рамка окна, ярлык — sum против target: обведён зелёным — сожмём слева (left), голубым — расширим (right); залит зелёным — окно короче best; без цвета — просто sum или сравнение, после которого ничего не сдвинется (окно не короче best; правее элементов нет)" }, { cls: "frleft", label: "лучшее окно (пунктир)" }, { cls: "found", nn: "found", label: "ответ — кратчайшее окно" }],
+      legend: [{ cls: "span", nn: "span", label: "окно [left..right]" }, { cls: "frcmp", label: "рамка окна, ярлык — sum против target: обведён зелёным — сожмём слева (left), голубым — расширим (right); залит зелёным — окно короче best; без цвета — просто sum или сравнение без последствий: окно не короче best (best не меняется) или правее элементов нет (цикл for кончится)" }, { cls: "frleft", label: "лучшее окно (пунктир)" }, { cls: "found", nn: "found", label: "ответ — кратчайшее окно" }],
       frames: 2,
       valuesLabel: "Массив (положительные)", codeKey: "min-subarray-window", fillRange: true,
       ask: { 5: { cond: "sum >= target", q: "Сумма окна дотянула до target?", yes: "Да — запомним длину и сожмём слева", no: function (s, ctx) { return s.vars.right < ctx.arr.length - 1 ? "Нет — расширяем окно вправо" : "Нет — а правее элементов нет: цикл for кончится"; } } },
@@ -11728,7 +11728,7 @@
       parse: function (root) { var grid = (root.getAttribute("data-grid") || "").split(";").map(function (r) { return r.split(",").map(Number); }); var res = bOrangesRotting(grid); return { grid: res.grid, R: res.R, C: res.C, steps: res.steps, rotTime: res.rotTime }; },
       inputs: [{ attr: "data-grid", label: "Сетка (0 пусто, 1 свежий, 2 гнилой)" }],
       values: function () { return []; },
-      title: function () { return "Rotting Oranges (multi-source BFS)"; },
+      title: function () { return "Rotting Oranges: BFS из нескольких источников"; },
       legend: [{ cls: "current", label: "сгнил сейчас" }, { cls: "visited", label: "уже гнилой" }, { cls: "wall", label: "пусто" }],
       pointers: function () { return { lo: -1, hi: -1 }; },
       sumCells: ["Минута", "Свежих осталось", "Касаний (≤ 1 на клетку)"],
@@ -12631,7 +12631,7 @@
       parse: function (root) { var arr = nums(root.getAttribute("data-array")); return { arr: arr, steps: bCountingSort(arr) }; },
       inputs: [{ attr: "data-array", label: "Массив" }],
       values: function (ctx) { return bCountingSort(ctx.arr)[0].values; },
-      title: function () { return "Считаем значения, затем раскладываем по счётчикам"; },
+      title: function () { return "Считаем, сколько раз встретилось каждое значение, затем выписываем по возрастанию"; },
       cellState: function (s, j) { var o = {}; if (s.values[j] > 0) o.found = true; if (j === s.lo && s.lo >= 0) o.lo = true; return o; },
       pointers: function (s) { return { lo: (s.lo == null ? -1 : s.lo), hi: -1 }; },
       // Вход и результат: без них видна только гистограмма, и финальный кадр — шесть нулей
@@ -12722,7 +12722,7 @@
       parse: function (root) { var text = (root.getAttribute("data-text") || "").split(""); var pat = (root.getAttribute("data-pattern") || "").split(""); return { text: text, pat: pat, steps: bRabinKarp(text, pat) }; },
       inputs: [{ attr: "data-text", label: "Текст" }, { attr: "data-pattern", label: "Образец" }],
       values: function (ctx) { return ctx.text; },
-      title: function (ctx) { return "Rabin — Karp: поиск «" + ctx.pat.join("") + "»"; },
+      title: function (ctx) { return "Rabin–Karp: поиск «" + ctx.pat.join("") + "»"; },
       cellState: function (s, j) { if (s.improved && j >= s.lo && j <= s.hi) return { found: true }; var o = { out: j === s.gone, mid: j === s.added }; if (j === s.lo && s.lo >= 0) o.lo = true; if (j === s.hi && s.hi >= 0) o.hi = true; if (s.lo >= 0 && j > s.lo && j < s.hi) o.span = true; return o; },
       pointers: function (s) { return { lo: s.lo, hi: s.hi }; },
       sumCells: ["хеш окна", "хеш образца", "найдено"],
@@ -13015,7 +13015,7 @@
       parse: function () { return { steps: bCasLoop() }; },
       inputs: [],
       values: function () { return []; },
-      title: function () { return "atomic CAS: лок-free инкремент"; },
+      title: function () { return "Атомарный CAS: инкремент без блокировки (lock-free)"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
       customViz: function (panel) {
         var host = mkEl("div", "algo-tp__cas");
@@ -14256,6 +14256,9 @@
       rules: [{ head: "Get/Put по ключу", body: "→ узел в голову (свежий)", cls: "lt" }, { head: "переполнение", body: "→ вытеснить хвост", cls: "gt" }, { head: "map", body: "key → *узел, O(1)", cls: "eq" }],
       parse: function (root) { var cap = parseInt(root.getAttribute("data-cap") || "2", 10); var ops = parseLruOps(root.getAttribute("data-ops") || ""); return { cap: cap, ops: ops, steps: bLRU(cap, ops) }; },
       inputs: [{ attr: "data-cap", label: "ёмкость", sm: true }, { attr: "data-ops", label: "операции (put k v; get k)" }],
+      presets: [
+        { label: "обновление ключа", set: { "data-cap": "2", "data-ops": "put 1 1; put 1 5; put 2 2; get 1" }, hint: "Put по ключу, который уже есть: значение обновляется, узел — в голову, вытеснения нет" }
+      ],
       values: function () { return []; },
       title: function (ctx) { return "LRU-кэш (ёмкость " + ctx.cap + ")"; },
       pointers: function () { return { lo: -1, hi: -1 }; },
@@ -15554,12 +15557,12 @@
     },
 
     "mst-kruskal": {
-      badge: "MST · Kruskal", desc: "Минимальное остовное дерево: берём лёгкие рёбра, если они не создают цикл (Union-Find).",
+      badge: "MST · Kruskal", desc: "Минимальное остовное дерево: берём лёгкие рёбра, если они не создают цикл (проверяет система непересекающихся множеств, Union-Find).",
       valuesLabel: "", codeKey: "mst-kruskal", fillRange: false,
       complexity: { time: "O(E log E)", space: "O(V)", good: "★ Минимального остова" },
       varOrder: ["edge", "weight", "mstWeight"],
       varDesc: { "edge": "Рассматриваемое ребро", "weight": "Вес ребра", "mstWeight": "Суммарный вес остова" },
-      lineNotes: { 1: "Сортируем рёбра по возрастанию веса — берём дешёвые первыми", 2: "Union-Find: вначале каждая вершина — отдельная компонента", 3: "total — суммарный вес остова (накапливаем)", 4: "Перебираем рёбра от самого лёгкого к тяжёлому", 5: "Концы в разных компонентах? Union объединяет их", 6: "Ребро не создаёт цикл — берём его в остов", 7: "Концы в одной компоненте — ребро замкнуло бы цикл, пропускаем", 9: "Все вершины связаны — суммарный вес минимального остова" },
+      lineNotes: { 1: "Сортируем рёбра по возрастанию веса — берём дешёвые первыми", 2: "Система непересекающихся множеств: вначале каждая вершина — отдельная компонента", 3: "total — суммарный вес остова (накапливаем)", 4: "Перебираем рёбра от самого лёгкого к тяжёлому", 5: "Концы в разных компонентах? Union объединяет их", 6: "Ребро не создаёт цикл — берём его в остов", 7: "Концы в одной компоненте — ребро замкнуло бы цикл, пропускаем", 9: "Все вершины связаны — суммарный вес минимального остова" },
       rules: [{ head: "Разные компоненты", body: "→ берём ребро (Union)", cls: "eq" }, { head: "Одна компонента", body: "→ цикл, пропускаем", cls: "gt" }, { head: "По возрастанию веса", body: "сначала лёгкие рёбра", cls: "lt" }],
       parse: function (root) { var labels = (root.getAttribute("data-nodes") || "").split(",").map(function (x) { return x.trim(); }); var edges = (root.getAttribute("data-edges") || "").split(",").map(function (e) { return e.trim().split("-"); }).map(function (p) { return { u: labels.indexOf(p[0]), v: labels.indexOf(p[1]), w: Number(p[2]) }; }).filter(function (e) { return e.u >= 0 && e.v >= 0; }); var r = bMstKruskal(labels, edges); return { labels: labels, edges: edges, edgeStep: r.edgeStep, edgeState: r.edgeState, steps: r.steps }; },
       inputs: [{ attr: "data-nodes", label: "Вершины" }, { attr: "data-edges", label: "Рёбра a-b-вес" }],
@@ -15577,7 +15580,7 @@
       mapViz: function (panel, ctx) {
         var labels = ctx.labels, n = labels.length;
         var wrap = mkEl("div", "algo-tp__map");
-        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "Union-Find: parent[] (лес компонент)"));
+        wrap.appendChild(mkEl("div", "algo-tp__maphdr", "Непересекающиеся множества: parent[] (лес компонент)"));
         var grid = mkEl("div", "algo-tp__mapgrid");
         var cells = [];
         for (var i = 0; i < n; i++) {
