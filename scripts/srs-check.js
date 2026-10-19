@@ -331,6 +331,21 @@ async function main() {
     const mLink = vizM.window.document.querySelector(".algo-today__title");
     if (!mLink || mLink.getAttribute("href") !== want) errors.push(`карточка viz:${type} со страницы ${page} ведёт на ${mLink && mLink.getAttribute("href")}, ожидалось ${want}`);
   }
+  // Промах, записанный на старом виджете heap-sort (этап 4 сжал кадры siftDown; до этапа 3a в
+  // листинге не было тела siftDown): строки и номера, которой в нынешнем листинге нет. Карточка
+  // заводится из одной записи algoVizMissed и показывает развилку так, как она была записана.
+  const VIZ_OLD = { n: 3, page: "heap-structure.html", anchor: "viz-4", title: "Heap Sort — пирамидальная сортировка", line: 31, code: "if child+1 < end && a[child] < a[child+1] {" };
+  const oldNew = await newDom({ algoVizMissed: JSON.stringify({ "heap-sort": VIZ_OLD }) });
+  if (!cards(oldNew)["viz:heap-sort"]) errors.push("промах heap-sort со строкой старого листинга не завёл карточку viz:");
+  const oldViz = await newDom({
+    algoVizMissed: JSON.stringify({ "heap-sort": VIZ_OLD }),
+    algoSRS: JSON.stringify({ "viz:heap-sort": missCard(VIZ_OLD, now - HOUR) }),
+  });
+  const oldText = oldViz.window.document.querySelector(".algo-today").textContent;
+  const oldLink = oldViz.window.document.querySelector(".algo-today__title");
+  if (!/Предсказание шага/.test(oldText) || !oldText.includes("строка 31: if child+1 < end && a[child] < a[child+1]") || !oldLink || oldLink.getAttribute("href") !== "heap-structure.html?viz=heap-sort#viz-4") {
+    errors.push(`карточка viz:heap-sort со строкой старого листинга не построилась: «${oldText.slice(0, 200)}», ссылка ${oldLink && oldLink.getAttribute("href")}`);
+  }
 
   if (click(mix, "Показать ответ")) {
     const ans = box.querySelector(".algo-today__answer a");
@@ -1342,14 +1357,19 @@ if (api) {
 
   // Старая карточка: промах записан, когда ответом на вопрос о цикле в неориентированном графе был
   // «Union-Find (DSU)». Ответ и глава берутся из банка квиза по тексту вопроса, снимок meta — только у
-  // вопроса, которого в банке больше нет.
+  // вопроса, которого в банке больше нет. Так же — промах, записанный до перевода вариантов квиза на
+  // русский: снимок «Sliding Window», ответ карточки — «Скользящее окно» из банка.
   const CYCLE = "Определить, образует ли набор рёбер цикл в НЕориентированном графе.";
+  const CYCLE_ANSWER = "Обход в глубину (DFS)";
+  const WINDOW_Q = "Найти длину самой длинной подстроки без повторяющихся символов.";
   const cycleMeta = { n: 1, pattern: "Union-Find (DSU)", href: "union-find-structure.html", q: CYCLE };
+  const windowMeta = { n: 2, pattern: "Sliding Window", href: "sliding-window.html", q: WINDOW_Q };
   const goneMeta = { n: 1, pattern: "Старый шаблон", href: "old.html", q: "Вопроса больше нет" };
-  for (const [meta, wantText, wantHref] of [[cycleMeta, "DFS по графу", "graphs.html"], [goneMeta, "Старый шаблон", "old.html"]]) {
+  for (const [meta, wantText, wantHref] of [[cycleMeta, CYCLE_ANSWER, "graphs.html"], [windowMeta, "Скользящее окно", "sliding-window.html"], [goneMeta, "Старый шаблон", "old.html"]]) {
     const d = await newDom({ algoQuizMissed: JSON.stringify({ [meta.q]: meta }), algoSRS: JSON.stringify({ ["quiz:" + meta.q]: missCard(meta, now - DAY) }) }, [CLOCK(now), quizJs], PAGE);
     const bank = d.window.ALGO_QUIZ && d.window.ALGO_QUIZ.questions.find((x) => x.q === CYCLE);
-    if (!bank || bank.correct !== "DFS по графу") errors.push(`в банке квиза у вопроса о цикле ответ «${bank && bank.correct}» — проверка рассчитана на «DFS по графу»`);
+    if (!bank || bank.correct !== CYCLE_ANSWER) errors.push(`в банке квиза у вопроса о цикле ответ «${bank && bank.correct}» — проверка рассчитана на «${CYCLE_ANSWER}»`);
+    if (!d.window.ALGO_QUIZ.questions.some((x) => x.q === WINDOW_Q)) errors.push(`в банке квиза нет вопроса «${WINDOW_Q}» — проверка старого промаха с английским ответом его ищет`);
     if (click(d, "Показать ответ")) {
       const a = d.window.document.querySelector(".algo-today__answer a");
       if (!a || a.textContent !== wantText || a.getAttribute("href") !== wantHref) errors.push(`карточка quiz: «${meta.q}» отвечает ${a && a.outerHTML}, ожидалось «${wantText}» → ${wantHref}`);

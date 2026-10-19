@@ -1,4 +1,4 @@
-# 🪢 Union-Find (DSU): устройство и операции
+# 🪢 Система непересекающихся множеств (Union-Find, DSU): устройство и операции
 
 <div class="algo-hero">
   <div class="algo-hero__main">

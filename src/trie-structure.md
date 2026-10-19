@@ -1,4 +1,4 @@
-# 🌿 Trie: устройство и построение
+# 🌿 Префиксное дерево (Trie): устройство и построение
 
 <div class="algo-hero">
   <div class="algo-hero__main">

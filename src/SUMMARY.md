@@ -28,11 +28,11 @@
 - [🧭 Инварианты и индукция: доказываем, что код правильный](invariants.md)
 - [📚 Стек и монотонный стек (Monotonic Stack)](monotonic-stack.md)
 - [🐢 Быстрый и медленный указатели (Fast & Slow Pointers)](fast-slow-pointers.md)
-- [↩️ Reverse Linked List (Разворот связанного списка)](reverse-linked-list.md)
+- [↩️ Разворот связанного списка (Reverse Linked List)](reverse-linked-list.md)
 - [🔀 Слияние интервалов (Merge Intervals)](merge-intervals.md)
-- [🔄 Cyclic Sort (Циклическая сортировка)](cyclic-sort.md)
+- [🔄 Циклическая сортировка (Cyclic Sort)](cyclic-sort.md)
 - [🔍 Модифицированный бинарный поиск (Modified Binary Search)](modified-binary-search.md)
-- [⚙️ Bit Manipulation (Битовые операции)](bit-manipulation.md)
+- [⚙️ Битовые операции (Bit Manipulation)](bit-manipulation.md)
 
 ## Группа 3: Деревья и кучи
 
@@ -44,14 +44,14 @@
 - [⛰️ Бинарная куча (Binary Heap): устройство и операции](heap-structure.md)
 - [🗻 Две кучи (Two Heaps)](two-heaps.md)
 - [🏆 Топ K элементов (Top K Elements)](top-k-elements.md)
-- [🧵 K-way Merge (K-way слияние)](k-way-merge.md)
+- [🧵 Слияние K списков (K-way Merge)](k-way-merge.md)
 
 ## Группа 4: Комбинаторика и графы
 
-- [🎰 Subsets (Подмножества)](subsets.md)
+- [🎰 Подмножества (Subsets)](subsets.md)
 - [🧩 Поиск с возвратом (Backtracking)](backtracking.md)
 - [🕸️ Обход графов (Graphs)](graphs.md)
-- [🪢 Union-Find (DSU): устройство и операции](union-find-structure.md)
+- [🪢 Система непересекающихся множеств (Union-Find, DSU): устройство и операции](union-find-structure.md)
 - [🪜 Топологическая сортировка (Topological Sort)](topological-sort.md)
 - [🗺️ Графы: сетки и кратчайшие пути](grids-and-shortest-paths.md)
 - [🛰️ Графы: продвинутые алгоритмы](advanced-graph-algorithms.md)
@@ -67,14 +67,14 @@
 ## Группа 6: Строки и продвинутые структуры
 
 - [🔤 Строковые алгоритмы: поиск подстроки](string-algorithms.md)
-- [🌿 Trie: устройство и построение](trie-structure.md)
-- [🌿 Trie: разбор задач](trie.md)
+- [🌿 Префиксное дерево (Trie): устройство и построение](trie-structure.md)
+- [🌿 Префиксное дерево: разбор задач](trie.md)
 - [🧶 Ахо — Корасик: много шаблонов за один проход](aho-corasick.md)
 - [🌴 Дерево отрезков: устройство и операции](segment-tree-structure.md)
 - [🌴 Дерево отрезков: разбор задач](segment-tree.md)
 - [📏 Дерево Фенвика (BIT): устройство и операции](fenwick-tree-structure.md)
 - [📏 Дерево Фенвика: разбор задач](fenwick-tree.md)
-- [🔭 Sparse Table: устройство и операции](sparse-table-structure.md)
+- [🔭 Разреженная таблица (Sparse Table): устройство и операции](sparse-table-structure.md)
 - [🗃️ B-дерево: устройство и операции](btree-structure.md)
 - [🎲 Вероятностные структуры: Bloom, HyperLogLog, count-min](probabilistic-structures.md)
 

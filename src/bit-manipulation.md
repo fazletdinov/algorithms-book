@@ -1,4 +1,4 @@
-# ⚙️ Bit Manipulation (Битовые операции)
+# ⚙️ Битовые операции (Bit Manipulation)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

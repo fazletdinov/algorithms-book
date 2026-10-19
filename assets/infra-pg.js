@@ -273,13 +273,13 @@
       var mine = []; O.forEach(function (o, oi) { if (o.u === u) mine.push(oi); });
       if (!mine.length) {
         st.metric++;
-        st.snap(3, { u: u, o: "—" }, "Lookup(" + u + "): обращение к индексу — заказов у пользователя " + u + " нет, внутренний цикл не выполнится", { hot: true });
+        st.snap(3, { u: u, o: "—" }, "Lookup(" + u + "): обращение к индексу — заказов у пользователя " + u + " нет, внутренний цикл не выполнится", { hot: true, branch: false });
         return;
       }
       mine.forEach(function (oi, k) {
         if (k === 0) st.metric++;
         st.co = oi; st.oRead++;
-        st.snap(3, { u: u, o: orderText(O[oi]) }, (k === 0 ? "Lookup(" + u + "): обращение к индексу. " : "") + "Нашли заказ " + orderText(O[oi]), {});
+        st.snap(3, { u: u, o: orderText(O[oi]) }, (k === 0 ? "Lookup(" + u + "): обращение к индексу. " : "") + "Нашли заказ " + orderText(O[oi]), { branch: true });
         st.out.push({ u: u, n: O[oi].n });
         st.snap(4, { u: u, o: orderText(O[oi]) }, "Пара (user " + u + ", заказ №" + O[oi].n + ") в результате: " + st.out.length, {});
       });
@@ -322,11 +322,11 @@
       st.co = oi; st.cu = -1; st.oRead++;
       st.snap(6, { u: "—", o: orderText(o) }, "probe: заказ " + orderText(o) + ". Прочитано заказов: " + st.oRead + " из " + orders.length, {});
       if (inHash[o.u] === undefined) {
-        st.snap(7, { u: "—", o: orderText(o) }, "h[" + o.u + "]: в хеш-таблице такого пользователя нет — заказ пропускаем, но прочитать его всё равно пришлось", { hot: true });
+        st.snap(7, { u: "—", o: orderText(o) }, "h[" + o.u + "]: в хеш-таблице такого пользователя нет — заказ пропускаем, но прочитать его всё равно пришлось", { hot: true, branch: false });
         return;
       }
       st.cu = inHash[o.u];
-      st.snap(7, { u: o.u, o: orderText(o) }, "h[" + o.u + "] → user " + o.u, {});
+      st.snap(7, { u: o.u, o: orderText(o) }, "h[" + o.u + "] → user " + o.u, { branch: true });
       st.out.push({ u: o.u, n: o.n });
       st.snap(8, { u: o.u, o: orderText(o) }, "Пара (user " + o.u + ", заказ №" + o.n + ") в результате: " + st.out.length, {});
     });

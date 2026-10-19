@@ -89,8 +89,13 @@
   // выводится сам: «страница#порядковый-номер задачи на ней». Он стабилен,
   // пока в главу не вставили новую задачу в середину, — для личного трекера
   // этого достаточно (в худшем случае устареет одна запись), а платить за
-  // стабильность ручной разметкой 672 задач никто не станет. Явный data-id,
-  // если он появится, по-прежнему главнее.
+  // стабильность ручной разметкой 672 задач никто не станет.
+  //
+  // Явный data-id главнее и НЕ занимает номер: узлы без него нумеруются подряд,
+  // как будто узлов с data-id на странице нет. Так вопрос «Вспомни» с data-id
+  // встаёт в начало главы, не сдвигая id и якоря task-N задач ниже (их отметки,
+  // промахи и карточки task: уже лежат у читателя). Формат — «<страница>#rN»,
+  // якорь — task-<страница>-rN; держит scripts/check-challenges.js.
   var STORE = "algoChallengeSolved";
   var MISSED = "algoChallengeMissed";
 
@@ -98,8 +103,13 @@
     var m = /([^/]+)\.html?$/.exec(location.pathname);
     return m ? m[1] : (location.pathname || "page");
   }
+  // index — номер среди узлов БЕЗ data-id (см. init)
   function challengeId(root, index) {
     return root.getAttribute("data-id") || pageKey() + "#" + index;
+  }
+  function anchorId(root, index) {
+    var own = root.getAttribute("data-id");
+    return "task-" + (own ? own.replace("#", "-") : index);
   }
 
   function loadMap(key) {
@@ -442,11 +452,13 @@
 
   function init() {
     var nodes = document.querySelectorAll(".algo-challenge");
+    var pos = 0; // позиционный номер — только у узлов без data-id
     for (var i = 0; i < nodes.length; i++) {
+      var index = nodes[i].getAttribute("data-id") ? -1 : pos++;
       try {
         // id для хранилища и якорь для ссылки «повторить» из списка промахов
-        nodes[i].__algoId = challengeId(nodes[i], i);
-        if (!nodes[i].id) nodes[i].id = "task-" + i;
+        nodes[i].__algoId = challengeId(nodes[i], index);
+        if (!nodes[i].id) nodes[i].id = anchorId(nodes[i], index);
         render(nodes[i]);
       } catch (e) {
         if (window.console && console.warn) console.warn("challenge render error", e);

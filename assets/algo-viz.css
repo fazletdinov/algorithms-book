@@ -1649,7 +1649,9 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-viz__gnode--ready { fill: color-mix(in srgb, #2e9b57 35%, transparent); stroke: #2e9b57; stroke-width: 3; }
 .algo-tp__legdot--ready { background: color-mix(in srgb, #2e9b57 35%, transparent); border: 2px solid #2e9b57; }
 .algo-tp__legdot--goneln { background: transparent; border: 2px dashed #888; border-radius: 3px; }
-.algo-viz__gnode--nb { stroke: #e0a500; stroke-width: 3.5; stroke-dasharray: 4 3; }
+/* двойной класс: у посещённого соседа (провинции) кольцо иначе перекрашивал --c0…c3 ниже */
+.algo-viz__gnode.algo-viz__gnode--nb { stroke: #e0a500; stroke-width: 3.5; stroke-dasharray: 4 3; }
+.algo-tp__legdot--gnb { background: transparent; border: 2px dashed #e0a500; border-radius: 50%; }
 /* Провинции: у каждой компоненты свой цвет */
 .algo-viz__gnode--c0 { fill: #3b82f6; stroke: #3b82f6; }
 .algo-viz__gnode--c1 { fill: #16a34a; stroke: #16a34a; }
@@ -2086,14 +2088,19 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp .algo-tp__predbtn--on { background: color-mix(in srgb, var(--nn-amber, #fbbf24) 22%, var(--tp-panel2)); border-color: var(--nn-amber, #fbbf24); }
 .algo-tp__predscore { font-size: 0.85em; font-variant-numeric: tabular-nums; color: var(--nn-amber, #fbbf24); min-width: 0; }
 .algo-tp__predscore:empty { display: none; }
-.algo-tp__status--pred { border-color: var(--nn-amber, #fbbf24); }
-.algo-tp__pred { display: flex; flex-direction: column; gap: 0.55em; margin-top: 0.3em; text-align: left; }
+/* на телефоне вопрос встаёт под «🎯 Предскажи» во всю ширину: без переноса строка кода (nowrap)
+   растягивала блок, и заголовок уезжал за левый край, а «Пропустить» — за правый (390px) */
+.algo-tp__status--pred { border-color: var(--nn-amber, #fbbf24); flex-wrap: wrap; }
+.algo-tp__pred { display: flex; flex-direction: column; gap: 0.55em; margin-top: 0.3em; text-align: left; flex: 1 1 16em; min-width: 0; }
 .algo-tp__predline {
   display: flex; align-items: baseline; gap: 0.7em; padding: 0.35em 0.8em; border-radius: 8px;
   background: #0b0f1a; border: 1px solid var(--tp-border); font-family: var(--mono-font, ui-monospace, monospace); font-size: 0.85em;
   overflow-x: auto; white-space: nowrap;
 }
 .algo-tp__predq { font-weight: 600; }
+/* пока вопрос открыт, холст прячет подсказку исхода (генератор метит её data-pred-hide):
+   visibility, а не display, — место остаётся, высота холста и прилипший вопрос не прыгают */
+.algo-tp--asking [data-pred-hide] { visibility: hidden; }
 .algo-tp__predrow { display: flex; flex-wrap: wrap; gap: 0.5em; }
 .algo-tp__predans, .algo-tp__predskip {
   font: inherit; font-size: 0.9em; cursor: pointer; border-radius: 8px; padding: 0.45em 0.9em;
@@ -2226,6 +2233,12 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-tp__dheadt { font-size: 0.9em; }
 .algo-tp__dheads { font-size: 0.72em; font-weight: 600; opacity: 0.75; white-space: nowrap; }
 .algo-tp__dcell--path { outline: 2px solid #e0a500; outline-offset: 1px; }
+/* LCS: буквы-заголовки — текущая строка/столбец, исход сравнения, буквы ответа в финале */
+.algo-tp__dhead--on { opacity: 1; color: var(--tp-lo); box-shadow: inset 0 -2px 0 var(--tp-lo); }
+.algo-tp__dhead--eq { opacity: 1; background: var(--tp-ok); color: #fff; border-radius: 6px; }
+.algo-tp__dhead--ne { opacity: 1; background: color-mix(in srgb, var(--tp-bad) 28%, transparent); color: var(--fg, #c9d1d9); border-radius: 6px; box-shadow: inset 0 0 0 2px var(--tp-bad); }
+.algo-tp__dhead--lcs { opacity: 1; color: #e0a500; border-radius: 6px; box-shadow: inset 0 0 0 2px #e0a500; }
+.algo-tp__legdot--dheq { background: linear-gradient(90deg, var(--tp-ok) 50%, var(--tp-bad) 50%); border-color: transparent; border-radius: 3px; }
 .algo-tp__dpcard { max-width: 34em; margin: 0.2em auto 0.6em; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--tp-border); background: color-mix(in srgb, var(--tp-panel2) 70%, transparent); font-variant-numeric: tabular-nums; }
 .algo-tp__dpcard--off { visibility: hidden; }
 .algo-tp__dpcardt { font-size: 0.8em; font-weight: 700; opacity: 0.8; margin-bottom: 3px; }
@@ -2345,6 +2358,20 @@ body.algo-tp-fslock { overflow: hidden; }
 .algo-nn__frame--target { border: 2px dashed #c084fc; border-radius: 12px; }
 .algo-nn__frame--target .algo-nn__framelab { background: #c084fc; }
 .algo-tp__legdot--frtarget { background: transparent; border: 2px dashed #c084fc; border-radius: 3px; }
+/* Сравнение на холсте (cfg.frames, этап 4): ярлык рамки — сравнение, решающее шаг, его цвет —
+   исход. lo / hi — цветом плашки, которая сдвинется следом (lo — зелёная снизу, hi — голубая
+   сверху), ярлык контуром, чтобы не спутать с заливкой ответа; hit — попадание (как заливка
+   found); no — тупик; reach — достижимое 0…maxReach у Jump Game. */
+.algo-nn__frame--lo .algo-nn__framelab, .algo-nn__frame--hi .algo-nn__framelab { background: var(--nn-cell); color: var(--nn-green); box-shadow: inset 0 0 0 1.5px var(--nn-green); }
+.algo-nn__frame--hi .algo-nn__framelab { color: var(--nn-cyan); box-shadow: inset 0 0 0 1.5px var(--nn-cyan); }
+.algo-nn__frame--hit { border: 2.5px solid var(--nn-green); }
+.algo-nn__frame--hit .algo-nn__framelab { background: var(--nn-green); }
+.algo-nn__frame--no { border: 2px dashed var(--nn-red); }
+.algo-nn__frame--no .algo-nn__framelab { background: var(--nn-red); }
+.algo-nn__frame--reach { border: 2px dashed var(--nn-cyan); }
+.algo-nn__frame--reach .algo-nn__framelab { background: var(--nn-cyan); }
+.algo-tp__legdot--frcmp { background: transparent; border: 2.5px solid var(--nn-amber, #fbbf24); border-radius: 3px; }
+.algo-tp__legdot--frreach { background: transparent; border: 2px dashed var(--nn-cyan, #22d3ee); border-radius: 3px; }
 .algo-tp__legdot--tkids { background: transparent; border: 2px dashed #e0a500; }
 .algo-tp__tnode--kid { outline: 2px dashed #e0a500; outline-offset: 3px; }
 

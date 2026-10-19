@@ -1,4 +1,4 @@
-# 🧵 K-way Merge (K-way слияние)
+# 🧵 Слияние K списков (K-way Merge)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

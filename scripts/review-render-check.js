@@ -7,6 +7,9 @@
 // обычно именно стык: раньше challenge.js писал прогресс по data-id, которого
 // нет ни в одной главе, — виджеты работали, тесты были зелёные, а в
 // localStorage не попадало НИЧЕГО. Здесь:
+//   0) «Слабые места» — одна строка на главу (ключ — href): старая запись квиза с английским pattern,
+//      новая и промах смешанной по той же главе — одна строка; два ответа квиза одной главы — одна;
+//      запись без главы — строка по своему pattern без ссылки;
 //   1) промах в задаче попадает в algoChallengeMissed с текстом и якорем;
 //   2) верный ответ помечает задачу решённой и убирает её из промахов;
 //   3) review.js показывает только непройденное, с ссылкой на конкретную задачу;
@@ -51,7 +54,68 @@ const dom = new JSDOM(chapter, {
   url: "https://example.test/number-theory.html",
 });
 
+// --- шаг 0: «Слабые места» — одна строка на главу, ключ — href главы ---
+// Квиз и смешанная тренировка называли один приём по-разному («Sliding Window» и «Скользящее
+// окно»), и слияние по имени давало две строки на одну главу. Старые записи algoQuizMissed хранят
+// английский pattern — они обязаны встать в ту же строку, что и новые.
+const asset = (f) => fs.readFileSync(path.join(root, "assets", f), "utf8");
+const WINDOW_Q = "Найти длину самой длинной подстроки без повторяющихся символов.";
+const LRU_Q = "Спроектировать кэш на capacity элементов: Get и Put за O(1), при переполнении вытесняется давно не используемый (LRU) элемент.";
+const LADDER_Q = "Кратчайшая цепочка превращений одного слова в другое, меняя по одной букве; каждое промежуточное слово должно быть в словаре.";
+const weakDom = new JSDOM(`<!DOCTYPE html><html><body><div class="algo-weakspots"></div></body></html>`, {
+  runScripts: "dangerously",
+  virtualConsole: vc,
+  url: "https://example.test/review.html",
+});
+weakDom.window.localStorage.setItem("algoQuizMissed", JSON.stringify({
+  // вопрос банка, записанный до перевода вариантов: pattern по-английски
+  [WINDOW_Q]: { n: 1, pattern: "Sliding Window", href: "sliding-window.html", q: WINDOW_Q },
+  // вопроса больше нет в банке — глава из записи (с «./» и якорем, как бывало в старых href)
+  "Вопрос про медиану": { n: 1, pattern: "Two Heaps", href: "./two-heaps.html#две-кучи", q: "Вопрос про медиану" },
+  // два вопроса одной главы с разными ответами — одна строка
+  [LRU_Q]: { n: 1, pattern: "Хеш-таблица + двусвязный список", href: "pattern-combinations.html", q: LRU_Q },
+  [LADDER_Q]: { n: 2, pattern: "BFS + хеш-множество", href: "pattern-combinations.html", q: LADDER_Q },
+  // запись без главы — строка по старому pattern, без ссылки
+  "Вопрос без главы": { n: 1, pattern: "Старый шаблон", q: "Вопрос без главы" },
+}));
+weakDom.window.localStorage.setItem("algoMixedMissed", JSON.stringify({
+  "slidingwindow.LongestSubstringNoRepeat": { n: 1, chapter: "sliding-window", pkg: "slidingwindow", fn: "LongestSubstringNoRepeat" },
+}));
+for (const f of ["progress.js", "quiz.js", "problems.js", "review.js"]) {
+  const s = weakDom.window.document.createElement("script");
+  s.textContent = asset(f);
+  weakDom.window.document.body.appendChild(s);
+}
+
+function checkWeakSpots() {
+  const wdoc = weakDom.window.document;
+  const rows = [...wdoc.querySelectorAll(".algo-weak__table tr")].slice(1).map((tr) => {
+    const td = [...tr.querySelectorAll("td")].map((x) => x.textContent);
+    const a = tr.querySelector("a");
+    return { name: td[0], quiz: td[1], mixed: td[2], total: td[3], href: a ? a.getAttribute("href") : null };
+  });
+  const dump = JSON.stringify(rows);
+  const byName = (n) => rows.filter((r) => r.name === n);
+  const win = byName("Скользящее окно");
+  if (win.length !== 1 || win[0].quiz !== "1" || win[0].mixed !== "1" || win[0].href !== "sliding-window.html") {
+    errors.push(`слабые места: у скользящего окна не одна строка «квиз 1 + смешанная 1» со ссылкой на главу: ${dump}`);
+  }
+  const heaps = byName("Две кучи");
+  if (heaps.length !== 1 || heaps[0].quiz !== "1" || heaps[0].href !== "two-heaps.html") {
+    errors.push(`слабые места: старая запись «Two Heaps» не встала в строку «Две кучи» со ссылкой two-heaps.html: ${dump}`);
+  }
+  const combo = byName("Комбинации паттернов");
+  if (combo.length !== 1 || combo[0].quiz !== "3") {
+    errors.push(`слабые места: два вопроса главы «Комбинации паттернов» не слились в одну строку с 3 промахами: ${dump}`);
+  }
+  const old = byName("Старый шаблон");
+  if (old.length !== 1 || old[0].href !== null) errors.push(`слабые места: запись без главы не показана по старому pattern без ссылки: ${dump}`);
+  if (rows.some((r) => /[A-Za-z]/.test(r.name) && r.name !== "Старый шаблон")) errors.push(`слабые места: строка с английским названием: ${dump}`);
+  if (rows.length !== 4) errors.push(`слабые места: строк ${rows.length}, ожидалось 4: ${dump}`);
+}
+
 setTimeout(() => {
+  checkWeakSpots();
   const { document: doc, localStorage } = dom.window;
   const widgets = [...doc.querySelectorAll(".algo-challenge")];
 
@@ -341,7 +405,7 @@ setTimeout(() => {
       process.exit(1);
     }
     console.log(
-      "✅ review-render-check: промах сохраняется с текстом и якорем, решение убирает его из списка, " +
+      "✅ review-render-check: «слабые места» — одна строка на главу (старые английские записи квиза — в ней же), промах сохраняется с текстом и якорем, решение убирает его из списка, " +
         "«повторить» показывает непройденное с ссылками, экспорт забирает algoProgressAt, algoSRS, algoFnSolved, algoQuizSeen и algoPracticeScope (algoToday — нет), импорт сливает прогресс, метки и решённые упражнения, у показов квиза берёт позднюю метку, здешний режим выдачи не затирает"
     );
   }

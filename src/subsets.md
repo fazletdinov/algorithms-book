@@ -1,4 +1,4 @@
-# 🎰 Subsets (Подмножества)
+# 🎰 Подмножества (Subsets)
 
 <div class="algo-hero">
   <div class="algo-hero__main">

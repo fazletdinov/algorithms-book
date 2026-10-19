@@ -44,11 +44,11 @@
       { t: "Инварианты и индукция", h: "invariants.html", lvl: "core" },
       { t: "Монотонный стек", h: "monotonic-stack.html", lvl: "core" },
       { t: "Быстрый и медленный указатели", h: "fast-slow-pointers.html", lvl: "core" },
-      { t: "Reverse Linked List", h: "reverse-linked-list.html", lvl: "ext" },
+      { t: "Разворот связанного списка", h: "reverse-linked-list.html", lvl: "ext" },
       { t: "Слияние интервалов", h: "merge-intervals.html", lvl: "core" },
-      { t: "Cyclic Sort", h: "cyclic-sort.html", lvl: "ext" },
+      { t: "Циклическая сортировка", h: "cyclic-sort.html", lvl: "ext" },
       { t: "Бинарный поиск", h: "modified-binary-search.html", lvl: "core" },
-      { t: "Bit Manipulation", h: "bit-manipulation.html", lvl: "ext" }
+      { t: "Битовые операции", h: "bit-manipulation.html", lvl: "ext" }
     ] },
     { g: "Группа 3: Деревья и кучи", items: [
       { t: "BST: устройство", h: "bst-structure.html", lvl: "core" },
@@ -59,13 +59,13 @@
       { t: "Куча: устройство", h: "heap-structure.html", lvl: "core" },
       { t: "Две кучи", h: "two-heaps.html", lvl: "ext" },
       { t: "Топ K элементов", h: "top-k-elements.html", lvl: "core" },
-      { t: "K-way Merge", h: "k-way-merge.html", lvl: "ext" }
+      { t: "Слияние K списков", h: "k-way-merge.html", lvl: "ext" }
     ] },
     { g: "Группа 4: Комбинаторика и графы", items: [
-      { t: "Subsets", h: "subsets.html", lvl: "ext" },
+      { t: "Подмножества", h: "subsets.html", lvl: "ext" },
       { t: "Поиск с возвратом", h: "backtracking.html", lvl: "core" },
       { t: "Обход графов", h: "graphs.html", lvl: "core" },
-      { t: "Union-Find (DSU): устройство", h: "union-find-structure.html", lvl: "ext" },
+      { t: "Система непересекающихся множеств: устройство", h: "union-find-structure.html", lvl: "ext" },
       { t: "Топологическая сортировка", h: "topological-sort.html", lvl: "core" },
       { t: "Сетки и кратчайшие пути", h: "grids-and-shortest-paths.html", lvl: "ext" },
       { t: "Графы: продвинутые", h: "advanced-graph-algorithms.html", lvl: "ref" },
@@ -79,14 +79,14 @@
     ] },
     { g: "Группа 6: Строки и продвинутые структуры", items: [
       { t: "Строковые алгоритмы", h: "string-algorithms.html", lvl: "ext" },
-      { t: "Trie: устройство", h: "trie-structure.html", lvl: "ext" },
-      { t: "Trie: разбор задач", h: "trie.html", lvl: "ext" },
+      { t: "Префиксное дерево: устройство", h: "trie-structure.html", lvl: "ext" },
+      { t: "Префиксное дерево: разбор задач", h: "trie.html", lvl: "ext" },
       { t: "Ахо — Корасик", h: "aho-corasick.html", lvl: "ext" },
       { t: "Дерево отрезков: устройство", h: "segment-tree-structure.html", lvl: "ref" },
       { t: "Дерево отрезков: задачи", h: "segment-tree.html", lvl: "ref" },
       { t: "Дерево Фенвика: устройство", h: "fenwick-tree-structure.html", lvl: "ref" },
       { t: "Дерево Фенвика: задачи", h: "fenwick-tree.html", lvl: "ref" },
-      { t: "Sparse Table: устройство", h: "sparse-table-structure.html", lvl: "ref" },
+      { t: "Разреженная таблица: устройство", h: "sparse-table-structure.html", lvl: "ref" },
       { t: "B-дерево: устройство", h: "btree-structure.html", lvl: "ref" },
       { t: "Вероятностные структуры", h: "probabilistic-structures.html", lvl: "ref" }
     ] },
@@ -543,16 +543,24 @@
     }
     return links.length > 0;
   }
+  // Наблюдатель смотрит на коробку оглавления mdBook, если она уже в документе: на body его будил бы
+  // каждый шаг любого виджета. После разметки или срока он отключается и забывается (tocWatch = null),
+  // чтобы повторный initToc мог завести новый, а запоздалый срок не трогал уже чужой.
   function initToc() {
     if (markToc() || tocWatch || typeof MutationObserver === "undefined") return;
-    tocWatch = new MutationObserver(function () {
-      if (!markToc()) return;
-      tocWatch.disconnect();
+    var watch = new MutationObserver(function () {
+      if (markToc()) stop();
     });
-    tocWatch.observe(document.body, { childList: true, subtree: true });
-    setTimeout(function () { tocWatch.disconnect(); }, 5000);
+    function stop() {
+      watch.disconnect();
+      if (tocWatch === watch) tocWatch = null;
+    }
+    tocWatch = watch;
+    watch.observe(document.querySelector("mdbook-sidebar-scrollbox") || document.body, { childList: true, subtree: true });
+    setTimeout(stop, 5000);
   }
   window.ALGO_MARK_TOC = markToc;
+  window.ALGO_INIT_TOC = initToc;
 
   // Галочка «Глава пройдена» в конце главы. Раньше отметить главу можно было только в трекере на
   // шпаргалке — на другой странице, до которой ещё надо дойти; отметку забывали, и карточка главы

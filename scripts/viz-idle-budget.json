@@ -1,0 +1,12 @@
+{
+  "__core__": 19.6,
+  "two-pointers-sum": 21,
+  "three-sum": 19,
+  "min-subarray-window": 5,
+  "binary-search": 23,
+  "jump-game": 7,
+  "heap-sort": { "idle": 23, "steps": 60 },
+  "heap-build": { "idle": 30, "steps": 40 },
+  "num-provinces": 5,
+  "dp-lcs": 5
+}
