@@ -23,6 +23,11 @@ func TestOwnerOf(t *testing.T) {
 		{"TestShortestPathWithAtMostKEdges", []string{"ShortestPath", "ShortestPathWithAtMostKEdges"}, "ShortestPathWithAtMostKEdges"},
 		{"TestMSTWeightPrim", []string{"MSTWeight", "MSTWeightPrim"}, "MSTWeightPrim"},
 		{"TestBFSLevelsConcLocalMatchesSeq", []string{"BFSLevelsConc", "BFSLevelsConcLocal"}, "BFSLevelsConcLocal"},
+		// Тест масштаба достаётся своей функции: попадает в прогон одной функции и в собеседование.
+		{"TestRangeSumsScales", []string{"RangeSums", "RangeSum"}, "RangeSums"},
+		{"TestMaxSlidingWindowScales", []string{"MaxSlidingWindow", "MaxSumSubarray"}, "MaxSlidingWindow"},
+		// Тест масштаба типа — ничей: идёт с группой типа.
+		{"TestHashMapScales", []string{"HashMap.Put", "HashMap.Get"}, ""},
 		// Продолжение со строчной буквы — это другое слово, а не вариант функции.
 		{"TestFoo", []string{"Fo"}, ""},
 		{"TestSortedness", []string{"Sort"}, ""},
@@ -71,6 +76,13 @@ func TestStatement(t *testing.T) {
 				"Подсказка: один проход.\n\nОжидаемая сложность: O(n).\n",
 			wantText: "Sum считает сумму элементов среза.\nПример: [1,2] -> 3.",
 			wantHint: "Подсказка: один проход.\nОжидаемая сложность: O(n).",
+		},
+		{
+			name: "«Ограничения:» — часть условия, а не подсказка",
+			doc: "RangeSums отвечает на запросы.\n\nОграничения: n, q ≤ 10⁵.\n\n" +
+				"Ожидаемая сложность: O(n + q).\n",
+			wantText: "RangeSums отвечает на запросы.\nОграничения: n, q ≤ 10⁵.",
+			wantHint: "Ожидаемая сложность: O(n + q).",
 		},
 		{name: "подсказок нет", doc: "Только условие.\n", wantText: "Только условие.", wantHint: ""},
 		{name: "пустые абзацы пропускаются", doc: "A.\n\n\n\nB.\n", wantText: "A.\nB.", wantHint: ""},
