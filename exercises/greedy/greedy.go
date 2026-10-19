@@ -31,6 +31,8 @@ func MaxNonOverlapping(intervals [][]int) int {
 //
 // Пример: [2,3,1,1,4] -> true; [3,2,1,0,4] -> false.
 //
+// Ограничения: len(nums) ≤ 2·10⁵, nums[i] ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(n).
 func CanJump(nums []int) bool {
 	// TODO: веди самую дальнюю достижимую позицию; если индекс i её

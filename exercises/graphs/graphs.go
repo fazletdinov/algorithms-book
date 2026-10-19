@@ -79,6 +79,8 @@ func DFSOrder(n int, edges [][]int, start int) []int {
 // Пример: n=6, edges=[[0,1],[0,2],[1,3],[2,4],[3,5]], src=0, dst=5 -> 3;
 // до недостижимой вершины -> -1.
 //
+// Ограничения: n ≤ 10⁵, len(edges) ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(V + E).
 func ShortestPathUnweighted(n int, edges [][]int, src, dst int) int {
 	// TODO: BFS из src, отслеживая расстояние по уровням; первая встреча dst

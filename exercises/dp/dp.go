@@ -30,6 +30,8 @@ func ClimbStairs(n int) int {
 //
 // Пример: coins=[1,2,5], amount=11 -> 3 (5+5+1).
 //
+// Ограничения: amount ≤ 10⁴, len(coins) ≤ 12.
+//
 // Ожидаемая сложность: O(amount · len(coins)).
 func CoinChange(coins []int, amount int) int {
 	// TODO: dp[a] = min по монетам c (dp[a-c] + 1); dp[0] = 0.
