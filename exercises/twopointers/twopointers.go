@@ -13,6 +13,8 @@ package twopointers
 //
 // Пример: arr=[1,2,3,4,6], target=6 -> [1,3] (2 + 4).
 //
+// Ограничения: len(arr) ≤ 3·10⁵.
+//
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func PairWithTargetSum(arr []int, target int) []int {
 	// TODO: указатели с двух концов; двигай left при сумме < target,

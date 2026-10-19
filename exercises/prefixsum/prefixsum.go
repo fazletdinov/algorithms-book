@@ -14,6 +14,8 @@ package prefixsum
 //
 // Пример: nums=[3,-1,4,1,5], queries=[[0,2],[1,3],[4,4]] -> [6,4,5].
 //
+// Ограничения: len(nums), len(queries) ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(n + q) по времени — один предподсчёт, затем O(1) на запрос.
 func RangeSums(nums []int, queries [][2]int) []int {
 	// TODO: построй prefix длиной n+1 (prefix[0] = 0, prefix[i+1] = prefix[i] + nums[i]);
