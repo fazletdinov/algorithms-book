@@ -71,7 +71,7 @@ func StockSpans(prices []int) []int {
 //
 // Пример: [2,1,5,6,2,3] -> 10 (высота 5 на столбиках 2..3); [2,4] -> 4; [] -> 0.
 //
-// Ограничения: len(heights) ≤ 2·10⁵, heights[i] ≤ 10⁴.
+// Ограничения: len(heights) ≤ 2·10⁵, heights[i] ≤ 10⁹.
 //
 // Ожидаемая сложность: O(n) по времени.
 func LargestRectangle(heights []int) int {

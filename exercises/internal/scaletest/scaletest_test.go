@@ -35,7 +35,7 @@ func TestWithinFailsSlowRun(t *testing.T) {
 	if !r.failed {
 		t.Fatal("run дольше срока не уронил тест")
 	}
-	if !strings.Contains(r.msg, "медленный вход") || !strings.Contains(r.msg, "20ms") {
+	if !strings.Contains(r.msg, "медленный вход") || !strings.Contains(r.msg, (20*time.Millisecond*raceFactor).String()) {
 		t.Fatalf("в сообщении нет описания входа или срока: %q", r.msg)
 	}
 }

@@ -14,7 +14,8 @@ import (
 
 // Limit — срок по умолчанию. Входы тестов подобраны так, что эталон укладывается
 // примерно в 50 мс, а решение хуже на класс — в 6 с и больше: запас на порядок в
-// обе стороны выдерживает и машину CI (медленнее в 2–3 раза), и -race (~10×).
+// обе стороны выдерживает машину CI (медленнее в 2–3 раза). Под -race срок
+// сам растёт в raceFactor раз.
 const Limit = 2 * time.Second
 
 // Within выполняет run в горутине и роняет тест, если она не вернулась за limit
@@ -29,6 +30,7 @@ func Within(t testing.TB, limit time.Duration, what string, run func()) {
 		t.Skip("тест масштаба пропущен в -short")
 		return
 	}
+	limit *= raceFactor
 	done := make(chan string, 1) // "" — вернулась, иначе текст паники
 	start := time.Now()
 	go func() {
