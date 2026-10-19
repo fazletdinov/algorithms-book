@@ -62,6 +62,8 @@ func SearchRotated(arr []int, target int) int {
 // Пример: arr=[1,3,3,3,5], target=3 -> [1,3]; target=4 -> [-1,-1];
 // target=1 -> [0,0].
 //
+// Ограничения: len(arr) ≤ 10⁶; функцию вызывают много раз на одном массиве.
+//
 // Ожидаемая сложность: O(log n).
 func FindFirstLast(arr []int, target int) []int {
 	// TODO: два бинарных поиска — для первого вхождения при равенстве двигай

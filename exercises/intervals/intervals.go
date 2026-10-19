@@ -68,6 +68,8 @@ func CanAttendAllMeetings(intervals [][]int) bool {
 //
 // Пример: [[1,4],[2,5],[7,9]] -> 2; [[6,7],[2,4],[8,12]] -> 1; [] -> 0.
 //
+// Ограничения: len(intervals) ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(n log n) по времени.
 func MinMeetingRooms(intervals [][]int) int {
 	// TODO: отсортируй отдельно начала и концы; иди двумя указателями,
