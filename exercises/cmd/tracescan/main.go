@@ -45,7 +45,8 @@ func main() {
 	}
 	var pkgs []string
 	for _, e := range entries {
-		if e.IsDir() && e.Name() != "cmd" && !strings.HasPrefix(e.Name(), ".") {
+		// internal — служебные пакеты тестов (scaletest), не пакеты тренажёра
+		if e.IsDir() && e.Name() != "cmd" && e.Name() != "internal" && !strings.HasPrefix(e.Name(), ".") {
 			pkgs = append(pkgs, e.Name())
 		}
 	}

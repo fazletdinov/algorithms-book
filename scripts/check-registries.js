@@ -304,7 +304,8 @@ for (const { file, re, lvl } of statedCounts) {
 // ---------- 2. таблица пакетов в exercises/README.md <-> каталоги ----------
 const packages = fs
   .readdirSync(exDir, { withFileTypes: true })
-  .filter((d) => d.isDirectory() && d.name !== "cmd" && !d.name.startsWith("."))
+  // internal — служебные пакеты тестов (scaletest), не пакеты тренажёра
+  .filter((d) => d.isDirectory() && d.name !== "cmd" && d.name !== "internal" && !d.name.startsWith("."))
   .map((d) => d.name)
   .sort();
 
@@ -442,11 +443,23 @@ if (!counted) {
 // ---------- 6. случайные тесты идут после табличных ----------
 // go test исполняет тесты в порядке файлов: «_rand_test.go» шёл раньше «_test.go»,
 // и первым падал тест самой трудной функции пакета. Имя «_zrand_test.go»
-// сортируется после.
+// сортируется после. Тесты масштаба (Test*Scales) — только в «_zscale_test.go»,
+// по той же причине порядка.
 for (const pkg of fs.readdirSync(exDir)) {
   const dir = path.join(exDir, pkg);
-  if (pkg === "cmd" || !fs.statSync(dir).isDirectory()) continue;
+  // internal — служебные пакеты тестов (scaletest), не пакеты тренажёра
+  if (pkg === "cmd" || pkg === "internal" || !fs.statSync(dir).isDirectory()) continue;
   for (const f of fs.readdirSync(dir)) {
+    if (f.endsWith("_test.go") && !f.endsWith("_zscale_test.go")) {
+      const src = fs.readFileSync(path.join(dir, f), "utf8");
+      const m = src.match(/^func (Test\w*Scales)\(/m);
+      if (m) {
+        errors.push(
+          `exercises/${pkg}/${f}: ${m[1]} — тест масштаба, он лежит в <пакет>_zscale_test.go: ` +
+            `после срока перебор работает до выхода бинарника и не должен тормозить остальные тесты`
+        );
+      }
+    }
     if (f.endsWith("_rand_test.go")) {
       errors.push(
         `exercises/${pkg}/${f}: случайные тесты называются <пакет>_zrand_test.go — ` +

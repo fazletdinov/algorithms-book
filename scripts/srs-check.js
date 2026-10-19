@@ -2137,7 +2137,8 @@ if (api) {
   // (свои тесты, без соседей) и каталогам тренажёра, а не по памяти
   const md = fs.readFileSync(path.join(root, "src", "review.md"), "utf8").replace(/\s+/g, " ");
   const ex = path.join(root, "exercises");
-  const pkgs = fs.readdirSync(ex).filter((d) => d !== "cmd" && fs.statSync(path.join(ex, d)).isDirectory());
+  // internal — служебные пакеты тестов (scaletest), не пакеты тренажёра
+  const pkgs = fs.readdirSync(ex).filter((d) => d !== "cmd" && d !== "internal" && fs.statSync(path.join(ex, d)).isDirectory());
   const fit = BANK.filter((p) => p.t.length && !p.n.length);
   const withFn = new Set(fit.map((p) => p.p));
   const want = [fit.length, withFn.size, pkgs.length, pkgs.length - withFn.size];

@@ -135,7 +135,8 @@ func collect(root string) ([]problem, int, error) {
 	}
 	var out []problem
 	for _, e := range entries {
-		if !e.IsDir() || e.Name() == "cmd" || strings.HasPrefix(e.Name(), ".") {
+		// internal — служебные пакеты тестов (scaletest), не пакеты тренажёра
+		if !e.IsDir() || e.Name() == "cmd" || e.Name() == "internal" || strings.HasPrefix(e.Name(), ".") {
 			continue
 		}
 		pkg := e.Name()
