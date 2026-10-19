@@ -1,6 +1,6 @@
 /examples
 
-# Сгенерированный вывод mdBook — собирается в CI и деплоится на Pages.
+# Сгенерированный вывод mdBook — собирается локально и в CI (публикации нет).
 # В репозитории не храним, чтобы правки src/ и assets/ не тянули шумный diff.
 /book
 
@@ -23,3 +23,7 @@ dump.rdb
 node_modules/
 .worktrees/
 .superpowers/
+
+# заметки сессий и логи браузера — архив вне репозитория (~/backups), в git не нужны
+research_notes/
+.playwright-mcp/

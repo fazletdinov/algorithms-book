@@ -666,7 +666,7 @@ return merge(left, right)</pre>
 - [Largest Number](https://leetcode.com/problems/largest-number/) (LeetCode 179) — нестандартный компаратор
 - [Top K Frequent](https://leetcode.com/problems/top-k-frequent-elements/) (LeetCode 347) — раскладка по корзинам (bucket sort) по частоте
 - [Sort Colors](https://leetcode.com/problems/sort-colors/) (LeetCode 75) — голландский флаг, разбиение на 3 зоны; разобран в главе [«Два указателя»](two-pointers.md)
-- [Count of Smaller Numbers After Self](https://leetcode.com/problems/count-of-smaller-numbers-after-self/) (LeetCode 315) — сортировка слиянием + подсчёт инверсий (пар, стоящих не по порядку)
+- [Count of Smaller Numbers After Self](https://leetcode.com/problems/count-of-smaller-numbers-after-self/) (LeetCode 315) — сортировка слиянием + подсчёт инверсий (пар, стоящих не по порядку) — сверх главы
 - [Maximum Gap](https://leetcode.com/problems/maximum-gap/) (LeetCode 164) — корзины по принципу Дирихле (лучший разрыв не меньше среднего шага) или поразрядная сортировка за O(n) — сверх главы
 
 > 🧭 **Не пошла задача из основы?** В 912 проверь две вещи: базу рекурсии (срез из нуля или

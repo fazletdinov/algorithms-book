@@ -69,8 +69,9 @@ func EditDistance(a, b string) int {
 //
 // Ожидаемая сложность: O(n log n) (или O(n²) простым ДП).
 func LongestIncreasingSubsequence(nums []int) int {
-	// TODO: веди массив tails, где tails[k] — наименьший возможный «хвост»
-	// возрастающей подпоследовательности длины k+1; обновляй бинарным поиском.
+	// TODO: dp[i] — длина наибольшей возрастающей подпоследовательности,
+	// которая кончается на nums[i]: 1 + max(dp[j]) по j < i с nums[j] < nums[i],
+	// O(n²). Сверх главы — массив tails и бинарный поиск, O(n log n).
 	panic("TODO: реализуй LongestIncreasingSubsequence")
 }
 

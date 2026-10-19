@@ -640,7 +640,7 @@ seen[r]++</pre>
 - [Product of Array Except Self](https://leetcode.com/problems/product-of-array-except-self/) (LeetCode 238) — префикс и суффикс; в тренажёре: `prefixsum.ProductExceptSelf`
 - [Range Sum Query 2D – Immutable](https://leetcode.com/problems/range-sum-query-2d-immutable/) (LeetCode 304) — в тренажёре: `prefixsum.MatrixRegionSums`
 - [Corporate Flight Bookings](https://leetcode.com/problems/corporate-flight-bookings/) (LeetCode 1109) — разностный массив; в тренажёре: `prefixsum.ApplyRangeAdds` (там индексы с нуля)
-- [Number of Submatrices That Sum to Target](https://leetcode.com/problems/number-of-submatrices-that-sum-to-target/) (LeetCode 1074) — сложная: пара строк + задача 560 по столбцам
+- [Number of Submatrices That Sum to Target](https://leetcode.com/problems/number-of-submatrices-that-sum-to-target/) (LeetCode 1074) — сложная: пара строк + задача 560 по столбцам — сверх главы
 
 > 🧭 **Не пошла задача из основы?** Сформулируй, что такое «подмассив» в терминах **двух
 > префиксов**, — дальше задача решается сама. Сумма `k` — `P[j] − P[i] = k`, ищем `P[j] − k`

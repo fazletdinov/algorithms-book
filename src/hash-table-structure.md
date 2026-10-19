@@ -401,7 +401,9 @@ go test ./hashtable/                 # твоя реализация (красн
 go test -tags solution ./hashtable/  # эталон (зелёные)
 ```
 
-Пакет `hashtable`: `NewHashMap`, `HashMap.Put` / `Get` / `Delete` / `Len`. Цепочки — срез
+Пакет `hashtable`: `NewHashMap`, `HashMap.Put` / `Get` / `Delete` / `Len`. В тренажёре
+`Delete(key int) bool` возвращает, был ли ключ, — листинг выше его не возвращает, так что
+перенося код, допиши `return true` / `return false`. Цепочки — срез
 бакетов `[][]entry`, расширение при коэффициенте загрузки выше `0.75`. Подумай, почему индекс
 бакета надо нормализовать по знаку (`key % m` в Go бывает отрицательным) и почему после resize
 старые `% m` уже не годятся.

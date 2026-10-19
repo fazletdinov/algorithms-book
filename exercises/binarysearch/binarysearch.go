@@ -25,7 +25,8 @@ func Search(arr []int, target int) int {
 //
 // Ожидаемая сложность: O(log n).
 func FindCeiling(arr []int, key int) int {
-	// TODO: вариант бинарного поиска — после цикла low указывает на потолок.
+	// TODO: firstTrue из главы на [0, len(arr)] с вопросом arr[i] >= key; если
+	// граница — len(arr), потолка нет.
 	panic("TODO: реализуй FindCeiling")
 }
 
@@ -38,7 +39,8 @@ func FindCeiling(arr []int, key int) int {
 //
 // Ожидаемая сложность: O(log n).
 func FindFloor(arr []int, target int) int {
-	// TODO: вариант бинарного поиска — после цикла high указывает на пол.
+	// TODO: пол стоит перед первым элементом > target: firstTrue с вопросом
+	// arr[i] > target, ответ на единицу левее (-1, если граница — 0).
 	panic("TODO: реализуй FindFloor")
 }
 
@@ -66,8 +68,8 @@ func SearchRotated(arr []int, target int) int {
 //
 // Ожидаемая сложность: O(log n).
 func FindFirstLast(arr []int, target int) []int {
-	// TODO: два бинарных поиска — для первого вхождения при равенстве двигай
-	// right влево, для последнего — left вправо.
+	// TODO: два firstTrue: первый индекс с arr[i] >= target (проверь, что там
+	// target) и первый с arr[i] > target — последнее вхождение на единицу левее.
 	panic("TODO: реализуй FindFirstLast")
 }
 
@@ -78,6 +80,7 @@ func FindFirstLast(arr []int, target int) []int {
 //
 // Ожидаемая сложность: O(log x).
 func IntSqrt(x int) int {
-	// TODO: бинарный поиск по ответу в диапазоне [0, x]; сравнивай mid*mid с x.
+	// TODO: firstTrue на [0, x+1] с вопросом m*m > x; ответ на единицу левее.
+	// Чтобы m*m не переполнилось, спрашивай m > x/m.
 	panic("TODO: реализуй IntSqrt")
 }

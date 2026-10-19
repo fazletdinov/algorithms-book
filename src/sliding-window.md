@@ -655,7 +655,8 @@ go test -tags solution ./slidingwindow/  # эталон
 
 Реализуй `MaxSumSubarray` (фиксированное окно), `LongestSubstringKDistinct`
 (≤k различных символов), `SmallestSubarrayWithSum` (минимальная длина с суммой ≥ target),
-`LongestSubstringNoRepeat` (без повторов) и `MaxSlidingWindow` (максимум окна через дек).
+`LongestSubstringNoRepeat` (без повторов) и `MaxSlidingWindow` (максимум окна через дек —
+его удобнее решать после главы о монотонном стеке; глава сдаётся и без него).
 
 ### 💻 Реши прямо здесь — пакет `slidingwindow`
 

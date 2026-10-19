@@ -18,36 +18,37 @@ func Search(arr []int, target int) int {
 	return -1
 }
 
+// FindCeiling, FindFloor, FindFirstLast и IntSqrt — одна форма firstTrue из
+// главы: ответ всегда в [lo, hi], цикл lo < hi, mid подходит — hi = mid, иначе
+// lo = mid + 1. Меняется только вопрос и то, что делать с найденной границей.
+
 func FindCeiling(arr []int, key int) int {
-	if len(arr) == 0 || key > arr[len(arr)-1] {
-		return -1
-	}
-	low, high := 0, len(arr)-1
-	for low <= high {
-		mid := low + (high-low)/2
-		if arr[mid] < key {
-			low = mid + 1
+	lo, hi := 0, len(arr) // первый i с arr[i] >= key; len(arr) — такого нет
+	for lo < hi {
+		mid := lo + (hi-lo)/2
+		if arr[mid] >= key {
+			hi = mid
 		} else {
-			high = mid - 1
+			lo = mid + 1
 		}
 	}
-	return low
+	if lo == len(arr) {
+		return -1
+	}
+	return lo
 }
 
 func FindFloor(arr []int, target int) int {
-	if len(arr) == 0 || target < arr[0] {
-		return -1
-	}
-	low, high := 0, len(arr)-1
-	for low <= high {
-		mid := low + (high-low)/2
-		if arr[mid] <= target {
-			low = mid + 1
+	lo, hi := 0, len(arr) // первый i с arr[i] > target; пол — на единицу левее
+	for lo < hi {
+		mid := lo + (hi-lo)/2
+		if arr[mid] > target {
+			hi = mid
 		} else {
-			high = mid - 1
+			lo = mid + 1
 		}
 	}
-	return high
+	return lo - 1 // lo == 0 — все элементы больше target, ответ -1
 }
 
 func SearchRotated(arr []int, target int) int {
@@ -75,51 +76,38 @@ func SearchRotated(arr []int, target int) int {
 }
 
 func FindFirstLast(arr []int, target int) []int {
-	first := func() int {
-		low, high, res := 0, len(arr)-1, -1
-		for low <= high {
-			mid := low + (high-low)/2
-			switch {
-			case arr[mid] == target:
-				res = mid
-				high = mid - 1
-			case arr[mid] < target:
-				low = mid + 1
-			default:
-				high = mid - 1
+	// firstTrue с вопросом ok: первый индекс, где ok истинно, или len(arr)
+	firstTrue := func(ok func(int) bool) int {
+		lo, hi := 0, len(arr)
+		for lo < hi {
+			mid := lo + (hi-lo)/2
+			if ok(mid) {
+				hi = mid
+			} else {
+				lo = mid + 1
 			}
 		}
-		return res
+		return lo
 	}
-	last := func() int {
-		low, high, res := 0, len(arr)-1, -1
-		for low <= high {
-			mid := low + (high-low)/2
-			switch {
-			case arr[mid] == target:
-				res = mid
-				low = mid + 1
-			case arr[mid] < target:
-				low = mid + 1
-			default:
-				high = mid - 1
-			}
-		}
-		return res
+	first := firstTrue(func(i int) bool { return arr[i] >= target })
+	if first == len(arr) || arr[first] != target {
+		return []int{-1, -1}
 	}
-	return []int{first(), last()}
+	afterLast := firstTrue(func(i int) bool { return arr[i] > target })
+	return []int{first, afterLast - 1}
 }
 
 func IntSqrt(x int) int {
-	low, high, res := 0, x, 0
-	for low <= high {
-		mid := low + (high-low)/2
-		if mid*mid <= x {
-			res = mid
-			low = mid + 1
+	// firstTrue на [0, x+1] с вопросом «m*m > x»; ответ — на единицу левее.
+	// m > x/m — то же условие без переполнения m*m.
+	lo, hi := 0, x+1
+	for lo < hi {
+		mid := lo + (hi-lo)/2
+		if mid > 0 && mid > x/mid {
+			hi = mid
 		} else {
-			high = mid - 1
+			lo = mid + 1
 		}
 	}
-	return res
+	return lo - 1
 }
