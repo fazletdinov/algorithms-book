@@ -184,8 +184,8 @@ func TestCollectRealBankNewFields(t *testing.T) {
 			needs = append(needs, p.Pkg+"."+p.Fn+" -> "+strings.Join(p.Needs, ","))
 		}
 	}
-	if withComplexity != 162 {
-		t.Errorf("задач с эталоном сложности %d, ожидалось 162 (абзацев «Ожидаемая сложность:» стало больше или меньше — "+
+	if withComplexity != 166 {
+		t.Errorf("задач с эталоном сложности %d, ожидалось 166 (абзацев «Ожидаемая сложность:» стало больше или меньше — "+
 			"сверь с docs заготовок и поправь число)", withComplexity)
 	}
 	// n в банке — это needs из stubdoc (список пар лежит там: stubdoc/module_test.go, expectedNeeds);
