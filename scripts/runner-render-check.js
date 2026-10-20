@@ -600,6 +600,11 @@ async function fixRoundOne(S) {
   typeDraft(w, "набрано");
   await tick(600);
   expect(w.dom.window.localStorage.getItem("algoRunnerCode:mixed:p") === "набрано", "контроль: черновик на странице не сохранился");
+  {
+    const at = JSON.parse(w.dom.window.localStorage.getItem("algoRunnerCodeAt") || "{}");
+    const ts = at["algoRunnerCode:mixed:p"];
+    expect(typeof ts === "number" && Math.abs(Date.now() - ts) < 60000, `сохранение черновика не записало время в algoRunnerCodeAt (${JSON.stringify(at)}) — импорт не отличит свежий черновик от старого`);
+  }
 
   // В своём черновике сосед, отмеченный в algoFnSolved (решал в главе), всё равно не написан.
   w = await page({ attrs: 'data-pkg="p" data-func="D" data-draft="review"', run: RED, seed: S("A") });

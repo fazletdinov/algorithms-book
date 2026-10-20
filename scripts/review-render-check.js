@@ -390,10 +390,34 @@ setTimeout(() => {
         importDump({ algoQuizBestPortion: there });
         if (pls.getItem("algoQuizBestPortion") !== want) errors.push(`импорт algoQuizBestPortion: здесь ${here}, в файле ${there} — стало ${pls.getItem("algoQuizBestPortion")}, ожидалось ${want}`);
       }
-      // ключи с сырым текстом ведут себя как раньше
-      setLocal({ "algoRunnerCode:slidingwindow": "мой код", algoQuizBest: "10/57" });
-      importDump({ "algoRunnerCode:slidingwindow": "чужой код", algoQuizBest: "40/57" });
-      if (pls.getItem("algoRunnerCode:slidingwindow") !== "чужой код" || pls.getItem("algoQuizBest") !== "40/57") errors.push("импорт ключей с сырым текстом изменил поведение");
+      // прежний рекорд квиза — сырой текст, приходит из файла как есть
+      setLocal({ algoQuizBest: "10/57" });
+      importDump({ algoQuizBest: "40/57" });
+      if (pls.getItem("algoQuizBest") !== "40/57") errors.push(`импорт algoQuizBest: ${pls.getItem("algoQuizBest")}, ожидалось 40/57 из файла`);
+      // 6. черновики runner'а: побеждает более свежий по algoRunnerCodeAt; без метки — старше любого с меткой;
+      // без меток с обеих сторон остаётся здешний; метка ключа после импорта — метка победителя
+      const D = "algoRunnerCode:slidingwindow", AT = "algoRunnerCodeAt";
+      for (const [why, here, hereAt, there, thereAt, want, wantAt] of [
+        ["старая выгрузка без меток", "мой код", undefined, "чужой код", undefined, "мой код", undefined],
+        ["здесь свежее файла", "мой код", 5000, "чужой код", 3000, "мой код", 5000],
+        ["файл свежее здешнего", "мой код", 3000, "чужой код", 5000, "чужой код", 5000],
+        ["здесь без метки, в файле с меткой", "мой код", undefined, "чужой код", 5000, "чужой код", 5000],
+        ["здесь с меткой, в файле без", "мой код", 1, "чужой код", undefined, "мой код", 1],
+        ["здесь черновика нет, осталась метка стёртого", null, 9000, "чужой код", 3000, "чужой код", 3000],
+        ["здесь черновика нет, в файле без метки", null, 9000, "чужой код", undefined, "чужой код", undefined],
+      ]) {
+        const local = {};
+        if (here !== null) local[D] = here;
+        if (hereAt !== undefined) local[AT] = { [D]: hereAt, other: 7 };
+        setLocal(local);
+        const dump = { [D]: there };
+        if (thereAt !== undefined) dump[AT] = JSON.stringify({ [D]: thereAt });
+        importDump(dump);
+        const at = get(AT);
+        const gotAt = at && typeof at === "object" ? at[D] : undefined;
+        if (pls.getItem(D) !== want || gotAt !== wantAt) errors.push(`импорт черновика (${why}): код «${pls.getItem(D)}», метка ${gotAt} — ожидались «${want}» и ${wantAt}`);
+        if (hereAt !== undefined && (!at || at.other !== 7)) errors.push(`импорт черновика (${why}) потерял чужие метки algoRunnerCodeAt: ${pls.getItem(AT)}`);
+      }
       finish();
     }, 200);
   }, 200);

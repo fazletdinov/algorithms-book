@@ -267,7 +267,7 @@
     // Рекорд полной порции квиза algoQuizBestPortion покрывает префикс "algoQuizBest" (isOurs).
     var PREFIXES = ["algoProgress", "algoChallengeSolved", "algoChallengeMissed", "algoQuizBest", "algoRunnerCode:", "algoPkgSolved", "algoFnSolved", "algoSRS",
       "algoExplain", "algoExplainDone", "algoQuizMissed", "algoQuizSeen", "algoMixedMissed", "algoMixedSeen",
-      "algoMockLog", "algoMockCxMissed", "algoVizMissed", "algoVizPredict", "algoPracticeScope"];
+      "algoMockLog", "algoMockCxMissed", "algoVizMissed", "algoVizPredict", "algoPracticeScope", "algoRunnerCodeAt"];
     function isOurs(key) {
       return PREFIXES.some(function (p) { return key === p || key.indexOf(p) === 0; });
     }
@@ -303,11 +303,12 @@
         // Слияние, а не замена: импорт с другой машины не должен стирать то,
         // что уже пройдено здесь. Для карт-объектов объединяем ключи.
         Object.keys(dump.data).forEach(function (k) {
-          if (!isOurs(k)) return;
+          if (!isOurs(k) || k === DRAFT_AT || k.indexOf(DRAFT) === 0) return;
           var out = importValue(k, localStorage.getItem(k), dump.data[k]);
           if (out === null) return;
           try { localStorage.setItem(k, out); } catch (e) { /* приватный режим */ }
         });
+        importDrafts(dump.data);
         state = load() || state;
         showState();
         refresh();
@@ -433,8 +434,8 @@
   // Ключи со своим правилом принимают только карту, а здешнее не-карту (повреждённое) лечат пришедшей
   // картой. Для остальных общее правило прежнее, но значение из файла, которое не разбирается как
   // JSON (или другого вида, чем здешнее: карта против массива), не затирает здешний объект или массив — это был
-  // единственный найденный путь к повреждённому algoSRS. Ключи с сырым текстом (код читателя, рекорд
-  // квиза) ведут себя как раньше.
+  // единственный найденный путь к повреждённому algoSRS. Сырой текст прежнего рекорда квиза приходит как
+  // есть; черновики runner'а сюда не попадают — у них importDrafts.
   function importValue(k, currentRaw, incomingRaw) {
     var merge = MERGE_BY_KEY[k];
     // algoPracticeScope — выбор читателя на ЭТОЙ машине: заданный здесь файл не перебивает
@@ -447,7 +448,7 @@
       var current = tryParse(currentRaw);
       return JSON.stringify(merge(isMap(current) ? current : {}, incoming));
     }
-    if (!currentRaw || k === "algoQuizBest" || k.indexOf("algoRunnerCode:") === 0) return incomingRaw;
+    if (!currentRaw || k === "algoQuizBest") return incomingRaw;
     var cur = tryParse(currentRaw);
     if (cur !== null && typeof cur === "object" && !(incoming !== null && typeof incoming === "object" && Array.isArray(cur) === Array.isArray(incoming))) return null;
     try {
@@ -455,6 +456,29 @@
     } catch (e) {
       return incomingRaw; // здешнее не разбирается — берём пришедшее как есть
     }
+  }
+
+  // Черновики runner'а (algoRunnerCode:*) — сырой код: слить нечего, побеждает один. Раньше всегда
+  // побеждал файл, и старая выгрузка молча затирала код, написанный здесь после неё. runner.js пишет
+  // время каждого сохранения в algoRunnerCodeAt ({ ключ: ts }); побеждает более свежий черновик.
+  // Черновик без метки (сохранён до её появления) старше любого с меткой; без меток с обеих сторон
+  // остаётся здешний — импорт не стирает то, что есть здесь. Метка ключа после импорта — метка победителя.
+  var DRAFT = "algoRunnerCode:", DRAFT_AT = "algoRunnerCodeAt";
+  function importDrafts(data) {
+    function stamp(v) { return typeof v === "number" ? v : -Infinity; }
+    var hereMap = tryParse(localStorage.getItem(DRAFT_AT)), thereMap = tryParse(data[DRAFT_AT]);
+    var hereAt = isMap(hereMap) ? hereMap : {}, thereAt = isMap(thereMap) ? thereMap : {};
+    var changed = false;
+    Object.keys(data).forEach(function (k) {
+      if (k.indexOf(DRAFT) !== 0 || typeof data[k] !== "string") return;
+      var here = localStorage.getItem(k);
+      if (here !== null && !(stamp(thereAt[k]) > stamp(hereAt[k]))) return;
+      try { localStorage.setItem(k, data[k]); } catch (e) { return; /* приватный режим */ }
+      if (typeof thereAt[k] === "number") hereAt[k] = thereAt[k]; else delete hereAt[k];
+      changed = true;
+    });
+    if (!changed) return;
+    try { localStorage.setItem(DRAFT_AT, JSON.stringify(hereAt)); } catch (e) { /* приватный режим */ }
   }
 
   // Список глав нужен и движку повторений (srs.js) — чтобы показывать название

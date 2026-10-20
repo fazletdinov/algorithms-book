@@ -297,6 +297,8 @@
   // fnSolvedHere — отметки этой страницы: без хранилища выбор и «✓» работают в пределах вкладки.
   var FN_SOLVED = "algoFnSolved";
   var fnSolvedHere = {};
+  // algoRunnerCodeAt — { "<ключ черновика>": ts последнего сохранения }, пишет saveSoon.
+  var CODE_AT = "algoRunnerCodeAt";
   function fnSolved() {
     var m = readMap(FN_SOLVED);
     Object.keys(fnSolvedHere).forEach(function (k) { if (!m[k]) m[k] = fnSolvedHere[k]; });
@@ -785,6 +787,11 @@
         // запись после удаления воскресила бы стёртый черновик для следующей задачи того же пакета.
         if (!root.isConnected) return;
         lsSet(lsKey, editor.getValue());
+        // Время сохранения — для импорта прогресса (progress.js, importDrafts): из двух черновиков
+        // побеждает более свежий, а не всегда пришедший из файла.
+        var at = readMap(CODE_AT);
+        at[lsKey] = Date.now();
+        lsSet(CODE_AT, JSON.stringify(at));
       }, 400);
     }
 
