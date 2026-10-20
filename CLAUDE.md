@@ -13,7 +13,7 @@ mdBook, с тремя слоями обучения:
 3. **Go-тренажёр** (`exercises/`) — рабочий Go-модуль с заготовками функций и тестами:
    читатель пишет реализацию сам и проверяет её тестами.
 
-Книгу читают локально (`mdbook serve`); CI только проверяет, публикации нет. Репозиторий: `github.com/fazletdinov/algorithms-book`.
+Репозиторий публичный, книга публикуется на GitHub Pages (<https://fazletdinov.github.io/algorithms-book/>) из `main` через CI. Репозиторий: `github.com/fazletdinov/algorithms-book`.
 
 ## Команды
 
@@ -1196,8 +1196,9 @@ for внутри for, или for/range вперемешку) и if/else любо
 ## CI/CD
 
 `.github/workflows/ci.yml`: job `go-tests`, `assets-check` и `build-book` (`mdbook build`
-+ `check-links.js`) должны пройти. Публикации нет (job `deploy` убран 2026-10-12: репозиторий
-приватный, Pages на бесплатном тарифе недоступны; книгу читают локально). Job `build-book` после сборки прогоняет `node scripts/check-links.js`
++ `check-links.js`) должны пройти; затем job `deploy` публикует `book/` на GitHub Pages
+**только из ветки main** (убирался 2026-10-12, пока репозиторий был приватным; возвращён 2026-10-20
+вместе с открытием репозитория). Права `pages`/`id-token` — только у `deploy`. Job `build-book` после сборки прогоняет `node scripts/check-links.js`
 — целостность внутренних ссылок/якорей по собранному `book/`, и markdown-ссылок `[..](..)`, и `<a href>` в HTML-блоках глав («Вспомни», «Что унести»).
 
 Job `go-tests` (working-directory `exercises/`) проверяет четыре инварианта:

@@ -13,6 +13,7 @@ create-missing = true
 # Тема одна: navy, перекрашенная в assets/theme.css; theme/head.hbs не даёт сохранённому выбору её сменить.
 default-theme = "navy"
 preferred-dark-theme = "navy"
+site-url = "/algorithms-book/"  # для 404.html на GitHub Pages; mdbook serve сам подменяет на "/"
 git-repository-url = "https://github.com/fazletdinov/algorithms-book"
 edit-url-template = "https://github.com/fazletdinov/algorithms-book/edit/main/{path}"
 git-repository-icon = "fab-github"  # с mdBook 0.5 нужен префикс типа: fab (brands), а не голое fa-github

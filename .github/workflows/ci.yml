@@ -5,8 +5,7 @@ on:
     branches: [main]
   pull_request:
 
-# Книга не публикуется (репозиторий приватный, Pages на бесплатном тарифе недоступны):
-# CI только проверяет; читают её локально — mdbook serve.
+# Права на публикацию (pages, id-token) выданы только job'у deploy, остальные читают.
 permissions:
   contents: read
 
@@ -220,3 +219,21 @@ jobs:
       # ответа НЕ видно ни темы, ни пакета, ни подсказок из условия.
       - name: Смоук смешанной тренировки (jsdom)
         run: node scripts/mixed-check.js
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: book
+
+  deploy:
+    name: Публикация на GitHub Pages
+    needs: [go-tests, assets-check, build-book]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
