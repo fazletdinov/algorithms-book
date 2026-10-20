@@ -391,6 +391,9 @@ async function tocChecks(declaredLevels) {
     if (typeof d5.window.ALGO_INIT_TOC === "function") {
       d5.window.ALGO_INIT_TOC();
       if (s5.made !== 2 || s5.active !== 1) errors.push(`после срока повторный initToc: заведено ${s5.made}, активно ${s5.active} — отключённый наблюдатель не забыт, ожидались 2 и 1`);
+      // Живой наблюдатель гасим до close: jsdom 29 (его ставит npm под Node 20 в CI) при закрытии окна
+      // будит его мутациями, и колбэк падает на уже снятом document — в браузере так не бывает.
+      fireTimers(d5, "перед закрытием");
     }
     d5.window.close();
   }
