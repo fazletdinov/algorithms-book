@@ -59,7 +59,7 @@
 
 > 🔧 **Где это в Go.** Бор — это то, как маршрутизатор `net/http.ServeMux` (с Go 1.22) сопоставляет
 > путь запроса с зарегистрированными паттернами: он хранит их в **дереве решений**, ветвясь по
-> сегментам пути ([`net/http/routing_tree.go`](https://github.com/golang/go/blob/master/src/net/http/routing_tree.go)).
+> сегментам пути ([`net/http/routing_tree.go`](https://github.com/golang/go/blob/go1.24.0/src/net/http/routing_tree.go)).
 > На том же приёме — популярные роутеры `httprouter`, `chi`, `gin`. Полный разбор **почему дерево,
 > а не map паттернов** (с кодом и схемой) —
 > [«Структуры данных в экосистеме Go»](go-stdlib-structures.md#-разбор-почему-роутер-servemux--это-дерево-а-не-map).
@@ -307,6 +307,12 @@ Trie ведь и есть дерево.
 2. **Массив фиксированного размера для большого алфавита** — для Unicode бери `map[rune]*Trie`.
 3. **Не проверяют `nil`-ребёнка** перед переходом — паника.
 4. **Удаление узлов** реализуют небрежно: нельзя удалять узел, у которого остались дети или который конец другого слова.
+
+> 🌍 **Где это в настоящем коде**
+>
+> - [`routingNode.addSegments`](https://github.com/golang/go/blob/go1.24.0/src/net/http/routing_tree.go#L56) (Go 1.24) — `Insert` маршрутизатора `http.ServeMux`: паттерн кладётся в дерево сегмент пути за сегментом, недостающий ребёнок создаётся через `addChild`.
+> - [`strings` `trieNode`](https://github.com/golang/go/blob/go1.24.0/src/strings/replace.go#L123) (Go 1.24) — бор внутри `strings.NewReplacer` для замены многобуквенных строк; в комментарии над типом нарисован пример бора на ключах `ax`, `ay`, `bcbc`, `x`, `xy`.
+> - [`genericReplacer.lookup`](https://github.com/golang/go/blob/go1.24.0/src/strings/replace.go#L221) (Go 1.24) — спуск по этому бору символ за символом, как `Search`; по дороге запоминает найденный ключ с наивысшим приоритетом (того, кто раньше в списке аргументов).
 
 ## 🏋️ Тренажёр: собери структуру сам
 

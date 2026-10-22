@@ -284,6 +284,13 @@ tok, err := conf.Exchange(ctx, code, oauth2.VerifierOption(verifier))
 Библиотеки берут те же идеи и делают их **безопасными в проде** — константное время, правильные
 паддинги, проверенные параметры. Твоя задача инженера — не переписать их, а **выбрать правильную**.
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`ConstantTimeCompare`](https://github.com/golang/go/blob/go1.24.0/src/crypto/internal/fips140/subtle/constant_time.go#L11) (Go 1.24) — XOR всех пар байтов копится в одну переменную, раннего выхода нет: время не зависит от того, где разница; `crypto/subtle` вызывает именно её.
+> - [`hmac.Equal`](https://github.com/golang/go/blob/go1.24.0/src/crypto/hmac/hmac.go#L60) — сравнение MAC-тегов — тот же `subtle.ConstantTimeCompare`.
+> - [`rand.Read`](https://github.com/golang/go/blob/go1.24.0/src/crypto/rand/rand.go#L66) — байты из генератора ОС; с Go 1.24 при сбое он роняет программу, а не возвращает ошибку.
+> - [`NewGCMWithRandomNonce`](https://github.com/golang/go/blob/go1.24.0/src/crypto/cipher/gcm.go#L93) — новое в Go 1.24: AES-GCM, который сам берёт случайный nonce на каждое сообщение и кладёт его перед шифртекстом.
+
 ## 🧩 Задачи
 
 Проверь понимание — выбери вариант, впиши ответ или расставь по порядку.

@@ -73,7 +73,7 @@
 
 > 🔧 **Где это в Go.** Рабин–Карп — не только для собеседований: `strings.Index` и `bytes.Index`
 > для длинных образцов переходят на **rolling hash (Рабин–Карп)**
-> ([`strings/strings.go`](https://github.com/golang/go/blob/master/src/strings/strings.go)), а
+> ([`internal/stringslite/strings.go`](https://github.com/golang/go/blob/go1.24.0/src/internal/stringslite/strings.go#L28)), а
 > движок [`regexp`](https://pkg.go.dev/regexp) — на автоматы RE2 (линейное время, без ReDoS): разбор
 > с виджетом [«Почему regexp в Go линеен»](go-stdlib-structures.md#-разбор-почему-regexp-в-go-линеен-re2-а-не-экспоненциален).
 > Ещё примеры — [«Структуры данных в экосистеме Go»](go-stdlib-structures.md).
@@ -284,6 +284,12 @@ O(n) и решает те же задачи, что LPS (поиск — чере
 3. **Rabin–Karp без проверки строк при совпадении хешей** — коллизии дадут ложные срабатывания.
 4. **Переполнение/отрицательный хеш** — бери остаток по модулю и добавляй `mod` перед `%`.
 5. **Пустой образец** — договорись о соглашении (здесь возвращаем 0).
+
+> 🌍 **Где это в настоящем коде**
+>
+> - [`compute_prefix_tbl`](https://github.com/torvalds/linux/blob/v6.6/lib/ts_kmp.c#L74) и [`kmp_find`](https://github.com/torvalds/linux/blob/v6.6/lib/ts_kmp.c#L42) (ядро Linux 6.6) — KMP в ядре: сначала таблица префикс-функции, потом один проход по тексту, где при несовпадении назад откатывается только позиция в образце (`q = prefix_tbl[q - 1]`).
+> - [`net/netfilter/xt_string.c`](https://github.com/torvalds/linux/blob/v6.6/net/netfilter/xt_string.c#L56) (ядро Linux 6.6) — правило фильтра пакетов «найди строку в пакете»: алгоритм поиска выбирается по имени, и `kmp` — одно из имён.
+> - [`bytealg.IndexRabinKarp`](https://github.com/golang/go/blob/go1.24.0/src/internal/bytealg/bytealg.go#L66) (Go 1.24) — Рабин–Карп стандартной библиотеки: хеш окна обновляется за шаг (умножить, добавить новый байт, вычесть старый), строки сравниваются, только когда хеши совпали. На него переходят `strings.Index` и `bytes.Index`, если быстрый поиск по первому байту даёт слишком много ложных попаданий.
 
 ## 📝 Разбор задачи
 

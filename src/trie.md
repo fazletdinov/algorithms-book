@@ -33,6 +33,10 @@
 <div class="algo-challenge__q">В боре 100 000 слов. Сколько узлов (не считая корня) посетит спуск при поиске слова длины 8?</div>
 </div>
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`genericReplacer.WriteString`](https://github.com/golang/go/blob/go1.24.0/src/strings/replace.go#L336) (Go 1.24) — `strings.NewReplacer` решает родственницу Replace Words: все заменяемые строки лежат в боре, и с каждой позиции текста идёт спуск по нему ([`lookup`](https://github.com/golang/go/blob/go1.24.0/src/strings/replace.go#L221)); нашёлся ключ — пишем замену и прыгаем за него, нет — сдвигаемся на байт.
+
 ## 📝 Разбор задачи
 
 Пройдём путь от наивного решения к оптимальному так, как стоит рассуждать на

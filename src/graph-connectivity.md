@@ -377,6 +377,10 @@ goroutine stack exceeds ...-byte limit` — это не паника, `recover` 
    идти именно по ребру-кандидату — и мост окажется незамеченным. Обратное ребро даёт
    кандидата ровно `tin[w]`; наследовать `low` можно только у детей по древесным рёбрам.
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`VisitFuncsBottomUp`](https://github.com/golang/go/blob/go1.24.0/src/cmd/compile/internal/ir/scc.go#L52) (Go 1.24) — алгоритм Тарьяна на графе вызовов: компилятор делит функции на компоненты сильной связности (группы взаимно рекурсивных) и отдаёт их снизу вверх анализу «уходит ли значение в кучу» ([escape analysis](https://github.com/golang/go/blob/go1.24.0/src/cmd/compile/internal/escape/escape.go#L122)) и инлайнеру.
+
 ## 📝 Разбор задачи
 
 > **Задача (Critical Connections in a Network, LeetCode 1192).** Дана сеть из `n`

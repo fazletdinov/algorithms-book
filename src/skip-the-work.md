@@ -220,6 +220,12 @@ go test -p 1 -tags solution -run='^$' -bench=StaticRangeSum -count=5 ./segtree/
 6. **Всё синхронно на пути запроса.** Пользователь ждёт письмо, аналитику и выгрузку, хотя
    ему нужен только ответ «принято».
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`ExecSetTupleBound`](https://github.com/postgres/postgres/blob/REL_16_4/src/backend/executor/nodeLimit.c#L424) (PostgreSQL 16) — `LIMIT` сообщает узлу под собой, сколько строк ему нужно; если там сортировка, она [переходит на «ограниченную»](https://github.com/postgres/postgres/blob/REL_16_4/src/backend/executor/execProcnode.c#L857).
+> - [`make_bounded_heap`](https://github.com/postgres/postgres/blob/REL_16_4/src/backend/utils/sort/tuplesort.c#L2625) — та самая «top-N heapsort»: куча на `bound` строк, наибольшая в корне, всё лишнее выбрасывается.
+> - [`hyperloglog.c`](https://github.com/redis/redis/blob/7.4.1/src/hyperloglog.c#L21) (Redis 7.4) — `PFCOUNT`: 16384 регистра по 6 бит, «всего 12k на ключ».
+
 ## 🧩 Задачи
 
 <div class="algo-challenge" data-type="choice" data-options="Keyset: запомнить created_at последней строки и запрашивать следующую страницу через WHERE created_at < …|Увеличить work_mem, чтобы сортировка шла в памяти|Кэшировать каждую страницу в Redis" data-answer="0" data-explain="OFFSET 1000000 заставляет базу пройти и выбросить миллион строк — в замере около 430 мс против 0.05 мс у keyset. work_mem тут ни при чём: сортировки нет, есть проход по индексу с отбрасыванием. Кэш страниц маскирует симптом и устаревает при каждой новой записи. Keyset убирает саму лишнюю работу.">

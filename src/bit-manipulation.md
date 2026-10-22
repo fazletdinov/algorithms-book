@@ -56,7 +56,7 @@
 
 > 🔧 **Где это в Go.** Упаковка флагов в биты — как устроен `sync.Mutex`: бит 0 `locked`, бит 1
 > `woken`, бит 2 `starving`, биты 3+ — счётчик ожидающих, всё в одном `int32`, меняется атомарным
-> CAS/Add ([`internal/sync/mutex.go`](https://github.com/golang/go/blob/master/src/internal/sync/mutex.go)).
+> CAS/Add ([`internal/sync/mutex.go`](https://github.com/golang/go/blob/go1.24.0/src/internal/sync/mutex.go)).
 > Разбор с виджетом —
 > [«Структуры данных в экосистеме Go»](go-stdlib-structures.md#-разбор-почему-syncmutex--это-биты-в-одном-слове).
 
@@ -227,6 +227,10 @@ for sub := mask; sub > 0; sub = (sub - 1) & mask {
    коде — для беззнаковой логики бери `uint`.
 5. **Пустой массив в Single Number**: непарного элемента нет, XOR вернёт 0 — обработай
    по соглашению.
+
+> 🌍 **Где это в настоящем коде**
+>
+> - [`nextFreeFast`](https://github.com/golang/go/blob/go1.24.0/src/runtime/malloc.go#L927) (Go 1.24) — аллокатор помнит свободные ячейки памяти битами в `allocCache`: `TrailingZeros64` (число нулей справа) сразу даёт первую свободную, а сдвиг `>>=` отбрасывает просмотренные биты.
 
 ## 📝 Разбор задачи
 

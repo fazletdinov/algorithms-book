@@ -13,16 +13,16 @@
 
 | Структура / приём | Где в Go и экосистеме | Зачем именно здесь |
 |---|---|---|
-| **[Хеш-таблица](hash-table-structure.md)** | встроенный `map`; с Go 1.24 — реализация **Swiss Tables** ([`internal/runtime/maps`](https://github.com/golang/go/tree/master/src/internal/runtime/maps)) | O(1) доступ по ключу — базовая структура языка |
-| **[Куча](heap-structure.md)** (priority queue) | [`container/heap`](https://pkg.go.dev/container/heap); **таймеры рантайма** (`time.Sleep`, `time.AfterFunc`, `context.WithTimeout`; таймер с каналом — `time.After`, `time.Timer`, `time.Ticker` — с Go 1.23 лежит в куче, только пока горутина ждёт на его канале) — [`runtime/time.go`](https://github.com/golang/go/blob/master/src/runtime/time.go) хранит таймеры кучей «по времени срабатывания»; планировщик инструкций компилятора ([`ssa/schedule.go`](https://github.com/golang/go/blob/master/src/cmd/compile/internal/ssa/schedule.go)) | «достать ближайшее/минимальное за O(log n)»: следующий таймер, следующая инструкция |
-| **[Двусвязный список](linked-list-structure.md)** | [`container/list`](https://pkg.go.dev/container/list); пул TCP-соединений в [`net/http.Transport`](https://github.com/golang/go/blob/master/src/net/http/transport.go); хранение TLS-сессий | O(1) вставка/удаление из середины, основа LRU |
-| **[Кольцевой буфер](deque-structure.md)** | **буфер канала** (`chan`) в рантайме — [`runtime/chan.go`](https://github.com/golang/go/blob/master/src/runtime/chan.go) (индексы `sendx`/`recvx` бегут по кругу); [`container/ring`](https://pkg.go.dev/container/ring) | FIFO фиксированного размера без аллокаций на каждый элемент |
-| **[Trie / префиксное дерево](trie-structure.md)** | **маршрутизатор** `net/http.ServeMux` (с Go 1.22) хранит паттерны в **дереве решений**, ветвясь по сегментам пути — [`net/http/routing_tree.go`](https://github.com/golang/go/blob/master/src/net/http/routing_tree.go); radix-роутеры (`httprouter`, `chi`, `gin`); HPACK в HTTP/2 | быстрый матч по префиксам: маршрут `/users/{id}/posts` |
+| **[Хеш-таблица](hash-table-structure.md)** | встроенный `map`; с Go 1.24 — реализация **Swiss Tables** ([`internal/runtime/maps`](https://github.com/golang/go/tree/go1.24.0/src/internal/runtime/maps)) | O(1) доступ по ключу — базовая структура языка |
+| **[Куча](heap-structure.md)** (priority queue) | [`container/heap`](https://pkg.go.dev/container/heap); **таймеры рантайма** (`time.Sleep`, `time.AfterFunc`, `context.WithTimeout`; таймер с каналом — `time.After`, `time.Timer`, `time.Ticker` — с Go 1.23 лежит в куче, только пока горутина ждёт на его канале) — [`runtime/time.go`](https://github.com/golang/go/blob/go1.24.0/src/runtime/time.go) хранит таймеры кучей «по времени срабатывания»; планировщик инструкций компилятора ([`ssa/schedule.go`](https://github.com/golang/go/blob/go1.24.0/src/cmd/compile/internal/ssa/schedule.go)) | «достать ближайшее/минимальное за O(log n)»: следующий таймер, следующая инструкция |
+| **[Двусвязный список](linked-list-structure.md)** | [`container/list`](https://pkg.go.dev/container/list); пул TCP-соединений в [`net/http.Transport`](https://github.com/golang/go/blob/go1.24.0/src/net/http/transport.go); хранение TLS-сессий | O(1) вставка/удаление из середины, основа LRU |
+| **[Кольцевой буфер](deque-structure.md)** | **буфер канала** (`chan`) в рантайме — [`runtime/chan.go`](https://github.com/golang/go/blob/go1.24.0/src/runtime/chan.go) (индексы `sendx`/`recvx` бегут по кругу); [`container/ring`](https://pkg.go.dev/container/ring) | FIFO фиксированного размера без аллокаций на каждый элемент |
+| **[Trie / префиксное дерево](trie-structure.md)** | **маршрутизатор** `net/http.ServeMux` (с Go 1.22) хранит паттерны в **дереве решений**, ветвясь по сегментам пути — [`net/http/routing_tree.go`](https://github.com/golang/go/blob/go1.24.0/src/net/http/routing_tree.go); radix-роутеры (`httprouter`, `chi`, `gin`); HPACK в HTTP/2 | быстрый матч по префиксам: маршрут `/users/{id}/posts` |
 | **[Бинарный поиск](modified-binary-search.md)** | [`sort.Search`](https://pkg.go.dev/sort#Search), [`slices.BinarySearch`](https://pkg.go.dev/slices#BinarySearch) | найти/вставить в отсортированном за O(log n) |
-| **[Сортировка](sorting.md)** | [`sort.Sort`](https://pkg.go.dev/sort), [`slices.Sort`](https://pkg.go.dev/slices#Sort) — **pdqsort** (pattern-defeating quicksort + fallback на heapsort при глубокой рекурсии + insertion на мелких кусках) — [`slices/sort.go`](https://github.com/golang/go/blob/master/src/slices/sort.go) | стабильно быстрая сортировка на любых входах |
-| **[Битовые операции](bit-manipulation.md)** | [`math/bits`](https://pkg.go.dev/math/bits) (`OnesCount`, `LeadingZeros`, `TrailingZeros`); упаковка состояния в [`sync.Mutex`](https://github.com/golang/go/blob/master/src/sync/mutex.go) (флаги locked/woken/starving в одном `int32`); права файлов `os.FileMode` | компактность и скорость на «горячем» пути |
-| **[Рабин–Карп / поиск подстроки](string-algorithms.md)** | `strings.Index` / `bytes.Index` для длинных образцов используют **rolling hash (Рабин–Карп)** — [`strings/strings.go`](https://github.com/golang/go/blob/master/src/strings/strings.go); движок [`regexp`](https://pkg.go.dev/regexp) — автоматы RE2, а не бэктрекинг | подстрока и сопоставление с образцом |
-| **[Топологическая сортировка](topological-sort.md)** | порядок инициализации переменных/пакетов в [`go/types`](https://github.com/golang/go/blob/master/src/go/types/initorder.go); граф зависимостей модулей и сборки (`go build`) | «что от чего зависит» — порядок без циклов |
+| **[Сортировка](sorting.md)** | [`sort.Sort`](https://pkg.go.dev/sort), [`slices.Sort`](https://pkg.go.dev/slices#Sort) — **pdqsort** (pattern-defeating quicksort + fallback на heapsort при глубокой рекурсии + insertion на мелких кусках) — [`slices/sort.go`](https://github.com/golang/go/blob/go1.24.0/src/slices/sort.go) | стабильно быстрая сортировка на любых входах |
+| **[Битовые операции](bit-manipulation.md)** | [`math/bits`](https://pkg.go.dev/math/bits) (`OnesCount`, `LeadingZeros`, `TrailingZeros`); упаковка состояния в [`sync.Mutex`](https://github.com/golang/go/blob/go1.24.0/src/internal/sync/mutex.go#L26) (флаги locked/woken/starving в одном `int32`); права файлов `os.FileMode` | компактность и скорость на «горячем» пути |
+| **[Рабин–Карп / поиск подстроки](string-algorithms.md)** | `strings.Index` / `bytes.Index` для длинных образцов используют **rolling hash (Рабин–Карп)** — [`internal/stringslite/strings.go`](https://github.com/golang/go/blob/go1.24.0/src/internal/stringslite/strings.go#L98); движок [`regexp`](https://pkg.go.dev/regexp) — автоматы RE2, а не бэктрекинг | подстрока и сопоставление с образцом |
+| **[Топологическая сортировка](topological-sort.md)** | порядок инициализации переменных/пакетов в [`go/types`](https://github.com/golang/go/blob/go1.24.0/src/go/types/initorder.go); граф зависимостей модулей и сборки (`go build`) | «что от чего зависит» — порядок без циклов |
 | **[Графы (BFS/DFS)](graphs.md)** | анализ зависимостей и обнаружение циклов импорта в `go/types`, `go list`; [Union-Find](union-find-structure.md) — компоненты связности в компиляторах и анализаторах | обход зависимостей, поиск циклов |
 | **[Теория чисел / крипта](cryptography.md)** | [`crypto/rsa`](https://pkg.go.dev/crypto/rsa), [`crypto/elliptic`](https://pkg.go.dev/crypto/elliptic), [`math/big`](https://pkg.go.dev/math/big) (`Int.Exp` — модульное возведение, `ProbablyPrime` — **Миллер–Рабин**) | TLS, подписи, ключи — на модульной арифметике |
 
@@ -104,7 +104,7 @@ log₂ — вдвое меньше уровней), значит меньше п
 процессорам) — каждый со своей кучей, чтобы горутины не толкались за один лок (см.
 [Go-рантайм](go-runtime.md)).
 
-Источник целиком: [`runtime/time.go`](https://github.com/golang/go/blob/master/src/runtime/time.go)
+Источник целиком: [`runtime/time.go`](https://github.com/golang/go/blob/go1.24.0/src/runtime/time.go)
 — `type timers`, `siftUp`/`siftDown`, `timerHeapN`.
 
 > Тот же ход рассуждения работает везде: выпиши **требования** (какие операции и как часто) →
@@ -172,7 +172,7 @@ func (c *ringChan) recv() int {
 Поэтому у **небуферизованного** канала (`make(chan T)`, `dataqsiz == 0`) буфера нет вовсе — `send`
 и `recv` встречаются напрямую (rendezvous), кольцо не нужно.
 
-Источник: [`runtime/chan.go`](https://github.com/golang/go/blob/master/src/runtime/chan.go) —
+Источник: [`runtime/chan.go`](https://github.com/golang/go/blob/go1.24.0/src/runtime/chan.go) —
 `type hchan` (`buf`/`dataqsiz`/`sendx`/`recvx`), заворот `if c.sendx == c.dataqsiz { c.sendx = 0 }`.
 
 ## 📎 Разбор: как канал блокирует и будит горутины (sendq / recvq)
@@ -208,7 +208,7 @@ func (c *ringChan) recv() int {
 - **Отправка/приём в `nil`-канал блокирует навсегда** (`sendq`/`recvq` некому разбудить) — источник дедлоков.
 - **Закрытие канала** будит всех ждущих в `recvq` (нулевое значение, `ok=false`); отправка в закрытый канал — паника.
 
-Источник: [`runtime/chan.go`](https://github.com/golang/go/blob/master/src/runtime/chan.go)
+Источник: [`runtime/chan.go`](https://github.com/golang/go/blob/go1.24.0/src/runtime/chan.go)
 (`hchan.sendq`/`recvq` — `waitq` из `sudog`, `chansend`/`chanrecv`, прямая передача в `send`/`recv`).
 
 ## 📎 Разбор: почему роутер ServeMux — это дерево, а не map
@@ -275,7 +275,7 @@ wildcard-ребёнок `{id}` (обработчик `/users/{id}`). Листа�
 «Самый конкретный побеждает» — это про случай, когда подходят оба: добавь паттерн `/users/me`,
 и запрос `/users/me` уйдёт в литерал, а `{id}` даже не будет проверен.
 
-Источник: [`net/http/routing_tree.go`](https://github.com/golang/go/blob/master/src/net/http/routing_tree.go)
+Источник: [`net/http/routing_tree.go`](https://github.com/golang/go/blob/go1.24.0/src/net/http/routing_tree.go)
 — `routingNode` (`children`/`emptyChild`/`multiChild`), `addSegments`, матч по сегментам.
 
 ## 📎 Разбор: почему slices.Sort — это гибрид трёх сортировок
@@ -321,7 +321,7 @@ func pdqsort(data []E, a, b, limit int) {
 Так `slices.Sort` совмещает лучшее: скорость и кэш quicksort, гарантию heap sort и дешевизну
 insertion на мелочи — и не роняется ни на «злом», ни на уже отсортированном входе.
 
-Источник: [`slices/zsortordered.go`](https://github.com/golang/go/blob/master/src/slices/zsortordered.go)
+Источник: [`slices/zsortordered.go`](https://github.com/golang/go/blob/go1.24.0/src/slices/zsortordered.go)
 (`pdqsortOrdered`, `maxInsertion = 12`, fallback `heapSortOrdered`).
 
 ## 📎 Разбор: почему map с Go 1.24 — это Swiss Tables
@@ -362,7 +362,7 @@ func (t *table) get(key K) (V, bool) {
 сравнение вместо цепочки прыжков по указателям, и данные в кэше. Тот самый «за Big-O прячется
 константа» из [«Хеш-таблицы»](hash-table-structure.md).
 
-Источник: [`internal/runtime/maps`](https://github.com/golang/go/tree/master/src/internal/runtime/maps)
+Источник: [`internal/runtime/maps`](https://github.com/golang/go/tree/go1.24.0/src/internal/runtime/maps)
 (`matchH2`, `ctrls`, `SwissMapGroupSlots = 8`).
 
 ## 📎 Разбор: почему пул соединений — это список + map (LRU)
@@ -386,7 +386,7 @@ HTTP-клиент переиспользует TCP-соединения (keep-al
 
 <div class="algo-viz" data-viz="lru" data-cap="3" data-ops="put 1 1; put 2 2; put 3 3; get 1; put 4 4; get 2; get 3"></div>
 
-Источник: [`net/http/transport.go`](https://github.com/golang/go/blob/master/src/net/http/transport.go)
+Источник: [`net/http/transport.go`](https://github.com/golang/go/blob/go1.24.0/src/net/http/transport.go)
 (`idleLRU`, `connLRU.add`/`removeOldest`, `MaxIdleConns`), поверх
 [`container/list`](https://pkg.go.dev/container/list).
 
@@ -426,7 +426,7 @@ func Search(n int, f func(int) bool) int {
 
 <div class="algo-viz" data-viz="binary-search-first" data-array="1,3,3,3,5,7,9" data-target="3"></div>
 
-Источник: [`sort/search.go`](https://github.com/golang/go/blob/master/src/sort/search.go)
+Источник: [`sort/search.go`](https://github.com/golang/go/blob/go1.24.0/src/sort/search.go)
 (`Search`, инвариант `f(i-1)==false, f(j)==true`).
 
 ## 📎 Разбор: почему порядок инициализации переменных — это топосорт
@@ -445,7 +445,7 @@ func Search(n int, f func(int) bool) int {
 
 <div class="algo-viz" data-viz="topo-kahn" data-nodes="a,b,c,d" data-edges="b-a,c-a,a-d"></div>
 
-Источник: [`go/types/initorder.go`](https://github.com/golang/go/blob/master/src/go/types/initorder.go)
+Источник: [`go/types/initorder.go`](https://github.com/golang/go/blob/go1.24.0/src/go/types/initorder.go)
 (`initOrder`, `dependencyGraph`, `heap.Init`) — тот же приём в графе зависимостей модулей `go build`.
 
 ## 📎 Разбор: почему RSA в Go — это math/big
@@ -468,7 +468,7 @@ func Search(n int, f func(int) bool) int {
 <div class="algo-viz" data-viz="miller-rabin" data-n="561" data-a="2"></div>
 
 Источник: [`crypto/rsa`](https://pkg.go.dev/crypto/rsa), [`math/big`](https://pkg.go.dev/math/big)
-(`Int.Exp`, `Int.ProbablyPrime` — [`math/big/prime.go`](https://github.com/golang/go/blob/master/src/math/big/prime.go)).
+(`Int.Exp`, `Int.ProbablyPrime` — [`math/big/prime.go`](https://github.com/golang/go/blob/go1.24.0/src/math/big/prime.go)).
 
 ## 📎 Разбор: почему sync.Mutex — это биты в одном слове
 
@@ -485,7 +485,7 @@ func Search(n int, f func(int) bool) int {
 
 <div class="algo-viz" data-viz="mutex-bits"></div>
 
-Источник: [`internal/sync/mutex.go`](https://github.com/golang/go/blob/master/src/internal/sync/mutex.go)
+Источник: [`internal/sync/mutex.go`](https://github.com/golang/go/blob/go1.24.0/src/internal/sync/mutex.go)
 (`mutexLocked`/`mutexWoken`/`mutexStarving`/`mutexWaiterShift`, CAS по `m.state`).
 
 ## 📎 Разбор: почему context.Context — это дерево отмены
@@ -523,7 +523,7 @@ case <-ctx.Done():           // отменили/таймаут → сворач
 `http.NewRequestWithContext`); **не клади в контекст бизнес-данные** — только request-scoped (id запроса,
 дедлайны, трейс).
 
-Источник: [`context/context.go`](https://github.com/golang/go/blob/master/src/context/context.go)
+Источник: [`context/context.go`](https://github.com/golang/go/blob/go1.24.0/src/context/context.go)
 (`cancelCtx.children`, `propagateCancel`, `cancel` перебирает `c.children`).
 
 ## 📎 Разбор: почему sync.Pool срезает нагрузку на GC
@@ -567,7 +567,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 уникальных бесполезен. Так делают `encoding/json`, `net/http`, `fmt` — переиспользуют внутренние буферы
 через пулы.
 
-Источник: [`sync/pool.go`](https://github.com/golang/go/blob/master/src/sync/pool.go)
+Источник: [`sync/pool.go`](https://github.com/golang/go/blob/go1.24.0/src/sync/pool.go)
 (`Pool.Get`/`Put`, per-P `local`, `victim`, `poolCleanup` при GC).
 
 ## 📎 Разбор: почему regexp в Go линеен (RE2), а не экспоненциален
@@ -722,7 +722,7 @@ func Config() *Config {
 `f` **паникует**, `Once` всё равно считает попытку сделанной (`done` ставится через `defer`) — повторного
 запуска не будет; для повтора при ошибке нужен свой механизм.
 
-Источник: [`sync/once.go`](https://github.com/golang/go/blob/master/src/sync/once.go)
+Источник: [`sync/once.go`](https://github.com/golang/go/blob/go1.24.0/src/sync/once.go)
 (`done atomic.Bool`, `m Mutex`, `Do`/`doSlow` — double-checked locking).
 
 ## 📎 Разбор: почему defer — это LIFO-стек
@@ -759,7 +759,7 @@ defer conn.Close()     // выполнится ПЕРВЫМ
 Ключевое: defer срабатывает **и при panic** — раскрутка стека выполняет отложенные вызовы, а `recover()`
 в одном из них ловит панику. Поэтому очистка через defer надёжна даже на аварийном пути.
 
-Источник: [`runtime/panic.go`](https://github.com/golang/go/blob/master/src/runtime/panic.go)
+Источник: [`runtime/panic.go`](https://github.com/golang/go/blob/go1.24.0/src/runtime/panic.go)
 (`_defer`, `gp._defer`, `d.link` — стек defer; open-coded defers как оптимизация).
 
 ## 📎 Разбор: почему append амортизированно O(1) (рост среза)
@@ -786,7 +786,7 @@ append копирование всего — суммарно O(n²). Go рас�
 - Для больших срезов (cap ≥ 256) Go растит не ×2, а **≈×1.25** — компромисс между запасом памяти и числом
   копирований.
 
-Источник: [`runtime/slice.go`](https://github.com/golang/go/blob/master/src/runtime/slice.go)
+Источник: [`runtime/slice.go`](https://github.com/golang/go/blob/go1.24.0/src/runtime/slice.go)
 (`growslice`: `doublecap`, порог 256, для больших `newcap += (newcap + 3*256) >> 2`).
 
 ## 📎 Разбор: почему encoding/json — это reflection
@@ -863,9 +863,9 @@ append копирование всего — суммарно O(n²). Go рас�
 блокирующий `read` файла занимает поток; на застрявший в syscall `M` у планировщика есть **sysmon**,
 который отбирает у него `P` и отдаёт другому потоку (чтобы остальные горутины не стояли).
 
-Источник: [`runtime/netpoll.go`](https://github.com/golang/go/blob/master/src/runtime/netpoll.go)
+Источник: [`runtime/netpoll.go`](https://github.com/golang/go/blob/go1.24.0/src/runtime/netpoll.go)
 (`netpoll`, `netpollblock`/`gopark`, `goready`), интеграция —
-[`runtime/proc.go`](https://github.com/golang/go/blob/master/src/runtime/proc.go) (`findRunnable` зовёт
+[`runtime/proc.go`](https://github.com/golang/go/blob/go1.24.0/src/runtime/proc.go) (`findRunnable` зовёт
 `netpoll`), неблокирующие fd — `internal/poll`.
 
 ## Как этим пользоваться

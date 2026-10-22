@@ -113,6 +113,13 @@ go tool pprof cpu.prof   # команда top покажет самые «дор
 4. Профилируй на **репрезентативных** данных — результаты на игрушечных входах
    обманчивы.
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`concatstrings`](https://github.com/golang/go/blob/go1.24.0/src/runtime/string.go#L26) (Go 1.24) — так рантайм выполняет `a + b`: считает общую длину, выделяет новую строку и копирует в неё все части; поэтому `+=` в цикле каждый раз копирует весь накопленный результат.
+> - [`Builder.Grow`](https://github.com/golang/go/blob/go1.24.0/src/strings/builder.go#L69) — заранее выделяет место под `n` байт, и дальнейшие записи идут без новых аллокаций.
+> - [`readGOGC`](https://github.com/golang/go/blob/go1.24.0/src/runtime/mgcpacer.go#L1288) — откуда берётся `GOGC`: без переменной окружения — 100, `off` выключает сборщик.
+> - [`escape.go`](https://github.com/golang/go/blob/go1.24.0/src/cmd/compile/internal/escape/escape.go#L18) — сам escape-анализ: переменная, чей адрес может пережить функцию, помечается для кучи.
+
 ## 🔬 Практика: найди узкое место сам
 
 Чеклист выше — не абстракция: пакет `exercises/profiling` даёт одну функцию,

@@ -322,6 +322,10 @@ BenchmarkAppend_Prealloc-12      742     1 721 916 ns/op     8 388 623 B/op     
    элементам стоит `O(n · m)`, где `m` — длина того среза; если он тоже порядка `n` — это
    `O(n²)`, хотя в коде виден один `for`.
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`nextslicecap`](https://github.com/golang/go/blob/go1.24.0/src/runtime/slice.go#L289) (Go 1.24) — так `append` выбирает новую ёмкость среза: маленький срез удваивается, большой растёт примерно в 1,25 раза. Из-за этого запаса `append` в среднем стоит O(1).
+
 ## 📝 Разбор задачи: Next Greater Element
 
 > **Задача** ([LeetCode 496](https://leetcode.com/problems/next-greater-element-i/) / 503).

@@ -231,6 +231,11 @@ func sieve(n int) []int {
 5. **Степень без `% m` после каждого умножения** — переполнение или гигантские числа.
 6. **`isPrime` без отсечки `n < 2`** — `0` и `1` ошибочно считаются простыми.
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`euclidUpdate`](https://github.com/golang/go/blob/go1.24.0/src/math/big/int.go#L734) (Go 1.24) — один шаг Евклида в `big.Int.GCD`: делим с остатком и сдвигаем пару, `A, B = B, A mod B`. Сам [`lehmerGCD`](https://github.com/golang/go/blob/go1.24.0/src/math/big/int.go#L758) — тот же Евклид, ускоренный для огромных чисел: несколько шагов подряд прикидывает по старшим разрядам.
+> - [`bytealg.HashStr`](https://github.com/golang/go/blob/go1.24.0/src/internal/bytealg/bytealg.go#L32) (Go 1.24) — быстрое возведение в степень в поиске подстроки: множитель `PrimeRK` в степени длины образца считается циклом `if i&1 != 0 { pow *= sq }; sq *= sq; i >>= 1`. По модулю 2³² — его даёт само переполнение `uint32`.
+
 ## 📝 Разбор задачи: Count Primes
 
 > **Задача** ([LeetCode 204](https://leetcode.com/problems/count-primes/)).

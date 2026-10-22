@@ -338,6 +338,10 @@ func maxMatching(nLeft, nRight int, adj [][]int) int {
 5. **Тянуть поток туда, где хватило бы паросочетания.** Для чистого назначения Кун проще и быстрее полной
    сети — не строй лишнего.
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`SimpleMaxFlow`](https://github.com/google/or-tools/blob/v9.11/ortools/graph/max_flow.h#L151) (Google OR-Tools 9.11) — максимальный поток в библиотеке оптимизации: рёбра добавляются `AddArcWithCapacity`, ответ — `Solve`, а [`GetSourceSideMinCut`](https://github.com/google/or-tools/blob/v9.11/ortools/graph/max_flow.h#L218) отдаёт сторону минимального разреза. Метод внутри другой — «проталкивание предпотока» (push-relabel), а не поиск путей, как у Эдмондса — Карпа.
+
 ## 📝 Разбор задачи: назначить воркеров на задачи
 
 > **Задача.** Три воркера, три задачи. `w1` умеет `{t1, t2}`, `w2` умеет `{t1}`, `w3` умеет `{t2, t3}`.

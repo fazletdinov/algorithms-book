@@ -241,6 +241,13 @@ func escapes() *int {
 6. **«Указатель эффективнее значения»** — указатель может вызвать escape в кучу + промахи
    кэша; маленькую структуру дешевле копировать.
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`findRunnable`](https://github.com/golang/go/blob/go1.24.0/src/runtime/proc.go#L3320) (Go 1.24) — раз в 61 такт планировщик заглядывает в глобальную очередь, чтобы две горутины не заняли локальную навсегда; кражу половины очереди соседа делает [`runqgrab`](https://github.com/golang/go/blob/go1.24.0/src/runtime/proc.go#L6931) (`n = n - n/2`).
+> - [`mgc.go`](https://github.com/golang/go/blob/go1.24.0/src/runtime/mgc.go#L7) — комментарий в начале: конкурентный mark-and-sweep с барьером записи, без поколений и без перемещения объектов; сам барьер описан в [`mbarrier.go`](https://github.com/golang/go/blob/go1.24.0/src/runtime/mbarrier.go#L24).
+> - [`mallocgcTiny`](https://github.com/golang/go/blob/go1.24.0/src/runtime/malloc.go#L1098) — tiny-аллокатор склеивает мелкие объекты без указателей в один блок; все размерные классы — таблица в [`sizeclasses.go`](https://github.com/golang/go/blob/go1.24.0/src/runtime/sizeclasses.go#L90) (68 классов).
+> - [`escape.go`](https://github.com/golang/go/blob/go1.24.0/src/cmd/compile/internal/escape/escape.go#L18) — escape-анализ компилятора: строит граф «кто кому присваивает» и отправляет в кучу переменную, чей адрес может пережить её кадр.
+
 ## 📝 Разбор: почему этот цикл аллоцирует
 
 > **Задача.** Горячий цикл неожиданно грузит GC. Почему — и как убрать аллокации?

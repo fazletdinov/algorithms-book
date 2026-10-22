@@ -433,6 +433,11 @@ func minEatingSpeed(piles []int, h int) int {
    отбрасыванием — тогда теряешь `target`.
 5. **Не обработаны границы** — пустой массив, один элемент, `target` вне диапазона.
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`sort.Search`](https://github.com/golang/go/blob/go1.24.0/src/sort/search.go#L58) (Go 1.24) — бинарный поиск по условию: первый `i`, где `f(i)` стало истинным; на нём стоит [`sort.SearchInts`](https://github.com/golang/go/blob/go1.24.0/src/sort/search.go#L123).
+> - [`searchInts`](https://github.com/golang/go/blob/go1.24.0/src/go/token/position.go#L594) (Go 1.24) — вариант «последний `i`, где `a[i] <= x`»: по смещению символа находит номер строки файла.
+
 ## 📝 Разбор задачи
 
 Проход в лоб и вывод бинарного поиска — в [«🧭»](#-откуда-берётся-бинарный-поиск-выведем-его-сами):

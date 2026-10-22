@@ -25,8 +25,8 @@
 быть «толстым и низким», а не бинарным.
 
 JOIN двух таблиц исполнитель делает одним из трёх способов, и два из них — прямиком из
-книги. **Hash join** строит хеш-таблицу по меньшей таблице и пробегает большую с O(1)
-поиском — та же идея «индекс по ключу», что в [главе про хеш-таблицы](hash-table-structure.md).
+книги. **Hash join** строит хеш-таблицу по одной таблице (планировщик старается взять меньшую) и
+пробегает другую с O(1) поиском — та же идея «индекс по ключу», что в [главе про хеш-таблицы](hash-table-structure.md).
 **Merge join** идёт по двум отсортированным входам двумя указателями. А когда данные не
 влезают в `work_mem`, включается **внешняя сортировка**: PostgreSQL сортирует куски в
 памяти, сбрасывает их на диск и сливает кучей — классический
@@ -56,12 +56,21 @@ PostgreSQL строит по каждому индексу битовую кар
 | Эвристика вместо точного решения | GEQO при ≥ 12 таблиц в FROM | порядок JOIN'ов NP-труден — точный перебор взрывается | [Классы сложности](complexity-classes.md) |
 | Битовые операции | Bitmap Index Scan, `BitmapAnd`/`BitmapOr` | объединить условия по нескольким индексам | [Bit Manipulation](bit-manipulation.md) |
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`_bt_search`](https://github.com/postgres/postgres/blob/REL_16_4/src/backend/access/nbtree/nbtsearch.c#L100) (PostgreSQL 16) — спуск по B-дереву индекса от корня к листу, страница за страницей.
+> - [`ExecHashJoinImpl`](https://github.com/postgres/postgres/blob/REL_16_4/src/backend/executor/nodeHashjoin.c#L221) — hash join: по одной таблице строится хеш-таблица, вторая пробегается с поиском в ней.
+> - [`mergeonerun`](https://github.com/postgres/postgres/blob/REL_16_4/src/backend/utils/sort/tuplesort.c#L2232) — внешняя сортировка: от каждого отсортированного куска на диске по строке в кучу, наружу уходит наименьшая; шапка файла так и называет это — «balanced k-way merge».
+> - [`make_rel_from_joinlist`](https://github.com/postgres/postgres/blob/REL_16_4/src/backend/optimizer/path/allpaths.c#L3382) — развилка: от `geqo_threshold` таблиц — GEQO, иначе `standard_join_search`, по комментарию — «простое динамическое программирование»: сначала все пары таблиц, потом тройки и так далее; порог по умолчанию 12 — в [`guc_tables.c`](https://github.com/postgres/postgres/blob/REL_16_4/src/backend/utils/misc/guc_tables.c#L2069).
+> - [`tbm_intersect`](https://github.com/postgres/postgres/blob/REL_16_4/src/backend/nodes/tidbitmap.c#L539) — `BitmapAnd`: пересечение битовых карт, слово за словом операцией `&=`.
+
 ---
 
 ## 2. Redis: skip list, инкрементальный rehashing и подсчёт на 12 КБ
 
 Redis снаружи — «словарь в памяти», а внутри — витрина структур данных. **Sorted set**
-(`ZADD`/`ZRANGE`) хранится как **skip list** плюс хеш-таблица: список даёт порядок и
+(`ZADD`/`ZRANGE`), когда в нём больше 128 элементов, хранится как **skip list** плюс
+хеш-таблица (маленький лежит просто плотным массивом): список даёт порядок и
 диапазонные запросы за O(log n), хеш — O(1) доступ к элементу по имени. Автор Redis
 выбрал skip list вместо сбалансированного дерева ровно за то, что мы обсуждали в главе про
 [вероятностные структуры](probabilistic-structures.md): проще реализовать и удобно ходить
@@ -89,6 +98,13 @@ rehashing в [главе про хеш-таблицы](hash-table-structure.md).
 | HyperLogLog | `PFADD` / `PFCOUNT` | мощность множества в ~12 КБ вместо гигабайт | [Вероятностные структуры](probabilistic-structures.md) |
 | LRU (приближённый) | вытеснение при `maxmemory` | сэмплинг вместо связного списка — дешевле по памяти | [Комбинации паттернов](pattern-combinations.md) |
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`t_zset.c`](https://github.com/redis/redis/blob/7.4.1/src/t_zset.c#L35) (Redis 7.4) — комментарий в начале файла: sorted set держит одни и те же элементы в хеш-таблице (имя → счёт) и в skip list (порядок по счёту); сама структура `zset` — в [`server.h`](https://github.com/redis/redis/blob/7.4.1/src/server.h#L1357).
+> - [`dictRehash`](https://github.com/redis/redis/blob/7.4.1/src/dict.c#L385) — шаг инкрементального rehashing: переносит бакеты из старой таблицы в новую понемногу; [`_dictRehashStep`](https://github.com/redis/redis/blob/7.4.1/src/dict.c#L448) вызывают обычные чтения и записи.
+> - [`hyperloglog.c`](https://github.com/redis/redis/blob/7.4.1/src/hyperloglog.c#L21) — 16384 регистра по 6 бит, «всего 12k на ключ»; ожидаемая ошибка в самотесте — `1.04/sqrt(HLL_REGISTERS)`, то есть ≈ 0.81% ([строка 1432](https://github.com/redis/redis/blob/7.4.1/src/hyperloglog.c#L1432)).
+> - [`evictionPoolPopulate`](https://github.com/redis/redis/blob/7.4.1/src/evict.c#L125) — вытеснение: берёт `maxmemory-samples` случайных ключей и кладёт самых давних в пул кандидатов; по умолчанию их 5 — [`config.c`](https://github.com/redis/redis/blob/7.4.1/src/config.c#L3163).
+
 ---
 
 ## 3. RocksDB, Cassandra, ClickHouse: LSM — конвейер из знакомых деталей
@@ -110,6 +126,13 @@ B-дерево») — в главе про [B-дерево](btree-structure.md).
 | Bloom-фильтр | по одному на SSTable | отсечь чтение с диска, если ключа заведомо нет | [Вероятностные структуры](probabilistic-structures.md) |
 | K-way merge | компакция SSTable, мёрджи MergeTree | слить K отсортированных файлов за один проход | [K-way Merge](k-way-merge.md) |
 | B-дерево vs LSM | выбор движка хранения | компромисс «скорость записи ↔ скорость чтения» | [B-дерево](btree-structure.md) |
+
+> 🌍 **Где это в настоящем коде**
+>
+> - [`advanced_options.h`](https://github.com/facebook/rocksdb/blob/v9.6.1/include/rocksdb/advanced_options.h#L622) (RocksDB 9.6) — `memtable_factory` по умолчанию — `SkipListFactory`: memtable на skip list.
+> - [`MemtableParams.java`](https://github.com/apache/cassandra/blob/cassandra-4.1.6/src/java/org/apache/cassandra/schema/MemtableParams.java#L97) (Cassandra 4.1) — memtable по умолчанию — `SkipListMemtableFactory`; внутри [`SkipListMemtable`](https://github.com/apache/cassandra/blob/cassandra-4.1.6/src/java/org/apache/cassandra/db/memtable/SkipListMemtable.java#L83) — `ConcurrentSkipListMap`.
+> - [`FullFilterKeyMayMatch`](https://github.com/facebook/rocksdb/blob/v9.6.1/table/block_based/block_based_table_reader.cc#L2312) — чтение ключа из SSTable сначала спрашивает фильтр; блоки файла читаются, только если он ответил «может быть».
+> - [`CompactionMinHeap`](https://github.com/facebook/rocksdb/blob/v9.6.1/table/compaction_merging_iterator.cc#L184) — компакция сливает входные файлы итератором на min-куче (`BinaryHeap`); его создаёт [`MakeInputIterator`](https://github.com/facebook/rocksdb/blob/v9.6.1/db/version_set.cc#L7150).
 
 ---
 
@@ -147,6 +170,15 @@ kube-scheduler не ищет оптимум — он **фильтрует** уз
 | Куча | client-go workqueue: delaying queue | достать элемент с ближайшим временем готовности | [Куча](heap-structure.md) |
 | Граф + обход | GC: каскадное удаление по ownerReferences | найти и удалить осиротевшие объекты | [Графы](graphs.md) |
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`splitTwo`](https://github.com/etcd-io/bbolt/blob/v1.3.11/node.go#L273) (bbolt 1.3.11 — эту версию берёт etcd 3.5.16) — узел дерева делится на два, когда перестаёт помещаться в страницу диска.
+> - [`newTreeIndex`](https://github.com/etcd-io/etcd/blob/v3.5.16/server/mvcc/index.go#L47) (etcd 3.5) — индекс ключей в памяти: `btree.New(32)` из `google/btree`; у каждого ключа — история ревизий ([`keyIndex`](https://github.com/etcd-io/etcd/blob/v3.5.16/server/mvcc/key_index.go#L30)).
+> - [`DefaultTypedControllerRateLimiter`](https://github.com/kubernetes/kubernetes/blob/v1.31.0/staging/src/k8s.io/client-go/util/workqueue/default_rate_limiters.go#L50) (client-go, Kubernetes 1.31) — экспоненциальный backoff на элемент (от 5 мс до 1000 с) плюс общий token bucket: 10 ретраев в секунду, запас 100.
+> - [`waitForPriorityQueue`](https://github.com/kubernetes/kubernetes/blob/v1.31.0/staging/src/k8s.io/client-go/util/workqueue/delaying_queue.go#L183) — отложенные элементы лежат в `container/heap`, в корне — тот, кому раньше всех пора.
+> - [`schedulePod`](https://github.com/kubernetes/kubernetes/blob/v1.31.0/pkg/scheduler/schedule_one.go#L400) — kube-scheduler: отсеивает узлы (`findNodesThatFitPod`), ставит им баллы (`prioritizeNodes`), берёт лучший (`selectHost`).
+> - [`node`](https://github.com/kubernetes/kubernetes/blob/v1.31.0/pkg/controller/garbagecollector/graph.go#L63) — сборщик мусора Kubernetes держит граф объектов: у вершины есть `owners` и `dependents`.
+
 ---
 
 ## 5. Docker и BuildKit: хеши как адреса и DAG сборки
@@ -170,6 +202,12 @@ content-addressable — не изменились входы, не пересо�
 | Структура Меркла | манифест → конфиг → слои | один корневой хеш ручается за весь образ | [Криптография](cryptography.md) |
 | DAG + топологический порядок | BuildKit: граф шагов сборки | параллельная сборка независимых веток, точный кэш | [Топологическая сортировка](topological-sort.md) |
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`Manifest`](https://github.com/opencontainers/image-spec/blob/v1.1.0/specs-go/v1/manifest.go#L33) (OCI image-spec 1.1) — манифест ссылается на конфиг и слои дескрипторами, а в дескрипторе — [`Digest`](https://github.com/opencontainers/image-spec/blob/v1.1.0/specs-go/v1/descriptor.go#L26) содержимого.
+> - [`blobPath`](https://github.com/containerd/containerd/blob/v1.7.22/content/local/store.go#L627) (containerd 1.7) — путь блоба на диске собирается из его дайджеста: `blobs/sha256/<хеш>`.
+> - [`marshal`](https://github.com/moby/buildkit/blob/v0.16.0/client/llb/state.go#L195) (BuildKit 0.16) — превращает граф шагов в список: сначала рекурсивно входы, потом сам шаг — обход в глубину, который даёт топологический порядок; шаг с уже виденным дайджестом второй раз не пишется.
+
 ---
 
 ## 6. Ядро Linux: деревья на каждом горячем пути
@@ -186,7 +224,7 @@ content-addressable — не изменились входы, не пересо�
 близким родственником [Trie](trie-structure.md): путь от корня определяется битами индекса
 страницы, как в Trie — символами ключа. А вот память процесса рассказывает поучительную
 историю: области VMA хранились в RB-дереве плюс связном списке, но с ядра **6.1** их сменило
-**maple tree** — широкое дерево, чьи узлы влезают в пару кэш-линий. Довод дословно тот же,
+**maple tree** — широкое дерево, чьи узлы занимают 256 байт — четыре кэш-линии. Довод дословно тот же,
 что у [B-деревьев](btree-structure.md) для диска, только «дорогим носителем» тут выступает
 не диск, а промах кэша CPU: дерево должно быть широким и низким.
 
@@ -203,6 +241,15 @@ content-addressable — не изменились входы, не пересо�
 | Широкое дерево (довод B-дерева) | VMA процесса → maple tree (с 6.1) | узлы по размеру кэш-линий вместо «худого» RB-дерева | [B-дерево](btree-structure.md) |
 | Битовые операции | buddy-аллокатор: блоки-степени двойки, XOR-«близнец» | найти пару для слияния блоков одной операцией | [Bit Manipulation](bit-manipulation.md) |
 | Timing wheels | таймеры ядра | O(1) взвод/снятие на сотнях тысяч таймаутов | [Куча](heap-structure.md) |
+
+> 🌍 **Где это в настоящем коде**
+>
+> - [`__pick_eevdf`](https://github.com/torvalds/linux/blob/v6.6/kernel/sched/fair.c#L875) (ядро Linux 6.6) — EEVDF: задача с ближайшим виртуальным дедлайном находится за O(log n) по красно-чёрному дереву с дополнительным полем `min_deadline` (комментарий над функцией).
+> - [`rbr`](https://github.com/torvalds/linux/blob/v6.6/fs/eventpoll.c#L200) — поле `struct eventpoll`: «RB tree root used to store monitored fd structs».
+> - [`i_pages`](https://github.com/torvalds/linux/blob/v6.6/include/linux/fs.h#L472) — страницы файла в кэше лежат в `xarray`; каждый уровень её дерева разбирает 6 бит номера страницы ([`XA_CHUNK_SHIFT`](https://github.com/torvalds/linux/blob/v6.6/include/linux/xarray.h#L1144)).
+> - [`mm_mt`](https://github.com/torvalds/linux/blob/v6.6/include/linux/mm_types.h#L690) — области памяти процесса хранятся в maple tree; узел — 256 байт ([`MAPLE_NODE_SLOTS`](https://github.com/torvalds/linux/blob/v6.6/include/linux/maple_tree.h#L29)).
+> - [`__find_buddy_pfn`](https://github.com/torvalds/linux/blob/v6.6/mm/internal.h#L341) — «близнец» блока порядка `order`: `page_pfn ^ (1 << order)`.
+> - [`timer.c`](https://github.com/torvalds/linux/blob/v6.6/kernel/time/timer.c#L65) — колесо таймеров: несколько уровней массивов бакетов, у каждого своя гранулярность.
 
 ---
 
@@ -226,6 +273,13 @@ git — это content-addressable база объектов: блоб, дере
 | Криптохеш + Merkle DAG | объекты и история коммитов | целостность истории, дешёвое сравнение веток | [Криптография](cryptography.md), [Графы](graphs.md) |
 | DP: LCS / edit script | `git diff` (алгоритм Майерса) | минимальный набор изменений между версиями | [DP](dynamic-programming.md) |
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`hash_object_body`](https://github.com/git/git/blob/v2.46.0/object-file.c#L1866) (git 2.46) — имя объекта — хеш его заголовка и содержимого.
+> - [`parse_commit_buffer`](https://github.com/git/git/blob/v2.46.0/commit.c#L468) — коммит ссылается на дерево (`tree <хеш>`) и на родителей (`parent <хеш>`).
+> - [`paint_down_to_common`](https://github.com/git/git/blob/v2.46.0/commit-reach.c#L54) — поиск общего предка для `git merge-base`: обход графа коммитов через очередь с приоритетом.
+> - [`xdl_split`](https://github.com/git/git/blob/v2.46.0/xdiff/xdiffi.c#L45) — сердце `git diff`, по комментарию — «An O(ND) Difference Algorithm» Майерса; `myers` и есть алгоритм по умолчанию ([`diff.c`](https://github.com/git/git/blob/v2.46.0/diff.c#L221)).
+
 ---
 
 ## 8. Компилятор и рантайм Go: мостик к соседним главам
@@ -240,6 +294,10 @@ git — это content-addressable база объектов: блоб, дере
 NP-полна ([классы сложности](complexity-classes.md)). Поэтому продакшен-компиляторы
 раскрашивают эвристиками, а Go ради скорости компиляции и вовсе использует быстрый
 линейный алгоритм — ещё одна встреча со «стеной NP» на ровном месте.
+
+> 🌍 **Где это в настоящем коде**
+>
+> - [`regalloc.go`](https://github.com/golang/go/blob/go1.24.0/src/cmd/compile/internal/ssa/regalloc.go#L5) (Go 1.24) — по комментарию в начале — «a version of a linear scan register allocator»: жадный проход по функции вместо раскраски графа.
 
 ---
 
@@ -265,16 +323,24 @@ Cassandra/DynamoDB и балансировка в CDN; разбор — в гл�
 | LRU и приближения | CDN, кэш-серверы | вытеснять давно не использованное за O(1) | [Комбинации паттернов](pattern-combinations.md) |
 | Гистограммы перцентилей | Prometheus, мониторинг задержек | p99 на потоке + сложение метрик разных серверов | [Две кучи](two-heaps.md) |
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`ngx_http_upstream_find_chash_point`](https://github.com/nginx/nginx/blob/release-1.26.2/src/http/modules/ngx_http_upstream_hash_module.c#L432) (nginx 1.26) — балансировка `hash $key consistent`: бинарный поиск первой точки кольца, которая ≥ хеша ключа; у сервера 160 точек на единицу веса ([строка 368](https://github.com/nginx/nginx/blob/release-1.26.2/src/http/modules/ngx_http_upstream_hash_module.c#L368)).
+> - [`simplelru.LRU`](https://github.com/hashicorp/golang-lru/blob/v2.0.7/simplelru/lru.go#L16) (`hashicorp/golang-lru` 2.0.7) — LRU-кэш как map плюс двусвязный список.
+> - [`DefBuckets`](https://github.com/prometheus/client_golang/blob/v1.20.4/prometheus/histogram.go#L265) (`client_golang` 1.20) — фиксированные границы бакетов гистограммы по умолчанию.
+> - [`bucketQuantile`](https://github.com/prometheus/prometheus/blob/v2.54.1/promql/quantile.go#L98) (Prometheus 2.54) — `histogram_quantile`: перцентиль по счётчикам бакетов, внутри бакета — линейная интерполяция.
+
 ---
 
 ## 10. Дедлоки, циклические импорты и точки отказа: связность в деле
 
 База данных подвесила две транзакции: первая ждёт блокировку, которую держит вторая, а
 вторая — блокировку первой. PostgreSQL, MySQL и распределённые СУБД вроде CockroachDB не
-гадают — они периодически строят **wait-for граф** («кто кого ждёт») и ищут в нём цикл. Это
+гадают — когда транзакция ждёт подозрительно долго (в PostgreSQL — дольше секунды), они строят **wait-for граф** («кто кого ждёт») и ищут в нём цикл. Это
 ровно задача обнаружения цикла в ориентированном графе из главы про
 [графовую связность](graph-connectivity.md): нашёлся цикл — значит, дедлок, и планировщик
-принудительно откатывает одну из транзакций (жертву выбирают по стоимости отката), чтобы
+принудительно откатывает одну из транзакций (PostgreSQL — ту, что запустила проверку, MySQL —
+ту, откат которой дешевле), чтобы
 разорвать цикл. В распределённой СУБД тот же wait-for граф собирается **по всем узлам
 кластера**, и цикл может тянуться через сеть — искать его вручную нереально, отсюда и нужна
 формальная процедура, а не «подождать и посмотреть».
@@ -304,6 +370,12 @@ Cassandra/DynamoDB и балансировка в CDN; разбор — в гл�
 | SCC | распределённый дедлок-детектор (граф ожиданий по всему кластеру) | цикл может идти через несколько узлов сети | [Графовая связность](graph-connectivity.md) |
 | Обнаружение цикла в DAG зависимостей | `go build`, Bazel/Buck при валидации графа сборки | отвергнуть циклический импорт до кодогенерации | [Графовая связность](graph-connectivity.md) |
 | Мосты / точки сочленения | резервирование сети ЦОД, граф вызовов микросервисов | найти единую точку отказа до того, как она откажет | [Графовая связность](graph-connectivity.md) |
+
+> 🌍 **Где это в настоящем коде**
+>
+> - [`DeadLockCheck`](https://github.com/postgres/postgres/blob/REL_16_4/src/backend/storage/lmgr/deadlock.c#L217) (PostgreSQL 16) — ищет цикл в графе ожиданий («waits-for graph»), начиная с ждущего процесса; её вызывает [`CheckDeadLock`](https://github.com/postgres/postgres/blob/REL_16_4/src/backend/storage/lmgr/proc.c#L1693), когда ожидание блокировки затянулось дольше `deadlock_timeout`.
+> - [`lock_wait_build_wait_for_graph`](https://github.com/mysql/mysql-server/blob/mysql-8.0.39/storage/innobase/lock/lock0wait.cc#L651) (MySQL 8.0, InnoDB) — фоновый поток строит граф ожиданий, а [`lock_wait_choose_victim`](https://github.com/mysql/mysql-server/blob/mysql-8.0.39/storage/innobase/lock/lock0wait.cc#L918) откатывает самую «лёгкую» транзакцию цикла.
+> - [`reusePackage`](https://github.com/golang/go/blob/go1.24.0/src/cmd/go/internal/load/pkg.go#L1440) (Go 1.24, `cmd/go`) — пакет, который ещё загружается, встретился снова — значит, цикл: «import cycle not allowed».
 
 ---
 

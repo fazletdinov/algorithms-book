@@ -336,6 +336,11 @@ O(n log n), но naive-версия на подобранном входе — O
 <div class="algo-challenge__q">Shuffle написан как «для каждого i поменять a[i] с a[rng.Intn(n)]». Он равномерный?</div>
 </div>
 
+> 🌍 **Где это в настоящем коде**
+>
+> - [`rand.Rand.Shuffle`](https://github.com/golang/go/blob/go1.24.0/src/math/rand/v2/rand.go#L233) (Go 1.24) — Fisher–Yates из этой главы в `math/rand/v2`: цикл с конца, `j` берётся из `[0, i]` (`uint64n(i + 1)`), а не из всего массива.
+> - [`rand.Rand.Perm`](https://github.com/golang/go/blob/go1.24.0/src/math/rand/v2/rand.go#L221) (Go 1.24) — случайная перестановка `0…n−1`: заполняет срез по порядку и перемешивает тем же `Shuffle`.
+
 ## 🧩 Задачи
 
 Прорешать на LeetCode (там же проверка):
