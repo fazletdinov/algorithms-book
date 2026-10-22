@@ -25,7 +25,7 @@
   </div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="Search — false, StartsWith — true: путь есть, но isEnd на втором p не стоит|Оба true: путь a→p→p в боре существует|Оба false: слова app в словарь не вставляли" data-answer="0" data-explain="Search = путь существует И isEnd; StartsWith = только путь. Первый разбор ниже (Replace Words) стоит ровно на этой разнице: спуск по слову ищет первый узел с isEnd — это и есть кратчайший корень-префикс.">
+<div class="algo-challenge" data-type="choice" data-options="Search — false, StartsWith — true: путь есть, но isEnd на втором p не стоит|Оба true: путь a→p→p в боре есть, а Search и StartsWith идут по нему одинаково|Оба false: слова app в бор не вставляли, значит и префикса app в нём нет" data-answer="0" data-explain="Search = путь существует И isEnd; StartsWith = только путь. Первый разбор ниже (Replace Words) стоит ровно на этой разнице: спуск по слову ищет первый узел с isEnd — это и есть кратчайший корень-префикс.">
 <div class="algo-challenge__q">В бор вставили одно слово <code>apple</code>. Что вернут <code>Search("app")</code> и <code>StartsWith("app")</code>?</div>
 </div>
 
@@ -176,7 +176,7 @@ func replaceWords(dict []string, sentence string) string {
 <div class="algo-challenge__q">Add and Search Words: что делаем на символе-джокере <code>.</code>?</div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="С флагом isEnd (конец корня)|С листом|С любым узлом" data-answer="0" data-explain="Replace Words: идём по бору и обрываемся на ПЕРВОМ узле с isEnd — это кратчайший корень-префикс данного слова.">
+<div class="algo-challenge" data-type="choice" data-options="На первом узле с флагом isEnd — это конец корня|На листе: корень словаря кончается там, где у узла нет детей|На последнем узле с isEnd по пути — берём самый длинный корень" data-answer="0" data-explain="Replace Words: идём по бору и обрываемся на ПЕРВОМ узле с isEnd — это кратчайший корень-префикс данного слова.">
 <div class="algo-challenge__q">Replace Words: на каком узле бора обрываем спуск?</div>
 </div>
 
@@ -184,7 +184,7 @@ func replaceWords(dict []string, sentence string) string {
 <div class="algo-challenge__q">Maximum XOR пары: в какую ветку бинарного бора идём жадно?</div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="Отсекать ветки, которых нет в словаре|Ускорить ввод|Сэкономить память сетки" data-answer="0" data-explain="Word Search II: DFS по сетке спускается только пока в боре есть соответствующая ветка — бор сразу отсекает заведомо безнадёжные пути, в отличие от перебора каждого слова отдельно.">
+<div class="algo-challenge" data-type="choice" data-options="Чтобы отсекать пути по сетке, которых нет ни в одном слове словаря|Чтобы не хранить visited: бор сам помнит, какие клетки уже пройдены|Чтобы искать слова по одному: бор выдаёт следующее слово для отдельного DFS" data-answer="0" data-explain="Word Search II: DFS по сетке спускается только пока в боре есть соответствующая ветка — бор сразу отсекает заведомо безнадёжные пути, в отличие от перебора каждого слова отдельно.">
 <div class="algo-challenge__q">Word Search II: зачем поверх DFS на сетке строить бор?</div>
 </div>
 

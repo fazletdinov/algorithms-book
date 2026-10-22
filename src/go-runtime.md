@@ -281,11 +281,11 @@ func escapes() *int {
 <div class="algo-challenge__q">Горутина ушла в блокирующий syscall. Что с остальными на этом P?</div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="Берёт ПОЛОВИНУ очереди у занятого соседа|Создаёт новые потоки ОС|Ждёт, пока появится работа" data-answer="0" data-explain="Work stealing: простаивающий P забирает половину локальной очереди у другого P — балансировка без простоя.">
+<div class="algo-challenge" data-type="choice" data-options="Берёт половину очереди у занятого соседа|Забирает у соседа одну горутину с конца его очереди|Засыпает и ждёт, пока планировщик сам положит ему горутину" data-answer="0" data-explain="Work stealing: простаивающий P забирает половину локальной очереди у другого P — балансировка без простоя.">
 <div class="algo-challenge__q">Что делает простаивающий P (work stealing)?</div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="Достигнут, но его потомки ещё не просмотрены|Точно мусор|Полностью просмотрен и жив" data-answer="0" data-explain="Серый = достижим, но указатели не просмотрены. Белый — кандидат на удаление, чёрный — просмотрен (жив).">
+<div class="algo-challenge" data-type="choice" data-options="Достигнут, но его указатели ещё не просмотрены|Ещё не достигнут: кандидат на удаление после разметки|Достигнут, и все его указатели уже просмотрены" data-answer="0" data-explain="Серый = достижим, но указатели не просмотрены. Белый — кандидат на удаление, чёрный — просмотрен (жив).">
 <div class="algo-challenge__q">Трёхцветный GC: что значит <b>серый</b> объект?</div>
 </div>
 
@@ -297,11 +297,11 @@ func escapes() *int {
 <div class="algo-challenge__q">Когда решается, попадёт значение на стек или в кучу?</div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="Адрес/значение «убегает» за пределы функции|Значение больше 8 байт|Используется оператор new" data-answer="0" data-explain="В кучу едет то, что переживает свой кадр: вернули &x, положили в interface{}, захватили в замыкание/горутину. Сам по себе new ни при чём, а размер «больше 8 байт» — тоже: стек держит и большие структуры. Размер решает только у очень больших значений — например, make([]int, n) с n, неизвестным при компиляции, или массив на мегабайты: их компилятор сразу кладёт в кучу.">
+<div class="algo-challenge" data-type="choice" data-options="Адрес/значение «убегает» за пределы функции|Значение больше 8 байт и не помещается в регистр|Переменная создана через new, а не объявлена через var" data-answer="0" data-explain="В кучу едет то, что переживает свой кадр: вернули &x, положили в interface{}, захватили в замыкание/горутину. Сам по себе new ни при чём, а размер «больше 8 байт» — тоже: стек держит и большие структуры. Размер решает только у очень больших значений — например, make([]int, n) с n, неизвестным при компиляции, или массив на мегабайты: их компилятор сразу кладёт в кучу.">
 <div class="algo-challenge__q">Из-за чего локальная переменная уезжает в кучу (escape)?</div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="go build -gcflags=-m|go vet|go fmt" data-answer="0" data-explain="-gcflags=-m печатает решения escape-анализа: что и почему ушло в кучу. gctrace и pprof дополняют картину по GC и аллокациям.">
+<div class="algo-challenge" data-type="choice" data-options="go build -gcflags=-m|go run с GODEBUG=gctrace=1|go test -race ./..." data-answer="0" data-explain="-gcflags=-m печатает решения escape-анализа: что и почему ушло в кучу. gctrace и pprof дополняют картину по GC и аллокациям.">
 <div class="algo-challenge__q">Чем посмотреть, что именно ушло в кучу?</div>
 </div>
 
