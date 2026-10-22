@@ -1,0 +1,96 @@
+/* Дерево решений руководства картинкой (guide-tree.js): вопросы слева направо, листья — плашки глав.
+   Линии — рамки псевдоэлементов .gt-item: вертикальный отрезок до соседей и горизонтальный к узлу. */
+.gt {
+  --gt-line: #3a4560;
+  --gt-on: var(--th-accent, #4ae08a);
+  --gt-core: var(--th-accent, #4ae08a);
+  --gt-ext: var(--th-blue, #60a5fa);
+  --gt-ref: var(--th-muted, #8b93a7);
+  /* как виджеты: шире колонки текста, по центру */
+  --gt-w: min(1440px, calc(100cqw - 2 * var(--page-padding, 15px) - 10px));
+  width: var(--gt-w);
+  margin: 1.4em 0 1.8em calc(50% - var(--gt-w) / 2);
+  padding: 1.1em 1.3em 1.3em;
+  box-sizing: border-box;
+  background: var(--th-surface, #141a26);
+  border: 1px solid var(--th-border, #283145);
+  border-radius: 12px;
+}
+.gt *, .gt *::before, .gt *::after { box-sizing: border-box; }
+.gt-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em 0.6em; margin-bottom: 1em; }
+.gt-btn {
+  font: inherit; font-size: 0.85em; cursor: pointer; padding: 0.35em 0.9em; border-radius: 8px;
+  border: 1px solid var(--th-border, #283145); background: var(--th-surface2, #1b2232); color: var(--th-text, #e6e9f2);
+}
+.gt-btn[aria-pressed="true"] { border-color: var(--gt-core); box-shadow: 0 0 0 1px var(--gt-core) inset; }
+.gt-legend { display: flex; flex-wrap: wrap; gap: 0.9em; margin-left: auto; font-size: 0.8em; color: var(--th-muted, #8b93a7); }
+.gt-legend__i::before { content: ""; display: inline-block; width: 0.75em; height: 0.75em; margin-right: 0.35em; border-radius: 3px; vertical-align: -0.05em; }
+.gt-legend__i--core::before { background: var(--gt-core); }
+.gt-legend__i--ext::before { background: var(--gt-ext); }
+.gt-legend__i--ref::before { background: var(--gt-ref); }
+.gt-legend__i--done::before { display: none; }
+
+.gt-canvas { overflow-x: auto; padding-bottom: 0.3em; }
+.gt-node { display: flex; align-items: center; }
+.gt-q {
+  flex: 0 0 auto; width: 19em; text-align: left; font: inherit; font-size: 0.86em; line-height: 1.35;
+  padding: 0.5em 0.75em; border-radius: 9px; cursor: pointer; color: var(--th-text, #e6e9f2);
+  background: var(--th-surface2, #1b2232); border: 1px solid var(--th-border, #283145);
+  position: relative;
+}
+.gt-q:hover, .gt-q:focus-visible { border-color: var(--th-blue, #60a5fa); outline: none; }
+/* вложенный вопрос (группа: массивы, графы…) уже, чтобы дерево влезало */
+.gt-canvas > .gt-kids { padding-left: 0; }
+.gt-canvas > .gt-kids::before { display: none; }
+.gt-canvas > .gt-kids > .gt-item { padding-left: 0; }
+.gt-canvas > .gt-kids > .gt-item::before, .gt-canvas > .gt-kids > .gt-item::after { display: none; }
+.gt-kids .gt-kids .gt-kids .gt-q { width: 17em; }
+/* у группы — счётчик глав за ней: свёрнута — «▸ 7 глав», открыта — «▾» */
+.gt-q[data-n]::after {
+  content: "▾"; position: absolute; right: 0.6em; top: 50%; transform: translateY(-50%);
+  color: var(--th-muted, #8b93a7); font-size: 0.85em;
+}
+.gt-node--closed > .gt-q[data-n]::after { content: "▸ " attr(data-n); color: var(--th-blue, #60a5fa); }
+.gt-q[data-n] { padding-right: 4.6em; }
+.gt-node--closed > .gt-kids { display: none; }
+
+.gt-kids { display: flex; flex-direction: column; padding-left: 2.2em; position: relative; }
+.gt-kids::before { /* отрезок от узла-родителя к вертикали детей */
+  content: ""; position: absolute; left: 0; top: 50%; width: 1.1em; border-top: 2px solid var(--gt-line);
+}
+.gt-item { position: relative; padding: 0.22em 0 0.22em 1.1em; }
+.gt-item::before { /* вертикаль: от середины первого до середины последнего ребёнка */
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; border-left: 2px solid var(--gt-line);
+}
+.gt-item:first-child::before { top: 50%; }
+.gt-item:last-child::before { bottom: 50%; }
+.gt-item:only-child::before { display: none; }
+.gt-item::after { /* горизонталь к самому ребёнку */
+  content: ""; position: absolute; left: 0; top: 50%; width: 1.1em; border-top: 2px solid var(--gt-line);
+}
+.gt-kids--leaves { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.4em; }
+.gt-kids--leaves > .gt-item { padding: 0; }
+.gt-kids--leaves > .gt-item::before, .gt-kids--leaves > .gt-item::after { display: none; }
+.gt-kids--leaves > .gt-item:first-child { margin-left: -1.1em; } /* линия родителя упирается прямо в плашку */
+
+.gt a.gt-leaf, .gt a.gt-leaf:link, .gt a.gt-leaf:visited { /* перебить цвет ссылок mdBook (.content a:link) */
+  display: inline-flex; flex-direction: column; gap: 0.05em; min-width: 9em;
+  padding: 0.4em 0.8em; border-radius: 9px; text-decoration: none !important; position: relative;
+  background: #0f141f; border: 1.5px solid var(--gt-ref); color: var(--th-text, #e6e9f2);
+}
+.gt .gt-leaf--core { border-color: var(--gt-core); }
+.gt .gt-leaf--ext { border-color: var(--gt-ext); }
+.gt-leaf__t { font-weight: 650; font-size: 0.9em; }
+.gt-leaf__s { font-size: 0.74em; color: var(--th-muted, #8b93a7); }
+.gt-leaf__done { position: absolute; top: -0.55em; right: -0.45em; font-size: 0.8em; line-height: 1;
+  padding: 0.15em 0.3em; border-radius: 999px; background: var(--gt-core); color: #0a0e16; font-weight: 800; }
+.gt .gt-leaf:hover, .gt .gt-leaf:focus-visible { background: #172033; outline: none; }
+
+/* путь от корня к плашке под мышью */
+.gt-item.gt-on::before, .gt-item.gt-on::after { border-color: var(--gt-on); }
+.gt-q.gt-on { border-color: var(--gt-on); box-shadow: 0 0 0 1px var(--gt-on) inset; }
+.gt-leaf.gt-on { box-shadow: 0 0 0 2px var(--gt-on); }
+
+/* «Только ядро»: всё вне ядра бледнеет, но остаётся на месте — форма дерева не прыгает */
+.gt--core .gt-leaf:not(.gt-leaf--core) { opacity: 0.28; }
+@media (prefers-reduced-motion: no-preference) { .gt-leaf, .gt-q { transition: opacity 0.15s, border-color 0.15s, box-shadow 0.15s; } }

@@ -107,48 +107,8 @@ if (!coreCount) {
 // В дереве руководства по выбору каждое название главы в листе «└─ → …» несёт сразу после
 // себя метку уровня: шестьдесят глав в дереве иначе выглядят одинаково обязательными.
 // Здесь — только соответствие «название в дереве → слаг»; уровни берутся из progress.js.
-const GUIDE_LEAVES = {
-  "Хеш-таблица": "hash-table-structure",
-  "Sliding Window": "sliding-window",
-  "Prefix Sums": "prefix-sums",
-  "Monotonic Stack": "monotonic-stack",
-  "Two Pointers": "two-pointers",
-  "Cyclic Sort": "cyclic-sort",
-  "Modified Binary Search": "modified-binary-search",
-  "Bit Manipulation": "bit-manipulation",
-  "Fast & Slow Pointers": "fast-slow-pointers",
-  "Reverse Linked List": "reverse-linked-list",
-  "Tree BFS": "tree-bfs",
-  "Tree DFS": "tree-dfs",
-  "Merge Intervals": "merge-intervals",
-  "Top K Elements": "top-k-elements",
-  "Две кучи": "two-heaps",
-  "K-way Merge": "k-way-merge",
-  "Subsets": "subsets",
-  "Backtracking": "backtracking",
-  "Graphs": "graphs",
-  "Topological Sort": "topological-sort",
-  "Union-Find": "union-find-structure",
-  "Grids & Shortest Paths": "grids-and-shortest-paths",
-  "Advanced Graphs": "advanced-graph-algorithms",
-  "Graph Connectivity": "graph-connectivity",
-  "Max Flow / Min Cut": "max-flow",
-  "Greedy": "greedy",
-  "Dynamic Programming": "dynamic-programming",
-  "Классы сложности": "complexity-classes",
-  "Строковые алгоритмы": "string-algorithms",
-  "Trie": "trie",
-  "Sparse Table": "sparse-table-structure",
-  "Дерево отрезков": "segment-tree",
-  "Дерево Фенвика": "fenwick-tree",
-  "B-дерево": "btree-structure",
-  "Вероятностные структуры": "probabilistic-structures",
-  "Комбинаторика счёта": "combinatorics",
-  "Дискретная вероятность": "probability",
-  "Теория чисел": "number-theory",
-  "Криптография": "cryptography",
-  "Сортировки и порядковые статистики": "sorting",
-};
+// «название в дереве → слаг» — одна копия на книгу: её же рисует дерево-картинка (assets/guide-tree.js)
+const GUIDE_LEAVES = require("../assets/guide-tree.js").LEAVES;
 let guideLeavesCount = 0;
 const LEVEL_TAG = { core: "ядро", ext: "расширение", ref: "справочник" };
 

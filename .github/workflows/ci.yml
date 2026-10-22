@@ -215,6 +215,9 @@ jobs:
       # ответа НЕ видно ни темы, ни пакета, ни подсказок из условия.
       - name: Смоук смешанной тренировки (jsdom)
         run: node scripts/mixed-check.js
+      # Дерево решений картинкой строится из текстового дерева собранной страницы руководства.
+      - name: Смоук дерева решений (jsdom)
+        run: node scripts/guide-tree-check.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: book
