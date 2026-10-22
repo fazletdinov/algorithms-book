@@ -100,8 +100,13 @@ func TestIsPalindromeRandom(t *testing.T) {
 				break
 			}
 		}
-		if got := IsPalindrome(fromSlice(vals)); got != want {
+		head := fromSlice(vals)
+		if got := IsPalindrome(head); got != want {
 			t.Fatalf("IsPalindrome(%v) = %v, want %v", vals, got, want)
+		}
+		// Вторую половину разворачивали — проверка обязана вернуть её на место.
+		if after := toSlice(head); !equalInts(after, vals) {
+			t.Fatalf("IsPalindrome(%v) испортил список: после вызова %v", vals, after)
 		}
 	}
 }

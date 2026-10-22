@@ -80,7 +80,8 @@ func FindFirstLast(arr []int, target int) []int {
 //
 // Ожидаемая сложность: O(log x).
 func IntSqrt(x int) int {
-	// TODO: firstTrue на [0, x+1] с вопросом m*m > x; ответ на единицу левее.
-	// Чтобы m*m не переполнилось, спрашивай m > x/m.
+	// TODO: firstTrue на [0, x/2+2] с вопросом m*m > x; ответ на единицу левее.
+	// Края не x+1: при x = MaxInt он переполнится. Чтобы m*m не переполнилось,
+	// спрашивай m > x/m.
 	panic("TODO: реализуй IntSqrt")
 }

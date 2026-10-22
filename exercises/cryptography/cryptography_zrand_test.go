@@ -1,6 +1,8 @@
 package cryptography
 
 import (
+	"math"
+	"math/big"
 	"math/rand"
 	"testing"
 )
@@ -142,5 +144,57 @@ func TestRSAPrivateExponentRoundTripRandom(t *testing.T) {
 				t.Fatalf("RSA(p=%d q=%d e=%d): m=%d → c=%d → %d, want %d", p, q, e, m, c, got, m)
 			}
 		}
+	}
+}
+
+// bigModExp — эталон на math/big: ему переполнение не грозит.
+func bigModExp(base, exp, m int) int {
+	r := new(big.Int).Exp(big.NewInt(int64(base)), big.NewInt(int64(exp)), big.NewInt(int64(m)))
+	return int(r.Int64())
+}
+
+// TestModExpMatchesBig: на модулях до MaxInt ModExp обязан совпасть с math/big.
+// Ловит a*b%m вместо MulMod — на таких модулях произведение не помещается в int.
+func TestModExpMatchesBig(t *testing.T) {
+	rng := rand.New(rand.NewSource(2602))
+	for i := 0; i < 2000; i++ {
+		m := 1 + rng.Int63n(math.MaxInt64)
+		base := int(rng.Int63n(m))
+		exp := int(rng.Int63n(1 << 40))
+		if got, want := ModExp(base, exp, int(m)), bigModExp(base, exp, int(m)); got != want {
+			t.Fatalf("ModExp(%d, %d, %d) = %d, want %d", base, exp, m, got, want)
+		}
+	}
+}
+
+// TestIsProbablePrimeMatchesBig: нечётные числа по всему диапазону int64 против
+// big.Int.ProbablyPrime (у него тоже Миллер — Рабин, плюс тест Люка). Простые
+// среди случайных редки, поэтому половина выборки — числа рядом со степенями двойки,
+// где простые подобраны поиском.
+func TestIsProbablePrimeMatchesBig(t *testing.T) {
+	rng := rand.New(rand.NewSource(2603))
+	primes := 0
+	for i := 0; i < 3000; i++ {
+		n := rng.Int63n(math.MaxInt64) | 1
+		want := big.NewInt(n).ProbablyPrime(20)
+		if want {
+			primes++
+		}
+		if got := IsProbablePrime(int(n)); got != want {
+			t.Fatalf("IsProbablePrime(%d) = %v, want %v", n, got, want)
+		}
+	}
+	for k := 32; k <= 62; k++ {
+		n := int64(1)<<k + 1
+		for !big.NewInt(n).ProbablyPrime(20) {
+			n += 2
+		}
+		primes++
+		if !IsProbablePrime(int(n)) {
+			t.Fatalf("IsProbablePrime(%d) = false, а это простое (первое после 2^%d)", n, k)
+		}
+	}
+	if primes < 40 {
+		t.Fatalf("в выборке всего %d простых — проверка ничего не проверяет", primes)
 	}
 }

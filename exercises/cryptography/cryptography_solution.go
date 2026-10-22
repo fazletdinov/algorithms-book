@@ -41,9 +41,9 @@ func ModExp(base, exp, m int) int {
 	}
 	for exp > 0 {
 		if exp&1 == 1 {
-			result = result * base % m
+			result = MulMod(result, base, m)
 		}
-		base = base * base % m
+		base = MulMod(base, base, m)
 		exp >>= 1
 	}
 	return result
@@ -76,7 +76,7 @@ func IsProbablePrime(n int) bool {
 		}
 		composite := true
 		for i := 0; i < s-1; i++ {
-			x = x * x % n
+			x = MulMod(x, x, n)
 			if x == n-1 {
 				composite = false
 				break

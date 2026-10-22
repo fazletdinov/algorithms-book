@@ -518,6 +518,11 @@ case <-ctx.Done():           // отменили/таймаут → сворач
 }
 ```
 
+У `doWork` одна обязанность, которую легко забыть: канал, который она возвращает, — **с буфером на
+один элемент** (`make(chan Result, 1)`). Если ушли по `ctx.Done()`, результат никто не читает, и
+горутина внутри `doWork` с небуферизованным каналом навсегда встанет на отправке — утечка. С буфером
+она положит результат и завершится.
+
 Правила, вытекающие из этого дерева: **всегда `defer cancel()`** (иначе утечка узла и его таймера);
 **пробрасывай `ctx` первым аргументом** во все блокирующие вызовы (`db.QueryContext(ctx, …)`,
 `http.NewRequestWithContext`); **не клади в контекст бизнес-данные** — только request-scoped (id запроса,
@@ -626,8 +631,7 @@ Can Be Simple And Fast»).
 ```go
 g, ctx := errgroup.WithContext(r.Context())
 results := make([]Data, len(sources))
-for i, src := range sources {
-    i, src := i, src
+for i, src := range sources { // с Go 1.22 у каждой итерации свои i и src
     g.Go(func() error {
         d, err := fetch(ctx, src) // ОБЯЗАТЕЛЬНО принимает ctx
         results[i] = d
@@ -712,7 +716,7 @@ var (
     once sync.Once
     cfg  *Config
 )
-func Config() *Config {
+func GetConfig() *Config { // не Config: имя уже занято типом
     once.Do(func() { cfg = loadConfig() }) // выполнится один раз на всю программу
     return cfg
 }

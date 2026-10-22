@@ -29,12 +29,17 @@ func bruteWindowMedian(nums []int, k int) []float64 {
 // самая тонкая часть «двух куч»; единичные кейсы её недопроверяют.
 func TestSlidingWindowMedianRandom(t *testing.T) {
 	rng := rand.New(rand.NewSource(4))
-	for range 500 {
-		n := rng.Intn(25) + 1
+	for c := range 1000 {
+		// Вторая половина — длинные окна из трёх значений: равные числа по обе стороны
+		// границы куч и выбывшие, ждущие на дне, — там ленивое удаление и ошибается.
+		n, spread := rng.Intn(25)+1, 20
+		if c >= 500 {
+			n, spread = rng.Intn(200)+1, 3
+		}
 		k := rng.Intn(n) + 1
 		nums := make([]int, n)
 		for i := range nums {
-			nums[i] = rng.Intn(20) - 10
+			nums[i] = rng.Intn(spread) - spread/2
 		}
 		got := SlidingWindowMedian(nums, k)
 		want := bruteWindowMedian(nums, k)

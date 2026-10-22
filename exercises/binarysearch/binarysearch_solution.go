@@ -98,9 +98,10 @@ func FindFirstLast(arr []int, target int) []int {
 }
 
 func IntSqrt(x int) int {
-	// firstTrue на [0, x+1] с вопросом «m*m > x»; ответ — на единицу левее.
+	// firstTrue на [0, x/2+2] с вопросом «m*m > x»; ответ — на единицу левее.
+	// √x ≤ x/2 + 1, поэтому правый край всегда «да»; x+1 переполнился бы при x = MaxInt.
 	// m > x/m — то же условие без переполнения m*m.
-	lo, hi := 0, x+1
+	lo, hi := 0, x/2+2
 	for lo < hi {
 		mid := lo + (hi-lo)/2
 		if mid > 0 && mid > x/mid {

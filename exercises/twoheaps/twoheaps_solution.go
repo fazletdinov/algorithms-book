@@ -83,30 +83,72 @@ func SlidingWindowMedian(nums []int, k int) []float64 {
 	if k <= 0 || k > len(nums) {
 		return []float64{}
 	}
+	lo, hi := &maxHeap{}, &minHeap{} // меньшая и большая половины окна
+	loSize, hiSize := 0, 0           // живые элементы: выбывшие ещё лежат в кучах
+	delayed := map[int]int{}         // выбывшие, которых пока не сняли с куч
 
-	// window — отсортированное окно (мультимножество через срез).
-	window := make([]int, 0, k)
-	insert := func(x int) {
-		i := sort.SearchInts(window, x)
-		window = append(window, 0)
-		copy(window[i+1:], window[i:])
-		window[i] = x
+	// prune снимает с вершины выбывших: удаляем их, только когда всплывут наверх.
+	pruneLo := func() {
+		for lo.Len() > 0 && delayed[(*lo)[0]] > 0 {
+			delayed[(*lo)[0]]--
+			heap.Pop(lo)
+		}
+	}
+	pruneHi := func() {
+		for hi.Len() > 0 && delayed[(*hi)[0]] > 0 {
+			delayed[(*hi)[0]]--
+			heap.Pop(hi)
+		}
+	}
+	// balance держит loSize == hiSize или loSize == hiSize+1.
+	balance := func() {
+		if loSize > hiSize+1 {
+			heap.Push(hi, heap.Pop(lo).(int))
+			loSize--
+			hiSize++
+			pruneLo()
+		} else if loSize < hiSize {
+			heap.Push(lo, heap.Pop(hi).(int))
+			hiSize--
+			loSize++
+			pruneHi()
+		}
+	}
+	add := func(x int) {
+		if loSize == 0 || x <= (*lo)[0] {
+			heap.Push(lo, x)
+			loSize++
+		} else {
+			heap.Push(hi, x)
+			hiSize++
+		}
+		balance()
 	}
 	remove := func(x int) {
-		i := sort.SearchInts(window, x)
-		window = append(window[:i], window[i+1:]...)
+		delayed[x]++
+		if x <= (*lo)[0] {
+			loSize--
+			if x == (*lo)[0] {
+				pruneLo()
+			}
+		} else {
+			hiSize--
+			if x == (*hi)[0] {
+				pruneHi()
+			}
+		}
+		balance()
 	}
 	median := func() float64 {
-		mid := len(window) / 2
-		if len(window)%2 == 1 {
-			return float64(window[mid])
+		if k%2 == 1 {
+			return float64((*lo)[0])
 		}
-		return float64(window[mid-1]+window[mid]) / 2.0
+		return (float64((*lo)[0]) + float64((*hi)[0])) / 2.0
 	}
 
 	res := make([]float64, 0, len(nums)-k+1)
 	for i, x := range nums {
-		insert(x)
+		add(x)
 		if i >= k {
 			remove(nums[i-k])
 		}

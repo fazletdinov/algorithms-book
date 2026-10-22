@@ -7,17 +7,32 @@ import (
 	"testing"
 )
 
+// distinctPairs возвращает k пар v, v со значениями, которых нет в taken и которые
+// не повторяются между парами: условие «каждое число встречается ровно дважды»
+// выполнено, и решение на счётчиках, верное по условию, тест не уронит.
+func distinctPairs(rng *rand.Rand, k int, taken ...int) []int {
+	used := map[int]bool{}
+	for _, v := range taken {
+		used[v] = true
+	}
+	var out []int
+	for len(out) < 2*k {
+		v := rng.Intn(1000)
+		if used[v] {
+			continue
+		}
+		used[v] = true
+		out = append(out, v, v)
+	}
+	return out
+}
+
 // SingleNumber: все числа парами, одно одиночное. Brute — счётчик частот.
 func TestSingleNumberRandom(t *testing.T) {
 	rng := rand.New(rand.NewSource(1001))
 	for range 3000 {
 		single := rng.Intn(1000)
-		nums := []int{single}
-		k := rng.Intn(8)
-		for i := 0; i < k; i++ {
-			v := rng.Intn(1000)
-			nums = append(nums, v, v)
-		}
+		nums := append([]int{single}, distinctPairs(rng, rng.Intn(8), single)...)
 		rng.Shuffle(len(nums), func(i, j int) { nums[i], nums[j] = nums[j], nums[i] })
 		if got := SingleNumber(nums); got != single {
 			t.Fatalf("SingleNumber(%v) = %d, want %d", nums, got, single)
@@ -97,12 +112,7 @@ func TestTwoSingleNumbersRandom(t *testing.T) {
 		for a == b {
 			b = rng.Intn(1000)
 		}
-		nums := []int{a, b}
-		k := rng.Intn(8)
-		for i := 0; i < k; i++ {
-			v := rng.Intn(1000)
-			nums = append(nums, v, v)
-		}
+		nums := append([]int{a, b}, distinctPairs(rng, rng.Intn(8), a, b)...)
 		rng.Shuffle(len(nums), func(i, j int) { nums[i], nums[j] = nums[j], nums[i] })
 		want := []int{a, b}
 		sort.Ints(want)

@@ -70,20 +70,26 @@ func IsPalindrome(head *ListNode) bool {
 		slow = slow.Next
 		fast = fast.Next.Next
 	}
-	var prev *ListNode
-	for slow != nil {
-		next := slow.Next
-		slow.Next = prev
-		prev = slow
-		slow = next
-	}
-	left, right := head, prev
-	for right != nil {
-		if left.Val != right.Val {
-			return false
+	// Узел перед slow по-прежнему указывает на slow, поэтому второй разворот
+	// той же половины возвращает список в исходный вид.
+	right := reverseHalf(slow)
+	result := true
+	for l, r := head, right; r != nil; l, r = l.Next, r.Next {
+		if l.Val != r.Val {
+			result = false
+			break
 		}
-		left = left.Next
-		right = right.Next
 	}
-	return true
+	reverseHalf(right)
+	return result
+}
+
+// reverseHalf — тот же разворот, что ReverseList, своей копией: IsPalindrome
+// решается без соседней функции.
+func reverseHalf(head *ListNode) *ListNode {
+	var prev *ListNode
+	for head != nil {
+		head.Next, prev, head = prev, head, head.Next
+	}
+	return prev
 }
