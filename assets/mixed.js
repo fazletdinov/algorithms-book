@@ -15,8 +15,8 @@
  * Режим собеседования (переключатель над задачей) добавляет то, чего смешанная
  * тренировка не тренирует: время, объяснение ДО кода и оценку своего решения.
  *   1) таймер на MOCK_LIMIT_MIN минут — не останавливает, но фиксирует перебор;
- *   2) после выбора шаблона — план словами (не короче PLAN_MIN символов); редактор
- *      появляется только после него. Это единственный жёсткий гейт режима, и он
+ *   2) после выбора шаблона — план словами (не короче PLAN_MIN символов) и EDGES_N
+ *      граничных случаев (каждый не короче EDGE_MIN); редактор появляется только после них. Это единственный жёсткий гейт режима, и он
  *      намеренный: на собеседовании код без проговорённого плана — красный флаг;
  *   3) редактор гоняет ТОЛЬКО тесты этой функции (поле t банка → data-tests),
  *      открывается с чистой заготовки (data-fresh), а не с твоего решения пакета,
@@ -62,6 +62,8 @@
   var MIN_DONE = 3;
   var MOCK_LIMIT_MIN = 35;
   var PLAN_MIN = 80;
+  var EDGES_N = 3; // граничных случаев до кода
+  var EDGE_MIN = 3; // символов в каждом: «n=0» — уже случай
   var LOG_MAX = 100;
 
   function loadMap(key) {
@@ -595,12 +597,25 @@
       var planBox = el("div", "algo-mixed__plan");
       planBox.appendChild(el("div", "algo-mixed__label", "План — как сказал бы вслух интервьюеру"));
       planBox.appendChild(el("p", "algo-mixed__text",
-        "Идея, какая структура данных и почему, что держишь инвариантом, какие крайние случаи. " +
-        "Код появится после плана."));
+        "Идея, какая структура данных и почему, что держишь инвариантом. " +
+        "Код появится после плана и трёх граничных случаев."));
       var ta = document.createElement("textarea");
       ta.className = "algo-mixed__plan-text";
       ta.rows = 5;
       planBox.appendChild(ta);
+      // Граничные случаи — отдельно от плана: в общем тексте их легко пропустить, а на собеседовании
+      // «а если массив пустой?» спрашивают первым. Машина их не проверяет — в итоге они стоят рядом с
+      // тем, что получилось, и сверяешь ты сам.
+      planBox.appendChild(el("div", "algo-mixed__label", "Три граничных случая, на которых решение легко сломать"));
+      var edges = [];
+      for (var i = 0; i < EDGES_N; i++) {
+        var e = document.createElement("input");
+        e.type = "text";
+        e.className = "algo-mixed__edge";
+        e.placeholder = ["например: пустой вход", "например: все элементы равны", "например: ответ на самой границе"][i];
+        planBox.appendChild(e);
+        edges.push(e);
+      }
       var planBar = el("div", "algo-mixed__planbar");
       var counter = el("span", "algo-mixed__counter", "0 / " + PLAN_MIN);
       var go = el("button", "algo-quiz__btn algo-mixed__to-code", "К коду →");
@@ -612,16 +627,22 @@
       res.appendChild(planBox);
       body.appendChild(res);
 
-      ta.addEventListener("input", function () {
+      function edgesFilled() {
+        return edges.every(function (e) { return e.value.trim().length >= EDGE_MIN; });
+      }
+      function refresh() {
         var n = ta.value.trim().length;
         counter.textContent = n + " / " + PLAN_MIN;
-        go.disabled = n < PLAN_MIN;
-      });
+        go.disabled = n < PLAN_MIN || !edgesFilled();
+      }
+      ta.addEventListener("input", refresh);
+      edges.forEach(function (e) { e.addEventListener("input", refresh); });
       go.onclick = function () {
         // Длину проверяем здесь, а не только через disabled: флаг кнопки — это
         // подсказка интерфейсу, а гейт должен держаться сам по себе.
-        if (!session || ta.value.trim().length < PLAN_MIN) return;
+        if (!session || ta.value.trim().length < PLAN_MIN || !edgesFilled()) return;
         session.plan = ta.value.trim().length;
+        session.edges = edges.map(function (e) { e.readOnly = true; return e.value.trim(); });
         ta.readOnly = true;
         go.hidden = true;
         counter.textContent = "план записан за " + mmss(elapsed());
@@ -736,6 +757,7 @@
         ["Время", mmss(secs) + " из " + mmss(limit) + (secs <= limit ? " — в срок" : " — перебор")],
         ["Шаблон", session.pattern ? "угадан" : "не угадан"],
         ["План словами", session.plan + " символов"],
+        ["Граничные случаи", (session.edges || []).join(" · ") || "—"],
         ["Тесты", session.green != null ? "зелёные за " + mmss(session.green) : "не доведены"],
         ["Сложность", session.cx === "ok" ? "оценена верно" : session.cx === "miss" ? "оценена неверно" :
           session.cx === "none" ? "эталона нет" : "не оценивалась"],
@@ -748,6 +770,11 @@
         table.appendChild(tr);
       });
       sum.appendChild(table);
+      if (session.edges && session.edges.length) {
+        sum.appendChild(el("p", "algo-mixed__text",
+          "Сверь граничные случаи со своим кодом: на каждый ответь, что вернёт функция и почему. " +
+          "Случай, которого нет в тестах (" + p.t.join(", ") + "), — тот, что спросил бы интервьюер."));
+      }
       if (session.picked) pairLine(p, session.picked, sum);
       hintsBlock(p, sum, true);
       res.appendChild(sum);
@@ -755,7 +782,7 @@
       var log = loadList(MOCK_LOG);
       log.push({
         k: key(p), ts: Date.now(), secs: secs, limit: MOCK_LIMIT_MIN,
-        pattern: !!session.pattern, plan: session.plan,
+        pattern: !!session.pattern, plan: session.plan, edges: (session.edges || []).length,
         green: session.green != null, cx: session.cx,
       });
       save(MOCK_LOG, log.slice(-LOG_MAX));

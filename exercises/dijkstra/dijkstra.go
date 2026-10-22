@@ -13,6 +13,8 @@ package dijkstra
 //
 // Пример: n=4, edges=[[0,1,1],[1,2,2],[2,3,1],[0,2,4]], src=0, dst=3 -> 4.
 //
+// Ограничения: n ≤ 10⁵, len(edges) ≤ 5·10⁵, 0 ≤ w ≤ 10⁴, 0 ≤ src, dst < n.
+//
 // Ожидаемая сложность: O((V + E) · log V).
 func ShortestPath(n int, edges [][]int, src, dst int) int {
 	// TODO: построй список смежности {сосед, вес}; веди массив dist,
@@ -28,6 +30,8 @@ func ShortestPath(n int, edges [][]int, src, dst int) int {
 //
 // Пример: n=4, edges=[[0,1,1],[1,2,2],[0,2,4],[2,3,1]], src=0 ->
 // [0, 1, 3, 4].
+//
+// Ограничения: n ≤ 10⁵, len(edges) ≤ 5·10⁵, 0 ≤ w ≤ 10⁴, 0 ≤ src < n.
 //
 // Ожидаемая сложность: O((V + E) · log V).
 func ShortestPathsFrom(n int, edges [][]int, src int) []int {
@@ -45,6 +49,8 @@ func ShortestPathsFrom(n int, edges [][]int, src int) []int {
 //
 // Пример: n=4, edges=[[0,1,1],[1,2,2],[2,3,1]], src=0 -> 4 (сигнал доходит
 // до вершины 3 за 1+2+1).
+//
+// Ограничения: n ≤ 10⁵, len(edges) ≤ 5·10⁵, 0 ≤ w ≤ 10⁴, 0 ≤ src < n.
 //
 // Ожидаемая сложность: O((V + E) · log V).
 func NetworkDelayTime(n int, edges [][]int, src int) int {

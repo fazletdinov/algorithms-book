@@ -44,6 +44,8 @@ func (mf *MedianFinder) FindMedian() float64 {
 //
 // Пример: nums=[1,3,-1,-3,5,3,6,7], k=3 -> [1,-1,-1,3,5,6].
 //
+// Ограничения: len(nums) ≤ 10⁵, |nums[i]| ≤ 10⁹.
+//
 // Ожидаемая сложность: O(n log k) при использовании двух куч с ленивым удалением.
 func SlidingWindowMedian(nums []int, k int) []float64 {
 	// TODO: поддерживай две кучи (меньшая половина — max-heap, большая — min-heap)
@@ -59,6 +61,8 @@ func SlidingWindowMedian(nums []int, k int) []float64 {
 //
 // Пример: k=2, w=0, profits=[1,2,3], capital=[0,1,1] -> 4
 // (берём profit 1 -> w=1, затем profit 3 -> w=4).
+//
+// Ограничения: k, len(profits) ≤ 10⁵, 0 ≤ profits[i] ≤ 10⁴, 0 ≤ w, capital[i] ≤ 10⁹.
 //
 // Ожидаемая сложность: O((n+k) log n).
 func MaximizeCapital(k, w int, profits, capital []int) int {

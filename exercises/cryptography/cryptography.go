@@ -22,6 +22,8 @@ package cryptography
 //
 // Пример: ExtendedGCD(240, 46) → g = 2 и такие x, y, что 240*x + 46*y = 2.
 //
+// Ограничения: 0 ≤ a, b ≤ 10¹⁸.
+//
 // Ожидаемая сложность: O(log(min(a, b))).
 func ExtendedGCD(a, b int) (g, x, y int) {
 	// TODO: итеративный расширенный Евклид. Держи две тройки коэффициентов
@@ -36,6 +38,8 @@ func ExtendedGCD(a, b int) (g, x, y int) {
 //
 // Пример: ModInverse(3, 11) = (4, true), потому что 3*4 = 12 ≡ 1 (mod 11).
 //
+// Ограничения: 0 ≤ a ≤ 10¹⁸, m ≤ 10¹⁸.
+//
 // Ожидаемая сложность: O(log m).
 func ModInverse(a, m int) (inv int, ok bool) {
 	// TODO: приведи a к [0, m); через ExtendedGCD получи g, x. Если g != 1 —
@@ -47,6 +51,8 @@ func ModInverse(a, m int) (inv int, ok bool) {
 // Гарантируется exp >= 0 и m >= 1.
 //
 // Пример: ModExp(2, 10, 1000) = 24 (1024 mod 1000).
+//
+// Ограничения: 0 ≤ base, exp < 2⁶³, 1 ≤ m < 2⁶³.
 //
 // Ожидаемая сложность: O(log exp) умножений.
 func ModExp(base, exp, m int) int {
@@ -66,6 +72,8 @@ func ModExp(base, exp, m int) int {
 // Пример: IsProbablePrime(561) = false (561 = 3·11·17, число Кармайкла),
 // IsProbablePrime(7919) = true.
 //
+// Ограничения: n — любое int, до 2⁶³ − 1 (отрицательные тоже).
+//
 // Ожидаемая сложность: O(k·log³n), где k — число свидетелей.
 func IsProbablePrime(n int) bool {
 	// TODO: отсеки n < 2, малые простые и чётные. Разложи n-1 = d·2^s (d нечётно).
@@ -80,6 +88,8 @@ func IsProbablePrime(n int) bool {
 // по модулю φ (тогда пара ключей невалидна).
 //
 // Пример: p=61, q=53, e=17 → d=2753 (17*2753 ≡ 1 mod φ, φ=3120).
+//
+// Ограничения: p, q — простые, p·q ≤ 10¹⁸, 1 ≤ e ≤ 10¹⁸.
 //
 // Ожидаемая сложность: O(log φ).
 func RSAPrivateExponent(e, p, q int) (d int, ok bool) {

@@ -494,7 +494,13 @@
   border-top: 1px solid var(--quote-border, #cccccc44);
 }
 
+.algo-mixed__edge {
+  display: block;
+  margin-top: 0.35em;
+}
+
 .algo-mixed__plan-text,
+.algo-mixed__edge,
 .algo-mixed__cx-input {
   box-sizing: border-box;
   width: 100%;

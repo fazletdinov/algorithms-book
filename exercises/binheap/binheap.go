@@ -69,6 +69,8 @@ func (h *Heap) Len() int {
 // Пример: BuildHeap([9 4 7 1 8 3 6 2 5 0]) — Len() -> 10, Peek() -> (0, true),
 // десять Pop дают 0, 1, …, 9.
 //
+// Ограничения: len(data) ≤ 10⁶, |data[i]| ≤ 10⁹.
+//
 // Ожидаемая сложность: O(n) по времени, а не O(n log n), как у n вызовов Push; O(n) по памяти на копию.
 func BuildHeap(data []int) *Heap {
 	// TODO: скопируй data в новую кучу и просей вниз (siftDown) каждый узел

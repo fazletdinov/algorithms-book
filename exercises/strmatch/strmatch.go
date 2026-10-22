@@ -12,6 +12,8 @@ package strmatch
 //
 // Пример: KMPSearch("hello world", "world") -> 6.
 //
+// Ограничения: len(text), len(pattern) ≤ 10⁵.
+//
 // Ожидаемая сложность: O(n + m).
 func KMPSearch(text, pattern string) int {
 	// TODO: построй префикс-функцию (LPS) образца, затем иди по тексту,
@@ -24,6 +26,8 @@ func KMPSearch(text, pattern string) int {
 //
 // Пример: RabinKarp("mississippi", "issip") -> 4.
 //
+// Ограничения: len(text), len(pattern) ≤ 10⁵.
+//
 // Ожидаемая сложность: O(n + m) в среднем.
 func RabinKarp(text, pattern string) int {
 	// TODO: полиномиальный хеш образца и первого окна; обновляй хеш окна
@@ -35,6 +39,8 @@ func RabinKarp(text, pattern string) int {
 // ПЕРЕКРЫВАЮЩИЕСЯ. Для пустого pattern верни 0.
 //
 // Пример: CountOccurrences("aaaa", "aa") -> 3; CountOccurrences("abcabc", "abc") -> 2.
+//
+// Ограничения: len(text), len(pattern) ≤ 10⁵.
 //
 // Ожидаемая сложность: O(n + m).
 func CountOccurrences(text, pattern string) int {
@@ -50,6 +56,8 @@ func CountOccurrences(text, pattern string) int {
 // Пример: LongestPrefixSuffix("ababab") -> 4; LongestPrefixSuffix("abcdabc") -> 3;
 // LongestPrefixSuffix("aaaa") -> 3; LongestPrefixSuffix("abc") -> 0.
 //
+// Ограничения: len(s) ≤ 10⁵.
+//
 // Ожидаемая сложность: O(n).
 func LongestPrefixSuffix(s string) int {
 	// TODO: построй префикс-функцию (LPS) для s и верни её последний элемент
@@ -61,6 +69,8 @@ func LongestPrefixSuffix(s string) int {
 // через Z-алгоритм. Если вхождений нет, верни пустой срез []int{}.
 //
 // Пример: ZSearch("abcabcabc", "abc") -> [0 3 6]; ZSearch("aaaa", "aa") -> [0 1 2].
+//
+// Ограничения: len(text), len(pattern) ≤ 10⁵.
 //
 // Ожидаемая сложность: O(n + m).
 func ZSearch(text, pattern string) []int {

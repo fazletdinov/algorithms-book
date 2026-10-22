@@ -14,6 +14,8 @@ package listcrud
 //
 // Пример: 1→2→3, val=9, pos=0 -> 9→1→2→3; pos=2 -> 1→2→9→3; pos=10 -> 1→2→3→9.
 //
+// Ограничения: до 10⁵ узлов, 0 ≤ pos ≤ 10⁹.
+//
 // Ожидаемая сложность: O(pos) по времени (не больше длины списка), O(1) по памяти.
 func InsertAt(head *ListNode, val, pos int) *ListNode {
 	// TODO: пройди pos шагов от dummy (не дальше конца), вставь узел между
@@ -27,6 +29,8 @@ func InsertAt(head *ListNode, val, pos int) *ListNode {
 //
 // Пример: 1→2→3, target=2 -> 1; target=1 -> 0; target=9 -> -1.
 //
+// Ограничения: до 10⁵ узлов.
+//
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func Search(head *ListNode, target int) int {
 	// TODO: линейный проход со счётчиком индекса.
@@ -39,6 +43,8 @@ func Search(head *ListNode, target int) int {
 // вхождение, следующие узлы с тем же значением остаются.
 //
 // Пример: 1→2→3→4, target=3 -> 1→2→4; 1→2→3, target=1 -> 2→3; 5, target=5 -> пустой список.
+//
+// Ограничения: до 10⁵ узлов.
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func DeleteVal(head *ListNode, target int) *ListNode {

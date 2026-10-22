@@ -22,6 +22,8 @@ import "math/rand"
 //
 // Пример: Shuffle([1,2,3], rng) — одна из 6 перестановок, все равновероятны.
 //
+// Ограничения: len(a) ≤ 10⁶.
+//
 // Ожидаемая сложность: O(n) по времени, O(1) доп. памяти.
 func Shuffle(a []int, rng *rand.Rand) {
 	// TODO: иди i от len(a)-1 к 1; j := rng.Intn(i+1) — включая сам i! —
@@ -40,6 +42,8 @@ func Shuffle(a []int, rng *rand.Rand) {
 // Пример: ReservoirSample([1..10], 3, rng) — 3 элемента, каждый из десяти
 // попадает в ответ с вероятностью 3/10.
 //
+// Ограничения: len(stream) ≤ 10⁶.
+//
 // Ожидаемая сложность: O(n) по времени, O(k) по памяти.
 func ReservoirSample(stream []int, k int, rng *rand.Rand) []int {
 	// TODO: первые k элементов — в резервуар как есть; для i-го (i >= k, с нуля)
@@ -54,6 +58,8 @@ func ReservoirSample(stream []int, k int, rng *rand.Rand) []int {
 //
 // Пример: ExpectedCollisions(10, 5) = 45/5 = 9.
 //
+// Ограничения: 0 ≤ n ≤ 10⁹, 1 ≤ m ≤ 10¹⁸.
+//
 // Ожидаемая сложность: O(1).
 func ExpectedCollisions(n, m int) float64 {
 	// TODO: пар C(n,2) = n·(n−1)/2, каждая сталкивается с вероятностью 1/m;
@@ -66,6 +72,8 @@ func ExpectedCollisions(n, m int) float64 {
 // Гарантируется m >= 1. Это порог «первая коллизия уже где-то рядом»: n ≈ √(2m).
 //
 // Пример: BirthdayThreshold(365) = 28; BirthdayThreshold(1) = 2.
+//
+// Ограничения: 1 ≤ m ≤ 10¹².
 //
 // Ожидаемая сложность: O(√m) наивным перебором n (или O(1) через корень).
 func BirthdayThreshold(m int) int {

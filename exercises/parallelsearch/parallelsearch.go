@@ -23,6 +23,8 @@ func CountOccurrencesSeq(text, pat string) int {
 // CountOccurrencesConc — то же, но диапазон начальных позиций делится между
 // воркерами; каждый считает свой кусок, результаты суммируются. Обязан совпасть
 // с CountOccurrencesSeq и проходить -race.
+//
+// Ограничения: len(text) ≤ 10⁶, len(pat) ≤ 100.
 func CountOccurrencesConc(text, pat string) int {
 	// TODO: раздели [0, len(text)-len(pat)] на чанки между горутинами; каждая
 	// считает вхождения в своём диапазоне начал и пишет в свою ячейку; в конце

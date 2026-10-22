@@ -284,17 +284,20 @@ func neutral(text, fn string) string {
 // Такие задачи различало только имя (ModExp в криптографии и PowMod в теории
 // чисел), и у одного и того же условия оказалось бы два «правильных» шаблона.
 // Остаётся первая по порядку банка; что выброшено, команда печатает.
+// Строки «Ограничения:» не сравниваются: разные пределы у одного условия
+// не делают из него две задачи с разными шаблонами.
 func dedupe(ps []problem) ([]problem, []string) {
 	first := map[string]problem{}
 	var out []problem
 	var dups []string
 	for _, p := range ps {
-		if kept, ok := first[p.Text]; ok {
+		key := withoutLimits(p.Text)
+		if kept, ok := first[key]; ok {
 			dups = append(dups, fmt.Sprintf("условия %s.%s и %s.%s совпали — в банке остаётся первое",
 				kept.Pkg, kept.Fn, p.Pkg, p.Fn))
 			continue
 		}
-		first[p.Text] = p
+		first[key] = p
 		out = append(out, p)
 	}
 	return out, dups

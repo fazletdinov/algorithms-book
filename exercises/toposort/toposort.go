@@ -78,6 +78,8 @@ func FindOrderLexSmallest(numCourses int, prerequisites [][]int) []int {
 // Пример: ["wrt","wrf","er","ett","rftt"] -> "wertf";
 // ["z","x","z"] -> "" (противоречие).
 //
+// Ограничения: len(words) ≤ 10⁴, суммарная длина слов ≤ 10⁵, буквы — строчные латинские.
+//
 // Ожидаемая сложность: O(C), где C — суммарная длина всех слов.
 func AlienOrder(words []string) string {
 	// TODO: собери множество всех букв. Для каждой пары соседних слов w1, w2

@@ -9,6 +9,8 @@ package linkedlist
 //
 // Пример: 1->2->3->nil  ==>  3->2->1->nil.
 //
+// Ограничения: до 10⁵ узлов.
+//
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func ReverseList(head *ListNode) *ListNode {
 	// TODO: иди по списку, на каждом шаге перенаправляя Next текущего узла
@@ -21,6 +23,8 @@ func ReverseList(head *ListNode) *ListNode {
 // меняется.
 //
 // Пример: 1->2->3->4->5, p=2, q=4  ==>  1->4->3->2->5.
+//
+// Ограничения: до 10⁵ узлов, 1 ≤ p ≤ q ≤ длины списка.
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func ReverseSublist(head *ListNode, p, q int) *ListNode {
@@ -36,6 +40,8 @@ func ReverseSublist(head *ListNode, p, q int) *ListNode {
 // Пример: 1->2->3->4->5, k=2  ==>  2->1->4->3->5.
 // Пример: 1->2->3->4->5, k=3  ==>  3->2->1->4->5.
 //
+// Ограничения: до 10⁵ узлов, 1 ≤ k ≤ 10⁵.
+//
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func ReverseKGroup(head *ListNode, k int) *ListNode {
 	// TODO: для каждой группы сначала проверь, что впереди есть k узлов; если
@@ -50,6 +56,8 @@ func ReverseKGroup(head *ListNode, k int) *ListNode {
 // не ждёт, что проверка что-то меняет.
 //
 // Пример: [1,2,2,1] -> true; [1,2,3] -> false; [] -> true; [1] -> true.
+//
+// Ограничения: до 10⁵ узлов.
 //
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func IsPalindrome(head *ListNode) bool {

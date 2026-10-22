@@ -61,6 +61,8 @@ func (r *Ring) Get(key string) string {
 //
 // Пример: при before = ModShard на 10 узлах и after = ModShard на 11 доля
 // около 0.9 — остаток от деления перетасовывает почти всё.
+//
+// Ограничения: len(keys) ≤ 10⁵.
 func MovedFraction(keys []string, before, after func(string) string) float64 {
 	// TODO: посчитай ключи, у которых before(k) != after(k).
 	panic("TODO: реализуй MovedFraction")
@@ -75,6 +77,8 @@ func MovedFraction(keys []string, before, after func(string) string) float64 {
 // номерам корзин вперёд; последний номер, не вышедший за buckets, — ответ.
 // Шаг: key = key*2862933555777941757 + 1, затем
 // j = (b+1) * (2^31 / ((key >> 33) + 1)) в арифметике с плавающей точкой.
+//
+// Ограничения: key — любой uint64, buckets ≤ 2³¹.
 //
 // Ожидаемая сложность: O(log buckets) по времени, O(1) по памяти.
 func JumpHash(key uint64, buckets int) int {

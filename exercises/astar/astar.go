@@ -15,6 +15,8 @@ package astar
 // Подсказка: используй A* с допустимой манхэттенской эвристикой
 // h = |Δr| + |Δc| и мин-кучей по f = g + h.
 //
+// Ограничения: R, C ≤ 500, grid[r][c] ∈ {0, 1}.
+//
 // Ожидаемая сложность: O(R·C·log(R·C)).
 func ShortestPath(grid [][]int) int {
 	// TODO: A* — приоритетная очередь по f = g + h; g[r][c] = число шагов до
@@ -32,6 +34,8 @@ func ShortestPath(grid [][]int) int {
 //
 // Пример: ManhattanDistance(0, 0, 2, 3) == 5.
 //
+// Ограничения: |r1|, |c1|, |r2|, |c2| ≤ 10⁹.
+//
 // Ожидаемая сложность: O(1).
 func ManhattanDistance(r1, c1, r2, c2 int) int {
 	// TODO: верни сумму модулей разностей координат.
@@ -48,6 +52,8 @@ func ManhattanDistance(r1, c1, r2, c2 int) int {
 //
 // Пример: для сетки {{0,0},{1,0}} PathExists вернёт true,
 // а для {{0,1},{1,0}} — false (цель отрезана стенами).
+//
+// Ограничения: R, C ≤ 1000, grid[r][c] ∈ {0, 1}.
 //
 // Ожидаемая сложность: O(R·C).
 func PathExists(grid [][]int) bool {

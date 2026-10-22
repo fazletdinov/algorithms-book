@@ -20,6 +20,8 @@ package combinatorics
 //
 // Пример: Binomial(5, 2) = 10; Binomial(5, 7) = 0; Binomial(61, 30) = C(61, 31).
 //
+// Ограничения: n ≤ 61, k — любое int.
+//
 // Ожидаемая сложность: O(min(k, n−k)) умножений, без факториалов.
 func Binomial(n, k int) int {
 	// TODO: сведи k к min(k, n−k) (симметрия C(n,k) = C(n,n−k)), затем
@@ -34,6 +36,8 @@ func Binomial(n, k int) int {
 //
 // Пример: Permutations(5, 2) = 20; Permutations(5, 5) = 120; Permutations(5, 0) = 1.
 //
+// Ограничения: n ≤ 20, k — любое int.
+//
 // Ожидаемая сложность: O(k) умножений.
 func Permutations(n, k int) int {
 	// TODO: правило произведения — перемножь k убывающих сомножителей:
@@ -47,6 +51,8 @@ func Permutations(n, k int) int {
 //
 // Пример: CountDivisibleByAny(30, []int{2, 3, 5}) = 22;
 // CountDivisibleByAny(10, []int{2, 2, 0}) = 5.
+//
+// Ограничения: n ≤ 10¹⁸, len(divisors) ≤ 15, |divisors[i]| < 2⁶².
 //
 // Ожидаемая сложность: O(2^m · m · log n), где m — число различных делителей.
 func CountDivisibleByAny(n int, divisors []int) int {
@@ -65,6 +71,8 @@ func CountDivisibleByAny(n int, divisors []int) int {
 // верни 0. Гарантируется n <= 20 (дальше D(n) не влезает в int64).
 //
 // Пример: Derangements(3) = 2; Derangements(4) = 9; Derangements(5) = 44.
+//
+// Ограничения: n ≤ 20.
 //
 // Ожидаемая сложность: O(n) времени, O(1) памяти.
 func Derangements(n int) int {

@@ -87,6 +87,8 @@ func KClosestPoints(points [][]int, k int) [][]int {
 // Пример: arr=[1,2,3,4,5], k=4, x=3 -> [1,2,3,4];
 // arr=[1,2,3,4,5], k=4, x=-1 -> [1,2,3,4].
 //
+// Ограничения: 1 ≤ k ≤ len(arr) ≤ 10⁵, |arr[i]|, |x| ≤ 10⁹.
+//
 // Ожидаемая сложность: O(log n + k) по времени бинарным поиском окна, либо
 // O(n log k) кучей; O(k) по памяти.
 func KClosestNumbers(arr []int, k, x int) []int {

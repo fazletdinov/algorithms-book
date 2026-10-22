@@ -24,6 +24,8 @@ func MergeSortSeq(a []int) []int {
 // MergeSortConc — то же, но половины сортируются в отдельных горутинах; ниже
 // порога cutoff переходи на MergeSortSeq. Результат обязан совпасть с
 // MergeSortSeq и проходить -race.
+//
+// Ограничения: len(a) ≤ 2·10⁶.
 func MergeSortConc(a []int) []int {
 	// TODO: база и cutoff → MergeSortSeq; иначе запусти две горутины на половины
 	// (каждая пишет в свою переменную l/r), дождись (WaitGroup) и слей.

@@ -29,6 +29,8 @@ func GCD(a, b int) int {
 //
 // Пример: LCM(4, 6) = 12.
 //
+// Ограничения: 0 ≤ a, b ≤ 10⁹ — ответ до 10¹⁸ помещается в int.
+//
 // Ожидаемая сложность: O(log(min(a, b))).
 func LCM(a, b int) int {
 	// TODO: LCM = |a / GCD(a,b) * b|. Дели ДО умножения, чтобы не переполниться.
@@ -49,6 +51,8 @@ func IsPrime(n int) bool {
 // по возрастанию. Если n < 2 — верни пустой срез.
 //
 // Пример: SieveOfEratosthenes(11) = [2, 3, 5, 7, 11].
+//
+// Ограничения: n ≤ 10⁷.
 //
 // Ожидаемая сложность: O(n log log n) по времени, O(n) по памяти.
 func SieveOfEratosthenes(n int) []int {

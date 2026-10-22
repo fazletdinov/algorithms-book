@@ -89,6 +89,14 @@ function boot(page, scripts, seed, rngSeed) {
   });
 }
 
+// fillEdges — три граничных случая собеседования: без них «К коду» закрыта так же, как без плана.
+function fillEdges(root, win, vals) {
+  root.querySelectorAll(".algo-mixed__edge").forEach((e, i) => {
+    e.value = (vals || ["пустой массив", "все равны", "k больше n"])[i] || "";
+    e.dispatchEvent(new win.Event("input"));
+  });
+}
+
 const click = (dom, node) => node.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
 
 async function main() {
@@ -384,6 +392,7 @@ async function raceFlag(bank) {
         const ta = widget.querySelector(".algo-mixed__plan-text");
         ta.value = "План: считаю частоты по чанкам параллельно, каждая горутина — своя карта, потом слияние под одним владельцем, без общей памяти.";
         ta.dispatchEvent(new w.Event("input"));
+        fillEdges(widget, w);
         click(dom, widget.querySelector(".algo-mixed__to-code"));
       }
       const ed = widget.querySelector('.algo-runner[data-pkg="' + p.p + '"]');
@@ -648,6 +657,13 @@ async function mockInterview(bank) {
   ta.value = "Иду окном по массиву: правая граница расширяет, левая догоняет при нарушении. " +
     "Держу частоты в массиве, инвариант — окно валидно после сжатия. Край — пустой вход.";
   ta.dispatchEvent(new dom.window.Event("input"));
+  // План есть, граничных случаев нет (или один пустой) — гейт держится нажатием.
+  if (w.querySelectorAll(".algo-mixed__edge").length !== 3) errors.push("собеседование: нет трёх полей граничных случаев");
+  if (!go.disabled) errors.push("собеседование: план без граничных случаев пускает к коду");
+  fillEdges(w, dom.window, ["пустой массив", "все равны", ""]);
+  click(dom, go);
+  if (w.querySelector(".algo-runner")) errors.push("собеседование: два граничных случая из трёх открыли редактор");
+  fillEdges(w, dom.window);
   if (go.disabled) errors.push("собеседование: полноценный план не открыл кнопку «К коду»");
   click(dom, go);
 
@@ -704,6 +720,7 @@ async function mockInterview(bank) {
     errors.push("собеседование: нет итога");
     return;
   }
+  if (!sum.textContent.includes("k больше n")) errors.push("собеседование: граничные случаи не попали в итог");
   const link = sum.querySelector(".algo-mixed__link");
   if (!link || link.getAttribute("href") !== p.c + ".html") errors.push("собеседование: после итога не открылась глава");
   if (p.h && !sum.textContent.includes(p.h.slice(0, 30))) errors.push("собеседование: после итога не показаны подсказки");
@@ -914,6 +931,7 @@ async function pairAfterMiss(bank) {
     const ta = w.querySelector(".algo-mixed__plan-text");
     ta.value = "Префиксные суммы и карта счётчиков: для каждого префикса ищу prefix − k среди прошлых, ответ копится по ходу.";
     ta.dispatchEvent(new r.dom.window.Event("input"));
+    fillEdges(w, r.dom.window);
     click(r.dom, w.querySelector(".algo-mixed__to-code"));
     const giveUp = w.querySelector(".algo-mixed__giveup");
     if (giveUp) click(r.dom, giveUp);

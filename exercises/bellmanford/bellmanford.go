@@ -14,6 +14,8 @@ package bellmanford
 //
 // Пример: n=3, edges=[[0,1,4],[0,2,5],[2,1,-3]], src=0, dst=1 -> (2, true).
 //
+// Ограничения: n ≤ 1000, len(edges) ≤ 5000, |w| ≤ 10⁴, 0 ≤ src, dst < n.
+//
 // Ожидаемая сложность: O(V · E).
 func ShortestPath(n int, edges [][]int, src, dst int) (int, bool) {
 	// TODO: инициализируй расстояния «бесконечностью», dist[src]=0; выполни
@@ -31,6 +33,8 @@ func ShortestPath(n int, edges [][]int, src, dst int) (int, bool) {
 //
 // Пример: n=2, edges=[[0,1,1],[1,0,-2]] -> true (цикл 0->1->0 весом -1).
 // Пример: n=3, edges=[[0,1,4],[0,2,5],[2,1,-3]] -> false (ациклический).
+//
+// Ограничения: n ≤ 1000, len(edges) ≤ 5000, |w| ≤ 10⁴.
 //
 // Ожидаемая сложность: O(V · E).
 func HasNegativeCycle(n int, edges [][]int) bool {
@@ -51,6 +55,8 @@ func HasNegativeCycle(n int, edges [][]int) bool {
 //
 // Пример (LeetCode 787): n=3, edges=[[0,1,100],[1,2,100],[0,2,500]],
 // src=0, dst=2, k=1 -> 500; те же данные при k=2 -> 200.
+//
+// Ограничения: n ≤ 100, len(edges) ≤ 5000, 0 ≤ k ≤ 100, |w| ≤ 10⁴, 0 ≤ src, dst < n.
 //
 // Ожидаемая сложность: O(k · E).
 func ShortestPathWithAtMostKEdges(n int, edges [][]int, src, dst, k int) int {

@@ -16,6 +16,8 @@ package grids
 //	0 1 0   -> 2 острова
 //	0 0 1
 //
+// Ограничения: rows, cols ≤ 300, grid[r][c] ∈ {0, 1}.
+//
 // Ожидаемая сложность: O(rows · cols).
 func NumIslands(grid [][]int) int {
 	// TODO: для каждой непосещённой клетки-суши увеличивай счётчик и
@@ -32,6 +34,8 @@ func NumIslands(grid [][]int) int {
 //	1 1 0 0
 //	1 0 0 1   -> 3
 //	0 0 1 1
+//
+// Ограничения: rows, cols ≤ 300, grid[r][c] ∈ {0, 1}.
 //
 // Ожидаемая сложность: O(rows · cols).
 func MaxAreaOfIsland(grid [][]int) int {
@@ -51,6 +55,8 @@ func MaxAreaOfIsland(grid [][]int) int {
 //	        1 1 0   sr=1, sc=1     2 2 0
 //	        1 0 1   newColor=2  -> 2 0 1
 //
+// Ограничения: rows, cols ≤ 300, 0 ≤ sr < rows, 0 ≤ sc < cols, 0 ≤ цвета ≤ 2¹⁶.
+//
 // Ожидаемая сложность: O(rows · cols).
 func FloodFill(image [][]int, sr, sc, newColor int) [][]int {
 	// TODO: запомни исходный цвет; если он равен newColor — верни image без
@@ -69,6 +75,8 @@ func FloodFill(image [][]int, sr, sc, newColor int) [][]int {
 //	1 1 0   -> 4
 //	0 1 1
 //
+// Ограничения: rows, cols ≤ 300, grid[r][c] ∈ {0, 1, 2}.
+//
 // Ожидаемая сложность: O(rows · cols).
 func RottingOranges(grid [][]int) int {
 	// TODO: multi-source BFS — загрузи в очередь все гнилые апельсины, обходи
@@ -84,6 +92,8 @@ func RottingOranges(grid [][]int) int {
 //
 //	0 1
 //	1 0   -> 2
+//
+// Ограничения: rows, cols ≤ 300, grid[r][c] ∈ {0, 1}.
 //
 // Ожидаемая сложность: O(rows · cols).
 func ShortestPathInBinaryMatrix(grid [][]int) int {

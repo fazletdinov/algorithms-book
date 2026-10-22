@@ -35,9 +35,9 @@ func TestNeutral(t *testing.T) {
 
 func TestDedupe(t *testing.T) {
 	ps := []problem{
-		{Pkg: "cryptography", Fn: "ModExp", Text: "Функция возвращает base^exp mod m."},
+		{Pkg: "cryptography", Fn: "ModExp", Text: "Функция возвращает base^exp mod m.\nОграничения: m < 2⁶³."},
 		{Pkg: "graphs", Fn: "BFS", Text: "Функция обходит граф."},
-		{Pkg: "numbertheory", Fn: "PowMod", Text: "Функция возвращает base^exp mod m."},
+		{Pkg: "numbertheory", Fn: "PowMod", Text: "Функция возвращает base^exp mod m.\nОграничения: m ≤ 3·10⁹."},
 	}
 	got, dups := dedupe(ps)
 	if len(got) != 2 || got[0].Fn != "ModExp" || got[1].Fn != "BFS" {
@@ -184,8 +184,8 @@ func TestCollectRealBankNewFields(t *testing.T) {
 			needs = append(needs, p.Pkg+"."+p.Fn+" -> "+strings.Join(p.Needs, ","))
 		}
 	}
-	if withComplexity != 177 {
-		t.Errorf("задач с эталоном сложности %d, ожидалось 177 (абзацев «Ожидаемая сложность:» стало больше или меньше — "+
+	if withComplexity != 200 {
+		t.Errorf("задач с эталоном сложности %d, ожидалось 200 (абзацев «Ожидаемая сложность:» стало больше или меньше — "+
 			"сверь с docs заготовок и поправь число)", withComplexity)
 	}
 	// n в банке — это needs из stubdoc (список пар лежит там: stubdoc/module_test.go, expectedNeeds);
@@ -233,6 +233,30 @@ var realMarks = map[string]struct {
 	"toposort.CanFinish":              {"topological-sort", nil},
 	"hashtable.TwoSum":                {"hash-table-structure", nil},
 	"hashtable.LongestConsecutive":    {"hash-table-structure", nil},
+	// fresh — задачи без разбора в книге (P3 аудита): глава-ответ задаёт «Шаблон:».
+	"fresh.BestClosingHour":       {"prefix-sums", nil},
+	"fresh.CableMovesToConnect":   {"graphs", nil},
+	"fresh.CanMergeLogs":          {"dynamic-programming", nil},
+	"fresh.ClosestPrices":         {"bst-structure", []string{"modified-binary-search"}},
+	"fresh.CountMagnetWords":      {"backtracking", []string{"subsets"}},
+	"fresh.CountSteadyPairs":      {"hash-table-structure", []string{"sorting"}},
+	"fresh.FastestRoutesCount":    {"graphs", nil},
+	"fresh.FurthestStop":          {"top-k-elements", []string{"heap-structure", "modified-binary-search"}},
+	"fresh.HIndex":                {"sorting", []string{"modified-binary-search"}},
+	"fresh.HeaviestLevel":         {"tree-bfs", []string{"tree-dfs"}},
+	"fresh.LastInCircle":          {"recursion", []string{"dynamic-programming"}},
+	"fresh.LongestWarmingSpan":    {"monotonic-stack", []string{"sorting"}},
+	"fresh.MaxOrdersInVan":        {"dynamic-programming", nil},
+	"fresh.MaxSatisfiedCustomers": {"sliding-window", []string{"prefix-sums"}},
+	"fresh.MaxTwinSum":            {"fast-slow-pointers", nil},
+	"fresh.MaxUniqueParts":        {"backtracking", nil},
+	"fresh.MinBoats":              {"two-pointers", []string{"greedy"}},
+	"fresh.MinBuildTime":          {"topological-sort", []string{"dynamic-programming"}},
+	"fresh.MinTicketCost":         {"dynamic-programming", nil},
+	"fresh.MinTimeForTrips":       {"modified-binary-search", nil},
+	"fresh.SplitBetweenOffices":   {"greedy", nil},
+	"fresh.TimeToNotifyAll":       {"tree-dfs", []string{"tree-bfs"}},
+	"fresh.TotalBusyTime":         {"merge-intervals", nil},
 }
 
 // Банк настоящих заготовок: размеченные функции получили ровно свою главу-ответ и свои

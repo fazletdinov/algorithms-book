@@ -99,6 +99,8 @@ func DailyTemperatures(temperatures []int) []int {
 // Итог всегда < 2n — отсюда амортизированная стоимость одного append = O(1).
 //
 // Пример: CountCopies(5) = 7 (копии при росте 1->2, 2->4, 4->8: 1+2+4).
+//
+// Ограничения: 0 ≤ n ≤ 10⁹.
 func CountCopies(n int) int {
 	// TODO: веди length и capacity (старт 1); при length == capacity
 	// прибавляй length к счётчику копий и удваивай capacity.

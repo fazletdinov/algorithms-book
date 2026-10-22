@@ -19,6 +19,8 @@ package npcomplete
 // Пример: nums=[3,8,2], chosen=[0,1], target=11 -> true (3+8=11).
 // nums=[3,8,2], chosen=[0,0], target=6 -> false (индекс повторяется).
 //
+// Ограничения: len(nums), len(chosen) ≤ 10⁵, |nums[i]| ≤ 10⁹.
+//
 // Ожидаемая сложность: O(len(nums) + len(chosen)) — ровно то, что делает
 // задачу «проверяемой за полином» и потому принадлежащей классу NP.
 func VerifySubsetSum(nums []int, chosen []int, target int) bool {
@@ -36,6 +38,8 @@ func VerifySubsetSum(nums []int, chosen []int, target int) bool {
 //
 // Пример: nums=[3,8,2], target=11 -> true (3+8); target=7 -> false.
 //
+// Ограничения: len(nums) ≤ 20, nums[i] ≤ 10⁹ — сумм слишком много для таблицы по суммам, остаётся перебор.
+//
 // Ожидаемая сложность: O(2ⁿ) в худшем случае — та самая стена NP из главы.
 func SubsetSumExact(nums []int, target int) bool {
 	// TODO: рекурсия «взять/не взять» nums[i], как hasSubsetSum в главе:
@@ -51,6 +55,8 @@ func SubsetSumExact(nums []int, target int) bool {
 // Возвращает число использованных корзин. Гарантируется 0 < weights[i] <= cap.
 //
 // Пример: weights=[4,8,1,4,2,1], cap=10 -> 2.
+//
+// Ограничения: len(weights) ≤ 5·10³, cap ≤ 10⁹.
 //
 // Ожидаемая сложность: O(n²) (n корзин, n весов). Это NP-трудный Bin Packing,
 // но FFD — доказуемое приближение ≤ 11/9·OPT + константа, не точный оптимум.
@@ -70,6 +76,8 @@ func FirstFitDecreasing(weights []int, cap int) int {
 // по возрастанию, без повторов.
 //
 // Пример: n=3, edges=[[0,1],[1,2],[0,2]] (треугольник) -> [0,1].
+//
+// Ограничения: n ≤ 10⁵, len(edges) ≤ 2·10⁵.
 //
 // Ожидаемая сложность: O(V + E). Vertex Cover NP-труден, точного полинома
 // нет; эта эвристика доказуемо не более чем вдвое хуже оптимума — рёбра, на
