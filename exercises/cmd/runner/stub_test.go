@@ -105,7 +105,7 @@ func TestHandleStubSlidingWindow(t *testing.T) {
 		t.Fatalf("funcs = %+v", r.Funcs)
 	}
 	first := r.Funcs[0]
-	if !slices.Equal(first.Tests, []string{"TestMaxSumSubarray"}) {
+	if !slices.Equal(first.Tests, []string{"TestMaxSumSubarray", "TestMaxSumSubarrayScales"}) {
 		t.Errorf("tests первой функции = %v", first.Tests)
 	}
 	if first.Hint != "Ожидаемая сложность: O(n) по времени, O(1) по памяти." {

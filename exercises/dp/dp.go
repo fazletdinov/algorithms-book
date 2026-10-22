@@ -18,6 +18,8 @@ package dp
 // рекуррента с пересекающимися подзадачами; рекурсия сверху вниз с запоминанием ответов
 // даёт тот же результат за то же O(n).
 //
+// Ограничения: 0 ≤ n ≤ 91 (ответ помещается в int64).
+//
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func ClimbStairs(n int) int {
 	// TODO: dp[i] = dp[i-1] + dp[i-2]; достаточно двух переменных.
@@ -43,6 +45,8 @@ func CoinChange(coins []int, amount int) int {
 //
 // Пример: a="abcde", b="ace" -> 3 ("ace").
 //
+// Ограничения: len(a), len(b) ≤ 10³.
+//
 // Ожидаемая сложность: O(len(a) · len(b)).
 func LongestCommonSubsequence(a, b string) int {
 	// TODO: 2D-таблица dp[i][j]; при совпадении символов — диагональ+1,
@@ -55,6 +59,8 @@ func LongestCommonSubsequence(a, b string) int {
 //
 // Пример: a="horse", b="ros" -> 3.
 //
+// Ограничения: len(a), len(b) ≤ 10³.
+//
 // Ожидаемая сложность: O(len(a) · len(b)).
 func EditDistance(a, b string) int {
 	// TODO: dp[i][j] — расстояние между префиксами; база dp[i][0]=i,
@@ -66,6 +72,8 @@ func EditDistance(a, b string) int {
 // возрастающей подпоследовательности.
 //
 // Пример: [10,9,2,5,3,7,101,18] -> 4 ([2,3,7,101]).
+//
+// Ограничения: len(nums) ≤ 2·10³.
 //
 // Ожидаемая сложность: O(n log n) (или O(n²) простым ДП).
 func LongestIncreasingSubsequence(nums []int) int {
@@ -81,6 +89,8 @@ func LongestIncreasingSubsequence(nums []int) int {
 //
 // Пример: weights=[1,3,4,5], values=[1,4,5,7], capacity=7 -> 9.
 //
+// Ограничения: len(weights) ≤ 100, capacity ≤ 1.1·10⁵.
+//
 // Ожидаемая сложность: O(n · capacity).
 func Knapsack01(weights, values []int, capacity int) int {
 	// TODO: 1D-массив dp[w]; для каждого предмета иди по w СВЕРХУ ВНИЗ
@@ -93,6 +103,8 @@ func Knapsack01(weights, values []int, capacity int) int {
 //
 // Пример: [2,7,9,3,1] -> 12 (2+9+1); [2,1,1,2] -> 4 (2+2); [] -> 0.
 //
+// Ограничения: len(nums) ≤ 2·10⁵, 0 ≤ nums[i] ≤ 10⁴.
+//
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func HouseRobber(nums []int) int {
 	// TODO: dp[i] = max(dp[i-1], dp[i-2] + nums[i]); достаточно двух переменных.
@@ -103,6 +115,8 @@ func HouseRobber(nums []int) int {
 // сетки m×n, если двигаться можно только вправо и вниз.
 //
 // Пример: m=3,n=7 -> 28; m=3,n=2 -> 3; m=1,n=1 -> 1.
+//
+// Ограничения: m, n ≥ 1, ответ помещается в int64 (сетка 34×34 — ещё да, 35×35 — уже нет).
 //
 // Ожидаемая сложность: O(m · n) по времени, O(n) по памяти.
 func UniquePaths(m, n int) int {
@@ -116,6 +130,8 @@ func UniquePaths(m, n int) int {
 // Пример: s="leetcode", dict=["leet","code"] -> true;
 // s="applepenapple", dict=["apple","pen"] -> true;
 // s="catsandog", dict=["cats","dog","sand","and","cat"] -> false.
+//
+// Ограничения: len(s) ≤ 300, len(dict) ≤ 10³, длина слова ≤ 20.
 //
 // Ожидаемая сложность: O(len(s)² · k), где k — стоимость сравнения слова.
 func WordBreak(s string, dict []string) bool {

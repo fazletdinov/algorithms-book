@@ -14,9 +14,9 @@ func TestPlainSlidingWindow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Ожидаемая сложность и «// TODO» убраны, а условие и пример остались: за примером
+	// Ожидаемая сложность и «// TODO» убраны, а условие, пример и ограничения остались: за ограничениями
 	// сразу идёт объявление, без пустой строки-разделителя от убранного абзаца.
-	const want = "// Пример: arr=[2,1,5,1,3,2], k=3 -> 9 (подмассив [5,1,3]).\nfunc MaxSumSubarray("
+	const want = "// Ограничения: len(arr) ≤ 4·10⁵, |arr[i]| ≤ 10⁹.\nfunc MaxSumSubarray("
 	if !strings.Contains(string(plain), want) {
 		t.Errorf("в Plain нет %q:\n%s", want, plain)
 	}

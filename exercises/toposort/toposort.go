@@ -15,6 +15,8 @@ package toposort
 // Пример: numCourses=4, prerequisites=[[1,0],[2,0],[3,1],[3,2]] ->
 // один из корректных порядков [0,1,2,3] (0 раньше 1 и 2, оба раньше 3).
 //
+// Ограничения: numCourses ≤ 2·10⁵, len(prerequisites) ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(V + E).
 func TopologicalSort(numCourses int, prerequisites [][]int) []int {
 	// TODO: алгоритм Кана. Построй список смежности (ребро b -> a) и массив
@@ -33,6 +35,8 @@ func TopologicalSort(numCourses int, prerequisites [][]int) []int {
 // в графе зависимостей цикла, то есть существует ли порядок, в котором каждое ребро
 // ведёт вперёд.
 //
+// Ограничения: numCourses ≤ 2·10⁵, len(prerequisites) ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(V + E).
 func CanFinish(numCourses int, prerequisites [][]int) bool {
 	// TODO: запусти алгоритм Кана и проверь, что обработаны все вершины,
@@ -49,6 +53,8 @@ func CanFinish(numCourses int, prerequisites [][]int) bool {
 //
 // Пример: numCourses=4, prerequisites=[[1,0],[2,0],[3,1],[3,2]] -> [0,1,2,3];
 // цикл [[0,1],[1,0]] -> [].
+//
+// Ограничения: numCourses ≤ 2·10⁵, len(prerequisites) ≤ 2·10⁵.
 //
 // Ожидаемая сложность: O(V + E + V*log V).
 func FindOrderLexSmallest(numCourses int, prerequisites [][]int) []int {

@@ -12,6 +12,8 @@ package graphs
 //
 // Пример: n=5, edges=[[0,1],[1,2],[3,4]] -> 2.
 //
+// Ограничения: n ≤ 2·10⁵, len(edges) ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(V + E).
 func CountComponents(n int, edges [][]int) int {
 	// TODO: построй список смежности, затем запускай BFS/DFS из каждой
@@ -35,6 +37,8 @@ func CountComponents(n int, edges [][]int) int {
 // другое ребро в уже посещённую вершину замыкает цикл. Второй способ — Union-Find: если
 // оба конца ребра уже в одном множестве, ребро замыкает цикл.
 //
+// Ограничения: n ≤ 2·10⁵, len(edges) ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(V + E).
 func HasCycleUndirected(n int, edges [][]int) bool {
 	// TODO: построй список смежности, где у соседа записан и номер ребра; запускай
@@ -51,6 +55,8 @@ func HasCycleUndirected(n int, edges [][]int) bool {
 //
 // Пример: n=6, edges=[[0,1],[0,2],[1,3],[2,4],[3,5]], start=0 -> [0,1,2,3,4,5].
 //
+// Ограничения: n ≤ 2·10⁵, len(edges) ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(V + E) (плюс O(E·log E) на сортировку соседей).
 func BFSOrder(n int, edges [][]int, start int) []int {
 	// TODO: построй список смежности, отсортируй соседей по возрастанию,
@@ -63,6 +69,8 @@ func BFSOrder(n int, edges [][]int, start int) []int {
 // Соседей каждой вершины перебираем по возрастанию.
 //
 // Пример: n=6, edges=[[0,1],[0,2],[1,3],[2,4],[3,5]], start=0 -> [0,1,3,5,2,4].
+//
+// Ограничения: n ≤ 2·10⁵, len(edges) ≤ 2·10⁵.
 //
 // Ожидаемая сложность: O(V + E) (плюс O(E·log E) на сортировку соседей).
 func DFSOrder(n int, edges [][]int, start int) []int {
@@ -79,7 +87,7 @@ func DFSOrder(n int, edges [][]int, start int) []int {
 // Пример: n=6, edges=[[0,1],[0,2],[1,3],[2,4],[3,5]], src=0, dst=5 -> 3;
 // до недостижимой вершины -> -1.
 //
-// Ограничения: n ≤ 10⁵, len(edges) ≤ 2·10⁵.
+// Ограничения: n ≤ 2·10⁵, len(edges) ≤ 2·10⁵.
 //
 // Ожидаемая сложность: O(V + E).
 func ShortestPathUnweighted(n int, edges [][]int, src, dst int) int {
@@ -94,6 +102,8 @@ func ShortestPathUnweighted(n int, edges [][]int, src, dst int) int {
 //
 // Пример: цикл 0-1-2-3-0 (edges=[[0,1],[1,2],[2,3],[3,0]]) -> true;
 // треугольник [[0,1],[1,2],[2,0]] -> false.
+//
+// Ограничения: n ≤ 2·10⁵, len(edges) ≤ 2·10⁵.
 //
 // Ожидаемая сложность: O(V + E).
 func IsBipartite(n int, edges [][]int) bool {

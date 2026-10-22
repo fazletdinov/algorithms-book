@@ -18,6 +18,8 @@ package slidingwindow
 //
 // Пример: arr=[2,1,5,1,3,2], k=3 -> 9 (подмассив [5,1,3]).
 //
+// Ограничения: len(arr) ≤ 4·10⁵, |arr[i]| ≤ 10⁹.
+//
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func MaxSumSubarray(arr []int, k int) int {
 	// TODO: реализуй инкрементальное окно: посчитай сумму первых k
@@ -29,6 +31,8 @@ func MaxSumSubarray(arr []int, k int) int {
 // содержащей не более k различных символов.
 //
 // Пример: s="araaci", k=2 -> 4 (подстрока "araa").
+//
+// Ограничения: len(s) ≤ 4·10⁵.
 //
 // Ожидаемая сложность: O(n) по времени, O(k) по памяти.
 func LongestSubstringKDistinct(s string, k int) int {
@@ -43,6 +47,8 @@ func LongestSubstringKDistinct(s string, k int) int {
 //
 // Пример: arr=[2,1,5,2,3,2], target=7 -> 2 (подмассив [5,2]); target=8 -> 3.
 //
+// Ограничения: len(arr) ≤ 4·10⁵, arr[i] ≤ 10⁹.
+//
 // Ожидаемая сложность: O(n) по времени, O(1) по памяти.
 func SmallestSubarrayWithSum(arr []int, target int) int {
 	// TODO: расширяй окно правой границей, накапливая сумму; пока сумма
@@ -54,6 +60,8 @@ func SmallestSubarrayWithSum(arr []int, target int) int {
 // повторяющихся символов.
 //
 // Пример: "abcabcbb" -> 3 ("abc"); "bbbbb" -> 1; "" -> 0; "pwwkew" -> 3.
+//
+// Ограничения: len(s) ≤ 2·10⁵.
 //
 // Ожидаемая сложность: O(n) по времени, O(σ) по памяти (σ — размер алфавита).
 func LongestSubstringNoRepeat(s string) int {

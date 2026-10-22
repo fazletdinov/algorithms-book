@@ -13,6 +13,8 @@ package intervals
 //
 // Пример: [[1,4],[2,5],[7,9]] -> [[1,5],[7,9]].
 //
+// Ограничения: len(intervals) ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(n log n) по времени.
 func MergeIntervals(intervals [][]int) [][]int {
 	// TODO: отсортируй интервалы по началу, затем проходи по ним,
@@ -25,6 +27,8 @@ func MergeIntervals(intervals [][]int) [][]int {
 // отсортированный по началу набор без пересечений.
 //
 // Пример: intervals=[[1,3],[5,7],[8,12]], newInterval=[4,6] -> [[1,3],[4,7],[8,12]].
+//
+// Ограничения: len(intervals) ≤ 2·10⁵.
 //
 // Ожидаемая сложность: O(n) по времени.
 func InsertInterval(intervals [][]int, newInterval []int) [][]int {
@@ -40,6 +44,8 @@ func InsertInterval(intervals [][]int, newInterval []int) [][]int {
 //
 // Пример: a=[[1,3],[5,6],[7,9]], b=[[2,3],[5,7]] -> [[2,3],[5,6],[7,7]].
 //
+// Ограничения: len(a), len(b) ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(n + m) по времени.
 func IntervalsIntersection(a, b [][]int) [][]int {
 	// TODO: иди двумя указателями по a и b; пересечение —
@@ -53,6 +59,8 @@ func IntervalsIntersection(a, b [][]int) [][]int {
 // Каждый интервал — это []int{start, end}. Для пустого входа возвращает true.
 //
 // Пример: [[1,4],[2,5]] -> false; [[1,4],[5,6]] -> true; [] -> true.
+//
+// Ограничения: len(intervals) ≤ 2·10⁵.
 //
 // Ожидаемая сложность: O(n log n) по времени.
 func CanAttendAllMeetings(intervals [][]int) bool {

@@ -10,6 +10,8 @@ package binarysearch
 // Search возвращает индекс target в отсортированном по возрастанию массиве,
 // либо -1, если элемента нет.
 //
+// Ограничения: len(arr) ≤ 10⁶; функцию вызывают много раз на одном массиве.
+//
 // Ожидаемая сложность: O(log n).
 func Search(arr []int, target int) int {
 	// TODO: классический бинарный поиск; mid := low + (high-low)/2,
@@ -22,6 +24,8 @@ func Search(arr []int, target int) int {
 // по возрастанию.
 //
 // Пример: arr=[1,3,8,10,15], key=12 -> 4 (элемент 15).
+//
+// Ограничения: len(arr) ≤ 10⁶; функцию вызывают много раз на одном массиве.
 //
 // Ожидаемая сложность: O(log n).
 func FindCeiling(arr []int, key int) int {
@@ -37,6 +41,8 @@ func FindCeiling(arr []int, key int) int {
 // Пример: arr=[1,3,8,10,15], target=12 -> 3 (элемент 10); target=0 -> -1;
 // target=8 -> 2.
 //
+// Ограничения: len(arr) ≤ 10⁶; функцию вызывают много раз на одном массиве.
+//
 // Ожидаемая сложность: O(log n).
 func FindFloor(arr []int, target int) int {
 	// TODO: пол стоит перед первым элементом > target: firstTrue с вопросом
@@ -49,6 +55,8 @@ func FindFloor(arr []int, target int) int {
 //
 // Пример: arr=[4,5,7,9,10,0,1,3], target=10 -> 4; target=3 -> 7;
 // target=6 -> -1.
+//
+// Ограничения: len(arr) ≤ 10⁶; функцию вызывают много раз на одном массиве.
 //
 // Ожидаемая сложность: O(log n).
 func SearchRotated(arr []int, target int) int {
@@ -77,6 +85,8 @@ func FindFirstLast(arr []int, target int) []int {
 // Аргумент x >= 0.
 //
 // Пример: x=16 -> 4; x=8 -> 2; x=0 -> 0; x=1 -> 1.
+//
+// Ограничения: 0 ≤ x ≤ math.MaxInt; функцию вызывают много раз.
 //
 // Ожидаемая сложность: O(log x).
 func IntSqrt(x int) int {

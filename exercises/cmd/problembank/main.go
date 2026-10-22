@@ -119,6 +119,17 @@ func main() {
 		path, len(problems), countPkgs(problems), skipped)
 }
 
+// withoutLimits — условие без строк «Ограничения: …».
+func withoutLimits(text string) string {
+	var keep []string
+	for _, line := range strings.Split(text, "\n") {
+		if !strings.HasPrefix(line, "Ограничения:") {
+			keep = append(keep, line)
+		}
+	}
+	return strings.Join(keep, "\n")
+}
+
 func countPkgs(ps []problem) int {
 	seen := map[string]bool{}
 	for _, p := range ps {
@@ -190,7 +201,9 @@ func collect(root string) ([]problem, int, error) {
 			text, hint := stubdoc.Statement(fn.Doc.Text())
 			// Порог — по исходному условию: он отсекает однострочные конструкторы, и
 			// замена длинного имени на «Функция» не должна выбрасывать LCS или Fib.
-			if len([]rune(text)) < minStatement {
+			// «Ограничения:» в длину не идут: строка размеров не делает однострочное
+			// «отсортируй массив» задачей, над которой есть о чём подумать.
+			if len([]rune(withoutLimits(text))) < minStatement {
 				skipped++
 				continue
 			}

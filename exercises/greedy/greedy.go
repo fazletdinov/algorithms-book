@@ -19,6 +19,8 @@ package greedy
 // можно сделать сразу, не перебирая варианты, — тот, что оставляет больше места остальным;
 // в главе о слиянии интервалов та же задача (LeetCode 435) стоит среди задач на отрезки.
 //
+// Ограничения: len(intervals) ≤ 10⁵, 0 ≤ start ≤ end ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(n log n).
 func MaxNonOverlapping(intervals [][]int) int {
 	// TODO: отсортируй по времени ОКОНЧАНИЯ и жадно бери интервал, чьё
@@ -46,6 +48,8 @@ func CanJump(nums []int) bool {
 //
 // Пример: [2,3,1,1,4] -> 2; [2,1] -> 1; [0] -> 0.
 //
+// Ограничения: len(nums) ≤ 2·10⁵, nums[i] ≤ 2·10⁵.
+//
 // Ожидаемая сложность: O(n).
 func MinJumps(nums []int) int {
 	// TODO: BFS по «уровням» — для текущего окна [start, end] веди самую
@@ -62,6 +66,8 @@ func MinJumps(nums []int) int {
 //
 // Подсказка: ответ — сумма всех положительных приростов цены между соседними днями.
 //
+// Ограничения: len(prices) ≤ 2·10⁵, 0 ≤ prices[i] ≤ 10⁴.
+//
 // Ожидаемая сложность: O(n).
 func MaxProfit(prices []int) int {
 	// TODO: пройди по соседним парам и прибавляй к ответу каждую
@@ -76,6 +82,8 @@ func MaxProfit(prices []int) int {
 //
 // Пример: values=[60,100,120], weights=[10,20,30], capacity=50 -> 240.0;
 // capacity=0 -> 0.0.
+//
+// Ограничения: len(values) ≤ 10⁵, 1 ≤ values[i], weights[i] ≤ 10⁴.
 //
 // Ожидаемая сложность: O(n log n).
 func FractionalKnapsack(values, weights []int, capacity int) float64 {

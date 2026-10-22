@@ -1,6 +1,9 @@
 package binheap
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestBuildHeap(t *testing.T) {
 	src := []int{9, 4, 7, 1, 8, 3, 6, 2, 5, 0}
@@ -32,6 +35,43 @@ func TestBuildHeap(t *testing.T) {
 	}
 	if h := BuildHeap(nil); h.Len() != 0 {
 		t.Errorf("BuildHeap(nil) Len() = %d, ожидалось 0", h.Len())
+	}
+}
+
+// TestBuildHeapFloydLayout — проверка способа, а не времени. Валидную кучу дают
+// и n вызовов Push (O(n log n)), и сортировка по возрастанию (O(n log n)), а
+// время их от O(n) на разумном входе не отличить: разница — лишний log, не класс.
+// Зато раскладки разные: просеивание вниз от len/2-1 к корню (Флойд) кладёт
+// элементы на свои места, отличные от раскладки n×Push и от отсортированного
+// среза. Вход — убывающий ряд, на нём три способа расходятся. Значения разные,
+// поэтому выбор при равных детях на раскладку не влияет.
+func TestBuildHeapFloydLayout(t *testing.T) {
+	src := []int{9, 8, 7, 6, 5, 4, 3, 2, 1, 0}
+	floyd := []int{0, 1, 3, 2, 5, 4, 7, 9, 6, 8} // siftDown(4), siftDown(3), …, siftDown(0)
+
+	// Сам вход обязан различать способы: раскладку n×Push и сортировки считаем
+	// здесь же, независимо от кода пакета.
+	var pushed []int
+	for _, v := range src {
+		pushed = append(pushed, v)
+		for i := len(pushed) - 1; i > 0 && pushed[(i-1)/2] > pushed[i]; i = (i - 1) / 2 {
+			pushed[i], pushed[(i-1)/2] = pushed[(i-1)/2], pushed[i]
+		}
+	}
+	sorted := slices.Sorted(slices.Values(src))
+	if slices.Equal(floyd, pushed) || slices.Equal(floyd, sorted) {
+		t.Fatalf("вход не различает способы: Флойд %v, n×Push %v, сортировка %v", floyd, pushed, sorted)
+	}
+
+	h := BuildHeap(src)
+	switch got := h.data; {
+	case slices.Equal(got, floyd):
+	case slices.Equal(got, pushed):
+		t.Fatalf("BuildHeap(%v): раскладка %v — это n вызовов Push, O(n log n); нужно просеивание вниз от len/2-1 к корню, O(n): %v", src, got, floyd)
+	case slices.Equal(got, sorted):
+		t.Fatalf("BuildHeap(%v): раскладка %v — это сортировка, O(n log n); нужно просеивание вниз от len/2-1 к корню, O(n): %v", src, got, floyd)
+	default:
+		t.Fatalf("BuildHeap(%v): раскладка %v, ожидалась раскладка просеивания вниз от len/2-1 к корню %v", src, got, floyd)
 	}
 }
 

@@ -4,7 +4,6 @@ package topk
 
 import (
 	"container/heap"
-	"sort"
 )
 
 // minHeap — min-куча целых: вершина минимальна.
@@ -69,20 +68,36 @@ func TopKFrequent(nums []int, k int) []int {
 	for _, num := range nums {
 		freq[num]++
 	}
-	type pair struct{ num, count int }
-	pairs := make([]pair, 0, len(freq))
+	// min-heap по частоте размера k: на вершине — самый редкий из k лучших
+	h := &freqHeap{}
 	for num, count := range freq {
-		pairs = append(pairs, pair{num, count})
+		if h.Len() < k {
+			heap.Push(h, freqPair{num, count})
+		} else if count > (*h)[0].count {
+			(*h)[0] = freqPair{num, count}
+			heap.Fix(h, 0)
+		}
 	}
-	sort.Slice(pairs, func(i, j int) bool { return pairs[i].count > pairs[j].count })
-	if k > len(pairs) {
-		k = len(pairs)
-	}
-	result := make([]int, k)
-	for i := 0; i < k; i++ {
-		result[i] = pairs[i].num
+	result := make([]int, h.Len())
+	for i, p := range *h {
+		result[i] = p.num
 	}
 	return result
+}
+
+type freqPair struct{ num, count int }
+
+type freqHeap []freqPair
+
+func (h freqHeap) Len() int            { return len(h) }
+func (h freqHeap) Less(i, j int) bool  { return h[i].count < h[j].count }
+func (h freqHeap) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }
+func (h *freqHeap) Push(x interface{}) { *h = append(*h, x.(freqPair)) }
+func (h *freqHeap) Pop() interface{} {
+	old := *h
+	p := old[len(old)-1]
+	*h = old[:len(old)-1]
+	return p
 }
 
 func KthLargest(nums []int, k int) int {
