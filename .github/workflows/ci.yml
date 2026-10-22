@@ -188,6 +188,9 @@ jobs:
         run: node scripts/gen-pairs.js --check
       # Стрелки карты курса — assets/course-map.js из «Эта глава стоит на …» глав; правка
       # «Вспомни» без перегенерации красит шаг.
+      # Гонка на большом входе: ответы перебора и оптимума совпадают, разрыв растёт с n, виджет строится.
+      - name: Гонки на большом входе
+        run: node scripts/race-check.js
       - name: Сверка course-map.js с главами
         run: node scripts/gen-course-map.js --check
 

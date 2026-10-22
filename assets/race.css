@@ -1,0 +1,44 @@
+/* Гонка на большом входе (race.js): две полосы в общем масштабе, счётчики операций, таблица по n. */
+.rc {
+  --rc-naive: var(--th-yellow, #fbbf24);
+  --rc-fast: var(--th-accent, #4ae08a);
+  margin: 1.4em 0 1.8em;
+  padding: 1em 1.2em 1.1em;
+  background: var(--th-surface, #141a26);
+  border: 1px solid var(--th-border, #283145);
+  border-radius: 12px;
+}
+.rc *, .rc *::before, .rc *::after { box-sizing: border-box; }
+.rc-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4em 0.8em; margin-bottom: 0.8em; }
+.rc-badge { font-size: 0.78em; font-weight: 700; padding: 0.2em 0.6em; border-radius: 999px;
+  background: color-mix(in srgb, var(--rc-fast) 18%, transparent); color: var(--rc-fast); }
+.rc-title { font-weight: 650; }
+.rc-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45em; margin-bottom: 0.6em; }
+.rc-bar__l { color: var(--th-muted, #8b93a7); font-size: 0.9em; }
+.rc-size, .rc-go {
+  font: inherit; font-size: 0.88em; cursor: pointer; padding: 0.35em 0.85em; border-radius: 8px;
+  border: 1px solid var(--th-border, #283145); background: var(--th-surface2, #1b2232); color: var(--th-text, #e6e9f2);
+}
+.rc-size { font-family: var(--mono-font, monospace); }
+.rc-size[aria-pressed="true"] { border-color: var(--rc-fast); box-shadow: 0 0 0 1px var(--rc-fast) inset; }
+.rc-go { margin-left: auto; background: var(--rc-fast); color: #0a0e16; border-color: var(--rc-fast); font-weight: 700; }
+.rc-go:disabled { opacity: 0.5; cursor: progress; }
+.rc-input { font-size: 0.85em; color: var(--th-muted, #8b93a7); margin-bottom: 0.9em; }
+
+.rc-lane { display: grid; grid-template-columns: minmax(0, 1fr) 8.5em; gap: 0.25em 0.8em; align-items: center; margin-bottom: 0.7em; }
+.rc-lane__name { grid-column: 1 / -1; font-size: 0.86em; }
+.rc-track { height: 14px; border-radius: 7px; background: #0f141f; border: 1px solid var(--th-border, #283145); overflow: hidden; }
+.rc-fill { height: 100%; width: 0; min-width: 3px; border-radius: 7px; }
+.rc-lane--naive .rc-fill { background: var(--rc-naive); }
+.rc-lane--fast .rc-fill { background: var(--rc-fast); }
+.rc-num { font-family: var(--mono-font, monospace); font-size: 0.88em; text-align: right; color: var(--th-text, #e6e9f2); }
+.rc-lane--done .rc-num::after { content: " ✓"; color: var(--rc-fast); }
+.rc-unit { font-size: 0.78em; color: var(--th-muted, #8b93a7); margin: -0.2em 0 0.7em; }
+.rc-verdict { min-height: 1.5em; font-size: 0.92em; }
+.rc-muted { color: var(--th-muted, #8b93a7); }
+.rc-bad { color: #f87171; }
+.rc-err { color: #f87171; margin: 0; }
+
+.rc .rc-table { margin: 0.8em 0 0; font-size: 0.85em; }
+.rc .rc-table td { font-family: var(--mono-font, monospace); text-align: right; }
+.rc .rc-table td:last-child { color: var(--rc-naive); font-weight: 700; }
