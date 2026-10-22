@@ -262,3 +262,61 @@ func TestIsBipartiteRandom(t *testing.T) {
 		}
 	}
 }
+
+func TestShortestPathRouteRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(1307))
+	for range 3000 {
+		n := rng.Intn(7) + 1
+		edges := randGraph(rng, n)
+		src, dst := rng.Intn(n), rng.Intn(n)
+		route := ShortestPathRoute(n, edges, src, dst)
+		checkRoute(t, n, edges, src, dst, route, bruteShortest(n, edges, src, dst))
+	}
+}
+
+// bellmanFord — модель для Dijkstra: n−1 проход релаксации по всем рёбрам, без
+// кучи и без «закрытых» вершин (на неотрицательных весах ответ тот же).
+func bellmanFord(n int, edges [][]int, src int) []int {
+	dist := make([]int, n)
+	for i := range dist {
+		dist[i] = -1
+	}
+	dist[src] = 0
+	for range n - 1 {
+		for _, e := range edges {
+			u, v, w := e[0], e[1], e[2]
+			if dist[u] != -1 && (dist[v] == -1 || dist[u]+w < dist[v]) {
+				dist[v] = dist[u] + w
+			}
+		}
+	}
+	return dist
+}
+
+// randWeighted — ориентированный мультиграф: до 3n рёбер со случайными концами (бывают
+// петли и повторы пары) и весами 0…9 — нули и равные веса дают ничьи в куче.
+func randWeighted(rng *rand.Rand, n int) [][]int {
+	edges := make([][]int, rng.Intn(3*n+1))
+	for i := range edges {
+		edges[i] = []int{rng.Intn(n), rng.Intn(n), rng.Intn(10)}
+	}
+	return edges
+}
+
+func TestDijkstraRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(1308))
+	for range 3000 {
+		n := rng.Intn(7) + 1
+		edges := randWeighted(rng, n)
+		src := rng.Intn(n)
+		got, want := Dijkstra(n, edges, src), bellmanFord(n, edges, src)
+		if len(got) != n {
+			t.Fatalf("Dijkstra(%d, %v, %d) = %v, ожидалось %v", n, edges, src, got, want)
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Fatalf("Dijkstra(%d, %v, %d) = %v, ожидалось %v", n, edges, src, got, want)
+			}
+		}
+	}
+}

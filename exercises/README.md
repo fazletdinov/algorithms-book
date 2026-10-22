@@ -213,7 +213,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `kwaymerge`     | `MergeKSortedArrays`, `KthSmallestInSortedArrays`, `SmallestRange`, `KthSmallestInMatrix` |
 | `subsets`       | `Subsets`, `SubsetsWithDup`, `Combinations`, `LetterCasePermutation` |
 | `backtracking`  | `Permutations`, `GenerateParentheses`, `CombinationSum`, `SolveNQueensCount`, `LetterCombinations` |
-| `graphs`        | `CountComponents`, `HasCycleUndirected`, `BFSOrder`, `DFSOrder`, `ShortestPathUnweighted`, `IsBipartite` |
+| `graphs`        | `CountComponents`, `HasCycleUndirected`, `BFSOrder`, `DFSOrder`, `ShortestPathUnweighted`, `IsBipartite`, `ShortestPathRoute`, `Dijkstra` |
 | `grids`         | `NumIslands`, `MaxAreaOfIsland`, `FloodFill`, `RottingOranges`, `ShortestPathInBinaryMatrix` |
 | `dijkstra`      | `ShortestPath`, `ShortestPathsFrom`, `NetworkDelayTime` |
 | `bellmanford`   | `ShortestPath` (отрицательные веса), `HasNegativeCycle`, `ShortestPathWithAtMostKEdges` |
@@ -229,11 +229,11 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `trie`          | `Trie.Insert` / `Search` / `StartsWith` / `Delete` / `WordsWithPrefix` |
 | `segtree`       | `SegmentTree` (`Update`/`Query`, сумма), `MinSegmentTree` (`Update`/`Query`, минимум), `LazySegmentTree` (`NewLazySegmentTree`/`RangeUpdate`/`RangeQuery`, отложенное распространение) |
 | `fenwick`       | `NewFenwick`, `Update`, `PrefixSum`, `RangeSum`, `CountInversions`, `CountSmallerToRight` |
-| `hashtable`     | `NewHashMap`, `HashMap.Put` / `Get` / `Delete` / `Len` (цепочки + ресайз по load factor) |
+| `hashtable`     | `NewHashMap`, `HashMap.Put` / `Get` / `Delete` / `Len` (цепочки + ресайз по load factor); приём: `TwoSum`, `GroupAnagrams`, `LongestConsecutive`, `FirstUniqueChar` |
 | `deque`         | `NewDeque`, `Deque.PushFront` / `PushBack` / `PopFront` / `PopBack` / `Front` / `Back` / `Len` (кольцевой буфер) |
 | `binheap`       | `NewHeap`, `BuildHeap` (heapify O(n)), `Heap.Push` / `Pop` / `Peek` / `Len` (бинарная min-куча, siftUp/siftDown) |
 | `dsu`           | `NewUnionFind`, `UnionFind.Find` / `Union` / `Connected` / `Count` (сжатие путей + по размеру) |
-| `bst`           | `NewBST`, `BST.Search` / `Insert` / `Delete` / `InOrder` (двоичное дерево поиска) |
+| `bst`           | `NewBST`, `BST.Search` / `Insert` / `Delete` / `InOrder` (двоичное дерево поиска), `IsValidBST`, `KthSmallest`, `LowestCommonAncestor` |
 | `avl`           | `NewAVL`, `AVL.Insert` / `Delete` / `Search` / `Height` / `InOrder` (самобалансировка поворотами вверх по пути) |
 | `sparsetable`   | `NewSparse`, `Sparse.Query` (идемпотентный RMQ-минимум за O(1)) |
 | `btree`         | `NewBTree`, `BTree.Search` / `Insert` / `Delete` / `InOrder` (split, заимствование/слияние, степень t) |
@@ -244,7 +244,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `wordcount`     | `FreqSeq` / `FreqConc` (подсчёт частот: worker pool + fan-in; урок «concurrent map writes») |
 | `parallelnqueens` | `CountNQueensSeq` / `CountNQueensConc` (N ферзей: fan-out по веткам, своя доска у горутины) |
 | `parallelsearch` | `CountOccurrencesSeq` / `CountOccurrencesConc` (поиск подстроки по чанкам; деление по началам, не по байтам) |
-| `listcrud`      | `InsertAt`, `Search`, `DeleteVal` (базовые операции односвязного списка через dummy-голову) |
+| `listcrud`      | `InsertAt`, `Search`, `DeleteVal` (базовые операции односвязного списка через dummy-голову), `RemoveNthFromEnd`, `MergeTwoSorted` |
 | `lru`           | `Constructor`, `LRUCache.Get` / `Put` (комбинация: хеш-таблица + двусвязный список, O(1)) |
 | `wordladder`    | `LadderLength` (комбинация: BFS по уровням + хеш-множество) |
 | `alienorder`    | `AlienOrder` (комбинация: граф из соседних слов + топологическая сортировка) |

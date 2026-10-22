@@ -164,10 +164,11 @@
     ["tree-bfs", "tree-dfs", "graphs", "recursion"],
     ["backtracking", "subsets", "combinatorics", "dynamic-programming", "complexity-classes"],
     ["greedy", "dynamic-programming", "merge-intervals", "complexity-classes"],
-    ["fast-slow-pointers", "reverse-linked-list", "linked-list-structure"],
+    ["fast-slow-pointers", "reverse-linked-list", "linked-list-structure", "hash-table-structure"],
     ["number-theory", "cryptography", "bit-manipulation", "combinatorics", "probability"],
     ["string-algorithms", "aho-corasick", "sliding-window"],
     ["fenwick-tree", "prefix-sums"],
+    ["hash-table-structure", "two-pointers", "prefix-sums", "sorting"],
   ];
   window.ALGO_CONFUSABLE = CONFUSABLE; // для mixed-check: имена групп — настоящие главы
   // Соседей — не больше двух: один вариант остаётся случайным. Три соседа сразу

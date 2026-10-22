@@ -266,6 +266,57 @@ O(1): каждую ссылку переписали ровно один раз,
 расширения [«Reverse Linked List»](reverse-linked-list.md), с визуализацией и задачами. Для ядра
 хватает этих строк.
 
+## ✂️ Две задачи на те же приёмы
+
+Ещё две частые задачи собеседований собираются из того, что уже есть в главе: узла перед
+местом правки, фиктивной головы и правила «сначала сохрани».
+
+### Удалить n-й узел с конца
+
+Удаляем, как в `deleteVal`, через узел **перед** целью. Трудность одна: позиция задана от
+конца, а ходить по списку можно только от головы.
+
+**Два прохода.** Первым проходом посчитай длину `L`. Узел перед n-м с конца стоит в `L − n`
+шагах от `dummy`. В `1→2→3→4→5` при `n = 2`: `L = 5`, три шага от `dummy` — узел `3`, вырезаем
+`4`, получаем `1→2→3→5`. Через `dummy` — потому что при `n = L` удаляется сама голова.
+
+**Один проход — два указателя с отставанием.** Поставь `fast` и `slow` на `dummy` и уведи
+`fast` на `n` узлов вперёд. Потом двигай оба по шагу, пока `fast.Next != nil`. Расстояние
+между ними всё время `n`, поэтому, когда `fast` стоит на последнем узле, `slow` стоит ровно
+перед n-м с конца. Тот же пример, `n = 2`:
+
+| Шаг | `slow` | `fast` |
+|---|---|---|
+| `fast` ушёл на 2 вперёд | `dummy` | `2` |
+| вместе | `1` | `3` |
+| вместе | `2` | `4` |
+| вместе — `fast` последний | `3` | `5` |
+
+`slow` на `3`: `slow.Next = slow.Next.Next` вырезает `4`. Оба способа — O(L) по времени и O(1)
+по памяти; второй просто обходится одним проходом. Два указателя на одном списке ещё вернутся в
+главе [«Быстрый и медленный указатели»](fast-slow-pointers.md).
+
+### Слить два отсортированных списка
+
+Даны `1→3→5` и `2→4`, нужен `1→2→3→4→5` — **из тех же узлов**, без копий. Ответ собирают,
+подвешивая узлы к его хвосту `tail`. Начинают с `dummy`: у пустого ответа хвоста нет, и без
+фиктивной головы первый узел пришлось бы обрабатывать отдельно — тот же спецслучай, что у
+вставки в начало.
+
+На каждом шаге сравниваем головы `a` и `b`, меньшую подвешиваем к `tail` и сдвигаем её список
+на узел вперёд:
+
+| Головы `a` / `b` | Подвесили | Ответ после шага |
+|---|---|---|
+| `1` / `2` | `1` из `a` | `1` |
+| `3` / `2` | `2` из `b` | `1→2` |
+| `3` / `4` | `3` из `a` | `1→2→3` |
+| `5` / `4` | `4` из `b` | `1→2→3→4` |
+| `5` / `nil` | остаток `a` целиком | `1→2→3→4→5` |
+
+Когда один список кончился, остаток второго уже отсортирован и подвешивается одной ссылкой.
+Ответ — `dummy.Next`. Каждый узел перецеплен один раз: O(n + m) по времени, O(1) по памяти.
+
 ## 🧠 Почему это корректно
 
 ### Фиктивная голова убирает спецслучай
@@ -309,6 +360,9 @@ O(1): каждую ссылку переписали ровно один раз,
 Базовые операции узлов (`InsertAt`, `Search`, `DeleteVal`) — в пакете `listcrud` (те же, что
 показаны виджетами выше), с одним отличием: `Search` там возвращает не узел, а его **индекс**
 (или `-1`) — в табличном тесте ожидаемое число записать проще, чем указатель на узел. Проход тот же, добавь счётчик.
+Там же две задачи из раздела [«Две задачи на те же приёмы»](#-две-задачи-на-те-же-приёмы):
+`RemoveNthFromEnd` и `MergeTwoSorted` (слияние обязано перецеплять узлы, а не копировать —
+тест это проверяет).
 
 ```bash
 cd exercises
@@ -336,7 +390,7 @@ go test -tags solution ./linkedlist/  # эталон
 Когда функция пройдёт тесты, выбери её в списке и нажми «🎞 Визуализировать» —
 увидишь пошаговую трассу выполнения твоего собственного кода.
 
-<div class="algo-runner" data-pkg="listcrud" data-trace-calls='[{"func": "InsertAt", "call": "InsertAt(&listcrud.ListNode{Val: 1, Next: &listcrud.ListNode{Val: 2, Next: &listcrud.ListNode{Val: 3, Next: nil}}}, 9, 1)"}, {"func": "Search", "call": "Search(&listcrud.ListNode{Val: 1, Next: &listcrud.ListNode{Val: 2, Next: &listcrud.ListNode{Val: 3, Next: &listcrud.ListNode{Val: 4, Next: nil}}}}, 3)"}, {"func": "DeleteVal", "call": "DeleteVal(&listcrud.ListNode{Val: 1, Next: &listcrud.ListNode{Val: 2, Next: &listcrud.ListNode{Val: 3, Next: &listcrud.ListNode{Val: 4, Next: nil}}}}, 3)"}]'></div>
+<div class="algo-runner" data-pkg="listcrud" data-trace-calls='[{"func": "InsertAt", "call": "InsertAt(&listcrud.ListNode{Val: 1, Next: &listcrud.ListNode{Val: 2, Next: &listcrud.ListNode{Val: 3, Next: nil}}}, 9, 1)"}, {"func": "Search", "call": "Search(&listcrud.ListNode{Val: 1, Next: &listcrud.ListNode{Val: 2, Next: &listcrud.ListNode{Val: 3, Next: &listcrud.ListNode{Val: 4, Next: nil}}}}, 3)"}, {"func": "DeleteVal", "call": "DeleteVal(&listcrud.ListNode{Val: 1, Next: &listcrud.ListNode{Val: 2, Next: &listcrud.ListNode{Val: 3, Next: &listcrud.ListNode{Val: 4, Next: nil}}}}, 3)"}, {"func": "RemoveNthFromEnd", "call": "RemoveNthFromEnd(&listcrud.ListNode{Val: 1, Next: &listcrud.ListNode{Val: 2, Next: &listcrud.ListNode{Val: 3, Next: &listcrud.ListNode{Val: 4, Next: &listcrud.ListNode{Val: 5, Next: nil}}}}}, 2)"}, {"func": "MergeTwoSorted", "call": "MergeTwoSorted(&listcrud.ListNode{Val: 1, Next: &listcrud.ListNode{Val: 3, Next: &listcrud.ListNode{Val: 5, Next: nil}}}, &listcrud.ListNode{Val: 2, Next: &listcrud.ListNode{Val: 4, Next: nil}})"}]'></div>
 
 ## 🧩 Задачи
 
@@ -378,6 +432,31 @@ go test -tags solution ./linkedlist/  # эталон
 <div class="algo-challenge" data-type="choice" data-options="Зациклится навсегда: условие выхода node == nil никогда не наступит|Вернёт nil, пройдя каждый узел по одному разу и дойдя до конца|Паника: рантайм Go заметит повторный заход в уже пройденный узел" data-answer="0" data-explain="Единственное условие остановки search — дойти до nil, а в кольце его нет: указатель будет бегать по кругу вечно. Повторный проход узла Go никак не детектирует. Проверка на цикл — Fast &amp; Slow Pointers: быстрый и медленный указатели встречаются внутри кольца.">
 <div class="algo-challenge__q">Последний узел случайно указал на середину списка (цикл). Что сделает <code>search</code> с отсутствующим значением?</div>
 </div>
+
+**Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
+сдана, добивка не обязательна.
+
+**🟢 Разогрев** — одна правка ссылок, как в `deleteVal`:
+
+- [Remove Linked List Elements](https://leetcode.com/problems/remove-linked-list-elements/) (LeetCode 203) — удалить ВСЕ узлы с заданным значением, через `dummy`
+- [Remove Duplicates from Sorted List](https://leetcode.com/problems/remove-duplicates-from-sorted-list/) (LeetCode 83)
+
+**🔵 Основа** — планка главы:
+
+- [Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/) (LeetCode 206) — разворот из раздела выше
+- [Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/) (LeetCode 21) — в тренажёре: `listcrud.MergeTwoSorted`
+- [Remove Nth Node From End of List](https://leetcode.com/problems/remove-nth-node-from-end-of-list/) (LeetCode 19) — в тренажёре: `listcrud.RemoveNthFromEnd`
+
+**🔴 Добивка** — когда основа идёт уверенно:
+
+- [Odd Even Linked List](https://leetcode.com/problems/odd-even-linked-list/) (LeetCode 328) — два хвоста, как у слияния, только наоборот: раскладываем узлы
+- [Add Two Numbers](https://leetcode.com/problems/add-two-numbers/) (LeetCode 2) — `dummy` и хвост, как у слияния, плюс перенос разряда
+
+> 🧭 **Не пошла задача из основы?** Почти всегда потерян остаток или голова. Нарисуй список
+> на бумаге и перед каждой перезаписью `Next` спроси: «до чего я после этого не дойду?» — это
+> правило из [трёх фактов](#-как-устроен-узел). Голова меняется (удалили первый узел, ответ
+> слияния пуст) — заведи `dummy`. В 19 не можешь сразу найти узел перед целью — начни с двух
+> проходов из раздела [«Удалить n-й узел с конца»](#удалить-n-й-узел-с-конца).
 
 > 🏁 **Глава сдана выше.** Дальше — только итог.
 

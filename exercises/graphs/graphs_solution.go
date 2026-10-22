@@ -2,7 +2,10 @@
 
 package graphs
 
-import "sort"
+import (
+	"container/heap"
+	"sort"
+)
 
 func sortedAdjacency(n int, edges [][]int) [][]int {
 	adj := make([][]int, n)
@@ -164,4 +167,92 @@ func IsBipartite(n int, edges [][]int) bool {
 		}
 	}
 	return true
+}
+
+func ShortestPathRoute(n int, edges [][]int, src, dst int) []int {
+	if src == dst {
+		return []int{src}
+	}
+	adj := sortedAdjacency(n, edges)
+	parent := make([]int, n) // parent[v] — из какой вершины BFS впервые пришёл в v
+	for i := range parent {
+		parent[i] = -1
+	}
+	visited := make([]bool, n)
+	visited[src] = true
+	queue := []int{src}
+	for len(queue) > 0 && !visited[dst] {
+		node := queue[0]
+		queue = queue[1:]
+		for _, next := range adj[node] {
+			if !visited[next] {
+				visited[next] = true
+				parent[next] = node
+				queue = append(queue, next)
+			}
+		}
+	}
+	if !visited[dst] {
+		return nil
+	}
+	var path []int
+	for v := dst; v != -1; v = parent[v] {
+		path = append(path, v) // от dst к src
+	}
+	for i, j := 0, len(path)-1; i < j; i, j = i+1, j-1 {
+		path[i], path[j] = path[j], path[i]
+	}
+	return path
+}
+
+// distItem — запись кучи Дейкстры: вершина и расстояние, с которым её положили.
+// Поля с большой буквы ради «🎞 Визуализировать»: трасса печатает переменные через
+// JSON, а неэкспортируемые поля он не видит — куча показывалась бы как [{}, {}].
+type distItem struct{ Node, Dist int }
+
+// distHeap — мин-куча по dist для container/heap.
+type distHeap []distItem
+
+func (h distHeap) Len() int           { return len(h) }
+func (h distHeap) Less(i, j int) bool { return h[i].Dist < h[j].Dist }
+func (h distHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *distHeap) Push(x any)        { *h = append(*h, x.(distItem)) }
+func (h *distHeap) Pop() any {
+	old := *h
+	it := old[len(old)-1]
+	*h = old[:len(old)-1]
+	return it
+}
+
+func Dijkstra(n int, edges [][]int, src int) []int {
+	const inf = 1 << 62
+	adj := make([][][2]int, n) // adj[u] — пары {v, w} рёбер u→v
+	for _, e := range edges {
+		adj[e[0]] = append(adj[e[0]], [2]int{e[1], e[2]})
+	}
+	dist := make([]int, n)
+	for i := range dist {
+		dist[i] = inf
+	}
+	dist[src] = 0
+	h := &distHeap{{Node: src, Dist: 0}}
+	for h.Len() > 0 {
+		cur := heap.Pop(h).(distItem)
+		if cur.Dist > dist[cur.Node] {
+			continue // устаревшая запись: вершину уже закрыли с меньшим dist
+		}
+		for _, e := range adj[cur.Node] {
+			to, w := e[0], e[1]
+			if nd := cur.Dist + w; nd < dist[to] {
+				dist[to] = nd
+				heap.Push(h, distItem{Node: to, Dist: nd})
+			}
+		}
+	}
+	for i := range dist {
+		if dist[i] == inf {
+			dist[i] = -1
+		}
+	}
+	return dist
 }

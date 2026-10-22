@@ -184,8 +184,8 @@ func TestCollectRealBankNewFields(t *testing.T) {
 			needs = append(needs, p.Pkg+"."+p.Fn+" -> "+strings.Join(p.Needs, ","))
 		}
 	}
-	if withComplexity != 166 {
-		t.Errorf("задач с эталоном сложности %d, ожидалось 166 (абзацев «Ожидаемая сложность:» стало больше или меньше — "+
+	if withComplexity != 177 {
+		t.Errorf("задач с эталоном сложности %d, ожидалось 177 (абзацев «Ожидаемая сложность:» стало больше или меньше — "+
 			"сверь с docs заготовок и поправь число)", withComplexity)
 	}
 	// n в банке — это needs из stubdoc (список пар лежит там: stubdoc/module_test.go, expectedNeeds);
@@ -231,6 +231,8 @@ var realMarks = map[string]struct {
 	"dp.ClimbStairs":                  {"dynamic-programming", []string{"recursion"}},
 	"prefixsum.CountSubarraysWithSum": {"prefix-sums", nil},
 	"toposort.CanFinish":              {"topological-sort", nil},
+	"hashtable.TwoSum":                {"hash-table-structure", nil},
+	"hashtable.LongestConsecutive":    {"hash-table-structure", nil},
 }
 
 // Банк настоящих заготовок: размеченные функции получили ровно свою главу-ответ и свои

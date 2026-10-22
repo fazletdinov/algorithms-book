@@ -1,6 +1,10 @@
 package hashtable
 
-import "testing"
+import (
+	"slices"
+	"strings"
+	"testing"
+)
 
 func TestHashMapBasic(t *testing.T) {
 	h := NewHashMap()
@@ -80,5 +84,120 @@ func TestHashMapNegativeKeys(t *testing.T) {
 		if v, ok := h.Get(k); !ok || v != k*10 {
 			t.Errorf("Get(%d) = (%d, %v), ожидалось (%d, true)", k, v, ok, k*10)
 		}
+	}
+}
+
+func TestTwoSum(t *testing.T) {
+	tests := []struct {
+		name   string
+		nums   []int
+		target int
+		want   []int
+	}{
+		{"пример главы", []int{3, 8, 4, 1, 9, 5}, 10, []int{3, 4}},
+		{"пара в начале", []int{2, 7, 11, 15}, 9, []int{0, 1}},
+		{"половина target встречается один раз — сама с собой не пара", []int{3, 2, 4}, 6, []int{1, 2}},
+		{"два одинаковых числа", []int{3, 3}, 6, []int{0, 1}},
+		{"отрицательные и ноль", []int{-3, 4, 3, 90}, 0, []int{0, 2}},
+		{"дополнение правее и левее", []int{5, 1, 7, 2}, 9, []int{2, 3}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := TwoSum(slices.Clone(tt.nums), tt.target); !slices.Equal(got, tt.want) {
+				t.Errorf("TwoSum(%v, %d) = %v, ожидалось %v", tt.nums, tt.target, got, tt.want)
+			}
+		})
+	}
+}
+
+// normGroups — группы в каноническом виде: слова внутри группы и сами группы
+// отсортированы. Порядок, в котором решение отдало группы, не важен.
+func normGroups(groups [][]string) [][]string {
+	out := make([][]string, 0, len(groups))
+	for _, g := range groups {
+		c := slices.Clone(g)
+		slices.Sort(c)
+		out = append(out, c)
+	}
+	slices.SortFunc(out, func(a, b []string) int {
+		return strings.Compare(strings.Join(a, ","), strings.Join(b, ","))
+	})
+	return out
+}
+
+func equalGroups(a, b [][]string) bool {
+	return slices.EqualFunc(normGroups(a), normGroups(b), slices.Equal[[]string])
+}
+
+func TestGroupAnagrams(t *testing.T) {
+	tests := []struct {
+		name  string
+		words []string
+		want  [][]string
+	}{
+		{"пример", []string{"eat", "tea", "tan", "ate", "nat", "bat"},
+			[][]string{{"eat", "tea", "ate"}, {"tan", "nat"}, {"bat"}}},
+		{"пустая строка — тоже слово", []string{""}, [][]string{{""}}},
+		{"одно слово", []string{"a"}, [][]string{{"a"}}},
+		{"одинаковые слова — в одну группу", []string{"ab", "ba", "ab"}, [][]string{{"ab", "ba", "ab"}}},
+		{"те же буквы, другое число повторов — не анаграммы", []string{"aab", "abb", "bab"},
+			[][]string{{"aab"}, {"abb", "bab"}}},
+		{"разная длина — разные группы", []string{"a", "aa", "aaa"}, [][]string{{"a"}, {"aa"}, {"aaa"}}},
+		{"равная сумма кодов букв — ещё не анаграммы", []string{"ad", "bc", "da"}, [][]string{{"ad", "da"}, {"bc"}}},
+		{"пустой вход", []string{}, [][]string{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := GroupAnagrams(slices.Clone(tt.words)); !equalGroups(got, tt.want) {
+				t.Errorf("GroupAnagrams(%q) = %q, ожидались группы %q", tt.words, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLongestConsecutive(t *testing.T) {
+	tests := []struct {
+		name string
+		nums []int
+		want int
+	}{
+		{"пример", []int{100, 4, 200, 1, 3, 2}, 4},
+		{"цепочка вперемешку с повтором", []int{0, 3, 7, 2, 5, 8, 4, 6, 0, 1}, 9},
+		{"повтор не удлиняет цепочку", []int{1, 2, 0, 1}, 3},
+		{"пусто", []int{}, 0},
+		{"одно число", []int{7}, 1},
+		{"все одинаковые", []int{5, 5, 5}, 1},
+		{"отрицательные", []int{-1, -3, -2, 10, 11}, 3},
+		{"две цепочки, длинная вторая", []int{1, 2, 10, 11, 12, 13}, 4},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := LongestConsecutive(slices.Clone(tt.nums)); got != tt.want {
+				t.Errorf("LongestConsecutive(%v) = %d, ожидалось %d", tt.nums, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFirstUniqueChar(t *testing.T) {
+	tests := []struct {
+		s    string
+		want int
+	}{
+		{"leetcode", 0},
+		{"loveleetcode", 2},
+		{"aabb", -1},
+		{"", -1},
+		{"z", 0},
+		{"aabbc", 4},
+		{"abab", -1},
+		{"abcabd", 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.s, func(t *testing.T) {
+			if got := FirstUniqueChar(tt.s); got != tt.want {
+				t.Errorf("FirstUniqueChar(%q) = %d, ожидалось %d", tt.s, got, tt.want)
+			}
+		})
 	}
 }

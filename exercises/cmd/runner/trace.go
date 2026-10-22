@@ -60,6 +60,12 @@ var traceTargets = map[string][]string{
 		"ApplyRangeAdds",
 		"MatrixRegionSums",
 	},
+	"hashtable": {
+		"TwoSum",
+		"GroupAnagrams",
+		"LongestConsecutive",
+		"FirstUniqueChar",
+	},
 	"stack": {
 		"IsValidBrackets",
 		"DecodeString",
@@ -82,10 +88,15 @@ var traceTargets = map[string][]string{
 		"ReverseKGroup",
 		"IsPalindrome",
 	},
+	"bst": {
+		"LowestCommonAncestor",
+	},
 	"listcrud": {
 		"InsertAt",
 		"Search",
 		"DeleteVal",
+		"RemoveNthFromEnd",
+		"MergeTwoSorted",
 	},
 	"treebfs": {
 		"LevelOrder",
@@ -170,6 +181,8 @@ var traceTargets = map[string][]string{
 		"BFSOrder",
 		"ShortestPathUnweighted",
 		"IsBipartite",
+		"ShortestPathRoute",
+		"Dijkstra",
 	},
 	"grids": {
 		"RottingOranges",

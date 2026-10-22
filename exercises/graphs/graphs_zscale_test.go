@@ -140,3 +140,53 @@ func checkIdentityOrder(t *testing.T, what string, order []int, n int) {
 		}
 	}
 }
+
+func TestShortestPathRouteScales(t *testing.T) {
+	edges := scalePath(scaleV, -1)
+	var got []int
+	scaletest.Within(t, scaletest.Limit,
+		"ShortestPathRoute(путь из 200000 вершин) — похоже на O(V·E) или O(V²) там, где нужен O(V + E)"+
+			" (замер: эталон ~15 мс, путь целиком в каждой записи очереди ~31 с, вставка в начало пути ~33 с)",
+		func() { got = ShortestPathRoute(scaleV, edges, 0, scaleV-1) })
+	checkIdentityOrder(t, "ShortestPathRoute(путь)", got, scaleV)
+}
+
+// scaleHub — вход против Дейкстры без кучи и без пропуска устаревших записей.
+// Из 0 рёбра 0→a_i веса i (i = 1…k), из каждой a_i — в узел h веса 3k−2i: каждая
+// следующая a_i улучшает dist[h] (3k−i), так что в куче копится k записей h, и все
+// a_i закрываются раньше h (dist[h] ≥ 2k > k). Из h — k рёбер веса 1 в листья b_j.
+// Без пропуска каждая из k записей h заново перебирает её k рёбер: k² вместо k.
+// Выбор ближайшей линейным проходом по dist — O(V²) на V = 2k + 2.
+func scaleHub(k int) (n int, edges [][]int, want []int) {
+	n = 2*k + 2
+	h := k + 1 // вершины: 0, a_i = i, h = k+1, b_j = k+1+j
+	edges = make([][]int, 0, 3*k)
+	want = make([]int, n)
+	for i := 1; i <= k; i++ {
+		edges = append(edges, []int{0, i, i}, []int{i, h, 3*k - 2*i})
+		want[i] = i
+	}
+	want[h] = 2 * k
+	for j := 1; j <= k; j++ {
+		edges = append(edges, []int{h, h + j, 1})
+		want[h+j] = 2*k + 1
+	}
+	return n, edges, want
+}
+
+func TestDijkstraScales(t *testing.T) {
+	n, edges, want := scaleHub(scaleV/2 - 1)
+	var got []int
+	scaletest.Within(t, scaletest.Limit,
+		"Dijkstra(200000 вершин, узел с 10⁵ входящими улучшениями и 10⁵ исходящими рёбрами) — похоже на O(V²) там, где нужен O((V + E)·log V)"+
+			" (замер: эталон ~60 мс, ближайшая линейным проходом ~28 с, без пропуска устаревших записей ~7.6 с)",
+		func() { got = Dijkstra(n, edges, 0) })
+	if len(got) != n {
+		t.Fatalf("Dijkstra: %d расстояний, ожидалось %d", len(got), n)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("Dijkstra: dist[%d] = %d, ожидалось %d", i, got[i], want[i])
+		}
+	}
+}

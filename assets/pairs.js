@@ -30,6 +30,7 @@
       why: "оба решения линейны, но хеш-таблица хранит виденные числа в памяти O(n), а указателям хватает O(1)" },
     { must: "массив не отсортирован, а сортировать нельзя или потеряются нужные исходные индексы",
       use: "hash-table-structure", not: "two-pointers",
+      notFor: ["hashtable.FirstUniqueChar", "hashtable.GroupAnagrams", "hashtable.LongestConsecutive"],
       why: "сортировка потеряет исходные индексы и сама стоит O(n log n), а таблица «значение → индекс» отвечает за один проход" },
     { must: "массив между запросами суммы не меняется, а запросов много",
       use: "prefix-sums", not: "fenwick-tree",

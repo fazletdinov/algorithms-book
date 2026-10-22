@@ -80,3 +80,81 @@ func (h *HashMap) resize(newCap int) {
 		}
 	}
 }
+
+func TwoSum(nums []int, target int) []int {
+	seen := make(map[int]int, len(nums)) // значение → индекс, где его видели
+	for i, x := range nums {
+		if j, ok := seen[target-x]; ok { // дополнение уже встречалось левее
+			return []int{j, i}
+		}
+		seen[x] = i // после проверки: элемент не встанет в пару сам с собой
+	}
+	return nil
+}
+
+func GroupAnagrams(words []string) [][]string {
+	groups := make(map[string][]string, len(words))
+	var order []string // ключи в порядке первого появления — ответ не зависит от обхода map
+	for _, w := range words {
+		key := sortedLetters(w)
+		if _, ok := groups[key]; !ok {
+			order = append(order, key)
+		}
+		groups[key] = append(groups[key], w)
+	}
+	res := make([][]string, 0, len(order))
+	for _, key := range order {
+		res = append(res, groups[key])
+	}
+	return res
+}
+
+// sortedLetters — каноническая форма слова: его буквы по алфавиту. Сортировка
+// подсчётом (букв всего 26) — O(k), без замыкания и без пакета sort.
+func sortedLetters(w string) string {
+	var count [26]int
+	for i := 0; i < len(w); i++ {
+		count[w[i]-'a']++
+	}
+	b := make([]byte, 0, len(w))
+	for c := 0; c < 26; c++ {
+		for range count[c] {
+			b = append(b, byte('a'+c))
+		}
+	}
+	return string(b)
+}
+
+func LongestConsecutive(nums []int) int {
+	set := make(map[int]bool, len(nums))
+	for _, x := range nums {
+		set[x] = true
+	}
+	best := 0
+	for x := range set { // по множеству, а не по nums: повторы начала не пересчитываются
+		if set[x-1] {
+			continue // x — не начало цепочки, её посчитают от начала
+		}
+		length := 1
+		for set[x+length] {
+			length++
+		}
+		if length > best {
+			best = length
+		}
+	}
+	return best
+}
+
+func FirstUniqueChar(s string) int {
+	var count [26]int
+	for i := 0; i < len(s); i++ {
+		count[s[i]-'a']++
+	}
+	for i := 0; i < len(s); i++ {
+		if count[s[i]-'a'] == 1 {
+			return i
+		}
+	}
+	return -1
+}

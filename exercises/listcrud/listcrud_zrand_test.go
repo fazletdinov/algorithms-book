@@ -3,6 +3,7 @@ package listcrud
 import (
 	"math/rand"
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -72,6 +73,52 @@ func TestListCRUDRandom(t *testing.T) {
 			if got := toSlice(head); !reflect.DeepEqual(got, model) {
 				t.Fatalf("run %d step %d: список = %v, модель = %v", run, step, got, model)
 			}
+		}
+	}
+}
+
+// Модель RemoveNthFromEnd — срез без элемента на месте len−n.
+func TestRemoveNthFromEndRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(17))
+	for range 2000 {
+		in := make([]int, 1+rng.Intn(12))
+		for i := range in {
+			in[i] = rng.Intn(4)
+		}
+		n := 1 + rng.Intn(len(in))
+		want := append(append([]int{}, in[:len(in)-n]...), in[len(in)-n+1:]...)
+		if got := toSlice(RemoveNthFromEnd(fromSlice(in), n)); !reflect.DeepEqual(got, want) {
+			t.Fatalf("RemoveNthFromEnd(%v, %d) = %v, ожидалось %v", in, n, got, want)
+		}
+	}
+}
+
+// sortedRandom — неубывающий срез длины до 9 из маленького пула (повторы часты).
+func sortedRandom(rng *rand.Rand) []int {
+	out := make([]int, rng.Intn(10))
+	for i := range out {
+		out[i] = rng.Intn(6)
+	}
+	sort.Ints(out)
+	return out
+}
+
+// Модель слияния — склеить два среза и отсортировать; плюс ответ обязан
+// состоять ровно из узлов входа.
+func TestMergeTwoSortedRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(19))
+	for range 2000 {
+		sa, sb := sortedRandom(rng), sortedRandom(rng)
+		want := append(append([]int{}, sa...), sb...)
+		sort.Ints(want)
+		a, b := fromSlice(sa), fromSlice(sb)
+		before := nodeSet(a, b)
+		res := MergeTwoSorted(a, b)
+		if got := toSlice(res); !reflect.DeepEqual(got, want) {
+			t.Fatalf("MergeTwoSorted(%v, %v) = %v, ожидалось %v", sa, sb, got, want)
+		}
+		if !reflect.DeepEqual(nodeSet(res), before) {
+			t.Fatalf("MergeTwoSorted(%v, %v): ответ собран не из узлов входа", sa, sb)
 		}
 	}
 }
