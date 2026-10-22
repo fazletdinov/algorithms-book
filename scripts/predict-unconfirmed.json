@@ -17,12 +17,12 @@
   "глава number-theory.md (base=2; exp=10; m=1000) — шаг 2, строка 5: if exp&1 == 1 {"
  ],
  "scheduler": [
-  "глава go-runtime.md () — шаг 4, строка 4: if g == nil {",
-  "глава go-runtime.md () — шаг 10, строка 7: if g == nil {"
+  "глава appendix-go-memory.md () — шаг 4, строка 4: if g == nil {",
+  "глава appendix-go-memory.md () — шаг 10, строка 7: if g == nil {"
  ],
  "segtree-query": [
-  "глава segment-tree-structure.md (array=1,3,5,7,9,11,13,15; l=2; r=5) — шаг 2, строка 5: if ql <= lo && hi <= qr {",
-  "глава segment-tree-structure.md (array=1,3,5,7,9,11,13,15; l=2; r=5) — шаг 5, строка 2: if hi < ql || qr < lo {",
+  "глава segment-tree.md (array=1,3,5,7,9,11,13,15; l=2; r=5) — шаг 2, строка 5: if ql <= lo && hi <= qr {",
+  "глава segment-tree.md (array=1,3,5,7,9,11,13,15; l=2; r=5) — шаг 5, строка 2: if hi < ql || qr < lo {",
   "глава segment-tree.md (array=2,1,5,3,4,7,6,8; l=1; r=4) — шаг 2, строка 5: if ql <= lo && hi <= qr {",
   "глава segment-tree.md (array=2,1,5,3,4,7,6,8; l=1; r=4) — шаг 5, строка 2: if hi < ql || qr < lo {"
  ],

@@ -17,13 +17,13 @@ func benchArr(n int) []int {
 	return a
 }
 
-// BenchmarkFenwickMixed — главный бенч: смешанный поток Update + RangeSum.
+// BenchmarkFenwickMixed — главный бенч: смешанный поток Add + RangeSum.
 //
-// Дерево Фенвика даёт O(log n) и на Update, и на PrefixSum/RangeSum. Наивная
-// альтернатива — держать обычный массив (Update за O(1)) и на каждый запрос
+// Дерево Фенвика даёт O(log n) и на Add, и на PrefixSum/RangeSum. Наивная
+// альтернатива — держать обычный массив (Add за O(1)) и на каждый запрос
 // суммы пересчитывать префикс линейным проходом за O(n).
 //
-// Бенч меряет время ОДНОЙ пары операций (Update + RangeSum), поэтому при
+// Бенч меряет время ОДНОЙ пары операций (Add + RangeSum), поэтому при
 // росте n в 10 раз (1k → 10k → 100k) правильная реализация O(log n) почти не
 // растёт (логарифм: плюс несколько наносекунд на шаг), а наивный
 // префикс-пересчёт O(n) растёт ~×10 на каждый шаг.
@@ -37,7 +37,7 @@ func BenchmarkFenwickMixed(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				idx := i % n
-				f.Update(idx, 1)
+				f.Add(idx, 1)
 				_ = f.RangeSum(0, idx)
 			}
 		})

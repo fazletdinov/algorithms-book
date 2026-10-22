@@ -20,10 +20,10 @@ func NewFenwick(arr []int) *Fenwick {
 	panic("TODO: реализуй NewFenwick")
 }
 
-// Update прибавляет delta к элементу с 0-индексом i (добавление, не запись).
-func (f *Fenwick) Update(i, delta int) {
+// Add прибавляет delta к элементу с 0-индексом i (добавление, не запись).
+func (f *Fenwick) Add(i, delta int) {
 	// TODO: иди вверх по дереву, прибавляя младший бит: i += i & (-i).
-	panic("TODO: реализуй Update")
+	panic("TODO: реализуй Add")
 }
 
 // PrefixSum возвращает сумму элементов [0..i] включительно (0-индексация).

@@ -70,10 +70,8 @@
 - [🌿 Префиксное дерево (Trie): устройство и построение](trie-structure.md)
 - [🌿 Префиксное дерево: разбор задач](trie.md)
 - [🧶 Ахо — Корасик: много шаблонов за один проход](aho-corasick.md)
-- [🌴 Дерево отрезков: устройство и операции](segment-tree-structure.md)
-- [🌴 Дерево отрезков: разбор задач](segment-tree.md)
-- [📏 Дерево Фенвика (BIT): устройство и операции](fenwick-tree-structure.md)
-- [📏 Дерево Фенвика: разбор задач](fenwick-tree.md)
+- [🌴 Дерево отрезков (Segment Tree)](segment-tree.md)
+- [📏 Дерево Фенвика (Fenwick Tree, BIT)](fenwick-tree.md)
 - [🔭 Разреженная таблица (Sparse Table): устройство и операции](sparse-table-structure.md)
 - [🗃️ B-дерево: устройство и операции](btree-structure.md)
 - [🎲 Вероятностные структуры: Bloom, HyperLogLog, count-min](probabilistic-structures.md)
@@ -96,8 +94,7 @@
 
 ## Дополнительные материалы
 
-- [🐹 Go-рантайм: планировщик, GC и аллокатор](go-runtime.md)
+- [🐹 Go изнутри: рантайм, память и профилирование](appendix-go-memory.md)
 - [🔧 Структуры данных в экосистеме Go](go-stdlib-structures.md)
 - [🔐 Криптография на практике: библиотеки Go](go-crypto-libraries.md)
-- [Приложение: память, GC и профилирование в Go](appendix-go-memory.md)
 - [Заключение](conclusion.md)

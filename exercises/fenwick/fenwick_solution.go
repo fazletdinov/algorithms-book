@@ -23,7 +23,7 @@ func (f *Fenwick) add(i, delta int) {
 	}
 }
 
-func (f *Fenwick) Update(i, delta int) {
+func (f *Fenwick) Add(i, delta int) {
 	f.add(i+1, delta)
 }
 

@@ -1,295 +1,250 @@
 # 🔐 Криптография на практике: библиотеки Go
 
-> Глава [«Криптография»](cryptography.md) — про то, *как это работает* (модульная арифметика, RSA,
-> Миллер–Рабин). Эта страница — про то, *чем пользоваться в реальном коде*. Здесь нет самодельных
-> реализаций: только готовые пакеты Go и правило, когда какой брать.
+> Как это устроено внутри (модульная арифметика, RSA, Миллер–Рабин), разобрано в главе
+> [«Криптография»](cryptography.md). Здесь — только что брать из библиотек в рабочем коде и какие
+> ошибки делают чаще всего. Своих реализаций здесь нет.
 
 ## Два правила важнее всех библиотек
 
-1. **Не пиши свою криптографию.** Бери `crypto/*` из стандартной библиотеки (и `golang.org/x/crypto`).
-   Их писали и годами проверяли специалисты: константное время против атак по времени, фаззинг,
-   аудиты. Самодельный шифр или паддинг — почти гарантированная дыра (см. [«Цена на практике»](cryptography.md#-цена-на-практике)).
-2. **Пароли хешируют, а не шифруют.** Шифр обратим — украли ключ, прочитали все пароли. Пароль
-   нужно проверять, не храня, — это медленный хеш с солью (`bcrypt`/`argon2`), а не `AES` и не `SHA-256`.
+1. **Не пиши свою криптографию.** Бери `crypto/*` из стандартной библиотеки и `golang.org/x/crypto`:
+   их проверяли годами (константное время, фаззинг, аудиты). Почему самодельное ломается —
+   [«Цена на практике»](cryptography.md#-цена-на-практике).
+2. **Пароли хешируют, а не шифруют.** Шифр обратим: украли ключ — прочитали все пароли. Нужен
+   медленный хеш с солью (`bcrypt`, `argon2id`), а не AES и не SHA-256.
 
 ## Карта: задача → пакет
 
 | Задача | Пакет | Что брать |
 |---|---|---|
-| Случайные ключи, токены, nonce | [`crypto/rand`](https://pkg.go.dev/crypto/rand) | `rand.Read` — **НЕ** `math/rand` (предсказуем) |
-| Хеш для целостности | [`crypto/sha256`](https://pkg.go.dev/crypto/sha256), [`crypto/sha3`](https://pkg.go.dev/crypto/sha3) | `sha256.Sum256` |
-| **Хеш пароля** | [`x/crypto/bcrypt`](https://pkg.go.dev/golang.org/x/crypto/bcrypt), [`x/crypto/argon2`](https://pkg.go.dev/golang.org/x/crypto/argon2) | `bcrypt` (просто) или `argon2id` (современнее) |
-| MAC (целостность + аутентичность) | [`crypto/hmac`](https://pkg.go.dev/crypto/hmac) | `hmac.New(sha256.New, key)` |
-| Симметричное шифрование | [`crypto/cipher`](https://pkg.go.dev/crypto/cipher) + [`crypto/aes`](https://pkg.go.dev/crypto/aes) | **AES-GCM** (AEAD) или [`x/crypto/chacha20poly1305`](https://pkg.go.dev/golang.org/x/crypto/chacha20poly1305) |
-| Асимметричное шифрование | [`crypto/rsa`](https://pkg.go.dev/crypto/rsa) | RSA-**OAEP** (не PKCS#1 v1.5) |
-| Цифровая подпись | [`crypto/ed25519`](https://pkg.go.dev/crypto/ed25519), [`crypto/ecdsa`](https://pkg.go.dev/crypto/ecdsa) | **Ed25519** по умолчанию |
-| Обмен ключами | [`crypto/ecdh`](https://pkg.go.dev/crypto/ecdh) | X25519 |
-| Деривация ключа | [`crypto/hkdf`](https://pkg.go.dev/crypto/hkdf) (из секрета), [`crypto/pbkdf2`](https://pkg.go.dev/crypto/pbkdf2) (из пароля) | Go 1.24+ |
-| Сравнение секретов/тегов | [`crypto/subtle`](https://pkg.go.dev/crypto/subtle) | `ConstantTimeCompare` — **не** `==` |
-| TLS | [`crypto/tls`](https://pkg.go.dev/crypto/tls) | готовый стек — не собирай руками |
-| Сертификаты | [`crypto/x509`](https://pkg.go.dev/crypto/x509) | разбор/проверка цепочек |
-| Пост-квант (KEM) | [`crypto/mlkem`](https://pkg.go.dev/crypto/mlkem) | ML-KEM, Go 1.24+ |
+| Ключи, токены, соли, nonce | [`crypto/rand`](https://pkg.go.dev/crypto/rand) | `rand.Read`, `rand.Text` — **не** `math/rand` |
+| **Хеш пароля** | [`x/crypto/bcrypt`](https://pkg.go.dev/golang.org/x/crypto/bcrypt), [`x/crypto/argon2`](https://pkg.go.dev/golang.org/x/crypto/argon2) | `bcrypt` (проще) или `argon2.IDKey` |
+| Подпись сообщения общим ключом (MAC) | [`crypto/hmac`](https://pkg.go.dev/crypto/hmac) | `hmac.New(sha256.New, key)`, `hmac.Equal` |
+| Шифрование данных | [`crypto/cipher`](https://pkg.go.dev/crypto/cipher) + [`crypto/aes`](https://pkg.go.dev/crypto/aes) | **AES-GCM** |
+| Хеш для целостности файла | [`crypto/sha256`](https://pkg.go.dev/crypto/sha256) | `sha256.Sum256` |
+| Цифровая подпись | [`crypto/ed25519`](https://pkg.go.dev/crypto/ed25519) | Ed25519 по умолчанию; RSA — только с PSS/OAEP |
+| Сравнение секретов | [`crypto/subtle`](https://pkg.go.dev/crypto/subtle) | `ConstantTimeCompare` — **не** `==` |
+| HTTPS | [`crypto/tls`](https://pkg.go.dev/crypto/tls) | готовый стек через `net/http` |
+| JWT | [`github.com/golang-jwt/jwt/v5`](https://pkg.go.dev/github.com/golang-jwt/jwt/v5) | `ParseWithClaims` с `WithValidMethods` |
 
-> `x/crypto` — это отдельный модуль `golang.org/x/crypto` (не входит в stdlib): `go get golang.org/x/crypto`.
+`x/crypto` — отдельный модуль, не stdlib: `go get golang.org/x/crypto`.
 
-## Случайность: `crypto/rand`, никогда `math/rand`
+## Случайность: только `crypto/rand`
 
-Всё секретное — ключи, соли, nonce, токены сессий, CSRF — берётся **только** из `crypto/rand`:
-`math/rand` детерминирован от сида, его выход предсказуем, и по нему восстанавливают токены.
+`math/rand` выдаёт последовательность, однозначно заданную сидом: по нескольким токенам её
+восстанавливают и предсказывают следующие. Всё секретное берётся из `crypto/rand`.
 
 ```go
-token := make([]byte, 32)
-if _, err := rand.Read(token); err != nil { // crypto/rand
-    return err
+token := rand.Text() // Go 1.24+: строка base32, не меньше 128 бит случайности
+
+key := make([]byte, 32)
+rand.Read(key) // с Go 1.24 никогда не возвращает ошибку: при сбое ОС программа падает
+```
+
+Это не «проигнорированная ошибка»: документация `rand.Read` с Go 1.24 обещает, что ошибки не
+будет никогда. В Go 1.23 и раньше ошибку проверяй.
+
+## Хеш пароля: `bcrypt` или `argon2id`
+
+Быстрый SHA-256 перебирают миллиардами вариантов в секунду. Медленный хеш делает каждую попытку
+дорогой, а соль — разной для одинаковых паролей. `bcrypt` хранит соль и стоимость внутри хеша,
+поэтому в БД кладут одну строку.
+
+```go
+func HashPassword(password string) ([]byte, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil { // например, пароль длиннее 72 байт — ErrPasswordTooLong
+		return nil, fmt.Errorf("hash password: %w", err)
+	}
+	return hash, nil
+}
+
+func CheckPassword(hash []byte, password string) (bool, error) {
+	err := bcrypt.CompareHashAndPassword(hash, []byte(password))
+	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+		return false, nil // неверный пароль — не сбой
+	}
+	if err != nil {
+		return false, fmt.Errorf("check password: %w", err) // битый хеш в БД
+	}
+	return true, nil
 }
 ```
 
-## Хеширование паролей: `bcrypt` / `argon2`
+Различай «пароль не подошёл» и «хеш испорчен»: первое — ответ 401, второе — ошибка в логах.
 
-Пароль нельзя ни шифровать, ни хешировать быстрым `SHA-256`: быстрый хеш перебирают миллиардами в
-секунду. Нужен **намеренно медленный** хеш **с солью** — тогда перебор дорог, а одинаковые пароли
-дают разные хеши. Соль и параметры стоимости `bcrypt` хранит **внутри** самого хеша.
-
-```go
-import "golang.org/x/crypto/bcrypt"
-
-// при регистрации — храним в БД hash (не пароль!):
-hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-
-// при входе — сверяем в константное время:
-err = bcrypt.CompareHashAndPassword(hash, []byte(password))
-// err == nil → пароль верный
-```
-
-Современная альтернатива — **`argon2id`** (`x/crypto/argon2`), победитель Password Hashing Competition:
-устойчив к перебору на GPU за счёт большого расхода памяти. `crypto/pbkdf2` (Go 1.24) — для деривации
-ключа из пароля (например, для шифрования файла), но для *хранения* паролей лучше `bcrypt`/`argon2`.
-
-Это ровно «медленная функция с солью» из главы [«Криптография»](cryptography.md#-цена-на-практике).
-
-## Симметричное шифрование: AES-GCM (AEAD)
-
-Для «зашифровать данные, которые потом расшифрую» — **AEAD** (authenticated encryption): шифрует **и**
-защищает от подмены одним тегом. В Go это AES-GCM. Ключевое правило: **nonce уникален на каждое
-сообщение** (повтор nonce в GCM катастрофичен) и берётся из `crypto/rand`.
+**`argon2id`** ещё и требует много памяти — перебор на видеокартах дорожает сильнее. Обёртки
+«сравни с хешем» у `x/crypto/argon2` нет: соль и параметры храни сам, сравнивай через `subtle`.
 
 ```go
-import ("crypto/aes"; "crypto/cipher"; "crypto/rand"; "io")
+const (
+	argonTime    = 3
+	argonMemory  = 64 * 1024 // КиБ = 64 МиБ: второй вариант RFC 9106 из документации IDKey
+	argonThreads = 4
+	argonKeyLen  = 32
+)
 
-block, _ := aes.NewCipher(key)   // key — 16/24/32 байта (AES-128/192/256)
-gcm, _ := cipher.NewGCM(block)
-nonce := make([]byte, gcm.NonceSize())
-io.ReadFull(rand.Reader, nonce)  // УНИКАЛЬНЫЙ nonce на каждое сообщение
-
-ct := gcm.Seal(nonce, nonce, plaintext, nil) // nonce ‖ шифртекст ‖ тег
-// расшифровка (проверит тег — при подмене вернёт ошибку):
-pt, err := gcm.Open(nil, ct[:gcm.NonceSize()], ct[gcm.NonceSize():], nil)
+salt := make([]byte, 16)
+rand.Read(salt)
+hash := argon2.IDKey([]byte(password), salt, argonTime, argonMemory, argonThreads, argonKeyLen)
+// при входе: тот же IDKey с сохранённой солью, затем
+ok := subtle.ConstantTimeCompare(got, hash) == 1
 ```
 
-Никогда не используй «сырой» режим **ECB** (`cipher.Block` напрямую): одинаковые блоки дают одинаковый
-шифр — узор виден насквозь. Всегда AEAD (GCM или ChaCha20-Poly1305 из `x/crypto`).
+## HMAC: подпись общим ключом
 
-## Асимметрика: подписи и обмен ключами
-
-- **Подпись — по умолчанию Ed25519** (`crypto/ed25519`): быстро, безопасно, нет опасного «выбора
-  кривой/параметров».
-
-  ```go
-  pub, priv, _ := ed25519.GenerateKey(rand.Reader)
-  sig := ed25519.Sign(priv, message)
-  ok := ed25519.Verify(pub, message, sig)
-  ```
-
-- **RSA** (`crypto/rsa`) — когда нужен именно он: шифрование только с паддингом **OAEP**
-  (`EncryptOAEP`), подпись — **PSS** (`SignPSS`); старый PKCS#1 v1.5 уязвим. Под капотом — `math/big`
-  (разбор [«Почему RSA в Go — это math/big»](go-stdlib-structures.md#-разбор-почему-rsa-в-go--это-mathbig)).
-- **Обмен ключами** — `crypto/ecdh` (X25519): стороны вычисляют общий секрет по формуле Диффи–Хеллмана,
-  затем прогоняют его через `crypto/hkdf`, чтобы получить симметричный ключ для AES-GCM.
-
-Это тот самый гибрид из главы: асимметрикой согласуют **ключ**, а данные шифруют быстрым симметричным
-AES/ChaCha.
-
-## Сравнение секретов — в константное время
-
-Сравнивать MAC-теги, токены и хеши обычным `==`/`bytes.Equal` **нельзя**: они завершаются на первом
-несовпавшем байте, и по времени ответа злоумышленник восстанавливает секрет побайтно (атака по
-времени). Для секретов — `crypto/subtle`:
+HMAC доказывает, что сообщение пришло от владельца ключа и не изменено: подписи вебхуков,
+ссылки «сбросить пароль», JWT с `HS256`.
 
 ```go
-if subtle.ConstantTimeCompare(gotMAC, wantMAC) == 1 { /* совпало */ }
+func Sign(key, msg []byte) []byte {
+	m := hmac.New(sha256.New, key)
+	m.Write(msg) // Write у hash.Hash по контракту не возвращает ошибку
+	return m.Sum(nil)
+}
+
+func Verify(key, msg, tag []byte) bool {
+	return hmac.Equal(Sign(key, msg), tag) // константное время, не bytes.Equal
+}
 ```
 
-(`hmac.Equal` внутри делает то же самое.)
+`==` и `bytes.Equal` выходят на первом несовпавшем байте, и по времени ответа тег подбирают
+побайтно. `hmac.Equal` и `subtle.ConstantTimeCompare` сравнивают все байты всегда.
 
-## 📎 Разбор: что происходит при TLS-хендшейке
+## Шифрование: AES-GCM
 
-`https://` «просто работает», но за этим — протокол, который **связывает всю крипту с этой страницы
-вместе**: асимметрику (согласовать ключ), сертификаты (доказать, что сервер настоящий) и симметрику
-(быстро шифровать данные). Разберём TLS 1.3 по шагам.
+AES-GCM шифрует **и** проверяет целостность одним тегом: подменённый шифртекст `Open` отвергнет
+ошибкой. Главная опасность GCM — повтор nonce с тем же ключом: он раскрывает данные. С Go 1.24
+`cipher.NewGCMWithRandomNonce` сам берёт случайный nonce на каждое сообщение и кладёт его перед
+шифртекстом — повторить его по ошибке нельзя.
 
-Задача: два незнакомца в открытой сети (где всё читается и подменяется) должны получить **общий
-секретный ключ** и убедиться, что говорят именно с тем, с кем думают. Ни один шаг нельзя доверить
-открытому каналу.
+```go
+func NewAEAD(key []byte) (cipher.AEAD, error) { // key — 16/24/32 байта: AES-128/192/256
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("aes: %w", err)
+	}
+	gcm, err := cipher.NewGCMWithRandomNonce(block)
+	if err != nil {
+		return nil, fmt.Errorf("gcm: %w", err)
+	}
+	return gcm, nil
+}
+
+func Encrypt(gcm cipher.AEAD, plaintext []byte) []byte {
+	return gcm.Seal(nil, nil, plaintext, nil) // nonce ‖ шифртекст ‖ тег
+}
+
+func Decrypt(gcm cipher.AEAD, ct []byte) ([]byte, error) {
+	pt, err := gcm.Open(nil, nil, ct, nil)
+	if err != nil { // подмена или чужой ключ
+		return nil, fmt.Errorf("decrypt: %w", err)
+	}
+	return pt, nil
+}
+```
+
+Документация ограничивает такой режим 2³² сообщениями на ключ. Со старым `cipher.NewGCM` nonce
+(`gcm.NonceSize()` байт) заполняешь из `crypto/rand` сам — на **каждое** сообщение. Блочный шифр
+напрямую (`block.Encrypt` по блокам, режим ECB) не используй: одинаковые блоки дают одинаковый
+шифртекст, узор данных виден.
+
+## TLS: всё уже собрано
+
+`https://` связывает всё сразу: обмен ключами по Диффи–Хеллману даёт общий секрет, сертификат и
+подпись над рукопожатием доказывают, что сервер настоящий, а данные дальше идут быстрым AES-GCM.
+Дорогая асимметрика работает один раз, дешёвая симметрика — на весь трафик. Шаги TLS 1.3:
 
 <div class="algo-viz" data-viz="tls-handshake"></div>
 
-Как это решается за один round-trip:
-
-1. **ClientHello / ServerHello + ECDHE.** Стороны обмениваются «ключевыми share» (публичные части
-   Диффи–Хеллмана на эллиптических кривых). Из своей приватной части и чужой публичной **каждый
-   вычисляет один и тот же общий секрет — но сам секрет по сети не проходит**. Подслушивающий видит
-   обе публичные части, а секрет из них не восстановит.
-2. **Сертификат + CertificateVerify.** Общего секрета мало: вдруг «сервер» — это MITM-посредник?
-   Сервер шлёт **сертификат** — свой публичный ключ, подписанный удостоверяющим центром (CA), — и
-   клиент проверяет подпись по цепочке до CA, которому доверяет ОС/браузер: так он знает, что ключ
-   принадлежит домену. Но сертификат публичен, посредник может просто переслать настоящий. Поэтому
-   сервер шлёт ещё **CertificateVerify** — подпись своим приватным ключом над всем рукопожатием,
-   включая оба share. Проверив её ключом из сертификата, клиент убеждается, что собеседник этим
-   ключом **владеет**, а подменить share посредник не мог: подписать за сервер ему нечем.
-3. **Finished + переход на симметрику.** Стороны подтверждают, что видели одинаковый handshake, и
-   дальше **весь трафик шифруется AES-GCM** ключами, выведенными из общего секрета (HKDF), —
-   быстрым симметричным шифром.
-
-Ключевая идея — **гибрид**: дорогой асимметрикой (ECDHE + подпись) согласовали ключ и подлинность
-**один раз**, а гигабайты данных гонят дешёвым симметричным AES-GCM. Ровно то, о чём глава
-[«Криптография»](cryptography.md): асимметрика для ключа, симметрика для данных.
-
-В Go всё это — `crypto/tls`, и собирать руками не надо:
+В Go это `crypto/tls`, и собирать его руками не нужно:
 
 ```go
-// сервер: HTTPS в одну строку
-log.Fatal(http.ListenAndServeTLS(":443", "cert.pem", "key.pem", handler))
+// сервер
+if err := http.ListenAndServeTLS(":443", "cert.pem", "key.pem", handler); err != nil {
+	return fmt.Errorf("serve https: %w", err)
+}
 
-// клиент: http.Client уже проверяет сертификаты по системным CA
+// клиент: http.Client сам проверяет сертификат по системным CA
 resp, err := http.Get("https://example.com")
+if err != nil {
+	return fmt.Errorf("get: %w", err)
+}
+defer resp.Body.Close()
 ```
 
-`tls.Config` лишь настраивает политику (минимальная версия, наборы шифров, mTLS с проверкой
-клиентских сертификатов). **Никогда** не ставь `InsecureSkipVerify: true` в проде — это отключает
-проверку сертификата (шаг 2) и открывает дверь MITM.
+`tls.Config` задаёт только политику: минимальную версию, проверку клиентских сертификатов.
+**Никогда** не ставь `InsecureSkipVerify: true` в проде — это отключает проверку сертификата, и
+посредник подменяет сервер незаметно.
 
-## 📎 Разбор: как устроен и проверяется JWT
+## JWT: подписанный, а не зашифрованный
 
-JWT (JSON Web Token) — самый частый формат токенов авторизации в бэкенде: после входа сервер выдаёт
-токен, клиент шлёт его с каждым запросом, сервер по нему понимает, кто это, **не ходя в БД**. Работает
-это потому, что токен **подписан** — подделать его нельзя.
-
-JWT — это три base64url-части через точку:
-
-```
-eyJhbGciOiJIUzI1NiJ9 . eyJzdWIiOiIxMjMiLCJyb2xlIjoiYWRtaW4ifQ . 4f2a…9c
-└──── header ─────┘     └──────── payload ─────────┘             └ signature ┘
-  {"alg":"HS256"}          {"sub":"123","role":"admin"}       HMAC(header.payload, secret)
-```
-
-- **header** — алгоритм подписи (`HS256` = HMAC-SHA256, `RS256` = RSA, `ES256` = ECDSA).
-- **payload** — «claims»: кто (`sub`), до какого времени валиден (`exp`), роли и прочее.
-- **signature** — подпись **над `header.payload`** ключом сервера.
-
-**Проверка** на каждом запросе: пересчитать подпись над `header.payload` тем же ключом и сравнить с
-третьей частью (в **константное время**). Совпало → payload не подменён, ему можно верить. При `HS256`
-ключ **симметричный** (один секрет и подписывает, и проверяет — для монолита); при `RS256`/`ES256`
-**асимметричный** (приватным подписывает эмитент, публичным проверяют все сервисы — для микросервисов).
+JWT — три части base64url через точку: `header.payload.signature`. Подпись считается над
+`header.payload` (`HS256` — HMAC с общим секретом, `RS256`/`ES256` — асимметричная подпись).
+Сервер верит payload только после проверки подписи. Сам payload читает кто угодно — это
+base64, а не шифр: пароли туда не кладут.
 
 ```go
-// проверка (github.com/golang-jwt/jwt/v5)
-tok, err := jwt.Parse(raw, func(t *jwt.Token) (any, error) {
-    // ЖЁСТКО фиксируем алгоритм — иначе атаки "alg":"none" и подмена RS256→HS256
-    if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-        return nil, fmt.Errorf("неожиданный alg")
-    }
-    return secret, nil
-})
-if err != nil || !tok.Valid { /* отказать в доступе */ }
+func Issue(secret []byte, userID string) (string, error) {
+	claims := jwt.RegisteredClaims{
+		Subject:   userID,
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
+}
+
+func ParseUser(secret []byte, raw string) (string, error) {
+	var claims jwt.RegisteredClaims
+	_, err := jwt.ParseWithClaims(raw, &claims,
+		func(*jwt.Token) (any, error) { return secret, nil },
+		jwt.WithValidMethods([]string{"HS256"}), // против "alg":"none" и подмены RS256→HS256
+		jwt.WithExpirationRequired(),
+	)
+	if err != nil {
+		return "", fmt.Errorf("parse token: %w", err)
+	}
+	return claims.Subject, nil
+}
 ```
 
-**Критично — типичные дыры JWT:**
+Главные дыры JWT:
 
-1. **Не проверять подпись** (взять payload как есть) — тогда любой подделает `"role":"admin"`. Всегда
-   `Parse`/`Verify`, а не просто «декодировать base64».
-2. **`"alg":"none"`** — старые библиотеки принимали токен вовсе без подписи. Фиксируй ожидаемый `alg`.
-3. **Путаница HS256/RS256** — если сервер не фиксирует алгоритм, атакующий подписывает токен по HS256,
-   используя **публичный** RSA-ключ как HMAC-секрет. Фиксируй тип метода (как выше).
-4. **JWT — это подпись, а не шифрование**: payload читается кем угодно (это base64, не секрет). Не клади
-   туда пароли и карты.
-5. **`exp` и отзыв.** Токен нельзя «отозвать» до истечения — держи `exp` коротким, а для logout нужен
-   серверный список отзыва либо короткоживущие токены + refresh.
+1. **Декодировать payload без проверки подписи** — любой допишет себе `"role":"admin"`.
+2. **Не фиксировать `alg`** — проходит токен без подписи (`none`), а при путанице HS256/RS256
+   атакующий подписывает токен публичным RSA-ключом как HMAC-секретом. Фиксируй список методов.
+3. **Длинный `exp`** — токен нельзя отозвать до истечения. Короткий access-токен и refresh-токен,
+   либо серверный список отзыва.
 
-Под капотом — знакомое: HS256 это [HMAC](go-crypto-libraries.md#карта-задача--пакет) поверх SHA-256,
-RS256/ES256 — [подписи](cryptography.md) на `math/big`/эллиптике. JWT лишь оборачивает их в формат.
-
-## 📎 Разбор: OAuth 2.0 / OIDC — вход без пароля приложению
-
-«Войти через Google» — это OAuth 2.0. Задача: стороннему приложению нужен доступ к твоим данным
-(например, к профилю), но **отдавать ему свой пароль нельзя**. OAuth устроен так, что пароль видит
-только доверенный Auth-сервер, а приложение получает ограниченный **токен**.
-
-Актуальный вариант для веба и мобильных — Authorization Code flow с **PKCE**:
+«Войти через Google» — OAuth 2.0 с PKCE (`golang.org/x/oauth2`): пароль видит только сервер
+авторизации, приложение получает токен, а `id_token` в OIDC — тот же JWT с теми же правилами
+проверки (плюс `iss` и `aud`).
 
 <div class="algo-viz" data-viz="oauth-flow"></div>
 
-1. **Redirect на Auth-сервер.** Приложение уводит пользователя на Auth-сервер (Google/Keycloak/…),
-   передавая `client_id`, права (`scope`), `state` (от CSRF) и **PKCE `code_challenge`**.
-2. **Логин и согласие — на Auth-сервере.** Пользователь вводит пароль и подтверждает доступ **там**,
-   а не в приложении. Приложение пароль не видит вообще.
-3. **Authorization code.** Auth-сервер редиректит обратно с одноразовым `code`.
-4. **Обмен по back-channel.** Приложение **со своего сервера** меняет `code` + `code_verifier` (PKCE)
-   на токены. PKCE гарантирует: перехваченный `code` бесполезен без `code_verifier`.
-5. **Токены.** Выдаются `access_token` (ходить в API), `refresh_token` (обновлять доступ) и — в
-   **OpenID Connect** — `id_token` (JWT с личностью пользователя).
-6. К API приложение ходит с `Authorization: Bearer <access_token>`.
+## Главные ошибки
 
-**OAuth vs OIDC:** OAuth 2.0 — про **доступ** (authorization: «что можно делать»); OIDC — надстройка
-про **личность** (authentication: «кто это»), добавляет `id_token` — тот самый
-[JWT](#-разбор-как-устроен-и-проверяется-jwt).
-
-В Go — `golang.org/x/oauth2` (+ `coreos/go-oidc` для проверки `id_token`):
-
-```go
-conf := &oauth2.Config{
-    ClientID: id, ClientSecret: secret,
-    Endpoint:    google.Endpoint,
-    RedirectURL: "https://app/callback",
-    Scopes:      []string{"openid", "email"},
-}
-verifier := oauth2.GenerateVerifier()                              // PKCE
-// 1) увести пользователя (state — от CSRF, обязателен):
-url := conf.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
-// 2) в callback обменять code на токены:
-tok, err := conf.Exchange(ctx, code, oauth2.VerifierOption(verifier))
-```
-
-**Типичные дыры:**
-
-1. **Без `state`** — CSRF: злоумышленник подсовывает свой `code`. `state` обязателен и проверяется.
-2. **Без PKCE** — перехваченный `code` можно обменять на токены. PKCE (`code_verifier`/`code_challenge`) закрывает это.
-3. **Implicit flow** (токен прямо в redirect) устарел и небезопасен — только Authorization Code + PKCE.
-4. **Не проверять `id_token`** — это JWT: к нему применимы [все правила JWT](#-разбор-как-устроен-и-проверяется-jwt) (подпись, фиксированный `alg`, `exp`, а также `issuer`/`audience`).
-
-## Смертельные ошибки (каждая — реальная брешь)
-
-1. **`math/rand` для токенов/ключей/nonce** — предсказуемо, восстанавливается. Только `crypto/rand`.
-2. **Пароль через `SHA-256`/`MD5`/шифрование** — быстрый хеш перебирается, шифр обратим. Только `bcrypt`/`argon2`.
-3. **Повтор nonce в AES-GCM** — раскрывает открытый текст и ломает аутентичность. Уникальный nonce на сообщение.
-4. **Режим ECB** — одинаковые блоки → одинаковый шифр, узор виден. Только AEAD.
-5. **Сравнение хешей/тегов через `==`** — атака по времени. `subtle.ConstantTimeCompare`.
-6. **Самодельные RSA/паддинг/протокол** — используй OAEP/PSS и `crypto/tls`.
-7. **`MD5`/`SHA-1` для подписей/сертификатов** — сломаны, только как «legacy-совместимость».
+1. **`math/rand` для токенов, ключей, соли** — предсказуемо. Только `crypto/rand`.
+2. **Пароль через SHA-256, MD5 или шифрование** — перебирается или расшифровывается. `bcrypt`/`argon2id`.
+3. **Повтор nonce в AES-GCM** — раскрывает данные. `NewGCMWithRandomNonce` или свежий nonce из `crypto/rand`.
+4. **ECB и самодельные режимы** — узор виден. Только AEAD (AES-GCM).
+5. **Секреты через `==`** — атака по времени. `hmac.Equal`, `subtle.ConstantTimeCompare`.
+6. **JWT без фиксированного `alg` или без проверки подписи** — подделка токена.
+7. **`InsecureSkipVerify: true`** — HTTPS без проверки сервера.
+8. **Ошибку крипто-вызова отбросили через `_`** — `aes.NewCipher` с ключом не той длины вернёт
+   ошибку и `nil`, и паника случится далеко от причины (см. [«Ревью чужого кода»](code-review.md)).
 
 ## Связь с книгой
 
-Математику этих библиотек ты уже разбирал: [быстрое возведение по модулю](cryptography.md#-визуализация-modexp--ядро-rsa)
-(ядро RSA/DH), [Миллер–Рабин](cryptography.md#-визуализация-как-миллер--рабин-ловит-число-кармайкла)
-(генерация простых для ключей), [обратный по модулю](cryptography.md#1-расширенный-евклид-и-обратный-по-модулю).
-Библиотеки берут те же идеи и делают их **безопасными в проде** — константное время, правильные
-паддинги, проверенные параметры. Твоя задача инженера — не переписать их, а **выбрать правильную**.
+Те же идеи без библиотечной брони: [быстрое возведение по модулю](cryptography.md#-визуализация-modexp--ядро-rsa)
+(ядро RSA и Диффи–Хеллмана), [Миллер–Рабин](cryptography.md#-визуализация-как-миллер--рабин-ловит-число-кармайкла)
+(простые для ключей), [обратный по модулю](cryptography.md#1-расширенный-евклид-и-обратный-по-модулю).
+RSA в Go стоит на `math/big` — [разбор](go-stdlib-structures.md#-разбор-почему-rsa-в-go--это-mathbig).
 
-> 🌍 **Где это в настоящем коде**
+> 🌍 **Где это в настоящем коде** (Go 1.24)
 >
-> - [`ConstantTimeCompare`](https://github.com/golang/go/blob/go1.24.0/src/crypto/internal/fips140/subtle/constant_time.go#L11) (Go 1.24) — XOR всех пар байтов копится в одну переменную, раннего выхода нет: время не зависит от того, где разница; `crypto/subtle` вызывает именно её.
-> - [`hmac.Equal`](https://github.com/golang/go/blob/go1.24.0/src/crypto/hmac/hmac.go#L60) — сравнение MAC-тегов — тот же `subtle.ConstantTimeCompare`.
-> - [`rand.Read`](https://github.com/golang/go/blob/go1.24.0/src/crypto/rand/rand.go#L66) — байты из генератора ОС; с Go 1.24 при сбое он роняет программу, а не возвращает ошибку.
-> - [`NewGCMWithRandomNonce`](https://github.com/golang/go/blob/go1.24.0/src/crypto/cipher/gcm.go#L93) — новое в Go 1.24: AES-GCM, который сам берёт случайный nonce на каждое сообщение и кладёт его перед шифртекстом.
+> - [`ConstantTimeCompare`](https://github.com/golang/go/blob/go1.24.0/src/crypto/internal/fips140/subtle/constant_time.go) — XOR всех пар байтов копится в одну переменную, раннего выхода нет; `crypto/subtle` вызывает её.
+> - [`hmac.Equal`](https://github.com/golang/go/blob/go1.24.0/src/crypto/hmac/hmac.go) — тот же `subtle.ConstantTimeCompare`.
+> - [`rand.Read`](https://github.com/golang/go/blob/go1.24.0/src/crypto/rand/rand.go) — байты из генератора ОС; при сбое роняет программу, а не возвращает ошибку. Рядом — [`rand.Text`](https://github.com/golang/go/blob/go1.24.0/src/crypto/rand/text.go).
+> - [`NewGCMWithRandomNonce`](https://github.com/golang/go/blob/go1.24.0/src/crypto/cipher/gcm.go) — AES-GCM со случайным nonce перед шифртекстом.
 
 ## 🧩 Задачи
 

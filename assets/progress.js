@@ -82,10 +82,8 @@
       { t: "Префиксное дерево: устройство", h: "trie-structure.html", lvl: "ext" },
       { t: "Префиксное дерево: разбор задач", h: "trie.html", lvl: "ext" },
       { t: "Ахо — Корасик", h: "aho-corasick.html", lvl: "ext" },
-      { t: "Дерево отрезков: устройство", h: "segment-tree-structure.html", lvl: "ref" },
-      { t: "Дерево отрезков: задачи", h: "segment-tree.html", lvl: "ref" },
-      { t: "Дерево Фенвика: устройство", h: "fenwick-tree-structure.html", lvl: "ref" },
-      { t: "Дерево Фенвика: задачи", h: "fenwick-tree.html", lvl: "ref" },
+      { t: "Дерево отрезков", h: "segment-tree.html", lvl: "ref" },
+      { t: "Дерево Фенвика", h: "fenwick-tree.html", lvl: "ref" },
       { t: "Разреженная таблица: устройство", h: "sparse-table-structure.html", lvl: "ref" },
       { t: "B-дерево: устройство", h: "btree-structure.html", lvl: "ref" },
       { t: "Вероятностные структуры", h: "probabilistic-structures.html", lvl: "ref" }
@@ -105,10 +103,9 @@
       { t: "Когда алгоритм не нужен", h: "skip-the-work.html", lvl: "ext" }
     ] },
     { g: "Дополнительные материалы", items: [
-      { t: "Go-рантайм: планировщик, GC", h: "go-runtime.html", lvl: "ext" },
+      { t: "Go изнутри: рантайм, память, профилирование", h: "appendix-go-memory.html", lvl: "ext" },
       { t: "Структуры в экосистеме Go", h: "go-stdlib-structures.html", lvl: "ext" },
       { t: "Криптография: библиотеки Go", h: "go-crypto-libraries.html", lvl: "ref" },
-      { t: "Приложение: память, GC, профилирование", h: "appendix-go-memory.html", lvl: "ext" },
       { t: "Заключение", h: "conclusion.html", lvl: "ext" }
     ] }
   ];

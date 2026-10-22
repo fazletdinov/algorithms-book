@@ -40,11 +40,8 @@
     "fast-slow-pointers": [
       "linked-list-structure"
     ],
-    "fenwick-tree-structure": [
-      "bit-manipulation"
-    ],
     "fenwick-tree": [
-      "fenwick-tree-structure"
+      "bit-manipulation"
     ],
     "graph-connectivity": [
       "graphs",
@@ -108,12 +105,9 @@
     "reverse-linked-list": [
       "linked-list-structure"
     ],
-    "segment-tree-structure": [
+    "segment-tree": [
       "heap-structure",
       "recursion"
-    ],
-    "segment-tree": [
-      "segment-tree-structure"
     ],
     "sliding-window": [
       "big-o"

@@ -228,7 +228,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `strmatch`      | `KMPSearch`, `RabinKarp`, `CountOccurrences`, `LongestPrefixSuffix`, `ZSearch` |
 | `trie`          | `Trie.Insert` / `Search` / `StartsWith` / `Delete` / `WordsWithPrefix` |
 | `segtree`       | `SegmentTree` (`Update`/`Query`, сумма), `MinSegmentTree` (`Update`/`Query`, минимум), `LazySegmentTree` (`NewLazySegmentTree`/`RangeUpdate`/`RangeQuery`, отложенное распространение) |
-| `fenwick`       | `NewFenwick`, `Update`, `PrefixSum`, `RangeSum`, `CountInversions`, `CountSmallerToRight` |
+| `fenwick`       | `NewFenwick`, `Add`, `PrefixSum`, `RangeSum`, `CountInversions`, `CountSmallerToRight` |
 | `hashtable`     | `NewHashMap`, `HashMap.Put` / `Get` / `Delete` / `Len` (цепочки + ресайз по load factor); приём: `TwoSum`, `GroupAnagrams`, `LongestConsecutive`, `FirstUniqueChar` |
 | `deque`         | `NewDeque`, `Deque.PushFront` / `PushBack` / `PopFront` / `PopBack` / `Front` / `Back` / `Len` (кольцевой буфер) |
 | `binheap`       | `NewHeap`, `BuildHeap` (heapify O(n)), `Heap.Push` / `Pop` / `Peek` / `Len` (бинарная min-куча, siftUp/siftDown) |

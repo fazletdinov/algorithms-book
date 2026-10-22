@@ -28,12 +28,6 @@ const GUIDE = "pattern-selection-guide";
 const GUIDE_HEADING = "## Путаемые пары: что обязано быть верно";
 const GUIDE_LINK = "pattern-selection-guide.md#путаемые-пары-что-обязано-быть-верно";
 const MAX_WORDS = 25;
-// Ключ ряда — глава-ответ банка (по нему ищет смешанная тренировка и сверяется CONFUSABLE),
-// а ссылка для читателя может вести на соседнюю главу, где приём объяснён. «Дерево Фенвика:
-// задачи» — ответ банка, а обновление и запрос учит «устройство», и туда же ведут «Ломается»
-// и «🔗» префиксных сумм. Блок получают обе главы; в каждой своя глава — без ссылки.
-const LINK_TARGET = { "fenwick-tree": "fenwick-tree-structure" };
-const href = (s) => LINK_TARGET[s] || s;
 
 // Перевод строки после END необязателен: блок в самом конце файла тоже снимается, и запись
 // не вставит второй.
@@ -42,7 +36,7 @@ const LINKS_RE = /^(## 🔗[^\n]*\n)\n?/m;
 const GUIDE_RE = new RegExp(`^(${GUIDE_HEADING}\n)\n?`, "m");
 
 // Названия глав из трекера прогресса: слаг -> «Название». Приписка после двоеточия
-// («Хеш-таблица: устройство», «Дерево Фенвика: задачи») в строке пары опускается:
+// («Хеш-таблица: устройство», «Графы: продвинутые») в строке пары опускается:
 // внутри предложения она читалась бы как начало пояснения.
 function titlesOf(progressJs) {
   const titles = new Map();
@@ -65,7 +59,7 @@ function validate(pairs, titles, texts) {
       errs.push(`${at}: нет поля ${missing.join(", ")}`);
       return;
     }
-    for (const s of new Set([p.use, p.not, href(p.use), href(p.not)])) {
+    for (const s of [p.use, p.not]) {
       if (!titles.has(s)) errs.push(`${at}: главы «${s}» нет в assets/progress.js`);
       else if (!texts.has(s)) errs.push(`${at}: нет файла src/${s}.md`);
       else if (!LINKS_RE.test(texts.get(s))) errs.push(`${at}: в src/${s}.md нет раздела «## 🔗»`);
@@ -94,8 +88,8 @@ function validate(pairs, titles, texts) {
 // Блок главы slug или null, если в реестре её нет.
 function blockFor(slug, pairs, titles) {
   const short = (s) => titles.get(s).replace(/:.*$/, "");
-  const own = (s) => s === slug || href(s) === slug;
-  const name = (s) => (own(s) ? short(s) : `[${short(s)}](${href(s)}.md)`);
+  const own = (s) => s === slug;
+  const name = (s) => (own(s) ? short(s) : `[${short(s)}](${s}.md)`);
   const rows = pairs
     .filter((p) => own(p.use) || own(p.not))
     .map((p) => `- если ${p.must} — ${name(p.use)}, а не ${name(p.not)}: ${p.why}.`);
@@ -110,7 +104,7 @@ function blockFor(slug, pairs, titles) {
 // Таблица руководства по выбору: все ряды в порядке реестра.
 function guideBlock(pairs, titles) {
   const short = (s) => titles.get(s).replace(/:.*$/, "");
-  const rows = pairs.map((p) => `| ${p.must} | [${short(p.use)}](${href(p.use)}.md) | не [${short(p.not)}](${href(p.not)}.md): ${p.why} |`);
+  const rows = pairs.map((p) => `| ${p.must} | [${short(p.use)}](${p.use}.md) | не [${short(p.not)}](${p.not}.md): ${p.why} |`);
   return (
     `${GUIDE_BEGIN}\n` +
     "Если в условии верно то, что слева, — бери приём из середины, а не соседа справа. " +
@@ -266,4 +260,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { LINK_TARGET, href, BEGIN, GUIDE_BEGIN, END, GUIDE, GUIDE_HEADING, GUIDE_LINK, titlesOf, validate, blockFor, guideBlock, apply, generate, selfTest };
+module.exports = { BEGIN, GUIDE_BEGIN, END, GUIDE, GUIDE_HEADING, GUIDE_LINK, titlesOf, validate, blockFor, guideBlock, apply, generate, selfTest };

@@ -151,6 +151,15 @@
     "heap-sort": { from: "sorting.html", to: "heap-structure.html" }, // этап 3a: пирамидальная — в главу о куче
     "binary-search-first": { from: "modified-binary-search.html", to: "go-stdlib-structures.html" }, // этап 3a: в главе бинпоиска одна форма границы, виджет с кандидатом остался в главе о stdlib
     "hash-ring": { from: "hash-table-structure.html", to: "consistent-hashing.html" }, // этап 3d: кольцо — в главе расширения, в ядре осталась ссылка
+    // P4 аудита: главы «устройство» и «разбор задач» слиты в одну, go-runtime влит в приложение о памяти
+    "segtree-build": { from: "segment-tree-structure.html", to: "segment-tree.html" },
+    "segtree-update": { from: "segment-tree-structure.html", to: "segment-tree.html" },
+    "segtree-query": { from: "segment-tree-structure.html", to: "segment-tree.html" },
+    "fenwick-add": { from: "fenwick-tree-structure.html", to: "fenwick-tree.html" },
+    "fenwick-prefix": { from: "fenwick-tree-structure.html", to: "fenwick-tree.html" },
+    "scheduler": { from: "go-runtime.html", to: "appendix-go-memory.html" },
+    "gc-mark": { from: "go-runtime.html", to: "appendix-go-memory.html" },
+    "escape": { from: "go-runtime.html", to: "appendix-go-memory.html" },
   };
   var TODAY = "algoToday"; // счётчик дня: { day, done, heavy, later } — в экспорт прогресса не входит
   // Черновик виджета на карточке пакета (data-draft="review", ключ пишет runner.js). Владелец — карточка:
