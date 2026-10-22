@@ -41,6 +41,8 @@ func NewAutomaton(patterns []string) *Automaton {
 // байтовые смещения начала. Порядок — по Start, а при равном Start — по номеру
 // шаблона. Нет вхождений — пустой результат.
 //
+// Ограничения: len(text) ≤ 2·10⁶ байт.
+//
 // Ожидаемая сложность: O(n + Σm + z), где n — длина текста, z — число вхождений.
 func (a *Automaton) FindAll(text string) []Match {
 	// TODO: иди по тексту, при отсутствии перехода откатывайся по fail; на
@@ -50,6 +52,8 @@ func (a *Automaton) FindAll(text string) []Match {
 
 // ContainsAny сообщает, входит ли в text хотя бы один шаблон, и останавливается
 // на первом же вхождении, не дочитывая текст.
+//
+// Ограничения: len(text) ≤ 2·10⁶ байт.
 func (a *Automaton) ContainsAny(text string) bool {
 	// TODO: тот же проход, что в FindAll, но с выходом на первом совпадении.
 	panic("TODO: реализуй ContainsAny")

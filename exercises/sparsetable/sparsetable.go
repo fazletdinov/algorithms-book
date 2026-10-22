@@ -21,6 +21,8 @@ type Sparse struct {
 }
 
 // NewSparse строит таблицу по массиву за O(n log n). Массив копируется.
+//
+// Ограничения: len(arr) ≤ 2·10⁵, |arr[i]| ≤ 10⁹.
 func NewSparse(arr []int) *Sparse {
 	// TODO: предпосчитай log[], затем table[0] = копия arr, и далее
 	// table[k][i] = min(table[k-1][i], table[k-1][i + 2^(k-1)]).
@@ -29,6 +31,8 @@ func NewSparse(arr []int) *Sparse {
 
 // Query возвращает минимум на отрезке [l, r] включительно за O(1).
 // Предполагается 0 <= l <= r < n.
+//
+// Ограничения: до 2·10⁵ запросов.
 func (s *Sparse) Query(l, r int) int {
 	// TODO: k = log[r-l+1]; ответ = min(table[k][l], table[k][r-2^k+1]).
 	panic("TODO: реализуй Query")

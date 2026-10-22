@@ -31,7 +31,7 @@
     ] },
     { g: "Группа 1: Фундамент", items: [
       { t: "Big-O и амортизированный анализ", h: "big-o.html", lvl: "core" },
-      { t: "Рекурсия и мастер-теорема", h: "recursion.html", lvl: "core" },
+      { t: "Рекурсия и дерево вызовов", h: "recursion.html", lvl: "core" },
       { t: "Хеш-таблица: устройство", h: "hash-table-structure.html", lvl: "core" },
       { t: "Связный список: устройство", h: "linked-list-structure.html", lvl: "core" },
       { t: "Дек: устройство", h: "deque-structure.html", lvl: "ext" },

@@ -1,4 +1,4 @@
-# 🔁 Рекурсия и мастер-теорема
+# 🔁 Рекурсия и дерево вызовов
 
 <div class="algo-hero">
   <div class="algo-hero__main">

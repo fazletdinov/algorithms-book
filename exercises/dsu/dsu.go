@@ -13,6 +13,8 @@ package dsu
 
 // UnionFind — лес деревьев: parent[i] — родитель i (корень указывает на себя),
 // size[i] — размер дерева с корнем i, count — число множеств.
+//
+// Ограничения: n ≤ 10⁵, до 2·10⁵ операций Union/Find/Connected.
 type UnionFind struct {
 	parent []int
 	size   []int
