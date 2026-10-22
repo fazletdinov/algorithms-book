@@ -2084,6 +2084,27 @@ body.algo-tp-fslock { overflow: hidden; }
   .algo-tp--compact.algo-tp--fs > .algo-tp__vchips { grid-column: 2; grid-row: 5; }
   .algo-tp--compact.algo-tp--fs > .algo-tp__curline { display: none; } /* код и так рядом */
 }
+/* та же раскладка «холст | код» и без полноэкранного режима, когда виджету есть где встать
+   шириной от ~1000px: контейнер здесь — .page-wrapper (ширина виджета считается от него),
+   1060px ≈ виджет 1035px; с открытым оглавлением на окне 1366px — 1036px страницы, виджет
+   остаётся столбцом. Код рядом с холстом — подсвеченная строка видна без прокрутки */
+@container (min-width: 1060px) {
+  .algo-tp--compact:not(.algo-tp--fs) {
+    /* две колонки в 1120px тесны холсту (ряд из 8 ячеек уже прокручивался) — шире, сколько даёт страница */
+    --algo-w: min(1440px, calc(100cqw - 2 * var(--page-padding, 15px) - 10px));
+    display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    column-gap: 1.4em; align-content: start;
+  }
+  .algo-tp--compact:not(.algo-tp--fs) > * { min-width: 0; }
+  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__head { grid-column: 1 / -1; grid-row: 1; }
+  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__top { grid-column: 1; grid-row: 2; }
+  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__panel { grid-column: 1; grid-row: 3; }
+  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__ctrl { grid-column: 1; grid-row: 4 / span 2; align-self: end; }
+  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__main { grid-column: 2; grid-row: 2 / span 2; align-self: start; grid-template-columns: minmax(0, 1fr); }
+  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__status { grid-column: 2; grid-row: 4; }
+  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__vchips { grid-column: 2; grid-row: 5; }
+  .algo-tp--compact:not(.algo-tp--fs) > .algo-tp__curline { display: none; }
+}
 /* 🎯 режим «Предсказывать» */
 .algo-tp .algo-tp__predbtn--on { background: color-mix(in srgb, var(--nn-amber, #fbbf24) 22%, var(--tp-panel2)); border-color: var(--nn-amber, #fbbf24); }
 .algo-tp__predscore { font-size: 0.85em; font-variant-numeric: tabular-nums; color: var(--nn-amber, #fbbf24); min-width: 0; }
