@@ -671,7 +671,7 @@ func quickSelect3(a []int, k int) int {
 <div class="algo-challenge__q">Сортировка подсчётом для <code>[-3, 5]</code> без смещения на <code>min</code> — что произойдёт?</div>
 </div>
 
-<div class="algo-challenge" data-type="choice" data-options="Сортировка слиянием|Pattern-defeating quicksort (pdqsort)|Пирамидальная сортировка|Пузырёк" data-answer="1" data-explain="slices.Sort → pdqsortOrdered: быстрая сортировка + вставки для мелких кусков + запасная пирамидальная, когда кончился лимит перекошенных разбиений.">
+<div class="algo-challenge" data-type="choice" data-options="Timsort — слияние готовых серий, как в Python|Pattern-defeating quicksort (pdqsort)|Пирамидальная сортировка (heapsort) — гарантирует n log n|Сортировка вставками с бинарным поиском места" data-answer="1" data-explain="slices.Sort → pdqsortOrdered: быстрая сортировка + вставки для мелких кусков + запасная пирамидальная, когда кончился лимит перекошенных разбиений.">
 <div class="algo-challenge__q">Что под капотом у <code>slices.Sort</code> в Go?</div>
 </div>
 

@@ -12,6 +12,11 @@
 //     «<слаг файла>#r<N>», уникален по книге (это ключ отметок, промахов и карточки task:);
 //     у такого вопроса обязателен data-from — слаг главы, приём которой он повторяет (файл
 //     src/<слаг>.md есть); data-from без data-id не бывает. Порядок по маршруту — check-ladder.js.
+//  7) choice, где верный вариант заметно длиннее каждого неверного (в LONG_RATIO раз и
+//     на LONG_EXTRA символов): ответ угадывается по длине, не читая вопроса. Известные
+//     случаи — scripts/challenge-length-allow.json (ключ «слаг:N», N — номер виджета в файле
+//     с 1, или data-id). Храповик: новый случай И запись, которая больше не нарушает, роняют
+//     проверку; --report печатает текущий список.
 // Конвенция: правильный вариант choice идёт ПЕРВЫМ в data-options
 // (data-answer="0"); на экране движок перемешивает кнопки сам.
 "use strict";
@@ -43,6 +48,13 @@ function readTag(text, start) {
   return text.slice(start);
 }
 
+const LONG_RATIO = 1.25;
+const LONG_EXTRA = 8;
+const allowPath = path.join(__dirname, "challenge-length-allow.json");
+const allow = new Set(fs.existsSync(allowPath) ? JSON.parse(fs.readFileSync(allowPath, "utf8")) : []);
+const longFound = [];
+const report = process.argv.includes("--report");
+
 let total = 0;
 let withId = 0;
 const seenIds = new Map(); // data-id → где встретился впервые
@@ -53,10 +65,12 @@ for (const file of mdFiles) {
   const text = fs.readFileSync(path.join(srcDir, file), "utf8");
   const re = /<div class="algo-challenge"/g;
   let m;
+  let ordinal = 0;
   while ((m = re.exec(text))) {
     // упоминание виджета в инлайн-коде (`<div class="algo-challenge">`) — не виджет
     if (text[m.index - 1] === "`") continue;
     total++;
+    ordinal++;
     const line = text.slice(0, m.index).split("\n").length;
     const where = `src/${file}:${line}`;
     const tag = readTag(text, m.index + m[0].length);
@@ -103,6 +117,16 @@ for (const file of mdFiles) {
       const ans = Number(attrs.answer);
       if (!Number.isInteger(ans) || ans < 0 || ans >= opts.length) {
         errors.push(`${where}: data-answer="${attrs.answer}" вне диапазона вариантов (0..${opts.length - 1})`);
+      } else {
+        const lens = opts.map((o) => [...o.trim()].length);
+        const longestWrong = Math.max(...lens.filter((_, i) => i !== ans));
+        if (lens[ans] >= LONG_RATIO * longestWrong && lens[ans] - longestWrong >= LONG_EXTRA) {
+          const key = attrs.id || `${slug}:${ordinal}`;
+          longFound.push(key);
+          if (!allow.has(key) && !report) {
+            errors.push(`${where} (${key}): верный вариант длиннее всех неверных (${lens[ans]} против ${longestWrong} символов) — ответ угадывается по длине; допиши неверные варианты до той же подробности`);
+          }
+        }
       }
     } else if (type === "ordering") {
       const items = (attrs.items || "").split("|").filter((s) => s.trim());
@@ -118,6 +142,17 @@ for (const file of mdFiles) {
   }
 }
 
+if (report) {
+  console.log(JSON.stringify(longFound, null, 1));
+  process.exit(0);
+}
+const longSet = new Set(longFound);
+for (const key of allow) {
+  if (!longSet.has(key)) {
+    errors.push(`${key}: в challenge-length-allow.json, но больше не нарушает правило длины — убери запись`);
+  }
+}
+
 if (errors.length) {
   console.error(`❌ check-challenges: ${errors.length} проблем(ы) из ${total} задач:`);
   for (const e of errors) console.error("  - " + e);
@@ -125,5 +160,6 @@ if (errors.length) {
 }
 console.log(
   `✅ check-challenges: все ${total} задач валидны (тип, ≥3 варианта у choice, ответы в диапазоне, explain на месте); ` +
-    `с data-id: ${withId} — формат «слаг#rN», id уникальны, data-from называет главу`
+    `с data-id: ${withId} — формат «слаг#rN», id уникальны, data-from называет главу; ` +
+    `верный вариант выдаёт длина: ${longFound.length} (все в списке известных)`
 );
