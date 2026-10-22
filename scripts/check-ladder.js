@@ -39,6 +39,7 @@
 "use strict";
 const fs = require("fs");
 const path = require("path");
+const { leansOf } = require("./lib/leans.js");
 
 const root = path.resolve(__dirname, "..");
 const srcDir = path.join(root, "src");
@@ -152,10 +153,10 @@ for (const file of fs.readdirSync(srcDir).filter((f) => f.endsWith(".md") && f !
   // 6) «Вспомни» главы ядра стоит только на ядре, пройденном раньше неё
   const leanSlugs = [];
   if (isCore) {
-    const lean = text.match(/Эта глава стоит на глав[еах]+ ([\s\S]*?)\.(?:\s|<)/);
+    const lean = leansOf(text);
     if (lean) {
       coreLeans++;
-      for (const m of lean[1].matchAll(/href="([\w-]+)\.md"/g)) {
+      for (const m of lean.map((s) => [null, s])) {
         coreLeanLinks++;
         leanSlugs.push(m[1]);
         const lvl = levelOf.get(m[1]);

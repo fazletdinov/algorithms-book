@@ -186,6 +186,10 @@ jobs:
       # и таблицу в руководстве по выбору вписывает генератор. Правка внутри меток руками или реестра без перегенерации красит шаг.
       - name: Сверка блоков пар с pairs.js
         run: node scripts/gen-pairs.js --check
+      # Стрелки карты курса — assets/course-map.js из «Эта глава стоит на …» глав; правка
+      # «Вспомни» без перегенерации красит шаг.
+      - name: Сверка course-map.js с главами
+        run: node scripts/gen-course-map.js --check
 
   build-book:
     name: Сборка mdBook
@@ -218,6 +222,9 @@ jobs:
       # Дерево решений картинкой строится из текстового дерева собранной страницы руководства.
       - name: Смоук дерева решений (jsdom)
         run: node scripts/guide-tree-check.js
+      # Карта курса на введении: главы из progress.js, стрелки из course-map.js, наведение и кнопки.
+      - name: Смоук карты курса (jsdom)
+        run: node scripts/course-map-check.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: book

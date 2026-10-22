@@ -1,0 +1,74 @@
+/* Карта курса (course-map-view.js): колонки — группы глав, узлы — главы, линии — опоры и пары. */
+.cm {
+  --cm-core: var(--th-accent, #4ae08a);
+  --cm-ext: var(--th-blue, #60a5fa);
+  --cm-ref: var(--th-muted, #8b93a7);
+  --cm-lean: var(--th-yellow, #fbbf24);
+  --cm-dep: var(--th-accent, #4ae08a);
+  --cm-pair: var(--th-violet, #a78bfa);
+  --cm-w: min(1440px, calc(100cqw - 2 * var(--page-padding, 15px) - 10px));
+  width: var(--cm-w);
+  margin: 1.4em 0 1.8em calc(50% - var(--cm-w) / 2);
+  padding: 1.1em 1.3em 1.3em;
+  box-sizing: border-box;
+  background: var(--th-surface, #141a26);
+  border: 1px solid var(--th-border, #283145);
+  border-radius: 12px;
+}
+.cm *, .cm *::before, .cm *::after { box-sizing: border-box; }
+.cm-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em 0.6em; margin-bottom: 1em; }
+.cm-btn {
+  font: inherit; font-size: 0.85em; cursor: pointer; padding: 0.35em 0.9em; border-radius: 8px;
+  border: 1px solid var(--th-border, #283145); background: var(--th-surface2, #1b2232); color: var(--th-text, #e6e9f2);
+}
+.cm-btn[aria-pressed="true"] { border-color: var(--cm-core); box-shadow: 0 0 0 1px var(--cm-core) inset; }
+.cm-legend { display: flex; flex-wrap: wrap; gap: 0.9em; margin-left: auto; font-size: 0.8em; color: var(--th-muted, #8b93a7); }
+.cm-lg::before { content: ""; display: inline-block; width: 1.4em; margin-right: 0.35em; vertical-align: 0.25em; border-top: 2px solid; }
+.cm-lg--lean::before { border-color: var(--cm-lean); }
+.cm-lg--dep::before { border-color: var(--cm-dep); }
+.cm-lg--pair::before { border-color: var(--cm-pair); border-top-style: dashed; }
+.cm-lg--done::before, .cm-lg--next::before { display: none; }
+.cm-lg--next { color: var(--cm-lean); }
+
+.cm-board { position: relative; overflow-x: auto; }
+.cm-lines { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.cm-cols { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(9.5em, 1fr); gap: 2.4em; align-items: start; padding-left: 1em; }
+.cm-col { display: flex; flex-direction: column; gap: 0.55em; }
+.cm-col__t { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--th-muted, #8b93a7); margin-bottom: 0.2em; min-height: 2.6em; }
+
+.cm a.cm-node, .cm a.cm-node:link, .cm a.cm-node:visited {
+  position: relative; display: block; padding: 0.45em 0.65em; border-radius: 9px; text-decoration: none;
+  font-size: 0.84em; line-height: 1.3; color: var(--th-text, #e6e9f2);
+  background: #0f141f; border: 1.5px solid var(--cm-ref);
+}
+.cm a.cm-node--core { border-color: var(--cm-core); font-weight: 600; }
+.cm a.cm-node--ext { border-color: var(--cm-ext); }
+.cm a.cm-node--ref { border-style: dashed; color: #b8bfcf; }
+.cm a.cm-node--done { background: color-mix(in srgb, var(--cm-core) 16%, #0f141f); }
+.cm-node__done { position: absolute; top: -0.55em; right: -0.45em; font-size: 0.8em; line-height: 1; padding: 0.15em 0.3em;
+  border-radius: 999px; background: var(--cm-core); color: #0a0e16; font-weight: 800; }
+.cm a.cm-node--next { box-shadow: 0 0 0 2px var(--cm-lean); }
+.cm-node__next { display: block; font-size: 0.75em; font-weight: 700; color: var(--cm-lean); margin-top: 0.15em; }
+
+.cm-edge { fill: none; stroke: #3a4560; stroke-width: 1.5; }
+.cm-edge--pair { stroke: var(--cm-pair); stroke-dasharray: 5 4; opacity: 0.7; }
+.cm-arrowhead { fill: #3a4560; }
+.cm-arrowhead--on-lean { fill: var(--cm-lean); }
+.cm-arrowhead--on-dep { fill: var(--cm-dep); }
+/* фокус: остальное гаснет, связи главы — цветом */
+.cm--focus .cm-edge { opacity: 0.12; }
+.cm--focus .cm-edge[data-hot] { opacity: 1; stroke-width: 2.5; }
+.cm-edge--onlean { stroke: var(--cm-lean); }
+.cm-edge--ondep { stroke: var(--cm-dep); }
+.cm-edge--onpair { stroke: var(--cm-pair); }
+.cm--focus a.cm-node { opacity: 0.35; }
+.cm--focus a.cm-node.cm-on, .cm--focus a.cm-node.cm-lean, .cm--focus a.cm-node.cm-dep, .cm--focus a.cm-node.cm-pair { opacity: 1; }
+.cm a.cm-node.cm-on { box-shadow: 0 0 0 2px var(--th-text, #e6e9f2); }
+.cm a.cm-node.cm-lean { box-shadow: 0 0 0 2px var(--cm-lean); }
+.cm a.cm-node.cm-dep { box-shadow: 0 0 0 2px var(--cm-dep); }
+.cm a.cm-node.cm-pair { box-shadow: 0 0 0 2px var(--cm-pair); }
+@media (prefers-reduced-motion: no-preference) { .cm a.cm-node, .cm-edge { transition: opacity 0.15s; } }
+/* «только ядро» (по умолчанию): ниже правил узла — иначе их display: block перебивает */
+.cm:not(.cm--all) .cm-col--noncore,
+.cm:not(.cm--all) a.cm-node.cm-node--ext,
+.cm:not(.cm--all) a.cm-node.cm-node--ref { display: none; }

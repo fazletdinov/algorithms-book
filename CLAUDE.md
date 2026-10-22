@@ -604,6 +604,16 @@ esm.sh, и в `?deps=` закреплён ВЕСЬ граф `@codemirror/*` + `@
   «Только ядро» (вне ядра бледнеет), наведение — путь от корня. Ширина — как у виджетов (до 1440px).
   `guide-tree.js` стоит в `additional-js` после `progress.js`. Держит `scripts/guide-tree-check.js` (jsdom,
   на собранной странице, в CI job `build-book`).
+- **Карта курса** (2026-10-22) — `<div class="algo-course-map"></div>` во введении, раздел «Маршрут по
+  ядру» (`assets/course-map-view.js`+`course-map.css`). Колонки — группы `GROUPS` (`window.ALGO_GROUPS`
+  из `progress.js`, без `tool`), узлы — ссылки на главы (✓ — `ALGO_DONE`, «ты здесь» — первая
+  непройденная глава ядра по маршруту); по умолчанию только ядро, кнопки «Показать расширение и
+  справочник», «Все связи», «Путаемые пары» (`ALGO_PAIRS`, пунктир). Стрелки — только у главы под
+  мышью (все сразу — каша): опоры янтарём, главы, что на ней стоят, зелёным. Опоры —
+  `assets/course-map.js` (`window.ALGO_COURSE_LEANS`), ГЕНЕРИРУЕТСЯ `node scripts/gen-course-map.js`
+  (в CI `--check`) из «Эта глава стоит на …» в «Вспомни» глав — тот же разбор, что у `check-ladder.js`
+  (`scripts/lib/leans.js`). Держит `scripts/course-map-check.js` (jsdom на собранной `index.html`,
+  `offsetParent` подменён — вёрстки нет; CI job `build-book`).
 
 **Режим «🎯 Предсказывать»** (кнопка в ряду управления, общий для всех виджетов, ключ
 `algoVizPredict`): на развилке виджет спрашивает исход ДО показа шага — снимок шага — это
