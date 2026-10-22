@@ -25,7 +25,6 @@ try {
 
 const root = path.resolve(__dirname, "..");
 const js = fs.readFileSync(path.join(root, "assets", "algo-viz.js"), "utf8");
-const { infraScriptTags } = require("./lib/infra-files.js");
 
 // Уникальные div.algo-viz (первое вхождение каждого типа) из src/*.md — с их реальными атрибутами.
 const seen = new Set(), divs = [];
@@ -47,7 +46,7 @@ vc.on("warn", (...a) => errors.push("console.warn: " + a.join(" ")));
 
 const body = divs.map((d, i) => d.tag.replace("<div ", `<div id="w${i}" tabindex="0" `)).join("\n");
 const dom = new JSDOM(
-  `<!DOCTYPE html><html><body>${body}<script>${js}</script>${infraScriptTags(root)}</body></html>`,
+  `<!DOCTYPE html><html><body>${body}<script>${js}</script></body></html>`,
   { runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true }
 );
 const doc = dom.window.document;

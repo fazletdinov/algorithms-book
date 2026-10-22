@@ -53,7 +53,7 @@ const vc = new VirtualConsole();
 vc.on("jsdomError", () => {}); // собственные скрипты mdBook в jsdom шумят
 
 const asset = (f) => fs.readFileSync(path.join(root, "assets", f), "utf8");
-const { mulberry32 } = require(path.join(root, "assets", "infra-core.js"));
+const { mulberry32 } = require("./lib/rand.js");
 
 // shownProblem узнаёт показанную задачу по ПОЛНОМУ условию (абзацы в карточке —
 // отдельные <p>, поэтому \n убираем). Раньше хватало первых 40 символов, но у

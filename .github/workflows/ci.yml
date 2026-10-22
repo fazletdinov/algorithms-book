@@ -115,10 +115,6 @@ jobs:
         run: |
           npm install --no-save jsdom
           node scripts/viz-render-check.js
-      # Инфраструктурные виджеты: хук register, генератор страницы Postgres
-      # (числа сняты с живого Postgres 16 через pageinspect), инварианты на фуззе.
-      - name: Смоук infra-viz (jsdom + генераторы)
-        run: node scripts/infra-viz-check.js
       # mdBook листает главы по ←/→ на document и не смотрит defaultPrevented:
       # клавиша, обработанная виджетом, обязана остановиться в нём, иначе шаг
       # виджета заодно уводит на соседнюю главу.

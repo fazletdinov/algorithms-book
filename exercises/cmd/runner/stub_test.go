@@ -564,32 +564,6 @@ func TestHandleStubPackagesWithoutTODOStillHaveExercises(t *testing.T) {
 	}
 }
 
-// Неэкспортированные упражнения (dispatch… в miniredis) — такие же: с рецептом в funcs и эталоном.
-func TestHandleStubAndSolutionServeUnexportedExercises(t *testing.T) {
-	useRealModule(t)
-	_, body := get(t, handleStub, "/api/stub", map[string]string{"pkg": "miniredis"})
-	var r stubReply
-	if err := json.Unmarshal(body, &r); err != nil {
-		t.Fatal(err)
-	}
-	found := false
-	for _, f := range r.Funcs {
-		if f.Name == "dispatchSet" {
-			found = true
-			if f.Recipe == "" {
-				t.Errorf("у dispatchSet нет рецепта")
-			}
-		}
-	}
-	if !found {
-		t.Fatalf("в funcs нет dispatchSet")
-	}
-	code, body := get(t, handleSolution, "/api/solution", map[string]string{"pkg": "miniredis", "func": "dispatchSet"})
-	if code != http.StatusOK || !strings.Contains(string(body), "func dispatchSet(") {
-		t.Errorf("dispatchSet: код %d: %.200s", code, body)
-	}
-}
-
 // Всё, что убрано из plain и не попало в hint или recipe, — в notes; в теле типа
 // остаётся нейтральная метка.
 func TestHandleStubNotesAndTypeLabel(t *testing.T) {

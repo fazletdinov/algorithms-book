@@ -89,7 +89,7 @@ func Sum(xs []int) int {
 // Ready — готовая функция, не задача.
 func Ready() int { return 1 }
 
-// helper неэкспортирована, но задана читателю так же (как dispatch… в miniredis).
+// helper неэкспортирована, но задана читателю так же.
 func helper() {
 	// TODO: сделайте помощника.
 	panic("TODO: x")

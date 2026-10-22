@@ -256,8 +256,7 @@ var traceTargets = map[string][]string{
 }
 
 // Намеренно НЕ подключены, хотя инструментацию проходят (см. cmd/tracescan):
-// dsu.NewUnionFind — тривиальный init-цикл, смотреть нечего; miniredis.SaveSnapshot
-// — пишет файл на диск, трассировке тут делать нечего; profiling.FormatScores —
+// dsu.NewUnionFind — тривиальный init-цикл, смотреть нечего; profiling.FormatScores —
 // её глава как раз про то, что по шагам проблему НЕ видно, надо профилировать
 // (и на 1000 элементах трасса была бы неподъёмной); ahocorasick.NewAutomaton —
 // всё состояние в неэкспортируемых полях структуры читателя, JSON трассы

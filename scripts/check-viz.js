@@ -7,8 +7,7 @@
 //  4) пресет граничного случая задаёт ровно поля ввода своего типа (иначе кнопка молча не работает);
 //  5) у неонового виджета (без customViz) в главе ядра есть легенда: смысл цветов иначе живёт
 //     только в абзаце над виджетом, который при листании уезжает с экрана;
-//  6) тип и его листинг объявлены один раз на все файлы (algo-viz.js + assets/infra-*.js): иначе
-//     проверка видела бы одну запись, а в браузере ALGO_VIZ.register бросил бы при загрузке;
+//  6) тип и его листинг объявлены один раз: иначе вторая запись молча перекрыла бы первую;
 //  7) SVG рёбер дерева (algo-tp__bstsvg) создаётся с width/height в пикселях: без них он
 //     сжимался вместе с хостом, а узлы оставались на своих местах.
 // Синтаксис самих *.js проверяется отдельно через `node --check` (см. CI).
@@ -18,17 +17,13 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const js = fs.readFileSync(path.join(root, "assets", "algo-viz.js"), "utf8");
-const { readInfra, infraScriptTags } = require("./lib/infra-files.js");
-const infraFiles = readInfra(root);
-const infraJs = infraFiles.map((f) => f.src).join("\n");
-// Конфиги и листинги инфраструктурных типов живут в assets/infra-*.js в том же формате (отступ 4 пробела)
-const all = js + "\n" + infraJs;
+const all = js;
 const errors = [];
 
 // --- ключи DASH ---
 const dashKeys = new Set([...all.matchAll(/^    "([a-z0-9-]+)":\s*\{/gm)].map((m) => m[1]));
 
-// --- дубликаты: Set и перезапись в CODE схлопнули бы их молча, а в рантайме register бросит ---
+// --- дубликаты: Set и перезапись в CODE схлопнули бы их молча ---
 // Считаем по файлам отдельно: ключ в двух файлах или дважды в одном — ошибка.
 function countKeys(src, re) {
   const n = {};
@@ -40,7 +35,7 @@ function codeBlock(src) {
   return at < 0 ? "" : src.slice(at, src.indexOf("\n  };", at));
 }
 function checkDuplicates(what, re, pick) {
-  const files = [{ name: "algo-viz.js", src: js }, ...infraFiles].map((f) => ({ name: f.name, n: countKeys(pick(f.src), re) }));
+  const files = [{ name: "algo-viz.js", src: js }].map((f) => ({ name: f.name, n: countKeys(pick(f.src), re) }));
   const keys = new Set(files.flatMap((f) => Object.keys(f.n)));
   for (const k of keys) {
     const where = files.filter((f) => f.n[k]);
@@ -62,7 +57,6 @@ function collectCode(src) {
   while ((m = keyRe.exec(codeBody))) CODE[m[1]] = [...m[2].matchAll(/"(?:[^"\\]|\\.)*"/g)].map((x) => x[0]);
 }
 collectCode(js);
-infraFiles.forEach((f) => collectCode(f.src));
 
 // --- разбор конфигов DASH: codeKey и lineNotes ---
 const cfgRe = /^    "([a-z0-9-]+)":\s*\{/gm;

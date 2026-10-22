@@ -17950,18 +17950,7 @@
     f.appendChild(h);
   }
 
-  // ===== Внешняя регистрация типов ============================================
-  // assets/infra-*.js (темы) грузятся ПОСЛЕ этого файла, а init() стартует на DOMContentLoaded,
-  // то есть когда все скрипты уже выполнились и регистрация успела.
   window.ALGO_VIZ = {
-    // Тихая перезапись подменила бы встроенный виджет, а следом сломала бы его главу, —
-    // поэтому кривой вызов и повтор типа падают сразу, при загрузке файла темы.
-    register: function (type, cfg, code) {
-      if (!cfg || !cfg.codeKey || !Array.isArray(code)) throw new Error("ALGO_VIZ.register: нужен cfg.codeKey и код листинга: " + type);
-      if (DASH[type] || CODE[cfg.codeKey]) throw new Error("ALGO_VIZ.register: тип уже есть: " + type);
-      DASH[type] = cfg;
-      CODE[cfg.codeKey] = code;
-    },
     mkEl: mkEl,
     // для scripts/predict-check.js: выбор встреч 🎯 (проверка «факт вопроса не зависит от исхода»)
     predChoose: predChoose,

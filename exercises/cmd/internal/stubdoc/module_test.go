@@ -386,7 +386,6 @@ var expectedNeeds = map[string][]string{
 	"cryptography.RSADecrypt":           {"ModExp"},
 	"toposort.CanFinish":                {"TopologicalSort"},
 	"ahocorasick.Censor":                {"NewAutomaton", "Automaton.FindAll"},
-	"miniredis.dispatchSave":            {"SaveSnapshot"},
 	"ratelimiter.SafeTokenBucket.Allow": {"TokenBucket.Allow"}, // эталон: b.inner.Allow, поле inner — *TokenBucket
 }
 
@@ -415,17 +414,6 @@ func TestNeedsAreExactlyTheKnownPairs(t *testing.T) {
 // noOwnTestsAllowed — упражнения, у которых нет ни собственных тестов, ни тестов типа. Храповик:
 // запись, которая больше не нужна, роняет тест. Причина обязательна.
 var noOwnTestsAllowed = map[string]string{
-	"miniredis.dispatchSet":     "диспетчер проверяют тесты протокола через Dispatch, пакет решается целиком",
-	"miniredis.dispatchGet":     "см. dispatchSet",
-	"miniredis.dispatchDel":     "см. dispatchSet",
-	"miniredis.dispatchExpire":  "см. dispatchSet",
-	"miniredis.dispatchTTL":     "см. dispatchSet",
-	"miniredis.dispatchZAdd":    "см. dispatchSet",
-	"miniredis.dispatchZScore":  "см. dispatchSet",
-	"miniredis.dispatchZRange":  "см. dispatchSet",
-	"miniredis.dispatchZRank":   "см. dispatchSet",
-	"miniredis.dispatchSave":    "см. dispatchSet",
-	"miniredis.SaveSnapshot":    "снапшот проверяют TestSnapshot… парой Save/Load, без общего имени",
 	"cryptography.RSAEncrypt":   "проверяется круговым TestRSAPrivateExponentRoundTrip, который принадлежит первой функции цикла",
 	"cryptography.RSADecrypt":   "см. RSAEncrypt",
 	"serializetree.Deserialize": "проверяется круговым TestSerializeRoundTrip, который принадлежит Serialize",
@@ -456,9 +444,7 @@ func TestEveryExerciseHasTestsOrTypeTests(t *testing.T) {
 
 // ownershipExceptions — тесты, которые зовут ровно одно упражнение, но не входят ни в его tests, ни
 // в groupTests. Храповик, как выше.
-var ownershipExceptions = map[string]string{
-	"miniredis.TestDispatchSave": "SAVE вызывается строкой команды через Dispatch: имени dispatchSave в теле теста нет",
-}
+var ownershipExceptions = map[string]string{}
 
 // Тест, тело которого (с помощниками) зовёт ровно одну функцию пакета, обязан быть в её
 // tests или groupTests: иначе «прогнать только её тесты» пропускает проверку, написанную именно про неё.
@@ -541,16 +527,6 @@ func TestFuncsOfBigOIncludeMethods(t *testing.T) {
 	}
 	if !slices.Contains(funcNames(fs), "MinStack.Top") {
 		t.Errorf("в bigo нет MinStack.Top: %v", funcNames(fs))
-	}
-}
-
-// Неэкспортированные упражнения (dispatch… в miniredis) — такие же упражнения.
-func TestFuncsIncludeUnexportedExercises(t *testing.T) {
-	names := funcNames(exercisesOf(t, "miniredis"))
-	for _, want := range []string{"dispatchSet", "dispatchGet", "dispatchTTL", "SaveSnapshot"} {
-		if !slices.Contains(names, want) {
-			t.Errorf("в miniredis нет упражнения %s: %v", want, names)
-		}
 	}
 }
 

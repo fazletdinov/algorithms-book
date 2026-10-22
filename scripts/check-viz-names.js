@@ -38,7 +38,6 @@ const report = process.argv.includes("--report");
 const allowPath = path.join(__dirname, "viz-names-allow.json");
 const allow = JSON.parse(fs.readFileSync(allowPath, "utf8"));
 const js = fs.readFileSync(path.join(root, "assets", "algo-viz.js"), "utf8");
-const { infraScriptTags } = require("./lib/infra-files.js");
 
 const seen = new Set(), divs = [];
 for (const f of fs.readdirSync(path.join(root, "src")).filter((n) => n.endsWith(".md")).sort()) {
@@ -55,7 +54,7 @@ const errors = [];
 const vc = new VirtualConsole();
 vc.on("jsdomError", (e) => errors.push("jsdomError: " + (e && e.message)));
 const body = divs.map((d, i) => d.tag.replace("<div ", `<div id="w${i}" `)).join("\n");
-const dom = new JSDOM(`<!DOCTYPE html><html><body>${body}<script>${js}</script>${infraScriptTags(root)}</body></html>`, {
+const dom = new JSDOM(`<!DOCTYPE html><html><body>${body}<script>${js}</script></body></html>`, {
   runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true,
   beforeParse(w) {
     // в jsdom нет раскладки: без ширины движок не расставляет плашки указателей

@@ -99,10 +99,7 @@
     { g: "Группа 8: Синтез", items: [
       { t: "Комбинации паттернов", h: "pattern-combinations.html", lvl: "ext" },
       { t: "Карта: структуры в реальных системах", h: "real-world-map.html", lvl: "ext" },
-      { t: "Как Postgres хранит данные", h: "postgres-storage.html", lvl: "ext" },
-      { t: "Postgres: EXPLAIN как pprof", h: "postgres-plans.html", lvl: "ext" },
       { t: "Консистентное хеширование", h: "consistent-hashing.html", lvl: "ext" },
-      { t: "Капстоун: мини-Redis", h: "miniredis.html", lvl: "ext" },
       { t: "Ревью чужого кода", h: "code-review.html", lvl: "ext" },
       { t: "Параллельные алгоритмы", h: "parallel-algorithms.html", lvl: "ext" },
       { t: "Когда алгоритм не нужен", h: "skip-the-work.html", lvl: "ext" }

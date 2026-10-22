@@ -76,7 +76,6 @@ try {
 
 const root = path.resolve(__dirname, "..");
 const js = fs.readFileSync(path.join(root, "assets", "algo-viz.js"), "utf8");
-const { infraScriptTags } = require("./lib/infra-files.js");
 const tagOf = (file, type) => {
   const t = fs.readFileSync(path.join(root, "src", file), "utf8");
   const m = t.match(new RegExp(`<div class="algo-viz" data-viz="${type}"[^>]*></div>`));
@@ -104,13 +103,14 @@ const dom = new JSDOM(
      ${tagOf("sliding-window.md", "sliding-window-fixed").replace("<div ", '<div id="win" ')}
      ${tagOf("monotonic-stack.md", "monotonic-stack").replace("<div ", '<div id="stk" ')}
      ${cycTags.map((t, i) => t.replace("<div ", `<div id="cyc${i}" `)).join("\n")}
-     ${tagOf("miniredis.md", "redis-resp").replace("<div ", '<div id="own1" ')}
+     ${tagOf("two-heaps.md", "two-heaps-median").replace("<div ", '<div id="own1" ')}
+     ${tagOf("cyclic-sort.md", "cyclic-sort").replace("<div ", '<div id="own0" ')}
      ${BF_TAG.replace("<div ", '<div id="own5" ')}
      ${tagOf("string-algorithms.md", "string-match-naive").replace("<div ", '<div id="own2" ')}
      ${tagOf("go-stdlib-structures.md", "swiss-lookup").replace("<div ", '<div id="own3" ')}
      ${tagOf("monotonic-stack.md", "monotonic-stack").replace("<div ", '<div id="own4" ')}
      ${tagOf("backtracking.md", "subsets-bt").replace("<div ", '<div id="own6" ')}
-     <script>${js}</script>${infraScriptTags(root)}
+     <script>${js}</script>
    </body></html>`,
   { runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true, url: "http://localhost:3000/sliding-window.html" }
 );
@@ -318,7 +318,7 @@ async function keyAudit() {
   let presetTypes = 0;
   for (let from = 0; from < tags.length; from += PAGE) {
     const page = tags.slice(from, from + PAGE);
-    const d = new JSDOM(`<!DOCTYPE html><html><body>${page.map((t, i) => t.tag.replace("<div ", `<div id="k${i}" `)).join("\n")}<script>${js}</script>${infraScriptTags(root)}</body></html>`, {
+    const d = new JSDOM(`<!DOCTYPE html><html><body>${page.map((t, i) => t.tag.replace("<div ", `<div id="k${i}" `)).join("\n")}<script>${js}</script></body></html>`, {
       runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true, url: "http://localhost:3000/x.html",
     });
     const el = (i) => d.window.document.getElementById("k" + i);
@@ -405,8 +405,8 @@ function cycleEntryMismatches() {
   return { bad: [...bad], runs };
 }
 
-// 9) свой ввод читателя. Виджет own1 (разбор RESP, вне ядра) — выведенные «нет» на входе главы и на
-// пресете спрашиваются; own5 (Беллман — Форд, вне ядра; пресетов нет; второй виджет главы — у первого
+// 9) свой ввод читателя. Выведенные «нет» спрашиваются на входе главы (own1 — медиана двумя кучами,
+// вне ядра) и на пресете (own0 — циклическая сортировка, пресет «уже на местах»); own5 (Беллман — Форд, вне ядра; пресетов нет; второй виджет главы — у первого
 // «да» нет) — на своём вводе (A→B: релаксация «да», детектор «нет») строка с выведенным «нет» молчит,
 // а надёжные «да» остаются, на возвращённом входе главы «нет» снова спрашивается. Виджет own2
 // (наивный поиск подстроки) — явное «нет» генератора: на своём вводе оно спрашивается.
@@ -423,11 +423,10 @@ function ownInputMismatches() {
     click(el.querySelector(".algo-tp__run"));
   };
   const show = (k) => `own=${k.own}, «да» ${k.yes}, выведенных «нет» ${k.noGuess}, явных «нет» ${k.noSaid}`;
-  const orig = [...doc.getElementById("own1").querySelectorAll(".algo-tp__input")].map((inp) => inp.value);
   let k = kinds("own1");
   if (k.own || !k.noGuess) bad.push(`вход главы: ${show(k)} — выведенные «нет» здесь прочитаны и должны спрашиваться`);
-  click(doc.getElementById("own1").querySelectorAll(".algo-tp__preset")[1]);
-  k = kinds("own1");
+  click(doc.getElementById("own0").querySelectorAll(".algo-tp__preset")[1]);
+  k = kinds("own0");
   if (k.own || !k.noGuess) bad.push(`пресет: ${show(k)} — выведенные «нет» здесь прочитаны и должны спрашиваться`);
   const orig5 = [...doc.getElementById("own5").querySelectorAll(".algo-tp__input")].map((inp) => inp.value);
   k = kinds("own5");
@@ -471,7 +470,7 @@ function ownInputMismatches() {
 const srsJs = fs.readFileSync(path.join(root, "assets", "srs.js"), "utf8");
 const DAY = 24 * 60 * 60 * 1000;
 function pageWith(body, url, seed, before) {
-  return new JSDOM(`<!DOCTYPE html><html><body>${body}<script>${js}</script>${infraScriptTags(root)}${before || ""}</body></html>`, {
+  return new JSDOM(`<!DOCTYPE html><html><body>${body}<script>${js}</script>${before || ""}</body></html>`, {
     runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true, url,
     beforeParse(win) {
       Object.keys(seed || {}).forEach((k) => win.localStorage.setItem(k, seed[k]));
@@ -650,7 +649,7 @@ async function askMismatches() {
   for (const [what, mut, want] of [["строка не развилка", js.replace(ASK, 'ask: { 4: { cond: "len(freq) > k", q: "Окно придётся сжимать?"'), /не развилка/],
     ["cond не из этой строки (сдвиг листинга)", js.replace(ASK, 'ask: { 3: { cond: "len(freq) > k", q: "Окно придётся сжимать?"'), /не найден в строке/],
     ["вопрос без знака вопроса", js.replace(ASK, 'ask: { 5: { cond: "len(freq) > k", q: "Окно придётся сжимать"'), /нет знака вопроса/]]) {
-    const m = new JSDOM(`<!DOCTYPE html><html><body>${T}<script>${mut}</script>${infraScriptTags(root)}</body></html>`, {
+    const m = new JSDOM(`<!DOCTYPE html><html><body>${T}<script>${mut}</script></body></html>`, {
       runScripts: "dangerously", virtualConsole: new VirtualConsole(), pretendToBeVisual: true, url: "http://localhost:3000/x.html",
     });
     await ready(m);

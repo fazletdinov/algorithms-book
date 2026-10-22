@@ -264,8 +264,6 @@ function coreChapters() {
 }
 
 const js = fs.readFileSync(path.join(root, "assets", "algo-viz.js"), "utf8");
-const { infraScriptTags } = require("./lib/infra-files.js");
-const infra = infraScriptTags(root);
 
 // Один документ на главу: в jsdom сборка дорожает с размером документа (см. predict-check).
 function measureChapter(slug) {
@@ -278,7 +276,7 @@ function measureChapter(slug) {
   const vc = new VirtualConsole();
   vc.on("jsdomError", (e) => errors.push(`${slug}: jsdomError: ${e && e.message}`));
   const body = tags.map((t) => t.tag.replace("<div ", `<div id="w${t.index}" `)).join("\n");
-  const dom = new JSDOM(`<!DOCTYPE html><html><body>${body}<script>${js}</script>${infra}</body></html>`, {
+  const dom = new JSDOM(`<!DOCTYPE html><html><body>${body}<script>${js}</script></body></html>`, {
     runScripts: "dangerously", virtualConsole: vc, pretendToBeVisual: true, beforeParse: layoutStub,
   });
   const win = dom.window, doc = win.document;

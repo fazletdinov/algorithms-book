@@ -70,7 +70,7 @@ const problemsJs = fs.readFileSync(path.join(root, "assets", "problems.js"), "ut
 const challengeJs = fs.readFileSync(path.join(root, "assets", "challenge.js"), "utf8");
 const quizJs = fs.readFileSync(path.join(root, "assets", "quiz.js"), "utf8");
 const takeawaysJs = fs.readFileSync(path.join(root, "assets", "takeaways.js"), "utf8");
-const { mulberry32 } = require(path.join(root, "assets", "infra-core.js"));
+const { mulberry32 } = require("./lib/rand.js");
 
 const errors = [];
 const vc = new VirtualConsole();

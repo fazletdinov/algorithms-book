@@ -281,6 +281,5 @@ go test -tags solution ./consistenthash/  # эталон
 
 - **[Хеш-таблица](hash-table-structure.md)** — откуда берётся хеш и почему важно перемешивание.
 - **[Modified Binary Search](modified-binary-search.md)** — lower_bound, на котором стоит `Get`.
-- **[Капстоун: мини-Redis](miniredis.md)** — один узел; эта глава — о том, как их становится много.
 - **[Карта: структуры в реальных системах](real-world-map.md)** — где ещё живут хеши и деревья.
 - **[Вероятностные структуры](probabilistic-structures.md)** — тот же размен «точность ↔ ресурсы».
