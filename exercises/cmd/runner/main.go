@@ -53,6 +53,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"io"
 	"log"
 	"net"
@@ -297,6 +300,43 @@ type runRequest struct {
 	// другой роняет весь тестовый бинарник, и до теста нужной функции дело
 	// может просто не дойти.
 	Tests []string `json:"tests,omitempty"`
+	// UserTest — свой тестовый файл читателя (собеседование: тест на свои граничные случаи).
+	// Ложится рядом с тестами пакета как <pkg>_zuser_test.go, и гоняются ТОЛЬКО его тесты:
+	// Tests при этом должен быть пуст — свой тест не смешивается с проверкой задачи.
+	UserTest string `json:"userTest,omitempty"`
+}
+
+// maxUserTest — потолок своего тестового файла: тест на пару граничных случаев — сотни байт.
+const maxUserTest = 64 << 10
+
+// userTestNames — имена тестов своего файла читателя: файл обязан разбираться, быть пакетом pkg
+// и объявлять хотя бы одну func TestX(t *testing.T) с допустимым для фильтра именем.
+func userTestNames(pkg, src string) ([]string, error) {
+	if len(src) > maxUserTest {
+		return nil, fmt.Errorf("свой тест длиннее %d КиБ", maxUserTest>>10)
+	}
+	file, err := parser.ParseFile(token.NewFileSet(), pkg+"_zuser_test.go", src, parser.SkipObjectResolution)
+	if err != nil {
+		return nil, fmt.Errorf("свой тест не разбирается: %v", err)
+	}
+	if file.Name.Name != pkg {
+		return nil, fmt.Errorf("свой тест — package %s, а нужен package %s", file.Name.Name, pkg)
+	}
+	var names []string
+	for _, decl := range file.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Recv != nil || !strings.HasPrefix(fn.Name.Name, "Test") {
+			continue
+		}
+		if !testNameRe.MatchString(fn.Name.Name) {
+			return nil, fmt.Errorf("недопустимое имя теста: %q", fn.Name.Name)
+		}
+		names = append(names, fn.Name.Name)
+	}
+	if len(names) == 0 {
+		return nil, errors.New("в своём тесте нет ни одной func TestX(t *testing.T)")
+	}
+	return names, nil
 }
 
 // testNameRe — имя тестовой функции Go. Список уходит в аргумент -run как
@@ -346,9 +386,22 @@ func (s *server) handleRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lim := s.limits(req.Race)
+	tests := req.Tests
+	if req.UserTest != "" {
+		if len(req.Tests) > 0 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "свой тест гоняется отдельно: tests должен быть пуст"})
+			return
+		}
+		names, err := userTestNames(req.Pkg, req.UserTest)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		tests = names
+	}
 	// Фильтр проверяем ДО копирования модуля: битый запрос не должен стоить
 	// копии каталога и компиляции.
-	args, err := testArgs(req.Pkg, req.Race, req.Tests, lim.TestTimeout)
+	args, err := testArgs(req.Pkg, req.Race, tests, lim.TestTimeout)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
@@ -381,9 +434,18 @@ func (s *server) handleRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = os.Remove(filepath.Join(tmp, req.Pkg, req.Pkg+"_solution.go"))
+	if req.UserTest != "" {
+		if err := os.WriteFile(filepath.Join(tmp, req.Pkg, req.Pkg+"_zuser_test.go"), []byte(req.UserTest), 0o644); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+	}
 
-	res := runGoTest(r.Context(), tmp, args, req.Tests, lim)
-	res.Filtered = len(req.Tests) > 0
+	res := runGoTest(r.Context(), tmp, args, tests, lim)
+	res.Filtered = len(tests) > 0
+	if req.UserTest != "" {
+		res.UserTests = tests
+	}
 	writeJSON(w, http.StatusOK, res)
 }
 

@@ -2455,7 +2455,7 @@ const startOfDay = (t) => { const d = new Date(t); return new Date(d.getFullYear
 // --- 23. (b) функции для карточки нет: виджет без data-func, оценку даёт зелёный прогон пакета целиком ---
 {
   const now = NOON;
-  for (const [pkg, why] of [["deque", "пакет вне банка"], ["parallelbfs", "у всех его задач банка тесты зовут соседей"], ["lru", "у его задачи банка нет своих тестов"]]) {
+  for (const [pkg, why] of [["deque", "пакет вне банка"], ["parallelbfs", "у всех его задач банка тесты зовут соседей"], ["ahocorasick", "у одной его задачи банка нет своих тестов, тесты другой зовут соседей"]]) {
     const dom = await newDom({ algoSRS: JSON.stringify({ ["pkg:" + pkg]: heavy(pkg, now - DAY) }) }, [CLOCK(now), problemsJs, RUNNER], PAGE);
     const node = runnerOf(dom);
     if (!node || node.hasAttribute("data-func") || node.getAttribute("data-draft") !== "review") errors.push(`${pkg} (${why}): виджет ${node && node.outerHTML}, ожидался без data-func, с data-draft=review`);

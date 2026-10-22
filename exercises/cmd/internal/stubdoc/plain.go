@@ -39,8 +39,9 @@ type Note struct {
 }
 
 // Notes — то, что Plain убрал и что не вошло в Hint или Recipe упражнений exercises: подсказка
-// уровня пакета, подсказки к типам, рецепты полей типа. Служебные абзацы («Шаблон:»,
-// «Также решается:») не показываются никому, поэтому сюда не попадают. Порядок — как в файле.
+// уровня пакета, подсказки к типам, рецепты полей типа. Служебные абзацы «Шаблон:» и
+// «Также решается:» не показываются никому, поэтому сюда не попадают; «Признак:» у функции
+// уходит в её Hint, а у типа (задача на проектирование класса) — сюда. Порядок — как в файле.
 func Notes(src []byte, exercises []Func) ([]Note, error) {
 	s, err := strip(src)
 	if err != nil {
@@ -52,7 +53,7 @@ func Notes(src []byte, exercises []Func) ([]Note, error) {
 	}
 	var notes []Note
 	for _, r := range s.removed {
-		if r.service || covered[r.key] {
+		if (r.service && !strings.HasPrefix(r.text, prefixSign)) || covered[r.key] {
 			continue
 		}
 		notes = append(notes, Note{At: r.at, Text: r.text})

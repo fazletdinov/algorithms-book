@@ -276,6 +276,7 @@ async function main() {
   // --- ответ оценивает карточку mix: в настоящем движке повторений (srs.js): верно — «Помню», неверно — «Забыл» ---
   await gradesMixCard(problem, correctTitle);
   await raceFlag(bank);
+  await typeTask(bank);
 
   // --- пройденные главы, альтернативные ответы, признак ---
   await practiceScope(bank);
@@ -404,6 +405,50 @@ async function raceFlag(bank) {
   }
 }
 
+// typeTask — задача на проектирование класса (поле m): редактор получает имя типа в data-func (runner
+// гоняет тесты типа, «Сдаюсь» отдаёт тип целиком), собеседование — тесты типа в data-tests, а текст
+// называет тип и все его методы, а не «функцию».
+async function typeTask(bank) {
+  const p = bank.find((q) => q.p === "lru" && q.f === "LRUCache");
+  if (!p || !p.m || !p.m.includes("LRUCache.Get") || !p.t.length) {
+    errors.push(`тип: в банке нет задачи lru.LRUCache с методами и тестами типа: ${JSON.stringify(p)}`);
+    return;
+  }
+  if (bank.some((q) => q.m && !q.m.length)) errors.push("тип: пустое поле m — у функции его быть не должно");
+  for (const mock of [false, true]) {
+    const dom = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "srs.js", "mixed.js"], {
+      algoMixedMissed: JSON.stringify({ "lru.LRUCache": { n: 1, chapter: p.c, pkg: p.p, fn: p.f } }),
+    });
+    const w = dom.window, widget = w.document.querySelector(".algo-mixed");
+    if (mock) { const box = widget.querySelector(".algo-mixed__mode-box"); box.checked = true; box.dispatchEvent(new w.Event("change")); }
+    const give = [...widget.querySelectorAll("button")].find((b) => /Дать задачу/.test(b.textContent));
+    let shown = false;
+    for (let i = 0; i < 60 && !shown; i++) {
+      click(dom, give);
+      const cardEl = widget.querySelector(".algo-mixed__card");
+      shown = !!cardEl && cardEl.textContent.includes(p.s.split("\n").join(""));
+    }
+    const mode = mock ? "собеседование" : "обычный режим";
+    if (!shown) { errors.push(`тип, ${mode}: lru.LRUCache не выпала за 60 выдач`); w.close(); continue; }
+    if (/LRUCache/.test(widget.querySelector(".algo-mixed__card").textContent)) errors.push(`тип, ${mode}: имя типа видно до ответа`);
+    click(dom, widget.querySelector(".algo-mixed__q .algo-challenge__opt"));
+    if (mock) {
+      const ta = widget.querySelector(".algo-mixed__plan-text");
+      ta.value = "План: хеш-таблица ключ → узел двусвязного списка, свежий в голове, вытесняю хвост; обе операции за O(1).";
+      ta.dispatchEvent(new w.Event("input"));
+      fillEdges(widget, w);
+      click(dom, widget.querySelector(".algo-mixed__to-code"));
+    }
+    const ed = widget.querySelector('.algo-runner[data-pkg="lru"]');
+    const solve = [...widget.querySelectorAll(".algo-mixed__solve")].map((e) => e.textContent).join(" ");
+    if (!ed) { errors.push(`тип, ${mode}: редактор не появился`); w.close(); continue; }
+    if (ed.getAttribute("data-func") !== "LRUCache") errors.push(`тип, ${mode}: data-func=${ed.getAttribute("data-func")}, ожидалось имя типа LRUCache`);
+    if (mock && ed.getAttribute("data-tests") !== JSON.stringify(p.t)) errors.push(`тип, собеседование: data-tests=${ed.getAttribute("data-tests")}, ожидались тесты типа`);
+    if (!/тип LRUCache/.test(solve) || !p.m.every((m) => solve.includes(m))) errors.push(`тип, ${mode}: текст не называет тип и его методы: «${solve}»`);
+    w.close();
+  }
+}
+
 const slugOf = (h) => h.replace(/\.html$/, "");
 const progressOf = (slugs) => JSON.stringify(Object.fromEntries(slugs.map((s) => [s + ".html", true])));
 const answersOf = (p) => [p.c].concat(p.a || []);
@@ -504,8 +549,9 @@ async function alternatives(bank) {
   dom.window.close();
 
   const bigo = bank.filter((p) => p.p === "bigo" && p.c === "monotonic-stack").map((p) => p.f).sort();
-  if (JSON.stringify(bigo) !== JSON.stringify(["DailyTemperatures", "NextGreaterElement"])) {
-    errors.push(`(g) у bigo главой монотонного стека отвечают ${JSON.stringify(bigo)}, ожидались DailyTemperatures и NextGreaterElement`);
+  // MinStack — задача на проектирование класса: тип с «Шаблон: monotonic-stack»
+  if (JSON.stringify(bigo) !== JSON.stringify(["DailyTemperatures", "MinStack", "NextGreaterElement"])) {
+    errors.push(`(g) у bigo главой монотонного стека отвечают ${JSON.stringify(bigo)}, ожидались DailyTemperatures, MinStack и NextGreaterElement`);
   }
 }
 
@@ -683,6 +729,15 @@ async function mockInterview(bank) {
   if (runner.getAttribute("data-hints") !== "off") errors.push("собеседование: у редактора нет data-hints=\"off\" — подсказки и эталон доступны");
   if (runner.getAttribute("data-func") !== p.f) errors.push(`собеседование: data-func = ${runner.getAttribute("data-func")}, а задача — ${p.f}`);
   if (w.querySelector(".algo-mixed__cx-input")) errors.push("собеседование: вопрос о сложности ДО зелёных тестов");
+  // Свой тест: поле включено, граничные случаи плана переданы заготовке теста; зелёный свой тест — не решение.
+  if (runner.getAttribute("data-own-test") !== "on") errors.push("собеседование: у редактора нет поля «Свой тест» (data-own-test)");
+  if (runner.getAttribute("data-own-cases") !== JSON.stringify(["пустой массив", "все равны", "k больше n"])) {
+    errors.push(`собеседование: граничные случаи не переданы своему тесту: ${runner.getAttribute("data-own-cases")}`);
+  }
+  runner.dispatchEvent(new dom.window.CustomEvent("algo-runner:own", {
+    bubbles: true, detail: { pkg: p.p, ok: true, passed: 2, failed: 0, stage: "tests", tests: ["TestMine", "TestEdge"] },
+  }));
+  if (w.querySelector(".algo-mixed__cx-input")) errors.push("собеседование: зелёный СВОЙ тест засчитан как решение");
 
   // красный прогон не должен двигать сессию дальше
   runner.dispatchEvent(new dom.window.CustomEvent("algo-runner:result", {
@@ -721,6 +776,9 @@ async function mockInterview(bank) {
     return;
   }
   if (!sum.textContent.includes("k больше n")) errors.push("собеседование: граничные случаи не попали в итог");
+  if (!/Свой тест\s*зелёный \(тестов 2, прогонов 1\)/.test(sum.textContent)) errors.push(`собеседование: итог не говорит о своём тесте: «${sum.textContent.slice(0, 300)}»`);
+  const logged = JSON.parse(dom.window.localStorage.getItem("algoMockLog") || "[]").pop() || {};
+  if (logged.own !== "ok") errors.push(`собеседование: в algoMockLog own = ${JSON.stringify(logged.own)}, ожидалось "ok"`);
   const link = sum.querySelector(".algo-mixed__link");
   if (!link || link.getAttribute("href") !== p.c + ".html") errors.push("собеседование: после итога не открылась глава");
   if (p.h && !sum.textContent.includes(p.h.slice(0, 30))) errors.push("собеседование: после итога не показаны подсказки");

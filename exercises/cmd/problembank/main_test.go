@@ -184,8 +184,8 @@ func TestCollectRealBankNewFields(t *testing.T) {
 			needs = append(needs, p.Pkg+"."+p.Fn+" -> "+strings.Join(p.Needs, ","))
 		}
 	}
-	if withComplexity != 200 {
-		t.Errorf("задач с эталоном сложности %d, ожидалось 200 (абзацев «Ожидаемая сложность:» стало больше или меньше — "+
+	if withComplexity != 206 {
+		t.Errorf("задач с эталоном сложности %d, ожидалось 206 (абзацев «Ожидаемая сложность:» стало больше или меньше — "+
 			"сверь с docs заготовок и поправь число)", withComplexity)
 	}
 	// n в банке — это needs из stubdoc (список пар лежит там: stubdoc/module_test.go, expectedNeeds);
@@ -234,15 +234,22 @@ var realMarks = map[string]struct {
 	"hashtable.TwoSum":                {"hash-table-structure", nil},
 	"hashtable.LongestConsecutive":    {"hash-table-structure", nil},
 	// fresh — задачи без разбора в книге (P3 аудита): глава-ответ задаёт «Шаблон:».
-	"fresh.BestClosingHour":       {"prefix-sums", nil},
-	"fresh.CableMovesToConnect":   {"graphs", nil},
-	"fresh.CanMergeLogs":          {"dynamic-programming", nil},
-	"fresh.ClosestPrices":         {"bst-structure", []string{"modified-binary-search"}},
-	"fresh.CountMagnetWords":      {"backtracking", []string{"subsets"}},
-	"fresh.CountSteadyPairs":      {"hash-table-structure", []string{"sorting"}},
-	"fresh.FastestRoutesCount":    {"graphs", nil},
-	"fresh.FurthestStop":          {"top-k-elements", []string{"heap-structure", "modified-binary-search"}},
-	"fresh.HIndex":                {"sorting", []string{"modified-binary-search"}},
+	"fresh.BestClosingHour":     {"prefix-sums", nil},
+	"fresh.CableMovesToConnect": {"graphs", nil},
+	"fresh.CanMergeLogs":        {"dynamic-programming", nil},
+	"fresh.ClosestPrices":       {"bst-structure", []string{"modified-binary-search"}},
+	"fresh.CountMagnetWords":    {"backtracking", []string{"subsets"}},
+	"fresh.CountSteadyPairs":    {"hash-table-structure", []string{"sorting"}},
+	"fresh.FastestRoutesCount":  {"graphs", nil},
+	"fresh.FurthestStop":        {"top-k-elements", []string{"heap-structure", "modified-binary-search"}},
+	"fresh.HIndex":              {"sorting", []string{"modified-binary-search"}},
+	// задачи на проектирование класса (тип с «Шаблон:»)
+	"bigo.MinStack":               {"monotonic-stack", nil},
+	"lru.LRUCache":                {"hash-table-structure", []string{"linked-list-structure"}},
+	"designtwitter.Twitter":       {"k-way-merge", []string{"top-k-elements"}},
+	"twoheaps.MedianFinder":       {"two-heaps", nil},
+	"leaderboard.TopK":            {"top-k-elements", nil},
+	"ratelimiter.RateLimiter":     {"sliding-window", nil},
 	"fresh.HeaviestLevel":         {"tree-bfs", []string{"tree-dfs"}},
 	"fresh.LastInCircle":          {"recursion", []string{"dynamic-programming"}},
 	"fresh.LongestWarmingSpan":    {"monotonic-stack", []string{"sorting"}},

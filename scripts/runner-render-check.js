@@ -291,7 +291,7 @@ async function page({ attrs = 'data-pkg="p"', stub = STUB, run = GREEN, solution
         };
       }
       w.addEventListener("error", (e) => errors.push("window error: " + e.message));
-      for (const t of ["algo-runner:result", "algo-runner:giveup", "algo-runner:state"]) {
+      for (const t of ["algo-runner:result", "algo-runner:giveup", "algo-runner:state", "algo-runner:own"]) {
         w.document.addEventListener(t, (e) => events.push(Object.assign({ type: t }, e.detail)));
       }
       const reply = (body, status = 200) => Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(body) });
@@ -517,6 +517,43 @@ async function unitsAndHints() {
   r = await w.runOnce();
   expect(r && !("tests" in r.body) && !w.root.querySelector(".algo-runner__help button") && /Gone/.test(w.lines()),
     `data-func нет в funcs: ${r && JSON.stringify(r.body)}, строка «${w.lines()}»`);
+  // data-func — имя типа (задача на проектирование класса из банка): единица — тип, событие несёт имя
+  // типа, зелёный отмечает все его методы, «Сдаюсь» просит эталон типа целиком.
+  w = await page({ attrs: 'data-pkg="p" data-func="M"' });
+  r = await w.runOnce();
+  last = w.events.filter((e) => e.type === "algo-runner:result").pop();
+  expect(r && JSON.stringify(r.body.tests) === '["TestM"]' && last && last.fn === "M" && last.unit === "type" && !/«M»/.test(w.lines()),
+    `data-func=M (тип): ${r && JSON.stringify(r.body)} ${JSON.stringify(last)} «${w.lines()}»`);
+  expect(w.solved()["p.M.X"] && w.solved()["p.M.Y"], `data-func=M: зелёный не отметил M.X и M.Y: ${JSON.stringify(w.solved())}`);
+  expect(w.press(/Сдаюсь/), "data-func=M: нет «Сдаюсь» после прогона");
+  await tick();
+  const solCall = w.calls.filter((c) => /\/api\/solution\?/.test(c.url)).pop();
+  expect(solCall && /func=M$/.test(solCall.url), `data-func=M: эталон запрошен не для типа: ${solCall && solCall.url}`);
+  // То же в собеседовании: тесты из data-tests, отметка — все методы типа.
+  w = await page({ attrs: `data-pkg="p" data-func="M" data-tests='["TestM"]' data-fresh="true" data-hints="off"` });
+  r = await w.runOnce();
+  last = w.events.filter((e) => e.type === "algo-runner:result").pop();
+  expect(r && JSON.stringify(r.body.tests) === '["TestM"]' && last && last.fn === "M" && w.solved()["p.M.X"] && w.solved()["p.M.Y"],
+    `собеседование, тип M: ${r && JSON.stringify(r.body)} ${JSON.stringify(last)} ${JSON.stringify(w.solved())}`);
+  // data-own-test: «Свой тест» — свой запрос с userTest и без tests, своё событие algo-runner:own; ни
+  // algo-runner:result, ни отметки решённого — тест пишет тот же человек, что и код.
+  w = await page({ attrs: `data-pkg="p" data-func="A" data-tests='["TestA"]' data-fresh="true" data-hints="off" data-own-test="on" data-own-cases='["пустой массив"]'`,
+    run: Object.assign({}, GREEN, { userTests: ["TestMine"] }) });
+  const ownTa = w.q(".algo-runner__own-code");
+  expect(ownTa && /^package p\n/.test(ownTa.value) && /\/\/ пустой массив/.test(ownTa.value) && /func TestMine\(t \*testing\.T\)/.test(ownTa.value),
+    `свой тест: заготовка «${ownTa && ownTa.value}»`);
+  const ownBtn = w.q(".algo-runner__own-run");
+  if (ownBtn) { ownBtn.click(); await tick(); }
+  const ownCall = w.calls.filter((c) => /\/api\/run$/.test(c.url)).pop();
+  expect(ownCall && ownCall.body.userTest === (ownTa && ownTa.value) && !("tests" in ownCall.body), `свой тест: запрос ${ownCall && JSON.stringify(ownCall.body)}`);
+  const ownEv = w.events.filter((e) => e.type === "algo-runner:own").pop();
+  expect(ownEv && ownEv.ok && ownEv.tests.join() === "TestMine" && !w.events.some((e) => e.type === "algo-runner:result"),
+    `свой тест: события ${JSON.stringify(w.events)}`);
+  expect(!Object.keys(w.solved()).length, `свой тест отметил решённое: ${JSON.stringify(w.solved())}`);
+  expect(/✓/.test((w.q(".algo-runner__own-out") || {}).textContent || ""), "свой тест: вердикт не показан в своём блоке");
+  w = await page({ attrs: 'data-pkg="p"' });
+  expect(!w.q(".algo-runner__own"), "без data-own-test поле «Свой тест» нарисовано");
+
   // data-tests + data-func (собеседование): гоняются data-tests, событие несёт fn.
   w = await page({ attrs: `data-pkg="p" data-func="D" data-tests='["TestD"]' data-fresh="true" data-hints="off"`, run: RED });
   r = await w.runOnce();

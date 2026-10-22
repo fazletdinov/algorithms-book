@@ -152,7 +152,9 @@ func handleSolution(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "чтение заготовки: " + err.Error()})
 		return
 	}
-	if !slices.Contains(stubdoc.Declared(stub), fn) {
+	// Имя типа — эталон задачи на проектирование класса из банка: тип целиком.
+	isType := slices.Contains(stubdoc.DeclaredTypes(stub), fn)
+	if !isType && !slices.Contains(stubdoc.Declared(stub), fn) {
 		notFound()
 		return
 	}
@@ -165,7 +167,11 @@ func handleSolution(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "чтение эталона: " + err.Error()})
 		return
 	}
-	code, err := stubdoc.Solution(solution, fn)
+	solve := stubdoc.Solution
+	if isType {
+		solve = stubdoc.TypeSolution
+	}
+	code, err := solve(solution, fn)
 	switch {
 	case errors.Is(err, stubdoc.ErrNotFound):
 		notFound()

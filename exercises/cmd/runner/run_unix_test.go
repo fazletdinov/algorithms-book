@@ -321,6 +321,39 @@ func TestHandleRunFilter(t *testing.T) {
 	}
 }
 
+// Свой тест читателя: ложится рядом с тестами пакета и гоняется ОДИН — тесты пакета не
+// запускаются, ответ несёт userTests. Имя, совпавшее с тестом пакета, — ошибка сборки, а не
+// тихая подмена чужого теста.
+func TestHandleRunUserTest(t *testing.T) {
+	const solved = "package spin\n\nfunc Spin() int { return 1 }\n"
+	mine := func(want int) string {
+		q, _ := json.Marshal(fmt.Sprintf("package spin\n\nimport \"testing\"\n\nfunc TestMine(t *testing.T) {\n\tif Spin() != %d {\n\t\tt.Fatal(\"мой случай\")\n\t}\n}\n", want))
+		return `,"userTest":` + string(q)
+	}
+	for _, tt := range []struct {
+		name, tail string
+		want, not  []string
+	}{
+		{"свой тест зелёный", mine(1), []string{`"ok":true`, `"userTests":["TestMine"]`, `"filtered":true`, `"passed":1`, `"name":"TestMine"`}, []string{`"name":"TestSpin"`}},
+		{"свой тест красный", mine(2), []string{`"ok":false`, `"userTests":["TestMine"]`, `"failed":1`, `мой случай`}, []string{`"name":"TestSpin"`}},
+		{"имя теста пакета", `,"userTest":"package spin\n\nimport \"testing\"\n\nfunc TestSpin(t *testing.T) {}\n"`, []string{`"ok":false`, `"stage":"build"`, `TestSpin redeclared`}, nil},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got := postRun(t, spinModule, solved, tt.tail)
+			for _, want := range tt.want {
+				if !strings.Contains(got, want) {
+					t.Errorf("в ответе нет %s:\n%.800s", want, got)
+				}
+			}
+			for _, not := range tt.not {
+				if strings.Contains(got, not) {
+					t.Errorf("в ответе лишнее %s:\n%.800s", not, got)
+				}
+			}
+		})
+	}
+}
+
 // Решение паникует при инициализации (переменная уровня пакета): тестовый бинарник
 // собран и запущен, но падает до первого теста. Раньше это шло как build: false без
 // причины — виджет писал «Ошибка компиляции» над стеком паники.

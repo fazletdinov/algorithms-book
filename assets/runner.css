@@ -197,6 +197,10 @@
 }
 
 .algo-runner__out:empty { display: none; }
+/* «Свой тест» (собеседование): поле ниже результата прогона, своя кнопка и свой вывод */
+.algo-runner__own { margin-top: 12px; border-top: 1px dashed var(--ar-line); padding-top: 10px; }
+.algo-runner__own-code { min-height: 150px; border: 1px solid var(--ar-line); border-radius: 8px; margin: 6px 0 8px; }
+.algo-runner__own-out { margin-top: 8px; }
 .algo-runner__verdict {
   font-weight: 700;
   padding: 8px 10px;

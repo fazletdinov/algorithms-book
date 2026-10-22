@@ -1,8 +1,11 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"regexp"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 )
@@ -81,5 +84,45 @@ func TestTestArgsFilterIsExact(t *testing.T) {
 		if got := re.MatchString(name); got != want {
 			t.Errorf("%s: совпадение = %v, ожидалось %v", name, got, want)
 		}
+	}
+}
+
+// Свой тест читателя проверяется до копии модуля: битый файл — 400 с причиной, а не прогон.
+func TestUserTestNames(t *testing.T) {
+	for _, tt := range []struct {
+		name, src string
+		want      []string
+		err       string
+	}{
+		{"два теста и помощник", "package p\n\nimport \"testing\"\n\nfunc helper() {}\n\nfunc TestA(t *testing.T) {}\n\nfunc TestB_2(t *testing.T) {}\n", []string{"TestA", "TestB_2"}, ""},
+		{"чужой пакет", "package q\n\nfunc TestA(t *testing.T) {}\n", nil, "package q, а нужен package p"},
+		{"нет тестов", "package p\n\nfunc helper() {}\n", nil, "нет ни одной func TestX"},
+		{"не разбирается", "package p\n\nfunc TestA(t *testing.T) {\n", nil, "не разбирается"},
+		{"имя не для фильтра", "package p\n\nfunc TestЖ(t *testing.T) {}\n", nil, "недопустимое имя теста"},
+		{"слишком длинный", "package p\n//" + strings.Repeat("x", maxUserTest) + "\n", nil, "длиннее"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := userTestNames("p", tt.src)
+			if tt.err != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.err) {
+					t.Fatalf("err = %v, ожидалось «%s»", err, tt.err)
+				}
+				return
+			}
+			if err != nil || strings.Join(got, ",") != strings.Join(tt.want, ",") {
+				t.Fatalf("= %v, %v; ожидалось %v", got, err, tt.want)
+			}
+		})
+	}
+}
+
+// Свой тест и фильтр tests вместе — 400: свой тест не смешивается с проверкой задачи.
+func TestHandleRunUserTestWithFilterRejected(t *testing.T) {
+	useRealModule(t)
+	rec := httptest.NewRecorder()
+	body := `{"pkg":"slidingwindow","code":"package slidingwindow","tests":["TestA"],"userTest":"package slidingwindow\nfunc TestB(t *testing.T){}"}`
+	newServer(memLimiter{Mode: memNone}).handleRun(rec, httptest.NewRequest(http.MethodPost, "/api/run", strings.NewReader(body)))
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "отдельно") {
+		t.Errorf("код %d: %s", rec.Code, rec.Body.String())
 	}
 }

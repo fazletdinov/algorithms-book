@@ -389,6 +389,11 @@
   //   data-draft="mock|mixed|review" — свой черновик algoRunnerCode:<draft>:<pkg>, а не решение пакета
   //                       из главы (algoRunnerCode:<pkg>); data-fresh="true" — прежнее имя для mock;
   //   data-hints="off"  — без подсказок и эталона (собеседование).
+  //   data-own-test="on" — под редактором поле «Свой тест»: файл тестов читателя гоняется отдельно
+  //                       (/api/run с userTest — только его тесты); data-own-cases — JSON-массив строк,
+  //                       граничные случаи из плана, они встают в заготовку теста комментариями.
+  //                       Такой прогон ничего не засчитывает и шлёт не algo-runner:result, а
+  //                       algo-runner:own {pkg, ok, passed, failed, stage, tests}.
   // События (на узле виджета, всплывают): algo-runner:result после каждого ответа /api/run,
   // algo-runner:giveup {pkg, fn} — показан эталон, algo-runner:state {pkg, up} — runner ответил или нет.
   //
@@ -470,6 +475,7 @@
 
     var out = el("div", "algo-runner__out");
     root.appendChild(out);
+    var own = root.getAttribute("data-own-test") === "on" ? ownPanel() : null;
     var traceOut = el("div", "algo-runner__trace");
     if (traceCalls.length) root.appendChild(traceOut);
 
@@ -507,7 +513,11 @@
 
     // unitOf — что гонять для упражнения e (null — весь пакет) и что отметить при зелёном.
     function unitOf(e) {
-      if (onlyTests.length) return { kind: "func", tests: onlyTests, members: e ? [e.name] : [] };
+      if (onlyTests.length) {
+        var whole = e && wantFunc && e.group === wantFunc;
+        return { kind: "func", tests: onlyTests,
+          members: whole ? names(funcs.filter(function (f) { return f.group === wantFunc; })) : e ? [e.name] : [] };
+      }
       if (e && e.tests.length) return { kind: "func", tests: e.tests, members: [e.name] };
       if (e && e.group && e.groupTests.length) {
         // Тесты типа проверяют его упражнения без своих тестов; конструктор со своими тестами
@@ -635,11 +645,13 @@
         if (next) row.appendChild(helpButton(it));
         next = false;
       });
-      var sol = sel && solutions[sel.name];
-      if (sel && tried[sel.name] && !(sol && sol.code != null)) row.appendChild(giveUpButton(sel.name));
+      // У задачи на проектирование класса (data-func — имя типа) эталон — тип целиком.
+      var solName = sel && wantFunc && sel.group === wantFunc ? wantFunc : sel && sel.name;
+      var sol = sel && solutions[solName];
+      if (sel && tried[solName] && !(sol && sol.code != null)) row.appendChild(giveUpButton(solName));
       if (row.childNodes.length) help.appendChild(row);
       if (sol && sol.error) help.appendChild(el("div", "algo-runner__help-err", "Эталон не получен: " + sol.error));
-      if (sol && sol.code != null) help.appendChild(solutionView(sel.name, sol.code));
+      if (sol && sol.code != null) help.appendChild(solutionView(solName, sol.code));
       help.hidden = !help.childNodes.length;
     }
     function helpText(it) {
@@ -735,7 +747,9 @@
         if (data.warning) line("⚠ " + data.warning + " — работаю по файлу как есть: гоняется весь пакет, подсказок нет.");
         else if (!structured) line("Runner старой версии: нет выбора упражнения и подсказок — перезапусти его, чтобы они появились.");
         if (wantFunc) {
-          sel = byName(wantFunc);
+          // Имя типа (задача на проектирование класса в банке) — первое его упражнение: unitOf
+          // по нему гоняет тесты всего типа.
+          sel = byName(wantFunc) || funcs.filter(function (f) { return f.group === wantFunc; })[0] || null;
           if (!sel && structured) {
             helpOff = true;
             line("Упражнения «" + wantFunc + "» нет в заготовке на диске — похоже, оно уже решено в файле" +
@@ -795,12 +809,53 @@
       }, 400);
     }
 
+    // ownPanel — «Свой тест»: тест пишет тот же человек, что и код, поэтому зелёный здесь — проверка
+    // своих граничных случаев, а не решение задачи; гоняются только его тесты, рядом с тестами пакета.
+    function ownPanel() {
+      var box = el("div", "algo-runner__own");
+      box.appendChild(el("div", "algo-runner__help-label", "Свой тест — проверь свои граничные случаи. Гоняются только тесты этого " +
+        "файла, рядом с тестами пакета; зелёный здесь задачу не засчитывает."));
+      var ta = document.createElement("textarea");
+      ta.className = "algo-runner__ta algo-runner__own-code";
+      ta.spellcheck = false;
+      ta.setAttribute("aria-label", "свой тест");
+      var cases = jsonAttr(root, "data-own-cases").map(function (c) { return "\t// " + String(c).replace(/\s+/g, " ") + "\n"; }).join("");
+      ta.value = "package " + pkg + "\n\nimport \"testing\"\n\nfunc TestMine(t *testing.T) {\n" +
+        (cases ? "\t// граничные случаи из плана:\n" + cases : "") + "}\n";
+      ta.addEventListener("keydown", function (e) { e.stopPropagation(); });
+      box.appendChild(ta);
+      var run = btn("▶ Прогнать свой тест", "algo-runner__btn algo-runner__own-run");
+      box.appendChild(run);
+      var res = el("div", "algo-runner__out algo-runner__own-out");
+      box.appendChild(res);
+      run.addEventListener("click", function () {
+        if (!editor) return;
+        run.disabled = true;
+        res.innerHTML = "";
+        api("/api/run", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pkg: pkg, code: editor.getValue(), race: race, userTest: ta.value }) })
+          .then(function (r) {
+            setUp(true);
+            renderResult(res, r);
+            emit(root, "algo-runner:own", { pkg: pkg, ok: !!r.ok, passed: r.passed || 0, failed: r.failed || 0,
+              stage: r.stage || "", tests: Array.isArray(r.userTests) ? r.userTests : [] });
+          }, function (err) {
+            if (err.network) setUp(false);
+            else if (err.status) setUp(true); else console.error("algo-runner:", err);
+            res.appendChild(el("div", "algo-runner__verdict is-err", "✗ " + (err.network ? "runner не отвечает" : err.message)));
+          })
+          .then(function () { run.disabled = false; });
+      });
+      root.appendChild(box);
+      return box;
+    }
+
     // ---- прогон ----
 
     runBtn.addEventListener("click", function () {
       if (!editor) return;
       var e = sel, u = unitOf(e);
-      var fn = e ? e.name : wantFunc;
+      var fn = e && !(wantFunc && e.group === wantFunc) ? e.name : wantFunc;
       // Подсказки и «сдаюсь» — на момент нажатия и по всем участникам единицы прогона: они относятся
       // к попытке, которую сейчас проверят.
       var involved = u.members.concat(fn && u.members.indexOf(fn) < 0 ? [fn] : []);

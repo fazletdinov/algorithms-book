@@ -228,6 +228,23 @@ func Declared(src []byte) []string {
 	return names
 }
 
+// DeclaredTypes — имена типов файла; разбирается так же снисходительно, как Declared.
+func DeclaredTypes(src []byte) []string {
+	file, _ := parser.ParseFile(token.NewFileSet(), "stub.go", src, parser.SkipObjectResolution)
+	if file == nil {
+		return nil
+	}
+	var names []string
+	for _, decl := range file.Decls {
+		if gen, ok := decl.(*ast.GenDecl); ok && gen.Tok == token.TYPE {
+			for _, spec := range gen.Specs {
+				names = append(names, spec.(*ast.TypeSpec).Name.Name)
+			}
+		}
+	}
+	return names
+}
+
 // hintOf — то, что читатель увидит за кнопкой подсказки: признак приёма, затем
 // абзацы-подсказки в порядке документа.
 func hintOf(doc string) (string, error) {

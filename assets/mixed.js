@@ -20,7 +20,8 @@
  *      намеренный: на собеседовании код без проговорённого плана — красный флаг;
  *   3) редактор гоняет ТОЛЬКО тесты этой функции (поле t банка → data-tests),
  *      открывается с чистой заготовки (data-fresh), а не с твоего решения пакета,
- *      и без подсказок и эталона (data-hints="off");
+ *      и без подсказок и эталона (data-hints="off"); под ним — «Свой тест» (data-own-test):
+ *      свой файл тестов на граничные случаи гоняется отдельно и задачу не засчитывает;
  *   4) после зелёных тестов — сложность своими словами, и только потом эталон из
  *      док-комментария (поле x банка); совпало ли — отмечаешь сам (эталоны записаны свободным
  *      текстом, «O(rows·cols)» против «O(R·C)» машинно не сравнить честно);
@@ -53,7 +54,7 @@
 
   var MISSED = "algoMixedMissed"; // {"<pkg>.<fn>": {n, chapter, fn, pkg}} — источник карточек для srs.js
   var SEEN = "algoMixedSeen"; // {"<pkg>.<fn>": ts} — чтобы не выдавать одно и то же подряд
-  var MOCK_LOG = "algoMockLog"; // [{k, ts, secs, limit, pattern, plan, green, cx}] — история собеседований
+  var MOCK_LOG = "algoMockLog"; // [{k, ts, secs, limit, pattern, plan, edges, green, cx, own}] — история собеседований
   var CX_MISSED = "algoMockCxMissed"; // {"<pkg>.<fn>": {n, chapter, fn, pkg}} — источник карточек cx: для srs.js
   var MIXED_DRAFT = "algoRunnerCode:mixed:"; // черновик обычного режима — ключ виджета runner'а с data-draft="mixed"
   var OPTIONS = 4;
@@ -148,6 +149,9 @@
     var bucket = wrong.length && Math.random() < 0.5 ? wrong : fresh.length ? fresh : pool;
     return bucket[Math.floor(Math.random() * bucket.length)];
   }
+
+  // isType — задача на проектирование класса: f — имя типа, m — его конструктор и методы.
+  function isType(p) { return !!(p.m && p.m.length); }
 
   function key(p) {
     return p.p + "." + p.f;
@@ -536,7 +540,9 @@
 
       res.appendChild(el("p", "algo-mixed__solve",
         "Теперь реши её: ниже — заготовка пакета «" + p.p + "» без подсказок и его настоящие тесты. " +
-        "Нужная функция — " + p.f + ": «Прогнать тесты» гоняет её тесты (у функции без своих тестов — тесты типа или весь пакет), " +
+        (isType(p)
+          ? "Нужен тип " + p.f + " целиком — " + p.m.join(", ") + ": «Прогнать тесты» гоняет тесты типа, "
+          : "Нужная функция — " + p.f + ": «Прогнать тесты» гоняет её тесты (у функции без своих тестов — тесты типа или весь пакет), ") +
         "подсказки и эталон — за кнопками под редактором."));
       body.appendChild(res);
 
@@ -652,7 +658,9 @@
 
     function mockEditor(p, res) {
       res.appendChild(el("p", "algo-mixed__solve",
-        "Реши " + p.f + " в пакете «" + p.p + "». Гоняются только её тесты (" + p.t.join(", ") +
+        (isType(p)
+          ? "Спроектируй и напиши тип " + p.f + " в пакете «" + p.p + "»: " + p.m.join(", ") + ". Гоняются только тесты типа ("
+          : "Реши " + p.f + " в пакете «" + p.p + "». Гоняются только её тесты (") + p.t.join(", ") +
         "); соседние упражнения пакета им не нужны."));
 
       var runner = document.createElement("div");
@@ -665,6 +673,14 @@
       // и эталона в собеседовании нет: среди подсказок — «Ожидаемая сложность», ответ на шаг 4.
       runner.setAttribute("data-func", p.f);
       runner.setAttribute("data-hints", "off");
+      // Свой тест на граничные случаи из плана: гоняется отдельно и задачу не засчитывает (algo-runner:own).
+      runner.setAttribute("data-own-test", "on");
+      runner.setAttribute("data-own-cases", JSON.stringify(session.edges || []));
+      runner.addEventListener("algo-runner:own", function (e) {
+        var d = e.detail || {};
+        if (!session || session.done) return;
+        session.own = { runs: ((session.own || {}).runs || 0) + 1, ok: !!d.ok, n: (d.tests || []).length };
+      });
       res.appendChild(runner);
 
       var giveUp = el("button", "algo-quiz__btn algo-mixed__giveup", "Завершить без решения");
@@ -759,6 +775,8 @@
         ["План словами", session.plan + " символов"],
         ["Граничные случаи", (session.edges || []).join(" · ") || "—"],
         ["Тесты", session.green != null ? "зелёные за " + mmss(session.green) : "не доведены"],
+        ["Свой тест", !session.own ? "не писал" : (session.own.ok ? "зелёный" : "красный") + " (тестов " + session.own.n +
+          ", прогонов " + session.own.runs + ")"],
         ["Сложность", session.cx === "ok" ? "оценена верно" : session.cx === "miss" ? "оценена неверно" :
           session.cx === "none" ? "эталона нет" : "не оценивалась"],
       ];
@@ -783,7 +801,7 @@
       log.push({
         k: key(p), ts: Date.now(), secs: secs, limit: MOCK_LIMIT_MIN,
         pattern: !!session.pattern, plan: session.plan, edges: (session.edges || []).length,
-        green: session.green != null, cx: session.cx,
+        green: session.green != null, cx: session.cx, own: session.own ? (session.own.ok ? "ok" : "fail") : "",
       });
       save(MOCK_LOG, log.slice(-LOG_MAX));
 

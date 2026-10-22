@@ -22,7 +22,13 @@
 // генератора, а не задача с невозможным верным ответом.
 //
 // В банк попадают только НАСТОЯЩИЕ упражнения: экспортированные функции
-// верхнего уровня с док-комментарием, тело которых — panic("TODO...").
+// верхнего уровня с док-комментарием, тело которых — panic("TODO..."), и задачи
+// на проектирование класса — типы, у чьих методов или конструктора тело
+// panic("TODO..."), а в док-комментарии есть абзац «Шаблон:». Метка обязательна
+// намеренно: «реализуй AVL» или «реализуй Фенвика» спрашивают о структуре, которую
+// называет само имя типа, и вопрос «каким шаблоном» на них вырождается; «Шаблон:»
+// ставится только там, где спроектировать класс и есть задача (MinStack, LRU,
+// лента подписок). Условие такой задачи — док-комментарий типа, тесты — тесты типа.
 // Готовая инфраструктура (типы ListNode, хелперы) в банк не идёт.
 //
 // Отдельно отсеиваются задачи с однострочным условием (короче minStatement):
@@ -65,6 +71,7 @@ type problem struct {
 	Also       []string // главы, чей ответ тоже верен («Также решается:»); Chapter среди них нет
 	Sign       string   // по чему приём виден в условии («Признак:»), без префикса
 	Needs      []string // другие упражнения пакета, без которых Tests не пройдут
+	Members    []string // у задачи на проектирование класса — упражнения типа; у функции пусто
 }
 
 // slugRe — имя главы: имя файла src/<слаг>.md. Узкое на всякий случай: слаг идёт в
@@ -221,6 +228,11 @@ func collect(root string) ([]problem, int, error) {
 				Sign:       marks.Sign,
 			})
 		}
+		types, err := typeProblems(root, pkg, chapter, file, exercises, links)
+		if err != nil {
+			return nil, 0, err
+		}
+		out = append(out, types...)
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Pkg != out[j].Pkg {
@@ -229,6 +241,88 @@ func collect(root string) ([]problem, int, error) {
 		return out[i].Fn < out[j].Fn
 	})
 	return out, skipped, nil
+}
+
+// typeProblems — задачи на проектирование класса в заготовке: экспортированные типы
+// с «Шаблон:» в док-комментарии, у которых есть упражнения (методы или конструктор).
+// Тесты задачи — тесты типа, соседи — то, что нужно упражнениям типа вне самого типа.
+func typeProblems(root, pkg, chapter string, file *ast.File, exercises []stubdoc.Func,
+	links map[string]stubdoc.Links) ([]problem, error) {
+	var out []problem
+	for _, decl := range file.Decls {
+		gen, ok := decl.(*ast.GenDecl)
+		if !ok || gen.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range gen.Specs {
+			ts := spec.(*ast.TypeSpec)
+			doc := ts.Doc
+			if doc == nil && len(gen.Specs) == 1 {
+				doc = gen.Doc
+			}
+			if doc == nil || !ast.IsExported(ts.Name.Name) {
+				continue
+			}
+			marks, err := stubdoc.MarksOf(doc.Text())
+			if err != nil {
+				return nil, fmt.Errorf("%s.%s: %w", pkg, ts.Name.Name, err)
+			}
+			if marks.Template == "" {
+				continue
+			}
+			name := ts.Name.Name
+			var members, tests []string
+			needs := map[string]bool{}
+			for _, f := range exercises {
+				l := links[f.Name]
+				if l.Group != name {
+					continue
+				}
+				members = append(members, f.Name)
+				tests = l.GroupTests
+				for _, n := range l.Needs {
+					needs[n] = true
+				}
+			}
+			if len(members) == 0 {
+				return nil, fmt.Errorf("%s.%s: «Шаблон:» у типа без упражнений — задачи на проектирование нет", pkg, name)
+			}
+			answer, marks, err := answerOf(root, pkg+"."+name, chapter, doc.Text())
+			if err != nil {
+				return nil, err
+			}
+			text, hint := stubdoc.Statement(doc.Text())
+			if len([]rune(withoutLimits(text))) < minStatement {
+				return nil, fmt.Errorf("%s.%s: условие задачи на проектирование короче %d символов", pkg, name, minStatement)
+			}
+			for _, m := range members {
+				delete(needs, m)
+			}
+			out = append(out, problem{
+				Pkg:        pkg,
+				Fn:         name,
+				Chapter:    answer,
+				Text:       neutralType(text, name),
+				Hint:       hint,
+				Tests:      tests,
+				Needs:      sortedKeys(needs),
+				Complexity: stubdoc.Complexity(doc.Text()),
+				Also:       marks.Also,
+				Sign:       marks.Sign,
+				Members:    members,
+			})
+		}
+	}
+	return out, nil
+}
+
+func sortedKeys(set map[string]bool) []string {
+	var out []string
+	for k := range set {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // answerOf — глава-ответ функции и её служебные метки. «Шаблон:» заменяет главу
@@ -280,6 +374,16 @@ func neutral(text, fn string) string {
 	return regexp.MustCompile(`\b`+regexp.QuoteMeta(fn)+`\b`).ReplaceAllString(text, "f")
 }
 
+// neutralType — neutral для типа: «LRUCache хранит…» становится «Тип хранит…»,
+// остальные упоминания имени — T, конструктор NewLRUCache — NewT.
+func neutralType(text, typ string) string {
+	if rest, ok := strings.CutPrefix(text, typ+" "); ok {
+		text = "Тип " + rest
+	}
+	text = regexp.MustCompile(`\bNew`+regexp.QuoteMeta(typ)+`\b`).ReplaceAllString(text, "NewT")
+	return regexp.MustCompile(`\b`+regexp.QuoteMeta(typ)+`\b`).ReplaceAllString(text, "T")
+}
+
 // dedupe оставляет одну задачу из тех, чьи условия после neutral совпали.
 // Такие задачи различало только имя (ModExp в криптографии и PowMod в теории
 // чисел), и у одного и того же условия оказалось бы два «правильных» шаблона.
@@ -326,6 +430,8 @@ func render(ps []problem) []byte {
  * n — другие упражнения пакета, без которых тесты t не пройдут: тест зовёт их сам или
  * через помощников (BFSLevelsConc сверяется с BFSLevelsSeq, и на заготовке с одной
  * решённой функцией он упадёт с panic("TODO") соседа).
+ * m — только у задачи на проектирование класса: f у неё — имя типа, m — его упражнения
+ * (конструктор и методы), t — тесты типа; у функции поля m нет.
  */
 window.ALGO_PROBLEMS = [
 `)
@@ -342,10 +448,18 @@ window.ALGO_PROBLEMS = [
 		for i, n := range p.Needs {
 			needs[i] = jsString(n)
 		}
-		fmt.Fprintf(&b, "  { p: %s, f: %s, c: %s, s: %s, h: %s, t: [%s], x: %s, a: [%s], g: %s, n: [%s] },\n",
+		members := ""
+		if len(p.Members) > 0 {
+			ms := make([]string, len(p.Members))
+			for i, m := range p.Members {
+				ms[i] = jsString(m)
+			}
+			members = ", m: [" + strings.Join(ms, ", ") + "]"
+		}
+		fmt.Fprintf(&b, "  { p: %s, f: %s, c: %s, s: %s, h: %s, t: [%s], x: %s, a: [%s], g: %s, n: [%s]%s },\n",
 			jsString(p.Pkg), jsString(p.Fn), jsString(p.Chapter), jsString(p.Text), jsString(p.Hint),
 			strings.Join(tests, ", "), jsString(p.Complexity), strings.Join(also, ", "), jsString(p.Sign),
-			strings.Join(needs, ", "))
+			strings.Join(needs, ", "), members)
 	}
 	b.WriteString("];\n")
 	return b.Bytes()

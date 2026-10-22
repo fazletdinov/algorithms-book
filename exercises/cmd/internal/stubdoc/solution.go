@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -42,7 +43,39 @@ func Solution(src []byte, name string) (string, error) {
 	if root < 0 {
 		return "", fmt.Errorf("%w: %q", ErrNotFound, name)
 	}
+	return closure(fset, file, src, []int{root}), nil
+}
 
+// TypeSolution — эталон типа целиком для задачи на проектирование класса: объявление
+// типа, все его методы и конструкторы (функции, чей первый результат — этот тип), плюс
+// всё, без чего они не читаются, — по тем же правилам, что у Solution.
+func TypeSolution(src []byte, typ string) (string, error) {
+	fset, file, err := parseSource(src)
+	if err != nil {
+		return "", err
+	}
+	var roots []int
+	ctors := constructors(file, []string{typ})
+	for i, decl := range file.Decls {
+		switch d := decl.(type) {
+		case *ast.FuncDecl:
+			if (d.Recv != nil && recvTypeName(d) == typ) || (d.Recv == nil && ctors[d.Name.Name] == typ) {
+				roots = append(roots, i)
+			}
+		case *ast.GenDecl:
+			if d.Tok == token.TYPE && slices.ContainsFunc(d.Specs, func(s ast.Spec) bool { return s.(*ast.TypeSpec).Name.Name == typ }) {
+				roots = append(roots, i)
+			}
+		}
+	}
+	if len(roots) == 0 {
+		return "", fmt.Errorf("%w: тип %q", ErrNotFound, typ)
+	}
+	return closure(fset, file, src, roots), nil
+}
+
+// closure — объявления roots и всё, на что они ссылаются (см. Solution), в порядке файла.
+func closure(fset *token.FileSet, file *ast.File, src []byte, roots []int) string {
 	byName := map[string][]int{}    // имя -> объявления, которые приходят вместе со ссылкой на него
 	methodsOf := map[string][]int{} // тип -> его методы
 	for i, decl := range file.Decls {
@@ -53,13 +86,16 @@ func Solution(src []byte, name string) (string, error) {
 			methodsOf[recvTypeName(fn)] = append(methodsOf[recvTypeName(fn)], i)
 		}
 	}
-	included := map[int]bool{root: true}
-	queue := []int{root}
+	included := map[int]bool{}
+	var queue []int
 	include := func(j int) {
 		if !included[j] {
 			included[j] = true
 			queue = append(queue, j)
 		}
+	}
+	for _, r := range roots {
+		include(r)
 	}
 	for len(queue) > 0 {
 		decl := file.Decls[queue[0]]
@@ -89,7 +125,7 @@ func Solution(src []byte, name string) (string, error) {
 		start, end := declSpan(file.Decls[i])
 		parts = append(parts, string(src[fset.Position(start).Offset:fset.Position(end).Offset]))
 	}
-	return strings.Join(parts, "\n\n") + "\n", nil
+	return strings.Join(parts, "\n\n") + "\n"
 }
 
 // unexportedTypes — имена неэкспортированных типов, которые объявляет decl.

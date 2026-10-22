@@ -223,3 +223,25 @@ func TestSolutionTerminatesOnMutualRecursion(t *testing.T) {
 		t.Errorf("каждая вспомогательная функция — один раз:\n%s", got)
 	}
 }
+
+// Задача на проектирование класса сдаётся целиком: тип, конструктор, все методы — и
+// экспортированные тоже, которые Solution одной функции не приносит.
+func TestTypeSolution(t *testing.T) {
+	got, err := TypeSolution([]byte(fakeSolution), "Stack")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"type Stack struct", "func NewStack()", ") Push(v int)", ") Pop() int", ") grow()", "type node struct"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("нет %q:\n%s", want, got)
+		}
+	}
+	for _, unwanted := range []string{"func Sum(", "func Other(", "func Fails("} {
+		if strings.Contains(got, unwanted) {
+			t.Errorf("лишнее %q:\n%s", unwanted, got)
+		}
+	}
+	if _, err := TypeSolution([]byte(fakeSolution), "Queue"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("неизвестный тип: err = %v, ожидался ErrNotFound", err)
+	}
+}

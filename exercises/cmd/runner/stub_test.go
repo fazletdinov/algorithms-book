@@ -278,7 +278,8 @@ func TestHandleStubTestsGoToLongestNameEvenOfReadyFunc(t *testing.T) {
 	}
 }
 
-// bankLine — запись банка задач: пакет, функция и её тесты (поле t).
+// bankLine — запись банка задач: пакет, функция и её тесты (поле t). У задачи на
+// проектирование класса f — имя типа, и сверяются тесты типа (groupTests).
 var bankLine = regexp.MustCompile(`^\s*\{ p: "([^"]+)", f: "([^"]+)",.* t: \[([^\]]*)\], x: `)
 
 // Список тестов функции в ответе сервера и в банке задач — один и тот же: мок-интервью
@@ -313,6 +314,9 @@ func TestHandleStubTestsMatchProblemBank(t *testing.T) {
 			cache[pkg] = map[string][]string{}
 			for _, f := range r.Funcs {
 				cache[pkg][f.Name] = f.Tests
+				if f.Group != "" {
+					cache[pkg][f.Group] = f.GroupTests
+				}
 			}
 		}
 		got, ok := cache[pkg][fn]
@@ -457,6 +461,27 @@ func TestHandleSolutionMethodComesWithItsType(t *testing.T) {
 	}
 	if !strings.Contains(r.Code, "type MinStack struct") || !strings.Contains(r.Code, ") Top() int") {
 		t.Errorf("метод без своего типа не читается:\n%s", r.Code)
+	}
+}
+
+// Имя типа — задача на проектирование класса из банка: эталон всего типа, а не одного метода.
+func TestHandleSolutionWholeType(t *testing.T) {
+	useRealModule(t)
+	code, body := get(t, handleSolution, "/api/solution", map[string]string{"pkg": "bigo", "func": "MinStack"})
+	if code != http.StatusOK {
+		t.Fatalf("код %d: %s", code, body)
+	}
+	var r solutionReply
+	if err := json.Unmarshal(body, &r); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"type MinStack struct", "func NewMinStack()", ") Push(val int)", ") Pop()", ") Top() int", ") GetMin() int"} {
+		if !strings.Contains(r.Code, want) {
+			t.Errorf("нет %q:\n%s", want, r.Code)
+		}
+	}
+	if strings.Contains(r.Code, "func NextGreaterElement") {
+		t.Errorf("в эталоне типа чужая функция:\n%s", r.Code)
 	}
 }
 
