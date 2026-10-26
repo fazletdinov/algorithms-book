@@ -2,6 +2,8 @@
 
 package sorting
 
+import "math/rand/v2"
+
 func MergeSort(nums []int) []int {
 	if len(nums) <= 1 {
 		out := make([]int, len(nums))
@@ -37,28 +39,41 @@ func QuickSort(nums []int) {
 	quickSort(nums, 0, len(nums)-1)
 }
 
+// quickSort: случайный опорный — против неудачного порядка (отсортированный
+// вход), три зоны — против повторов (все равные). Рекурсия идёт в меньшую
+// часть, большая — следующим витком цикла: стек O(log n) даже в худшем случае.
 func quickSort(a []int, lo, hi int) {
-	if lo >= hi {
-		return
+	for lo < hi {
+		lt, gt := partition3(a, lo, hi)
+		if lt-lo < hi-gt {
+			quickSort(a, lo, lt-1)
+			lo = gt + 1
+		} else {
+			quickSort(a, gt+1, hi)
+			hi = lt - 1
+		}
 	}
-	p := partition(a, lo, hi)
-	quickSort(a, lo, p-1)
-	quickSort(a, p+1, hi)
 }
 
-// partition по схеме Ломуто: опорным берём a[hi]; i — граница «меньших».
-// Возвращает финальную позицию опорного.
-func partition(a []int, lo, hi int) int {
-	pivot := a[hi]
-	i := lo
-	for j := lo; j < hi; j++ {
-		if a[j] < pivot {
-			a[i], a[j] = a[j], a[i]
+// partition3 разбивает a[lo..hi] вокруг случайного опорного на три зоны:
+// [lo,lt) — меньше, [lt,gt] — равны опорному, (gt,hi] — больше.
+func partition3(a []int, lo, hi int) (lt, gt int) {
+	pivot := a[lo+rand.IntN(hi-lo+1)]
+	lt, i, gt := lo, lo, hi
+	for i <= gt {
+		switch {
+		case a[i] < pivot:
+			a[lt], a[i] = a[i], a[lt]
+			lt++
+			i++
+		case a[i] > pivot:
+			a[i], a[gt] = a[gt], a[i]
+			gt-- // пришедший с конца a[i] ещё не проверен — i не двигаем
+		default:
 			i++
 		}
 	}
-	a[i], a[hi] = a[hi], a[i]
-	return i
+	return lt, gt
 }
 
 func HeapSort(nums []int) {
@@ -121,17 +136,14 @@ func CountingSort(nums []int) []int {
 func QuickSelect(nums []int, k int) int {
 	lo, hi, target := 0, len(nums)-1, k-1
 	for {
-		if lo == hi {
-			return nums[lo]
-		}
-		p := partition(nums, lo, hi)
+		lt, gt := partition3(nums, lo, hi)
 		switch {
-		case p == target:
-			return nums[p]
-		case p < target:
-			lo = p + 1
+		case target < lt:
+			hi = lt - 1
+		case target > gt:
+			lo = gt + 1
 		default:
-			hi = p - 1
+			return nums[target] // ранг попал в зону равных опорному
 		}
 	}
 }

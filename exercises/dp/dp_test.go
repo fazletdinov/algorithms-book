@@ -178,3 +178,28 @@ func TestWordBreak(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteAndEarn(t *testing.T) {
+	tests := []struct {
+		name string
+		nums []int
+		want int
+	}{
+		{"пример: 3,4,2", []int{3, 4, 2}, 6},
+		{"три тройки выгоднее", []int{2, 2, 3, 3, 3, 4}, 9},
+		{"пустой", nil, 0},
+		{"одно число", []int{7}, 7},
+		{"все одинаковые", []int{5, 5, 5, 5}, 20},
+		{"без соседей — берём всё", []int{1, 3, 5, 7}, 16},
+		{"одна большая пятёрка из повторов", []int{1, 1, 1, 2, 4, 5, 5, 5, 6}, 18},
+		{"соседи 1 и 2: двойка дороже", []int{1, 2, 2}, 4},
+		{"пропуск значения не мешает", []int{1, 2, 4, 5}, 7},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := DeleteAndEarn(tt.nums); got != tt.want {
+				t.Errorf("DeleteAndEarn(%v) = %d, ожидалось %d", tt.nums, got, tt.want)
+			}
+		})
+	}
+}

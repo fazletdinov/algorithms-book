@@ -648,6 +648,20 @@ go test -tags solution ./hashtable/  # эталон (зелёные)
 точная структура (хеш-множество), пусть ценой памяти и шардирования. Приблизительное «видели ли» с дешёвой
 ценой промаха → вероятностная. Одна и та же задача «дедуп», а выбор — противоположный.
 
+<div class="algo-challenge" data-type="choice" data-options="[3, 2, 4], target = 6: вернёт [0 0] — тройка нашла саму себя|[2, 7, 11, 15], target = 9: пара 2 + 7 стоит в самом начале|[1, 5, 3, 7], target = 8: пар две, и код вернёт [0 3], не [1 2]|[1, 2, 3], target = 100: пары нет, а код найдёт ложную пару" data-answer="0" data-explain="Ломает порядок строк: x кладётся в seen раньше, чем ищется target − x, и при target = 2·x число находит само себя. На [3, 2, 4] первая же тройка ищет 3 и находит свой индекс 0. На трёх других входах target ни разу не равен удвоенному числу, и ответ верный. Исправление — сначала проверка, потом seen[x] = i.">
+<div class="algo-challenge__q">🐞 Найди ошибку. В <code>twoSum</code> строка <code>seen[x] = i</code> переехала ДО проверки. На каком входе код ошибается?</div>
+<pre class="algo-challenge__code">func twoSum(nums []int, target int) []int {
+    seen := map[int]int{}
+    for i, x := range nums {
+        seen[x] = i
+        if j, ok := seen[target-x]; ok {
+            return []int{j, i}
+        }
+    }
+    return nil
+}</pre>
+</div>
+
 <div class="algo-mental">
   <div class="algo-mental__icon">📌</div>
   <div class="algo-mental__body">

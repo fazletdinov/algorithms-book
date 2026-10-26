@@ -33,6 +33,8 @@
  *                  условие и «каким шаблоном это решается?»; шаблон ссылкой на главу и кнопки
  *                  оценки — только после «Показать ответ». Шаблон и глава — из банка квиза
  *                  (ALGO_QUIZ) по тексту вопроса, meta.pattern/href — только если вопроса больше нет;
+ *                  карточка переписанного вопроса (ALGO_QUIZ.renamed) переезжает на нынешний текст с
+ *                  расписанием, а если там уже есть своя карточка — выбывает;
  *   mix:<pkg>.<fn> — в смешанной тренировке шаблон выбран неверно (mixed.js).
  *                  Карточка — вопрос: условие ДРУГОЙ задачи банка с той же главой-ответом
  *                  (без имени функции; по кругу после meta.last, сначала — после задачи
@@ -384,9 +386,33 @@
     // без runner'а. Срок «сейчас» давал повтор в той же сессии через секунды: ответ ещё перед глазами,
     // «Помню» ничего не проверяло. Карточки, заведённые раньше со сроком «сейчас», не переносятся.
     var missAt = missDue(now);
+    // Переписанный вопрос квиза (ALGO_QUIZ.renamed: прежний текст → нынешний) — новый ключ: карточка под
+    // прежним текстом переезжает на нынешний вместе с расписанием (а если там карточка уже есть — тихо
+    // выбывает). Иначе она навсегда показывала бы прежнюю формулировку — ту, что пересказывала приём.
+    var renamedQ = (window.ALGO_QUIZ && window.ALGO_QUIZ.renamed) || {};
+    var movedIds = [];
+    Object.keys(renamedQ).forEach(function (oldQ) {
+      var oldId = "quiz:" + oldQ, newId = "quiz:" + renamedQ[oldQ];
+      if (!Object.prototype.hasOwnProperty.call(cards, oldId)) return;
+      if (!Object.prototype.hasOwnProperty.call(cards, newId)) {
+        var moved = cards[oldId];
+        if (isCard(moved)) {
+          var meta = {}, was = moved.meta || {};
+          Object.keys(was).forEach(function (k) { meta[k] = was[k]; });
+          meta.q = renamedQ[oldQ];
+          moved.meta = meta;
+        }
+        cards[newId] = moved;
+        // не в created: перенесённая карточка — не новая, её оценка в этом же sync обязана пройти
+        movedIds.push(newId);
+      }
+      delete cards[oldId];
+      removed.push(oldId);
+    });
     var quizMissed = loadMap(QUIZ_MISSED);
     Object.keys(quizMissed).forEach(function (q) {
-      add("quiz:" + q, missAt, quizMissed[q]);
+      var text = Object.prototype.hasOwnProperty.call(renamedQ, q) ? renamedQ[q] : q;
+      add("quiz:" + text, missAt, quizMissed[q]);
     });
 
     var mixMissed = loadMap(MIXED_MISSED);
@@ -414,7 +440,7 @@
 
     if (created.length || removed.length) {
       if (!save(KEY, cards)) return { cards: cardsOnly(loadMap(KEY)), created: [], removed: [], unsaved: true };
-      notify(created.concat(removed));
+      notify(created.concat(removed, movedIds));
     }
     return { cards: cardsOnly(cards), created: created, removed: removed };
   }
@@ -802,7 +828,9 @@
   }
 
   // quizQuestion — вопрос банка квиза (quiz.js грузится на каждой странице раньше srs.js) по его тексту.
+  // Прежний текст переписанного вопроса находит нынешний (ALGO_QUIZ.find).
   function quizQuestion(q) {
+    if (window.ALGO_QUIZ && typeof window.ALGO_QUIZ.find === "function") return window.ALGO_QUIZ.find(q);
     var list = (window.ALGO_QUIZ && window.ALGO_QUIZ.questions) || [];
     for (var i = 0; i < list.length; i++) {
       if (list[i] && list[i].q === q) return list[i];
@@ -811,10 +839,11 @@
   }
 
   // mixShown — задача для карточки mix:: следующая по порядку банка после meta.last среди задач с главой-
-  // ответом chapter, по кругу. meta.last ещё нет — после задачи промаха (miss), так что первый показ — уже
+  // ответом chapter без пометки np (её условие само называет приём — показывать его на карточке «узнай
+  // шаблон» нельзя), по кругу. meta.last ещё нет — после задачи промаха (miss), так что первый показ — уже
   // другая задача. Задача у шаблона одна — она сама. Выбор без случайности: перезагрузка показывает ту же.
   function mixShown(chapter, meta, miss) {
-    var list = (window.ALGO_PROBLEMS || []).filter(function (p) { return p.c === chapter; });
+    var list = (window.ALGO_PROBLEMS || []).filter(function (p) { return p.c === chapter && !p.np; });
     if (!list.length) return null;
     var keys = list.map(function (p) { return p.p + "." + p.f; });
     var last = typeof meta.last === "string" && keys.indexOf(meta.last) >= 0 ? meta.last : miss;
@@ -873,7 +902,7 @@
         kind: "Квиз: распознать шаблон",
         title: "Каким шаблоном это решается?",
         href: "",
-        question: qText,
+        question: cur ? cur.q : qText,
         // запись промаха без шаблона (собранный руками файл) — оценка без ответа, как раньше
         answer: !pattern ? null : qHref ? { link: { text: pattern, href: qHref } } : { text: pattern },
         what: "Назови шаблон и, главное, триггер в условии, по которому ты его узнал, — потом открой ответ: правильный ответ без триггера не считается.",

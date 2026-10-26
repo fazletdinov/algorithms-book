@@ -178,3 +178,58 @@ func TestIntSqrtScales(t *testing.T) {
 		}
 	}
 }
+
+// scaleKoko — 10⁵−1 куч по одному банану и в конце куча 10⁹, часов на один
+// больше, чем куч: большую кучу надо съесть за 2 часа, ответ 5·10⁸. Ответ
+// далеко и от 1, и от max(piles), и от нижней оценки sum/h ≈ 10⁴, поэтому
+// перебор скоростей хоть снизу, хоть сверху, хоть от sum/h — сотни миллионов
+// проверок по n куч. Большая куча последней, чтобы проверка с досрочным выходом
+// всё равно проходила все кучи.
+func scaleKoko() (piles []int, h int) {
+	const n = 100000
+	piles = make([]int, n)
+	for i := range piles {
+		piles[i] = 1
+	}
+	piles[n-1] = 1000000000
+	return piles, n + 1
+}
+
+func TestMinEatingSpeedScales(t *testing.T) {
+	piles, h := scaleKoko()
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MinEatingSpeed(10⁵ куч, ответ 5·10⁸) — похоже на перебор скоростей O(max·n) там, где нужен O(n · log max)"+
+			" (замер: эталон ~7 мс; проверка одной скорости ~0.25 мс, перебор снизу, от sum/h и сверху — по 5·10⁸ проверок, ~34 ч)",
+		func() { got = MinEatingSpeed(piles, h) })
+	if got != 500000000 {
+		t.Fatalf("MinEatingSpeed = %d, ожидалось 500000000", got)
+	}
+}
+
+// scaleShip — 10⁵−3 посылок по 1, затем три по 10⁸, два дня: лучший разрез —
+// [единицы, 10⁸] | [10⁸, 10⁸], ответ 2·10⁸. Перебор грузоподъёмностей от
+// max(weights) = 10⁸ вверх, от sum/days ≈ 1.5·10⁸ вверх или от суммы вниз —
+// десятки миллионов проверок по n посылок. Тяжёлые посылки в конце, чтобы
+// проверка с досрочным выходом («дней уже больше days») доходила до конца.
+func scaleShip() (weights []int, days int) {
+	const n, heavy = 100000, 100000000
+	weights = make([]int, n)
+	for i := range weights {
+		weights[i] = 1
+	}
+	weights[n-3], weights[n-2], weights[n-1] = heavy, heavy, heavy
+	return weights, 2
+}
+
+func TestShipWithinDaysScales(t *testing.T) {
+	weights, days := scaleShip()
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"ShipWithinDays(10⁵ посылок, ответ 2·10⁸) — похоже на перебор грузоподъёмностей O(sum·n) там, где нужен O(n · log sum)"+
+			" (замер: эталон ~3 мс; проверка ~25–33 мкс, перебор от max ~54 мин, от sum/days ~21 мин, от суммы вниз ~41 мин)",
+		func() { got = ShipWithinDays(weights, days) })
+	if got != 200000000 {
+		t.Fatalf("ShipWithinDays = %d, ожидалось 200000000", got)
+	}
+}

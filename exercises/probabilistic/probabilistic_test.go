@@ -50,20 +50,21 @@ func TestBloomDistinguishes(t *testing.T) {
 	}
 }
 
-// Частота ложных срабатываний должна быть низкой при разумном размере.
-// ~1000 элементов в 10000 бит с 7 хешами → теоретически ~1%.
+// Частота ложных срабатываний должна быть близка к формуле.
+// 1000 элементов в 10000 бит с 7 хешами → теоретически 0.82%. Порог 2% — запас
+// в 2.4 раза, но FNV-1a с FNV-1 вместо независимых хешей даёт 3.9% и падает.
 func TestBloomFalsePositiveRateLow(t *testing.T) {
 	b := NewBloom(10000, 7)
 	for i := 0; i < 1000; i++ {
 		b.Add([]byte(fmt.Sprintf("in-%d", i)))
 	}
-	fp, trials := 0, 5000
+	fp, trials := 0, 20000
 	for i := 0; i < trials; i++ {
 		if b.MightContain([]byte(fmt.Sprintf("out-%d", i))) {
 			fp++
 		}
 	}
-	if rate := float64(fp) / float64(trials); rate > 0.05 {
-		t.Errorf("частота ложных срабатываний %.3f слишком высока (ожидали < 0.05)", rate)
+	if rate := float64(fp) / float64(trials); rate > 0.02 {
+		t.Errorf("частота ложных срабатываний %.4f выше 0.02 при теоретических 0.0082 — хеши h1 и h2 независимы?", rate)
 	}
 }

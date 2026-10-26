@@ -222,3 +222,39 @@ func TestWordBreakScales(t *testing.T) {
 		t.Fatalf("WordBreak = true, а одиночное b словом не покрыть")
 	}
 }
+
+// deleteEarnScaleInput — все значения 1..2·10⁵ по одному разу, перемешанные (xorshift):
+// различных значений столько же, сколько чисел, и все соседние значения конфликтуют.
+func deleteEarnScaleInput() []int {
+	const n = 200000
+	nums := make([]int, n)
+	for i := range nums {
+		nums[i] = i + 1
+	}
+	x := uint32(1812433253)
+	for i := n - 1; i > 0; i-- {
+		x ^= x << 13
+		x ^= x >> 17
+		x ^= x << 5
+		j := int(x % uint32(i+1))
+		nums[i], nums[j] = nums[j], nums[i]
+	}
+	return nums
+}
+
+// TestDeleteAndEarnScales — сложность, а не ответ. 2·10⁵ различных значений подряд:
+// рекурсия «брать значение или нет» без запоминания экспоненциальна, а ДП, которое
+// для каждого значения просматривает все более ранние, — O(k²) ≈ 2·10¹⁰ для k = 2·10⁵.
+// Нужен один проход по значениям — O(n + max(nums)).
+func TestDeleteAndEarnScales(t *testing.T) {
+	nums := deleteEarnScaleInput()
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"DeleteAndEarn(n=200000, значения 1..200000) — похоже на O(k²) по различным значениям или"+
+			" экспоненциальную рекурсию там, где нужен O(n + max(nums))"+
+			" (замер: эталон ~1 мс, ДП по всем более ранним значениям ~10 с, рекурсия не завершается)",
+		func() { got = DeleteAndEarn(nums) })
+	if got != 10000100000 { // чётные 2+4+…+200000 = 10⁵ · (10⁵+1) — больше нечётных (10⁵)²
+		t.Fatalf("DeleteAndEarn = %d, ожидалось 10000100000", got)
+	}
+}

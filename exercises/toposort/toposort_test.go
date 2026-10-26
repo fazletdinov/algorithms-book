@@ -203,3 +203,94 @@ func TestCanFinish(t *testing.T) {
 		})
 	}
 }
+
+func TestMinSemesters(t *testing.T) {
+	tests := []struct {
+		name      string
+		n         int
+		relations [][]int
+		want      int
+	}{
+		{"пример: двое требуют одного", 3, [][]int{{1, 3}, {2, 3}}, 2},
+		{"цикл из трёх", 3, [][]int{{1, 2}, {2, 3}, {3, 1}}, -1},
+		{"один курс", 1, [][]int{}, 1},
+		{"без зависимостей — всё в один семестр", 4, [][]int{}, 1},
+		{"цепочка", 4, [][]int{{1, 2}, {2, 3}, {3, 4}}, 4},
+		{"длинная ветка решает, а не число курсов", 5, [][]int{{1, 2}, {2, 3}, {4, 5}}, 3},
+		{"ромб", 4, [][]int{{1, 2}, {1, 3}, {2, 4}, {3, 4}}, 3},
+		{"курс ждёт и короткую, и длинную ветку", 5, [][]int{{1, 2}, {2, 3}, {3, 5}, {4, 5}}, 4},
+		{"сам себе требование", 2, [][]int{{1, 1}}, -1},
+		{"цикл в хвосте после цепочки", 4, [][]int{{1, 2}, {2, 3}, {3, 4}, {4, 3}}, -1},
+		{"повтор одного ребра", 2, [][]int{{1, 2}, {1, 2}}, 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := MinSemesters(tt.n, tt.relations); got != tt.want {
+				t.Errorf("MinSemesters(%d, %v) = %d, ожидалось %d", tt.n, tt.relations, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFindMinHeightTrees(t *testing.T) {
+	tests := []struct {
+		name  string
+		n     int
+		edges [][]int
+		want  []int
+	}{
+		{"звезда", 4, [][]int{{1, 0}, {1, 2}, {1, 3}}, []int{1}},
+		{"пример с двумя центрами", 6, [][]int{{3, 0}, {3, 1}, {3, 2}, {3, 4}, {5, 4}}, []int{3, 4}},
+		{"одна вершина", 1, [][]int{}, []int{0}},
+		{"одно ребро — оба конца", 2, [][]int{{0, 1}}, []int{0, 1}},
+		{"путь нечётной длины", 5, [][]int{{0, 1}, {1, 2}, {2, 3}, {3, 4}}, []int{2}},
+		{"путь чётной длины", 4, [][]int{{0, 1}, {1, 2}, {2, 3}}, []int{1, 2}},
+		{"номера вразброс — ответ по возрастанию", 4, [][]int{{3, 0}, {0, 2}, {2, 1}}, []int{0, 2}},
+		{"гусеница: много листьев у края", 7, [][]int{{0, 1}, {0, 2}, {0, 3}, {0, 4}, {4, 5}, {5, 6}}, []int{4}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FindMinHeightTrees(tt.n, tt.edges)
+			if !equalInts(got, tt.want) {
+				t.Errorf("FindMinHeightTrees(%d, %v) = %v, ожидалось %v", tt.n, tt.edges, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTopologicalSortDFS(t *testing.T) {
+	tests := []struct {
+		name          string
+		numCourses    int
+		prerequisites [][]int
+		wantCycle     bool // true -> ожидаем пустой результат
+	}{
+		{"ни одной вершины", 0, [][]int{}, false},
+		{"без зависимостей", 3, [][]int{}, false},
+		{"цепочка", 4, [][]int{{1, 0}, {2, 1}, {3, 2}}, false},
+		// Ловушка двух цветов: 3 закончена через 1, потом к ней же ведёт ребро из 2.
+		{"ромб: две дороги в одну вершину", 4, [][]int{{1, 0}, {2, 0}, {3, 1}, {3, 2}}, false},
+		{"зависимость от вершины, законченной прошлым запуском", 2, [][]int{{0, 1}}, false},
+		{"две компоненты", 5, [][]int{{1, 0}, {3, 2}}, false},
+		{"повтор одной зависимости", 2, [][]int{{1, 0}, {1, 0}}, false},
+		{"петля", 1, [][]int{{0, 0}}, true},
+		{"простой цикл", 2, [][]int{{1, 0}, {0, 1}}, true},
+		{"цикл из трёх", 3, [][]int{{1, 0}, {2, 1}, {0, 2}}, true},
+		{"хвост перед циклом", 3, [][]int{{1, 0}, {2, 1}, {1, 2}}, true},
+		{"цикл не достижим из вершины 0", 4, [][]int{{1, 0}, {3, 2}, {2, 3}}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := TopologicalSortDFS(tt.numCourses, tt.prerequisites)
+			if tt.wantCycle {
+				if len(got) != 0 {
+					t.Errorf("TopologicalSortDFS(%d, %v) = %v, ожидался пустой срез []int{} (цикл)", tt.numCourses, tt.prerequisites, got)
+				}
+				return
+			}
+			if !isValidTopo(tt.numCourses, tt.prerequisites, got) {
+				t.Errorf("TopologicalSortDFS(%d, %v) = %v — не является корректной топологической сортировкой", tt.numCourses, tt.prerequisites, got)
+			}
+		})
+	}
+}

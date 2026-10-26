@@ -695,6 +695,25 @@ return merge(left, right)</pre>
 <div class="algo-challenge__q">Расставь по порядку шаги сортировки слиянием:</div>
 </div>
 
+<div class="algo-challenge" data-type="choice" data-options="[1, 2]: единица уходит в out, а двойка остаётся хвостом справа|[2, 1]: двойка остаётся хвостом слева, и её никто не допишет|[3, 2, 1]: на убывающем входе хвосты теряются на каждом уровне|[5]: один элемент проваливается в merge и там теряется" data-answer="0" data-explain="Без этой строки теряется то, что осталось в правой половине. В [1, 2] левая [1] кончилась первой, и двойка пропала: ответ [1]. На убывающих входах первой кончается правая половина, а хвост левой дописывает оставшаяся строка — поэтому [2, 1] и [3, 2, 1] сортируются верно, а [5] до merge не доходит. Дописывать нужно оба хвоста.">
+<div class="algo-challenge__q">🐞 Найди ошибку. В <code>merge</code> потеряли строку <code>out = append(out, right[j:]...)</code>. На каком входе <code>mergeSort</code> из главы ошибается?</div>
+<pre class="algo-challenge__code">func merge(left, right []int) []int {
+    out := make([]int, 0, len(left)+len(right))
+    i, j := 0, 0
+    for i &lt; len(left) &amp;&amp; j &lt; len(right) {
+        if left[i] &lt;= right[j] {
+            out = append(out, left[i])
+            i++
+        } else {
+            out = append(out, right[j])
+            j++
+        }
+    }
+    out = append(out, left[i:]...)
+    return out
+}</pre>
+</div>
+
 **Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
 сдана, добивка не обязательна.
 

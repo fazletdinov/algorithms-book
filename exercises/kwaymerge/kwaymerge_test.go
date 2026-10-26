@@ -64,6 +64,7 @@ func TestSmallestRange(t *testing.T) {
 		{"один список", [][]int{{1, 5, 9}}, []int{1, 1}},
 		{"два списка", [][]int{{1, 2, 3}, {1, 2, 3}}, []int{1, 1}},
 		{"пустой список делает покрытие невозможным", [][]int{{1, 2}, {}}, []int{}},
+		{"списков нет", [][]int{}, []int{}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -256,3 +256,36 @@ func Dijkstra(n int, edges [][]int, src int) []int {
 	}
 	return dist
 }
+
+func HasCycleDirected(n int, edges [][]int) bool {
+	const (
+		white = iota // ещё не были
+		gray         // вызов идёт: вершина на текущем пути
+		black        // вызов закончен: всё достижимое из неё проверено
+	)
+	adj := make([][]int, n)
+	for _, e := range edges {
+		adj[e[0]] = append(adj[e[0]], e[1])
+	}
+	color := make([]uint8, n)
+	var dfs func(v int) bool
+	dfs = func(v int) bool {
+		color[v] = gray
+		for _, u := range adj[v] {
+			if color[u] == gray {
+				return true // стрелка назад, в вершину на текущем пути
+			}
+			if color[u] == white && dfs(u) {
+				return true
+			}
+		}
+		color[v] = black
+		return false
+	}
+	for v := 0; v < n; v++ {
+		if color[v] == white && dfs(v) {
+			return true
+		}
+	}
+	return false
+}

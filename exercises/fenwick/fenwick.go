@@ -8,6 +8,9 @@
 package fenwick
 
 // Fenwick — дерево Фенвика (1-индексация внутри, 0-индексация снаружи).
+//
+// Ограничения: len(arr) ≤ 5·10⁵, до 2·10⁵ вызовов Add, PrefixSum и RangeSum,
+// |arr[i]|, |delta| ≤ 10⁹.
 type Fenwick struct {
 	n    int
 	tree []int
@@ -43,7 +46,7 @@ func (f *Fenwick) RangeSum(l, r int) int {
 //
 // Пример: [2,4,1,3,5] -> 3; [5,4,3,2,1] -> 10; [1,2,3] -> 0; [] -> 0.
 //
-// Ограничения: len(arr) ≤ 10⁵, |arr[i]| ≤ 10⁹.
+// Ограничения: len(arr) ≤ 2·10⁵, |arr[i]| ≤ 10⁹.
 //
 // Ожидаемая сложность: O(n log n) через BIT с координатным сжатием.
 func CountInversions(arr []int) int {
@@ -58,7 +61,7 @@ func CountInversions(arr []int) int {
 //
 // Пример: [5,2,6,1] -> [2,1,1,0]; [-1,-1] -> [0,0]; [] -> []int{}.
 //
-// Ограничения: len(arr) ≤ 10⁵, |arr[i]| ≤ 10⁹.
+// Ограничения: len(arr) ≤ 2·10⁵, |arr[i]| ≤ 10⁹.
 //
 // Ожидаемая сложность: O(n log n) через BIT с координатным сжатием.
 func CountSmallerToRight(arr []int) []int {

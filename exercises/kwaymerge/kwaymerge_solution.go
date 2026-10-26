@@ -80,6 +80,9 @@ func KthSmallestInSortedArrays(arrays [][]int, k int) int {
 }
 
 func SmallestRange(arrays [][]int) []int {
+	if len(arrays) == 0 {
+		return []int{} // нет списков — нечего покрывать, и голов для кучи нет
+	}
 	// Текущий максимум среди голов всех списков.
 	curMax := 0
 	h := &minHeap{}

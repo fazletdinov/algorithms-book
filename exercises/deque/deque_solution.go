@@ -17,9 +17,10 @@ func NewDeque() *Deque {
 func (d *Deque) Len() int { return d.size }
 
 // grow удваивает ёмкость, перекладывая элементы в начало нового буфера
-// (после этого head == 0, обёртки нет).
+// (после этого head == 0, обёртки нет). У нулевого Deque буфера нет вовсе —
+// тогда заводим начальный.
 func (d *Deque) grow() {
-	bigger := make([]int, len(d.data)*2)
+	bigger := make([]int, max(len(d.data)*2, dequeInitCap))
 	for i := range d.size {
 		bigger[i] = d.data[(d.head+i)%len(d.data)]
 	}

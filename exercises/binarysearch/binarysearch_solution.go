@@ -112,3 +112,57 @@ func IntSqrt(x int) int {
 	}
 	return lo - 1
 }
+
+func MinEatingSpeed(piles []int, h int) int {
+	feasible := func(speed int) bool {
+		hours := 0
+		for _, p := range piles {
+			hours += (p + speed - 1) / speed // ceil(p/speed)
+			if hours > h {
+				return false
+			}
+		}
+		return true
+	}
+	lo, hi := 1, 1 // ответ в [lo, hi]: при max(piles) каждая куча — за час
+	for _, p := range piles {
+		hi = max(hi, p)
+	}
+	for lo < hi {
+		mid := lo + (hi-lo)/2
+		if feasible(mid) {
+			hi = mid // успевает — ответ mid или медленнее
+		} else {
+			lo = mid + 1
+		}
+	}
+	return lo
+}
+
+func ShipWithinDays(weights []int, days int) int {
+	feasible := func(capacity int) bool {
+		need, load := 1, 0
+		for _, w := range weights {
+			if load+w > capacity {
+				need++
+				load = 0
+			}
+			load += w
+		}
+		return need <= days
+	}
+	lo, hi := 0, 0 // меньше самой тяжёлой посылки нельзя, всё за день — сумма
+	for _, w := range weights {
+		lo = max(lo, w)
+		hi += w
+	}
+	for lo < hi {
+		mid := lo + (hi-lo)/2
+		if feasible(mid) {
+			hi = mid
+		} else {
+			lo = mid + 1
+		}
+	}
+	return lo
+}

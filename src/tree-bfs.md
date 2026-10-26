@@ -200,8 +200,9 @@ func levelOrder(root *TreeNode) [][]int {
 </details>
 
 Задачи на уровни меняют только одно — что делать с уровнем, пока он в руках: собрать в список,
-сложить, найти максимум, взять последний узел. Отдельно — **ранний выход**: уровни выходят по
-возрастанию глубины, поэтому первый встреченный лист лежит на минимальной глубине, и дальше
+сложить, найти максимум, взять последний узел, развернуть каждый второй уровень (змейка: корень
+— уровень 0, разворачиваются 1, 3, …; порядок самой очереди не меняется). Отдельно — **ранний
+выход**: уровни выходят по возрастанию глубины, поэтому первый встреченный лист лежит на минимальной глубине, и дальше
 обход можно не продолжать.
 
 **Ширина уровня** (LeetCode 662) — сколько мест от левого крайнего узла уровня до правого,
@@ -211,6 +212,17 @@ func levelOrder(root *TreeNode) [][]int {
 `9` → 6, а место 5 пустое; ширина `6 − 3 + 1 = 4`.
 
 <div class="algo-fig" data-fig="tree" data-tree="1|[0](3|[1](5|[3],3|[4]),2|[2](_,9|[6]))" data-caption="Дерево 1,3,2,5,3,null,9: под узлом — номер его места; у 2 левое место (номер 5) пустое, ширина нижнего уровня 6 − 3 + 1 = 4"></div>
+
+На цепочке номер удваивается с каждым уровнем и к глубине 64 уже не влезает в `int`. В Go
+переполнение целого не падает, а «заворачивается», и разность двух номеров одного уровня всё
+равно верна, пока сама ширина влезает в `int`. Надёжнее не полагаться на это: на каждом уровне
+вычти из номеров номер первого узла уровня — тогда первый получает 0, и номер растёт только
+вместе с шириной, а не с глубиной.
+
+**Двоюродные узлы** (LeetCode 993) — узлы на одной глубине, но с разными родителями. Глубину
+даёт сам обход по уровням: ищи `x` и `y` в одном уровне, а родителя запоминай, когда кладёшь
+ребёнка в очередь, — рядом с узлом, как номер места в задаче о ширине. Нашёлся на уровне только
+один из двух — ответ «нет», дальше не смотри: второй либо глубже, либо его нет вовсе.
 
 <details class="algo-details">
 <summary>Если застрял: среднее, змейка и минимальная глубина в тренажёре</summary>
@@ -410,28 +422,55 @@ func rightSideView(root *TreeNode) []int {
 <div class="algo-challenge__q">Узлы стали снимать не с начала очереди, а с конца (queue[len(queue)-1]). Что получится?</div>
 </div>
 
+<div class="algo-challenge" data-type="choice" data-options="1(2, 3): вернёт [1, 2] вместо [1, 3] — правый 3 встал в очередь первым, и последним на уровне оказался 2|1(_, 2(_, 3)): вернёт [1] — левых детей нет, и после первого уровня очередь сразу пустеет|1(2(_, 3), _): вернёт [1, 3] — у корня нет правого ребёнка, и узел 2 со второго уровня теряется|Пустое дерево: паника — queue[0] читается у пустой очереди ещё до первой проверки длины" data-answer="0" data-explain="Порядок в очереди — порядок узлов уровня слева направо, а i == levelSize-1 берёт последнего. Если класть правого ребёнка первым, последним станет самый левый узел уровня: на 1(2, 3) выйдет [1, 2]. Когда на каждом уровне один узел, как у обеих «палок», порядок детей ничего не меняет, и ответ [1, 2, 3] верен; пустое дерево отсекает первая проверка. Исправление — класть детей слева направо (или правого первым, но брать i == 0).">
+<div class="algo-challenge__q">🐞 Найди ошибку. Вид справа (Right Side View), но правого ребёнка кладут в очередь первым — «раз смотрим справа». Деревья — «узел(левый, правый)», <code>_</code> — нет ребёнка. На каком дереве код ошибается и почему?</div>
+<pre class="algo-challenge__code">func rightSideView(root *TreeNode) []int {
+    if root == nil {
+        return []int{}
+    }
+    res, queue := []int{}, []*TreeNode{root}
+    for len(queue) &gt; 0 {
+        levelSize := len(queue)
+        for i := 0; i &lt; levelSize; i++ {
+            node := queue[0]; queue = queue[1:]
+            if i == levelSize-1 {
+                res = append(res, node.Val)
+            }
+            if node.Right != nil { queue = append(queue, node.Right) }
+            if node.Left != nil { queue = append(queue, node.Left) }
+        }
+    }
+    return res
+}</pre>
+</div>
+
 **Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
 сдана, добивка не обязательна.
 
 **🟢 Разогрев** — обход по уровням в чистом виде:
 
-- [Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/) (LeetCode 104)
+- [Binary Tree Level Order Traversal](https://leetcode.com/problems/binary-tree-level-order-traversal/) (LeetCode 102) — шаблон главы как есть; в тренажёре: `treebfs.LevelOrder`
+- [Binary Tree Right Side View](https://leetcode.com/problems/binary-tree-right-side-view/) (LeetCode 199) — последний узел уровня; в тренажёре: `treebfs.RightSideView`
 - [Average of Levels](https://leetcode.com/problems/average-of-levels-in-binary-tree/) (LeetCode 637) — в тренажёре: `treebfs.LevelAverages`
+- [Minimum Depth of Binary Tree](https://leetcode.com/problems/minimum-depth-of-binary-tree/) (LeetCode 111) — ранний выход на первом листе; в тренажёре: `treebfs.MinDepth`
 
 **🔵 Основа** — планка главы:
 
-- [Find Largest Value in Each Tree Row](https://leetcode.com/problems/find-largest-value-in-each-tree-row/) (LeetCode 515)
-- [Cousins in Binary Tree](https://leetcode.com/problems/cousins-in-binary-tree/) (LeetCode 993)
-- [Maximum Width of Binary Tree](https://leetcode.com/problems/maximum-width-of-binary-tree/) (LeetCode 662)
+- [Binary Tree Zigzag Level Order Traversal](https://leetcode.com/problems/binary-tree-zigzag-level-order-traversal/) (LeetCode 103) — разворот каждого второго уровня, очередь не трогать; в тренажёре: `treebfs.ZigzagLevelOrder`
+- [Find Largest Value in Each Tree Row](https://leetcode.com/problems/find-largest-value-in-each-tree-row/) (LeetCode 515) — максимум уровня, пока уровень в руках
+- [Cousins in Binary Tree](https://leetcode.com/problems/cousins-in-binary-tree/) (LeetCode 993) — глубина и родитель рядом с узлом; в тренажёре: `treebfs.IsCousins`
+- [Maximum Width of Binary Tree](https://leetcode.com/problems/maximum-width-of-binary-tree/) (LeetCode 662) — номер места едет в очереди вместе с узлом; в тренажёре: `treebfs.WidthOfBinaryTree`
 
 **🔴 Добивка** — когда основа идёт уверенно:
 
+- [Populating Next Right Pointers in Each Node](https://leetcode.com/problems/populating-next-right-pointers-in-each-node/) (LeetCode 116) — соседи по уровню: узел `i` уровня связать с узлом `i+1` того же снимка `levelSize`
 - [Serialize and Deserialize Binary Tree](https://leetcode.com/problems/serialize-and-deserialize-binary-tree/) (LeetCode 297) — сложная
 
 > 🧭 **Не пошла задача из основы?** Проверь, **фиксируешь ли ты размер уровня** до цикла
-> (`levelSize := len(queue)`): без этого уровни слипаются, и 515/993 отвечают почти правильно — а
+> (`levelSize := len(queue)`): без этого уровни слипаются, и 103/515/993 отвечают почти правильно — а
 > это худший вид ошибки. В 662 ширину считай по номерам мест из
-> [«📖 Разбора»](#-разбор), а не по длине очереди: номер едет в очереди вместе с узлом.
+> [«📖 Разбора»](#-разбор), а не по длине очереди: номер едет в очереди вместе с узлом. В 993
+> родителя так же неси рядом с узлом — искать его потом отдельным обходом не нужно.
 
 **Тренажёр** — пакет `treebfs`:
 
@@ -441,7 +480,7 @@ go test ./treebfs/                 # твои решения
 go test -tags solution ./treebfs/  # эталон
 ```
 
-Реализуй `LevelOrder` (по уровням), `ZigzagLevelOrder` (змейкой), `RightSideView` (вид справа), `LevelAverages` (среднее по уровням) и `MinDepth` (минимальная глубина).
+Реализуй `LevelOrder` (по уровням), `ZigzagLevelOrder` (змейкой), `RightSideView` (вид справа), `LevelAverages` (среднее по уровням), `MinDepth` (минимальная глубина), `WidthOfBinaryTree` (наибольшая ширина уровня) и `IsCousins` (двоюродные узлы).
 
 ### 💻 Реши прямо здесь — пакет `treebfs`
 

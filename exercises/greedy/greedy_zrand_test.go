@@ -182,3 +182,194 @@ func TestFractionalKnapsackRandom(t *testing.T) {
 		}
 	}
 }
+
+// brutePartitionLabels — перебор всех способов разрезать строку: годится разрез,
+// где ни одна буква не попала в два куска; берём тот, где кусков больше.
+func brutePartitionLabels(s string) []int {
+	n := len(s)
+	if n == 0 {
+		return []int{}
+	}
+	var best []int
+	for mask := 0; mask < 1<<(n-1); mask++ { // бит i — разрез после s[i]
+		var pieces []int
+		owner := map[byte]int{}
+		ok, start := true, 0
+		for i := 0; i < n && ok; i++ {
+			if o, seen := owner[s[i]]; seen && o != len(pieces) {
+				ok = false
+			}
+			owner[s[i]] = len(pieces)
+			if i == n-1 || mask&(1<<i) != 0 {
+				pieces = append(pieces, i-start+1)
+				start = i + 1
+			}
+		}
+		if ok && len(pieces) > len(best) {
+			best = pieces
+		}
+	}
+	return best
+}
+
+func TestPartitionLabelsRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(763))
+	for range 3000 {
+		n := rng.Intn(11)
+		b := make([]byte, n)
+		for i := range b {
+			b[i] = byte('a' + rng.Intn(4))
+		}
+		s := string(b)
+		if got, want := PartitionLabels(s), brutePartitionLabels(s); !sameInts(got, want) {
+			t.Fatalf("PartitionLabels(%q) = %v, ожидалось %v", s, got, want)
+		}
+	}
+}
+
+// bruteCircuitStarts — все станции, с которых объезд круга удаётся.
+func bruteCircuitStarts(gas, cost []int) []int {
+	n := len(gas)
+	var starts []int
+	for s := 0; s < n; s++ {
+		tank, ok := 0, true
+		for k := 0; k < n && ok; k++ {
+			i := (s + k) % n
+			tank += gas[i] - cost[i]
+			ok = tank >= 0
+		}
+		if ok {
+			starts = append(starts, s)
+		}
+	}
+	return starts
+}
+
+// TestCanCompleteCircuitRandom — сверка с перебором стартов. Входы, где годных
+// стартов несколько, пропускаются: условие обещает не больше одного.
+func TestCanCompleteCircuitRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(134))
+	checked := 0
+	for range 6000 {
+		n := rng.Intn(8) + 1
+		gas, cost := make([]int, n), make([]int, n)
+		for i := range gas {
+			gas[i], cost[i] = rng.Intn(6), rng.Intn(6)
+		}
+		starts := bruteCircuitStarts(gas, cost)
+		if len(starts) > 1 {
+			continue
+		}
+		want := -1
+		if len(starts) == 1 {
+			want = starts[0]
+		}
+		checked++
+		if got := CanCompleteCircuit(gas, cost); got != want {
+			t.Fatalf("CanCompleteCircuit(%v, %v) = %d, ожидалось %d", gas, cost, got, want)
+		}
+	}
+	if checked < 1000 {
+		t.Fatalf("проверено всего %d входов — генератор сломан", checked)
+	}
+}
+
+// bruteLeastInterval — перебор всех порядков задач; при заданном порядке каждую
+// задачу ставим в самый ранний такт, разрешённый кулдауном.
+func bruteLeastInterval(tasks []byte, n int) int {
+	if len(tasks) == 0 {
+		return 0
+	}
+	order := append([]byte{}, tasks...)
+	sort.Slice(order, func(i, j int) bool { return order[i] < order[j] })
+	best := math.MaxInt
+	used := make([]bool, len(order))
+	cur := make([]byte, 0, len(order))
+	var rec func()
+	rec = func() {
+		if len(cur) == len(order) {
+			last := map[byte]int{}
+			time := 0
+			for _, c := range cur {
+				if l, ok := last[c]; ok && time < l+n+1 {
+					time = l + n + 1
+				}
+				last[c] = time
+				time++
+			}
+			best = min(best, time)
+			return
+		}
+		for i := range order {
+			if used[i] || (i > 0 && order[i] == order[i-1] && !used[i-1]) {
+				continue
+			}
+			used[i] = true
+			cur = append(cur, order[i])
+			rec()
+			cur = cur[:len(cur)-1]
+			used[i] = false
+		}
+	}
+	rec()
+	return best
+}
+
+func TestLeastIntervalRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(621))
+	for range 1500 {
+		size := rng.Intn(8)
+		tasks := make([]byte, size)
+		for i := range tasks {
+			tasks[i] = byte('A' + rng.Intn(3))
+		}
+		n := rng.Intn(4)
+		if got, want := LeastInterval(tasks, n), bruteLeastInterval(tasks, n); got != want {
+			t.Fatalf("LeastInterval(%q, %d) = %d, ожидалось %d", tasks, n, got, want)
+		}
+	}
+}
+
+// bruteJobScheduling — перебор всех подмножеств заявок: набор годится, если после
+// сортировки по началу каждая следующая начинается не раньше конца предыдущей.
+func bruteJobScheduling(startTime, endTime, profit []int) int {
+	n := len(startTime)
+	best := 0
+	for mask := 0; mask < 1<<n; mask++ {
+		var idx []int
+		for i := 0; i < n; i++ {
+			if mask&(1<<i) != 0 {
+				idx = append(idx, i)
+			}
+		}
+		sort.Slice(idx, func(a, b int) bool { return startTime[idx[a]] < startTime[idx[b]] })
+		ok, sum := true, 0
+		for k, i := range idx {
+			if k > 0 && startTime[i] < endTime[idx[k-1]] {
+				ok = false
+				break
+			}
+			sum += profit[i]
+		}
+		if ok && sum > best {
+			best = sum
+		}
+	}
+	return best
+}
+
+func TestJobSchedulingRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(1235))
+	for range 3000 {
+		n := rng.Intn(10)
+		s, e, p := make([]int, n), make([]int, n), make([]int, n)
+		for i := range s {
+			s[i] = rng.Intn(12)
+			e[i] = s[i] + 1 + rng.Intn(6)
+			p[i] = 1 + rng.Intn(20)
+		}
+		if got, want := JobScheduling(s, e, p), bruteJobScheduling(s, e, p); got != want {
+			t.Fatalf("JobScheduling(%v, %v, %v) = %d, ожидалось %d", s, e, p, got, want)
+		}
+	}
+}

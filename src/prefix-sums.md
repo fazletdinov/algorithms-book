@@ -655,6 +655,20 @@ go test -tags solution ./prefixsum/  # эталон
 O(n) один раз, O(1) на запрос, дописывание в конец — тоже O(1). Данные начали меняться
 посередине — это уже [Фенвик](fenwick-tree.md).
 
+<div class="algo-challenge" data-type="choice" data-options="[1, 2, 3], k = 3: вернёт 1 вместо 2 — пропущен кусок [1, 2]|[5, 1, 1], k = 2: вернёт 0 — кусок [1, 1] стоит не с начала|[3, 1, 1, 1], k = 2: вернёт 1 — второй кусок [1, 1] пропущен|[1, −1, 1], k = 5: вернёт 1 — минус путает ключи таблицы" data-answer="0" data-explain="Без seen[0] = 1 нет префикса «ничего не взяли», и теряются подмассивы, которые начинаются с первого элемента: на [1, 2, 3] кусок [1, 2] (sum = 3, sum − k = 0) не находит пары. Куски, начинающиеся дальше, считаются верно — поэтому на трёх других входах ответы правильные: 1, 2 и 0. Исправление — seen := map[int]int{0: 1}.">
+<div class="algo-challenge__q">🐞 Найди ошибку. Здесь таблица <code>seen</code> начинается пустой — без записи о пустом префиксе. На каком входе код ошибается?</div>
+<pre class="algo-challenge__code">func countSubarrays(nums []int, k int) int {
+    seen := map[int]int{}
+    sum, count := 0, 0
+    for _, v := range nums {
+        sum += v
+        count += seen[sum-k]
+        seen[sum]++
+    }
+    return count
+}</pre>
+</div>
+
 <div class="algo-mental">
   <div class="algo-mental__icon">📌</div>
   <div class="algo-mental__body">

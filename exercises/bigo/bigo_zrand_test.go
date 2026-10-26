@@ -98,3 +98,30 @@ func TestMinStackRandom(t *testing.T) {
 		}
 	}
 }
+
+// MyQueue против модели — среза, с которого снимают первый элемент.
+func TestMyQueueRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(232))
+	q := NewMyQueue()
+	var model []int
+	for range 5000 {
+		switch op := rng.Intn(4); {
+		case len(model) == 0 || op <= 1:
+			v := rng.Intn(100) - 50
+			q.Push(v)
+			model = append(model, v)
+		case op == 2:
+			if got := q.Pop(); got != model[0] {
+				t.Fatalf("Pop = %d, ожидалось %d (очередь %v)", got, model[0], model)
+			}
+			model = model[1:]
+		default:
+			if got := q.Peek(); got != model[0] {
+				t.Fatalf("Peek = %d, ожидалось %d (очередь %v)", got, model[0], model)
+			}
+		}
+		if got := q.Empty(); got != (len(model) == 0) {
+			t.Fatalf("Empty = %v, ожидалось %v (очередь %v)", got, len(model) == 0, model)
+		}
+	}
+}

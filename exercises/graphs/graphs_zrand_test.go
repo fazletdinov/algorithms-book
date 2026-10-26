@@ -320,3 +320,64 @@ func TestDijkstraRandom(t *testing.T) {
 		}
 	}
 }
+
+// kahnHasCycle — модель для HasCycleDirected, не зависящая от обхода в глубину:
+// снимаем вершины без входящих стрелок; остались неснятые — есть цикл.
+func kahnHasCycle(n int, edges [][]int) bool {
+	adj := make([][]int, n)
+	indeg := make([]int, n)
+	for _, e := range edges {
+		adj[e[0]] = append(adj[e[0]], e[1])
+		indeg[e[1]]++
+	}
+	var queue []int
+	for v := 0; v < n; v++ {
+		if indeg[v] == 0 {
+			queue = append(queue, v)
+		}
+	}
+	taken := 0
+	for len(queue) > 0 {
+		v := queue[0]
+		queue = queue[1:]
+		taken++
+		for _, u := range adj[v] {
+			indeg[u]--
+			if indeg[u] == 0 {
+				queue = append(queue, u)
+			}
+		}
+	}
+	return taken < n
+}
+
+// TestHasCycleDirectedRandom — случайные ориентированные графы до 7 вершин, с
+// петлями и кратными стрелками; половина — заведомо без цикла (стрелки только
+// вперёд по случайной перестановке), чтобы ответ false встречался часто.
+func TestHasCycleDirectedRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(1603))
+	for range 3000 {
+		n := rng.Intn(7) + 1
+		perm := rng.Perm(n)
+		acyclic := rng.Intn(2) == 0
+		m := rng.Intn(2*n + 1)
+		edges := make([][]int, 0, m)
+		for range m {
+			u, v := rng.Intn(n), rng.Intn(n)
+			if acyclic {
+				if u == v {
+					continue
+				}
+				if u > v {
+					u, v = v, u
+				}
+				u, v = perm[u], perm[v]
+			}
+			edges = append(edges, []int{u, v})
+		}
+		want := kahnHasCycle(n, edges)
+		if got := HasCycleDirected(n, edges); got != want {
+			t.Fatalf("HasCycleDirected(%d, %v) = %v, ожидалось %v", n, edges, got, want)
+		}
+	}
+}

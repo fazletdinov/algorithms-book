@@ -836,3 +836,1322 @@ func TestLastInCircleRandom(t *testing.T) {
 		}
 	}
 }
+
+// Сверка с перебором на маленьких случайных входах: переборы — прямые
+// определения из условий.
+
+const g5rounds = 2000
+
+func g5BruteVisible(h []int) []int {
+	res := make([]int, len(h))
+	for i := range h {
+		for j := i + 1; j < len(h); j++ {
+			ok := true
+			for m := i + 1; m < j; m++ {
+				if h[m] >= min(h[i], h[j]) {
+					ok = false
+				}
+			}
+			if ok {
+				res[i]++
+			}
+		}
+	}
+	return res
+}
+
+func TestVisibleAheadRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(51))
+	for round := 0; round < g5rounds; round++ {
+		n := 1 + rng.Intn(9)
+		h := rng.Perm(n)
+		for i := range h {
+			h[i]++
+		}
+		want := g5BruteVisible(h)
+		if got := VisibleAhead(slices.Clone(h)); !slices.Equal(got, want) {
+			t.Fatalf("VisibleAhead(%v) = %v, ожидалось %v", h, got, want)
+		}
+	}
+}
+
+// g5BruteRobots — шаги моделирования: убираем первое по порядку столкновение
+// соседей «вправо, влево», пока такие есть.
+func g5BruteRobots(robots []int) []int {
+	r := slices.Clone(robots)
+	for {
+		hit := -1
+		for i := 0; i+1 < len(r); i++ {
+			if r[i] > 0 && r[i+1] < 0 {
+				hit = i
+				break
+			}
+		}
+		if hit == -1 {
+			return r
+		}
+		a, b := r[hit], -r[hit+1]
+		switch {
+		case a > b:
+			r = slices.Delete(r, hit+1, hit+2)
+		case a < b:
+			r = slices.Delete(r, hit, hit+1)
+		default:
+			r = slices.Delete(r, hit, hit+2)
+		}
+	}
+}
+
+func TestSurvivingRobotsRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(52))
+	for round := 0; round < g5rounds; round++ {
+		r := make([]int, rng.Intn(10))
+		for i := range r {
+			r[i] = 1 + rng.Intn(4)
+			if rng.Intn(2) == 0 {
+				r[i] = -r[i]
+			}
+		}
+		want := g5BruteRobots(r)
+		if got := SurvivingRobots(slices.Clone(r)); !slices.Equal(got, want) {
+			t.Fatalf("SurvivingRobots(%v) = %v, ожидалось %v", r, got, want)
+		}
+	}
+}
+
+func TestStateAfterRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(53))
+	for round := 0; round < g5rounds; round++ {
+		m := 1 + rng.Intn(12)
+		table := make([]int, m)
+		for i := range table {
+			table[i] = rng.Intn(m)
+		}
+		next := func(x int) int { return table[x] }
+		start, k := rng.Intn(m), rng.Intn(40)
+		want := start
+		for s := 0; s < k; s++ {
+			want = next(want)
+		}
+		if got := StateAfter(start, next, k); got != want {
+			t.Fatalf("StateAfter(start=%d, переходы %v, k=%d) = %d, ожидалось %d", start, table, k, got, want)
+		}
+	}
+}
+
+// g5BruteRoundTrip — из каждой клетки шагаем n раз в её сторону; если вернулись в
+// клетку, где уже были, и путь всё время шёл в одну сторону — смотрим длину цикла.
+func g5BruteRoundTrip(nums []int) bool {
+	n := len(nums)
+	step := func(i int) int { return ((i+nums[i])%n + n) % n }
+	for s := range nums {
+		x := s
+		ok := true
+		for k := 0; k < n && ok; k++ {
+			if (nums[x] > 0) != (nums[s] > 0) {
+				ok = false
+			}
+			x = step(x)
+		}
+		if !ok {
+			continue
+		}
+		// После n шагов x — точно в цикле; цикл того же знака, если и он весь такой.
+		c, length := x, 0
+		for {
+			if (nums[c] > 0) != (nums[s] > 0) {
+				ok = false
+			}
+			c = step(c)
+			length++
+			if c == x {
+				break
+			}
+		}
+		if ok && length > 1 {
+			return true
+		}
+	}
+	return false
+}
+
+func TestHasRoundTripRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(54))
+	for round := 0; round < g5rounds; round++ {
+		n := 1 + rng.Intn(8)
+		nums := make([]int, n)
+		for i := range nums {
+			nums[i] = 1 + rng.Intn(2*n)
+			if rng.Intn(3) == 0 {
+				nums[i] = -nums[i]
+			}
+		}
+		want := g5BruteRoundTrip(nums)
+		if got := HasRoundTrip(slices.Clone(nums)); got != want {
+			t.Fatalf("HasRoundTrip(%v) = %v, ожидалось %v", nums, got, want)
+		}
+	}
+}
+
+// g5BruteSplits — группы склейкой «пересекается ли с кем-то из группы» до упора.
+func g5BruteSplits(r [][2]int) int {
+	group := make([]int, len(r))
+	for i := range group {
+		group[i] = i
+	}
+	for changed := true; changed; {
+		changed = false
+		for i := range r {
+			for j := range r {
+				if r[i][0] <= r[j][1] && r[j][0] <= r[i][1] && group[i] != group[j] {
+					g := min(group[i], group[j])
+					group[i], group[j], changed = g, g, true
+				}
+			}
+		}
+	}
+	slices.Sort(group)
+	ways := 1
+	for range slices.Compact(group) {
+		ways *= 2
+	}
+	return ways
+}
+
+func TestCountSplitsRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(55))
+	for round := 0; round < g5rounds; round++ {
+		r := make([][2]int, 1+rng.Intn(8))
+		for i := range r {
+			s := rng.Intn(20)
+			r[i] = [2]int{s, s + rng.Intn(4)}
+		}
+		want := g5BruteSplits(r)
+		if got := CountSplits(slices.Clone(r)); got != want {
+			t.Fatalf("CountSplits(%v) = %d, ожидалось %d", r, got, want)
+		}
+	}
+}
+
+// g5randSlots — непересекающиеся свободные промежутки вперемешку.
+func g5randSlots(rng *rand.Rand, n int) [][2]int {
+	var s [][2]int
+	at := rng.Intn(5)
+	for len(s) < n {
+		length := 1 + rng.Intn(8)
+		s = append(s, [2]int{at, at + length})
+		at += length + rng.Intn(5)
+	}
+	rng.Shuffle(len(s), func(i, j int) { s[i], s[j] = s[j], s[i] })
+	return s
+}
+
+func TestFirstCommonSlotRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(56))
+	for round := 0; round < g5rounds; round++ {
+		a, b := g5randSlots(rng, rng.Intn(5)), g5randSlots(rng, rng.Intn(5))
+		d := 1 + rng.Intn(5)
+		want := -1
+		for _, x := range a {
+			for _, y := range b {
+				lo, hi := max(x[0], y[0]), min(x[1], y[1])
+				if hi-lo >= d && (want == -1 || lo < want) {
+					want = lo
+				}
+			}
+		}
+		if got := FirstCommonSlot(slices.Clone(a), slices.Clone(b), d); got != want {
+			t.Fatalf("FirstCommonSlot(%v, %v, %d) = %d, ожидалось %d", a, b, d, got, want)
+		}
+	}
+}
+
+// g5BruteKiosks — все способы выбрать m мест.
+func g5BruteKiosks(sorted []int, m, from, last, cur int) int {
+	if m == 0 {
+		return cur
+	}
+	best := -1
+	for i := from; i < len(sorted); i++ {
+		gap := cur
+		if last >= 0 {
+			gap = min(cur, sorted[i]-last)
+		}
+		best = max(best, g5BruteKiosks(sorted, m-1, i+1, sorted[i], gap))
+	}
+	return best
+}
+
+func TestKioskSpacingRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(57))
+	for round := 0; round < g5rounds; round++ {
+		n := 2 + rng.Intn(7)
+		pos := rng.Perm(30)[:n]
+		for i := range pos {
+			pos[i]++
+		}
+		m := 2 + rng.Intn(n-1)
+		sorted := slices.Sorted(slices.Values(pos))
+		want := g5BruteKiosks(sorted, m, 0, -1, 1<<62)
+		if got := KioskSpacing(slices.Clone(pos), m); got != want {
+			t.Fatalf("KioskSpacing(%v, %d) = %d, ожидалось %d", pos, m, got, want)
+		}
+	}
+}
+
+func TestFindOnTrailRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(58))
+	for round := 0; round < g5rounds; round++ {
+		n := 3 + rng.Intn(10)
+		peak := 1 + rng.Intn(n-2)
+		h := make([]int, n)
+		h[peak] = 30
+		for i := peak - 1; i >= 0; i-- {
+			h[i] = h[i+1] - 1 - rng.Intn(3)
+		}
+		for i := peak + 1; i < n; i++ {
+			h[i] = h[i-1] - 1 - rng.Intn(3)
+		}
+		target := rng.Intn(32)
+		want := slices.Index(h, target)
+		calls := 0
+		if got := FindOnTrail(n, g5trail(h, &calls), target); got != want {
+			t.Fatalf("FindOnTrail(%v, %d) = %d, ожидалось %d", h, target, got, want)
+		}
+	}
+}
+
+// g5randBST — дерево поиска из различных значений, вставленных в случайном порядке.
+func g5randBST(rng *rand.Rand, n, maxVal int) (*TreeNode, []int) {
+	vals := rng.Perm(maxVal + 1)[:n]
+	var root *TreeNode
+	for _, v := range vals {
+		root = g2bstInsert(root, v)
+	}
+	return root, vals
+}
+
+func TestPriceBonusRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(59))
+	for round := 0; round < g5rounds; round++ {
+		root, vals := g5randBST(rng, rng.Intn(10), 20)
+		sorted := slices.Sorted(slices.Values(vals))
+		want := make([]int, len(sorted))
+		for i := range sorted {
+			for _, v := range sorted[i:] {
+				want[i] += v
+			}
+		}
+		before := g2treeString(root)
+		if got := g5values(PriceBonus(root), nil); !slices.Equal(got, want) {
+			t.Fatalf("PriceBonus(%s): цены по порядку %v, ожидалось %v", before, got, want)
+		}
+	}
+}
+
+func TestMinPriceGapRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(60))
+	for round := 0; round < g5rounds; round++ {
+		root, vals := g5randBST(rng, 2+rng.Intn(9), 40)
+		want := -1
+		for i := range vals {
+			for j := range vals {
+				if d := vals[j] - vals[i]; d > 0 && (want == -1 || d < want) {
+					want = d
+				}
+			}
+		}
+		if got := MinPriceGap(root); got != want {
+			t.Fatalf("MinPriceGap(%s) = %d, ожидалось %d", g2treeString(root), got, want)
+		}
+	}
+}
+
+// g5levels — значения по ярусам слева направо обходом в глубину.
+func g5levels(n *TreeNode, depth int, levels [][]int) [][]int {
+	if n == nil {
+		return levels
+	}
+	if depth == len(levels) {
+		levels = append(levels, nil)
+	}
+	levels[depth] = append(levels[depth], n.Val)
+	levels = g5levels(n.Left, depth+1, levels)
+	return g5levels(n.Right, depth+1, levels)
+}
+
+func TestIsFestiveTreeRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(61))
+	for round := 0; round < g5rounds; round++ {
+		root := g2randTree(rng, rng.Intn(8), 1, 8)
+		want := true
+		for d, row := range g5levels(root, 0, nil) {
+			for i, v := range row {
+				if (v%2 == 1) != (d%2 == 0) {
+					want = false
+				}
+				if i > 0 && (d%2 == 0 && v <= row[i-1] || d%2 == 1 && v >= row[i-1]) {
+					want = false
+				}
+			}
+		}
+		if got := IsFestiveTree(root); got != want {
+			t.Fatalf("IsFestiveTree(%s) = %v, ожидалось %v", g2treeString(root), got, want)
+		}
+	}
+}
+
+// g5path — путь от корня до узла со значением v (nil, если его нет).
+func g5path(n *TreeNode, v int, path []*TreeNode) []*TreeNode {
+	if n == nil {
+		return nil
+	}
+	path = append(path, n)
+	if n.Val == v {
+		return path
+	}
+	if p := g5path(n.Left, v, path); p != nil {
+		return p
+	}
+	return g5path(n.Right, v, path)
+}
+
+func TestMinutesToSpreadRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(62))
+	for round := 0; round < g5rounds; round++ {
+		n := 1 + rng.Intn(10)
+		root := g2randTree(rng, n, 0, 0)
+		// Значения — разные номера по порядку обхода.
+		var all []*TreeNode
+		var number func(*TreeNode)
+		number = func(x *TreeNode) {
+			if x == nil {
+				return
+			}
+			x.Val = len(all)
+			all = append(all, x)
+			number(x.Left)
+			number(x.Right)
+		}
+		number(root)
+		start := rng.Intn(n)
+		ps := g5path(root, start, nil)
+		want := 0
+		for _, x := range all {
+			px := g5path(root, x.Val, nil)
+			common := 0
+			for common < len(ps) && common < len(px) && ps[common] == px[common] {
+				common++
+			}
+			want = max(want, len(ps)+len(px)-2*common)
+		}
+		if got := MinutesToSpread(root, start); got != want {
+			t.Fatalf("MinutesToSpread(%s, %d) = %d, ожидалось %d", g2treeString(root), start, got, want)
+		}
+	}
+}
+
+// Сверка с перебором порции g4: переборы — прямые определения из условий.
+
+func g4BruteStocked(s string, k int) int {
+	best := 0
+	for i := range s {
+		var c [26]int
+		for j := i; j < len(s); j++ {
+			c[s[j]-'a']++
+			ok := true
+			for _, v := range c {
+				if v > 0 && v < k {
+					ok = false
+				}
+			}
+			if ok {
+				best = max(best, j-i+1)
+			}
+		}
+	}
+	return best
+}
+
+func TestLongestWellStockedRunRandom(t *testing.T) {
+	r := rand.New(rand.NewSource(41))
+	for it := 0; it < 2000; it++ {
+		n, sigma := r.Intn(30), 1+r.Intn(4)
+		b := make([]byte, n)
+		for i := range b {
+			b[i] = byte('a' + r.Intn(sigma))
+		}
+		s, k := string(b), 1+r.Intn(4)
+		if got, want := LongestWellStockedRun(s, k), g4BruteStocked(s, k); got != want {
+			t.Fatalf("LongestWellStockedRun(%q, %d) = %d, ожидалось %d", s, k, got, want)
+		}
+	}
+}
+
+func g4BruteMatching(grid [][]int) int {
+	n, c := len(grid), 0
+	for r := 0; r < n; r++ {
+		for col := 0; col < n; col++ {
+			same := true
+			for i := 0; i < n; i++ {
+				if grid[r][i] != grid[i][col] {
+					same = false
+				}
+			}
+			if same {
+				c++
+			}
+		}
+	}
+	return c
+}
+
+func TestMatchingRowsAndColumnsRandom(t *testing.T) {
+	r := rand.New(rand.NewSource(42))
+	for it := 0; it < 1000; it++ {
+		n, colors := 1+r.Intn(5), 1+r.Intn(3)
+		grid := make([][]int, n)
+		for i := range grid {
+			grid[i] = make([]int, n)
+			for j := range grid[i] {
+				grid[i][j] = 1 + r.Intn(colors)
+			}
+		}
+		if got, want := MatchingRowsAndColumns(grid), g4BruteMatching(grid); got != want {
+			t.Fatalf("MatchingRowsAndColumns(%v) = %d, ожидалось %d", grid, got, want)
+		}
+	}
+}
+
+func g4BruteBricks(wall [][]int) int {
+	width := 0
+	for _, w := range wall[0] {
+		width += w
+	}
+	best := len(wall)
+	for x := 1; x < width; x++ {
+		cut := 0
+		for _, row := range wall {
+			edge := 0
+			onSeam := false
+			for _, w := range row {
+				edge += w
+				if edge == x {
+					onSeam = true
+				}
+			}
+			if !onSeam {
+				cut++
+			}
+		}
+		best = min(best, cut)
+	}
+	return best
+}
+
+func TestFewestCutBricksRandom(t *testing.T) {
+	r := rand.New(rand.NewSource(43))
+	for it := 0; it < 1000; it++ {
+		rows, width := 1+r.Intn(6), 1+r.Intn(10)
+		wall := make([][]int, rows)
+		for i := range wall {
+			for left := width; left > 0; {
+				w := 1 + r.Intn(left)
+				wall[i] = append(wall[i], w)
+				left -= w
+			}
+		}
+		if got, want := FewestCutBricks(wall), g4BruteBricks(wall); got != want {
+			t.Fatalf("FewestCutBricks(%v) = %d, ожидалось %d", wall, got, want)
+		}
+	}
+}
+
+func g4RandVals(r *rand.Rand, n, lo, hi int) []int {
+	v := make([]int, n)
+	for i := range v {
+		v[i] = lo + r.Intn(hi-lo+1)
+	}
+	return v
+}
+
+func TestSplitByThresholdRandom(t *testing.T) {
+	r := rand.New(rand.NewSource(44))
+	for it := 0; it < 1000; it++ {
+		vals := g4RandVals(r, r.Intn(12), -3, 3)
+		x := r.Intn(7) - 3
+		var want []int
+		for _, v := range vals {
+			if v < x {
+				want = append(want, v)
+			}
+		}
+		for _, v := range vals {
+			if v >= x {
+				want = append(want, v)
+			}
+		}
+		got := g4vals(t, SplitByThreshold(g4list(vals), x), len(vals))
+		if !slices.Equal(got, want) {
+			t.Fatalf("SplitByThreshold(%v, %d) = %v, ожидалось %v", vals, x, got, want)
+		}
+	}
+}
+
+func TestDropRepeatedRandom(t *testing.T) {
+	r := rand.New(rand.NewSource(45))
+	for it := 0; it < 1000; it++ {
+		vals := g4RandVals(r, r.Intn(12), 0, 5)
+		slices.Sort(vals)
+		count := map[int]int{}
+		for _, v := range vals {
+			count[v]++
+		}
+		var want []int
+		for _, v := range vals {
+			if count[v] == 1 {
+				want = append(want, v)
+			}
+		}
+		got := g4vals(t, DropRepeated(g4list(vals)), len(vals))
+		if !slices.Equal(got, want) {
+			t.Fatalf("DropRepeated(%v) = %v, ожидалось %v", vals, got, want)
+		}
+	}
+}
+
+func TestSplitIntoConvoysRandom(t *testing.T) {
+	r := rand.New(rand.NewSource(46))
+	for it := 0; it < 1000; it++ {
+		n, k := r.Intn(15), 1+r.Intn(8)
+		vals := make([]int, n)
+		for i := range vals {
+			vals[i] = i
+		}
+		got := SplitIntoConvoys(g4list(vals), k)
+		if len(got) != k {
+			t.Fatalf("SplitIntoConvoys(n=%d, k=%d): %d конвоев", n, k, len(got))
+		}
+		var all []int
+		prev := n + 1
+		for i, head := range got {
+			part := g4vals(t, head, n)
+			if len(part) > prev || (prev <= n && prev-len(part) > 1) {
+				t.Fatalf("SplitIntoConvoys(n=%d, k=%d): размер конвоя %d = %d после %d", n, k, i, len(part), prev)
+			}
+			prev = len(part)
+			all = append(all, part...)
+		}
+		if !slices.Equal(all, vals) {
+			t.Fatalf("SplitIntoConvoys(n=%d, k=%d): склеенные конвои %v, ожидалась колонна %v", n, k, all, vals)
+		}
+		if first, last := len(g4vals(t, got[0], n)), len(g4vals(t, got[k-1], n)); first-last > 1 {
+			t.Fatalf("SplitIntoConvoys(n=%d, k=%d): первый конвой %d, последний %d", n, k, first, last)
+		}
+	}
+}
+
+func g4BruteWalk(houses []int) int {
+	best := -1
+	for _, m := range houses {
+		s := 0
+		for _, h := range houses {
+			s += max(h-m, m-h)
+		}
+		if best < 0 || s < best {
+			best = s
+		}
+	}
+	return best
+}
+
+func TestMinTotalWalkRandom(t *testing.T) {
+	r := rand.New(rand.NewSource(47))
+	for it := 0; it < 1000; it++ {
+		h := g4RandVals(r, 1+r.Intn(10), -20, 20)
+		if got, want := MinTotalWalk(slices.Clone(h)), g4BruteWalk(h); got != want {
+			t.Fatalf("MinTotalWalk(%v) = %d, ожидалось %d", h, got, want)
+		}
+	}
+}
+
+func g4BruteRaises(nums []int) int {
+	// Перебор раздачи: в любом порядке выдавать наименьший свободный номер не меньше
+	// своего; минимум по всем порядкам.
+	best := -1
+	var rec func(left []int, used map[int]bool, cost int)
+	rec = func(left []int, used map[int]bool, cost int) {
+		if len(left) == 0 {
+			if best < 0 || cost < best {
+				best = cost
+			}
+			return
+		}
+		for i, x := range left {
+			y := x
+			for used[y] {
+				y++
+			}
+			used[y] = true
+			rest := append(slices.Clone(left[:i]), left[i+1:]...)
+			rec(rest, used, cost+y-x)
+			delete(used, y)
+		}
+	}
+	rec(nums, map[int]bool{}, 0)
+	return best
+}
+
+func TestMinRaisesToDistinctRandom(t *testing.T) {
+	r := rand.New(rand.NewSource(48))
+	for it := 0; it < 300; it++ {
+		nums := g4RandVals(r, 1+r.Intn(6), 0, 4)
+		if got, want := MinRaisesToDistinct(slices.Clone(nums)), g4BruteRaises(nums); got != want {
+			t.Fatalf("MinRaisesToDistinct(%v) = %d, ожидалось %d", nums, got, want)
+		}
+	}
+}
+
+func g4BruteBoosts(salaries []int, budget int) int {
+	best := 0
+	for _, target := range salaries {
+		// Подтягиваем к target самых близких снизу, пока хватает бюджета.
+		var below []int
+		for _, s := range salaries {
+			if s <= target {
+				below = append(below, target-s)
+			}
+		}
+		slices.Sort(below)
+		spent, cnt := 0, 0
+		for _, d := range below {
+			if spent+d > budget {
+				break
+			}
+			spent += d
+			cnt++
+		}
+		best = max(best, cnt)
+	}
+	return best
+}
+
+func TestMaxEqualAfterBoostsRandom(t *testing.T) {
+	r := rand.New(rand.NewSource(49))
+	for it := 0; it < 1000; it++ {
+		s := g4RandVals(r, 1+r.Intn(10), 1, 12)
+		budget := r.Intn(20)
+		if got, want := MaxEqualAfterBoosts(slices.Clone(s), budget), g4BruteBoosts(s, budget); got != want {
+			t.Fatalf("MaxEqualAfterBoosts(%v, %d) = %d, ожидалось %d", s, budget, got, want)
+		}
+	}
+}
+
+func g4BruteTakes(w []int, x int) int {
+	best := -1
+	n := len(w)
+	for left := 0; left <= n; left++ {
+		for right := 0; left+right <= n; right++ {
+			s := 0
+			for i := 0; i < left; i++ {
+				s += w[i]
+			}
+			for i := n - right; i < n; i++ {
+				s += w[i]
+			}
+			if s == x && (best < 0 || left+right < best) {
+				best = left + right
+			}
+		}
+	}
+	return best
+}
+
+func TestMinTakesFromEndsRandom(t *testing.T) {
+	r := rand.New(rand.NewSource(50))
+	for it := 0; it < 1000; it++ {
+		w := g4RandVals(r, 1+r.Intn(9), 1, 5)
+		x := 1 + r.Intn(25)
+		if got, want := MinTakesFromEnds(w, x), g4BruteTakes(w, x); got != want {
+			t.Fatalf("MinTakesFromEnds(%v, %d) = %d, ожидалось %d", w, x, got, want)
+		}
+	}
+}
+
+func g4BruteGoods(shelf string, l, r int) int {
+	first, last := -1, -1
+	for i := l; i <= r; i++ {
+		if shelf[i] == '|' {
+			if first < 0 {
+				first = i
+			}
+			last = i
+		}
+	}
+	c := 0
+	for i := first + 1; first >= 0 && i < last; i++ {
+		if shelf[i] == '*' {
+			c++
+		}
+	}
+	return c
+}
+
+func TestGoodsBetweenDividersRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(51))
+	for it := 0; it < 500; it++ {
+		n := 3 + rng.Intn(15)
+		b := make([]byte, n)
+		for i := range b {
+			b[i] = "*|"[rng.Intn(2)]
+		}
+		shelf := string(b)
+		var qs [][2]int
+		var want []int
+		for q := 0; q < 10; q++ {
+			l := rng.Intn(n)
+			r := l + rng.Intn(n-l)
+			qs = append(qs, [2]int{l, r})
+			want = append(want, g4BruteGoods(shelf, l, r))
+		}
+		if got := GoodsBetweenDividers(shelf, qs); !slices.Equal(got, want) {
+			t.Fatalf("GoodsBetweenDividers(%q, %v) = %v, ожидалось %v", shelf, qs, got, want)
+		}
+	}
+}
+
+func g4BruteTeams(skill []int, lower, upper int) int {
+	c := 0
+	for i := range skill {
+		for j := i + 1; j < len(skill); j++ {
+			if s := skill[i] + skill[j]; s >= lower && s <= upper {
+				c++
+			}
+		}
+	}
+	return c
+}
+
+func TestCountBalancedTeamsRandom(t *testing.T) {
+	r := rand.New(rand.NewSource(53))
+	for it := 0; it < 1000; it++ {
+		skill := g4RandVals(r, 1+r.Intn(10), -6, 6)
+		lower := r.Intn(25) - 12
+		upper := lower + r.Intn(10)
+		if got, want := CountBalancedTeams(slices.Clone(skill), lower, upper), g4BruteTeams(skill, lower, upper); got != want {
+			t.Fatalf("CountBalancedTeams(%v, %d, %d) = %d, ожидалось %d", skill, lower, upper, got, want)
+		}
+	}
+}
+
+func g4BruteGap(offers, prices []int) int {
+	best := 0
+	for i := range offers {
+		for j := i; j < len(prices); j++ {
+			if offers[i] <= prices[j] {
+				best = max(best, j-i)
+			}
+		}
+	}
+	return best
+}
+
+func g4RandNonInc(r *rand.Rand, n int) []int {
+	v := g4RandVals(r, n, 1, 10)
+	slices.Sort(v)
+	slices.Reverse(v)
+	return v
+}
+
+func TestWidestAffordableGapRandom(t *testing.T) {
+	r := rand.New(rand.NewSource(54))
+	for it := 0; it < 1000; it++ {
+		a, b := g4RandNonInc(r, 1+r.Intn(8)), g4RandNonInc(r, 1+r.Intn(8))
+		if got, want := WidestAffordableGap(a, b), g4BruteGap(a, b); got != want {
+			t.Fatalf("WidestAffordableGap(%v, %v) = %d, ожидалось %d", a, b, got, want)
+		}
+	}
+}
+
+// Сверка с перебором на маленьких случайных входах. Переборы — прямые
+// определения из условий, без хитрости эталонов.
+
+const g6rounds = 3000
+
+// g6nodes — узлы дерева в порядке обхода и номер родителя каждого (−1 у корня).
+func g6nodes(root *TreeNode) ([]*TreeNode, []int) {
+	if root == nil {
+		return nil, nil
+	}
+	nodes, parent := []*TreeNode{root}, []int{-1}
+	for i := 0; i < len(nodes); i++ {
+		for _, c := range []*TreeNode{nodes[i].Left, nodes[i].Right} {
+			if c != nil {
+				nodes = append(nodes, c)
+				parent = append(parent, i)
+			}
+		}
+	}
+	return nodes, parent
+}
+
+// g6treeDist — длина пути между узлами a и b по номерам родителей.
+func g6treeDist(parent []int, a, b int) int {
+	depth := func(v int) int {
+		d := 0
+		for ; parent[v] != -1; v = parent[v] {
+			d++
+		}
+		return d
+	}
+	da, db, d := depth(a), depth(b), 0
+	for ; da > db; da, d = da-1, d+1 {
+		a = parent[a]
+	}
+	for ; db > da; db, d = db-1, d+1 {
+		b = parent[b]
+	}
+	for a != b {
+		a, b, d = parent[a], parent[b], d+2
+	}
+	return d
+}
+
+// g6bruteCrates: ящики неразличимы, каждый едет своим путём, значит ответ —
+// лучшее сопоставление «ящик → склад» по сумме расстояний; перебираем все.
+func g6bruteCrates(root *TreeNode) int {
+	nodes, parent := g6nodes(root)
+	var crates []int // склад, где лежит каждый ящик
+	for i, nd := range nodes {
+		for c := 0; c < nd.Val; c++ {
+			crates = append(crates, i)
+		}
+	}
+	best := -1
+	used := make([]bool, len(nodes))
+	var rec func(c, cost int)
+	rec = func(c, cost int) {
+		if c == len(crates) {
+			if best == -1 || cost < best {
+				best = cost
+			}
+			return
+		}
+		for v := range nodes {
+			if !used[v] {
+				used[v] = true
+				rec(c+1, cost+g6treeDist(parent, crates[c], v))
+				used[v] = false
+			}
+		}
+	}
+	rec(0, 0)
+	return max(best, 0)
+}
+
+// g6randCrateTree — случайное дерево, где ящики раскиданы по складам случайно.
+func g6randCrateTree(rng *rand.Rand, n int) *TreeNode {
+	root := g2randTree(rng, n, 0, 0)
+	nodes, _ := g6nodes(root)
+	for c := 0; c < n; c++ {
+		nodes[rng.Intn(n)].Val++
+	}
+	return root
+}
+
+func TestMinCrateMovesRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(61))
+	for round := 0; round < g6rounds; round++ {
+		root := g6randCrateTree(rng, rng.Intn(7))
+		if got, want := MinCrateMoves(root), g6bruteCrates(root); got != want {
+			t.Fatalf("MinCrateMoves(%s) = %d, ожидалось %d", g2treeString(root), got, want)
+		}
+	}
+}
+
+func g6bruteGap(root *TreeNode) int {
+	nodes, parent := g6nodes(root)
+	best := 0
+	for v := range nodes {
+		for a := parent[v]; a != -1; a = parent[a] {
+			best = max(best, nodes[a].Val-nodes[v].Val, nodes[v].Val-nodes[a].Val)
+		}
+	}
+	return best
+}
+
+func TestWidestSalaryGapRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(62))
+	for round := 0; round < g6rounds; round++ {
+		root := g2randTree(rng, rng.Intn(12), 0, 20)
+		if got, want := WidestSalaryGap(root), g6bruteGap(root); got != want {
+			t.Fatalf("WidestSalaryGap(%s) = %d, ожидалось %d", g2treeString(root), got, want)
+		}
+	}
+}
+
+// g6bruteTeam перебирает все команды из k человек.
+func g6bruteTeam(skill, speed []int, k int) int {
+	n, best := len(skill), 0
+	for mask := 0; mask < 1<<n; mask++ {
+		cnt, sum, slow := 0, 0, -1
+		for i := 0; i < n; i++ {
+			if mask>>i&1 == 1 {
+				cnt++
+				sum += skill[i]
+				if slow == -1 || speed[i] < slow {
+					slow = speed[i]
+				}
+			}
+		}
+		if cnt == k {
+			best = max(best, sum*slow)
+		}
+	}
+	return best
+}
+
+func TestBestTeamScoreRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(63))
+	for round := 0; round < g6rounds; round++ {
+		n := 1 + rng.Intn(9)
+		k := 1 + rng.Intn(n)
+		skill, speed := make([]int, n), make([]int, n)
+		for i := range skill {
+			skill[i], speed[i] = rng.Intn(10), rng.Intn(6)
+		}
+		want := g6bruteTeam(skill, speed, k)
+		if got := BestTeamScore(slices.Clone(skill), slices.Clone(speed), k); got != want {
+			t.Fatalf("BestTeamScore(%v, %v, %d) = %d, ожидалось %d", skill, speed, k, got, want)
+		}
+	}
+}
+
+// g6bruteWeightGap перебирает, какие m деталей снять.
+func g6bruteWeightGap(w []int) int {
+	m, first, best := len(w)/3, true, 0
+	for mask := 0; mask < 1<<len(w); mask++ {
+		var rest []int
+		removed := 0
+		for i, x := range w {
+			if mask>>i&1 == 1 {
+				removed++
+			} else {
+				rest = append(rest, x)
+			}
+		}
+		if removed != m {
+			continue
+		}
+		d := 0
+		for i, x := range rest {
+			if i < m {
+				d += x
+			} else {
+				d -= x
+			}
+		}
+		if first || d < best {
+			first, best = false, d
+		}
+	}
+	return best
+}
+
+func TestMinWeightGapRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(64))
+	for round := 0; round < g6rounds; round++ {
+		w := make([]int, 3*(1+rng.Intn(4)))
+		for i := range w {
+			w[i] = 1 + rng.Intn(9)
+		}
+		want := g6bruteWeightGap(w)
+		if got := MinWeightGap(slices.Clone(w)); got != want {
+			t.Fatalf("MinWeightGap(%v) = %d, ожидалось %d", w, got, want)
+		}
+	}
+}
+
+// g6bruteCourier перебирает все kⁿ распределений.
+func g6bruteCourier(jobs []int, k int) int {
+	loads := make([]int, k)
+	best := -1
+	var rec func(i int)
+	rec = func(i int) {
+		if i == len(jobs) {
+			if m := slices.Max(loads); best == -1 || m < best {
+				best = m
+			}
+			return
+		}
+		for c := range loads {
+			loads[c] += jobs[i]
+			rec(i + 1)
+			loads[c] -= jobs[i]
+		}
+	}
+	rec(0)
+	return best
+}
+
+func TestMinBusiestCourierRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(65))
+	for round := 0; round < g6rounds; round++ {
+		n := 1 + rng.Intn(7)
+		k := 1 + rng.Intn(min(n, 4))
+		jobs := make([]int, n)
+		for i := range jobs {
+			jobs[i] = 1 + rng.Intn(9)
+		}
+		want := g6bruteCourier(jobs, k)
+		if got := MinBusiestCourier(slices.Clone(jobs), k); got != want {
+			t.Fatalf("MinBusiestCourier(%v, %d) = %d, ожидалось %d", jobs, k, got, want)
+		}
+	}
+}
+
+// g6bruteHops — обход в ширину по явному графу со всеми рёбрами «по цвету».
+func g6bruteHops(colors []int) int {
+	n := len(colors)
+	dist := make([]int, n)
+	for i := range dist {
+		dist[i] = -1
+	}
+	dist[0] = 0
+	queue := []int{0}
+	for len(queue) > 0 {
+		v := queue[0]
+		queue = queue[1:]
+		for u := 0; u < n; u++ {
+			if dist[u] == -1 && (u == v-1 || u == v+1 || (u != v && colors[u] == colors[v])) {
+				dist[u] = dist[v] + 1
+				queue = append(queue, u)
+			}
+		}
+	}
+	return dist[n-1]
+}
+
+func TestMinHopsToLastRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(66))
+	for round := 0; round < g6rounds; round++ {
+		colors := make([]int, 1+rng.Intn(12))
+		for i := range colors {
+			colors[i] = rng.Intn(5) - 2
+		}
+		want := g6bruteHops(colors)
+		if got := MinHopsToLast(slices.Clone(colors)); got != want {
+			t.Fatalf("MinHopsToLast(%v) = %d, ожидалось %d", colors, got, want)
+		}
+	}
+}
+
+// g6bruteDishes — проходы по книге, пока что-нибудь добавляется.
+func g6bruteDishes(recipes []string, ingredients [][]string, supplies []string) []string {
+	have := map[string]bool{}
+	for _, s := range supplies {
+		have[s] = true
+	}
+	for changed := true; changed; {
+		changed = false
+		for i, r := range recipes {
+			if have[r] {
+				continue
+			}
+			ok := true
+			for _, x := range ingredients[i] {
+				ok = ok && have[x]
+			}
+			if ok {
+				have[r], changed = true, true
+			}
+		}
+	}
+	res := []string{}
+	for _, r := range recipes {
+		if have[r] {
+			res = append(res, r)
+		}
+	}
+	return res
+}
+
+func TestCookableDishesRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(67))
+	names := []string{"a", "b", "c", "d", "e", "f"}
+	stock := []string{"x", "y", "z"}
+	for round := 0; round < g6rounds; round++ {
+		n := 1 + rng.Intn(len(names))
+		recipes := slices.Clone(names[:n])
+		rng.Shuffle(n, func(i, j int) { recipes[i], recipes[j] = recipes[j], recipes[i] })
+		pool := append(slices.Clone(recipes), stock...)
+		ingredients := make([][]string, n)
+		for i := range ingredients {
+			for c := 1 + rng.Intn(3); c > 0; c-- {
+				ingredients[i] = append(ingredients[i], pool[rng.Intn(len(pool))])
+			}
+		}
+		var supplies []string
+		for _, s := range stock {
+			if rng.Intn(3) > 0 {
+				supplies = append(supplies, s)
+			}
+		}
+		want := g6bruteDishes(recipes, ingredients, supplies)
+		if got := CookableDishes(recipes, ingredients, supplies); !slices.Equal(got, want) {
+			t.Fatalf("CookableDishes(%v, %v, %v) = %v, ожидалось %v", recipes, ingredients, supplies, got, want)
+		}
+	}
+}
+
+// g6bruteSafe: комната опасна, если из неё достижима комната, лежащая на круге
+// (достижимая из самой себя хотя бы одним шагом).
+func g6bruteSafe(doors [][]int) []int {
+	n := len(doors)
+	reach := func(from int) []bool { // куда можно попасть хотя бы одним шагом
+		seen := make([]bool, n)
+		stack := slices.Clone(doors[from])
+		for len(stack) > 0 {
+			v := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			if !seen[v] {
+				seen[v] = true
+				stack = append(stack, doors[v]...)
+			}
+		}
+		return seen
+	}
+	onCycle := make([]bool, n)
+	for v := range doors {
+		onCycle[v] = reach(v)[v]
+	}
+	res := []int{}
+	for v := range doors {
+		r := reach(v)
+		ok := !onCycle[v]
+		for u := range r {
+			ok = ok && !(r[u] && onCycle[u])
+		}
+		if ok {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
+func TestSafeRoomsRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(68))
+	for round := 0; round < g6rounds; round++ {
+		n := 1 + rng.Intn(8)
+		doors := make([][]int, n)
+		for v := range doors {
+			doors[v] = []int{}
+			for c := rng.Intn(3); c > 0; c-- {
+				// Двери чаще ведут «вперёд» — иначе почти всё лежит на кругах.
+				u := rng.Intn(n)
+				if rng.Intn(4) > 0 && v+1 < n {
+					u = v + 1 + rng.Intn(n-v-1)
+				}
+				doors[v] = append(doors[v], u)
+			}
+		}
+		want := g6bruteSafe(doors)
+		if got := SafeRooms(doors); !slices.Equal(got, want) {
+			t.Fatalf("SafeRooms(%v) = %v, ожидалось %v", doors, got, want)
+		}
+	}
+}
+
+// g6bruteBloom перебирает все порядки посадки.
+func g6bruteBloom(plant, grow []int) int {
+	order := make([]int, len(plant))
+	for i := range order {
+		order[i] = i
+	}
+	best := -1
+	var rec func(k int)
+	rec = func(k int) {
+		if k == len(order) {
+			day, last := 0, 0
+			for _, i := range order {
+				day += plant[i]
+				last = max(last, day+grow[i])
+			}
+			if best == -1 || last < best {
+				best = last
+			}
+			return
+		}
+		for j := k; j < len(order); j++ {
+			order[k], order[j] = order[j], order[k]
+			rec(k + 1)
+			order[k], order[j] = order[j], order[k]
+		}
+	}
+	rec(0)
+	return best
+}
+
+func TestEarliestFullBloomRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(69))
+	for round := 0; round < g6rounds; round++ {
+		n := 1 + rng.Intn(6)
+		plant, grow := make([]int, n), make([]int, n)
+		for i := range plant {
+			plant[i], grow[i] = 1+rng.Intn(6), 1+rng.Intn(6)
+		}
+		want := g6bruteBloom(plant, grow)
+		if got := EarliestFullBloom(slices.Clone(plant), slices.Clone(grow)); got != want {
+			t.Fatalf("EarliestFullBloom(%v, %v) = %d, ожидалось %d", plant, grow, got, want)
+		}
+	}
+}
+
+// g6bruteRuns пробует положить каждую карточку в любую лесенку, кончающуюся на
+// число меньше на один, или начать с неё новую.
+func g6bruteRuns(nums []int) bool {
+	type run struct{ end, size int }
+	var runs []run
+	var rec func(i int) bool
+	rec = func(i int) bool {
+		if i == len(nums) {
+			for _, r := range runs {
+				if r.size < 3 {
+					return false
+				}
+			}
+			return true
+		}
+		x := nums[i]
+		for j := range runs {
+			if runs[j].end == x-1 {
+				runs[j].end, runs[j].size = x, runs[j].size+1
+				ok := rec(i + 1)
+				runs[j].end, runs[j].size = x-1, runs[j].size-1
+				if ok {
+					return true
+				}
+			}
+		}
+		runs = append(runs, run{x, 1})
+		ok := rec(i + 1)
+		runs = runs[:len(runs)-1]
+		return ok
+	}
+	return rec(0)
+}
+
+func TestCanSplitIntoRunsRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(70))
+	for round := 0; round < g6rounds; round++ {
+		nums := make([]int, 1+rng.Intn(10))
+		for i := range nums {
+			nums[i] = rng.Intn(5)
+		}
+		slices.Sort(nums)
+		want := g6bruteRuns(nums)
+		if got := CanSplitIntoRuns(slices.Clone(nums)); got != want {
+			t.Fatalf("CanSplitIntoRuns(%v) = %v, ожидалось %v", nums, got, want)
+		}
+	}
+}

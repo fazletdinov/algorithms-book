@@ -172,10 +172,11 @@ for left < right {
 сравнением вычёркивают сразу много кандидатов. Так перебор всех пар за O(n²) превращается в
 один проход за **O(n)** при O(1) памяти.
 
-Четыре основных варианта:
+Основные варианты:
 
 - **Встречные указатели** — `left` с начала, `right` с конца, движутся навстречу.
 - **Одно направление** — `slow` и `fast` идут с одного края (фильтрация, дедупликация).
+- **По двум массивам** — по указателю в каждом, как при слиянии отсортированных (ниже).
 - **Три указателя** — разбиение массива на три класса за один проход (Dutch National Flag, ниже).
 - **Быстрый и медленный** — движение с разной скоростью (см. [Fast & Slow Pointers](fast-slow-pointers.md)).
 
@@ -261,6 +262,53 @@ func moveZeroes(nums []int) {
 уже отправил на границу. Ноль с границы уезжает на место разведчика, а пока нулей не
 встречалось, `insertPos == i`, и обмен — элемент сам с собой. Во вкладках виджета выше это копия
 и обмен.
+
+#### Указатели по двум массивам
+
+Указатели могут стоять и в **разных** массивах. Слияние двух отсортированных (Merge Sorted Array):
+в `nums1` значимы первые `m` чисел, за ними `n` пустых ячеек, в `nums2` — `n` чисел; собрать всё
+по возрастанию прямо в `nums1`. Указатель `i` — на последнем значимом в `nums1`, `j` — на последнем
+в `nums2`, третий — на последней ячейке. Больший из `nums1[i]` и `nums2[j]` пишем в эту ячейку и
+сдвигаем его указатель. На `nums1 = [1, 2, 3, _, _, _]`, `nums2 = [2, 5, 6]`: `6` — в ячейку 5,
+`5` — в 4, `3` из `nums1` — в 3, дальше двойки и единица. Кончился `nums2` — готово: остаток
+`nums1` уже стоит на своих местах.
+
+Почему **с конца**: с начала первая же запись `nums2[0]` в `nums1[0]` затёрла бы ещё не прочитанную
+единицу — пришлось бы сдвигать хвост (O(m·n)) или копировать `nums1` (лишняя память). Пустые ячейки
+— в конце, и справа от `i` их всегда ровно столько, сколько чисел осталось в `nums2`: запись ни разу
+не наступает на непрочитанное.
+
+Чаще оба указателя идут **с начала**, каждый по своему массиву, и правило одно: сравни два числа
+под указателями и сдвинь тот, что «отстал». Пересечение двух отсортированных с повторами
+(Intersection of Two Arrays II): числа равны — общее, пишем в ответ и сдвигаем оба; иначе
+сдвигаем указатель на меньшем — меньшее число во втором массиве дальше уже не встретится, там
+только большие.
+
+```go
+func intersectSorted(a, b []int) []int {
+    var res []int
+    i, j := 0, 0
+    for i < len(a) && j < len(b) {
+        if a[i] < b[j] {
+            i++ // a[i] меньше всего, что осталось в b, — пары ему нет
+        } else if a[i] > b[j] {
+            j++
+        } else {
+            res = append(res, a[i]) // общее — забираем по штуке из обоих
+            i++
+            j++
+        }
+    }
+    return res
+}
+```
+
+На `a = [1, 2, 2, 3, 5]`, `b = [2, 2, 2, 5, 7]`: `1 < 2` — `i++`; `2 = 2` — в ответ, оба
+сдвинулись; ещё раз `2 = 2` — в ответ; `3 > 2` — `j++`; `3 < 5` — `i++`; `5 = 5` — в ответ. Ответ
+`[2, 2, 5]`: третья двойка из `b` пары не нашла. Подпоследовательность (Is Subsequence: можно ли
+получить `s` из `t`, вычеркнув лишние буквы) — тот же ход: `j` идёт по `t` каждый шаг, а `i` по
+`s` сдвигается, только когда буквы совпали; дошёл `i` до конца `s` — ответ «да». Оба прохода —
+O(len(a) + len(b)): каждый указатель только идёт вперёд.
 
 Третий вариант — три указателя делят массив из трёх видов значений на три зоны за один проход
 (Sort Colors, в тренажёре — `DutchFlagSort`); основе он не нужен, поэтому разбор свёрнут.
@@ -575,15 +623,19 @@ if sum &lt; target {
 
 - [Valid Palindrome](https://leetcode.com/problems/valid-palindrome/) (LeetCode 125)
 - [Two Sum II](https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/) (LeetCode 167) — в тренажёре: `twopointers.PairWithTargetSum` (там индексы с нуля, а пары может не быть)
+- [Merge Sorted Array](https://leetcode.com/problems/merge-sorted-array/) (LeetCode 88) — указатели по двум массивам, запись с конца; в тренажёре: `twopointers.MergeSorted`
+- [Is Subsequence](https://leetcode.com/problems/is-subsequence/) (LeetCode 392) — указатели по двум строкам, сдвиг по совпадению; в тренажёре: `twopointers.IsSubsequence`
+- [Intersection of Two Arrays II](https://leetcode.com/problems/intersection-of-two-arrays-ii/) (LeetCode 350) — указатели по двум массивам, сдвиг меньшего (в тренажёре массивы уже отсортированы, как в дополнительном вопросе задачи); в тренажёре: `twopointers.IntersectSorted`
 
 **🔵 Основа** — планка главы:
 
-- [Move Zeroes](https://leetcode.com/problems/move-zeroes/) (LeetCode 283) — одно направление: разведчик и граница
-- [Container With Most Water](https://leetcode.com/problems/container-with-most-water/) (LeetCode 11) — встречные указатели по стенкам
+- [Move Zeroes](https://leetcode.com/problems/move-zeroes/) (LeetCode 283) — одно направление: разведчик и граница; в тренажёре: `twopointers.MoveZeroes`
+- [Container With Most Water](https://leetcode.com/problems/container-with-most-water/) (LeetCode 11) — встречные указатели по стенкам; в тренажёре: `twopointers.MaxArea`
 - [3Sum](https://leetcode.com/problems/3sum/) (LeetCode 15) — сортировка + встречные указатели; в тренажёре: `twopointers.TripletsSumToZero`
 
 **🔴 Добивка** — когда основа идёт уверенно:
 
+- [3Sum Closest](https://leetcode.com/problems/3sum-closest/) (LeetCode 16) — каркас 3Sum, но вместо равенства храним ближайшую сумму и сдвигаем указатель по знаку `sum − target`; в тренажёре: `twopointers.ThreeSumClosest`
 - [Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) (LeetCode 42) — сложная, сверх главы
 
 > 🧭 **Не пошла задача из основы?** В 283 скажи словами, где кончается готовая часть и куда
@@ -600,8 +652,10 @@ go test -tags solution ./twopointers/  # эталон
 ```
 
 Реализуй `PairWithTargetSum` (встречные указатели), `RemoveDuplicates` (на месте),
-`SortedSquares` (квадраты в отсортированном порядке), `TripletsSumToZero` (тройки с суммой 0)
-и `DutchFlagSort` (сортировка 0/1/2).
+`SortedSquares` (квадраты в отсортированном порядке), `TripletsSumToZero` (тройки с суммой 0),
+`DutchFlagSort` (сортировка 0/1/2), `MoveZeroes` (нули в конец), `MaxArea` (площадь у стенок),
+`MergeSorted` (слияние с конца), `IsSubsequence` и `IntersectSorted` (указатели по двум массивам)
+и `ThreeSumClosest` (ближайшая к target сумма трёх).
 
 <details class="algo-details">
 <summary>Если застрял: квадраты отсортированного массива (<code>SortedSquares</code>)</summary>
@@ -656,6 +710,31 @@ go test -tags solution ./twopointers/  # эталон
 **Вывод.** Выбор решает не задача, а вход: уже отсортирован — два указателя с O(1) памяти; нужны
 исходные индексы — хеш-таблица «значение → индекс»; памяти мало, а индексы не нужны — сортировка
 на месте и указатели, но честная сложность тогда O(n log n).
+
+Напоследок — задача к разделу [«Указатели по двум массивам»](#указатели-по-двум-массивам):
+
+<div class="algo-challenge" data-type="choice" data-options="1 4 4|1 4 4 4|1 1 4 4|1 4" data-answer="0" data-explain="1 = 1 — в ответ, оба сдвинулись; 1 &lt; 4 — сдвигаем указатель в a; 2 &lt; 4 — снова в a; 4 = 4 — в ответ дважды; затем 4 &lt; 7 — указатель в a, и a кончился. Каждое общее число входит столько раз, сколько его в массиве, где его меньше: единица — один раз (в b она одна), четвёрка — два (в b их две).">
+<div class="algo-challenge__q">Что вернёт <code>intersectSorted([1, 1, 2, 4, 4, 4], [1, 4, 4, 7])</code> из раздела выше?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="[1, 3, 4], target = 6: найдёт 3 + 3 — один элемент взят дважды|[2, 7, 11, 15], target = 9: пара в начале, right проскочит её|[1, 2], target = 10: пары нет, и left выйдет за край массива|[1, 2, 3, 4], target = 7: на сумме 7 указатели разминутся" data-answer="0" data-explain="Ломает знак &lt;= в условии цикла: когда left и right сходятся на одной клетке, код складывает число с самим собой. На [1, 3, 4] указатели встречаются на тройке, 3 + 3 = 6, и код возвращает (1, 1, true), хотя пары нет. На трёх других входах встреча не даёт target, и ответ верный. Нужно left &lt; right: пара — это два разных индекса.">
+<div class="algo-challenge__q">🐞 Найди ошибку. Здесь встречные указатели идут, пока <code>left &lt;= right</code>. На каком входе код ошибается?</div>
+<pre class="algo-challenge__code">func twoSumSorted(arr []int, target int) (int, int, bool) {
+    left, right := 0, len(arr)-1
+    for left &lt;= right {
+        sum := arr[left] + arr[right]
+        switch {
+        case sum == target:
+            return left, right, true
+        case sum &lt; target:
+            left++
+        default:
+            right--
+        }
+    }
+    return 0, 0, false
+}</pre>
+</div>
 
 <div class="algo-mental">
   <div class="algo-mental__icon">📌</div>

@@ -77,3 +77,33 @@ func PowMod(base, exp, m int) int {
 	}
 	return result
 }
+
+func ModInversePrime(a, p int) int {
+	return PowMod(a, p-2, p) // малая теорема Ферма: a^(p−1) ≡ 1 → a^(p−2) = a⁻¹
+}
+
+func BinomialMod(queries [][2]int, p int) []int {
+	maxN := 0
+	for _, q := range queries {
+		maxN = max(maxN, q[0])
+	}
+	fact := make([]int, maxN+1)
+	invFact := make([]int, maxN+1)
+	fact[0] = 1 % p
+	for i := 1; i <= maxN; i++ {
+		fact[i] = fact[i-1] * i % p
+	}
+	invFact[maxN] = ModInversePrime(fact[maxN], p) // одна степень на всю таблицу
+	for i := maxN; i > 0; i-- {
+		invFact[i-1] = invFact[i] * i % p // 1/(i−1)! = i · 1/i!
+	}
+	ans := make([]int, len(queries))
+	for i, q := range queries {
+		n, k := q[0], q[1]
+		if k < 0 || k > n {
+			continue
+		}
+		ans[i] = fact[n] * invFact[k] % p * invFact[n-k] % p
+	}
+	return ans
+}

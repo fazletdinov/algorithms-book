@@ -104,6 +104,7 @@
     ] },
     { g: "Дополнительные материалы", items: [
       { t: "Go изнутри: рантайм, память, профилирование", h: "appendix-go-memory.html", lvl: "ext" },
+      { t: "Go для алгоритмов: ловушки", h: "go-for-algorithms.html", lvl: "ref" },
       { t: "Структуры в экосистеме Go", h: "go-stdlib-structures.html", lvl: "ext" },
       { t: "Криптография: библиотеки Go", h: "go-crypto-libraries.html", lvl: "ref" },
       { t: "Заключение", h: "conclusion.html", lvl: "ext" }

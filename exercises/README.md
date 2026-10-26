@@ -137,9 +137,8 @@ go test -tags solution ./slidingwindow/   # прогнать тесты на э�
 
 ## Проверить асимптотику бенчмарками
 
-**Тест масштаба** — `<пакет>_zscale_test.go` в двенадцати пакетах ядра (`slidingwindow`,
-`prefixsum`, `twopointers`, `stack`, `binarysearch`, `intervals`, `hashtable`, `binheap`,
-`treedfs`, `graphs`, `greedy`, `dp`) и в `codereview`. Он проверяет не ответ, а сложность:
+**Тест масштаба** — `<пакет>_zscale_test.go` в 39 пакетах (202 теста; список —
+`ls */*_zscale_test.go`). Он проверяет не ответ, а сложность:
 функция гоняется на большом худшем входе и обязана уложиться в 2 с (эталон — миллисекунды,
 перебор — секунды или вечность), иначе тест падает с причиной вроде «не уложилось в 2s:
 MaxSlidingWindow(n=400000, k=200000, убывающий ряд) — похоже на O(n·k) там, где нужен O(n)».
@@ -189,41 +188,42 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 
 | Пакет           | Функции                                      |
 |-----------------|----------------------------------------------|
-| `slidingwindow` | `MaxSumSubarray`, `LongestSubstringKDistinct`, `SmallestSubarrayWithSum`, `LongestSubstringNoRepeat`, `MaxSlidingWindow` |
+| `slidingwindow` | `MaxSumSubarray`, `LongestSubstringKDistinct`, `SmallestSubarrayWithSum`, `LongestSubstringNoRepeat`, `MaxSlidingWindow`, `CharacterReplacement`, `CheckInclusion`, `LongestOnes`, `NumSubarrayProductLessThanK`, `SubarraysWithKDistinct`, `FindAnagrams` |
 | `prefixsum`     | `RangeSums`, `CountSubarraysWithSum`, `LongestBalanced`, `CountDivisibleSubarrays`, `MaxSubarraySum`, `ProductExceptSelf`, `ApplyRangeAdds`, `MatrixRegionSums` |
-| `twopointers`   | `PairWithTargetSum`, `RemoveDuplicates`, `SortedSquares`, `TripletsSumToZero`, `DutchFlagSort` |
+| `twopointers`   | `PairWithTargetSum`, `RemoveDuplicates`, `SortedSquares`, `TripletsSumToZero`, `DutchFlagSort`, `MoveZeroes`, `MaxArea`, `MergeSorted`, `IsSubsequence`, `IntersectSorted`, `ThreeSumClosest` |
 | `stack`         | `IsValidBrackets`, `DecodeString`, `NextGreaterCircular`, `StockSpans`, `LargestRectangle`, `SumSubarrayMins`, `RemoveKDigits` |
 | `fastslow`      | `HasCycle`, `DetectCycle`, `MiddleNode`, `IsHappyNumber`, `CycleLength` |
 | `intervals`     | `MergeIntervals`, `InsertInterval`, `IntervalsIntersection`, `CanAttendAllMeetings`, `MinMeetingRooms` |
 | `cyclicsort`    | `CyclicSort`, `FindMissingNumber`, `FindAllMissingNumbers`, `FindDuplicate`, `FindAllDuplicates` |
 | `sorting`       | `MergeSort`, `QuickSort`, `HeapSort`, `CountingSort`, `QuickSelect` |
-| `numbertheory`  | `GCD`, `LCM`, `IsPrime`, `SieveOfEratosthenes`, `PowMod` |
+| `numbertheory`  | `GCD`, `LCM`, `IsPrime`, `SieveOfEratosthenes`, `PowMod`, `ModInversePrime`, `BinomialMod` |
 | `cryptography`  | `ExtendedGCD`, `ModInverse`, `ModExp`, `IsProbablePrime`, `RSAPrivateExponent`, `RSAEncrypt`, `RSADecrypt` |
 | `combinatorics` | `Binomial`, `Permutations`, `CountDivisibleByAny`, `Derangements` |
 | `sampling`      | `Shuffle`, `ReservoirSample`, `ExpectedCollisions`, `BirthdayThreshold` |
 | `recursion`     | `Factorial`, `Fib`, `Power`, `HanoiMoves`, `SumDigits` |
-| `bigo`          | `MinStack`, `NextGreaterElement`, `DailyTemperatures`, `CountCopies` |
-| `binarysearch`  | `Search`, `FindCeiling`, `FindFloor`, `SearchRotated`, `FindFirstLast`, `IntSqrt` |
+| `bigo`          | `MinStack`, `NextGreaterElement`, `DailyTemperatures`, `CountCopies`, `MyQueue` (`Push`/`Pop`/`Peek`/`Empty`, очередь на двух стеках) |
+| `binarysearch`  | `Search`, `FindCeiling`, `FindFloor`, `SearchRotated`, `FindFirstLast`, `IntSqrt`, `MinEatingSpeed`, `ShipWithinDays` |
 | `bits`          | `SingleNumber`, `IsPowerOfTwo`, `HammingWeight`, `MissingNumber`, `CountBits`, `TwoSingleNumbers` |
 | `linkedlist`    | `ReverseList`, `ReverseSublist`, `ReverseKGroup`, `IsPalindrome` |
-| `treebfs`       | `LevelOrder`, `ZigzagLevelOrder`, `RightSideView`, `LevelAverages`, `MinDepth` |
-| `treedfs`       | `PreorderTraversal`, `InorderTraversal`, `PostorderTraversal`, `MaxDepth`, `HasPathSum`, `DiameterOfTree` |
+| `treebfs`       | `LevelOrder`, `ZigzagLevelOrder`, `RightSideView`, `LevelAverages`, `MinDepth`, `WidthOfBinaryTree`, `IsCousins` |
+| `treedfs`       | `PreorderTraversal`, `InorderTraversal`, `PostorderTraversal`, `MaxDepth`, `HasPathSum`, `DiameterOfTree`, `IsBalanced`, `IsSymmetric`, `LowestCommonAncestor`, `PathSumAll`, `IsSubtree`, `BuildTree`, `CountPathsWithSum` |
 | `twoheaps`      | `MedianFinder` (`AddNum`/`FindMedian`), `SlidingWindowMedian`, `MaximizeCapital` |
 | `topk`          | `FindKLargest`, `TopKFrequent`, `KthLargest`, `KClosestPoints`, `KClosestNumbers` |
 | `kwaymerge`     | `MergeKSortedArrays`, `KthSmallestInSortedArrays`, `SmallestRange`, `KthSmallestInMatrix` |
 | `subsets`       | `Subsets`, `SubsetsWithDup`, `Combinations`, `LetterCasePermutation` |
 | `backtracking`  | `Permutations`, `GenerateParentheses`, `CombinationSum`, `SolveNQueensCount`, `LetterCombinations` |
-| `graphs`        | `CountComponents`, `HasCycleUndirected`, `BFSOrder`, `DFSOrder`, `ShortestPathUnweighted`, `IsBipartite`, `ShortestPathRoute`, `Dijkstra` |
+| `graphs`        | `CountComponents`, `HasCycleUndirected`, `BFSOrder`, `DFSOrder`, `ShortestPathUnweighted`, `IsBipartite`, `ShortestPathRoute`, `Dijkstra`, `HasCycleDirected` |
 | `grids`         | `NumIslands`, `MaxAreaOfIsland`, `FloodFill`, `RottingOranges`, `ShortestPathInBinaryMatrix` |
 | `dijkstra`      | `ShortestPath`, `ShortestPathsFrom`, `NetworkDelayTime` |
+| `matrix`        | `SpiralOrder`, `Rotate`, `SetZeroes`, `GameOfLife`, `SearchMatrix`, `SearchMatrixII` (матрицы и симуляция, [раздел главы о сетках](../src/grids-and-shortest-paths.md)) |
 | `bellmanford`   | `ShortestPath` (отрицательные веса), `HasNegativeCycle`, `ShortestPathWithAtMostKEdges` |
 | `astar`         | `ShortestPath` (сетка с эвристикой), `ManhattanDistance`, `PathExists` |
 | `mst`           | `MSTWeight` (Краскал), `MSTWeightPrim` (Прим), `MSTWeightWithEdges` |
 | `scc`           | `SCC` (Косарайю), `Bridges`, `ArticulationPoints` (low-link) |
 | `maxflow`       | `MaxFlow` (Эдмондс—Карп), `MaxBipartiteMatching` (Кун) |
-| `toposort`      | `TopologicalSort`, `CanFinish`, `FindOrderLexSmallest`, `AlienOrder` |
-| `greedy`        | `MaxNonOverlapping`, `CanJump`, `MinJumps`, `MaxProfit`, `FractionalKnapsack` |
-| `dp`            | `ClimbStairs`, `CoinChange`, `LongestCommonSubsequence`, `EditDistance`, `LongestIncreasingSubsequence`, `Knapsack01`, `HouseRobber`, `UniquePaths`, `WordBreak` |
+| `toposort`      | `TopologicalSort`, `CanFinish`, `FindOrderLexSmallest`, `AlienOrder`, `MinSemesters`, `FindMinHeightTrees`, `TopologicalSortDFS` |
+| `greedy`        | `MaxNonOverlapping`, `CanJump`, `MinJumps`, `MaxProfit`, `FractionalKnapsack`, `PartitionLabels`, `CanCompleteCircuit`, `LeastInterval`, `JobScheduling` (ловушка: жадность не работает) |
+| `dp`            | `ClimbStairs`, `CoinChange`, `LongestCommonSubsequence`, `EditDistance`, `LongestIncreasingSubsequence`, `Knapsack01`, `HouseRobber`, `UniquePaths`, `WordBreak`, `DeleteAndEarn` |
 | `npcomplete`    | `VerifySubsetSum` (сертификат за полином — почему задача в NP), `SubsetSumExact` (перебор — стена), `FirstFitDecreasing` (приближение для Bin Packing), `VertexCoverGreedy2Approx` (2-приближение для Vertex Cover) |
 | `strmatch`      | `KMPSearch`, `RabinKarp`, `CountOccurrences`, `LongestPrefixSuffix`, `ZSearch` |
 | `trie`          | `Trie.Insert` / `Search` / `StartsWith` / `Delete` / `WordsWithPrefix` |
@@ -232,7 +232,7 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `hashtable`     | `NewHashMap`, `HashMap.Put` / `Get` / `Delete` / `Len` (цепочки + ресайз по load factor); приём: `TwoSum`, `GroupAnagrams`, `LongestConsecutive`, `FirstUniqueChar` |
 | `deque`         | `NewDeque`, `Deque.PushFront` / `PushBack` / `PopFront` / `PopBack` / `Front` / `Back` / `Len` (кольцевой буфер) |
 | `binheap`       | `NewHeap`, `BuildHeap` (heapify O(n)), `Heap.Push` / `Pop` / `Peek` / `Len` (бинарная min-куча, siftUp/siftDown) |
-| `dsu`           | `NewUnionFind`, `UnionFind.Find` / `Union` / `Connected` / `Count` (сжатие путей + по размеру) |
+| `dsu`           | `NewUnionFind`, `UnionFind.Find` / `Union` / `Connected` / `Count` (сжатие путей + по размеру), `FindRedundantConnection`, `ValidTree`, `EquationsPossible` |
 | `bst`           | `NewBST`, `BST.Search` / `Insert` / `Delete` / `InOrder` (двоичное дерево поиска), `IsValidBST`, `KthSmallest`, `LowestCommonAncestor` |
 | `avl`           | `NewAVL`, `AVL.Insert` / `Delete` / `Search` / `Height` / `InOrder` (самобалансировка поворотами вверх по пути) |
 | `sparsetable`   | `NewSparse`, `Sparse.Query` (идемпотентный RMQ-минимум за O(1)) |
@@ -252,13 +252,14 @@ O(n²) → ~×100, O(log n) → почти не меняется. Если ва�
 | `serializetree` | `Serialize`, `Deserialize` (комбинация: DFS прямого обхода + парсинг токенов) |
 | `skyline`       | `GetSkyline` (комбинация: sweep line по событиям + макс-куча с ленивым удалением) |
 | `designtwitter` | `Twitter.PostTweet` / `Follow` / `Unfollow` / `GetNewsFeed` (комбинация: хеш-таблицы + K-way merge кучей) |
+| `transfer`      | задачи переноса из [главы о связках](../src/pattern-combinations.md) (раздел «Незнакомые условия»): `MergeAccounts`, `ProcessingOrder`, `IslandCounts`, `MaxMinGap`, `ShortestRemoval`, `SmallestUniqueLetters`, `OpenLock`, `MaxDistinctSum` — связку из 2–3 приёмов выбираешь сам, разбор свёрнут под условием в главе |
 | `ratelimiter`   | `RateLimiter.Allow` / `RetryAfter` (sliding window log) + `TokenBucket.Allow` (модель `x/time/rate`) + `SafeTokenBucket.Allow` (сделай ведро потокобезопасным: mutex против гонки check-then-act, конкурентный тест под `-race`) — боевой мини-проект: два лимитера, паттерн главы и то, что в проде |
 | `streamstats`   | `MedianFinder.Add` / `Median` (две кучи) + `Histogram.Observe` / `Quantile` / `Merge` (боевой мини-проект: перцентили p50/p99, модель Prometheus/HdrHistogram) |
 | `leaderboard`   | `TopK.Add` / `Top` (min-куча размера K) + `Leaderboard.Set` / `Incr` / `Score` / `TopN` / `Rank` (боевой мини-проект: лидерборд, модель Redis Sorted Set) |
 | `cache`         | `TTLCache.Get` / `Put` (боевой мини-проект: LRU-кэш с TTL — прод-версия LRU, модель hashicorp/golang-lru expirable) |
 | `ahocorasick`   | `NewAutomaton`, `Automaton.FindAll` / `ContainsAny`, `Censor` (Trie + ссылки неудачи KMP: все шаблоны за один проход) |
 | `consistenthash` | `NewRing`, `Ring.Add` / `Remove` / `Get`, `MovedFraction`, `JumpHash` (шардирование: кольцо с виртуальными узлами и jump hash против `hash % N`) |
-| `fresh`         | задачи без разбора в книге — только условие, ограничения и тесты; какой приём, решаешь сам (их выдаёт [смешанная тренировка](../src/mixed.md)): `MaxSatisfiedCustomers`, `MinBoats`, `BestClosingHour`, `CountSteadyPairs`, `LongestWarmingSpan`, `MinTimeForTrips`, `TotalBusyTime`, `HIndex`, `MaxTwinSum`, `HeaviestLevel`, `TimeToNotifyAll`, `ClosestPrices`, `FurthestStop`, `CableMovesToConnect`, `FastestRoutesCount`, `MinBuildTime`, `SplitBetweenOffices`, `MinTicketCost`, `CanMergeLogs`, `MaxOrdersInVan`, `MaxUniqueParts`, `CountMagnetWords`, `LastInCircle` |
+| `fresh`         | задачи без разбора в книге — только условие, ограничения и тесты; какой приём, решаешь сам (их выдаёт [смешанная тренировка](../src/mixed.md)): `MaxSatisfiedCustomers`, `MinBoats`, `BestClosingHour`, `CountSteadyPairs`, `LongestWarmingSpan`, `MinTimeForTrips`, `TotalBusyTime`, `HIndex`, `MaxTwinSum`, `HeaviestLevel`, `TimeToNotifyAll`, `ClosestPrices`, `FurthestStop`, `CableMovesToConnect`, `FastestRoutesCount`, `MinBuildTime`, `SplitBetweenOffices`, `MinTicketCost`, `CanMergeLogs`, `MaxOrdersInVan`, `MaxUniqueParts`, `CountMagnetWords`, `LastInCircle`, `VisibleAhead`, `SurvivingRobots`, `StateAfter`, `HasRoundTrip`, `CountSplits`, `FirstCommonSlot`, `KioskSpacing`, `FindOnTrail`, `PriceBonus`, `MinPriceGap`, `IsFestiveTree`, `MinutesToSpread`, `LongestWellStockedRun`, `CalmArrangement`, `MatchingRowsAndColumns`, `FewestCutBricks`, `SplitByThreshold`, `DropRepeated`, `SplitIntoConvoys`, `MinTotalWalk`, `MinRaisesToDistinct`, `MaxEqualAfterBoosts`, `MinTakesFromEnds`, `GoodsBetweenDividers`, `CountBalancedTeams`, `WidestAffordableGap`, `MinCrateMoves`, `WidestSalaryGap`, `BestTeamScore`, `MinWeightGap`, `MinBusiestCourier`, `MinHopsToLast`, `CookableDishes`, `SafeRooms`, `EarliestFullBloom`, `CanSplitIntoRuns` |
 | `codereview`    | `SumSquaresConcurrent` (усечение при делении на `workers` + гонка на разделяемом `total` — чинится каналом с локальными суммами, без мьютекса), `HasDuplicate` (корректен, но O(n²) — ловится дедлайном по времени, не сравнением ответа), `ParseAndSum` (проглоченная ошибка `strconv.Atoi`) — **другой тип задачи**: не пишешь с нуля, а находишь и чинишь изъян в уже работающем коде (см. [главу](../src/code-review.md)) |
 | `profiling`     | `FormatScores` — отвечает верно, но на порядки медленнее нужного, и по коду это не видно; **другой тип задачи**: не читаешь код, а профилируешь (`go tool pprof`), находишь реальный источник (копирование строки при `+=`, не `fmt.Sprintf`, как подсказывает интуиция) и чинишь; проверка фикса — бюджет аллокаций через `testing.AllocsPerRun`, не сравнение ответа (см. [раздел приложения](../src/appendix-go-memory.md#-практика-найди-узкое-место-сам)) |
 

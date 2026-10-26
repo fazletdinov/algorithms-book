@@ -162,3 +162,90 @@ func TestMinDepthRandom(t *testing.T) {
 		}
 	}
 }
+
+// widthBrute — ширина через DFS с номером места от корня: на деревьях до 25
+// узлов номер меньше 2²⁵ и не переполняется. Для каждой глубины — крайние места.
+func widthBrute(root *TreeNode) int {
+	lo, hi := map[int]int{}, map[int]int{}
+	var rec func(n *TreeNode, d, pos int)
+	rec = func(n *TreeNode, d, pos int) {
+		if n == nil {
+			return
+		}
+		if v, ok := lo[d]; !ok || pos < v {
+			lo[d] = pos
+		}
+		if v, ok := hi[d]; !ok || pos > v {
+			hi[d] = pos
+		}
+		rec(n.Left, d+1, 2*pos+1)
+		rec(n.Right, d+1, 2*pos+2)
+	}
+	rec(root, 0, 0)
+	best := 0
+	for d := range lo {
+		best = max(best, hi[d]-lo[d]+1)
+	}
+	return best
+}
+
+func TestWidthOfBinaryTreeRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(662))
+	for range 4000 {
+		root := randTree(rng, rng.Intn(25))
+		if got, want := WidthOfBinaryTree(root), widthBrute(root); got != want {
+			t.Fatalf("WidthOfBinaryTree(%s) = %d, want %d", treeString(root), got, want)
+		}
+	}
+}
+
+// relabel даёт узлам различные значения 1..n в прямом порядке: в IsCousins
+// значения уникальны по условию.
+func relabel(root *TreeNode) int {
+	next := 0
+	var rec func(n *TreeNode)
+	rec = func(n *TreeNode) {
+		if n == nil {
+			return
+		}
+		next++
+		n.Val = next
+		rec(n.Left)
+		rec(n.Right)
+	}
+	rec(root)
+	return next
+}
+
+func TestIsCousinsRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(993))
+	for range 3000 {
+		root := randTree(rng, rng.Intn(20))
+		n := relabel(root)
+		depth, parent := map[int]int{}, map[int]int{}
+		var rec func(nd *TreeNode, d, p int)
+		rec = func(nd *TreeNode, d, p int) {
+			if nd == nil {
+				return
+			}
+			depth[nd.Val], parent[nd.Val] = d, p
+			rec(nd.Left, d+1, nd.Val)
+			rec(nd.Right, d+1, nd.Val)
+		}
+		rec(root, 0, 0)
+		// n+1 — значение, которого в дереве нет.
+		for x := 1; x <= n+1; x++ {
+			for y := 1; y <= n+1; y++ {
+				if x == y {
+					continue
+				}
+				dx, okx := depth[x]
+				dy, oky := depth[y]
+				want := okx && oky && dx == dy && parent[x] != parent[y]
+				if got := IsCousins(root, x, y); got != want {
+					t.Fatalf("IsCousins(%s, %d, %d) = %v, want %v", treeString(root), x, y, got, want)
+				}
+			}
+		}
+	}
+}

@@ -115,3 +115,117 @@ func TestFractionalKnapsack(t *testing.T) {
 		})
 	}
 }
+
+// sameInts сравнивает по длине и элементам: nil и пустой срез равны.
+func sameInts(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func TestPartitionLabels(t *testing.T) {
+	tests := []struct {
+		name string
+		s    string
+		want []int
+	}{
+		{"пример LeetCode", "ababcbacadefegdehijhklij", []int{9, 7, 8}},
+		{"пример главы", "abaccd", []int{3, 2, 1}},
+		{"пусто", "", []int{}},
+		{"одна буква", "z", []int{1}},
+		{"все разные", "abc", []int{1, 1, 1}},
+		{"первая буква в конце — один кусок", "abcda", []int{5}},
+		{"повтор подряд", "aaabb", []int{3, 2}},
+		{"конец тянет поздняя буква внутри", "abacbd", []int{5, 1}},
+		{"вложенные куски", "eccbbbbdec", []int{10}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := PartitionLabels(tt.s); !sameInts(got, tt.want) {
+				t.Errorf("PartitionLabels(%q) = %v, ожидалось %v", tt.s, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCanCompleteCircuit(t *testing.T) {
+	tests := []struct {
+		name      string
+		gas, cost []int
+		want      int
+	}{
+		{"пример LeetCode", []int{1, 2, 3, 4, 5}, []int{3, 4, 5, 1, 2}, 3},
+		{"бензина не хватает", []int{2, 3, 4}, []int{3, 4, 3}, -1},
+		{"одна станция, хватает", []int{5}, []int{4}, 0},
+		{"одна станция, не хватает", []int{1}, []int{2}, -1},
+		{"старт с нулевой станции", []int{3, 1, 1}, []int{1, 2, 2}, 0},
+		{"старт с последней станции", []int{1, 1, 4}, []int{2, 2, 1}, 2},
+		{"впритык: total = 0, ответ в середине", []int{0, 3, 0}, []int{2, 0, 1}, 1},
+		{"два провала до ответа", []int{1, 1, 1, 5}, []int{2, 2, 2, 2}, 3},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CanCompleteCircuit(tt.gas, tt.cost); got != tt.want {
+				t.Errorf("CanCompleteCircuit(%v, %v) = %d, ожидалось %d", tt.gas, tt.cost, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLeastInterval(t *testing.T) {
+	tests := []struct {
+		name  string
+		tasks string
+		n     int
+		want  int
+	}{
+		{"две частые, кулдаун 2", "AAABBB", 2, 8},
+		{"без кулдауна", "AAABBB", 0, 6},
+		{"пример главы", "AAABBC", 2, 7},
+		{"одна задача много раз", "AAAA", 3, 13},
+		{"задач больше, чем мест в каркасе", "AAABBBCCCDDE", 2, 12},
+		{"одна задача", "A", 5, 1},
+		{"все разные", "ABCDEF", 10, 6},
+		{"пусто", "", 2, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := LeastInterval([]byte(tt.tasks), tt.n); got != tt.want {
+				t.Errorf("LeastInterval(%q, %d) = %d, ожидалось %d", tt.tasks, tt.n, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestJobScheduling(t *testing.T) {
+	tests := []struct {
+		name                     string
+		startTime, endTime, prof []int
+		want                     int
+	}{
+		{"пример LeetCode 1", []int{1, 2, 3, 3}, []int{3, 4, 5, 6}, []int{50, 10, 40, 70}, 120},
+		{"пример LeetCode 2", []int{1, 2, 3, 4, 6}, []int{3, 5, 10, 6, 9}, []int{20, 20, 100, 70, 60}, 150},
+		{"пример LeetCode 3", []int{1, 1, 1}, []int{2, 3, 4}, []int{5, 6, 4}, 6},
+		{"пусто", []int{}, []int{}, []int{}, 0},
+		{"одна заявка", []int{2}, []int{7}, []int{9}, 9},
+		{"касание в точке — обе", []int{1, 3}, []int{3, 5}, []int{4, 6}, 10},
+		{"ранний конец берёт дешёвую короткую", []int{1, 2}, []int{3, 10}, []int{1, 100}, 100},
+		{"самая дорогая заслоняет две", []int{1, 1, 5}, []int{10, 5, 10}, []int{10, 6, 6}, 12},
+		{"дорогой час — не дорогая заявка", []int{1, 1}, []int{2, 10}, []int{3, 20}, 20},
+		{"одинаковые заявки — одна", []int{1, 1}, []int{4, 4}, []int{5, 5}, 5},
+		{"заявки не по порядку", []int{6, 1, 3}, []int{9, 3, 6}, []int{2, 2, 2}, 6},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := JobScheduling(tt.startTime, tt.endTime, tt.prof); got != tt.want {
+				t.Errorf("JobScheduling(%v, %v, %v) = %d, ожидалось %d", tt.startTime, tt.endTime, tt.prof, got, tt.want)
+			}
+		})
+	}
+}

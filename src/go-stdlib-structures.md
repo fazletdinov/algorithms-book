@@ -24,7 +24,7 @@
 | **[Рабин–Карп / поиск подстроки](string-algorithms.md)** | `strings.Index` / `bytes.Index` для длинных образцов используют **rolling hash (Рабин–Карп)** — [`internal/stringslite/strings.go`](https://github.com/golang/go/blob/go1.24.0/src/internal/stringslite/strings.go#L98); движок [`regexp`](https://pkg.go.dev/regexp) — автоматы RE2, а не бэктрекинг | подстрока и сопоставление с образцом |
 | **[Топологическая сортировка](topological-sort.md)** | порядок инициализации переменных/пакетов в [`go/types`](https://github.com/golang/go/blob/go1.24.0/src/go/types/initorder.go); граф зависимостей модулей и сборки (`go build`) | «что от чего зависит» — порядок без циклов |
 | **[Графы (BFS/DFS)](graphs.md)** | анализ зависимостей и обнаружение циклов импорта в `go/types`, `go list`; [Union-Find](union-find-structure.md) — компоненты связности в компиляторах и анализаторах | обход зависимостей, поиск циклов |
-| **[Теория чисел / крипта](cryptography.md)** | [`crypto/rsa`](https://pkg.go.dev/crypto/rsa), [`crypto/elliptic`](https://pkg.go.dev/crypto/elliptic), [`math/big`](https://pkg.go.dev/math/big) (`Int.Exp` — модульное возведение, `ProbablyPrime` — **Миллер–Рабин**) | TLS, подписи, ключи — на модульной арифметике |
+| **[Теория чисел / крипта](cryptography.md)** | [`crypto/rsa`](https://pkg.go.dev/crypto/rsa), [`crypto/elliptic`](https://pkg.go.dev/crypto/elliptic), [`math/big`](https://pkg.go.dev/math/big) (`Int.Exp` — модульное возведение, `ProbablyPrime` — **Миллер–Рабин**; сам `crypto/rsa` считает на внутреннем `bigmod`) | TLS, подписи, ключи — на модульной арифметике |
 
 ## Чего нет в stdlib — но есть в экосистеме
 
@@ -448,18 +448,22 @@ func Search(n int, f func(int) bool) int {
 Источник: [`go/types/initorder.go`](https://github.com/golang/go/blob/go1.24.0/src/go/types/initorder.go)
 (`initOrder`, `dependencyGraph`, `heap.Init`) — тот же приём в графе зависимостей модулей `go build`.
 
-## 📎 Разбор: почему RSA в Go — это math/big
+## 📎 Разбор: на чём считает RSA в Go
 
 Учебный RSA из главы [«Криптография»](cryptography.md) считает на `int`. Настоящие ключи — **2048–4096
 бит**; такие числа не влезают ни в `int64`, ни близко. Нужна **длинная арифметика**.
 
 - **`int64`?** Максимум ~63 бита (~19 знаков) — RSA-модуль в сотни раз больше, переполнение мгновенно.
-- **`math/big.Int`** — целые произвольной точности (срез машинных «слов»). `crypto/rsa` стоит на нём:
-  шифрование/расшифровка — это `Int.Exp(c, d, n)` (**модульное возведение в степень**, тот самый
-  square-and-multiply, но над тысячебитными числами); генерация ключей — простые из `crypto/rand` +
-  проверка `Int.ProbablyPrime` (**Миллер–Рабин** + тест Лукаса = Baillie–PSW).
+- **`math/big.Int`** — целые произвольной точности (срез машинных «слов»). На нём удобно считать
+  самому: `Int.Exp(c, d, n)` — **модульное возведение в степень**, тот самый square-and-multiply над
+  тысячебитными числами; `Int.ProbablyPrime` — **Миллер–Рабин** + тест Лукаса (Baillie–PSW).
+- **Сам `crypto/rsa`** с Go 1.20 считает не на `math/big`, а на внутреннем пакете
+  `crypto/internal/fips140/bigmod` — длинной арифметике по модулю с **константным временем**: время
+  операции не зависит от секретных битов (у `math/big` зависит, и ключ можно вычислить по
+  секундомеру). Простые для ключа проверяет собственный Миллер–Рабин в `fips140/rsa/keygen.go`.
+  `math/big` остался только в типах API: `PublicKey.N` — `*big.Int`.
 
-Оба приёма — ровно из книги, только над `big.Int`. Модульное возведение (ядро шифрования):
+Оба приёма — ровно из книги, только над тысячебитными числами. Модульное возведение (ядро шифрования):
 
 <div class="algo-viz" data-viz="mod-exp" data-base="65" data-exp="17" data-m="3233"></div>
 
@@ -467,8 +471,11 @@ func Search(n int, f func(int) bool) int {
 
 <div class="algo-viz" data-viz="miller-rabin" data-n="561" data-a="2"></div>
 
-Источник: [`crypto/rsa`](https://pkg.go.dev/crypto/rsa), [`math/big`](https://pkg.go.dev/math/big)
-(`Int.Exp`, `Int.ProbablyPrime` — [`math/big/prime.go`](https://github.com/golang/go/blob/go1.24.0/src/math/big/prime.go)).
+Источник: [`crypto/rsa`](https://pkg.go.dev/crypto/rsa) и его арифметика —
+[`bigmod/nat.go`](https://github.com/golang/go/blob/go1.24.0/src/crypto/internal/fips140/bigmod/nat.go),
+проверка простых — [`rsa/keygen.go`](https://github.com/golang/go/blob/go1.24.0/src/crypto/internal/fips140/rsa/keygen.go);
+[`math/big`](https://pkg.go.dev/math/big) (`Int.Exp`, `Int.ProbablyPrime` —
+[`math/big/prime.go`](https://github.com/golang/go/blob/go1.24.0/src/math/big/prime.go)).
 
 ## 📎 Разбор: почему sync.Mutex — это биты в одном слове
 
