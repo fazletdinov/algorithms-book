@@ -173,3 +173,174 @@ func TestDutchFlagSortRandom(t *testing.T) {
 		}
 	}
 }
+
+// TestMoveZeroesRandom: тысяча случайных входов против «собрать ненулевые, дописать
+// нули» — частые нули подряд и в начале вскрывают ошибки границы.
+func TestMoveZeroesRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(6))
+	for range 1000 {
+		arr := make([]int, rng.Intn(15))
+		for i := range arr {
+			arr[i] = rng.Intn(4) - 1 // [-1..2]: много нулей
+		}
+		want := make([]int, 0, len(arr))
+		for _, v := range arr {
+			if v != 0 {
+				want = append(want, v)
+			}
+		}
+		for len(want) < len(arr) {
+			want = append(want, 0)
+		}
+		orig := append([]int{}, arr...)
+		MoveZeroes(arr)
+		if !equalInts(arr, want) {
+			t.Fatalf("MoveZeroes(%v) = %v, ожидалось %v", orig, arr, want)
+		}
+	}
+}
+
+// TestMaxAreaRandom: тысяча случайных входов против перебора всех пар стенок;
+// узкий диапазон высот даёт много равных — ничья при сдвиге стенок.
+func TestMaxAreaRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(7))
+	for range 1000 {
+		h := make([]int, rng.Intn(15))
+		for i := range h {
+			h[i] = rng.Intn(6)
+		}
+		want := 0
+		for i := range h {
+			for j := i + 1; j < len(h); j++ {
+				want = max(want, min(h[i], h[j])*(j-i))
+			}
+		}
+		if got := MaxArea(h); got != want {
+			t.Fatalf("MaxArea(%v) = %d, перебор = %d", h, got, want)
+		}
+	}
+}
+
+// TestMergeSortedRandom: тысяча случайных пар отсортированных массивов против
+// склейки с сортировкой.
+func TestMergeSortedRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(8))
+	for range 1000 {
+		m, n := rng.Intn(8), rng.Intn(8)
+		nums1 := make([]int, m+n)
+		nums2 := make([]int, n)
+		for i := 0; i < m; i++ {
+			nums1[i] = rng.Intn(10) - 3
+		}
+		for i := range nums2 {
+			nums2[i] = rng.Intn(10) - 3
+		}
+		sort.Ints(nums1[:m])
+		sort.Ints(nums2)
+		for i := m; i < m+n; i++ {
+			nums1[i] = 99 // мусор в свободных ячейках
+		}
+		want := append(append([]int{}, nums1[:m]...), nums2...)
+		sort.Ints(want)
+		orig := append([]int{}, nums1...)
+		MergeSorted(nums1, m, nums2, n)
+		if !equalInts(nums1, want) {
+			t.Fatalf("MergeSorted(%v, %d, %v, %d) = %v, ожидалось %v", orig, m, nums2, n, nums1, want)
+		}
+	}
+}
+
+func TestIsSubsequenceRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(11))
+	randStr := func(n int) string {
+		b := make([]byte, n)
+		for i := range b {
+			b[i] = byte('a' + rng.Intn(3))
+		}
+		return string(b)
+	}
+	// isSub — перебор: можно ли выбрать из t позиции под каждую букву s по порядку
+	var isSub func(s, t string) bool
+	isSub = func(s, t string) bool {
+		if s == "" {
+			return true
+		}
+		for j := 0; j < len(t); j++ {
+			if t[j] == s[0] && isSub(s[1:], t[j+1:]) {
+				return true
+			}
+		}
+		return false
+	}
+	for range 1000 {
+		s, tt := randStr(rng.Intn(5)), randStr(rng.Intn(10))
+		if got, want := IsSubsequence(s, tt), isSub(s, tt); got != want {
+			t.Fatalf("IsSubsequence(%q, %q) = %v, перебор = %v", s, tt, got, want)
+		}
+	}
+}
+
+func TestIntersectSortedRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(12))
+	randSorted := func(n int) []int {
+		a := make([]int, n)
+		for i := range a {
+			a[i] = rng.Intn(6) - 2
+		}
+		sort.Ints(a)
+		return a
+	}
+	for range 1000 {
+		a, b := randSorted(rng.Intn(10)), randSorted(rng.Intn(10))
+		// модель: для каждого значения — min из двух счётчиков
+		ca, cb := map[int]int{}, map[int]int{}
+		for _, x := range a {
+			ca[x]++
+		}
+		for _, x := range b {
+			cb[x]++
+		}
+		var want []int
+		for v := -2; v <= 3; v++ {
+			for range min(ca[v], cb[v]) {
+				want = append(want, v)
+			}
+		}
+		if got := IntersectSorted(a, b); !equalInts(got, want) {
+			t.Fatalf("IntersectSorted(%v, %v) = %v, модель = %v", a, b, got, want)
+		}
+	}
+}
+
+func TestThreeSumClosestRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(13))
+	for range 1000 {
+		nums := make([]int, rng.Intn(6)+3)
+		for i := range nums {
+			nums[i] = rng.Intn(21) - 10
+		}
+		target := rng.Intn(61) - 30
+		want, set := 0, false
+		for i := range nums {
+			for j := i + 1; j < len(nums); j++ {
+				for k := j + 1; k < len(nums); k++ {
+					s := nums[i] + nums[j] + nums[k]
+					ds, dw := s-target, want-target
+					if ds < 0 {
+						ds = -ds
+					}
+					if dw < 0 {
+						dw = -dw
+					}
+					if !set || ds < dw || (ds == dw && s < want) {
+						want, set = s, true
+					}
+				}
+			}
+		}
+		in := append([]int(nil), nums...)
+		if got := ThreeSumClosest(in, target); got != want {
+			t.Fatalf("ThreeSumClosest(%v, %d) = %d, перебор = %d", nums, target, got, want)
+		}
+	}
+}

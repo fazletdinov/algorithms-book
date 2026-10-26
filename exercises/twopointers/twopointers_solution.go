@@ -100,3 +100,105 @@ func DutchFlagSort(arr []int) {
 		}
 	}
 }
+
+func MoveZeroes(arr []int) {
+	insertPos := 0
+	for i := 0; i < len(arr); i++ {
+		if arr[i] != 0 {
+			arr[insertPos], arr[i] = arr[i], arr[insertPos]
+			insertPos++
+		}
+	}
+}
+
+func MaxArea(height []int) int {
+	l, r := 0, len(height)-1
+	best := 0
+	for l < r {
+		best = max(best, min(height[l], height[r])*(r-l))
+		if height[l] < height[r] {
+			l++
+		} else {
+			r--
+		}
+	}
+	return best
+}
+
+func MergeSorted(nums1 []int, m int, nums2 []int, n int) {
+	i, j := m-1, n-1
+	for pos := m + n - 1; j >= 0; pos-- {
+		if i >= 0 && nums1[i] > nums2[j] {
+			nums1[pos] = nums1[i]
+			i--
+		} else {
+			nums1[pos] = nums2[j]
+			j--
+		}
+	}
+}
+
+func IsSubsequence(s, t string) bool {
+	i := 0
+	for j := 0; j < len(t) && i < len(s); j++ {
+		if s[i] == t[j] {
+			i++
+		}
+	}
+	return i == len(s)
+}
+
+func IntersectSorted(nums1, nums2 []int) []int {
+	var res []int
+	i, j := 0, 0
+	for i < len(nums1) && j < len(nums2) {
+		switch {
+		case nums1[i] < nums2[j]:
+			i++
+		case nums1[i] > nums2[j]:
+			j++
+		default:
+			res = append(res, nums1[i])
+			i++
+			j++
+		}
+	}
+	return res
+}
+
+func ThreeSumClosest(nums []int, target int) int {
+	sort.Ints(nums)
+	best := nums[0] + nums[1] + nums[2]
+	for i := 0; i < len(nums)-2; i++ {
+		left, right := i+1, len(nums)-1
+		for left < right {
+			sum := nums[i] + nums[left] + nums[right]
+			if closer(sum, best, target) {
+				best = sum
+			}
+			switch {
+			case sum < target:
+				left++
+			case sum > target:
+				right--
+			default:
+				return sum
+			}
+		}
+	}
+	return best
+}
+
+// closer сообщает, лучше ли сумма a, чем b: ближе к target, а при равном
+// расстоянии — меньше.
+func closer(a, b, target int) bool {
+	da, db := abs(a-target), abs(b-target)
+	return da < db || (da == db && a < b)
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}

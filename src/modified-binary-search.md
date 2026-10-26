@@ -142,6 +142,8 @@ return -1
 3. сравнили `arr[mid]` с целью → сдвинули **одну** границу;
 4. цикл, пока `left <= right`.
 
+См. также [«Go для алгоритмов: ловушки»](go-for-algorithms.md#11-переполнение-int-и-деление-с-отрицательными) — переполнение `int` на числах.
+
 Это форма для одного случая — найти значение или вернуть `-1`. Границу (первое вхождение,
 позицию вставки, минимальную скорость) ищут другим циклом —
 [«Одна форма на все границы»](#одна-форма-на-все-границы) ниже.
@@ -199,12 +201,19 @@ func firstTrue(n int, ok func(int) bool) int {
 
 Это тот же поиск первой позиции `a[i] >= target` (lower bound), что в
 [главе об инвариантах](invariants.md#рабочий-пример-бинарный-поиск-без-страха-off-by-one), и те
-же две записи отрезка. Проверяем полуинтервал `[lo, hi)`: позицию `hi` цикл не смотрит. А ответ
-держим в `[lo, hi]`: им может оказаться и сам `hi = n` — «никто не подошёл».
+тот же инвариант: ответ в `[lo, hi]`, им может оказаться и сам `hi = n` — «никто не подошёл». Читать
+`a[hi]` при этом не придётся: пока `lo < hi`, `mid` строго меньше `hi`.
 
 Первое вхождение `8` — это `firstTrue` с вопросом `nums[i] >= 8`; остаётся проверить, что там и
 правда `8`. Последнее вхождение — на шаг левее первого `nums[i] > 8`. Позиция вставки — первое
 вхождение без этой проверки: `firstTrue` с вопросом `nums[i] >= target` как есть.
+
+**Наибольшее X, а не наименьшее.** Бывает, что «да» идут первыми, а «нет» — за ними: «влезает ли
+квадрат `m*m` в `x = 20`?» — `m = 0…4` да, с `m = 5` нет. Нужно **последнее «да»**. Отдельный
+цикл не нужен: последнее «да» стоит ровно на шаг левее первого «нет». Переверни вопрос
+(«`m*m > 20`?»), найди `firstTrue` — это `5` — и вычти единицу: ответ `4`. Так устроены
+последнее вхождение выше и `IntSqrt` в тренажёре. Если `firstTrue` вернул `0` — «да» не было ни
+разу, и ответ `−1`.
 
 Виджет ниже — `lowerBound`: это `firstTrue` с вопросом `nums[i] >= target`, записанный прямо на
 массиве. Ветки в нём стоят в обратном порядке: сначала «нет» (`nums[mid] < target` →
@@ -560,17 +569,20 @@ func searchRange(nums []int, target int) [2]int {
 
 - [Search Insert Position](https://leetcode.com/problems/search-insert-position/) (LeetCode 35) — lower_bound
 - [First Bad Version](https://leetcode.com/problems/first-bad-version/) (LeetCode 278) — поиск по предикату
+- [Sqrt(x)](https://leetcode.com/problems/sqrtx/) (LeetCode 69) — наибольшее `m` с `m*m <= x`: последнее «да»; в тренажёре: `binarysearch.IntSqrt`
 
 **🔵 Основа** — планка главы:
 
 - [Find First and Last Position of Element in Sorted Array](https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/) (LeetCode 34) — две границы, задача «📝»; в тренажёре: `binarysearch.FindFirstLast`
 - [Find Minimum in Rotated Sorted Array](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/) (LeetCode 153) — вопрос «≤ последнего?»
-- [Koko Eating Bananas](https://leetcode.com/problems/koko-eating-bananas/) (LeetCode 875) — бинпоиск по ответу
+- [Search in Rotated Sorted Array](https://leetcode.com/problems/search-in-rotated-sorted-array/) (LeetCode 33) — сначала минимум, потом поиск в нужном куске; в тренажёре: `binarysearch.SearchRotated`
+- [Koko Eating Bananas](https://leetcode.com/problems/koko-eating-bananas/) (LeetCode 875) — бинпоиск по ответу; в тренажёре: `binarysearch.MinEatingSpeed`
 
 **🔴 Добивка** — когда основа идёт уверенно:
 
 - [Find Peak Element](https://leetcode.com/problems/find-peak-element/) (LeetCode 162) — бинпоиск по склону: вопрос не монотонен, но пик сохраняется в отрезке — сверх главы
 - [Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/) (LeetCode 4) — бинпоиск по разрезу меньшего из двух массивов, а не по значению — сверх главы
+- [Capacity To Ship Packages Within D Days](https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/) (LeetCode 1011) — поиск по ответу из инженерного кейса: отрезок `[max(weights), sum(weights)]`; в тренажёре: `binarysearch.ShipWithinDays`
 
 > 🧭 **Не пошла задача из основы?** Почти наверняка дело не в задаче, а в границах. Не
 > подбирай `±1` наугад: назови вопрос, на который «нет» сменяется «да», и пиши `firstTrue` —
@@ -594,7 +606,9 @@ go test -tags solution ./binarysearch/  # эталон
 и `IntSqrt` (целочисленный квадратный корень). `IntSqrt` — поиск по ответу: наибольшее `m` с
 `m*m <= x`. Это шаг левее первого `m` с `m*m > x`; ищи его `firstTrue` на `[0, x/2+2]` — `(x/2+2)²`
 заведомо больше `x`. Не бери край `x+1`: при `x = math.MaxInt` он сам переполнится — та же
-ошибка №1, что у `(lo+hi)/2`. Тест на `math.MaxInt` в тренажёре есть.
+ошибка №1, что у `(lo+hi)/2`. Тест на `math.MaxInt` в тренажёре есть. Ещё две задачи поиска по
+ответу: `MinEatingSpeed` (Коко из [«Бинарного поиска по ответу»](#бинарный-поиск-по-ответу)) и
+`ShipWithinDays` (грузоподъёмность корабля из инженерного кейса).
 
 > 🧵 **Конкурентность?** Нет — бинарный поиск **принципиально последователен**: какую половину
 > смотреть дальше, известно только после сравнения с текущей серединой. Каждый шаг зависит от
@@ -635,6 +649,19 @@ go test -tags solution ./binarysearch/  # эталон
 
 <div class="algo-challenge" data-type="cloze" data-answer="false;ложь;нет;не" data-hint="Значение предиката для слишком малой мощности." data-explain="Ищем границу, где feasible переходит из false (мощности не хватает) в true (хватает). Эта первая точка «да» и есть минимальный подходящий ответ.">
 <div class="algo-challenge__q">Ищем границу, где предикат feasible переходит из ______ в true:</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="target = 6: вернёт [1, 0] вместо [-1, -1] — первый ≥ 6 это 7 на месте 1, и проверить, что там 6, некому|target = 11: паника index out of range — first == n, и код читает nums[6] за краем массива|target = 10: вернёт [5, 6] — второй поиск не находит элемента больше 10 и выходит за край|target = 8: вернёт [3, 5] — второй поиск встаёт на последней восьмёрке, а не сразу за ней" data-answer="0" data-explain="Убрана проверка nums[first] != target. Первый поиск находит первое место, где nums[i] ≥ target, — но там может стоять и большее число. Для 6 это 7 на месте 1, второй поиск даёт last = 1 − 1 = 0, и код вернёт бессмысленный [1, 0]. Для 11 сработает first == n, для 10 и 8 значение есть, и ответы [-1, -1], [5, 5], [3, 4] верны. Исправление — if first == n || nums[first] != target.">
+<div class="algo-challenge__q">🐞 Найди ошибку. searchRange из разбора задачи, firstTrue — из шаблона, nums = [5, 7, 7, 8, 8, 10]. На каком target этот код ошибается и почему?</div>
+<pre class="algo-challenge__code">func searchRange(nums []int, target int) [2]int {
+    n := len(nums)
+    first := firstTrue(n, func(i int) bool { return nums[i] &gt;= target })
+    if first == n {
+        return [2]int{-1, -1}
+    }
+    last := firstTrue(n, func(i int) bool { return nums[i] &gt; target }) - 1
+    return [2]int{first, last}
+}</pre>
 </div>
 
 <div class="algo-mental">

@@ -98,3 +98,79 @@ func TestFindOrderLexSmallestScales(t *testing.T) {
 		}
 	}
 }
+
+// TestMinSemestersScales — та же цепочка из scaleV курсов вразброс, ответ scaleV
+// семестров. «Каждый семестр заново ищи перебором все курсы с нулевой степенью» —
+// scaleV раундов по scaleV вершин, O(V²); раунды по очереди Кана — O(V + E).
+func TestMinSemestersScales(t *testing.T) {
+	perm, _ := scaleChain()
+	rel := make([][]int, 0, scaleV-1)
+	for i := 0; i+1 < scaleV; i++ {
+		rel = append(rel, []int{perm[i] + 1, perm[i+1] + 1}) // курсы 1..n, [prev, next]
+	}
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MinSemesters(цепочка из 200000 курсов вразброс) — похоже на O(V²) там, где нужен O(V + E)"+
+			" (замер: эталон ~16 мс, перебор готовых курсов каждый семестр ~90 с)",
+		func() { got = MinSemesters(scaleV, rel) })
+	if got != scaleV {
+		t.Fatalf("MinSemesters(цепочка) = %d, ожидалось %d", got, scaleV)
+	}
+}
+
+// TestFindMinHeightTreesScales — путь из scaleV вершин вразброс: центр — две
+// средние вершины пути. «Обход в ширину из каждой вершины» — O(n²), он же с
+// остановкой, как только высота превысила лучшую, на пути всё равно проходит
+// не меньше половины вершин; обрезка листьев слоями — O(n).
+func TestFindMinHeightTreesScales(t *testing.T) {
+	perm := rand.New(rand.NewPCG(3, 10)).Perm(scaleV)
+	edges := make([][]int, 0, scaleV-1)
+	for i := 0; i+1 < scaleV; i++ {
+		edges = append(edges, []int{perm[i], perm[i+1]})
+	}
+	want := []int{perm[scaleV/2-1], perm[scaleV/2]}
+	slices.Sort(want)
+	var got []int
+	scaletest.Within(t, scaletest.Limit,
+		"FindMinHeightTrees(путь из 200000 вершин вразброс) — похоже на O(n²) там, где нужен O(n)"+
+			" (замер: эталон ~20 мс, обход в ширину из каждой вершины с остановкой по лучшей высоте > 5 мин)",
+		func() { got = FindMinHeightTrees(scaleV, edges) })
+	if !slices.Equal(got, want) {
+		t.Fatalf("FindMinHeightTrees(путь) = %v, ожидалось %v", got, want)
+	}
+}
+
+// scaleDiamondsPrereq — цепочка из k ромбов плюс free отдельных вершин без
+// рёбер, всё вразброс: стык c, от него две зависимые вершины a и b, обе нужны
+// следующему стыку. Вершин 3k + 1 + free, рёбер 4k; путей от первого стыка до
+// последнего 2^k. Номера — случайная (с фиксированным зерном) перестановка,
+// чтобы порядок запусков по номерам не совпадал с ответом.
+func scaleDiamondsPrereq(k, free int) (n int, prereq [][]int) {
+	n = 3*k + 1 + free
+	id := rand.New(rand.NewPCG(5, 8)).Perm(n)
+	prereq = make([][]int, 0, 4*k)
+	for i := 0; i < k; i++ {
+		c, a, b, next := id[3*i], id[3*i+1], id[3*i+2], id[3*i+3]
+		// [x, y]: y раньше x
+		prereq = append(prereq, []int{a, c}, []int{b, c}, []int{next, a}, []int{next, b})
+	}
+	return n, prereq
+}
+
+// TestTopologicalSortDFSScales — бьёт два медленных варианта обхода: вершину
+// дописывают в НАЧАЛО ответа (каждая вставка сдвигает весь срез — O(V²)) и
+// помечают вершину только на текущем пути, снимая пометку на выходе (без
+// «закончена» каждый из 2^k путей проходится заново). Отдельные вершины нужны
+// первому: сдвиг среза — быстрый memmove, и на 150 тысячах вершин вставка
+// через slices.Insert укладывается в ~2.7 с; на 500 тысячах — нет.
+func TestTopologicalSortDFSScales(t *testing.T) {
+	n, prereq := scaleDiamondsPrereq(50000, 349999) // 500000 вершин, 200000 рёбер
+	var got []int
+	scaletest.Within(t, scaletest.Limit,
+		"TopologicalSortDFS(50000 ромбов цепочкой и 349999 отдельных вершин, вразброс) — похоже на O(V²) или экспоненту там, где нужен O(V + E)"+
+			" (замер: эталон ~35 мс, вставка в начало ответа slices.Insert ~69 с, append([]int{v}, post...) ~150 с, пометка только на пути — 2^50000 путей, не дождаться)",
+		func() { got = TopologicalSortDFS(n, prereq) })
+	if !isValidTopo(n, prereq, got) {
+		t.Fatal("TopologicalSortDFS(цепочка ромбов): порядок не уважает зависимости")
+	}
+}

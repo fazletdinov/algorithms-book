@@ -141,3 +141,26 @@ func TestMergeTwoSortedTieTakesA(t *testing.T) {
 		t.Errorf("MergeTwoSorted(1, 1): первым должен идти узел из a, за ним — из b")
 	}
 }
+
+// RemoveNthFromEnd обязан перешить ссылки, а не собрать новый список: каждый узел
+// ответа — тот самый узел входа, в прежнем порядке.
+func TestRemoveNthFromEndKeepsNodes(t *testing.T) {
+	in := []int{1, 2, 3, 4, 5}
+	head := fromSlice(in)
+	var orig []*ListNode
+	for n := head; n != nil; n = n.Next {
+		orig = append(orig, n)
+	}
+	got := RemoveNthFromEnd(head, 2)
+	want := []*ListNode{orig[0], orig[1], orig[2], orig[4]}
+	i := 0
+	for n := got; n != nil; n = n.Next {
+		if i >= len(want) || n != want[i] {
+			t.Fatalf("RemoveNthFromEnd([1 2 3 4 5], 2): узел %d — не тот узел входа (новый узел вместо перешитой ссылки?)", i)
+		}
+		i++
+	}
+	if i != len(want) {
+		t.Fatalf("RemoveNthFromEnd([1 2 3 4 5], 2): %d узлов, ожидалось %d", i, len(want))
+	}
+}

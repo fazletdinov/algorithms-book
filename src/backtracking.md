@@ -114,6 +114,8 @@ cur       что сделала строка
 [2,3] [3]`: обход дерева решений в глубину. Виджет ниже проигрывает эти подмножества по тому же
 коду — сверь его шаги с трассой: первый откат — шаг 15, второй — шаг 17.
 
+См. также [«Go для алгоритмов: ловушки»](go-for-algorithms.md#4-append-и-общий-массив) — какие ответы выходят без копии.
+
 ### Отсечение: Combination Sum
 
 > **Задача (Combination Sum).** Из чисел `[2, 3, 6, 7]` собрать все наборы с суммой `7`;
@@ -629,6 +631,34 @@ go test -tags solution -bench=. ./parallelnqueens/ # Conc обгоняет Seq
 **Вывод.** «Расставить/выбрать при ограничениях; найти все решения или проверить, есть ли хоть одно» —
 сигнал **backtracking с отсечениями**; чем раньше отсекаешь нарушенные ветки, тем практичнее. По сути это
 управляемый перебор для [NP-трудных задач](complexity-classes.md) (для них не известно решения за полиномиальное время — n в постоянной степени: n, n², n³) при малом входе.
+
+## 🐞 Найди ошибку
+
+На собеседовании часто дают не задачу, а чужой код: «здесь ошибка — найди». Код ниже — из этой главы, но с одной правдоподобной ошибкой. Компилируется он без замечаний.
+
+<div class="algo-challenge" data-type="choice" data-options="candidates = [3, 2], target = 5: вернёт [], а верно [[2 3]]|candidates = [2, 3, 6, 7], target = 7: вернёт и [2 2 3], и [3 2 2]|candidates = [2, 3], target = 6: потеряет [3 3] — 3 дважды не взять|candidates = [2], target = 1: зациклится — 2 никогда не уложится в 1" data-answer="0" data-explain="Пропала строка sort.Ints(candidates). Обрыв break верен, только если правее стоят числа не меньше: на [3, 2] с остатком 2 кандидат 3 &gt; 2 обрывает цикл, и 2 правее него не пробуется — набор [2, 3] потерян. Верни сортировку перед перебором. Дублей [3 2 2] нет благодаря start, повтор числа даёт вызов bt(i, …), а на [2] с target = 1 цикл сразу обрывается.">
+<div class="algo-challenge__q">🐞 Combination Sum из главы, но без одной строки. На каком входе код ошибается?</div>
+<pre class="algo-challenge__code">var result [][]int
+var current []int
+var bt func(start, remain int)
+bt = func(start, remain int) {
+    if remain == 0 {
+        combo := make([]int, len(current))
+        copy(combo, current)
+        result = append(result, combo)
+        return
+    }
+    for i := start; i &lt; len(candidates); i++ {
+        if candidates[i] &gt; remain {
+            break
+        }
+        current = append(current, candidates[i])
+        bt(i, remain-candidates[i])
+        current = current[:len(current)-1]
+    }
+}
+bt(0, target)</pre>
+</div>
 
 <div class="algo-mental">
   <div class="algo-mental__icon">📌</div>

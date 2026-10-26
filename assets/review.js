@@ -188,7 +188,9 @@
   }
 
   // quizQuestion — вопрос банка квиза (window.ALGO_QUIZ из quiz.js) по тексту; null — вопроса больше нет.
+  // Прежний текст переписанного вопроса находит нынешний (ALGO_QUIZ.find).
   function quizQuestion(q) {
+    if (window.ALGO_QUIZ && typeof window.ALGO_QUIZ.find === "function") return window.ALGO_QUIZ.find(q);
     var list = (window.ALGO_QUIZ && window.ALGO_QUIZ.questions) || [];
     for (var i = 0; i < list.length; i++) {
       if (list[i] && list[i].q === q) return list[i];

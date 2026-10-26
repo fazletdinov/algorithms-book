@@ -4,6 +4,7 @@ import (
 	"github.com/fazletdinov/algorithms-book/exercises/internal/scaletest"
 	"math/rand"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -518,5 +519,861 @@ func TestLastInCircleScales(t *testing.T) {
 	const want = 946435
 	if got != want {
 		t.Fatalf("LastInCircle = %d, ожидалось %d", got, want)
+	}
+}
+
+// TestVisibleAheadScales — сложность, а не ответ. Рост убывает: никто не
+// заслонён выше себя, и просмотр вправо от каждого — даже с остановкой на
+// первом, кто выше, — идёт до конца очереди, O(n²).
+func TestVisibleAheadScales(t *testing.T) {
+	const n = 200000
+	heights := make([]int, n)
+	for i := range heights {
+		heights[i] = n - i
+	}
+	var got []int
+	scaletest.Within(t, scaletest.Limit,
+		"VisibleAhead(200000 человек по убыванию роста) — похоже на O(n²): от каждого смотришь вправо до конца"+
+			" (замер: эталон ~1 мс, перебор с остановкой на высоком ~10.5 с)",
+		func() { got = VisibleAhead(heights) })
+	for i, v := range got {
+		if want := min(1, n-1-i); v != want {
+			t.Fatalf("VisibleAhead: человек %d видит %d, ожидалось %d", i, v, want)
+		}
+	}
+}
+
+// TestSurvivingRobotsScales — сложность, а не ответ. Один тяжёлый в конце едет
+// влево и разбивает всех: моделирование «найди первое столкновение и убери» — n
+// проходов по n роботам.
+func TestSurvivingRobotsScales(t *testing.T) {
+	const n = 200000
+	robots := make([]int, n)
+	for i := range robots {
+		robots[i] = 1
+	}
+	robots[n-1] = -1000
+	var got []int
+	scaletest.Within(t, scaletest.Limit,
+		"SurvivingRobots(199999 лёгких вправо и один тяжёлый влево) — похоже на O(n²): по столкновению за проход"+
+			" (замер: эталон ~1 мс, моделирование ~13 с)",
+		func() { got = SurvivingRobots(robots) })
+	if len(got) != 1 || got[0] != -1000 {
+		t.Fatalf("SurvivingRobots: уцелели %d роботов, ожидался один −1000", len(got))
+	}
+}
+
+// TestStateAfterScales — сложность, а не ответ. Хвост 5·10⁵ и кольцо 5·10⁵, k = 10¹⁸:
+// шагать k раз нельзя, а поиск повтора линейным просмотром пройденного — O((μ+λ)²).
+func TestStateAfterScales(t *testing.T) {
+	const tail, loop = 500000, 500000
+	const k = 1_000_000_000_000_000_000
+	next := func(x int) int {
+		if x == tail+loop-1 {
+			return tail
+		}
+		return x + 1
+	}
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"StateAfter(хвост 500000, кольцо 500000, k = 10¹⁸) — похоже на шаги по одному или поиск повтора просмотром"+
+			" пройденного (замер: эталон ~7 мс, просмотр пройденного и шаги по одному > 60 с)",
+		func() { got = StateAfter(0, next, k) })
+	if want := tail + (k-tail)%loop; got != want {
+		t.Fatalf("StateAfter = %d, ожидалось %d", got, want)
+	}
+}
+
+// TestHasRoundTripScales — сложность, а не ответ. Все прыгают вперёд на 1, последний —
+// назад: путь из каждой клетки доходит до конца и ломается. Без пометки тупиков
+// проверка из каждой клетки заново — O(n²).
+func TestHasRoundTripScales(t *testing.T) {
+	const n = 200000
+	nums := make([]int, n)
+	for i := range nums {
+		nums[i] = 1
+	}
+	nums[n-1] = -1
+	var got bool
+	scaletest.Within(t, scaletest.Limit,
+		"HasRoundTrip(200000 клеток, тупик в конце) — похоже на O(n²): тупики не помечаются"+
+			" (замер: эталон ~5 мс, два бегуна из каждой клетки без пометки > 60 с)",
+		func() { got = HasRoundTrip(nums) })
+	if got {
+		t.Fatalf("HasRoundTrip = true, ожидалось false")
+	}
+}
+
+// TestCountSplitsScales — сложность, а не ответ. Заказы не пересекаются: склейка
+// групп проверкой всех пар — O(n²).
+func TestCountSplitsScales(t *testing.T) {
+	const n = 200000
+	ranges := make([][2]int, n)
+	rng := rand.New(rand.NewSource(71))
+	for i, p := range rng.Perm(n) {
+		ranges[i] = [2]int{3 * p, 3*p + 1}
+	}
+	want := 1
+	for range n {
+		want = want * 2 % 1_000_000_007
+	}
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"CountSplits(200000 непересекающихся заказов) — похоже на O(n²): каждая пара проверяется на пересечение"+
+			" (замер: эталон ~30 мс, перебор пар ~58 с)",
+		func() { got = CountSplits(ranges) })
+	if got != want {
+		t.Fatalf("CountSplits = %d, ожидалось %d", got, want)
+	}
+}
+
+// TestFirstCommonSlotScales — сложность, а не ответ. Промежутки двоих чередуются и
+// не пересекаются: перебор всех пар — n·m.
+func TestFirstCommonSlotScales(t *testing.T) {
+	const n = 100000
+	a, b := make([][2]int, n), make([][2]int, n)
+	rng := rand.New(rand.NewSource(72))
+	for i, p := range rng.Perm(n) {
+		a[i] = [2]int{4 * p, 4*p + 2}
+	}
+	for i, p := range rng.Perm(n) {
+		b[i] = [2]int{4*p + 2, 4*p + 4}
+	}
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"FirstCommonSlot(100000 и 100000 промежутков) — похоже на O(n·m): проверяется каждая пара"+
+			" (замер: эталон ~26 мс, перебор пар ~9 с)",
+		func() { got = FirstCommonSlot(a, b, 1) })
+	if got != -1 {
+		t.Fatalf("FirstCommonSlot = %d, ожидалось −1", got)
+	}
+}
+
+// TestKioskSpacingScales — сложность, а не ответ. 99999 мест через 5000 м и одно
+// далеко: ответ ~2·10⁵, а верхняя оценка ~4·10⁵ — перебор d по одному и снизу, и
+// сверху делает ~2·10⁵ проверок по n мест.
+func TestKioskSpacingScales(t *testing.T) {
+	const n, m = 100000, 2500
+	positions := make([]int, n)
+	for i := range n - 1 {
+		positions[i] = 1 + 5000*i
+	}
+	positions[n-1] = 1_000_000_000
+	rng := rand.New(rand.NewSource(73))
+	rng.Shuffle(n, func(i, j int) { positions[i], positions[j] = positions[j], positions[i] })
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"KioskSpacing(100000 мест, 2500 киосков) — похоже на перебор расстояния по одному"+
+			" (замер: эталон ~7 мс, перебор d сверху ~14 с, снизу ~8 с)",
+		func() { got = KioskSpacing(positions, m) })
+	if want := 200000; got != want {
+		t.Fatalf("KioskSpacing = %d, ожидалось %d", got, want)
+	}
+}
+
+// TestFindOnTrailScales — сложность, а не ответ. Тропа в 10¹⁰ точек, вершина на
+// десятой части, нужная точка — посреди спуска: обход по точкам с любого конца —
+// больше 4·10⁹ запросов; и бюджет — не больше 200.
+func TestFindOnTrailScales(t *testing.T) {
+	const n = 10_000_000_000
+	const peak = n / 10
+	const at = peak + 4_500_000_003 // высоты подъёма кратны 10, у этой точки — нет
+	calls := 0
+	height := func(i int) int {
+		calls++
+		if i <= peak {
+			return 10 * i
+		}
+		return 10*peak - (i - peak)
+	}
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"FindOnTrail(тропа в 10¹⁰ точек) — похоже на обход по точкам"+
+			" (замер: эталон — 131 запрос, обход слева ~8.5 с, справа ~15.6 с)",
+		func() { got = FindOnTrail(n, height, 10*peak-(at-peak)) })
+	if got != at {
+		t.Fatalf("FindOnTrail = %d, ожидалось %d", got, at)
+	}
+	if calls > 200 {
+		t.Fatalf("FindOnTrail: %d запросов height, а можно не больше 200", calls)
+	}
+}
+
+// g5chain — цепочка из n узлов со значениями vals[0], vals[1], …: каждый следующий —
+// правый ребёнок, если его значение больше, иначе левый.
+func g5chain(vals []int) *TreeNode {
+	root := &TreeNode{Val: vals[0]}
+	cur := root
+	for _, v := range vals[1:] {
+		next := &TreeNode{Val: v}
+		if v > cur.Val {
+			cur.Right = next
+		} else {
+			cur.Left = next
+		}
+		cur = next
+	}
+	return root
+}
+
+// TestPriceBonusScales — сложность, а не ответ. Цепочка из 10⁵ цен: сумма больших
+// заново для каждого узла — O(n²).
+func TestPriceBonusScales(t *testing.T) {
+	const n = 100000
+	vals := make([]int, n)
+	for i := range vals {
+		vals[i] = i + 1
+	}
+	root := g5chain(vals)
+	scaletest.Within(t, scaletest.Limit,
+		"PriceBonus(цепочка из 100000 цен) — похоже на O(n²): для каждой цены заново складываешь все большие"+
+			" (замер: эталон ~5 мс, перебор ~5.1 с)",
+		func() { root = PriceBonus(root) })
+	for node, i := root, 1; node != nil; node, i = node.Right, i+1 {
+		if want := (i + n) * (n - i + 1) / 2; node.Val != want {
+			t.Fatalf("PriceBonus: у цены %d бонус %d, ожидалось %d", i, node.Val, want)
+		}
+	}
+}
+
+// TestMinPriceGapScales — сложность, а не ответ. Цепочка из 2·10⁵ цен, близкие —
+// только последние две: сравнение всех пар — O(n²).
+func TestMinPriceGapScales(t *testing.T) {
+	const n = 200000
+	vals := make([]int, n)
+	for i := range vals {
+		vals[i] = 1000 * i
+	}
+	vals[n-1] = vals[n-2] + 7
+	root := g5chain(vals)
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MinPriceGap(цепочка из 200000 цен) — похоже на O(n²): сравниваются все пары"+
+			" (замер: эталон ~1 мс, перебор пар ~14 с)",
+		func() { got = MinPriceGap(root) })
+	if got != 7 {
+		t.Fatalf("MinPriceGap = %d, ожидалось 7", got)
+	}
+}
+
+// g5festiveChain — праздничная цепочка из n лампочек: на ярусе d номер d+1.
+func g5festiveChain(n int) *TreeNode {
+	root := &TreeNode{Val: 1}
+	cur := root
+	for d := 1; d < n; d++ {
+		next := &TreeNode{Val: d + 1}
+		if d%2 == 0 {
+			cur.Left = next
+		} else {
+			cur.Right = next
+		}
+		cur = next
+	}
+	return root
+}
+
+func TestIsFestiveTreeScales(t *testing.T) {
+	const n = 100000
+	root := g5festiveChain(n)
+	var got bool
+	scaletest.Within(t, scaletest.Limit,
+		"IsFestiveTree(цепочка из 100000 лампочек) — похоже на O(n·h): отдельный обход дерева на каждый ярус"+
+			" (замер: эталон ~2 мс, перебор > 60 с)",
+		func() { got = IsFestiveTree(root) })
+	if !got {
+		t.Fatalf("IsFestiveTree = false, ожидалось true")
+	}
+}
+
+func TestMinutesToSpreadScales(t *testing.T) {
+	const n = 100000
+	root := g2chainTree(n) // значения 1…n сверху вниз
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MinutesToSpread(цепочка из 100000 сотрудников, слух из середины) — похоже на O(n·ответ):"+
+			" каждую минуту просматривается вся компания (замер: эталон ~26 мс, перебор > 60 с)",
+		func() { got = MinutesToSpread(root, n/2) })
+	if want := n - n/2; got != want {
+		t.Fatalf("MinutesToSpread = %d, ожидалось %d", got, want)
+	}
+}
+
+// Тесты масштаба порции g4: не ответ, а класс сложности. Замеры — в тексте падения.
+
+func TestLongestWellStockedRunScales(t *testing.T) {
+	// Алфавит по кругу: каждого товара 7692 штуки, а нужно 7693 — годного отрезка
+	// нет, и перебору отрезков нечем сократить работу.
+	const n, k = 26 * 7692, 7693
+	s := strings.Repeat("abcdefghijklmnopqrstuvwxyz", n/26)
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"LongestWellStockedRun(n=199992, k=7693) — похоже на O(n²) перебор отрезков там, где нужен O(26·n)"+
+			" (замер: эталон ~1 мс, перебор отрезков ~16 с)",
+		func() { got = LongestWellStockedRun(s, k) })
+	if got != 0 {
+		t.Fatalf("LongestWellStockedRun = %d, ожидалось 0", got)
+	}
+}
+
+func TestCalmArrangementScales(t *testing.T) {
+	const n = 1000
+	var got []int
+	scaletest.Within(t, scaletest.Limit,
+		"CalmArrangement(n=1000) — похоже на перебор расстановок там, где нужно разбиение пополам"+
+			" (замер: эталон меньше 1 мс, перебор с возвратом не уложился и в 100 с)",
+		func() { got = CalmArrangement(n) })
+	if why := g4CheckCalm(got, n); why != "" {
+		t.Fatalf("CalmArrangement(%d) — не спокойная: %s", n, why)
+	}
+}
+
+func TestMatchingRowsAndColumnsScales(t *testing.T) {
+	// Вся схема одного цвета: каждая строка совпадает с каждым столбцом, и
+	// поэлементное сравнение не обрывается раньше конца — n³.
+	const n = 1500
+	grid := make([][]int, n)
+	for i := range grid {
+		grid[i] = make([]int, n)
+		for j := range grid[i] {
+			grid[i][j] = 7
+		}
+	}
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MatchingRowsAndColumns(n=1500, один цвет) — похоже на O(n³) там, где нужен O(n²)"+
+			" (замер: эталон ~25 мс, поэлементное сравнение ~15 с)",
+		func() { got = MatchingRowsAndColumns(grid) })
+	if got != n*n {
+		t.Fatalf("MatchingRowsAndColumns = %d, ожидалось %d", got, n*n)
+	}
+}
+
+func TestFewestCutBricksScales(t *testing.T) {
+	// 10⁴ рядов по 20 кирпичей, швы почти все разные: подсчёт рядов для каждого
+	// шва отдельно — (число швов)·(число рядов или кирпичей).
+	const rows, per, width = 10000, 20, 1000000000
+	r := rand.New(rand.NewSource(61))
+	wall := make([][]int, rows)
+	for i := range wall {
+		cuts := make([]int, 0, per+1)
+		for len(cuts) < per-1 {
+			cuts = append(cuts, 1+r.Intn(width-1))
+		}
+		cuts = append(cuts, 0, width)
+		slices.Sort(cuts)
+		cuts = slices.Compact(cuts)
+		for j := 1; j < len(cuts); j++ {
+			wall[i] = append(wall[i], cuts[j]-cuts[j-1])
+		}
+	}
+	// Общий шов у многих рядов случайно не появится: ответ — rows − 1 или чуть меньше.
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"FewestCutBricks(10⁴ рядов × 20 кирпичей) — похоже на перебор швов с подсчётом по рядам"+
+			" (замер: эталон ~10 мс, перебор швов по множествам рядов ~22 с)",
+		func() { got = FewestCutBricks(wall) })
+	if got < rows-3 || got > rows-1 {
+		t.Fatalf("FewestCutBricks = %d, ожидалось около %d", got, rows-1)
+	}
+}
+
+// g4nodes — n узлов в общем массиве (одно выделение); g4relink заново сцепляет их
+// в список с данными значениями, ничего не выделяя.
+func g4relink(nodes []ListNode, vals func(i int) int) *ListNode {
+	for i := range nodes {
+		nodes[i].Val = vals(i)
+		nodes[i].Next = nil
+		if i+1 < len(nodes) {
+			nodes[i].Next = &nodes[i+1]
+		}
+	}
+	if len(nodes) == 0 {
+		return nil
+	}
+	return &nodes[0]
+}
+
+func TestSplitByThresholdScales(t *testing.T) {
+	const n = 200000
+	nodes := make([]ListNode, n)
+	head := g4relink(nodes, func(i int) int { return i % 2 }) // через одного срочный
+	var got *ListNode
+	scaletest.Within(t, scaletest.Limit,
+		"SplitByThreshold(200000 узлов через одного) — похоже на O(n²): к концу группы идёшь от головы заново"+
+			" (замер: эталон ~1 мс, вставка с проходом от головы ~20 с)",
+		func() { got = SplitByThreshold(head, 1) })
+	node := got
+	for i := 0; i < n; i++ {
+		want := 0
+		if i >= n/2 {
+			want = 1
+		}
+		if node == nil || node.Val != want {
+			t.Fatalf("SplitByThreshold: узел %d не %d", i, want)
+		}
+		node = node.Next
+	}
+	if node != nil {
+		t.Fatalf("SplitByThreshold: после %d узлов список не кончился", n)
+	}
+}
+
+func TestSplitByThresholdNoAllocs(t *testing.T) {
+	nodes := make([]ListNode, 1000)
+	allocs := testing.AllocsPerRun(20, func() {
+		SplitByThreshold(g4relink(nodes, func(i int) int { return i % 3 }), 1)
+	})
+	if allocs != 0 {
+		t.Fatalf("SplitByThreshold выделяет память %.0f раз за вызов — узлы надо переставлять, а не копировать", allocs)
+	}
+}
+
+func TestDropRepeatedScales(t *testing.T) {
+	const n = 200000
+	nodes := make([]ListNode, n)
+	head := g4relink(nodes, func(i int) int { return i }) // повторов нет вовсе
+	var got *ListNode
+	scaletest.Within(t, scaletest.Limit,
+		"DropRepeated(200000 разных заказов) — похоже на O(n²): каждый номер ищешь по всему списку"+
+			" (замер: эталон меньше 1 мс, подсчёт каждого номера по всему списку ~52 с)",
+		func() { got = DropRepeated(head) })
+	c := 0
+	for node := got; node != nil && c <= n; node = node.Next {
+		c++
+	}
+	if c != n {
+		t.Fatalf("DropRepeated: осталось %d узлов, ожидалось %d", c, n)
+	}
+}
+
+func TestDropRepeatedNoAllocs(t *testing.T) {
+	nodes := make([]ListNode, 1000)
+	allocs := testing.AllocsPerRun(20, func() {
+		DropRepeated(g4relink(nodes, func(i int) int {
+			if i < 500 {
+				return i / 2 // пары одинаковых — уйдут
+			}
+			return i
+		}))
+	})
+	if allocs != 0 {
+		t.Fatalf("DropRepeated выделяет память %.0f раз за вызов — узлы надо перецеплять, а не копировать", allocs)
+	}
+}
+
+func TestSplitIntoConvoysScales(t *testing.T) {
+	const n = 200000
+	nodes := make([]ListNode, n)
+	head := g4relink(nodes, func(i int) int { return i })
+	var got []*ListNode
+	scaletest.Within(t, scaletest.Limit,
+		"SplitIntoConvoys(200000 узлов, k=200000) — похоже на O(n·k): к началу каждого конвоя идёшь от головы"+
+			" (замер: эталон ~2 мс, проход от головы к каждому конвою ~26 с)",
+		func() { got = SplitIntoConvoys(head, n) })
+	for i, h := range got {
+		if h == nil || h.Val != i || h.Next != nil {
+			t.Fatalf("SplitIntoConvoys: конвой %d — не один узел %d", i, i)
+		}
+	}
+}
+
+func TestSplitIntoConvoysNoAllocs(t *testing.T) {
+	nodes := make([]ListNode, 1000)
+	allocs := testing.AllocsPerRun(20, func() {
+		SplitIntoConvoys(g4relink(nodes, func(i int) int { return i }), 7)
+	})
+	if allocs > 1 { // одно выделение — сам срез ответа
+		t.Fatalf("SplitIntoConvoys выделяет память %.0f раз за вызов — кроме среза ответа, ничего не нужно", allocs)
+	}
+}
+
+func TestMinTotalWalkScales(t *testing.T) {
+	const n = 200000
+	r := rand.New(rand.NewSource(62))
+	houses := make([]int, n)
+	for i := range houses {
+		houses[i] = r.Intn(2000000001) - 1000000000
+	}
+	want := g4WalkRef(slices.Clone(houses))
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MinTotalWalk(n=200000) — похоже на O(n²): сумма шагов для каждого дома заново"+
+			" (замер: эталон ~13 мс, перебор места встречи ~19 с)",
+		func() { got = MinTotalWalk(houses) })
+	if got != want {
+		t.Fatalf("MinTotalWalk = %d, ожидалось %d", got, want)
+	}
+}
+
+// g4WalkRef — сумма расстояний до медианы, посчитанная прямо по определению.
+func g4WalkRef(h []int) int {
+	slices.Sort(h)
+	m, s := h[len(h)/2], 0
+	for _, x := range h {
+		s += max(x-m, m-x)
+	}
+	return s
+}
+
+func TestMinRaisesToDistinctScales(t *testing.T) {
+	// Все хотят один номер: «прибавлять, пока занят» — 0 + 1 + … + (n−1) шагов.
+	const n = 100000
+	nums := make([]int, n)
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MinRaisesToDistinct(n=100000 одинаковых) — похоже на O(n²): номер растёт по единице, пока занят"+
+			" (замер: эталон меньше 1 мс, «прибавлять, пока занят» с множеством ~44 с)",
+		func() { got = MinRaisesToDistinct(nums) })
+	if want := n * (n - 1) / 2; got != want {
+		t.Fatalf("MinRaisesToDistinct = %d, ожидалось %d", got, want)
+	}
+}
+
+func TestMaxEqualAfterBoostsScales(t *testing.T) {
+	// Бюджета хватает на всех: перебор «для каждой цели — влево, пока хватает»
+	// не обрывается и идёт до начала — n²/2.
+	const n = 200000
+	r := rand.New(rand.NewSource(63))
+	s := make([]int, n)
+	for i := range s {
+		s[i] = 1 + r.Intn(100000)
+	}
+	const budget = 10000000000
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MaxEqualAfterBoosts(n=200000, бюджет на всех) — похоже на O(n²) там, где нужен O(n log n)"+
+			" (замер: эталон ~13 мс, перебор влево от каждой цели ~9 с)",
+		func() { got = MaxEqualAfterBoosts(s, budget) })
+	if got != n {
+		t.Fatalf("MaxEqualAfterBoosts = %d, ожидалось %d", got, n)
+	}
+}
+
+func TestMinTakesFromEndsScales(t *testing.T) {
+	// Все посылки по 1, снять нужно все, кроме одной: перебор «сколько слева ×
+	// сколько справа» проходит ~n²/2 сочетаний.
+	const n = 200000
+	w := make([]int, n)
+	for i := range w {
+		w[i] = 1
+	}
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MinTakesFromEnds(n=200000, x = n−1) — похоже на O(n²) перебор «слева × справа» там, где нужен O(n)"+
+			" (замер: эталон меньше 1 мс, перебор «слева × справа» ~16 с)",
+		func() { got = MinTakesFromEnds(w, n-1) })
+	if got != n-1 {
+		t.Fatalf("MinTakesFromEnds = %d, ожидалось %d", got, n-1)
+	}
+}
+
+func TestGoodsBetweenDividersScales(t *testing.T) {
+	// Каждый вопрос — почти вся полка: проход по куску на вопрос — n·q.
+	const n, q = 100000, 100000
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = '*'
+		if i%3 == 0 {
+			b[i] = '|'
+		}
+	}
+	shelf := string(b)
+	queries := make([][2]int, q)
+	for i := range queries {
+		queries[i] = [2]int{i % 3, n - 1 - i%3}
+	}
+	var got []int
+	scaletest.Within(t, scaletest.Limit,
+		"GoodsBetweenDividers(n=100000, q=100000, длинные куски) — похоже на O(n·q) там, где нужен O(n + q)"+
+			" (замер: эталон ~1 мс, проход по куску на вопрос ~19 с)",
+		func() { got = GoodsBetweenDividers(shelf, queries) })
+	for i := 0; i < 3; i++ { // вопросы повторяются с периодом 3
+		if want := g4BruteGoods(shelf, queries[i][0], queries[i][1]); got[i] != want {
+			t.Fatalf("GoodsBetweenDividers: ответ %d = %d, ожидалось %d", i, got[i], want)
+		}
+	}
+	for i, v := range got {
+		if v != got[i%3] {
+			t.Fatalf("GoodsBetweenDividers: ответ %d = %d, ожидалось %d (как у вопроса %d)", i, v, got[i%3], i%3)
+		}
+	}
+}
+
+func TestCountBalancedTeamsScales(t *testing.T) {
+	const n = 200000
+	r := rand.New(rand.NewSource(64))
+	skill := make([]int, n)
+	for i := range skill {
+		skill[i] = r.Intn(1000)
+	}
+	// Сумма любой пары в [0, 1998]: годны все пары.
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"CountBalancedTeams(n=200000) — похоже на O(n²) перебор пар там, где нужен O(n log n)"+
+			" (замер: эталон ~8 мс, перебор пар ~10 с)",
+		func() { got = CountBalancedTeams(skill, 0, 2000) })
+	if want := n * (n - 1) / 2; got != want {
+		t.Fatalf("CountBalancedTeams = %d, ожидалось %d", got, want)
+	}
+}
+
+func TestWidestAffordableGapScales(t *testing.T) {
+	// prices[j] = m − j + 1, offers[i] = (m − i)/2 + 1: лучший j для i — (m+i)/2,
+	// и перебор j и с конца, и от i с выходом на первом неподходящем проходит
+	// по ~(m − i)/2 шагов на каждое i.
+	const m = 300000
+	offers, prices := make([]int, m), make([]int, m)
+	for i := range offers {
+		offers[i] = (m-i)/2 + 1
+		prices[i] = m - i + 1
+	}
+	want := 0
+	for i := range offers {
+		j := m - (m-i)/2 // последний j с prices[j] ≥ offers[i]
+		if j > m-1 {
+			j = m - 1
+		}
+		want = max(want, j-i)
+	}
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"WidestAffordableGap(n=m=300000) — похоже на O(n·m) там, где нужен O(n + m)"+
+			" (замер: эталон ~1 мс, перебор j от i с выходом на первом неподходящем ~12 с)",
+		func() { got = WidestAffordableGap(offers, prices) })
+	if got != want {
+		t.Fatalf("WidestAffordableGap = %d, ожидалось %d", got, want)
+	}
+}
+
+// g6chain — цепочка из n узлов, влево и вправо через раз; значения — vals(d)
+// для глубины d с 1. Возвращает корень и самый глубокий узел.
+func g6chain(n int, vals func(d int) int) (root, last *TreeNode) {
+	root = &TreeNode{Val: vals(1)}
+	last = root
+	for d := 2; d <= n; d++ {
+		next := &TreeNode{Val: vals(d)}
+		if d%2 == 0 {
+			last.Left = next
+		} else {
+			last.Right = next
+		}
+		last = next
+	}
+	return root, last
+}
+
+// TestMinCrateMovesScales — сложность, а не ответ. Все ящики на дне цепочки:
+// пересчитывать ящики и склады поддерева заново для каждой дороги — O(n²).
+func TestMinCrateMovesScales(t *testing.T) {
+	const n = 100000
+	root, last := g6chain(n, func(int) int { return 0 })
+	last.Val = n
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MinCrateMoves(цепочка из 100000 складов, все ящики внизу) — похоже на O(n²): поддерево"+
+			" каждой дороги пересчитывается заново (замер: эталон ~7 мс, перебор ~59 с)",
+		func() { got = MinCrateMoves(root) })
+	if want := n * (n - 1) / 2; got != want {
+		t.Fatalf("MinCrateMoves = %d, ожидалось %d", got, want)
+	}
+}
+
+// TestWidestSalaryGapScales — сложность, а не ответ. На цепочке перебор пар
+// «начальник — каждый его подчинённый» — O(n²).
+func TestWidestSalaryGapScales(t *testing.T) {
+	const n = 100000
+	root, _ := g6chain(n, func(d int) int { return d })
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"WidestSalaryGap(цепочка из 100000 сотрудников) — похоже на O(n²): для каждого перебираешь всех подчинённых"+
+			" (замер: эталон ~8 мс, перебор ~56 с)",
+		func() { got = WidestSalaryGap(root) })
+	if got != n-1 {
+		t.Fatalf("WidestSalaryGap = %d, ожидалось %d", got, n-1)
+	}
+}
+
+// TestBestTeamScoreScales — сложность, а не ответ. k = n/2: лучшие k−1 навыков
+// заново для каждого «самого медленного» или вставка в отсортированный срез — O(n²).
+func TestBestTeamScoreScales(t *testing.T) {
+	const n, k = 250000, 170000
+	rng := rand.New(rand.NewSource(71))
+	skill, speed := make([]int, n), make([]int, n)
+	for i := range skill {
+		skill[i], speed[i] = rng.Intn(100001), rng.Intn(100001)
+	}
+	// Нижняя граница: команда из k самых быстрых.
+	order := make([]int, n)
+	for i := range order {
+		order[i] = i
+	}
+	slices.SortFunc(order, func(a, b int) int { return speed[b] - speed[a] })
+	low := 0
+	for _, i := range order[:k] {
+		low += skill[i]
+	}
+	low *= speed[order[k-1]]
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"BestTeamScore(n=250000, k=170000) — похоже на O(n²): набор лучших k пересобирается или"+
+			" держится отсортированным срезом (замер: эталон ~39 мс; отсортированный срез со вставкой ~8.8 с, он же с пропуском слабых ~6.8 с)",
+		func() { got = BestTeamScore(skill, speed, k) })
+	if got < low {
+		t.Fatalf("BestTeamScore = %d, а команда из k самых быстрых уже даёт %d", got, low)
+	}
+}
+
+// TestMinWeightGapScales — сложность, а не ответ. Для каждой из m+1 границ
+// m лучших деталей заново или вставкой в отсортированный срез — O(m²).
+func TestMinWeightGapScales(t *testing.T) {
+	const m = 150000
+	rng := rand.New(rand.NewSource(72))
+	weights := make([]int, 3*m)
+	for i := range weights {
+		weights[i] = 1 + rng.Intn(100000)
+	}
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MinWeightGap(m=150000) — похоже на O(m²): m лучших деталей пересобираются для каждой границы"+
+			" (замер: эталон ~39 мс; отсортированные срезы со вставкой ~16.5 с, они же с пропуском лишних ~10.3 с)",
+		func() { got = MinWeightGap(weights) })
+	if got >= 0 {
+		t.Fatalf("MinWeightGap = %d, на случайных весах ответ заведомо отрицательный", got)
+	}
+}
+
+// TestMinBusiestCourierScales — 12 заказов, 7 курьеров: без отсечений 7¹² ≈ 1.4·10¹⁰
+// распределений. Ответ экспоненциален по природе, тест ловит только полный перебор:
+// любое из двух отсечений эталона («не лучше найденного» и «одинаково загруженные
+// курьеры взаимозаменяемы») само по себе укладывается.
+func TestMinBusiestCourierScales(t *testing.T) {
+	jobs := []int{9899, 8861, 8264, 7786, 7311, 6617, 5866, 5109, 4412, 3577, 2821, 1999}
+	const k = 7
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MinBusiestCourier(12 заказов, 7 курьеров) — похоже на перебор всех 7¹² распределений без отсечений"+
+			" (замер: эталон ~2 мс, перебор без отсечений ~73 с; одно из двух отсечений по отдельности — 32 и 371 мс)",
+		func() { got = MinBusiestCourier(slices.Clone(jobs), k) })
+	sum := 0
+	for _, j := range jobs {
+		sum += j
+	}
+	if low := (sum + k - 1) / k; got < low || got > low+jobs[0] {
+		t.Fatalf("MinBusiestCourier = %d, ответ обязан быть между %d и %d", got, low, low+jobs[0])
+	}
+}
+
+// TestMinHopsToLastScales — сложность, а не ответ. Все станции одного цвета,
+// кроме последней: перебирать список цвета для каждой станции — O(n²).
+func TestMinHopsToLastScales(t *testing.T) {
+	const n = 100000
+	colors := make([]int, n)
+	for i := range colors {
+		colors[i] = 7
+	}
+	colors[n-1] = 8
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"MinHopsToLast(100000 станций одного цвета) — похоже на O(n²): переходы по цвету раскрываются"+
+			" для каждой станции заново (замер: эталон ~8 мс, перебор ~22 с)",
+		func() { got = MinHopsToLast(colors) })
+	if got != 2 {
+		t.Fatalf("MinHopsToLast = %d, ожидалось 2", got)
+	}
+}
+
+// TestCookableDishesScales — сложность, а не ответ. Цепочка: блюдо i из блюда
+// i+1, последнее — из запасов. Проходы по книге до неподвижной точки добавляют
+// по одному блюду — O(n²).
+func TestCookableDishesScales(t *testing.T) {
+	const n = 100000
+	recipes := make([]string, n)
+	ingredients := make([][]string, n)
+	for i := range recipes {
+		recipes[i] = "блюдо" + strconv.Itoa(i)
+	}
+	for i := 0; i+1 < n; i++ {
+		ingredients[i] = []string{recipes[i+1], "соль"}
+	}
+	ingredients[n-1] = []string{"соль"}
+	var got []string
+	scaletest.Within(t, scaletest.Limit,
+		"CookableDishes(цепочка из 100000 блюд) — похоже на O(n²): проходы по книге, пока что-то добавляется"+
+			" (замер: эталон ~36 мс, перебор ~3 мин)",
+		func() { got = CookableDishes(recipes, ingredients, []string{"соль"}) })
+	if len(got) != n {
+		t.Fatalf("CookableDishes: приготовлено %d блюд, ожидалось %d", len(got), n)
+	}
+}
+
+// TestSafeRoomsScales — сложность, а не ответ. Цепочка 0 → 1 → … → n−1 и круг
+// в стороне: отдельный обход из каждой комнаты — O(n²).
+func TestSafeRoomsScales(t *testing.T) {
+	const n = 100000
+	doors := make([][]int, n+2)
+	for v := 0; v+1 < n; v++ {
+		doors[v] = []int{v + 1}
+	}
+	doors[n-1] = []int{}
+	doors[n], doors[n+1] = []int{n + 1}, []int{n}
+	var got []int
+	scaletest.Within(t, scaletest.Limit,
+		"SafeRooms(цепочка из 100000 комнат) — похоже на O(n²): из каждой комнаты свой обход"+
+			" (замер: эталон ~4 мс, перебор ~66 с)",
+		func() { got = SafeRooms(doors) })
+	if len(got) != n {
+		t.Fatalf("SafeRooms: безопасных %d, ожидалось %d", len(got), n)
+	}
+}
+
+// TestEarliestFullBloomScales — сложность, а не ответ. Выбирать следующее
+// семя просмотром всех оставшихся — O(n²).
+func TestEarliestFullBloomScales(t *testing.T) {
+	const n = 200000
+	rng := rand.New(rand.NewSource(73))
+	plant, grow := make([]int, n), make([]int, n)
+	for i, p := range rng.Perm(n) {
+		plant[i], grow[i] = 1, p%10000+1
+	}
+	// Рост ограничен 10⁴, поэтому ответ посчитан отдельно, без сортировки:
+	// корзины по длине роста.
+	var cnt [10001]int
+	for _, g := range grow {
+		cnt[g]++
+	}
+	want, day := 0, 0
+	for g := 10000; g >= 1; g-- {
+		if cnt[g] > 0 {
+			day += cnt[g]
+			want = max(want, day+g)
+		}
+	}
+	var got int
+	scaletest.Within(t, scaletest.Limit,
+		"EarliestFullBloom(n=200000) — похоже на O(n²): следующее семя выбирается просмотром всех оставшихся"+
+			" (замер: эталон ~25 мс, перебор ~115 с)",
+		func() { got = EarliestFullBloom(plant, grow) })
+	if got != want {
+		t.Fatalf("EarliestFullBloom = %d, ожидалось %d", got, want)
+	}
+}
+
+// TestCanSplitIntoRunsScales — сложность, а не ответ. m единиц, m двоек, m троек:
+// открыто m лесенок, и поиск подходящей просмотром всех — O(n²).
+func TestCanSplitIntoRunsScales(t *testing.T) {
+	const m = 100000
+	nums := make([]int, 0, 3*m)
+	for v := 1; v <= 3; v++ {
+		for range m {
+			nums = append(nums, v)
+		}
+	}
+	var got bool
+	scaletest.Within(t, scaletest.Limit,
+		"CanSplitIntoRuns(100000 единиц, двоек и троек) — похоже на O(n²): лесенка для карточки ищется"+
+			" просмотром всех открытых (замер: эталон ~5 мс, перебор ~20 с)",
+		func() { got = CanSplitIntoRuns(nums) })
+	if !got {
+		t.Fatal("CanSplitIntoRuns = false, ожидалось true")
 	}
 }

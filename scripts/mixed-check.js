@@ -26,7 +26,11 @@
 //   9) признак g не виден до ответа; после неверного — «Как это было узнать» раньше подсказок;
 //  10) после промаха — ряд таблицы пар (pairs.js) только в точном направлении «верный = use, выбранный = not»:
 //      в обычном режиме под признаком, в собеседовании — в итоге; ряды с обеими главами-ответами банка лежат
-//      внутри одной группы CONFUSABLE.
+//      внутри одной группы CONFUSABLE;
+//  11) задача с np (условие само называет приём — cmd/problembank/nopick.go) обычной смешанной не выдаётся,
+//      а собеседование выдаёт её без шага «какой шаблон?»: сразу план, ни промаха, ни report карточки mix:,
+//      в итоге и истории шаблон — «назван в условии» (pattern: null). Мутант «флаг игнорируется» (servable
+//      без проверки np) краснеет здесь.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -285,6 +289,9 @@ async function main() {
   await pairAfterMiss(bank);
   await choicesOnRandomSets(bank);
 
+  // --- условие называет приём (np) ---
+  await noPickFlag(bank);
+
   // --- режим собеседования ---
   await mockInterview(bank);
 
@@ -498,6 +505,12 @@ async function practiceScope(bank) {
       const right = answersOf(p);
       if (!right.some((c) => done.includes(c))) errors.push(`пройденные: выдана ${p.p}.${p.f} (ответы ${right}) — ни одна её глава не пройдена`);
       if (mock && (!p.t.length || p.n.length)) errors.push(`пройденные, собеседование: выдана ${p.p}.${p.f} без своих тестов или с соседями`);
+      if (p.np) {
+        // условие само называет приём: обычная смешанная такую не выдаёт, собеседование — без вариантов
+        if (!mock) errors.push(`пройденные, обычный: выдана ${p.p}.${p.f} с np — условие само называет приём`);
+        else if (optionsOf(w).length) errors.push(`пройденные, собеседование: у ${p.p}.${p.f} с np есть варианты «какой шаблон?»`);
+        continue;
+      }
       const titles = optionsOf(w).map((b) => b.textContent);
       const shown = titles.filter((t) => right.map(titleOf).includes(t));
       if (shown.length !== 1) errors.push(`пройденные: у ${p.p}.${p.f} верных вариантов ${shown.length}: ${titles.join(" | ")}`);
@@ -660,7 +673,8 @@ async function mockInterview(bank) {
       errors.push(`режим собеседования выдал ${hit.p}.${hit.f} — у неё нет своих тестов`);
       return;
     }
-    if (hit.x) p = hit;
+    // задача np идёт без шага «какой шаблон?» — её путь проверяет noPickFlag
+    if (hit.x && !hit.np) p = hit;
   }
   if (!p) {
     errors.push("за 60 выдач не попалась задача с эталонной сложностью");
@@ -814,6 +828,103 @@ async function mockInterview(bank) {
   if (!card2) errors.push("собеседование: при всех годных задачах показанными задача не выдана вовсе");
 }
 
+// noPickFlag — (j) задача с np (условие само называет приём). Случайной выдачей это не проверить, поэтому
+// детерминированно, как у собеседования с соседями: все задачи, которые режим вправе выдать, помечены
+// показанными — выдача предпочитает непоказанные и при сломанном фильтре неизбежно вытащит задачу с np.
+// Обычная смешанная: ни одна из 30 выдач не np. Собеседование: выдана задача с np (по всем главам) — вариантов
+// нет, вердикт «назван в самом условии» с главой задачи, сразу план; ни промаха, ни report; итог и история —
+// «назван в условии», pattern: null.
+async function noPickFlag(bank) {
+  const np = bank.filter((q) => q.np);
+  if (!np.length) { errors.push("(j) в банке нет задач с np — список noPick в cmd/problembank пуст или не дошёл до банка"); return; }
+  if (bank.some((q) => "np" in q && q.np !== true)) errors.push("(j) поле np у задачи не true — генератор пишет его только помеченным");
+  const keyOf = (q) => q.p + "." + q.f;
+  // числа страницы — против банка: сколько помечено, сколько из них на трёх главах ядра и сколько не годно
+  // собеседованию (без своих тестов или с соседями) — то есть не выдаётся нигде
+  {
+    const page = fs.readFileSync(path.join(root, "book", "mixed.html"), "utf8").replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
+    const three = ["sliding-window", "two-pointers", "prefix-sums"];
+    const want = {
+      "У N задач условие само называет приём": [/У (\d+) задач условие само называет приём/, np.length],
+      "дают M задач (N из них": [/префиксные суммы дают \d+ задач \((\d+) из них/, np.filter((q) => [q.c].concat(q.a || []).some((c) => three.includes(c))).length],
+      "Из этих задач N не выдаются нигде": [/Из этих задач (\d+) не выдаются нигде/, np.filter((q) => !(q.t && q.t.length) || (q.n && q.n.length)).length],
+    };
+    for (const [what, [re, n]] of Object.entries(want)) {
+      const m = page.match(re);
+      if (!m || Number(m[1]) !== n) errors.push(`(j) src/mixed.md: «${what}» — на странице ${m ? m[1] : "(не нашёл)"}, в банке ${n}`);
+    }
+  }
+
+  // обычный режим
+  {
+    const seen = {};
+    bank.filter((q) => !q.np).forEach((q) => { seen[keyOf(q)] = 1; });
+    const dom = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "mixed.js"], { algoMixedSeen: JSON.stringify(seen) }, 13);
+    const w = dom.window.document.querySelector(".algo-mixed");
+    const M = dom.window.ALGO_MIXED;
+    if (!M || typeof M.servable !== "function") errors.push("(j) mixed.js не отдаёт ALGO_MIXED.servable");
+    else {
+      const leaked = np.filter((q) => M.servable(q, false));
+      if (leaked.length) errors.push(`(j) servable пускает в обычную смешанную задачи с np: ${leaked.slice(0, 3).map(keyOf).join(", ")}…`);
+    }
+    for (let i = 0; i < 30; i++) {
+      click(dom, giveBtn(w));
+      const card = w.querySelector(".algo-mixed__card");
+      const q = card && shownProblem(bank, card.textContent);
+      if (!q) { errors.push(`(j) обычный режим: выдача ${i} не опознана`); break; }
+      if (q.np) { errors.push(`(j) обычный режим выдал ${keyOf(q)} — условие само называет приём (np)`); break; }
+    }
+    dom.window.close();
+  }
+
+  // собеседование
+  const mockNp = np.filter((q) => q.t && q.t.length && !(q.n && q.n.length));
+  if (!mockNp.length) { errors.push("(j) нет задачи с np, годной собеседованию (свои тесты, без соседей)"); return; }
+  const seen = {};
+  bank.filter((q) => !q.np).forEach((q) => { seen[keyOf(q)] = 1; });
+  const dom = await boot("mixed.html", ["progress.js", "problems.js", "runner.js", "mixed.js"], { algoMixedSeen: JSON.stringify(seen) }, 14);
+  const w = dom.window.document.querySelector(".algo-mixed");
+  const ls = dom.window.localStorage;
+  const reports = [];
+  dom.window.ALGO_SRS = { report: (rid, grade) => { reports.push(rid + " " + grade); return { status: "created" }; }, sync: () => {} };
+  const box = w.querySelector(".algo-mixed__mode-box");
+  box.checked = true;
+  box.dispatchEvent(new dom.window.Event("change"));
+  click(dom, giveBtn(w));
+  const card = w.querySelector(".algo-mixed__card");
+  const q = card && shownProblem(bank, card.textContent);
+  if (!q || !q.np) {
+    errors.push(`(j) собеседование при всех прочих показанных выдало не задачу с np: ${q ? keyOf(q) : "ничего"}`);
+    dom.window.close();
+    return;
+  }
+  const titleOf = (s) => ((dom.window.ALGO_CHAPTERS || []).find((c) => c.h === s + ".html") || {}).t || s;
+  if (optionsOf(w).length || w.querySelector(".algo-mixed__q")) errors.push(`(j) собеседование, ${keyOf(q)}: показан вопрос «какой шаблон?»`);
+  const v = w.querySelector(".algo-mixed__verdict");
+  const vt = v ? v.textContent : "";
+  if (!/назван в самом условии/.test(vt) || !vt.includes(titleOf(q.c))) errors.push(`(j) собеседование, ${keyOf(q)}: вердикт «${vt}», ожидалось «назван в самом условии» и «${titleOf(q.c)}»`);
+  if (/[✓✗]/.test(vt)) errors.push(`(j) собеседование, ${keyOf(q)}: вердикт с «✓/✗», хотя ответа не было: «${vt}»`);
+  if (reports.length) errors.push(`(j) собеседование, ${keyOf(q)}: без ответа вызван report: ${JSON.stringify(reports)}`);
+  if (Object.keys(JSON.parse(ls.getItem("algoMixedMissed") || "{}")).length) errors.push(`(j) собеседование, ${keyOf(q)}: без ответа записан промах`);
+  if (!JSON.parse(ls.getItem("algoMixedSeen") || "{}")[keyOf(q)]) errors.push(`(j) собеседование, ${keyOf(q)}: задача не отмечена показанной — выдача будет возвращать её как новую`);
+  if (w.querySelector(".algo-mixed__link")) errors.push(`(j) собеседование, ${keyOf(q)}: ссылка на главу видна до итога`);
+  const ta = w.querySelector(".algo-mixed__plan-text");
+  if (!ta) { errors.push(`(j) собеседование, ${keyOf(q)}: нет поля плана`); dom.window.close(); return; }
+  ta.value = "План: разбираю условие, выбираю структуру данных, держу инвариант на каждом шаге и проверяю края входа до кода.";
+  ta.dispatchEvent(new dom.window.Event("input"));
+  fillEdges(w, dom.window);
+  click(dom, w.querySelector(".algo-mixed__to-code"));
+  const ed = w.querySelector('.algo-runner[data-pkg="' + q.p + '"]');
+  if (!ed || ed.getAttribute("data-tests") !== JSON.stringify(q.t)) errors.push(`(j) собеседование, ${keyOf(q)}: после плана нет редактора с тестами задачи`);
+  const giveUp = w.querySelector(".algo-mixed__giveup");
+  if (giveUp) click(dom, giveUp);
+  const sum = w.querySelector(".algo-mixed__summary");
+  if (!sum || !/Шаблон\s*назван в условии/.test(sum.textContent)) errors.push(`(j) собеседование, ${keyOf(q)}: в итоге нет «Шаблон — назван в условии»: «${sum ? sum.textContent.slice(0, 200) : ""}»`);
+  const rec = JSON.parse(ls.getItem("algoMockLog") || "[]").pop() || {};
+  if (rec.k !== keyOf(q) || rec.pattern !== null) errors.push(`(j) собеседование: в истории ${JSON.stringify(rec)}, ожидалось k = ${keyOf(q)} и pattern: null`);
+  dom.window.close();
+}
+
 // pairAfterMiss — (i) ряд таблицы путаемых пар (assets/pairs.js) после промаха, только в точном направлении:
 // верный приём задачи — use, выбранный — not. Обычный режим — сразу под «Как это было узнать»; собеседование —
 // в итоге (в ряду бывают оценки сложности, а их режим прячет до итога). Нет ряда, нет реестра, верный ответ
@@ -868,7 +979,7 @@ async function pairAfterMiss(bank) {
     bank.forEach((x) => { if (x !== q) seen[x.p + "." + x.f] = 1; });
     const done = [q.c, slug, "greedy", "tree-bfs"];
     const seed = { algoPracticeScope: null, algoProgress: progressOf(done), algoMixedSeen: JSON.stringify(seen) };
-    const dom = await boot("mixed.html", scripts(opts.pairs), seed, 11);
+    const dom = await boot("mixed.html", ["progress.js", "problems.js"].concat(opts.pre ? [opts.pre] : [], scripts(opts.pairs).slice(2)), seed, 11);
     const reports = [];
     dom.window.ALGO_SRS = { report: (rid, grade) => { reports.push(rid + " " + grade); return { status: "created" }; } };
     const w = dom.window.document.querySelector(".algo-mixed");
@@ -942,7 +1053,10 @@ async function pairAfterMiss(bank) {
   if (!msw || !row1 || !(row1.notFor || []).includes("slidingwindow.MaxSlidingWindow")) {
     errors.push("(i) нет опоры сценария notFor: ряд sliding-window ← prefix-sums с notFor slidingwindow.MaxSlidingWindow");
   } else {
-    r = await pick("prefix-sums", { pairs: true }, msw);
+    // MaxSlidingWindow называет окно в условии (np) и обычной смешанной не выдаётся; правило notFor — о строке
+    // пары, а не о выдаче, поэтому здесь флаг снят на странице.
+    const pre = msw.np ? `window.ALGO_PROBLEMS.forEach(function (q) { if (q.p === "slidingwindow" && q.f === "MaxSlidingWindow") delete q.np; });` : "";
+    r = await pick("prefix-sums", { pairs: true, pre: pre }, msw);
     if (r) {
       if (r.w.querySelector(".algo-mixed__pair")) errors.push("(i) notFor: ряд показан на slidingwindow.MaxSlidingWindow");
       if (!JSON.parse(r.dom.window.localStorage.getItem("algoMixedMissed") || "{}")["slidingwindow.MaxSlidingWindow"]) errors.push("(i) notFor: промах не записан");
@@ -1017,7 +1131,8 @@ function finish() {
       "пускает к коду только после плана, гоняет тесты одной функции с чистой заготовки без подсказок и эталона " +
       "(data-hints=\"off\"), спрашивает сложность до эталона и не выдаёт задач с соседями; по умолчанию — только пройденные главы " +
       "(меньше трёх — сообщение с числом), альтернативы засчитываются и названы в вердикте, неверные варианты — не из них, " +
-      "признак — после ответа, раньше подсказок; после промаха — ряд таблицы пар в точном направлении"
+      "признак — после ответа, раньше подсказок; после промаха — ряд таблицы пар в точном направлении; " +
+      "задачи, чьё условие называет приём (np), обычная смешанная не выдаёт, а собеседование — без шага «какой шаблон?»"
   );
   // Явный выход: последняя проверка начинает собеседование, и его часы (setInterval
   // в mixed.js) держат цикл событий jsdom-окна живым — без exit процесс после «✅»

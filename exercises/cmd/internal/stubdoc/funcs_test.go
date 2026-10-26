@@ -34,7 +34,8 @@ func TestFuncsSlidingWindow(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []string{"MaxSumSubarray", "LongestSubstringKDistinct", "SmallestSubarrayWithSum",
-		"LongestSubstringNoRepeat", "MaxSlidingWindow"}
+		"LongestSubstringNoRepeat", "MaxSlidingWindow", "CharacterReplacement", "CheckInclusion",
+		"LongestOnes", "NumSubarrayProductLessThanK", "SubarraysWithKDistinct", "FindAnagrams"}
 	if got := funcNames(fs); !slices.Equal(got, want) {
 		t.Fatalf("функции = %v, ожидалось %v (в порядке файла)", got, want)
 	}

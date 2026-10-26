@@ -10,10 +10,11 @@ import (
 
 // Тесты масштаба сортировок — сложность, а не ответ. Вход случайный с
 // фиксированным зерном и широким диапазоном значений: на нём сортировки
-// вставками и выбором стоят O(n²), а быстрая сортировка с опорным a[hi] —
-// O(n log n) в среднем. Отсортированный или равный вход сюда не годится: на нём
-// быстрая сортировка Ломуто с фиксированным опорным сама уходит в O(n²) — это
-// её законный худший случай, обещанный условием.
+// вставками и выбором стоят O(n²). Для QuickSort и QuickSelect есть ещё два
+// входа — отсортированный и все равные: условие обещает O(n log n) и O(n) в
+// среднем на любом входе, и на них падает фиксированный опорный a[hi]
+// (отсортированный: ~23 с на QuickSort) и разбиение на две зоны вместо трёх
+// (все равные).
 
 const scaleN = 300000
 
@@ -109,5 +110,66 @@ func TestQuickSelectScales(t *testing.T) {
 		func() { got = QuickSelect(a, k) })
 	if want := stdSorted(in)[k-1]; got != want {
 		t.Fatalf("QuickSelect(n=%d, k=%d) = %d, ожидалось %d", n, k, got, want)
+	}
+}
+
+// sortedInput и equalInput — входы, на которых фиксированный опорный и разбиение
+// на две зоны режут кусок на единицу: n уровней по O(n) — O(n²).
+func sortedInput() []int {
+	a := make([]int, scaleN)
+	for i := range a {
+		a[i] = i
+	}
+	return a
+}
+
+func equalInput() []int {
+	a := make([]int, scaleN)
+	for i := range a {
+		a[i] = 7
+	}
+	return a
+}
+
+func TestQuickSortScalesOnBadOrder(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		in   []int
+	}{
+		{"отсортированный", sortedInput()},
+		{"все равные", equalInput()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := append([]int(nil), tc.in...)
+			scaletest.Within(t, scaletest.Limit,
+				"QuickSort(n=300000, "+tc.name+") — похоже на O(n²): опорный фиксированный или зон две, а не три"+
+					" (замер: эталон ~10 мс, Ломуто с a[hi] на отсортированном ~23 с)",
+				func() { QuickSort(a) })
+			if !intsEqual(a, stdSorted(tc.in)) {
+				t.Fatalf("QuickSort на входе «%s» дал не отсортированную перестановку", tc.name)
+			}
+		})
+	}
+}
+
+func TestQuickSelectScalesOnBadOrder(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		in   []int
+	}{
+		{"отсортированный", sortedInput()},
+		{"все равные", equalInput()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := append([]int(nil), tc.in...)
+			k := scaleN / 2
+			var got int
+			scaletest.Within(t, scaletest.Limit,
+				"QuickSelect(n=300000, "+tc.name+", k=n/2) — похоже на O(n²): опорный фиксированный или зон две, а не три",
+				func() { got = QuickSelect(a, k) })
+			if want := stdSorted(tc.in)[k-1]; got != want {
+				t.Fatalf("QuickSelect на входе «%s», k=%d = %d, ожидалось %d", tc.name, k, got, want)
+			}
+		})
 	}
 }

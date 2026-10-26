@@ -529,6 +529,21 @@ for _, x := range nums {
 }</pre>
 </div>
 
+<div class="algo-challenge" data-type="choice" data-options="Push(1), Push(2), Pop, Push(3), Pop — второй Pop вернёт 3, а не 2|Push(1), Push(2), Push(3) и три Pop — вернёт 3, 2, 1, а не 1, 2, 3|Push(1), Pop, Push(2), Pop — второй Pop снова вернёт единицу|Push(1) и Pop — out пуст, и Pop снимет элемент с пустого среза" data-answer="0" data-explain="Ломает перелив без условия if len(q.out) == 0. После первого Pop в out лежит 2; Push(3) кладёт тройку в in, и второй Pop переливает её ПОВЕРХ двойки — сверху 3, хотя первой пришла 2. На трёх других последовательностях out к моменту перелива пуст, и ответ верный. Переливать можно, только когда out опустел: тогда старые элементы всегда лежат над новыми.">
+<div class="algo-challenge__q">🐞 Найди ошибку. Очередь на двух стеках «упростили»: <code>Pop</code> переливает <code>in</code> в <code>out</code> всегда, не проверяя, пуст ли <code>out</code>. На какой последовательности операций она ошибается?</div>
+<pre class="algo-challenge__code">func (q *Queue) Pop() int {
+    for len(q.in) &gt; 0 { // переливаем на каждом Pop
+        last := len(q.in) - 1
+        q.out = append(q.out, q.in[last])
+        q.in = q.in[:last]
+    }
+    last := len(q.out) - 1
+    x := q.out[last]
+    q.out = q.out[:last]
+    return x
+}</pre>
+</div>
+
 **Прорешать целиком** (тренажёр — пакет `bigo`) — лестница из трёх ступеней, снизу вверх.
 Закрыл **основу** — глава сдана, добивка не обязательна.
 
@@ -538,7 +553,7 @@ for _, x := range nums {
 
 **🔵 Основа** — планка главы:
 
-- [Implement Queue using Stacks](https://leetcode.com/problems/implement-queue-using-stacks/) (LeetCode 232) — очередь на двух стеках из раздела 3: допиши `peek` и `empty` и объясни, почему каждая операция амортизированно `O(1)`
+- [Implement Queue using Stacks](https://leetcode.com/problems/implement-queue-using-stacks/) (LeetCode 232) — очередь на двух стеках из раздела 3: допиши `peek` и `empty` и объясни, почему каждая операция амортизированно `O(1)`; потренироваться можно на типе `bigo.MyQueue` в виджете ниже
 
 **🔴 Добивка** — когда основа идёт уверенно:
 

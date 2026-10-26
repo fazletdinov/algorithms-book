@@ -22,13 +22,19 @@ func NewBloom(m, k uint) *Bloom {
 	return &Bloom{bits: make([]uint64, (m+63)/64), m: m, k: k}
 }
 
-// hashes возвращает два независимых хеша (для приёма h1 + i*h2).
+// hashes возвращает два хеша для приёма h1 + i*h2. Второй — не другой FNV:
+// FNV-1 и FNV-1a почти одинаковы и вместе дают в 3–5 раз больше ложных
+// срабатываний, чем обещает формула. Перемешивание h1 финалом splitmix64 даёт
+// независимые на вид биты; | 1 делает шаг нечётным, чтобы он не был нулём.
 func hashes(data []byte) (uint64, uint64) {
-	h1 := fnv.New64a()
-	_, _ = h1.Write(data)
-	h2 := fnv.New64()
-	_, _ = h2.Write(data)
-	return h1.Sum64(), h2.Sum64()
+	h := fnv.New64a()
+	_, _ = h.Write(data)
+	h1 := h.Sum64()
+	h2 := h1 + 0x9e3779b97f4a7c15
+	h2 = (h2 ^ (h2 >> 30)) * 0xbf58476d1ce4e5b9
+	h2 = (h2 ^ (h2 >> 27)) * 0x94d049bb133111eb
+	h2 ^= h2 >> 31
+	return h1, h2 | 1
 }
 
 // positions вычисляет k позиций бит для элемента.

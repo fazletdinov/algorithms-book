@@ -75,3 +75,42 @@ func TestCountCopies(t *testing.T) {
 		}
 	}
 }
+
+func TestMyQueue(t *testing.T) {
+	q := NewMyQueue()
+	if !q.Empty() {
+		t.Fatalf("новая очередь: Empty = false, ожидалось true")
+	}
+	q.Push(1)
+	q.Push(2)
+	if got := q.Peek(); got != 1 {
+		t.Fatalf("после Push(1), Push(2): Peek = %d, ожидалось 1", got)
+	}
+	if got := q.Pop(); got != 1 {
+		t.Fatalf("Pop = %d, ожидалось 1", got)
+	}
+	if q.Empty() {
+		t.Fatalf("в очереди остался 2: Empty = true, ожидалось false")
+	}
+	// Push после Pop: новый элемент встаёт ЗА уже стоящими, даже если часть их
+	// уже переложена во второй стек.
+	q.Push(3)
+	q.Push(-4)
+	for _, want := range []int{2, 3, -4} {
+		if got := q.Peek(); got != want {
+			t.Fatalf("Peek = %d, ожидалось %d", got, want)
+		}
+		if got := q.Pop(); got != want {
+			t.Fatalf("Pop = %d, ожидалось %d", got, want)
+		}
+	}
+	if !q.Empty() {
+		t.Fatalf("все элементы сняты: Empty = false, ожидалось true")
+	}
+	// Очередь, опустевшая и наполненная снова, работает как новая; дубли — отдельные элементы.
+	q.Push(5)
+	q.Push(5)
+	if got := q.Pop(); got != 5 || q.Empty() {
+		t.Fatalf("Push(5), Push(5), Pop: Pop = %d, Empty = %v; ожидалось 5 и false", got, q.Empty())
+	}
+}

@@ -64,3 +64,20 @@ func TestDequeGrowAndWrap(t *testing.T) {
 		t.Errorf("Front() = (%d,%v), ожидалось (49,true)", v, ok)
 	}
 }
+
+// Нулевое значение — рабочий дек, как bytes.Buffer или sync.Mutex: без NewDeque
+// первая вставка не должна делить на нулевую ёмкость.
+func TestDequeZeroValue(t *testing.T) {
+	var d Deque
+	if _, ok := d.PopFront(); ok {
+		t.Fatal("PopFront на пустом нулевом деке вернул ok = true")
+	}
+	d.PushFront(2)
+	d.PushBack(3)
+	d.PushFront(1)
+	for want := 1; want <= 3; want++ {
+		if got, ok := d.PopFront(); !ok || got != want {
+			t.Fatalf("PopFront() = %d, %v, ожидалось %d, true", got, ok, want)
+		}
+	}
+}

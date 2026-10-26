@@ -433,6 +433,23 @@ go test -tags solution ./linkedlist/  # эталон
 <div class="algo-challenge__q">Последний узел случайно указал на середину списка (цикл). Что сделает <code>search</code> с отсутствующим значением?</div>
 </div>
 
+<div class="algo-challenge" data-type="choice" data-options="1→2→3→4: slow встанет на 4 и вырежет последний узел 5|1→2→3→5: fast ушёл на n вперёд, и отставание как раз n|1→2→4→5: slow не дойдёт на шаг до нужного и вырежет 3|Паника: slow.Next окажется nil, и slow.Next.Next упадёт" data-answer="0" data-explain="Ломает условие for fast != nil: цикл делает лишний шаг, fast уходит за последний узел, и slow останавливается не перед четвёркой, а на ней — вырезается пятёрка. Останавливаться нужно, когда fast на последнем узле: for fast.Next != nil — тогда slow стоит ровно перед n-м с конца.">
+<div class="algo-challenge__q">🐞 Найди ошибку. Удаление n-го узла с конца в один проход — указатели с отставанием. Что вернёт код на <code>1 → 2 → 3 → 4 → 5</code> при <code>n = 2</code>?</div>
+<pre class="algo-challenge__code">func removeNthFromEnd(head *ListNode, n int) *ListNode {
+    dummy := &amp;ListNode{Next: head}
+    fast, slow := dummy, dummy
+    for i := 0; i &lt; n; i++ {
+        fast = fast.Next
+    }
+    for fast != nil {
+        fast = fast.Next
+        slow = slow.Next
+    }
+    slow.Next = slow.Next.Next
+    return dummy.Next
+}</pre>
+</div>
+
 **Прорешать целиком** — лестница из трёх ступеней, снизу вверх. Закрыл **основу** — глава
 сдана, добивка не обязательна.
 
@@ -443,7 +460,7 @@ go test -tags solution ./linkedlist/  # эталон
 
 **🔵 Основа** — планка главы:
 
-- [Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/) (LeetCode 206) — разворот из раздела выше
+- [Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/) (LeetCode 206) — разворот из раздела выше; в тренажёре: `linkedlist.ReverseList`
 - [Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/) (LeetCode 21) — в тренажёре: `listcrud.MergeTwoSorted`
 - [Remove Nth Node From End of List](https://leetcode.com/problems/remove-nth-node-from-end-of-list/) (LeetCode 19) — в тренажёре: `listcrud.RemoveNthFromEnd`
 

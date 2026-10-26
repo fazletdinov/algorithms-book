@@ -172,9 +172,26 @@ for right := 0; right < len(s); right++ {
 |---|---|---|---|
 | A. Самое **длинное** при ограничении | «не более `k` различных», «нулей ≤ `k`», «без повторов» | пока окно **сломано** | после цикла: `max(best, right-left+1)` |
 | B. Самое **короткое**, набравшее цель | «сумма ≥ `target`», «содержит все буквы `t`» | пока цель **набрана** | внутри цикла, до сдвига: `min(best, right-left+1)` |
+| C. **Сколько** окон годится | «число подмассивов с произведением < `k`», «сколько кусков, где не больше `k` …» | пока окно **сломано** (как в A) | после цикла: `count += right-left+1` |
 
-В семье B ответ после цикла брать поздно: окно там уже не набирает цель. Длина окна в обеих —
+В семье B ответ после цикла брать поздно: окно там уже не набирает цель. Длина окна во всех —
 `right - left + 1`: обе границы входят в окно.
+
+**Семья C — посчитать окна.** Каркас тот же, что у A: впустил справа, сжал, пока окно сломано.
+Меняется только ответ: вместо «самое длинное» спрашивают «сколько кусков подряд годится». Перебирать
+куски по одному нельзя — их порядка n². Но после сжатия окно `[left..right]` годится, а значит,
+годится и каждый его кусок (у куска произведение не больше — все числа ≥ 1), который
+кончается на `right`: `[right]`, `[right-1..right]`, …,
+`[left..right]`. Таких ровно `right - left + 1` — их и прибавляем одним действием. Пример
+(LeetCode 713): `nums = [10, 5, 2, 6]`, произведение меньше `100`. На `right = 2` произведение
+`10·5·2 = 100` — окно сломано, выпускаем `10`, окно `[5, 2]`, и прибавляем 2: куски `[2]` и `[5, 2]`.
+По шагам прибавки `1 + 2 + 2 + 3` — ответ 8.
+
+Условие «**ровно** `k`» (например, ровно `k` различных чисел) прямо так не считается: короткие
+куски, которые кончаются на `right`, могут иметь меньше `k` различных — не все `right - left + 1`
+годятся. Выручает вычитание: «ровно `k`» = «не больше `k`» минус «не больше
+`k − 1`», а оба счёта — семья C. На `[1, 2, 1]` при `k = 2`: не больше двух различных — все 6
+кусков, не больше одного — 3 (`[1]`, `[2]`, `[1]`), ровно двух — `6 − 3 = 3`.
 
 <div class="algo-mental">
   <div class="algo-mental__icon">✍️</div>
@@ -259,6 +276,8 @@ func longestKDistinct(s string, k int) int {
 - **окно постоянной длины** (Permutation in String, 567; Contains Duplicate II, 219) — сжимать
   нечего: каждый шаг впускает один элемент и выпускает тот, что стоял `k` позиций назад (в 567
   `k = len(p)`, в 219 — `k` из условия), как в `maxSumSubarray`. В окне держишь счётчик букв (567) или множество чисел (219).
+  Find All Anagrams (438) — то же окно, что 567, но не останавливаемся на первом совпадении, а
+  записываем каждое начало `right - len(p) + 1`, где счётчики окна и образца равны.
 
 Оба типа окна — O(n) по времени; память — O(1) у фиксированного окна с суммой и O(числа разных
 значений в окне) у окна со счётчиком `freq` — не больше k + 1 или σ, размера алфавита.
@@ -277,6 +296,44 @@ func longestKDistinct(s string, k int) int {
 одного раза (и `left`, и `right` проходят массив всего по разу).
 
 </details>
+
+### Посчитать окна
+
+Семья C из [таблицы в «⚡»](#-шаблон-для-собеседования) отвечает на вопрос «**сколько** кусков
+подряд годится». Главное — у каждого правого края годятся все левые от `left` до `right`, и их
+`right - left + 1`: столько и прибавляем, не перебирая куски по одному (так устроена
+`NumSubarrayProductLessThanK`, LeetCode 713). Для «ровно `k` различных» (LeetCode 992) считаем
+дважды и вычитаем:
+
+```go
+// Сколько кусков подряд, где различных чисел не больше k
+func atMost(nums []int, k int) int {
+    freq := make(map[int]int)
+    left, count := 0, 0
+    for right := 0; right < len(nums); right++ {
+        freq[nums[right]]++
+        for len(freq) > k { // окно сломано — сжимаем, как в семье A
+            freq[nums[left]]--
+            if freq[nums[left]] == 0 {
+                delete(freq, nums[left])
+            }
+            left++
+        }
+        count += right - left + 1 // все куски [i..right] при left ≤ i ≤ right
+    }
+    return count
+}
+
+func subarraysWithKDistinct(nums []int, k int) int {
+    return atMost(nums, k) - atMost(nums, k-1) // ровно k = не больше k − не больше k−1
+}
+```
+
+На `nums = [1, 2, 1, 2, 3]`, `k = 2`. Счёт «не больше двух различных»: на `right = 0…3` окно не
+ломается, прибавки `1, 2, 3, 4`; на `right = 4` входит `3`, различных три — выпускаем `1, 2, 1`,
+окно `[2, 3]`, прибавка `2`. Итого `12`. Счёт «не больше одного»: соседние числа везде разные,
+окно каждый раз сжимается до одного числа, прибавки по `1` — итого `5`. Ровно двух различных —
+`12 − 5 = 7`. Каждый счёт — один проход окна, поэтому и разность — O(n).
 
 ## 🧠 Почему это корректно
 
@@ -637,21 +694,25 @@ func minSubArrayLen(target int, nums []int) int {
 
 - [Maximum Average Subarray I](https://leetcode.com/problems/maximum-average-subarray-i/) (LeetCode 643) — фикс. окно
 - [Contains Duplicate II](https://leetcode.com/problems/contains-duplicate-ii/) (LeetCode 219) — окно как множество
+- [Fruit Into Baskets](https://leetcode.com/problems/fruit-into-baskets/) (LeetCode 904) — самый длинный кусок, где не больше двух видов фруктов: семья A при `k = 2`; в тренажёре: `slidingwindow.LongestSubstringKDistinct`
 
-**🔵 Основа** — планка главы: три задачи подряд без подглядывания в шаблон:
+**🔵 Основа** — планка главы: четыре задачи подряд без подглядывания в шаблон:
 
-- [Longest Repeating Character Replacement](https://leetcode.com/problems/longest-repeating-character-replacement/) (LeetCode 424)
-- [Permutation in String](https://leetcode.com/problems/permutation-in-string/) (LeetCode 567)
-- [Max Consecutive Ones III](https://leetcode.com/problems/max-consecutive-ones-iii/) (LeetCode 1004)
+- [Longest Repeating Character Replacement](https://leetcode.com/problems/longest-repeating-character-replacement/) (LeetCode 424) — семья A, сломано: замен больше `k`; в тренажёре: `slidingwindow.CharacterReplacement`
+- [Permutation in String](https://leetcode.com/problems/permutation-in-string/) (LeetCode 567) — окно постоянной длины со счётчиком букв; в тренажёре: `slidingwindow.CheckInclusion`
+- [Max Consecutive Ones III](https://leetcode.com/problems/max-consecutive-ones-iii/) (LeetCode 1004) — семья A, сломано: нулей больше `k`; в тренажёре: `slidingwindow.LongestOnes`
+- [Subarray Product Less Than K](https://leetcode.com/problems/subarray-product-less-than-k/) (LeetCode 713) — семья C, считаем окна; в тренажёре: `slidingwindow.NumSubarrayProductLessThanK`
 
 **🔴 Добивка** — когда основа идёт уверенно:
 
 - [Minimum Window Substring](https://leetcode.com/problems/minimum-window-substring/) (LeetCode 76) — сложная
+- [Find All Anagrams in a String](https://leetcode.com/problems/find-all-anagrams-in-a-string/) (LeetCode 438) — окно 567, но собрать все начала; в тренажёре: `slidingwindow.FindAnagrams`
+- [Subarrays with K Different Integers](https://leetcode.com/problems/subarrays-with-k-different-integers/) (LeetCode 992) — «ровно `k`» как разность двух счётов семьи C, [«Посчитать окна»](#посчитать-окна); в тренажёре: `slidingwindow.SubarraysWithKDistinct`
 
 > 🧭 **Не пошла задача из основы?** В девяти случаях из десяти перепутана **семья окна**:
 > 424 и 1004 — семья A, «самое длинное при ограничении» (сжимаем, *пока окно сломано*), а 76 и
 > `SmallestSubarrayWithSum` — семья B, «самое короткое, набравшее цель» (сжимаем, *пока цель
-> набрана*). Вернись к [таблице семей](#-шаблон-для-собеседования) и определи семью **до**
+> набрана*); 713 — семья C: сжимаем как в A, но к ответу прибавляем `right - left + 1`, а не длину. Вернись к [таблице семей](#-шаблон-для-собеседования) и определи семью **до**
 > того, как писать цикл; условие «окно сломано» для 424 и 1004 — в [«📖 Переменное
 > окно»](#переменное-окно).
 
@@ -665,8 +726,11 @@ go test -tags solution ./slidingwindow/  # эталон
 
 Реализуй `MaxSumSubarray` (фиксированное окно), `LongestSubstringKDistinct`
 (≤k различных символов), `SmallestSubarrayWithSum` (минимальная длина с суммой ≥ target),
-`LongestSubstringNoRepeat` (без повторов) и `MaxSlidingWindow` (максимум окна через дек —
-его удобнее решать после главы о монотонном стеке; глава сдаётся и без него).
+`LongestSubstringNoRepeat` (без повторов), задачи основы — `CharacterReplacement` (424),
+`CheckInclusion` (567), `LongestOnes` (1004), `NumSubarrayProductLessThanK` (713), задачи
+добивки — `FindAnagrams` (438) и `SubarraysWithKDistinct` (992) — и
+`MaxSlidingWindow` (максимум окна через дек — его удобнее решать после главы о монотонном стеке;
+глава сдаётся и без него).
 
 ### 💻 Реши прямо здесь — пакет `slidingwindow`
 
@@ -679,7 +743,8 @@ go test -tags solution ./slidingwindow/  # эталон
 выполнения **твоего собственного** кода: подсветку текущей строки (в т.ч.
 внутри сработавшей ветки `if`) и то, какими были переменные на каждой
 итерации твоего решения, включая вложенный цикл «сжимающегося окна» —
-работают все пять функций пакета. Циклы `for` и `range` любой вложенности
+трасса подключена к пяти функциям пакета: `MaxSumSubarray`, `LongestSubstringKDistinct`,
+`SmallestSubarrayWithSum`, `LongestSubstringNoRepeat`, `MaxSlidingWindow`. Циклы `for` и `range` любой вложенности
 поддерживаются; не поддерживаются пока только горутины, замыкания, рекурсия
 и циклы, спрятанные внутри `switch`.
 
@@ -790,6 +855,34 @@ func (b *SafeTokenBucket) Allow(nowMs int64) bool // то же, но безоп�
 Мораль инженера: **точный лог хорош, чтобы понять механику; в проде обычно меняют немного точности на `O(1)`
 памяти и терпимость к всплескам** (token bucket) — тот же размен «точность ↔ ресурсы», что и у [вероятностных
 структур](probabilistic-structures.md). Построив оба, ты чувствуешь этот размен руками, а не на словах.
+
+Напоследок — задача к разделу [«Посчитать окна»](#посчитать-окна):
+
+<div class="algo-challenge" data-type="predict" data-answer="7;семь" data-hint="Посчитай «не больше двух различных» и «не больше одного» окном и вычти." data-explain="Не больше двух различных: прибавки 1, 2, 3, 4 и 2 (на right = 4 окно сжимается до [2, 3]) — итого 12. Не больше одного: соседние числа разные, прибавки по 1 — итого 5. Ровно двух: 12 − 5 = 7 — это [1,2], [2,1], [1,2], [2,3], [1,2,1], [2,1,2], [1,2,1,2].">
+<div class="algo-challenge__q">Сколько кусков подряд, где ровно 2 различных числа, в <code>[1, 2, 1, 2, 3]</code>?</div>
+</div>
+
+<div class="algo-challenge" data-type="choice" data-options="«eceba», k = 2: вернёт 4 вместо 3 — учтено сломанное окно eceb|«aaaa», k = 1: вернёт 3 — окно выходит на одну букву короче|«abc», k = 3: вернёт 4 — окно на правом конце вылезет за строку|«», k = 2: вернёт 1 — длина окна считается ещё до первого шага" data-answer="0" data-explain="Ломает место обновления maxLen: строка стоит до внутреннего for и видит окно, где различных символов уже k + 1. На «eceba» при right = 3 окно eceb (три разных) успевает записать длину 4. Если окно ни разу не ломается (aaaa, abc при k = 3, пустая строка), ошибка не видна. Порядок семьи A: расширить → сжать → только потом обновить ответ.">
+<div class="algo-challenge__q">🐞 Найди ошибку. Здесь ответ обновляется ДО сжатия окна. На каком входе код ошибается?</div>
+<pre class="algo-challenge__code">func longestKDistinct(s string, k int) int {
+    freq := make(map[byte]int)
+    left, maxLen := 0, 0
+    for right := 0; right &lt; len(s); right++ {
+        freq[s[right]]++
+        if cur := right - left + 1; cur &gt; maxLen {
+            maxLen = cur
+        }
+        for len(freq) &gt; k {
+            freq[s[left]]--
+            if freq[s[left]] == 0 {
+                delete(freq, s[left])
+            }
+            left++
+        }
+    }
+    return maxLen
+}</pre>
+</div>
 
 <div class="algo-mental">
   <div class="algo-mental__icon">📌</div>

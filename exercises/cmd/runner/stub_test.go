@@ -101,7 +101,7 @@ func TestHandleStubSlidingWindow(t *testing.T) {
 	if !strings.Contains(r.Plain, `panic("TODO: реализуй MaxSumSubarray")`) {
 		t.Errorf("в plain остаётся panic(\"TODO…\") — это и есть заготовка")
 	}
-	if len(r.Funcs) != 5 || r.Funcs[0].Name != "MaxSumSubarray" {
+	if len(r.Funcs) != 11 || r.Funcs[0].Name != "MaxSumSubarray" {
 		t.Fatalf("funcs = %+v", r.Funcs)
 	}
 	first := r.Funcs[0]

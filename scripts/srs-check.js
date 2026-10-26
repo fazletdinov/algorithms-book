@@ -1377,6 +1377,42 @@ if (api) {
     d.window.close();
   }
 
+  // Переписанный вопрос (ALGO_QUIZ.renamed): карточка под прежним текстом переезжает на нынешний вместе
+  // с расписанием и показывает нынешний текст; если у нынешнего уже есть своя карточка — прежняя выбывает.
+  {
+    const probe = await newDom({}, [CLOCK(now), quizJs], PAGE);
+    const renamed = (probe.window.ALGO_QUIZ && probe.window.ALGO_QUIZ.renamed) || {};
+    probe.window.close();
+    const OLD = Object.keys(renamed)[0];
+    if (!OLD) errors.push("в квизе нет переписанных вопросов (ALGO_QUIZ.renamed) — проверка переезда карточки ничего не проверяет");
+    else {
+      const NEW = renamed[OLD];
+      const oldMeta = { n: 1, pattern: "Старый ответ", href: "old.html", q: OLD };
+      const hist = { due: now - DAY, iv: 8, ease: 2.6, reps: 3, seen: now - 9 * DAY, meta: oldMeta };
+      const d = await newDom({ algoQuizMissed: JSON.stringify({ [OLD]: oldMeta }), algoSRS: JSON.stringify({ ["quiz:" + OLD]: hist }) }, [CLOCK(now), quizJs], PAGE);
+      const c = cards(d);
+      const moved = c["quiz:" + NEW];
+      if ("quiz:" + OLD in c) errors.push("карточка переписанного вопроса осталась под прежним текстом");
+      if (!moved || moved.iv !== 8 || moved.reps !== 3 || moved.due !== now - DAY || !moved.meta || moved.meta.q !== NEW) errors.push(`карточка переписанного вопроса не переехала с расписанием: ${JSON.stringify(moved)}`);
+      const quizIds = Object.keys(c).filter((id) => id.indexOf("quiz:") === 0);
+      if (quizIds.length !== 1) errors.push(`после переезда карточек квиза ${quizIds.length}, ожидалась одна: ${quizIds.join(" | ")}`);
+      const box = d.window.document.querySelector(".algo-today");
+      if (!box.textContent.includes(NEW) || box.textContent.includes(OLD)) errors.push(`карточка переписанного вопроса показывает не нынешний текст: «${box.textContent.slice(0, 160)}»`);
+      const bankQ = d.window.ALGO_QUIZ.questions.find((x) => x.q === NEW);
+      if (click(d, "Показать ответ")) {
+        const a = d.window.document.querySelector(".algo-today__answer a");
+        if (!a || a.textContent !== bankQ.correct || a.getAttribute("href") !== bankQ.href) errors.push(`карточка переписанного вопроса отвечает ${a && a.outerHTML}, ожидалось «${bankQ.correct}» → ${bankQ.href}`);
+      }
+      d.window.close();
+      // у нынешнего текста уже есть своя карточка — прежняя выбывает, своя не меняется
+      const own = missCard({ n: 1, pattern: bankQ.correct, href: bankQ.href, q: NEW }, now + DAY);
+      const d2 = await newDom({ algoSRS: JSON.stringify({ ["quiz:" + OLD]: hist, ["quiz:" + NEW]: own }) }, [CLOCK(now), quizJs], PAGE);
+      const c2 = cards(d2);
+      if ("quiz:" + OLD in c2 || JSON.stringify(c2["quiz:" + NEW]) !== JSON.stringify(own)) errors.push(`при двух карточках переписанного вопроса: ${JSON.stringify(c2)}`);
+      d2.window.close();
+    }
+  }
+
   const CXM = { n: 1, chapter: "dynamic-programming", pkg: "dp", fn: "CoinChange" };
   const cxSeed = { algoMockCxMissed: JSON.stringify({ "dp.CoinChange": CXM }), algoSRS: JSON.stringify({ "cx:dp.CoinChange": missCard(CXM, now - HOUR) }) };
   const cx = await newDom(cxSeed, [CLOCK(now), problemsJs], PAGE);

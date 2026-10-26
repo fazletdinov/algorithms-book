@@ -190,3 +190,34 @@ func TestDijkstraScales(t *testing.T) {
 		}
 	}
 }
+
+// scaleDiamonds — цепочка ромбов без цикла: из вершины c идут две стрелки,
+// c → a и c → b, обе сходятся в следующую вершину-стык. Ромбов k, вершин 3k + 1,
+// стрелок 4k. Путей от начала до конца 2^k, а глубина обхода — около 2k.
+func scaleDiamonds(k int) (n int, edges [][]int) {
+	n = 3*k + 1
+	edges = make([][]int, 0, 4*k)
+	for i := 0; i < k; i++ {
+		c, a, b, next := 3*i, 3*i+1, 3*i+2, 3*i+3
+		edges = append(edges, []int{c, a}, []int{c, b}, []int{a, next}, []int{b, next})
+	}
+	return n, edges
+}
+
+// TestHasCycleDirectedScales — цепочка ромбов, цикла нет, обойти придётся всё.
+// Бьёт два медленных варианта: «из каждой вершины свой обход со своими
+// пометками» — O(V·(V + E)); «отметка только на текущем пути, снимается на
+// выходе» (без чёрного цвета) — каждый путь проходится заново, их 2^k.
+// Вариант «два цвета: посещённая = цикл» здесь быстр, но ошибается — его ловит
+// табличный случай «ромб».
+func TestHasCycleDirectedScales(t *testing.T) {
+	n, edges := scaleDiamonds((scaleV - 1) / 3) // 199999 вершин, 266664 стрелки
+	var got bool
+	scaletest.Within(t, scaletest.Limit,
+		"HasCycleDirected(цепочка из 66666 ромбов, цикла нет) — похоже на O(V·(V + E)) или экспоненту там, где нужен O(V + E)"+
+			" (замер: эталон ~30 мс, обход из каждой вершины со своими пометками ~120 с, пометка только на пути — 2^66666 путей, не дождаться)",
+		func() { got = HasCycleDirected(n, edges) })
+	if got {
+		t.Fatal("HasCycleDirected(цепочка ромбов) = true, ожидалось false")
+	}
+}

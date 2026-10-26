@@ -43,9 +43,9 @@ func TestBloomNoFalseNegativesRandom(t *testing.T) {
 
 // TestBloomFalsePositiveRateRandom: на случайных (а не последовательных, как в
 // базовом тесте) ключах частота ложных срабатываний остаётся в допуске.
-// 1000 элементов в 10000 бит с 7 хешами — теоретический FP ≈ 1%; порог 0.05
-// даёт пятикратный запас, при фиксированном сиде результат детерминирован
-// (проверено на стабильность с -count=5). Множества «внутри»/«снаружи»
+// 1000 элементов в 10000 бит с 7 хешами — теоретический FP 0.82%; порог 0.02
+// даёт запас в 2.4 раза и при этом ловит зависимые хеши (FNV-1a + FNV-1: 3.6%).
+// При фиксированном сиде результат детерминирован. Множества «внутри»/«снаружи»
 // заведомо не пересекаются за счёт разных префиксов.
 func TestBloomFalsePositiveRateRandom(t *testing.T) {
 	rng := rand.New(rand.NewSource(2617))
@@ -53,13 +53,13 @@ func TestBloomFalsePositiveRateRandom(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		b.Add([]byte(fmt.Sprintf("in:%x", rng.Int63())))
 	}
-	fp, trials := 0, 5000
+	fp, trials := 0, 20000
 	for i := 0; i < trials; i++ {
 		if b.MightContain([]byte(fmt.Sprintf("out:%x", rng.Int63()))) {
 			fp++
 		}
 	}
-	if rate := float64(fp) / float64(trials); rate > 0.05 {
-		t.Errorf("частота ложных срабатываний %.4f выше допуска 0.05", rate)
+	if rate := float64(fp) / float64(trials); rate > 0.02 {
+		t.Errorf("частота ложных срабатываний %.4f выше допуска 0.02 (теория 0.0082)", rate)
 	}
 }

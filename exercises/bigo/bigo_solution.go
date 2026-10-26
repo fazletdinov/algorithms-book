@@ -77,3 +77,45 @@ func CountCopies(n int) int {
 	}
 	return copies
 }
+
+type MyQueue struct {
+	in, out []int // in принимает, out отдаёт: вершина out — первый в очереди
+}
+
+func NewMyQueue() *MyQueue {
+	return &MyQueue{}
+}
+
+func (q *MyQueue) Push(x int) {
+	q.in = append(q.in, x)
+}
+
+// refill переливает in в out, только когда out пуст: каждый элемент переливается
+// один раз за всю жизнь, отсюда амортизированное O(1).
+func (q *MyQueue) refill() {
+	if len(q.out) > 0 {
+		return
+	}
+	for len(q.in) > 0 {
+		last := len(q.in) - 1
+		q.out = append(q.out, q.in[last])
+		q.in = q.in[:last]
+	}
+}
+
+func (q *MyQueue) Pop() int {
+	q.refill()
+	last := len(q.out) - 1
+	x := q.out[last]
+	q.out = q.out[:last]
+	return x
+}
+
+func (q *MyQueue) Peek() int {
+	q.refill()
+	return q.out[len(q.out)-1]
+}
+
+func (q *MyQueue) Empty() bool {
+	return len(q.in) == 0 && len(q.out) == 0
+}

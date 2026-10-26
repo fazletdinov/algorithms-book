@@ -666,6 +666,27 @@ go test -run PopLeak -v ./stack/    # замер «pop без обнуления
 <div class="algo-challenge__q">Задержка часто держится ровно на одном значении. Как снимать со стека?</div>
 </div>
 
+<div class="algo-challenge" data-type="choice" data-options="[1, 2, 3]: вернёт 0 вместо 4 — на растущих высотах никого не выталкивают, а после цикла стек никто не разбирает|[2, 1, 5, 6, 2, 3]: вернёт 6 вместо 10 — прямоугольник 5 × 2 считается, только если столбик 5 снимают последним|[3, 2, 1]: вернёт 3 вместо 4 — на убывающих высотах left всякий раз указывает на соседа, а не на -1" data-answer="0" data-explain="Пропал столбик-сторож высоты 0 на месте i == n. Прямоугольник столбика считается только в момент, когда его выталкивают, а выталкивает лишь более низкий справа. На [1, 2, 3] такого нет: стек [0, 1, 2] после цикла так и не разобран, и ответ 0 вместо 4 (2 × 2). На [2, 1, 5, 6, 2, 3] и [3, 2, 1] лучший прямоугольник вытолкнут ещё внутри цикла — код прав случайно. Исправление — сторож из главы: i от 0 до n включительно и h = 0 при i == n.">
+<div class="algo-challenge__q">🐞 Найди ошибку. Гистограмма из разбора задачи, но цикл «упростили» до range. На каком входе этот код ошибается и почему?</div>
+<pre class="algo-challenge__code">func largestRectangle(heights []int) int {
+    best := 0
+    stack := []int{} // индексы, высоты строго возрастают
+    for i, h := range heights {
+        for len(stack) &gt; 0 &amp;&amp; heights[stack[len(stack)-1]] &gt;= h {
+            top := stack[len(stack)-1]
+            stack = stack[:len(stack)-1]
+            left := -1
+            if len(stack) &gt; 0 {
+                left = stack[len(stack)-1]
+            }
+            best = max(best, heights[top]*(i-left-1))
+        }
+        stack = append(stack, i)
+    }
+    return best
+}</pre>
+</div>
+
 <div class="algo-mental">
   <div class="algo-mental__icon">📌</div>
   <div class="algo-mental__body">

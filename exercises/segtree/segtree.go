@@ -8,6 +8,8 @@
 package segtree
 
 // SegmentTree — дерево отрезков (сумма, точечное обновление).
+//
+// Ограничения: len(arr) ≤ 5·10⁵, до 2·10⁵ вызовов Update и Query, |arr[i]|, |val| ≤ 10⁹.
 type SegmentTree struct {
 	n    int
 	tree []int
@@ -34,6 +36,8 @@ func (st *SegmentTree) Query(l, r int) int {
 }
 
 // MinSegmentTree — дерево отрезков (минимум, точечное обновление).
+//
+// Ограничения: len(arr) ≤ 5·10⁵, до 2·10⁵ вызовов Update и Query, |arr[i]|, |val| ≤ 10⁹.
 type MinSegmentTree struct {
 	n    int
 	tree []int
@@ -74,6 +78,9 @@ func (st *MinSegmentTree) Query(l, r int) int {
 
 // LazySegmentTree — дерево отрезков с отложенными обновлениями
 // (диапазонная прибавка + диапазонная сумма).
+//
+// Ограничения: len(arr) ≤ 5·10⁵, до 2·10⁵ вызовов RangeUpdate и RangeQuery,
+// |arr[i]|, |delta| ≤ 10⁴.
 type LazySegmentTree struct {
 	n          int
 	tree, lazy []int

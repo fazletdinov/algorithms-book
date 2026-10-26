@@ -83,6 +83,36 @@ func TestMinStackScales(t *testing.T) {
 	}
 }
 
+// TestMyQueueScales — сложность, а не ответ. Сначала в очередь ставят 10⁴ чисел,
+// затем 495000 раз подряд Push и Pop — всего 10⁶ операций, в очереди всё время
+// около 10⁴ элементов. «Переливать всё на каждый Pop» (in → out, снять, out → in)
+// стоит 2·10⁴ перекладываний на Pop — O(n²) за серию. Ленивая версия «переливать
+// обратно только на Push» не спасает: Push и Pop чередуются, и каждый гоняет всё.
+// Два стека с переливанием только в пустой out — каждый элемент переливается один
+// раз: O(1) амортизированно.
+func TestMyQueueScales(t *testing.T) {
+	const pre, rounds = 10000, 495000
+	var sum, last int
+	scaletest.Within(t, scaletest.Limit,
+		"MyQueue(10⁴ Push, затем 495000 раз Push и Pop) — похоже на O(n) за Pop там, где нужен амортизированный O(1)"+
+			" (замер: эталон ~1.2 мс, переливание туда и обратно на каждый Pop ~7.3 с, обратно только на Push ~8.3 с)",
+		func() {
+			q := NewMyQueue()
+			for i := 0; i < pre; i++ {
+				q.Push(i)
+			}
+			for i := 0; i < rounds; i++ {
+				q.Push(pre + i)
+				last = q.Pop()
+				sum += last
+			}
+		})
+	// Pop отдаёт 0, 1, …, rounds−1 по порядку.
+	if want := rounds * (rounds - 1) / 2; sum != want || last != rounds-1 {
+		t.Fatalf("MyQueue: сумма снятых = %d, последний = %d; ожидалось %d и %d", sum, last, want, rounds-1)
+	}
+}
+
 func at(a []int, i int) any {
 	if i < 0 || i >= len(a) {
 		return "нет"

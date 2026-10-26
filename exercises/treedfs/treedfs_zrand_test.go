@@ -243,3 +243,265 @@ func TestDiameterOfTreeRandom(t *testing.T) {
 		}
 	}
 }
+
+// heightBrute — высота поддерева заново, без запоминания.
+func heightBrute(n *TreeNode) int {
+	if n == nil {
+		return 0
+	}
+	return 1 + max(heightBrute(n.Left), heightBrute(n.Right))
+}
+
+// balancedBrute — определение дословно: разница высот в каждом узле.
+func balancedBrute(n *TreeNode) bool {
+	if n == nil {
+		return true
+	}
+	d := heightBrute(n.Left) - heightBrute(n.Right)
+	return d >= -1 && d <= 1 && balancedBrute(n.Left) && balancedBrute(n.Right)
+}
+
+func TestIsBalancedRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(110))
+	for range 4000 {
+		root := randTree(rng, rng.Intn(20))
+		if got, want := IsBalanced(root), balancedBrute(root); got != want {
+			t.Fatalf("IsBalanced(%s) = %v, want %v", treeString(root), got, want)
+		}
+	}
+}
+
+// mirrorCopy — зеркальная копия дерева.
+func mirrorCopy(n *TreeNode) *TreeNode {
+	if n == nil {
+		return nil
+	}
+	return &TreeNode{Val: n.Val, Left: mirrorCopy(n.Right), Right: mirrorCopy(n.Left)}
+}
+
+// symmetricBrute — дерево симметрично, если совпадает со своей зеркальной копией.
+func symmetricBrute(root *TreeNode) bool {
+	return treeString(root) == treeString(mirrorCopy(root))
+}
+
+func TestIsSymmetricRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(101))
+	for range 4000 {
+		// Половина деревьев — симметричные по построению, иногда с порчей одного
+		// узла: случайное дерево почти никогда не бывает симметричным.
+		var root *TreeNode
+		if rng.Intn(2) == 0 {
+			root = randTree(rng, rng.Intn(15))
+		} else {
+			half := randTree(rng, rng.Intn(10))
+			root = &TreeNode{Val: rng.Intn(5), Left: half, Right: mirrorCopy(half)}
+			if half != nil && rng.Intn(3) == 0 {
+				root.Right.Val++
+			}
+		}
+		if got, want := IsSymmetric(root), symmetricBrute(root); got != want {
+			t.Fatalf("IsSymmetric(%s) = %v, want %v", treeString(root), got, want)
+		}
+	}
+}
+
+func TestLowestCommonAncestorRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(236))
+	for range 2000 {
+		root := randTree(rng, 2+rng.Intn(20))
+		var nodes []*TreeNode
+		parent := map[*TreeNode]*TreeNode{}
+		var rec func(n, par *TreeNode)
+		rec = func(n, par *TreeNode) {
+			if n == nil {
+				return
+			}
+			nodes = append(nodes, n)
+			parent[n] = par
+			rec(n.Left, n)
+			rec(n.Right, n)
+		}
+		rec(root, nil)
+		for range 5 {
+			p := nodes[rng.Intn(len(nodes))]
+			q := nodes[rng.Intn(len(nodes))]
+			if p == q {
+				continue
+			}
+			// Предки p (вместе с ним), затем первый из предков q в этом множестве.
+			anc := map[*TreeNode]bool{}
+			for a := p; a != nil; a = parent[a] {
+				anc[a] = true
+			}
+			want := q
+			for !anc[want] {
+				want = parent[want]
+			}
+			if got := LowestCommonAncestor(root, p, q); got != want {
+				t.Fatalf("LowestCommonAncestor(%s, p=%d, q=%d) = %s, ожидался узел %d",
+					treeString(root), p.Val, q.Val, nodeName(got), want.Val)
+			}
+		}
+	}
+}
+
+// pathsBrute — все пути корень→лист с суммой target, каждый путь собран заново.
+func pathsBrute(n *TreeNode, target int) [][]int {
+	if n == nil {
+		return nil
+	}
+	if n.Left == nil && n.Right == nil {
+		if n.Val == target {
+			return [][]int{{n.Val}}
+		}
+		return nil
+	}
+	var res [][]int
+	for _, sub := range append(pathsBrute(n.Left, target-n.Val), pathsBrute(n.Right, target-n.Val)...) {
+		res = append(res, append([]int{n.Val}, sub...))
+	}
+	return res
+}
+
+func TestPathSumAllRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(113))
+	for range 3000 {
+		root := randTree(rng, rng.Intn(20))
+		sums := leafPathSums(root)
+		target := rng.Intn(40) - 20
+		if len(sums) > 0 && rng.Intn(3) > 0 {
+			target = sums[rng.Intn(len(sums))]
+		}
+		if got, want := PathSumAll(root, target), pathsBrute(root, target); !eqPaths(got, want) {
+			t.Fatalf("PathSumAll(%s, %d) = %v, want %v", treeString(root), target, got, want)
+		}
+	}
+}
+
+// distinctTree — случайное дерево той же формы, что randTree, но с различными
+// значениями (случайная перестановка, в том числе отрицательных).
+func distinctTree(rng *rand.Rand, size int) *TreeNode {
+	root := randTree(rng, size)
+	vals := rng.Perm(size)
+	i := 0
+	var rec func(n *TreeNode)
+	rec = func(n *TreeNode) {
+		if n == nil {
+			return
+		}
+		n.Val = vals[i] - size/2
+		i++
+		rec(n.Left)
+		rec(n.Right)
+	}
+	rec(root)
+	return root
+}
+
+func TestBuildTreeRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(105))
+	for range 3000 {
+		want := distinctTree(rng, rng.Intn(25))
+		pre, in := iterPre(want), iterIn(want)
+		if got := BuildTree(pre, in); treeString(got) != treeString(want) {
+			t.Fatalf("BuildTree(%v, %v) = %s, want %s", pre, in, treeString(got), treeString(want))
+		}
+	}
+}
+
+// copyTree — независимая копия дерева.
+func copyTree(n *TreeNode) *TreeNode {
+	if n == nil {
+		return nil
+	}
+	return &TreeNode{Val: n.Val, Left: copyTree(n.Left), Right: copyTree(n.Right)}
+}
+
+// subtreeBrute — sub есть в root, если запись sub по уровням совпала с записью
+// поддерева какого-нибудь узла root.
+func subtreeBrute(root, sub *TreeNode) bool {
+	if sub == nil {
+		return true
+	}
+	want := treeString(sub)
+	found := false
+	var rec func(n *TreeNode)
+	rec = func(n *TreeNode) {
+		if n == nil || found {
+			return
+		}
+		found = treeString(n) == want
+		rec(n.Left)
+		rec(n.Right)
+	}
+	rec(root)
+	return found
+}
+
+func TestIsSubtreeRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(572))
+	for range 4000 {
+		root := randTree(rng, rng.Intn(20))
+		for _, n := range allNodes(root) {
+			n.Val = rng.Intn(3) // мало значений — много почти-совпадений
+		}
+		var sub *TreeNode
+		if nodes := allNodes(root); len(nodes) > 0 && rng.Intn(4) > 0 {
+			// Копия настоящего поддерева, иногда с порчей: значение или лишний лист.
+			sub = copyTree(nodes[rng.Intn(len(nodes))])
+			switch rng.Intn(3) {
+			case 0:
+				sub.Val++
+			case 1:
+				leaf := sub
+				for leaf.Left != nil {
+					leaf = leaf.Left
+				}
+				leaf.Left = &TreeNode{Val: rng.Intn(3)}
+			}
+		} else {
+			sub = randTree(rng, rng.Intn(4))
+			for _, n := range allNodes(sub) {
+				n.Val = rng.Intn(3)
+			}
+		}
+		if got, want := IsSubtree(root, sub), subtreeBrute(root, sub); got != want {
+			t.Fatalf("IsSubtree(%s, %s) = %v, want %v", treeString(root), treeString(sub), got, want)
+		}
+	}
+}
+
+// allNodes — все узлы дерева в прямом порядке.
+func allNodes(n *TreeNode) []*TreeNode {
+	if n == nil {
+		return nil
+	}
+	return append(append([]*TreeNode{n}, allNodes(n.Left)...), allNodes(n.Right)...)
+}
+
+// downSums — число путей вниз с суммой target, начиная ровно в узле n.
+func downSums(n *TreeNode, target int) int {
+	if n == nil {
+		return 0
+	}
+	c := 0
+	if n.Val == target {
+		c = 1
+	}
+	return c + downSums(n.Left, target-n.Val) + downSums(n.Right, target-n.Val)
+}
+
+func TestCountPathsWithSumRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(437))
+	for range 4000 {
+		root := randTree(rng, rng.Intn(25))
+		target := rng.Intn(21) - 10
+		want := 0
+		for _, n := range allNodes(root) {
+			want += downSums(n, target)
+		}
+		if got := CountPathsWithSum(root, target); got != want {
+			t.Fatalf("CountPathsWithSum(%s, %d) = %d, want %d", treeString(root), target, got, want)
+		}
+	}
+}

@@ -148,3 +148,52 @@ func TestIntSqrt(t *testing.T) {
 		})
 	}
 }
+
+func TestMinEatingSpeed(t *testing.T) {
+	tests := []struct {
+		name  string
+		piles []int
+		h     int
+		want  int
+	}{
+		{"пример главы", []int{3, 6, 7, 11}, 8, 4},
+		{"часов ровно по числу куч — самая большая куча", []int{30, 11, 23, 4, 20}, 5, 30},
+		{"на час больше", []int{30, 11, 23, 4, 20}, 6, 23},
+		{"одна куча", []int{10}, 3, 4},
+		{"времени с запасом — скорость 1", []int{3, 6, 7, 11}, 100, 1},
+		{"ровно впритык по сумме", []int{2, 2, 2}, 6, 1},
+		{"огромная куча", []int{1000000000}, 2, 500000000},
+		{"огромная куча и час на неё", []int{1000000000, 1}, 2, 1000000000},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := MinEatingSpeed(tt.piles, tt.h); got != tt.want {
+				t.Errorf("MinEatingSpeed(%v, %d) = %d, ожидалось %d", tt.piles, tt.h, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestShipWithinDays(t *testing.T) {
+	tests := []struct {
+		name    string
+		weights []int
+		days    int
+		want    int
+	}{
+		{"пример LeetCode", []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, 5, 15},
+		{"три дня", []int{3, 2, 2, 4, 1, 4}, 3, 6},
+		{"четыре дня", []int{1, 2, 3, 1, 1}, 4, 3},
+		{"один день — сумма", []int{1, 2, 3}, 1, 6},
+		{"дней по числу посылок — самая тяжёлая", []int{5, 1, 9, 2}, 4, 9},
+		{"одна посылка", []int{7}, 1, 7},
+		{"порядок важен: тяжёлые по краям", []int{10, 1, 1, 10}, 2, 11},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ShipWithinDays(tt.weights, tt.days); got != tt.want {
+				t.Errorf("ShipWithinDays(%v, %d) = %d, ожидалось %d", tt.weights, tt.days, got, tt.want)
+			}
+		})
+	}
+}

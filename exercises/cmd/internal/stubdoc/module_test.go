@@ -380,6 +380,8 @@ var expectedNeeds = map[string][]string{
 	"binheap.BuildHeap": {"Heap.Pop", "Heap.Peek", "Heap.Len"},
 	// рецепт и эталон строятся на соседе
 	"numbertheory.LCM":                  {"GCD"},
+	"numbertheory.ModInversePrime":      {"PowMod"},
+	"numbertheory.BinomialMod":          {"PowMod", "ModInversePrime"},
 	"cryptography.ModInverse":           {"ExtendedGCD"},
 	"cryptography.IsProbablePrime":      {"ModExp"},
 	"cryptography.RSAEncrypt":           {"ModExp"},

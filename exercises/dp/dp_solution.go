@@ -164,3 +164,25 @@ func WordBreak(s string, dict []string) bool {
 	}
 	return dp[n]
 }
+
+func DeleteAndEarn(nums []int) int {
+	maxV := 0
+	for _, x := range nums {
+		if x > maxV {
+			maxV = x
+		}
+	}
+	points := make([]int, maxV+1)
+	for _, x := range nums {
+		points[x] += x
+	}
+	prev2, prev1 := 0, 0
+	for v := 1; v <= maxV; v++ {
+		cur := prev1
+		if cand := prev2 + points[v]; cand > cur {
+			cur = cand
+		}
+		prev2, prev1 = prev1, cur
+	}
+	return prev1
+}

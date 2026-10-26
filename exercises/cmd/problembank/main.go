@@ -72,6 +72,7 @@ type problem struct {
 	Sign       string   // по чему приём виден в условии («Признак:»), без префикса
 	Needs      []string // другие упражнения пакета, без которых Tests не пройдут
 	Members    []string // у задачи на проектирование класса — упражнения типа; у функции пусто
+	NoPick     bool     // условие само называет приём — шаг «какой шаблон?» не задаётся (список noPick)
 }
 
 // slugRe — имя главы: имя файла src/<слаг>.md. Узкое на всякий случай: слаг идёт в
@@ -96,6 +97,11 @@ func main() {
 	problems, dups := dedupe(problems)
 	for _, d := range dups {
 		fmt.Println("ℹ️  problembank:", d)
+	}
+	// После dedupe: запись про выброшенный дубль — тоже запись, которой в банке нет.
+	if err := markNoPick(problems, noPick); err != nil {
+		fmt.Fprintln(os.Stderr, "❌ problembank:", err)
+		os.Exit(1)
 	}
 
 	generated := render(problems)
@@ -432,6 +438,10 @@ func render(ps []problem) []byte {
  * решённой функцией он упадёт с panic("TODO") соседа).
  * m — только у задачи на проектирование класса: f у неё — имя типа, m — его упражнения
  * (конструктор и методы), t — тесты типа; у функции поля m нет.
+ * np: true — условие само называет приём («алгоритм Флойда», «обход в ширину»): вопрос «какой
+ * шаблон?» на нём проверяет узнавание слова, поэтому обычная смешанная задачу не выдаёт, а
+ * собеседование выдаёт без этого шага. Список с причинами — cmd/problembank/nopick.go; у
+ * остальных задач поля нет.
  */
 window.ALGO_PROBLEMS = [
 `)
@@ -456,10 +466,14 @@ window.ALGO_PROBLEMS = [
 			}
 			members = ", m: [" + strings.Join(ms, ", ") + "]"
 		}
-		fmt.Fprintf(&b, "  { p: %s, f: %s, c: %s, s: %s, h: %s, t: [%s], x: %s, a: [%s], g: %s, n: [%s]%s },\n",
+		np := ""
+		if p.NoPick {
+			np = ", np: true"
+		}
+		fmt.Fprintf(&b, "  { p: %s, f: %s, c: %s, s: %s, h: %s, t: [%s], x: %s, a: [%s], g: %s, n: [%s]%s%s },\n",
 			jsString(p.Pkg), jsString(p.Fn), jsString(p.Chapter), jsString(p.Text), jsString(p.Hint),
 			strings.Join(tests, ", "), jsString(p.Complexity), strings.Join(also, ", "), jsString(p.Sign),
-			strings.Join(needs, ", "), members)
+			strings.Join(needs, ", "), members, np)
 	}
 	b.WriteString("];\n")
 	return b.Bytes()

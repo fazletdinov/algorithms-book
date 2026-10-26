@@ -20,7 +20,16 @@
 //   (f) повторная порция маленького пула: показанные идут каждый раз в другом порядке, промах — первым;
 //   (g) один язык: варианты без латиницы (кроме имён Go и аббревиатур BFS, DFS, MST, KMP, NP, BST, A*, K),
 //       без повторов, ответ среди вариантов, ответ-название главы ведёт в эту главу; английское
-//       название (en) после ответа показано ровно один раз и не повторено в тексте пояснения.
+//       название (en) после ответа показано ровно один раз и не повторено в тексте пояснения;
+//   (h) длина вариантов — как правило 7 scripts/check-challenges.js: верный вариант не бывает в ≥ 1.25 раза
+//       и на ≥ 8 символов длиннее КАЖДОГО неверного (ответ угадывался бы по длине); печатается, в скольких
+//       вопросах верный — самый длинный (при случайном выборе — в четверти);
+//   (i) переписанные вопросы (ALGO_QUIZ.renamed): прежнего текста в банке нет, нынешний есть; промах и показ
+//       под прежним текстом при загрузке переезжают на нынешний (промахи складываются, показ — поздний),
+//       find() находит вопрос по обоим текстам, а испорченный algoQuizMissed не перезаписывается;
+//   (j) у каждой главы ядра (lvl: "core" в progress.js), кроме «Инвариантов и индукции» (глава о
+//       доказательстве корректности, а не о приёме), есть хотя бы один вопрос; хеш-таблица — ответ
+//       хотя бы двух вопросов.
 // Если jsdom не найден — мягкий пропуск (exit 0), как в остальных смоуках.
 "use strict";
 const fs = require("fs");
@@ -334,6 +343,107 @@ async function main() {
     }
     if (!withEn) errors.push("(g) в порции из 10 нет ни одного вопроса с английским названием — проверка показа en не сработала");
   }
+
+  // --- (i) переписанные вопросы: банк и перенос промаха и показа ---
+  {
+    const probe = await boot({}, 1);
+    const Q = probe.window.ALGO_QUIZ;
+    const renamed = Q.renamed || {};
+    const olds = Object.keys(renamed);
+    if (!olds.length) errors.push("(i) ALGO_QUIZ.renamed пуст — проверка переноса ничего не проверяет");
+    for (const oldQ of olds) {
+      if (Q.questions.some((x) => x.q === oldQ)) errors.push(`(i) прежний текст «${oldQ.slice(0, 50)}» всё ещё в банке`);
+      const cur = Q.questions.find((x) => x.q === renamed[oldQ]);
+      if (!cur) errors.push(`(i) нынешнего текста «${String(renamed[oldQ]).slice(0, 50)}» нет в банке`);
+      else if (Q.find(oldQ) !== cur || Q.find(cur.q) !== cur) errors.push(`(i) find() не находит «${cur.q.slice(0, 50)}» по прежнему или нынешнему тексту`);
+    }
+    if (Q.find("Вопроса нет в банке") !== null) errors.push("(i) find() нашёл вопрос, которого нет в банке");
+    if (olds.length) {
+      const [a, b] = olds;
+      const na = renamed[a], nb = renamed[b];
+      const cur = Q.questions.find((x) => x.q === na);
+      const dom = await boot({
+        algoQuizMissed: JSON.stringify({
+          [a]: { n: 2, pattern: "Старый ответ", href: "old.html", q: a },
+          [na]: { n: 1, pattern: cur.correct, href: cur.href, q: na },
+          "чужой промах": { n: 1, pattern: "P", href: "p.html", q: "чужой промах" },
+        }),
+        algoQuizSeen: JSON.stringify({ [a]: 500, [na]: 300, [b]: 700 }),
+      }, 2);
+      const missed = parse(dom, "algoQuizMissed"), seen = parse(dom, "algoQuizSeen");
+      if (a in missed || !missed[na] || missed[na].n !== 3 || missed[na].q !== na || missed[na].pattern !== cur.correct || missed[na].href !== cur.href) {
+        errors.push(`(i) промах под прежним текстом не перенесён на нынешний (ожидалось n = 3 и ответ банка): ${JSON.stringify(missed)}`);
+      }
+      if (!missed["чужой промах"]) errors.push("(i) перенос стёр промах другого вопроса");
+      if (a in seen || b in seen || seen[na] !== 500 || seen[nb] !== 700) errors.push(`(i) показ не перенесён (ожидалось ${na.slice(0, 20)}… = 500, ${nb.slice(0, 20)}… = 700): ${JSON.stringify(seen)}`);
+      // перенесённый промах идёт в порции первым, как любой промах
+      const dom2 = await boot({ algoPracticeScope: "all", algoQuizMissed: JSON.stringify({ [b]: { n: 1, pattern: "P", href: "p.html", q: b } }) }, 3);
+      if (view(dom2).q !== nb) errors.push(`(i) перенесённый промах не первым в порции: «${view(dom2).q.slice(0, 50)}»`);
+      // испорченная запись не перезаписывается
+      const dom3 = await boot({ algoQuizMissed: "{не json" }, 4);
+      if (dom3.window.localStorage.getItem("algoQuizMissed") !== "{не json") errors.push("(i) перенос перезаписал испорченный algoQuizMissed");
+      [dom, dom2, dom3].forEach((d) => d.window.close());
+    }
+  }
+
+  // --- (j) покрытие ядра и хеш-таблица как ответ ---
+  {
+    const probe = await boot({}, 1);
+    const bank = probe.window.ALGO_QUIZ.questions;
+    const core = (probe.window.ALGO_CHAPTERS || []).filter((c) => c.lvl === "core");
+    // «Инварианты и индукция» — о том, как доказать корректность кода, а не о приёме, который узнают по условию
+    const SKIP = new Set(["invariants.html"]);
+    if (core.length < 20) errors.push(`(j) глав ядра в progress.js ${core.length} — проверка покрытия не нашла реестр`);
+    for (const c of core) {
+      if (SKIP.has(c.h)) continue;
+      if (!bank.some((x) => x.href === c.h)) errors.push(`(j) у главы ядра «${c.t}» (${c.h}) нет ни одного вопроса квиза`);
+    }
+    const hash = bank.filter((x) => x.href === "hash-table-structure.html").length;
+    if (hash < 2) errors.push(`(j) хеш-таблица — ответ ${hash} вопросов, нужно хотя бы 2: иначе ученик учится её отбрасывать`);
+  }
+}
+
+// (h) длина вариантов. Без DOM: банк — из самого quiz.js с заглушками окна и хранилища.
+const LONG_RATIO = 1.25;
+const LONG_EXTRA = 8;
+function bankOf(src) {
+  const win = {};
+  const store = {};
+  const ls = { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } };
+  new Function("window", "document", "localStorage", src)(win, { readyState: "complete", querySelectorAll: () => [] }, ls);
+  return win.ALGO_QUIZ;
+}
+// lengthProblems — вопросы, где верный вариант угадывается по длине, и сколько раз верный — самый длинный.
+function lengthProblems(bank) {
+  const len = (s) => [...String(s).trim()].length;
+  const bad = [];
+  let longest = 0;
+  for (const item of bank) {
+    const lc = len(item.correct);
+    const lw = Math.max(...item.options.filter((o) => o !== item.correct).map(len));
+    if (lc > lw) longest++;
+    if (lc >= LONG_RATIO * lw && lc - lw >= LONG_EXTRA) {
+      bad.push(`(h) «${item.q.slice(0, 50)}»: верный вариант «${item.correct}» длиннее всех неверных (${lc} против ${lw} символов) — ответ угадывается по длине; допиши неверные варианты до той же подробности`);
+    }
+  }
+  return { bad, longest };
+}
+const quizBank = bankOf(quizJs).questions;
+const lengthStat = lengthProblems(quizBank);
+errors.push(...lengthStat.bad);
+// src/quiz.md называет размер банка («берёт все N вопросов») — число обязано совпасть с банком
+{
+  const md = fs.readFileSync(path.join(root, "src", "quiz.md"), "utf8");
+  const m = md.match(/берёт все (\d+) вопрос/);
+  if (!m) errors.push("src/quiz.md: не найдено «берёт все N вопросов» — проверка размера банка ничего не сверяет");
+  else if (Number(m[1]) !== quizBank.length) errors.push(`src/quiz.md: «берёт все ${m[1]} вопросов», а в банке ${quizBank.length}`);
+}
+// мутация: раздутый верный вариант обязан дать ровно одну ошибку — иначе правило ничего не проверяет
+{
+  const q0 = quizBank[0];
+  const long = q0.correct + " со сходящимися концами массива";
+  const mut = { ...q0, correct: long, options: q0.options.map((o) => (o === q0.correct ? long : o)) };
+  if (lengthProblems([mut]).bad.length !== 1) errors.push(`(h) правило длины не поймало мутацию «${long}» против ${JSON.stringify(q0.options)}`);
 }
 
 main().then(finish, (e) => { console.error("❌ quiz-check: неожиданная ошибка:", e); process.exit(1); });
@@ -358,7 +468,9 @@ function finish() {
       "две главы — порция из их 7 вопросов, промах первым, «Следующая порция»; показы пишутся по свежему чтению; " +
       "рекорд — только у порции из 10 и под своим ключом, «40/64» не показан и не тронут; сборка порции на 400 случайных наборах " +
       "держит размер, главы, порядок групп; повторная порция — в новом порядке; " +
-      "варианты по-русски, английское название — один раз в пояснении"
+      "варианты по-русски, английское название — один раз в пояснении; " +
+      `верный вариант не угадывается по длине (самый длинный — в ${lengthStat.longest} из ${quizBank.length}, ${Math.round((100 * lengthStat.longest) / quizBank.length)} %); ` +
+      "переписанные вопросы переносят промах и показ; у каждой главы ядра, кроме инвариантов, есть вопрос"
   );
   process.exit(0);
 }

@@ -48,13 +48,21 @@
  * тесты задачи с соседями падают на их panic("TODO").
  * Промах по выбору шаблона уходит карточкой в движок повторений (srs.js), а каждый ответ
  * оценивает карточку mix: этой задачи (ALGO_SRS.report): верно — «Помню», неверно — «Забыл».
+ *
+ * Задача с np: true (условие само называет приём: «алгоритм Флойда», «обход в ширину», «за O(n) без
+ * памяти» на числах 1..n; список с причинами — cmd/problembank/nopick.go) в обычную смешанную не
+ * попадает: вопрос «какой шаблон?» на ней проверяет, узнал ли ты слово, а это и есть вся её польза
+ * здесь. Собеседование её выдаёт, но без этого шага: приём назван строкой «назван в условии» и сразу
+ * идёт план — время, план словами, код и оценка сложности на такой задаче тренируются честно. Ответа
+ * на «какой шаблон?» нет, поэтому нет ни промаха, ни карточки mix:, а в итоге и в истории шаблон —
+ * «назван в условии» (pattern: null).
  */
 (function () {
   "use strict";
 
   var MISSED = "algoMixedMissed"; // {"<pkg>.<fn>": {n, chapter, fn, pkg}} — источник карточек для srs.js
   var SEEN = "algoMixedSeen"; // {"<pkg>.<fn>": ts} — чтобы не выдавать одно и то же подряд
-  var MOCK_LOG = "algoMockLog"; // [{k, ts, secs, limit, pattern, plan, edges, green, cx, own}] — история собеседований
+  var MOCK_LOG = "algoMockLog"; // [{k, ts, secs, limit, pattern, plan, edges, green, cx, own}] — история собеседований (pattern: null — приём назван в условии)
   var CX_MISSED = "algoMockCxMissed"; // {"<pkg>.<fn>": {n, chapter, fn, pkg}} — источник карточек cx: для srs.js
   var MIXED_DRAFT = "algoRunnerCode:mixed:"; // черновик обычного режима — ключ виджета runner'а с data-draft="mixed"
   var OPTIONS = 4;
@@ -248,7 +256,13 @@
     var count = Object.keys(chapters).length;
     return { api: api, done: done, pool: pool, chapters: count, short: !!done && count < MIN_DONE };
   }
-  window.ALGO_MIXED = { choices: choices, answers: answers };
+  // servable — выдаёт ли режим задачу p: обычная смешанная — любую без np, собеседование — только со
+  // своими тестами (t) и без соседних упражнений (n), а np ему не помеха (шаг «какой шаблон?» пропускается).
+  function servable(p, mock) {
+    if (mock) return !!(p.t && p.t.length) && !(p.n && p.n.length);
+    return !p.np;
+  }
+  window.ALGO_MIXED = { choices: choices, answers: answers, servable: servable };
 
   // Карточка промаха по сложности (cx:) заводится сразу, со сроком на начало завтрашних суток (srs.js,
   // missDue). Карточку mix: оценивает сам ответ на «какой шаблон?» (record).
@@ -274,9 +288,9 @@
     }
     // В собеседовании гоняются только тесты самой функции на чистой заготовке: задачу без своих тестов
     // проверить нечем, а тесты задачи с соседними упражнениями (n) упадут на их panic("TODO").
-    var mockable = problems.filter(function (p) {
-      return p.t && p.t.length && !(p.n && p.n.length);
-    });
+    var mockable = problems.filter(function (p) { return servable(p, true); });
+    // Обычной смешанной — всё, кроме задач, чьё условие само называет приём (np).
+    var pickable = problems.filter(function (p) { return servable(p, false); });
 
     var lastKey = null;
     var lastPkg = null;
@@ -326,7 +340,7 @@
     function refreshStat() {
       var missed = Object.keys(loadMap(MISSED)).length;
       var seen = Object.keys(loadMap(SEEN)).length;
-      var st = scopeOf(mock ? mockable : problems);
+      var st = scopeOf(mock ? mockable : pickable);
       stat.textContent = (st.done ? "задач по пройденным главам: " + st.pool.length + " из " + problems.length : "в банке " + problems.length + " задач") +
         " · показано " + seen + (missed ? " · шаблон не угадан у " + missed : "");
 
@@ -357,7 +371,7 @@
     // showScope — подпись режима и, если задач в нём не хватает, объяснение вместо задачи: пустой экран
     // после «Дать задачу» выглядел бы поломкой. Зовётся при сборке, смене режима выдачи и собеседования.
     function showScope() {
-      var st = scopeOf(mock ? mockable : problems);
+      var st = scopeOf(mock ? mockable : pickable);
       scopeBox.checked = !st.done;
       scopeText.textContent = st.done
         ? "Задачи только по пройденным главам (с задачами в банке: " + st.chapters + ")."
@@ -428,6 +442,15 @@
       });
       body.appendChild(card);
 
+      // Условие само называет приём: в собеседовании вопрос «какой шаблон?» пропускается (в обычный
+      // пул такая задача не попадает вовсе — pickable).
+      if (mock && p.np) {
+        markSeen(p);
+        mockPlan(p, null, isDone(done, p.c) ? p.c : answers(p).filter(function (c) { return isDone(done, c); })[0] || p.c, null);
+        refreshStat();
+        return;
+      }
+
       var qBox = el("div", "algo-mixed__q");
       qBox.appendChild(el("div", "algo-mixed__label", "Каким шаблоном это решается?"));
       var pickOf = choices(p, problems, done);
@@ -461,10 +484,14 @@
       body.appendChild(qBox);
     }
 
-    function record(p, ok) {
+    function markSeen(p) {
       var seen = loadMap(SEEN);
       seen[key(p)] = Date.now();
       save(SEEN, seen);
+    }
+
+    function record(p, ok) {
+      markSeen(p);
 
       var missed = loadMap(MISSED);
       if (ok) {
@@ -488,6 +515,10 @@
     function verdictText(p, ok, named, yes, no) {
       var also = answers(p).filter(function (c) { return c !== named; }).map(chapterTitle);
       return (ok ? yes : no) + chapterTitle(named) + (also.length ? " — также решается: " + also.join(", ") : "");
+    }
+    // namedText — вердикт задачи, чьё условие само называет приём (np): шага «какой шаблон?» не было.
+    function namedText(p, named) {
+      return verdictText(p, true, named, "Приём назван в самом условии — шаг «какой шаблон?» пропущен: ", "");
     }
 
     // signLine — признак g под вердиктом после неверного ответа: «по чему это было видно» стоит раньше
@@ -591,14 +622,17 @@
     // mockPlan — шаг после шаблона: план словами. Тему называем (продолжать с
     // неверным приёмом — потерянная сессия), но ни подсказок, ни главы. Строка пары после промаха — тоже
     // только в итоге: в рядах бывает сложность приёма («куча размера k — O(n log k)»), а её режим спрашивает.
+    // ok === null — задача np: приём назван в условии, шага выбора не было.
     function mockPlan(p, ok, named, picked) {
       if (!session) return;
       session.pattern = ok;
       session.picked = ok ? null : picked;
 
       var res = el("div", "algo-mixed__result algo-mixed__mock");
-      res.appendChild(el("div", "algo-mixed__verdict " + (ok ? "is-ok" : "is-no"),
-        verdictText(p, ok, named, "✓ Шаблон угадан: ", "✗ Шаблон не угадан. Это ")));
+      res.appendChild(ok === null
+        ? el("div", "algo-mixed__verdict algo-mixed__verdict--named", namedText(p, named))
+        : el("div", "algo-mixed__verdict " + (ok ? "is-ok" : "is-no"),
+          verdictText(p, ok, named, "✓ Шаблон угадан: ", "✗ Шаблон не угадан. Это ")));
 
       var planBox = el("div", "algo-mixed__plan");
       planBox.appendChild(el("div", "algo-mixed__label", "План — как сказал бы вслух интервьюеру"));
@@ -771,7 +805,7 @@
       sum.appendChild(el("div", "algo-mixed__label", "Итог собеседования"));
       var rows = [
         ["Время", mmss(secs) + " из " + mmss(limit) + (secs <= limit ? " — в срок" : " — перебор")],
-        ["Шаблон", session.pattern ? "угадан" : "не угадан"],
+        ["Шаблон", session.pattern === null ? "назван в условии" : session.pattern ? "угадан" : "не угадан"],
         ["План словами", session.plan + " символов"],
         ["Граничные случаи", (session.edges || []).join(" · ") || "—"],
         ["Тесты", session.green != null ? "зелёные за " + mmss(session.green) : "не доведены"],
@@ -800,7 +834,7 @@
       var log = loadList(MOCK_LOG);
       log.push({
         k: key(p), ts: Date.now(), secs: secs, limit: MOCK_LIMIT_MIN,
-        pattern: !!session.pattern, plan: session.plan, edges: (session.edges || []).length,
+        pattern: session.pattern === null ? null : !!session.pattern, plan: session.plan, edges: (session.edges || []).length,
         green: session.green != null, cx: session.cx, own: session.own ? (session.own.ok ? "ok" : "fail") : "",
       });
       save(MOCK_LOG, log.slice(-LOG_MAX));

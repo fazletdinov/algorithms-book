@@ -184,8 +184,8 @@ func TestCollectRealBankNewFields(t *testing.T) {
 			needs = append(needs, p.Pkg+"."+p.Fn+" -> "+strings.Join(p.Needs, ","))
 		}
 	}
-	if withComplexity != 206 {
-		t.Errorf("задач с эталоном сложности %d, ожидалось 206 (абзацев «Ожидаемая сложность:» стало больше или меньше — "+
+	if withComplexity != 295 {
+		t.Errorf("задач с эталоном сложности %d, ожидалось 295 (абзацев «Ожидаемая сложность:» стало больше или меньше — "+
 			"сверь с docs заготовок и поправь число)", withComplexity)
 	}
 	// n в банке — это needs из stubdoc (список пар лежит там: stubdoc/module_test.go, expectedNeeds);
@@ -217,34 +217,103 @@ var realMarks = map[string]struct {
 	c string
 	a []string
 }{
-	"bigo.NextGreaterElement":         {"monotonic-stack", []string{"big-o"}},
-	"bigo.DailyTemperatures":          {"monotonic-stack", []string{"big-o"}},
-	"graphs.HasCycleUndirected":       {"graphs", []string{"union-find-structure"}},
-	"topk.KthLargest":                 {"top-k-elements", []string{"sorting"}},
-	"sorting.QuickSelect":             {"sorting", []string{"top-k-elements"}},
-	"prefixsum.MaxSubarraySum":        {"prefix-sums", []string{"dynamic-programming"}},
-	"greedy.MaxNonOverlapping":        {"greedy", []string{"merge-intervals"}},
-	"twopointers.DutchFlagSort":       {"two-pointers", []string{"sorting"}},
-	"slidingwindow.MaxSlidingWindow":  {"sliding-window", nil},
-	"stack.RemoveKDigits":             {"monotonic-stack", []string{"greedy"}},
-	"recursion.Fib":                   {"recursion", []string{"dynamic-programming"}},
-	"dp.ClimbStairs":                  {"dynamic-programming", []string{"recursion"}},
-	"prefixsum.CountSubarraysWithSum": {"prefix-sums", nil},
-	"toposort.CanFinish":              {"topological-sort", nil},
-	"hashtable.TwoSum":                {"hash-table-structure", nil},
-	"hashtable.LongestConsecutive":    {"hash-table-structure", nil},
+	"bigo.NextGreaterElement":   {"monotonic-stack", []string{"big-o"}},
+	"bigo.DailyTemperatures":    {"monotonic-stack", []string{"big-o"}},
+	"graphs.HasCycleUndirected": {"graphs", []string{"union-find-structure"}},
+	// Кратчайший путь и обход сетки: Дейкстра — раздел ядровой главы «Графы», сетка —
+	// неявный граф, а сетка с шагом цены 1 решается BFS; без взаимных альтернатив
+	// близнец засчитывался бы промахом.
+	"graphs.Dijkstra":                  {"graphs", []string{"grids-and-shortest-paths"}},
+	"dijkstra.ShortestPath":            {"grids-and-shortest-paths", []string{"graphs"}},
+	"dijkstra.ShortestPathsFrom":       {"grids-and-shortest-paths", []string{"graphs"}},
+	"dijkstra.NetworkDelayTime":        {"grids-and-shortest-paths", []string{"graphs"}},
+	"astar.ShortestPath":               {"advanced-graph-algorithms", []string{"grids-and-shortest-paths", "graphs"}},
+	"astar.PathExists":                 {"advanced-graph-algorithms", []string{"grids-and-shortest-paths", "graphs"}},
+	"grids.NumIslands":                 {"grids-and-shortest-paths", []string{"graphs"}},
+	"grids.MaxAreaOfIsland":            {"grids-and-shortest-paths", []string{"graphs"}},
+	"grids.FloodFill":                  {"grids-and-shortest-paths", []string{"graphs"}},
+	"grids.RottingOranges":             {"grids-and-shortest-paths", []string{"graphs"}},
+	"grids.ShortestPathInBinaryMatrix": {"grids-and-shortest-paths", []string{"graphs", "advanced-graph-algorithms"}},
+	"topk.KthLargest":                  {"top-k-elements", []string{"sorting"}},
+	"sorting.QuickSelect":              {"sorting", []string{"top-k-elements"}},
+	"prefixsum.MaxSubarraySum":         {"prefix-sums", []string{"dynamic-programming"}},
+	"greedy.MaxNonOverlapping":         {"greedy", []string{"merge-intervals"}},
+	"twopointers.DutchFlagSort":        {"two-pointers", []string{"sorting"}},
+	"slidingwindow.MaxSlidingWindow":   {"sliding-window", nil},
+	"stack.RemoveKDigits":              {"monotonic-stack", []string{"greedy"}},
+	"recursion.Fib":                    {"recursion", []string{"dynamic-programming"}},
+	"dp.ClimbStairs":                   {"dynamic-programming", []string{"recursion"}},
+	"prefixsum.CountSubarraysWithSum":  {"prefix-sums", nil},
+	"hashtable.TwoSum":                 {"hash-table-structure", nil},
+	"hashtable.LongestConsecutive":     {"hash-table-structure", nil},
 	// fresh — задачи без разбора в книге (P3 аудита): глава-ответ задаёт «Шаблон:».
-	"fresh.BestClosingHour":     {"prefix-sums", nil},
-	"fresh.CableMovesToConnect": {"graphs", nil},
-	"fresh.CanMergeLogs":        {"dynamic-programming", nil},
-	"fresh.ClosestPrices":       {"bst-structure", []string{"modified-binary-search"}},
-	"fresh.CountMagnetWords":    {"backtracking", []string{"subsets"}},
-	"fresh.CountSteadyPairs":    {"hash-table-structure", []string{"sorting"}},
-	"fresh.FastestRoutesCount":  {"graphs", nil},
-	"fresh.FurthestStop":        {"top-k-elements", []string{"heap-structure", "modified-binary-search"}},
-	"fresh.HIndex":              {"sorting", []string{"modified-binary-search"}},
+	"fresh.BestClosingHour":          {"prefix-sums", nil},
+	"fresh.CableMovesToConnect":      {"graphs", nil},
+	"fresh.CanMergeLogs":             {"dynamic-programming", nil},
+	"fresh.ClosestPrices":            {"bst-structure", []string{"modified-binary-search"}},
+	"fresh.CountMagnetWords":         {"backtracking", []string{"subsets"}},
+	"fresh.CountSteadyPairs":         {"hash-table-structure", []string{"sorting"}},
+	"fresh.FastestRoutesCount":       {"graphs", nil},
+	"fresh.FurthestStop":             {"top-k-elements", []string{"heap-structure", "modified-binary-search"}},
+	"fresh.HIndex":                   {"sorting", []string{"modified-binary-search"}},
+	"fresh.BestTeamScore":            {"top-k-elements", []string{"heap-structure"}},
+	"fresh.CanSplitIntoRuns":         {"greedy", nil},
+	"fresh.CookableDishes":           {"topological-sort", []string{"graphs"}},
+	"fresh.EarliestFullBloom":        {"greedy", nil},
+	"fresh.MinBusiestCourier":        {"backtracking", nil},
+	"fresh.MinCrateMoves":            {"tree-dfs", nil},
+	"fresh.MinHopsToLast":            {"graphs", nil},
+	"fresh.MinWeightGap":             {"top-k-elements", []string{"heap-structure"}},
+	"fresh.SafeRooms":                {"topological-sort", []string{"graphs"}},
+	"fresh.WidestSalaryGap":          {"tree-dfs", []string{"tree-bfs"}},
+	"fresh.CalmArrangement":          {"recursion", nil},
+	"fresh.CountBalancedTeams":       {"two-pointers", []string{"modified-binary-search"}},
+	"fresh.DropRepeated":             {"linked-list-structure", nil},
+	"fresh.FewestCutBricks":          {"hash-table-structure", []string{"prefix-sums"}},
+	"fresh.GoodsBetweenDividers":     {"prefix-sums", []string{"modified-binary-search"}},
+	"fresh.LongestWellStockedRun":    {"recursion", []string{"sliding-window"}},
+	"fresh.MatchingRowsAndColumns":   {"hash-table-structure", nil},
+	"fresh.MaxEqualAfterBoosts":      {"sliding-window", []string{"modified-binary-search"}},
+	"fresh.MinRaisesToDistinct":      {"sorting", []string{"greedy"}},
+	"fresh.MinTakesFromEnds":         {"sliding-window", []string{"prefix-sums", "two-pointers"}},
+	"fresh.MinTotalWalk":             {"sorting", []string{"modified-binary-search"}},
+	"fresh.SplitByThreshold":         {"linked-list-structure", nil},
+	"fresh.SplitIntoConvoys":         {"linked-list-structure", nil},
+	"fresh.WidestAffordableGap":      {"two-pointers", []string{"modified-binary-search"}},
+	"fresh.VisibleAhead":             {"monotonic-stack", nil},
+	"fresh.SurvivingRobots":          {"monotonic-stack", nil},
+	"fresh.StateAfter":               {"fast-slow-pointers", []string{"hash-table-structure"}},
+	"fresh.HasRoundTrip":             {"fast-slow-pointers", nil},
+	"fresh.CountSplits":              {"merge-intervals", nil},
+	"fresh.FirstCommonSlot":          {"merge-intervals", nil},
+	"fresh.KioskSpacing":             {"modified-binary-search", nil},
+	"fresh.FindOnTrail":              {"modified-binary-search", nil},
+	"fresh.PriceBonus":               {"bst-structure", nil},
+	"fresh.MinPriceGap":              {"bst-structure", []string{"sorting"}},
+	"fresh.IsFestiveTree":            {"tree-bfs", []string{"tree-dfs"}},
+	"fresh.MinutesToSpread":          {"tree-bfs", []string{"graphs", "tree-dfs"}},
+	"twoheaps.SlidingWindowMedian":   {"two-heaps", []string{"sliding-window"}},
+	"cryptography.ModExp":            {"cryptography", []string{"number-theory"}},
+	"greedy.JobScheduling":           {"dynamic-programming", nil},
+	"dsu.FindRedundantConnection":    {"union-find-structure", []string{"graphs"}},
+	"dsu.ValidTree":                  {"union-find-structure", []string{"graphs"}},
+	"dsu.EquationsPossible":          {"union-find-structure", []string{"graphs"}},
+	"graphs.HasCycleDirected":        {"graphs", []string{"topological-sort"}},
+	"toposort.CanFinish":             {"topological-sort", []string{"graphs"}},
+	"matrix.SearchMatrix":            {"modified-binary-search", []string{"two-pointers"}},
+	"matrix.SearchMatrixII":          {"two-pointers", []string{"modified-binary-search"}},
+	"treedfs.CountPathsWithSum":      {"tree-dfs", []string{"prefix-sums"}},
+	"transfer.MergeAccounts":         {"union-find-structure", []string{"graphs"}},
+	"transfer.ProcessingOrder":       {"heap-structure", []string{"sorting"}},
+	"transfer.IslandCounts":          {"union-find-structure", nil},
+	"transfer.MaxMinGap":             {"modified-binary-search", []string{"greedy"}},
+	"transfer.ShortestRemoval":       {"prefix-sums", nil},
+	"transfer.SmallestUniqueLetters": {"monotonic-stack", []string{"greedy"}},
+	"transfer.OpenLock":              {"graphs", []string{"grids-and-shortest-paths"}},
+	"transfer.MaxDistinctSum":        {"sliding-window", nil},
 	// задачи на проектирование класса (тип с «Шаблон:»)
 	"bigo.MinStack":               {"monotonic-stack", nil},
+	"bigo.MyQueue":                {"big-o", nil},
 	"lru.LRUCache":                {"hash-table-structure", []string{"linked-list-structure"}},
 	"designtwitter.Twitter":       {"k-way-merge", []string{"top-k-elements"}},
 	"twoheaps.MedianFinder":       {"two-heaps", nil},
@@ -340,6 +409,87 @@ func TestRenderNewFields(t *testing.T) {
 	for _, field := range []string{"x — эталон сложности", "a — слаги глав", "g — признак", "n — другие упражнения"} {
 		if !strings.Contains(out, field) {
 			t.Errorf("шапка файла не описывает поле %q", field)
+		}
+	}
+}
+
+// noPick: запись ставит np задаче банка, запись без задачи и запись без причины — ошибки (иначе
+// список молча гнил бы после переименования функции или выброшенного дубля).
+func TestMarkNoPick(t *testing.T) {
+	bank := func() []problem {
+		return []problem{{Pkg: "p", Fn: "F"}, {Pkg: "p", Fn: "G"}, {Pkg: "q", Fn: "T"}}
+	}
+	tests := []struct {
+		name    string
+		list    map[string]string
+		wantErr string // подстрока ошибки; "" — ошибки нет
+		marked  []string
+	}{
+		{"пустой список ничего не помечает", nil, "", nil},
+		{"запись помечает свою задачу", map[string]string{"p.G": "«обход в ширину»"}, "", []string{"p.G"}},
+		{"тип тоже ключ", map[string]string{"q.T": "«окно»", "p.F": "«куча»"}, "", []string{"p.F", "q.T"}},
+		{"записи нет в банке", map[string]string{"p.F": "x", "p.Gone": "x", "a.B": "x"}, "[a.B p.Gone]", nil},
+		{"запись без причины", map[string]string{"p.F": ""}, "нет причины", nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ps := bank()
+			err := markNoPick(ps, tt.list)
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("markNoPick() = %v, ожидалась ошибка с %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got []string
+			for _, p := range ps {
+				if p.NoPick {
+					got = append(got, p.Pkg+"."+p.Fn)
+				}
+			}
+			if !slices.Equal(got, tt.marked) {
+				t.Errorf("помечены %v, ожидались %v", got, tt.marked)
+			}
+		})
+	}
+}
+
+// Настоящий список noPick против настоящего банка (после dedupe, как в main).
+func TestNoPickRealBank(t *testing.T) {
+	ps, _, err := collect("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ps, _ = dedupe(ps)
+	if err := markNoPick(ps, noPick); err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, p := range ps {
+		if p.NoPick {
+			n++
+		}
+	}
+	if n != len(noPick) || n == 0 {
+		t.Errorf("помечено %d задач, в списке %d", n, len(noPick))
+	}
+}
+
+func TestRenderNoPick(t *testing.T) {
+	out := string(render([]problem{
+		{Pkg: "p", Fn: "F", Chapter: "c", Text: "s", NoPick: true},
+		{Pkg: "p", Fn: "G", Chapter: "c", Text: "s"},
+	}))
+	for _, want := range []string{
+		`{ p: "p", f: "F", c: "c", s: "s", h: "", t: [], x: "", a: [], g: "", n: [], np: true },`,
+		`{ p: "p", f: "G", c: "c", s: "s", h: "", t: [], x: "", a: [], g: "", n: [] },`,
+		"np: true — условие само называет приём",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("в банке нет строки %s:\n%s", want, out)
 		}
 	}
 }

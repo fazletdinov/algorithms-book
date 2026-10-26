@@ -2,7 +2,10 @@
 
 package toposort
 
-import "container/heap"
+import (
+	"container/heap"
+	"slices"
+)
 
 func TopologicalSort(numCourses int, prerequisites [][]int) []int {
 	graph := make([][]int, numCourses)
@@ -150,4 +153,122 @@ func AlienOrder(words []string) string {
 		return ""
 	}
 	return string(result)
+}
+
+func MinSemesters(n int, relations [][]int) int {
+	graph := make([][]int, n+1)
+	inDegree := make([]int, n+1)
+	for _, r := range relations {
+		prev, next := r[0], r[1]
+		graph[prev] = append(graph[prev], next)
+		inDegree[next]++
+	}
+
+	queue := []int{}
+	for v := 1; v <= n; v++ {
+		if inDegree[v] == 0 {
+			queue = append(queue, v)
+		}
+	}
+
+	semesters, taken := 0, 0
+	for len(queue) > 0 {
+		semesters++
+		levelSize := len(queue) // курсы этого семестра; ставшие готовыми — в следующий
+		for i := 0; i < levelSize; i++ {
+			v := queue[i]
+			taken++
+			for _, next := range graph[v] {
+				inDegree[next]--
+				if inDegree[next] == 0 {
+					queue = append(queue, next)
+				}
+			}
+		}
+		queue = queue[levelSize:]
+	}
+
+	if taken != n {
+		return -1
+	}
+	return semesters
+}
+
+func FindMinHeightTrees(n int, edges [][]int) []int {
+	if n == 1 {
+		return []int{0}
+	}
+	adj := make([][]int, n)
+	degree := make([]int, n)
+	for _, e := range edges {
+		a, b := e[0], e[1]
+		adj[a] = append(adj[a], b)
+		adj[b] = append(adj[b], a)
+		degree[a]++
+		degree[b]++
+	}
+
+	leaves := []int{}
+	for v := 0; v < n; v++ {
+		if degree[v] == 1 {
+			leaves = append(leaves, v)
+		}
+	}
+
+	// Снимаем листья слоями, пока не останется одна или две вершины — середина
+	// самого длинного пути.
+	remaining := n
+	for remaining > 2 {
+		remaining -= len(leaves)
+		next := []int{}
+		for _, leaf := range leaves {
+			for _, nb := range adj[leaf] {
+				degree[nb]--
+				if degree[nb] == 1 {
+					next = append(next, nb)
+				}
+			}
+		}
+		leaves = next
+	}
+
+	slices.Sort(leaves)
+	return leaves
+}
+
+func TopologicalSortDFS(numCourses int, prerequisites [][]int) []int {
+	const (
+		white = iota // ещё не были
+		gray         // вызов идёт
+		black        // вызов закончен, вершина уже в post
+	)
+	graph := make([][]int, numCourses)
+	for _, p := range prerequisites {
+		a, b := p[0], p[1]
+		graph[b] = append(graph[b], a)
+	}
+	color := make([]uint8, numCourses)
+	post := make([]int, 0, numCourses) // вершины в порядке выхода из вызова
+	var dfs func(v int) bool
+	dfs = func(v int) bool {
+		color[v] = gray
+		for _, next := range graph[v] {
+			if color[next] == gray {
+				return false // ребро в вершину на текущем пути — цикл
+			}
+			if color[next] == white && !dfs(next) {
+				return false
+			}
+		}
+		color[v] = black
+		post = append(post, v) // всё, что идёт после v, уже в post
+		return true
+	}
+	for v := 0; v < numCourses; v++ {
+		if color[v] == white && !dfs(v) {
+			return []int{}
+		}
+	}
+	slices.Reverse(post)
+	return post
 }

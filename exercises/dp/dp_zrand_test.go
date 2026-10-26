@@ -343,3 +343,52 @@ func TestWordBreakRandom(t *testing.T) {
 		}
 	}
 }
+
+// bruteDeleteAndEarn — перебор всех наборов различных значений: набор годится, если
+// в нём нет двух значений, отличающихся на 1; очки — все копии взятых значений.
+// Не ДП: просто 2^k подмножеств k различных значений.
+func bruteDeleteAndEarn(nums []int) int {
+	count := map[int]int{}
+	for _, x := range nums {
+		count[x]++
+	}
+	var vals []int
+	for v := range count {
+		vals = append(vals, v)
+	}
+	best := 0
+	for mask := 0; mask < 1<<len(vals); mask++ {
+		taken := map[int]bool{}
+		score := 0
+		for i, v := range vals {
+			if mask&(1<<i) != 0 {
+				taken[v] = true
+				score += v * count[v]
+			}
+		}
+		ok := true
+		for v := range taken {
+			if taken[v+1] {
+				ok = false
+				break
+			}
+		}
+		if ok && score > best {
+			best = score
+		}
+	}
+	return best
+}
+
+func TestDeleteAndEarnRandom(t *testing.T) {
+	rng := rand.New(rand.NewSource(740))
+	for range 300 {
+		nums := make([]int, rng.Intn(16))
+		for i := range nums {
+			nums[i] = 1 + rng.Intn(12) // ≤ 12 различных значений — 4096 подмножеств
+		}
+		if got, want := DeleteAndEarn(nums), bruteDeleteAndEarn(nums); got != want {
+			t.Fatalf("DeleteAndEarn(%v) = %d, перебор наборов = %d", nums, got, want)
+		}
+	}
+}
